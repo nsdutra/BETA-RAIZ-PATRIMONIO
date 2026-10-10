@@ -4,6 +4,24 @@ Histórico completo de versões do `index.html`, movido automaticamente pelo `ge
 
 ---
 
+NOVIDADES (Beta v1.331.0) — UX F2.3b, busca universal no Hoje (plano F2.3 aprovado pelo Nicola 09/10 20:52).
+O Hoje abre com a barra "Buscar ativo, contrato, pessoa ou documento" (.rz-topo) acima dos chips. Tocar abre
+rzAbrirBuscaUniversal: campo ao vivo e resultados por grupo — Ativos, Contratos, Pessoas e empresas,
+Documentos —, até 5 por grupo, com o mesmo critério de texto de cada lista. "Ver todos" leva à aba com o
+termo na barra (Ativos, Contratos); "Mostrar mais" abre no próprio painel (Partes, Documentos). Só aparecem
+os grupos que a pessoa pode ver. Buscas recentes: as 5 últimas, por pessoa, com o prefixo raiz_d_ — o Sair
+apaga (rzCacheLimparTudo). Partes: lerPartesDoBanco e parteBateTexto saem de carregarPartes/renderPartes
+para a busca usar as mesmas regras. O "Buscar no Cofre" do app passa a ser esta busca. Import map:
+contratos.js 1.47.0, cofre-ativos.js 1.82.0, cofre-documentos.js 2.35.0, cofre-app.js 1.47.0,
+ativos/ativos-markup.js 1.55.0. Nenhum objeto de banco criado por este arquivo.
+Versão anterior (Beta v1.330.2):
+------------------------------------------------------------------
+Versões anteriores (v1.330.2 … v1.330.2): CHANGELOG_APP.md, na raiz do
+repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
+das 5 versões mais recentes deste cabeçalho.
+
+---
+
 NOVIDADES (Beta v1.330.2) — "Sim faça 1, 2 e 4" do Nicola (09/10 21:54). Financeiro: o vínculo sem ativo
 passa a se chamar "Empresa" na despesa, no item da fatura e na receita sem contrato (financeiro.js
 1.38.3; só rótulo). Banco, sem objeto novo: ocorrência que já nasce concluída gera a despesa já paga

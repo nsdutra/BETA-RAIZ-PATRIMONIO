@@ -1,7 +1,19 @@
 // =====================================================================
 // RAIZ PATRIMÔNIO — js/resultados.js
-// VERSÃO: Beta v2.4.0 (09/10/2026 — demandas 43bc3cab e f0ab422d)
+// VERSÃO: Beta v2.5.0 (09/10/2026 — demanda 4de70503)
 // LINHAS: (ver versoes.json)
+// -----------------------------------------------------------------
+// NOVIDADES (Beta v2.5.0) — sessão 20261003-1707-ux-base; pedido do Nicola 09/10 23:04 (itens 2 a 4):
+//   — Card novo "Contratos por índice" no Patrimônio (fn_carteira_indices_resumo, já existente): barras deitadas
+//     com a fatia do aluguel e o nº de contratos por índice de reajuste, título-conclusão, reajuste médio
+//     ponderado de 12 meses e o atalho "Indicadores e simuladores" (abrirIndicadores). Sem o código
+//     resultados.indicadores o card aparece bloqueado, com o motivo.
+//   — "Sua carteira × indicador" no modelo executivo: título-conclusão, rótulo direto no fim de cada linha,
+//     SVG sem distorcer o texto, e chips para comparar a carteira com até 2 dos 6 indicadores (começa com
+//     IPCA e IGP-M; trocarIndicadorComparacao). Indicador continua linha de referência tracejada (REGRAS §18).
+//   — Indicadores de mercado voltam aos quadrantes, agora em blocos separados (nome e mês no topo, valor,
+//     12 meses embaixo).
+// Versão anterior: Beta v2.4.0
 // -----------------------------------------------------------------
 // NOVIDADES (Beta v2.4.0) — sessão 20261003-1707-ux-base; plano aprovado pelo Nicola 09/10 ("De acordo, tudo
 //   numa entrega só"; gráficos "no modelo da McKinsey"):
@@ -32,21 +44,11 @@
 //   5B" do Nicola 04/10 22:06): o card Indicadores ganha "Ver todos", que carrega o módulo novo
 //   js/indicadores.js (lazy) com Mês a mês · Sua carteira · Simulador. Sem o código
 //   resultados.indicadores, o botão aparece desabilitado com cadeado e o motivo (ACE-04).
-// Versão anterior: Beta v2.1.0 (04/10/2026 — demanda 557d3a6b)
-// -----------------------------------------------------------------
-// NOVIDADES (Beta v2.1.0) — frente 5, fatia 5A (sessão 20261004-1800-indicadores, "de acordo"
-//   do Nicola 04/10 18:00 e 22:06): o card Indicadores passa dos 3 para os 6 indicadores
-//   coletados (IPCA, IGP-M, INCC-DI, Selic, CDI, IVG-R), cada um com o valor do último mês
-//   fechado, o mês de referência e o acumulado de 12 meses. O ⓘ abre um parágrafo por
-//   indicador, lido do banco (indicador_series.explicacao, via fn_indicadores_resumo — fonte
-//   única para app, bot e relatórios). Migration indicadores_resumo_seis_v1: IVG-R vira
-//   variação e o mês em andamento (Selic/CDI provisórios) não entra. Texto do card a 12 px
-//   (era 10,5 — UXR-31).
 // --------------------------------------------------------------------------
-// Versões anteriores (v2.0.0 … v2.0.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v2.1.0 … v2.1.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '2.4.0';
+export const VERSAO = '2.5.0';
 
 // ---------------------------------------------------------------------
 // Estado do filtro (module-scoped — sobrevive entre renders porque o
@@ -91,6 +93,9 @@ function pctSinal(v) {
 }
 
 const NOME_CURTO_INDICADOR = { ipca: 'IPCA', igpm: 'IGP-M', selic: 'Selic', ivgr: 'IVG-R', inccdi: 'INCC-DI', cdi: 'CDI' };
+// v2.5.0 — indicadores que a carteira pode comparar (ordem dos chips) e os escolhidos (até 2; começa IPCA e IGP-M).
+const INDICADORES_COMPARAVEIS = ['ipca', 'igpm', 'inccdi', 'selic', 'cdi', 'ivgr'];
+let indicadoresComparar = ['ipca', 'igpm'];
 // v2.1.0 (5A) — última leitura de fn_indicadores_resumo, para o ⓘ mostrar o texto de cada
 // indicador sem consultar de novo. Só leitura; quem escreve é renderizarConteudo().
 let ultimosIndicadores = [];
@@ -238,7 +243,7 @@ async function renderizarConteudo() {
         // por empreendimento/imóvel — decisão documentada no changelog
         // acima): olhar o índice de mercado contra UM imóvel só não faz
         // sentido, a leitura é sempre da carteira.
-        const [resumoR, perfR, mensalR, concR, reajR, revR, graficoIndR, grupoR] = await Promise.all([
+        const [resumoR, perfR, mensalR, concR, reajR, revR, graficoIndR, grupoR, indicesR] = await Promise.all([
             filtro.abrangencia === 'carteira'
                 ? dbAuth.rpc('fn_resumo_resultados', { p_cliente_id: CLIENTE_ID_SUPABASE, p_uso, p_ano: filtro.ano })
                 : Promise.resolve({ data: null }),
@@ -257,9 +262,11 @@ async function renderizarConteudo() {
             cardsLocacao
                 ? dbAuth.rpc('fn_carteira_revisionais_calendario', { p_cliente_id: CLIENTE_ID_SUPABASE, p_ano: filtro.ano, p_uso })
                 : Promise.resolve({ data: [] }),
-            filtro.contexto === 'familia' ? Promise.resolve({ data: [] }) : dbAuth.rpc('fn_carteira_indicador_series', { p_cliente_id: CLIENTE_ID_SUPABASE, p_ano: filtro.ano, p_codigo: 'ipca' }),
+            filtro.contexto === 'familia' ? Promise.resolve({ data: [] }) : lerSeriesComparacao(), // v2.5.0 — até 2 indicadores
             // v2.3.0 — abertura por grupo (nível 1 da árvore); erro aqui só esconde o card
             dbAuth.rpc('fn_resultado_por_grupo', { p_cliente_id: CLIENTE_ID_SUPABASE, p_ano: filtro.ano, p_nivel: nivel, p_id: alvoId, p_uso }),
+            // v2.5.0 — contratos por índice; sem o código resultados.indicadores a função recusa e o card fica bloqueado
+            cardsLocacao ? dbAuth.rpc('fn_carteira_indices_resumo', { p_cliente_id: CLIENTE_ID_SUPABASE }) : Promise.resolve({ data: null }),
         ]);
         if (minha !== geracao) return; // v2.0.0 — chegou um desenho mais novo
         if (resumoR.error) throw resumoR.error;
@@ -276,7 +283,7 @@ async function renderizarConteudo() {
         const concentracao = concR.data || [];
         const reajustes = reajR.data || [];
         const revisionais = revR.data || [];
-        const graficoIndicador = graficoIndR.data || [];
+        const graficoIndicador = graficoIndR.data || {}; // v2.5.0 — { codigo: [{mes, carteira_indice, indicador_indice}] }
         if (grupoR.error) console.warn('[resultados] por grupo:', grupoR.error.message); // v2.3.0
         const porGrupo = grupoR.error ? [] : (grupoR.data || []);
 
@@ -286,7 +293,8 @@ async function renderizarConteudo() {
         alvo.innerHTML = [
             montarGraficoMensal(mensal), // v2.4.0 — Indicadores foi para o Fique por dentro (renderIndicadoresMercado)
             montarPorGrupo(porGrupo), // v2.3.0
-            montarGraficoIndicador(graficoIndicador, 'ipca'),
+            cardsLocacao ? montarContratosPorIndice(indicesR) : '', // v2.5.0
+            montarGraficoIndicador(graficoIndicador),
             cardsLocacao ? montarConcentracao(concentracao) : '',
             cardsLocacao ? montarReajustesCalendario(reajustes) : '',
             cardsLocacao ? montarRevisionaisCalendario(revisionais) : '',
@@ -328,20 +336,23 @@ export async function renderIndicadoresMercado(mountId) {
     if (typeof rzIcones === 'function') rzIcones();
 }
 
+// v2.5.0 — de volta aos quadrantes (pedido do Nicola 09/10 23:04), cada indicador num bloco separado: nome e mês
+// no topo, valor do mês grande (negativo em --danger) e o acumulado de 12 meses embaixo.
 function montarIndicadoresMercado(indicadores) {
     const cab = `<div class="rz-card-h"><h3>Indicadores de mercado</h3>${botaoInfoCard('abrirInfoIndicadores()')}</div>`;
     if (!indicadores || !indicadores.length) {
         return `<div class="rz-card">${cab}<div class="rz-empty"><div class="rz-ic"><svg data-lucide="trending-up"></svg></div><p>Sem índice de mercado disponível no momento.</p></div></div>`;
     }
-    const linhas = indicadores.map(ind => {
+    const blocos = indicadores.map(ind => {
         const mes = ind.valor_mes_pct == null ? null : Number(ind.valor_mes_pct);
-        return `<div class="rz-row rz-ind">
-            <div class="rz-tx"><b>${rzEsc(NOME_CURTO_INDICADOR[ind.codigo] || ind.nome)}</b><span>${rzEsc(competenciaCurta(ind.competencia_mes))}</span></div>
-            <div class="rz-rt"><b class="${mes != null && mes < 0 ? 'rz-ind-neg' : ''}">${pctSinal(mes)}</b><span>${pctSinal(ind.acumulado_12m_pct)} em 12 meses</span></div>
+        return `<div class="rz-ind-q">
+            <div class="rz-ind-q-h"><b>${rzEsc(NOME_CURTO_INDICADOR[ind.codigo] || ind.nome)}</b><span>${rzEsc(competenciaCurta(ind.competencia_mes))}</span></div>
+            <strong class="${mes != null && mes < 0 ? 'rz-ind-neg' : ''}">${pctSinal(mes)}</strong>
+            <span class="rz-ind-q-12">${pctSinal(ind.acumulado_12m_pct)} em 12 meses</span>
         </div>`;
     }).join('');
     return `<div class="rz-card">${cab}<p class="rz-res-sub">Último mês fechado e acumulado de 12 meses · Banco Central</p>
-        <div class="rz-list">${linhas}</div>${botaoVerTodosIndicadores()}</div>`;
+        <div class="rz-ind-grade">${blocos}</div>${botaoVerTodosIndicadores('Ver todos e simuladores')}</div>`;
 }
 
 // ---- Colunas no padrão executivo (v2.4.0, dem f0ab422d) -------------------------------------------------
@@ -409,58 +420,132 @@ function montarGraficoMensal(mensal) {
     </div>`;
 }
 
-// v1.3.0 (B1.2) — dado real (fn_carteira_indicador_series). SVG desenhado
-// à mão (mesmo espírito de montarGraficoMensal, que já monta barras em
-// divs cruas) — sem lib nova, sem componente .rz-* novo (CAN-03). Base
-// 100, eixo único (ESP §13.1 R9); linha do indicador tracejada/cinza com
-// rótulo direto (R10), corta no último mês com dado capturado (não
-// interpola nem projeta o que ainda não foi lido do BC).
-function montarGraficoIndicador(serie, codigoIndicador) {
+// v2.5.0 (dem 4de70503) — séries da carteira contra os indicadores escolhidos (fn_carteira_indicador_series, uma
+// chamada por indicador; a linha da carteira é a mesma em todas). Devolve { data: {codigo: linhas}, error }.
+async function lerSeriesComparacao() {
+    const rs = await Promise.all(indicadoresComparar.map(cod =>
+        dbAuth.rpc('fn_carteira_indicador_series', { p_cliente_id: CLIENTE_ID_SUPABASE, p_ano: filtro.ano, p_codigo: cod })));
+    const erro = rs.find(r => r.error);
+    if (erro) return { data: null, error: erro.error };
+    const data = {};
+    indicadoresComparar.forEach((cod, i) => { data[cod] = rs[i].data || []; });
+    return { data, error: null };
+}
+
+// Chip da comparação: liga/desliga; no máximo 2 ligados (o 3º troca o mais antigo) e nunca nenhum.
+export async function trocarIndicadorComparacao(codigo) {
+    if (!INDICADORES_COMPARAVEIS.includes(codigo)) return;
+    if (indicadoresComparar.includes(codigo)) {
+        if (indicadoresComparar.length === 1) return;
+        indicadoresComparar = indicadoresComparar.filter(c => c !== codigo);
+    } else {
+        indicadoresComparar = indicadoresComparar.length >= 2 ? [indicadoresComparar[1], codigo] : [...indicadoresComparar, codigo];
+    }
+    const el = document.getElementById('res-card-carteira-ind');
+    if (!el) return;
+    el.querySelectorAll('[data-ind-cmp]').forEach(b => b.classList.toggle('rz-on', indicadoresComparar.includes(b.dataset.indCmp)));
+    const r = await lerSeriesComparacao();
+    if (r.error) { if (typeof mostrarToast === 'function') mostrarToast('Não deu para trocar o indicador agora.', 'danger'); return; }
+    el.outerHTML = montarGraficoIndicador(r.data);
+    if (typeof rzIcones === 'function') rzIcones();
+}
+
+const pctVar = (indice) => indice == null ? null : Number(indice) - 100;
+const pctTxt = (v) => v == null ? '—' : (v >= 0 ? '+' : '−') + Math.abs(v).toLocaleString('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 1 }) + '%';
+
+// v2.5.0 — modelo executivo: título-conclusão, base 100 como linha fina, carteira em --pine contínua, indicadores
+// tracejados em cinza (um traço diferente para cada), rótulo direto no fim de cada linha com a variação do ano.
+function montarGraficoIndicador(series) {
     if (filtro.contexto === 'familia') return ''; // ESP §4.3
-    const nomeIndicador = NOME_CURTO_INDICADOR[codigoIndicador] || (codigoIndicador || '').toUpperCase();
-    if (!serie || serie.length < 2) {
-        return `<div class="rz-card">
-            <div class="rz-card-h" style="justify-content:space-between"><b>Sua carteira × indicador</b>${botaoInfoCard('abrirInfoGraficoIndicador()')}</div>
-            <p class="rz-desc" style="margin-top:8px">Sem patrimônio ou resultado suficiente no período pra montar a comparação com ${rzEsc(nomeIndicador)}.</p>
-        </div>`;
+    const chips = `<div class="rz-chips rz-res-cmp" role="group" aria-label="Comparar com">${INDICADORES_COMPARAVEIS.map(c =>
+        `<button type="button" class="rz-chip${indicadoresComparar.includes(c) ? ' rz-on' : ''}" data-ind-cmp="${c}" onclick="trocarIndicadorComparacao('${c}')">${rzEsc(NOME_CURTO_INDICADOR[c])}</button>`).join('')}</div>`;
+    const base = series && series[indicadoresComparar[0]];
+    if (!base || base.length < 2) {
+        return `<div class="rz-card" id="res-card-carteira-ind">
+            ${cabecalhoGrafico('Sua carteira × indicadores', `Base 100 em jan · ${filtro.ano}`, 'abrirInfoGraficoIndicador()')}
+            ${chips}<p class="rz-desc rz-res-nota">Sem patrimônio ou resultado suficiente no período para montar a comparação.</p></div>`;
     }
-    const valores = serie.flatMap(p => [p.carteira_indice, p.indicador_indice]).filter(v => v != null).map(Number);
-    const max = Math.max(...valores), min = Math.min(...valores);
-    const amplitude = (max - min) || 1;
-    const W = 300, H = 108, PAD = 4;
-    const passo = (W - PAD * 2) / (serie.length - 1);
-    const x = (i) => PAD + i * passo;
-    const y = (v) => H - 14 - ((Number(v) - min) / amplitude) * (H - 14 - PAD);
+    const ate = Math.max(1, Math.min(mesesFechadosNoAno() || 12, base.length));
+    const carteira = base.slice(0, ate).map(p => Number(p.carteira_indice));
+    const linhasInd = indicadoresComparar.map((cod, k) => {
+        const pts = [];
+        for (let i = 0; i < Math.min(ate, (series[cod] || []).length); i++) {
+            const v = series[cod][i].indicador_indice;
+            if (v == null) break;
+            pts.push(Number(v));
+        }
+        return { cod, nome: NOME_CURTO_INDICADOR[cod], pts, traco: k === 0 ? '5 3' : '1.5 3' };
+    });
+    const todos = [100, ...carteira, ...linhasInd.flatMap(l => l.pts)];
+    const max = Math.max(...todos), min = Math.min(...todos), amp = (max - min) || 1;
+    const W = 320, H = 150, ESQ = 4, DIR = 92, TOPO = 10, BAIXO = 18;
+    const larg = W - ESQ - DIR;
+    const x = (i) => ESQ + (ate > 1 ? i * larg / (ate - 1) : 0);
+    const y = (v) => TOPO + (max - v) / amp * (H - TOPO - BAIXO);
+    const poli = (pts) => pts.map((v, i) => `${x(i).toFixed(1)},${y(v).toFixed(1)}`).join(' ');
+    // rótulos no fim das linhas, afastados para não se sobreporem
+    const rot = [{ txt: `Carteira ${pctTxt(pctVar(carteira[carteira.length - 1]))}`, y: y(carteira[carteira.length - 1]), cls: 'rz-cmp-rot-c' },
+        ...linhasInd.filter(l => l.pts.length).map(l => ({ txt: `${l.nome} ${pctTxt(pctVar(l.pts[l.pts.length - 1]))}`, y: y(l.pts[l.pts.length - 1]), cls: 'rz-cmp-rot-i' }))]
+        .sort((p, q) => p.y - q.y);
+    for (let i = 1; i < rot.length; i++) if (rot[i].y - rot[i - 1].y < 12) rot[i].y = rot[i - 1].y + 12;
+    const rotulos = rot.map(r => `<text class="${r.cls}" x="${W - DIR + 6}" y="${(r.y + 3.5).toFixed(1)}">${rzEsc(r.txt)}</text>`).join('');
+    const svg = `<svg class="rz-cmp" viewBox="0 0 ${W} ${H}" role="img" aria-label="Sua carteira comparada com ${rzEsc(linhasInd.map(l => l.nome).join(' e '))}">
+        <line class="rz-cmp-base" x1="${ESQ}" x2="${W - DIR}" y1="${y(100).toFixed(1)}" y2="${y(100).toFixed(1)}"/>
+        ${linhasInd.filter(l => l.pts.length > 1).map(l => `<polyline class="rz-cmp-ind" stroke-dasharray="${l.traco}" points="${poli(l.pts)}"/>`).join('')}
+        <polyline class="rz-cmp-cart" points="${poli(carteira)}"/>
+        ${rotulos}
+        <text class="rz-cmp-m" x="${ESQ}" y="${H - 3}">${NOMES_MES[0]}</text>
+        <text class="rz-cmp-m" x="${(W - DIR).toFixed(1)}" y="${H - 3}" text-anchor="end">${NOMES_MES[ate - 1]}</text>
+    </svg>`;
+    // título-conclusão: a carteira contra cada indicador escolhido (variação do ano até o último mês de cada um)
+    const vc = pctVar(carteira[carteira.length - 1]);
+    const comps = linhasInd.filter(l => l.pts.length).map(l => {
+        const vi = pctVar(l.pts[l.pts.length - 1]);
+        return { lado: vc >= vi ? 'acima' : 'abaixo', txt: `do ${l.nome} (${pctTxt(vi)})` };
+    });
+    // "acima do IPCA (+1,9%) e do IGP-M (+3,4%)" quando os dois vão para o mesmo lado
+    const compTxt = comps.length === 2 && comps[0].lado === comps[1].lado
+        ? `${comps[0].lado} ${comps[0].txt} e ${comps[1].txt}`
+        : comps.map(c => `${c.lado} ${c.txt}`).join(' e ');
+    const titulo = `Sua carteira rendeu ${pctTxt(vc)} em ${filtro.ano}` + (compTxt ? `, ${compTxt}` : '');
+    const ultimoInd = linhasInd.filter(l => l.pts.length).map(l => `${l.nome} até ${NOMES_MES[l.pts.length - 1].toLowerCase()}`).join(' · ');
+    return `<div class="rz-card" id="res-card-carteira-ind">
+        ${cabecalhoGrafico(titulo, `Base 100 em jan · carteira até ${NOMES_MES[ate - 1].toLowerCase()}${ultimoInd ? ' · ' + ultimoInd : ''}`, 'abrirInfoGraficoIndicador()')}
+        ${chips}${svg}
+        <p class="rz-res-fonte">Fonte: Raiz · resultado da carteira; índices do Banco Central · escolha até 2 para comparar</p>
+    </div>`;
+}
 
-    const pontosCarteira = serie.map((p, i) => `${x(i).toFixed(1)},${y(p.carteira_indice).toFixed(1)}`).join(' ');
-    // a série do indicador só corta no FIM (mês ainda não capturado) — não
-    // tem buraco no meio, então pega os pontos válidos a partir do início.
-    let ultimoIndicador = -1;
-    const pontosIndicador = [];
-    for (let i = 0; i < serie.length; i++) {
-        if (serie[i].indicador_indice == null) break;
-        pontosIndicador.push(`${x(i).toFixed(1)},${y(serie[i].indicador_indice).toFixed(1)}`);
-        ultimoIndicador = i;
+// v2.5.0 (dem 4de70503) — Contratos por índice: barras deitadas (ranking, REL-25), a maior fatia em destaque.
+function montarContratosPorIndice(r) {
+    const atalho = botaoVerTodosIndicadores('Indicadores e simuladores');
+    if (r && r.error) {
+        const bloqueado = /plano|perfil/i.test(r.error.message || '') || r.error.code === '42501';
+        if (!bloqueado) { console.warn('[resultados] índices:', r.error.message); return ''; }
+        return `<div class="rz-card">${cabecalhoGrafico('Contratos por índice de reajuste', 'Aluguel mensal dos contratos ativos por índice', 'abrirInfoContratosIndice()')}
+            <p class="rz-desc rz-res-nota">Disponível nos planos com Indicadores.</p>${atalho}</div>`;
     }
-    const iUltimoCarteira = serie.length - 1;
-    const rotuloCarteira = `<text x="${(x(iUltimoCarteira) - 2).toFixed(1)}" y="${(y(serie[iUltimoCarteira].carteira_indice) - 4).toFixed(1)}" font-size="8" text-anchor="end" fill="var(--sprout)" font-weight="700">Sua carteira</text>`;
-    const rotuloIndicador = ultimoIndicador >= 0
-        ? `<text x="${(x(ultimoIndicador) - 2).toFixed(1)}" y="${(y(serie[ultimoIndicador].indicador_indice) + 10).toFixed(1)}" font-size="8" text-anchor="end" fill="var(--muted)" font-weight="700">${rzEsc(nomeIndicador)}</text>`
-        : '';
-    const rotuloMesInicio = `<text x="${x(0).toFixed(1)}" y="${H - 2}" font-size="8" fill="var(--muted)">${NOMES_MES[(serie[0].mes || 1) - 1]}</text>`;
-    const rotuloMesFim = `<text x="${x(iUltimoCarteira).toFixed(1)}" y="${H - 2}" font-size="8" text-anchor="end" fill="var(--muted)">${NOMES_MES[(serie[iUltimoCarteira].mes || 12) - 1]}</text>`;
-
+    const d = r && r.data;
+    const grupos = (d && Array.isArray(d.grupos)) ? d.grupos : [];
+    if (!grupos.length || !Number(d.receita)) return '';
+    const nome = (g) => NOME_CURTO_INDICADOR[g.codigo] || String(g.nome || 'Sem índice').split(' — ')[0];
+    const topo = grupos[0];
+    const pctFmt1 = (v) => Number(v || 0).toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 1 }) + '%';
+    const titulo = grupos.length === 1
+        ? `Todo o aluguel da carteira reajusta pelo ${nome(topo)}`
+        : `${nome(topo)} reajusta ${pctFmt1(topo.pct_receita)} do aluguel da carteira`;
+    const linhas = grupos.map((g, i) => `<div class="rz-idx-l">
+        <span class="rz-idx-n">${rzEsc(nome(g))}</span>
+        <svg class="rz-idx-t" viewBox="0 0 100 12" preserveAspectRatio="none" aria-hidden="true"><rect class="rz-idx-fundo" width="100" height="12" rx="2"/><rect class="${i === 0 ? 'rz-idx-hl' : 'rz-idx-b'}" width="${Math.max(1, Math.min(100, Number(g.pct_receita || 0))).toFixed(1)}" height="12" rx="2"/></svg>
+        <span class="rz-idx-v"><b>${pctFmt1(g.pct_receita)}</b> · ${Number(g.contratos)} ${Number(g.contratos) === 1 ? 'contrato' : 'contratos'}</span>
+    </div>`).join('');
+    const pond = d.ponderado && d.ponderado.a12 != null ? `<p class="rz-res-sub rz-idx-pond">Reajuste médio ponderado da carteira em 12 meses: <b>${pctSinal(d.ponderado.a12)}</b></p>` : '';
     return `<div class="rz-card">
-        <div class="rz-card-h" style="justify-content:space-between"><b>Sua carteira × indicador</b>${botaoInfoCard('abrirInfoGraficoIndicador()')}</div>
-        <svg viewBox="0 0 ${W} ${H}" style="width:100%;height:118px;margin-top:6px" preserveAspectRatio="none">
-            <polyline points="${pontosCarteira}" fill="none" stroke="var(--sprout)" stroke-width="2" vector-effect="non-scaling-stroke"/>
-            ${pontosIndicador.length > 1 ? `<polyline points="${pontosIndicador.join(' ')}" fill="none" stroke="var(--muted)" stroke-width="1.6" stroke-dasharray="4 3" vector-effect="non-scaling-stroke"/>` : ''}
-            ${rotuloCarteira}
-            ${rotuloIndicador}
-            ${rotuloMesInicio}
-            ${rotuloMesFim}
-        </svg>
-        <p class="rz-desc" style="margin-top:2px">Base 100 no início do período · ${rzEsc(nomeIndicador)} até o último mês já capturado do Banco Central.</p>
+        ${cabecalhoGrafico(titulo, `Aluguel mensal por índice · ${Number(d.contratos)} contratos ativos · ${formatarPatrimonioCompacto(Number(d.receita))}/mês`, 'abrirInfoContratosIndice()')}
+        <div class="rz-idx">${linhas}</div>
+        ${pond}
+        <p class="rz-res-fonte">Fonte: Raiz · contratos ativos com valor</p>
+        ${atalho}
     </div>`;
 }
 
@@ -679,12 +764,12 @@ export function abrirInfoRevisionais() {
 // todos os cards desta tela") — mesmo padrão das 2 funções acima
 // (rz-kv/rz-full dentro de Sheet), uma por card que ainda não tinha.
 // v2.2.0 (5B) — "Ver todos" abre a tela de indicadores (módulo lazy js/indicadores.js).
-function botaoVerTodosIndicadores() {
+function botaoVerTodosIndicadores(rotulo = 'Ver todos') {
     const pode = typeof podeUsar === 'function' ? podeUsar('resultados.indicadores') : true;
     if (pode === false) {
-        return `<button type="button" disabled title="Disponível nos planos com Resultados" style="display:flex;align-items:center;justify-content:center;gap:6px;width:100%;margin-top:12px;padding-top:12px;border:0;border-top:1px solid var(--line);background:none;color:var(--muted);font-weight:600;font-size:14px;min-height:44px"><svg data-lucide="lock" style="width:14px;height:14px"></svg>Ver todos — disponível nos planos com Resultados</button>`;
+        return `<button type="button" disabled title="Disponível nos planos com Resultados" style="display:flex;align-items:center;justify-content:center;gap:6px;width:100%;margin-top:12px;padding-top:12px;border:0;border-top:1px solid var(--line);background:none;color:var(--muted);font-weight:600;font-size:14px;min-height:44px"><svg data-lucide="lock" style="width:14px;height:14px"></svg>${rzEsc(rotulo)} — disponível nos planos com Resultados</button>`;
     }
-    return `<button type="button" onclick="abrirIndicadores()" style="display:flex;align-items:center;justify-content:center;gap:4px;width:100%;margin-top:12px;padding-top:12px;border:0;border-top:1px solid var(--line);background:none;color:var(--sprout);font-weight:600;font-size:14px;min-height:44px">Ver todos<svg data-lucide="chevron-right" style="width:16px;height:16px"></svg></button>`;
+    return `<button type="button" onclick="abrirIndicadores()" style="display:flex;align-items:center;justify-content:center;gap:4px;width:100%;margin-top:12px;padding-top:12px;border:0;border-top:1px solid var(--line);background:none;color:var(--sprout);font-weight:600;font-size:14px;min-height:44px">${rzEsc(rotulo)}<svg data-lucide="chevron-right" style="width:16px;height:16px"></svg></button>`;
 }
 
 export function abrirIndicadores() {
@@ -718,10 +803,22 @@ export function abrirInfoResultadoMensal() {
         }</div></div></div>`);
 }
 
+export function abrirInfoContratosIndice() {
+    const itens = [
+        ['Contratos por índice', 'Quanto do aluguel mensal dos contratos ativos reajusta por cada índice (IPCA, IGP-M…). Mostra a exposição da carteira a cada índice.'],
+        ['Reajuste médio ponderado', 'O acumulado de 12 meses de cada índice, pesado pelo aluguel dos contratos que usam esse índice.'],
+        ['Indicadores e simuladores', 'Abre o detalhe dos indicadores, com o mês a mês, a sua carteira e o simulador de troca de índice.'],
+    ];
+    abrirSheet(rzSheetCabecalho('Sobre o card Contratos por índice') +
+        `<div class="rz-sh-b"><div class="rz-card"><div class="rz-kv">${
+            itens.map(([r, v]) => `<div class="rz-full"><small>${rzEsc(r)}</small><b style="font-weight:500;font-size:12.5px">${rzEsc(v)}</b></div>`).join('')
+        }</div></div></div>`);
+}
+
 export function abrirInfoGraficoIndicador() {
     const itens = [
-        ['Sua carteira × indicador', 'Compara o resultado da carteira com o IPCA no mesmo período, os dois em base 100 — mostra se o patrimônio está rendendo acima ou abaixo do índice.'],
-        ['Linha tracejada e cinza', 'O IPCA acumulado, mês a mês — só até o último mês já capturado do Banco Central; não projeta o que ainda não saiu.'],
+        ['Sua carteira × indicadores', 'Compara o resultado da carteira com até 2 índices no mesmo período, todos em base 100 — mostra se o patrimônio está rendendo acima ou abaixo de cada índice. Toque nos chips para escolher (começa com IPCA e IGP-M).'],
+        ['Linhas tracejadas e cinza', 'Cada índice acumulado, mês a mês — só até o último mês já capturado do Banco Central; não projeta o que ainda não saiu. O número no fim da linha é a variação no ano.'],
         ['Limite da conta', 'O índice da carteira usa o patrimônio consolidado do período como referência (o banco não guarda o patrimônio mês a mês) — é uma aproximação da rentabilidade mensal, não uma conta exata mês a mês.'],
     ];
     abrirSheet(rzSheetCabecalho('Sobre o card Sua carteira × indicador') +
