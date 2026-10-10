@@ -6,9 +6,13 @@
    (base derivada do RUMO v7.4.2 — histórico de versões anteriores
    preservado abaixo para referência técnica)
 
-   VERSÃO: Beta v1.352.0
-   LINHAS: 15605
-   DATA: 10/10/2026 (sessão 20261008-1231-pessoas-ativos, demanda f3e6cd27)
+   VERSÃO: Beta v1.353.0
+   LINHAS: 15647
+   DATA: 10/10/2026 (sessão 20261008-1231-pessoas-ativos, demanda a3f4c73f)
+   NOVIDADES (Beta v1.353.0) — F25 (Nicola 10/10 14:57): o ramo de cada ativo vem do modelo vigente hoje (uso; senão o
+   repouso; senão o tipo). A lente mostra só os ramos contratados (fn_cliente_ramos) e some com um ramo só. Ficha do
+   ativo: chip "Usos e contratos" (cofre-ativos.js 1.86.0, ativos-markup.js 1.56.0).
+   Versão anterior (Beta v1.352.0):
    NOVIDADES (Beta v1.352.0) — Onda 2b da fragmentação: CONTA E PREFERÊNCIAS vira módulo (demanda
    6b11c602, plano das ondas aprovado pelo Nicola 09/10 21:15). 13 telas — menu da conta, seção Sobre,
    licença, preferências de comunicação e de alerta e os atalhos de configuração — saíram deste arquivo
@@ -71,12 +75,8 @@
    Índice: 1.070.799 → 1.041.857 bytes (17.273 → 16.747 linhas) — PASSA ABAIXO do teto de 1.048.576 bytes da
    API de conteúdo do GitHub pela primeira vez. Nenhum objeto de banco.
    Versão anterior (Beta v1.348.0):
-   NOVIDADES (Beta v1.348.0) — Tonalidade completa (Nicola 10/10 10:45): o botão + das telas (.rz-ico-btn.rz-primary), o
-   ícone e a linha do item ativo da barra de baixo e o fundo do avatar passam a seguir o ramo da lente. Resultados
-   por ramo (F23) em js/resultados.js 2.9.0.
-   Versão anterior (Beta v1.347.0):
    ------------------------------------------------------------------
-   Versões anteriores (v1.347.0 … v1.347.0): CHANGELOG_APP.md, na raiz do
+   Versões anteriores (v1.348.0 … v1.348.0): CHANGELOG_APP.md, na raiz do
    repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
    das 5 versões mais recentes deste cabeçalho.
 
@@ -101,7 +101,7 @@
          O navegador aplica o mapa também aos imports estáticos dentro dos
          módulos (cofre-app.js → ./cofre-api.js etc.). -->
     <!-- RZ-IMPORTMAP:INICIO -->
-    <script type="importmap">{"imports":{"./js/cadastros.js":"./js/cadastros.js?v=1.2.0","./js/financeiro.js":"./js/financeiro.js?v=1.42.0","./js/fechamento.js":"./js/fechamento.js?v=1.12.3","./js/contratos.js":"./js/contratos.js?v=1.48.0","./js/minutas.js":"./js/minutas.js?v=1.4.0","./js/vitrine.js":"./js/vitrine.js?v=1.5.2","./js/imoveis.js":"./js/imoveis.js?v=1.7.2","./js/cofre-api.js":"./js/cofre-api.js?v=1.50.0","./js/cofre-app.js":"./js/cofre-app.js?v=1.47.0","./js/cofre-ativos.js":"./js/cofre-ativos.js?v=1.85.1","./js/cofre-controles.js":"./js/cofre-controles.js?v=1.49.0","./js/cofre-documentos.js":"./js/cofre-documentos.js?v=2.35.0","./js/cofre-imagem.js":"./js/cofre-imagem.js?v=1.1.0","./js/cofre-estado.js":"./js/cofre-estado.js?v=1.5.2","./js/cofre-navegacao.js":"./js/cofre-navegacao.js?v=1.9.3","./js/cofre-ui.js":"./js/cofre-ui.js?v=1.7.2","./js/cofre-validacoes.js":"./js/cofre-validacoes.js?v=2.5.0","./js/comum-licenca.js":"./js/comum-licenca.js?v=1.7.0","./js/comum-renovacao.js":"./js/comum-renovacao.js?v=1.3.5","./js/comum-minha-empresa.js":"./js/comum-minha-empresa.js?v=1.14.0","./js/comum-pessoas.js":"./js/comum-pessoas.js?v=1.206.0","./js/comum-sobre.js":"./js/comum-sobre.js?v=1.4.0","./js/comum-endereco.js":"./js/comum-endereco.js?v=1.2.0","./js/comum-partes.js":"./js/comum-partes.js?v=1.0.0","./js/resultados.js":"./js/resultados.js?v=2.9.0","./js/indicadores.js":"./js/indicadores.js?v=1.0.0","./js/configuracao-inicial.js":"./js/configuracao-inicial.js?v=1.0.1","./js/relatorios-executivos.js":"./js/relatorios-executivos.js?v=1.1.2","./js/raiz-eventos.js":"./js/raiz-eventos.js?v=1.0.0","./js/raiz-device.js":"./js/raiz-device.js?v=1.0.0","./js/raiz-ui.js":"./js/raiz-ui.js?v=1.2.0","./js/fiscal.js":"./js/fiscal.js?v=1.5.2","./js/ativos/ativos-boot.js":"./js/ativos/ativos-boot.js?v=1.4.0","./js/ativos/ativos-markup.js":"./js/ativos/ativos-markup.js?v=1.55.0","./js/nucleo/porta.js":"./js/nucleo/porta.js?v=1.2.0","./js/partes.js":"./js/partes.js?v=1.0.0","./js/conta.js":"./js/conta.js?v=1.0.0"}}</script>
+    <script type="importmap">{"imports":{"./js/cadastros.js":"./js/cadastros.js?v=1.2.0","./js/financeiro.js":"./js/financeiro.js?v=1.42.0","./js/fechamento.js":"./js/fechamento.js?v=1.12.3","./js/contratos.js":"./js/contratos.js?v=1.48.0","./js/minutas.js":"./js/minutas.js?v=1.4.0","./js/vitrine.js":"./js/vitrine.js?v=1.5.2","./js/imoveis.js":"./js/imoveis.js?v=1.7.2","./js/cofre-api.js":"./js/cofre-api.js?v=1.50.0","./js/cofre-app.js":"./js/cofre-app.js?v=1.47.0","./js/cofre-ativos.js":"./js/cofre-ativos.js?v=1.86.0","./js/cofre-controles.js":"./js/cofre-controles.js?v=1.49.0","./js/cofre-documentos.js":"./js/cofre-documentos.js?v=2.35.0","./js/cofre-imagem.js":"./js/cofre-imagem.js?v=1.1.0","./js/cofre-estado.js":"./js/cofre-estado.js?v=1.5.2","./js/cofre-navegacao.js":"./js/cofre-navegacao.js?v=1.9.3","./js/cofre-ui.js":"./js/cofre-ui.js?v=1.7.2","./js/cofre-validacoes.js":"./js/cofre-validacoes.js?v=2.5.0","./js/comum-licenca.js":"./js/comum-licenca.js?v=1.7.0","./js/comum-renovacao.js":"./js/comum-renovacao.js?v=1.3.5","./js/comum-minha-empresa.js":"./js/comum-minha-empresa.js?v=1.14.0","./js/comum-pessoas.js":"./js/comum-pessoas.js?v=1.206.0","./js/comum-sobre.js":"./js/comum-sobre.js?v=1.4.0","./js/comum-endereco.js":"./js/comum-endereco.js?v=1.2.0","./js/comum-partes.js":"./js/comum-partes.js?v=1.0.0","./js/resultados.js":"./js/resultados.js?v=2.9.0","./js/indicadores.js":"./js/indicadores.js?v=1.0.0","./js/configuracao-inicial.js":"./js/configuracao-inicial.js?v=1.0.1","./js/relatorios-executivos.js":"./js/relatorios-executivos.js?v=1.1.2","./js/raiz-eventos.js":"./js/raiz-eventos.js?v=1.0.0","./js/raiz-device.js":"./js/raiz-device.js?v=1.0.0","./js/raiz-ui.js":"./js/raiz-ui.js?v=1.2.0","./js/fiscal.js":"./js/fiscal.js?v=1.5.2","./js/ativos/ativos-boot.js":"./js/ativos/ativos-boot.js?v=1.4.0","./js/ativos/ativos-markup.js":"./js/ativos/ativos-markup.js?v=1.56.0","./js/nucleo/porta.js":"./js/nucleo/porta.js?v=1.2.0","./js/partes.js":"./js/partes.js?v=1.0.0","./js/conta.js":"./js/conta.js?v=1.0.0"}}</script>
     <!-- RZ-IMPORTMAP:FIM -->
 
     <!-- ===== PWA: permite "instalar" o app no celular (Android e iPhone) ===== -->
@@ -3762,7 +3762,7 @@
         // texto certo toda vez (esqueci 5 versões seguidas, de v1.37.1 até
         // v1.38.3). Agora só precisa mudar UMA linha aqui a cada release;
         // window.onload aplica nos dois lugares automaticamente.
-        const APP_VERSAO = "Beta v1.352.0"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
+        const APP_VERSAO = "Beta v1.353.0"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
 
         // ====================================================================
         // v1.105.0 — HELPERS DE SUPERFÍCIE DA GRAMÁTICA ÚNICA
@@ -10905,11 +10905,18 @@ async function criarLinkVitrineSupabase(token, idsSelecionados) {
             { codigo: 'pecuaria', nome: 'Pecuária', descricao: 'Rebanhos, pastos e instalações', unidade_singular: 'lote', unidade_plural: 'lotes', soma_valor: true, tem_uso: false, ordem: 50, status: 'em_breve' },
         ];
         let rzRamosCarregados = false;
+        // v1.353.0 (F25) — ramo vem do modelo vigente: modelo → ramo, e o modelo de hoje de cada ativo (uso; senão repouso)
+        let RZ_RAMO_MODELO = {};
+        let RZ_MODELO_HOJE = {};
+        let RZ_RAMOS_LICENCIADOS = null; // null = ainda não lido (mostra o catálogo inteiro)
         function rzRamoInfo(c) { return RZ_RAMOS.find(r => r.codigo === c) || null; }
+        function rzRamoLiberado(c) { return rzRamoInfo(c)?.status === 'ativo' && (!RZ_RAMOS_LICENCIADOS || RZ_RAMOS_LICENCIADOS.includes(c)); }
         function rzRamoAtual() { return geralRamoFiltro; } // v1.346.0 — lido por js/cofre-ativos.js (aba Ativos pela lente)
         function rzNomeRamo(c) { return c === 'tudo' ? 'Todo o patrimônio' : (rzRamoInfo(c)?.nome || c); }
         // ramo de um ativo: o do tipo (ativo_tipos.ramo); sem detalhe, pelo tipo_ativo (mesma regra da fn_alertas_listar)
         function rzRamoDoAtivo(a) {
+            const mh = a?.id ? (RZ_MODELO_HOJE[a.id] || a.modelo_repouso) : a?.modelo_repouso; // F25: modelo vigente decide
+            if (mh && RZ_RAMO_MODELO[mh]) return RZ_RAMO_MODELO[mh];
             if (a?.tipo_detalhe?.ramo) return a.tipo_detalhe.ramo;
             const t = a?.tipo_ativo;
             if (['imovel', 'terreno', 'imovel_predial', 'imovel_territorial'].includes(t)) return 'imoveis';
@@ -10921,6 +10928,7 @@ async function criarLinkVitrineSupabase(token, idsSelecionados) {
             const h = document.documentElement;
             if (geralRamoFiltro === 'tudo') h.removeAttribute('data-ramo'); else h.setAttribute('data-ramo', geralRamoFiltro);
             const bt = document.getElementById('btn-ramo-lente');
+            if (bt) bt.classList.toggle('hidden', Array.isArray(RZ_RAMOS_LICENCIADOS) && RZ_RAMOS_LICENCIADOS.length <= 1); // F25: um ramo só, sem lente
             if (bt) { // v1.345.1 — botão redondo: ícone e cor do ramo; o nome vai no title/aria-label
                 const ICONE = { tudo: 'layers', imoveis: 'building-2', familia: 'users', outros: 'car', agro: 'sprout', pecuaria: 'beef' };
                 const nome = rzNomeRamo(geralRamoFiltro);
@@ -10938,16 +10946,50 @@ async function criarLinkVitrineSupabase(token, idsSelecionados) {
                 if (!error && Array.isArray(data) && data.length) RZ_RAMOS = data;
                 else if (error) console.warn('[ramos] catálogo:', error.message);
             } catch (e) { console.warn('[ramos] catálogo:', e.message); }
-            if (geralRamoFiltro !== 'tudo' && rzRamoInfo(geralRamoFiltro)?.status !== 'ativo') { escolherGeralRamo('tudo'); return; }
+            // v1.353.0 (F25) — ramos contratados e o modelo de hoje de cada ativo
+            try {
+                const { data, error } = await dbAuth.rpc('fn_cliente_ramos', { p_cliente_id: CLIENTE_ID_SUPABASE });
+                if (!error && Array.isArray(data)) RZ_RAMOS_LICENCIADOS = data.map(x => typeof x === 'string' ? x : Object.values(x)[0]);
+                else if (error) console.warn('[ramos] licença:', error.message);
+            } catch (e) { console.warn('[ramos] licença:', e.message); }
+            const mudouModelo = await rzCarregarUsosRamo();
+            if (geralRamoFiltro !== 'tudo' && !rzRamoLiberado(geralRamoFiltro)) { escolherGeralRamo('tudo'); return; }
             rzAplicarRamo();
+            if (mudouModelo) rzRepintarPorRamo();
         }
+        // F25 — modelo de hoje de cada ativo: uso vigente; senão repouso. Devolve true se algum ativo tem modelo.
+        async function rzCarregarUsosRamo() {
+            if (!CLIENTE_ID_SUPABASE) return false;
+            try {
+                const hoje = new Date().toISOString().slice(0, 10);
+                const [mod, usos, rep] = await Promise.all([
+                    dbAuth.from('operacao_modelos').select('codigo, ramo'),
+                    dbAuth.from('ativo_usos').select('ativo_id, modelo').eq('cliente_id', CLIENTE_ID_SUPABASE).lte('inicio', hoje).or(`fim.is.null,fim.gte.${hoje}`),
+                    dbAuth.from('cofre_ativos').select('id, modelo_repouso').eq('cliente_id', CLIENTE_ID_SUPABASE).not('modelo_repouso', 'is', null),
+                ]);
+                const rm = {}; (mod.data || []).forEach(x => { rm[x.codigo] = x.ramo; });
+                const mh = {}; (rep.data || []).forEach(x => { mh[x.id] = x.modelo_repouso; }); (usos.data || []).forEach(x => { mh[x.ativo_id] = x.modelo; });
+                RZ_RAMO_MODELO = rm; RZ_MODELO_HOJE = mh;
+                return Object.keys(mh).length > 0;
+            } catch (e) { console.warn('[ramos] usos:', e.message); return false; }
+        }
+        function rzRepintarPorRamo() {
+            if (CLIENTE_ID_SUPABASE) {
+                carregarDadosAssincronosVisaoGeral(); rzRenderResultadosHoje();
+                if (rzHojeAtual === 'jornal') rzRenderJornal();
+                if (rzHojeAtual === 'fique') rzRenderFique();
+            }
+            window.dispatchEvent(new CustomEvent('raiz:ramo', { detail: { ramo: geralRamoFiltro } }));
+        }
+        window.rzRecarregarUsosRamo = async () => { await rzCarregarUsosRamo(); rzRepintarPorRamo(); }; // chamado pela ficha do ativo (F25)
         function rzAbrirLenteRamo() {
             const item = (c, nome, sub, cor, lock) =>
                 `<button type="button" class="rz-act ${lock ? 'rz-off' : ''}" ${lock ? 'aria-disabled="true"' : `data-rz-ramo="${c}"`}>` +
                 `<div class="rz-ic"><span class="rz-ramo-dot" style="background:${cor}"></span></div>` +
                 `<div>${rzEsc(nome)}${c === geralRamoFiltro ? ' ✓' : ''}<small>${rzEsc(sub)}</small></div></button>`;
             const corpo = item('tudo', 'Todo o patrimônio', 'Todos os ramos somados', 'var(--pine)', false) +
-                RZ_RAMOS.map(r => item(r.codigo, r.nome + (r.status === 'ativo' ? '' : ' · em breve'), r.descricao || '', `var(--ramo-cor-${r.codigo}, var(--sage))`, r.status !== 'ativo')).join('');
+                RZ_RAMOS.filter(r => !RZ_RAMOS_LICENCIADOS || RZ_RAMOS_LICENCIADOS.includes(r.codigo)) // F25: só os ramos contratados
+                    .map(r => item(r.codigo, r.nome + (r.status === 'ativo' ? '' : ' · em breve'), r.descricao || '', `var(--ramo-cor-${r.codigo}, var(--sage))`, r.status !== 'ativo')).join('');
             const sheet = abrirSheet(rzSheetCabecalho('Ver o app de', 'Vale para todas as abas até você trocar de novo.') + `<div class="rz-sh-b">${corpo}</div>`);
             sheet.querySelectorAll('[data-rz-ramo]').forEach(b => b.addEventListener('click', () => { fecharSheet(); escolherGeralRamo(b.dataset.rzRamo); }));
         }
@@ -10962,7 +11004,7 @@ async function criarLinkVitrineSupabase(token, idsSelecionados) {
         }
 
         function escolherGeralRamo(r) {
-            if (r !== 'tudo' && rzRamoInfo(r)?.status !== 'ativo') return;
+            if (r !== 'tudo' && !rzRamoLiberado(r)) return; // F25: ramo ativo e contratado
             const mudou = r !== geralRamoFiltro;
             geralRamoFiltro = r;
             if (mudou) geralUniversoFiltro = 'tudo'; // trocar de ramo volta o uso para Todos

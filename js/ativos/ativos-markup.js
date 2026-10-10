@@ -1,6 +1,12 @@
 // ============================================================================
 // js/ativos/ativos-markup.js — Raiz Patrimônio · Módulo Único, fatia frontend 1
-// Versão: 1.55.0 · 09/10/2026
+// Versão: 1.56.0 · 10/10/2026
+//
+// v1.56.0 (10/10/2026, sessão 20261008-1231-pessoas-ativos, demanda a3f4c73f — F25, aprovada pelo Nicola 10/10 14:57) —
+// chip "Contratos" da ficha vira "Usos e contratos" (D73): card Usos (linha do tempo, Novo uso, repouso) acima
+// do card Contratos, que só aparece para imóvel.
+//
+// Versão anterior: 1.55.0 · 09/10/2026
 //
 // v1.55.0 (UX F2.3b, demanda fcd3008d, sessão 20261003-1707-ux-base; plano F2.3 aprovado pelo Nicola 09/10 20:52 ("Estou de acordo com f2.3 e opcao a")) —
 // sai o popup "Buscar no Cofre" (#modal-busca-global): no app, buscar documento é a busca universal do
@@ -25,17 +31,11 @@
 // v1.52.1 (07/10/2026, sessão 20261007-1721-rolo-changelog, demanda 2507d554 — VER-06, "de acordo" do Nicola 07/10 17:21) — SÓ
 // CABEÇALHO: as versões além das 5 mais recentes rolaram para o CHANGELOG_MODULOS.md.
 // Nenhuma linha de código mudou — conferido token a token contra o publicado.
-//
-// Versão anterior: 1.52.0 · 04/10/2026
-//
-// v1.52.0 (catálogo único 2b-3c, demanda 2923ff4d, sessão 20261004-1815-catalogo-2b3c; plano 2b-3 aprovado pelo Nicola 04/10) —
-// "Confira o que a IA leu": o campo "Categoria › Subcategoria" passa a se chamar "Espécie do documento"
-// (cofre_categorias virou a lista de 15 espécies na migration catalogo_tipos_categorias_v5).
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.51.0 … v1.51.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.52.0 … v1.52.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '1.55.0'; // v-check (28/09/2026): lido por Dev › Versões — manter igual ao header
+export const VERSAO = '1.56.0'; // v-check (28/09/2026): lido por Dev › Versões — manter igual ao header
 export const ATIVOS_MARKUP = `<style>
     /* v1.94.1 (31/08/2026, pedido explícito: "anexo uma barra de
        rolagem que fica feia... ao rolar os chips não mostrar a barra")
@@ -408,7 +408,7 @@ export const ATIVOS_MARKUP = `<style>
          não aqui. -->
     <div class="rz-chips mt-4" id="fa-chips">
         <button data-action="fa-trocar-aba" data-fa-aba="resumo" class="fa-subtab rz-chip rz-on">Resumo</button>
-        <button data-action="fa-trocar-aba" data-fa-aba="contratos" class="fa-subtab rz-chip">Contratos <span class="rz-n" id="fa-chip-n-contratos">0</span></button>
+        <button data-action="fa-trocar-aba" data-fa-aba="contratos" class="fa-subtab rz-chip">Usos e contratos <span class="rz-n" id="fa-chip-n-contratos">0</span></button>
         <button data-action="fa-trocar-aba" data-fa-aba="controles" class="fa-subtab rz-chip">Controles <span class="rz-n" id="fa-chip-n-controles">0</span></button>
         <button data-action="fa-trocar-aba" data-fa-aba="financeiro" class="fa-subtab rz-chip">Performance</button>
         <button data-action="fa-trocar-aba" data-fa-aba="arquivos" class="fa-subtab rz-chip">Anexos <span class="rz-n" id="fa-chip-n-arquivos">0</span></button>
@@ -447,7 +447,13 @@ export const ATIVOS_MARKUP = `<style>
 
     <!-- ===== Painel: Contratos ===== -->
     <div id="fa-painel-contratos" class="fa-painel hidden">
-        <div class="rz-card">
+        <!-- v1.56.0 (F25): usos do ativo — modelo ativado por período, sem sobreposição; entre os usos vale o
+             modelo de repouso. Montado por cofre-ativos.montarUsosAtivo(). -->
+        <div class="rz-card" id="fa-card-usos">
+            <div class="rz-card-h"><h3>Usos</h3><span class="rz-sub" id="fa-usos-sub"></span></div>
+            <div id="fa-usos-lista"></div>
+        </div>
+        <div class="rz-card" id="fa-card-contratos">
             <div class="rz-card-h"><h3>Contratos</h3><span class="rz-sub" id="fa-contratos-sub"></span><button data-action="fa-acoes-contratos" class="rz-more" aria-label="Mais ações"><i data-lucide="ellipsis-vertical"></i></button></div>
             <div id="fa-contratos-lista"></div>
         </div>

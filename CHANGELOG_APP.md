@@ -4,6 +4,17 @@ Histórico completo de versões do `index.html`, movido automaticamente pelo `ge
 
 ---
 
+NOVIDADES (Beta v1.348.0) — Tonalidade completa (Nicola 10/10 10:45): o botão + das telas (.rz-ico-btn.rz-primary), o
+ícone e a linha do item ativo da barra de baixo e o fundo do avatar passam a seguir o ramo da lente. Resultados
+por ramo (F23) em js/resultados.js 2.9.0.
+Versão anterior (Beta v1.347.0):
+------------------------------------------------------------------
+Versões anteriores (v1.347.0 … v1.347.0): CHANGELOG_APP.md, na raiz do
+repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
+das 5 versões mais recentes deste cabeçalho.
+
+---
+
 NOVIDADES (Beta v1.347.0) — Hoje pelos ramos (Nicola 10/10 10:22). O app sempre abre em Todo o patrimônio (a lente
 não fica mais guardada). Minha Gestão e Fique por dentro seguem a lente: a nota de organização só nos ramos com
 valor, "Para você" e Novidades do Raiz só em Todo o patrimônio, Indicadores de mercado em Todo o patrimônio e

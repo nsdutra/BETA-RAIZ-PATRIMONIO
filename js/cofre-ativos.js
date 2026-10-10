@@ -1,6 +1,13 @@
 // ============================================================================
 // cofre-ativos.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.85.1 · 10/10/2026
+// Versão: 1.86.0 · 10/10/2026
+//
+// v1.86.0 (10/10/2026, sessão 20261008-1231-pessoas-ativos, demanda a3f4c73f — F25 v1.4.0, aprovada pelo Nicola 10/10 14:57):
+// chip "Usos e contratos" (D73). Card Usos: linha do tempo do ativo (fn_ativo_usos), com os trechos de repouso;
+// Novo uso, Encerrar e Excluir (fn_ativo_uso_*) e Trocar repouso (fn_ativo_repouso_definir). As opções vêm da matriz
+// tipo × modelo e só dos ramos licenciados (fn_cliente_ramos); modelo em breve aparece apagado. O card Contratos só
+// aparece para imóvel. Ramo do ativo na lista = modelo vigente hoje (rzRamoDoAtivo do index).
+// Versão anterior: 1.85.1.
 //
 // v1.85.1 (10/10/2026, demanda f3e6cd27) — CORREÇÃO URGENTE: a v1.85.0 saiu com uma vírgula dupla no import de
 // cofre-validacoes.js ("inicializarCatalogoTiposAtivo,, tipoDoCatalogo") e o módulo não carregava — a aba Ativos
@@ -22,18 +29,11 @@
 // os números dos chips contam o que a busca deixou na tela (texto, tipo fino, situação e alerta), não a
 // carteira inteira (achado do Nicola 09/10 22:23: busca com 6 ativos e chips dizendo 49); a barra ganha o ×
 // que limpa a busca em um toque (rzRotuloBusca com aoLimpar).
-//
-// Versão anterior: 1.82.0 · 09/10/2026
-//
-// v1.82.0 (UX F2.3b, demanda fcd3008d, sessão 20261003-1707-ux-base; plano F2.3 aprovado pelo Nicola 09/10 20:52 ("Estou de acordo com f2.3 e opcao a")) —
-// busca universal do Hoje: buscarAtivosTexto(termo) devolve os ativos com o MESMO critério de texto da
-// lista (ativoBateComTexto: nome, locatário do contrato principal, título de item de controle) e
-// verAtivosComTexto(termo) abre a lista com o termo na barra e os outros filtros limpos.
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.81.0 … v1.81.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.82.0 … v1.82.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '1.85.1'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.86.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 import { estado } from './cofre-estado.js';
 import * as api from './cofre-api.js';
 import { mostrarToast, erroInline, refrescarIcones, alternarToggle, abrirModal, fecharModal, modalGenerico, perguntar, avisarComDesfazer } from './cofre-ui.js';
@@ -593,7 +593,7 @@ let segmentoChip = null; // v1.85.0 (F22) — segmento do chip aceso, num ramo
 const ramoDaLente = () => (typeof window !== 'undefined' && typeof window.rzRamoAtual === 'function') ? window.rzRamoAtual() : 'tudo';
 function ramoDoAtivoLista(a) {
     const det = tipoDoCatalogo(a.tipo_detalhe_id);
-    if (typeof rzRamoDoAtivo === 'function') return rzRamoDoAtivo({ tipo_ativo: a.tipo_ativo, tipo_detalhe: det });
+    if (typeof rzRamoDoAtivo === 'function') return rzRamoDoAtivo({ id: a.id, modelo_repouso: a.modelo_repouso, tipo_ativo: a.tipo_ativo, tipo_detalhe: det }); // F25: modelo vigente
     return det?.ramo || 'outros';
 }
 const segmentoDoAtivo = (a) => tipoDoCatalogo(a.tipo_detalhe_id)?.segmento || 'Outros';
@@ -1242,6 +1242,7 @@ export async function abrirFichaAtivo(id, chipInicial = 'resumo') {
         seguro(montarDadosAtivo, 'montarDadosAtivo'),
         seguro(montarControlesAtivo, 'montarControlesAtivo'),
         seguro(montarContratosAtivo, 'montarContratosAtivo'),
+        seguro(montarUsosAtivo, 'montarUsosAtivo'), // v1.86.0 (F25)
         seguro(montarFotosAtivo, 'montarFotosAtivo'),
         seguro(montarFinanceiroAtivo, 'montarFinanceiroAtivo'),
         seguro(montarPropriedadeAtivo, 'montarPropriedadeAtivo'),
@@ -1447,11 +1448,9 @@ async function montarContratosAtivo(a) {
     // reconhecia os 104 imóveis legados vinculados; um imóvel NATIVO
     // (criado após a Onda 12, sem esse vínculo) caía sempre aqui, mesmo
     // sendo genuinamente do tipo imóvel.
-    if (!ehCategoriaImovel(a.tipo_ativo)) {
-        painel.innerHTML = `<div class="rz-empty"><div class="rz-ic"><i data-lucide="file-text"></i></div><p>Contratos de locação só existem pra ativos do tipo imóvel.</p></div>`;
-        refrescarIcones();
-        return;
-    }
+    // v1.86.0 (F25) — fora de imóvel o card Contratos some; o chip mostra só os Usos.
+    document.getElementById('fa-card-contratos')?.classList.toggle('hidden', !ehCategoriaImovel(a.tipo_ativo));
+    if (!ehCategoriaImovel(a.tipo_ativo)) return;
 
     try {
         // v1.17.2 — BUG (print 03/09 12:32): "0 vigentes · 1 encerrado" com
@@ -1501,6 +1500,180 @@ async function montarContratosAtivo(a) {
         painel.innerHTML = `<p class="rz-desc" style="color:var(--danger)">Não foi possível carregar os contratos agora.</p>`;
         console.warn('[cofre-ativos] montarContratosAtivo falhou:', err.message);
     }
+}
+
+
+// ============================================================================
+// USOS DO ATIVO (F25 — FICHA_MODELO_DEFINE_RAMO_F25_RAIZ v1.4.0, Nicola 10/10 14:57)
+// Uso = modelo ativado no ativo por um período (aluguel, temporada, moradia...), sem sobreposição (D74). Entre os
+// usos vale o modelo de repouso do ativo (D72). O ramo do ativo numa data vem do modelo vigente. Tudo pelo banco:
+// fn_ativo_usos (linha do tempo), fn_ativo_uso_registrar/encerrar/excluir e fn_ativo_repouso_definir.
+// ============================================================================
+const fmtDataUso = (d) => d ? formatarDataBR(d) : '';
+const nomeRamoUso = (c) => (typeof window.rzNomeRamo === 'function' ? window.rzNomeRamo(c) : c);
+
+async function opcoesModelosAtivo(a, campo) {
+    const db = api.dbAuth;
+    const tipo = tipoDoCatalogo(a.tipo_detalhe_id)?.codigo;
+    if (!tipo) return { semTipo: true, lista: [] };
+    const [mt, mods, lic] = await Promise.all([
+        db.from('operacao_modelo_tipos').select('modelo, permite_uso, permite_repouso').eq('tipo', tipo),
+        db.from('operacao_modelos').select('codigo, ramo, nome, descricao, acordo, status, ordem').order('ordem'),
+        db.rpc('fn_cliente_ramos', { p_cliente_id: estado.clienteId }),
+    ]);
+    if (mt.error || mods.error) throw (mt.error || mods.error);
+    const licenciados = (lic.data || []).map(x => typeof x === 'string' ? x : Object.values(x)[0]);
+    const permite = new Set((mt.data || []).filter(x => campo === 'uso' ? x.permite_uso : x.permite_repouso).map(x => x.modelo));
+    const lista = (mods.data || []).filter(m => permite.has(m.codigo)).map(m => {
+        const semLic = !licenciados.includes(m.ramo);
+        const motivo = m.status !== 'ativo' ? 'Em breve' : (semLic ? `Ramo ${nomeRamoUso(m.ramo)} não contratado` : '');
+        return { ...m, disponivel: !motivo, motivo };
+    });
+    return { semTipo: false, lista };
+}
+
+export async function montarUsosAtivo(a) {
+    const painel = document.getElementById('fa-usos-lista');
+    if (!painel) return;
+    const sub = document.getElementById('fa-usos-sub');
+    try {
+        const { data, error } = await api.dbAuth.rpc('fn_ativo_usos', { p_ativo_id: a.id });
+        if (error) throw error;
+        if (ativoAtualId && ativoAtualId !== a.id) return;
+        const linhas = data || [];
+        const hoje = new Date().toISOString().slice(0, 10);
+        const vig = linhas.find(u => u.inicio <= hoje && (!u.fim || u.fim >= hoje));
+        if (sub) sub.textContent = vig ? `Hoje: ${vig.nome} · ${nomeRamoUso(vig.ramo)}` : '';
+        if (!ehCategoriaImovel(a.tipo_ativo)) faAtualizarContador('contratos', linhas.filter(u => !u.repouso).length);
+        const ini = linhas.length ? linhas[0].inicio : hoje;
+        const fimMax = linhas.reduce((m, u) => (u.fim && u.fim > m ? u.fim : m), hoje);
+        const t0 = new Date(ini).getTime(), t1 = Math.max(new Date(fimMax).getTime(), new Date(hoje).getTime() + 90 * 864e5);
+        const pos = (d) => Math.max(0, Math.min(100, ((new Date(d).getTime() - t0) / (t1 - t0)) * 100));
+        const barra = linhas.length ? `<div class="rz-uso-tl" style="position:relative;height:26px;border-radius:8px;background:var(--tile);overflow:hidden;margin:4px 0 8px">` +
+            linhas.map(u => { const l = pos(u.inicio), w = Math.max(1.5, pos(u.fim || new Date(t1).toISOString().slice(0, 10)) - l);
+                return `<div title="${escapeHtml(u.nome)}" style="position:absolute;top:0;bottom:0;left:${l}%;width:${w}%;background:var(--ramo-cor-${u.ramo}, var(--sage));opacity:${u.repouso ? 0.35 : 0.85};border-right:2px solid var(--card)"></div>`; }).join('') +
+            `<div style="position:absolute;top:0;bottom:0;width:2px;left:${pos(hoje)}%;background:var(--ink)"></div></div>` : '';
+        const linha = (u) => {
+            const acoes = u.repouso ? `<button type="button" class="rz-btn rz-btn-2 rz-sm" onclick="window.__rzUsos?.repouso()">Trocar</button>`
+                : `<button type="button" class="rz-more" aria-label="Ações do uso" onclick="window.__rzUsos?.acoes('${u.uso_id}')"><i data-lucide="ellipsis-vertical"></i></button>`;
+            return `<div class="rz-row">
+                <div class="rz-ic${u.repouso ? ' rz-neu' : ''}"><span class="rz-ramo-dot" style="background:var(--ramo-cor-${u.ramo}, var(--sage))"></span></div>
+                <div class="rz-tx"><b>${escapeHtml(u.nome)}${u.repouso ? ' <small>(repouso)</small>' : ''}</b>
+                    <span>${fmtDataUso(u.inicio)}${u.fim ? ' → ' + fmtDataUso(u.fim) : ' → sem fim'} · ${escapeHtml(nomeRamoUso(u.ramo))}</span></div>
+                <div class="rz-rt">${acoes}</div></div>`;
+        };
+        const semRepouso = !a.modelo_repouso;
+        painel.innerHTML = barra + linhas.map(linha).join('') +
+            (semRepouso ? `<p class="rz-desc">Sem modelo de repouso: quando não há uso, o ativo fica no ramo do tipo. <a href="#" onclick="event.preventDefault();window.__rzUsos?.repouso()">Escolher repouso</a></p>` : '') +
+            `<div class="rz-acts"><button type="button" class="rz-btn rz-btn-1" onclick="window.__rzUsos?.novo()"><i data-lucide="plus"></i> Novo uso</button></div>`;
+        window.__rzUsos = {
+            novo: () => abrirNovoUso(a),
+            repouso: () => abrirRepousoAtivo(a),
+            acoes: (id) => abrirAcoesUso(a, linhas.find(u => u.uso_id === id)),
+        };
+        refrescarIcones();
+    } catch (err) {
+        painel.innerHTML = `<p class="rz-desc" style="color:var(--danger)">Não foi possível carregar os usos agora.</p>`;
+        console.warn('[cofre-ativos] montarUsosAtivo falhou:', err?.message || err);
+    }
+}
+
+async function aposMudarUso(a, msg) {
+    mostrarToast(msg, 'sucesso');
+    if (typeof window.rzRecarregarUsosRamo === 'function') await window.rzRecarregarUsosRamo();
+    await montarUsosAtivo(a);
+}
+
+function opcoesHtml(lista, nome, marcado) {
+    if (!lista.length) return '<p class="rz-desc">Nenhum modelo serve para este tipo de ativo ainda.</p>';
+    return lista.map(m => `<label class="rz-act${m.disponivel ? '' : ' rz-off'}" style="display:flex;gap:10px;align-items:flex-start">
+        <input type="radio" name="${nome}" value="${m.codigo}"${m.disponivel ? '' : ' disabled'}${m.codigo === marcado ? ' checked' : ''} style="margin-top:4px">
+        <div><b>${escapeHtml(m.nome)}</b> <span class="rz-st rz-neu">${escapeHtml(nomeRamoUso(m.ramo))}</span>
+        <small style="display:block">${escapeHtml(m.motivo || m.descricao || '')}</small></div></label>`).join('');
+}
+
+async function abrirNovoUso(a) {
+    if (typeof window.abrirSheetForm !== 'function') { mostrarToast('Ação só disponível dentro do app principal.', 'erro'); return; }
+    let op;
+    try { op = await opcoesModelosAtivo(a, 'uso'); } catch (e) { mostrarToast('Não foi possível carregar os modelos: ' + e.message, 'erro'); return; }
+    if (op.semTipo) { mostrarToast('Escolha o tipo específico do ativo (Editar dados) antes de registrar um uso.', 'erro'); return; }
+    const hoje = new Date().toISOString().slice(0, 10);
+    const corpo = `<div class="rz-f"><label>Modelo</label>${opcoesHtml(op.lista, 'fa-uso-modelo', op.lista.find(m => m.disponivel)?.codigo)}</div>
+        <div class="rz-f"><label>Início</label><input type="date" id="fa-uso-inicio" value="${hoje}"></div>
+        <div class="rz-f"><label>Fim (opcional)</label><input type="date" id="fa-uso-fim"><span class="rz-hint">Sem fim, o uso vale até você encerrar. Depois do fim vale o repouso.</span></div>
+        <div class="rz-f" style="margin-bottom:0"><label>Observação (opcional)</label><input type="text" id="fa-uso-obs" maxlength="200"></div>`;
+    window.abrirSheetForm({
+        titulo: 'Novo uso', sub: a.nome_exibicao, corpo, rotuloSalvar: 'Ativar uso',
+        aoSalvar: async () => {
+            const modelo = document.querySelector('input[name="fa-uso-modelo"]:checked')?.value;
+            const inicio = document.getElementById('fa-uso-inicio')?.value;
+            const fim = document.getElementById('fa-uso-fim')?.value || null;
+            if (!modelo) { mostrarToast('Escolha o modelo.', 'erro'); return false; }
+            if (!inicio) { mostrarToast('Informe o início.', 'erro'); return false; }
+            if (fim && fim < inicio) { mostrarToast('O fim não pode ser antes do início.', 'erro'); return false; }
+            const { data, error } = await api.dbAuth.rpc('fn_ativo_uso_registrar', { p_ativo_id: a.id, p_modelo: modelo, p_inicio: inicio, p_fim: fim, p_obs: document.getElementById('fa-uso-obs')?.value || null });
+            if (error) { mostrarToast(error.message, 'erro'); return false; }
+            if (!data?.ok) { mostrarToast(data?.mensagem || 'Não foi possível registrar.', 'erro'); return false; }
+            emitirEscrita('ativo', { id: a.id, acao: 'uso' });
+            await aposMudarUso(a, data.mensagem || 'Uso registrado.');
+            return true;
+        },
+    });
+}
+
+async function abrirRepousoAtivo(a) {
+    if (typeof window.abrirSheetForm !== 'function') { mostrarToast('Ação só disponível dentro do app principal.', 'erro'); return; }
+    let op;
+    try { op = await opcoesModelosAtivo(a, 'repouso'); } catch (e) { mostrarToast('Não foi possível carregar os modelos: ' + e.message, 'erro'); return; }
+    if (op.semTipo) { mostrarToast('Escolha o tipo específico do ativo (Editar dados) antes do repouso.', 'erro'); return; }
+    const corpo = `<p class="rz-desc">Vale quando nenhum uso está ligado. A escolha depende dos ramos contratados.</p>${opcoesHtml(op.lista, 'fa-repouso-modelo', a.modelo_repouso)}`;
+    window.abrirSheetForm({
+        titulo: 'Modelo de repouso', sub: a.nome_exibicao, corpo, rotuloSalvar: 'Salvar',
+        aoSalvar: async () => {
+            const modelo = document.querySelector('input[name="fa-repouso-modelo"]:checked')?.value;
+            if (!modelo) { mostrarToast('Escolha o modelo.', 'erro'); return false; }
+            const { data, error } = await api.dbAuth.rpc('fn_ativo_repouso_definir', { p_ativo_id: a.id, p_modelo: modelo });
+            if (error) { mostrarToast(error.message, 'erro'); return false; }
+            if (!data?.ok) { mostrarToast(data?.mensagem || 'Não foi possível salvar.', 'erro'); return false; }
+            a.modelo_repouso = modelo;
+            const naLista = (estado.ativos || []).find(x => x.id === a.id); if (naLista) naLista.modelo_repouso = modelo;
+            emitirEscrita('ativo', { id: a.id, acao: 'repouso' });
+            await aposMudarUso(a, data.mensagem || 'Repouso salvo.');
+            return true;
+        },
+    });
+}
+
+function abrirAcoesUso(a, u) {
+    if (!u || typeof window.abrirSheetForm !== 'function') return;
+    const hoje = new Date().toISOString().slice(0, 10);
+    const corpo = `<p class="rz-desc">${escapeHtml(u.nome)} · ${fmtDataUso(u.inicio)}${u.fim ? ' → ' + fmtDataUso(u.fim) : ' → sem fim'}</p>
+        <div class="rz-f"><label>Encerrar em</label><input type="date" id="fa-uso-encerrar" value="${u.fim || (hoje >= u.inicio ? hoje : u.inicio)}" min="${u.inicio}">
+        <span class="rz-hint">Depois do fim vale o repouso do ativo.</span></div>
+        <button type="button" class="rz-btn rz-btn-2 rz-sm" id="fa-uso-excluir" style="color:var(--danger)"><i data-lucide="trash-2"></i> Excluir este uso</button>`;
+    window.abrirSheetForm({
+        titulo: 'Uso', sub: a.nome_exibicao, corpo: (el) => {
+            el.innerHTML = corpo;
+            el.querySelector('#fa-uso-excluir')?.addEventListener('click', async () => {
+                const ok = await perguntar({ titulo: 'Excluir este uso?', impacto: 'Só é possível quando não há lançamentos no período. Para um uso que já aconteceu, encerre em vez de excluir.' });
+                if (!ok) return;
+                const { data, error } = await api.dbAuth.rpc('fn_ativo_uso_excluir', { p_uso_id: u.uso_id });
+                if (error || !data?.ok) { mostrarToast(error?.message || data?.mensagem || 'Não foi possível excluir.', 'erro'); return; }
+                if (typeof window.fecharSheet === 'function') window.fecharSheet();
+                emitirEscrita('ativo', { id: a.id, acao: 'uso' });
+                await aposMudarUso(a, data.mensagem || 'Uso excluído.');
+            });
+        }, rotuloSalvar: 'Encerrar',
+        aoSalvar: async () => {
+            const fim = document.getElementById('fa-uso-encerrar')?.value;
+            const { data, error } = await api.dbAuth.rpc('fn_ativo_uso_encerrar', { p_uso_id: u.uso_id, p_fim: fim });
+            if (error) { mostrarToast(error.message, 'erro'); return false; }
+            if (!data?.ok) { mostrarToast(data?.mensagem || 'Não foi possível encerrar.', 'erro'); return false; }
+            emitirEscrita('ativo', { id: a.id, acao: 'uso' });
+            await aposMudarUso(a, data.mensagem || 'Uso encerrado.');
+            return true;
+        },
+    });
 }
 
 // ============================================================================
