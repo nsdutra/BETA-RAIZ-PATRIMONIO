@@ -1,8 +1,12 @@
 // ============================================================================
 // vitrine.js — Raiz Patrimônio · Compartilhar imóveis (links públicos de imóveis, lightbox)
 //               e contratação pública (formulário do interessado via link)
-// Versão: 1.5.1 · 09/10/2026
+// Versão: 1.5.2 · 10/10/2026
 //
+// v1.5.2 (10/10/2026, sessão 20261010-0155-onda1-nucleo, demanda 6b11c602) — o catch do link público
+// grava o erro real no console antes de mostrar a mensagem genérica ao visitante. Sem isso, qualquer
+// falha (inclusive a de instalação do js/nucleo/porta.js na v1.342.0 do index) vira "link expirado" e
+// não deixa rastro nenhum para quem depura.
 // v1.5.1 (demandas 1f98c359, 43bc3cab e f0ab422d, sessão 20261003-1707-ux-base; plano aprovado pelo Nicola 09/10 22:3x ("De acordo, tudo numa entrega só")) —
 // a barra de "Compartilhar imóveis" ganha o × que limpa a busca em um toque.
 //
@@ -42,7 +46,7 @@
 // mais recentes deste cabeçalho (VER-06).
 import { encontrarMinutaParaImovel } from './minutas.js'; // retorno usado de forma síncrona — import, não ponte
 
-export const VERSAO = '1.5.1'; // v-check: manter igual ao header
+export const VERSAO = '1.5.2'; // v-check: manter igual ao header
 
 /** Ponto de entrada do switchTab('tab-vitrine'). */
 export async function montarAbaVitrine() {
@@ -711,6 +715,12 @@ export async function montarAbaVitrine() {
 
                 } catch (e) {
 
+                    // v1.5.2 — ESTE console.error existe por causa de um caso real: na v1.342.0 do
+                    // index a vitrine quebrou por erro de INSTALAÇÃO do js/nucleo/porta.js, e este
+                    // catch mostrou "link expirado" ao visitante e nada a quem depura. A mensagem ao
+                    // visitante segue genérica de propósito (não se diz a um estranho por que o link
+                    // falhou); o motivo real vai para o console. (dem 6b11c602)
+                    console.error('[vitrine] falha ao resolver o link público:', e);
                     document.getElementById('external-showcase-container').innerHTML =
                         `<p class="rz-pub-msg">Este link não abre mais: ele foi revogado, expirou ou está incompleto. Peça um novo a quem te enviou.</p>`;
                     return;

@@ -4,9 +4,20 @@
 //                   o estado do app (ativos, contratos, mensalidades, repasses,
 //                   lançamentos, prestadores, pessoas, empreendimentos, tipos,
 //                   minutas, links da vitrine, logs e a vitrine pública)
-// Versão: 1.0.0 · 10/10/2026
+// Versão: 1.1.0 · 10/10/2026
 //
-// v1.0.0 (10/10/2026, sessão 20261010-0155-onda1-nucleo, demanda 6b11c602 — Onda 1a da
+// v1.1.0 (10/10/2026, sessão 20261010-0155-onda1-nucleo, demanda 6b11c602) — CORREÇÃO DE DEFEITO MEU,
+// achado pelo Nicola no teste 5 da v1.0.0: a VITRINE PÚBLICA parou de abrir, com a mensagem genérica
+// "Este link não abre mais: ele foi revogado, expirou ou está incompleto". Causa: instalarPorta()
+// exigia clienteId, e a vitrine pública roda ANTES de qualquer login (index.html, ramo
+// `ehVitrinePublica`) — ali CLIENTE_ID_SUPABASE ainda é null. O throw da instalação subia pela ponte e
+// caía no catch do js/vitrine.js, que mostra a mensagem de link expirado para QUALQUER erro. O link
+// estava perfeito; a porta é que se recusava a abrir. A guarda era mais rígida do que qualquer leitor
+// precisa: dos 14, só resolverVitrinePublicaSupabase dispensa cliente_id — e é exatamente o único que
+// roda sem sessão. Agora instalarPorta() exige só o db, e a exigência de cliente_id virou guarda POR
+// CHAMADA, em chamar(): quem precisa de cliente_id e não tem falha com erro nomeado, em vez de
+// consultar com null e devolver lista vazia em silêncio (que era o comportamento do index antigo).
+//// v1.0.0 (10/10/2026, sessão 20261010-0155-onda1-nucleo, demanda 6b11c602 — Onda 1a da
 // fragmentação, plano aprovado pelo Nicola 09/10 21:15) — primeiro módulo do núcleo.
 // Os 13 leitores saíram do index.html SEM UMA LINHA REESCRITA: o corpo de cada um veio
 // byte a byte, e o que mudou foi só ganhar "export" na frente e passar a resolver
@@ -27,7 +38,7 @@
 // duplicar seria violação da CAN-03. Entram aqui por injeção.
 // ============================================================================
 
-export const VERSAO = '1.0.0';  // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.1.0';  // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 
 // ----------------------------------------------------------------------------
 // Injeção do host (index.html ou cofre.html). Os leitores abaixo usam estes
@@ -56,9 +67,10 @@ export function atualizarContexto({ db, clienteId, config = null, socioPadrao = 
     SOCIO_PADRAO = socioPadrao;
 }
 
-export function instalarPorta({ db, clienteId, config = null, socioPadrao = null, ajudantes = {} }) {
+export function instalarPorta({ db, clienteId = null, config = null, socioPadrao = null, ajudantes = {} }) {
     if (!db) throw new Error('[porta] instalarPorta sem db (cliente do Supabase)');
-    if (!clienteId) throw new Error('[porta] instalarPorta sem clienteId');
+    // v1.1.0 — clienteId NÃO é exigido aqui de propósito: a vitrine pública instala a porta antes de
+    // qualquer login. Quem exige é chamar(), por leitor, onde dá para dizer qual leitor faltou o quê.
     atualizarContexto({ db, clienteId, config, socioPadrao });
     // Falta de ajudante é erro de instalação, não de execução: avisa aqui, onde
     // dá para consertar, em vez de estourar no meio de uma leitura.
@@ -77,7 +89,8 @@ export function instalarPorta({ db, clienteId, config = null, socioPadrao = null
 }
 
 export function portaInstalada() {
-    return !!(dbAuth && CLIENTE_ID_SUPABASE);
+    // v1.1.0 — só o db. Com cliente_id era impossível a vitrine pública estar "instalada".
+    return !!dbAuth;
 }
 
 // ----------------------------------------------------------------------------
@@ -702,4 +715,33 @@ export async function resolverVitrinePublicaSupabase(token) {
             status: mapStatusSupabaseParaAntigo(row.situacao_uso)
         };
     });
+}
+
+// ----------------------------------------------------------------------------
+// Despacho com guarda por chamada (v1.1.0)
+// ----------------------------------------------------------------------------
+// A ponte do index chama chamar(nome, args) em vez de m[nome](...args). O motivo é
+// a guarda: 13 dos 14 leitores filtram por CLIENTE_ID_SUPABASE e não fazem sentido
+// sem ele; chamados com null devolveriam lista VAZIA em silêncio, que é o pior
+// desfecho possível — tela vazia sem erro, ninguém sabe por quê. Aqui falham com o
+// nome do leitor. O único que dispensa cliente_id é resolverVitrinePublicaSupabase:
+// é lido por fn_vitrine_publica_obter, com RLS própria, e roda sem sessão. (dem 6b11c602)
+const SEM_CLIENTE = new Set(['resolverVitrinePublicaSupabase']);
+
+const LEITORES = {
+    carregarImoveisSupabase, carregarContratosSupabase, carregarMensalidadesSupabase,
+    carregarRepassesSupabase, carregarLancamentosSupabase, carregarPrestadoresSupabase,
+    carregarPessoasSupabase, carregarEmpreendimentosSupabase, carregarTiposImovelSupabase,
+    carregarMinutasContratoSupabase, carregarLinksVitrineSupabase, carregarLogsSupabase,
+    resolverVitrinePublicaSupabase
+};
+
+export function chamar(nome, args) {
+    const fn = LEITORES[nome];
+    if (!fn) throw new Error('[porta] leitor desconhecido: ' + nome);
+    if (!dbAuth) throw new Error('[porta] ' + nome + ' antes de instalarPorta (sem db)');
+    if (!CLIENTE_ID_SUPABASE && !SEM_CLIENTE.has(nome)) {
+        throw new Error('[porta] ' + nome + ' sem CLIENTE_ID_SUPABASE — chamado antes de entrar numa empresa');
+    }
+    return fn(...args);
 }

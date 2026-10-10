@@ -4,6 +4,18 @@ Histórico completo de versões do `index.html`, movido automaticamente pelo `ge
 
 ---
 
+NOVIDADES (Beta v1.339.0) — UX F2.5b-2 (demanda 639bbcd0; ajustes pedidos pelo Nicola no teste de 10/10 01:11).
+Minha empresa: o box Controles da empresa passa como ctx.extras com pane 'controles' (chip próprio, separado de
+Rotinas); comum-minha-empresa.js 1.14.0 leva a quantidade do que falta para os chips, tira o "n de 8" do
+cabeçalho, põe o Salvar logo depois dos campos e o rodapé do Resumo dentro do card. Nenhum objeto de banco.
+Versão anterior (Beta v1.338.0):
+------------------------------------------------------------------
+Versões anteriores (v1.338.0 … v1.338.0): CHANGELOG_APP.md, na raiz do
+repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
+das 5 versões mais recentes deste cabeçalho.
+
+---
+
 NOVIDADES (Beta v1.338.0) — Hoje por ramo (ficha F20 e protótipo PROTOTIPO_HOJE_ANEL_RAMO_RAIZ v1.2.0, "De acordo" do
 Nicola 10/10). O seletor "Tudo · Comercial · Família" vira RAMO: Tudo · Patrimônio · Família · Agro (em breve);
 o uso (Todos · Comercial · Uso próprio) aparece só em Patrimônio. O ramo filtra o Hoje inteiro: alertas
