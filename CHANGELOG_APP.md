@@ -4,6 +4,16 @@ Histórico completo de versões do `index.html`, movido automaticamente pelo `ge
 
 ---
 
+NOVIDADES (Beta v1.330.1) — sessão 20261009-2055-integridade (demandas 0e5618ca e 7ce0fd63, de acordo do
+Nicola 09/10 20:55 e 21:49): só o import map — relatorios-executivos.js 1.1.2 (relatório na camada 80,
+DESIGN_SYSTEM 2.28.0 §5) e financeiro.js 1.38.2 (3 padrões da gramática). Nenhuma linha do index mudou.
+------------------------------------------------------------------
+Versões anteriores (v1.330.0 … v1.330.0): CHANGELOG_APP.md, na raiz do
+repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
+das 5 versões mais recentes deste cabeçalho.
+
+---
+
 NOVIDADES (Beta v1.330.0) — UX F2.3a, topo das abas e busca em Sheet ("Estou de acordo com f2.3 e
 opcao a" do Nicola 09/10 20:52). Ativos, Contratos, Alertas e Compartilhar imóveis abrem com a barra
 de busca de largura inteira (.rz-topo/.rz-search; "+" ao lado quando a tela cria algo); sai a linha de

@@ -1,6 +1,12 @@
 // ============================================================================
 // cofre-ativos.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.83.0 · 09/10/2026
+// Versão: 1.84.0 · 09/10/2026
+//
+// v1.84.0 (demanda f3e6cd27, F17, sessão 20261008-1231-pessoas-ativos; plano aprovado pelo Nicola 09/10 22:50) —
+// chip "Pessoas" na lista de Ativos: ativo do tipo vida (pessoa) sai de "Outros" e ganha recorte próprio;
+// como os outros recortes, só aparece quando há pelo menos uma pessoa cadastrada como ativo.
+//
+// Versão anterior: 1.83.0 · 09/10/2026
 //
 // v1.83.0 (demandas 1f98c359, 43bc3cab e f0ab422d, sessão 20261003-1707-ux-base; plano aprovado pelo Nicola 09/10 22:3x ("De acordo, tudo numa entrega só")) —
 // os números dos chips contam o que a busca deixou na tela (texto, tipo fino, situação e alerta), não a
@@ -25,17 +31,11 @@
 // v1.80.0 (UX F2.8, demanda ed5accfe, sessão 20261003-1707-ux-base; "Sim. Faça 1 e 2 agora" do Nicola 08/10 20:09) — ⋮ da ficha de imóvel ganha "Compartilhar": abre o WhatsApp
 // com os dados e o link do imóvel (compartilharImovelDoAtivo, vitrine.js), para qualquer imóvel — antes "Gerar
 // vitrine" só aparecia para imóvel do cadastro antigo. Textos sem "vitrine".
-//
-// Versão anterior: 1.79.0 · 08/10/2026
-//
-// v1.79.0 (UX F2.7b, demanda b8602a3a, sessão 20261003-1707-ux-base; plano F2.7 aprovado pelo Nicola 07/10 20:05; achado do teste da F2.7a em 08/10 08:12) — vazio dos anexos do
-// ativo no formato de vazio dentro de card (REGRAS §0.7: ícone + frase do que se ganha e de como, sem
-// botão): diz o que a Raiz IA faz e onde está a ação (⋮ › Adicionar documento com IA).
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.78.0 … v1.78.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.79.0 … v1.79.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '1.83.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.84.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 import { estado } from './cofre-estado.js';
 import * as api from './cofre-api.js';
 import { mostrarToast, erroInline, refrescarIcones, alternarToggle, abrirModal, fecharModal, modalGenerico, perguntar, avisarComDesfazer } from './cofre-ui.js';
@@ -560,7 +560,9 @@ const GRUPOS_CHIP_TIPO = [
     // v1.32.1 (E4.2 fatia B) — cada grupo aceita valor antigo E novo
     { rotulo: 'Imóveis', tipos: ['imovel', 'terreno', 'imovel_predial', 'imovel_territorial'] },
     { rotulo: 'Veículos', tipos: ['veiculo', 'veiculo_blindado'] },
-    { rotulo: 'Outros', tipos: ['vida_protecao', 'obra_arte', 'aeronave', 'embarcacao', 'colecao_bem_valor', 'outro', 'vida', 'bem_valor'] },
+    // pessoa é ativo de gestão, não de patrimônio: recorte próprio, fora de "Outros" (dem f3e6cd27)
+    { rotulo: 'Pessoas', tipos: ['vida'] },
+    { rotulo: 'Outros', tipos: ['vida_protecao', 'obra_arte', 'aeronave', 'embarcacao', 'colecao_bem_valor', 'outro', 'bem_valor'] },
 ];
 
 // Índice do chip ativo — 0 ("Todos") é o estado inicial. Só muda quando
