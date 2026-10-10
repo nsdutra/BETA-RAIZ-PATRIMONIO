@@ -4,6 +4,19 @@ Histórico completo de versões do `index.html`, movido automaticamente pelo `ge
 
 ---
 
+NOVIDADES (Beta v1.341.0) — UX F2.5c-2 e F2.5d (demanda 639bbcd0; teste do Nicola 10/10 01:39 e plano F2.5
+aprovado 09/10 23:5x). Partes: a barra de busca é digitável (rzBuscaInline — filtra enquanto digita, × limpa,
+sem Sheet nem botões; CSS .rz-search.rz-search-in); a ficha fica com os chips Dados · Vínculos (o chip
+Comunicação e as ações de WhatsApp/ligar/e-mail saíram). Licença (comum-licenca.js 1.7.0) em ficha com chips
+Plano · Uso. Nenhum objeto de banco.
+Versão anterior (Beta v1.340.1):
+------------------------------------------------------------------
+Versões anteriores (v1.340.1 … v1.340.1): CHANGELOG_APP.md, na raiz do
+repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
+das 5 versões mais recentes deste cabeçalho.
+
+---
+
 NOVIDADES (Beta v1.340.1) — sessão 20261009-2055-integridade (demanda 56546614, teste do Nicola 10/10 00:15):
 só o import map — financeiro.js 1.40.2 (Divisão da compra abre por cima da fatura; rótulo "Fica com o titular
 do cartão"). Nenhuma linha do index mudou.

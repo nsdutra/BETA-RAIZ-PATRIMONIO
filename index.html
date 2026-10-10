@@ -6,9 +6,13 @@
    (base derivada do RUMO v7.4.2 — histórico de versões anteriores
    preservado abaixo para referência técnica)
 
-   VERSÃO: Beta v1.345.0
-   LINHAS: 17221
+   VERSÃO: Beta v1.345.1
+   LINHAS: 17224
    DATA: 10/10/2026 (sessão 20261008-1231-pessoas-ativos, demanda f3e6cd27)
+   NOVIDADES (Beta v1.345.1) — Lente de ramo enxuta (Nicola 10/10 10:10: "o seletor ocupou muito do cabeçalho"): vira um
+   botão redondo de 40 px, como o Raiz IA e o avatar, com a cor e o ícone do ramo (camadas em Todo o patrimônio,
+   prédio em Imóveis, pessoas na Família, carro em Outros bens). O nome do ramo fica no aria-label e na lista.
+   Versão anterior (Beta v1.345.0):
    NOVIDADES (Beta v1.345.0) — Ramos no app (fichas F21/F22, "De acordo" do Nicola 10/10 02:52; protótipo
    PROTOTIPO_HOJE_RAMOS_RAIZ v1.1.0). A lente de ramo vai para o cabeçalho ("Todo o patrimônio ▾"): Imóveis,
    Família, Outros bens; Agro e Pecuária em breve. A escolha fica guardada no aparelho e muda a tonalidade do app
@@ -48,14 +52,8 @@
    sincronizar* (escrita) e os 5 ajudantes de tradução — estes porque os sincronizar* também os usam, e duplicar
    violaria a CAN-03. Índice: 1.086.866 → 1.053.971 bytes (17.655 → 17.087 linhas). Nenhum objeto de banco.
    Versão anterior (Beta v1.341.0):
-   NOVIDADES (Beta v1.341.0) — UX F2.5c-2 e F2.5d (demanda 639bbcd0; teste do Nicola 10/10 01:39 e plano F2.5
-   aprovado 09/10 23:5x). Partes: a barra de busca é digitável (rzBuscaInline — filtra enquanto digita, × limpa,
-   sem Sheet nem botões; CSS .rz-search.rz-search-in); a ficha fica com os chips Dados · Vínculos (o chip
-   Comunicação e as ações de WhatsApp/ligar/e-mail saíram). Licença (comum-licenca.js 1.7.0) em ficha com chips
-   Plano · Uso. Nenhum objeto de banco.
-   Versão anterior (Beta v1.340.1):
    ------------------------------------------------------------------
-   Versões anteriores (v1.340.1 … v1.340.1): CHANGELOG_APP.md, na raiz do
+   Versões anteriores (v1.341.0 … v1.341.0): CHANGELOG_APP.md, na raiz do
    repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
    das 5 versões mais recentes deste cabeçalho.
 
@@ -469,10 +467,9 @@
         :root[data-ramo="imoveis"]:not([data-theme="dark"]){--paper:#f1f3f4}
         :root[data-ramo="familia"]:not([data-theme="dark"]){--paper:#f4f1f5}
         :root[data-ramo="outros"]:not([data-theme="dark"]){--paper:#f2f3f2}
-        .rz-hdr .rz-lente{display:flex;align-items:center;gap:6px;max-width:46vw;min-height:40px;padding:0 10px 0 12px;border:1px solid rgba(255,255,255,.3);border-radius:var(--r-pill);background:rgba(255,255,255,.12);color:#fff;font:600 13px var(--font-body);flex:none}
-        .rz-hdr .rz-lente span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-        .rz-hdr .rz-lente i{width:9px;height:9px;border-radius:50%;background:#fff;flex:none}
-        .rz-hdr .rz-lente svg{width:16px;height:16px;flex:none}
+        .rz-hdr .rz-lente{width:40px;height:40px;border-radius:50%;flex:none;display:flex;align-items:center;justify-content:center;color:#fff;background:rgba(255,255,255,.14);box-shadow:0 0 0 1px rgba(255,255,255,.3)}
+        .rz-hdr .rz-lente svg{width:19px;height:19px}
+        :root[data-ramo] .rz-hdr .rz-lente{background:var(--ramo-acc);box-shadow:0 0 0 3px rgba(255,255,255,.22)}
         .rz-ramo-dot{display:inline-block;width:14px;height:14px;border-radius:5px}
         .rz-hdr{background:var(--ramo-hdr);color:#fff;padding:calc(14px + env(safe-area-inset-top)) 16px 12px;display:flex;align-items:center;gap:10px}
         .rz-hdr .rz-brand{flex:1;min-width:0}
@@ -1763,7 +1760,7 @@
                  Geral continua escrevendo nele, nada mudou no JS). -->
             <!-- v1.303.0 (UX F2.2, UXR-08) — o sino saiu do cabeçalho: Alertas é a 5ª aba da barra inferior. -->
             <!-- v1.345.0 (F21) — lente de ramo: vale para o app inteiro; muda a tonalidade (rzAbrirLenteRamo) -->
-            <button type="button" id="btn-ramo-lente" class="rz-lente" onclick="rzAbrirLenteRamo()" aria-label="Trocar ramo"><i></i><span id="rz-lente-nome">Todo o patrimônio</span><svg data-lucide="chevron-down"></svg></button>
+            <button type="button" id="btn-ramo-lente" class="rz-lente" onclick="rzAbrirLenteRamo()" title="Todo o patrimônio" aria-label="Ramo: Todo o patrimônio"><svg data-lucide="layers"></svg></button>
             <button type="button" id="btn-raiz-ia-header" class="rz-ia" onclick="abrirSheetRaizIA()" title="Raiz IA" aria-label="Raiz IA">
                 <svg data-lucide="sparkles"></svg>
                 <span id="raiz-ia-dot" class="rz-dot hidden"></span>
@@ -3725,7 +3722,7 @@
         // texto certo toda vez (esqueci 5 versões seguidas, de v1.37.1 até
         // v1.38.3). Agora só precisa mudar UMA linha aqui a cada release;
         // window.onload aplica nos dois lugares automaticamente.
-        const APP_VERSAO = "Beta v1.345.0"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
+        const APP_VERSAO = "Beta v1.345.1"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
 
         // ====================================================================
         // v1.105.0 — HELPERS DE SUPERFÍCIE DA GRAMÁTICA ÚNICA
@@ -11915,8 +11912,14 @@ async function criarLinkVitrineSupabase(token, idsSelecionados) {
         function rzAplicarRamo() {
             const h = document.documentElement;
             if (geralRamoFiltro === 'tudo') h.removeAttribute('data-ramo'); else h.setAttribute('data-ramo', geralRamoFiltro);
-            const nm = document.getElementById('rz-lente-nome');
-            if (nm) nm.textContent = rzNomeRamo(geralRamoFiltro);
+            const bt = document.getElementById('btn-ramo-lente');
+            if (bt) { // v1.345.1 — botão redondo: ícone e cor do ramo; o nome vai no title/aria-label
+                const ICONE = { tudo: 'layers', imoveis: 'building-2', familia: 'users', outros: 'car', agro: 'sprout', pecuaria: 'beef' };
+                const nome = rzNomeRamo(geralRamoFiltro);
+                bt.title = nome; bt.setAttribute('aria-label', 'Ramo: ' + nome);
+                bt.innerHTML = `<svg data-lucide="${ICONE[geralRamoFiltro] || 'layers'}"></svg>`;
+                if (typeof lucide !== 'undefined') lucide.createIcons();
+            }
         }
         async function rzCarregarRamos() {
             rzRamosCarregados = true;
