@@ -1,6 +1,19 @@
 // ============================================================================
 // comum-minha-empresa.js — Raiz Patrimônio · Administração compartilhada
-// Versão: 1.13.0 · 10/10/2026
+// Versão: 1.14.0 · 10/10/2026
+//
+// v1.14.0 (UX F2.5b-2, demanda 639bbcd0, sessão 20261003-1707-ux-base; ajustes pedidos pelo Nicola no teste de
+// 10/10 01:11) — a ficha segue o padrão de chips do app:
+//   · a quantidade do que falta vai no chip (Resumo, Dados, Fiscal e Pix: "Dados 1", com o tom --warning, igual aos
+//     chips de Contratos e da Configuração inicial); o cabeçalho deixa de mostrar "n de 8" e passa a mostrar o
+//     documento e a cidade da sede;
+//   · Rotinas e Controles viram chips separados (o host passa o box Controles com pane 'controles');
+//   · "Salvar dados da empresa" fica logo depois dos campos que ele salva: no fim de Dados e, em Fiscal e Pix, antes
+//     do card Contas (que salva sozinho);
+//   · o texto "Estes dados saem nos recibos…" sai do rodapé solto e vai para dentro do card do Resumo;
+//   · atalhos que rolam até cme-rotinas-card ou cme-pix-card (Financeiro, links do bot) abrem o chip antes de rolar.
+//
+// Versão anterior: 1.13.0 · 10/10/2026
 //
 // v1.13.0 (UX F2.5b, demanda 639bbcd0, sessão 20261003-1707-ux-base; plano F2.5 aprovado pelo Nicola 09/10 23:5x;
 // ESTUDO 9A.4) — Minha empresa vira ficha com chips: cabeçalho de entidade com a completude ("6 de 8 itens
@@ -38,20 +51,11 @@
 // que se concilia é a conta que paga). Lista mostra ícone de cartão e "fecha dia X · vence dia
 // Y"; "Definir como padrão" só aparece para conta. Regra no banco (fn_conta_salvar com
 // p_tipo/p_dia_fechamento/p_dia_vencimento/p_conta_pagadora_id). Versão anterior: 1.10.1.
-//
-// Versão anterior: 1.10.1 · 04/10/2026
-//
-// v1.10.1 (04/10/2026, sessão 20261004-1540-financeiro, demanda f3e6cd27 — teste
-// da P4a, de acordo do Nicola): "Excluir conta" sempre aparece nas ações da
-// conta (fn_conta_excluir). Sem movimento, apaga; com movimento, o banco
-// responde explicando e sugerindo "Encerrar conta". "Encerrar" também passa a
-// aparecer na padrão de uma pessoa (o banco aceita quando é a única conta
-// dela). A padrão da empresa continua protegida. Versão anterior: 1.10.0.
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.10.0 … v1.10.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.10.1 … v1.10.1): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '1.13.0'; // v-check (20/09/2026): lido por Dev › Versões — manter igual ao header
+export const VERSAO = '1.14.0'; // v-check (20/09/2026): lido por Dev › Versões — manter igual ao header
 import { perguntar } from './cofre-ui.js'; // v1.9.0 (F0.2b) — sem diálogo nativo
 import { rzMostrarBloqueio as rzBloqueio, podeUsar as podeUsarMod } from './comum-licenca.js'; // v1.10.0 — porta de licença (contas)
 export const COMUM_MINHA_EMPRESA_VERSAO = '1.0.0';
@@ -201,7 +205,7 @@ function processarArquivoAssinatura(file) {
 export async function montarAbaMinhaEmpresa(mountEl, ctx) {
     if (!mountEl) return;
     const { dbAuth, clienteId, onToast, onBrandingAtualizado, registrarLog } = ctx || {};
-    // F2.5b — elementos do host que pertencem a um chip: [{ pane: 'rotinas'|'documentos', el }]
+    // F2.5b — elementos do host que pertencem a um chip: [{ pane: 'controles'|'documentos', el }]
     const extras = Array.isArray(ctx && ctx.extras) ? ctx.extras.filter(x => x && x.el) : [];
 
     mountEl.innerHTML = (typeof window !== 'undefined' && typeof window.rzSkeleton === 'function' ? window.rzSkeleton('lista', 3) : '<p class="rz-desc">Carregando…</p>');
@@ -243,6 +247,7 @@ export async function montarAbaMinhaEmpresa(mountEl, ctx) {
 
     // F2.5b — completude: os 8 itens que recibo, minuta, cobrança e leitura tributária usam.
     const temDocs = extras.some(x => x.pane === 'documentos');
+    const temCtrl = extras.some(x => x.pane === 'controles'); // F2.5b-2
     const ITENS_RESUMO = [
         { k: 'doc', rot: 'CNPJ ou CPF', pane: 'dados', campo: 'cme-cnpj', ok: () => !!digitos(document.getElementById('cme-cnpj')?.value) },
         { k: 'resp', rot: 'Responsável que assina o recibo', pane: 'dados', campo: 'cme-responsavel', ok: () => !!(document.getElementById('cme-responsavel')?.value || '').trim() },
@@ -253,18 +258,20 @@ export async function montarAbaMinhaEmpresa(mountEl, ctx) {
         { k: 'reg', rot: 'Regime tributário', pane: 'fiscal', campo: 'cme-regime', ok: () => !!document.getElementById('cme-regime')?.value },
         { k: 'ibge', rot: 'Código IBGE do município', pane: 'dados', campo: 'cme-ibge', ok: () => digitos(document.getElementById('cme-ibge')?.value).length === 7 },
     ];
-    const CHIPS = [['resumo', 'Resumo'], ['dados', 'Dados'], ['fiscal', 'Fiscal e Pix'], ['rotinas', 'Rotinas'], ...(temDocs ? [['documentos', 'Documentos']] : [])];
+    const CHIPS = [['resumo', 'Resumo'], ['dados', 'Dados'], ['fiscal', 'Fiscal e Pix'], ['rotinas', 'Rotinas'],
+        ...(temCtrl ? [['controles', 'Controles']] : []), ...(temDocs ? [['documentos', 'Documentos']] : [])];
 
     mountEl.innerHTML = `
         <div class="rz-entity">
             <div class="rz-ic"><svg data-lucide="building-2"></svg></div>
-            <div class="rz-tx"><b>${esc(dados.nome_empresa)}</b><span id="cme-completude">—</span></div>
+            <div class="rz-tx"><b>${esc(dados.nome_empresa)}</b><span id="cme-sub">—</span></div>
         </div>
         <div class="rz-chips" id="cme-chips" role="tablist" aria-label="Minha empresa">${CHIPS.map(([k, r], i) =>
-            `<button type="button" class="rz-chip${i === 0 ? ' rz-on' : ''}" role="tab" data-cme-chip="${k}" aria-selected="${i === 0}">${esc(r)}<span class="rz-pt rz-warn hidden" data-cme-pt="${k}" aria-hidden="true"></span></button>`).join('')}</div>
+            `<button type="button" class="rz-chip${i === 0 ? ' rz-on' : ''}" role="tab" data-cme-chip="${k}" aria-selected="${i === 0}">${esc(r)} <span class="rz-n" data-cme-n="${k}" hidden></span></button>`).join('')}</div>
 
-        <div data-cme-pane="resumo"><div class="rz-card rz-list" id="cme-resumo"></div>
-            <span class="rz-hint" style="display:block;margin:8px 2px 0">Estes dados saem nos recibos, nas minutas, na cobrança pelo WhatsApp e na leitura tributária do patrimônio.</span></div>
+        <div data-cme-pane="resumo"><div class="rz-card"><div class="rz-card-h"><h3>Configuração da empresa</h3></div>
+            <p class="rz-desc">Estes dados saem nos recibos, nas minutas, na cobrança pelo WhatsApp e na leitura tributária do patrimônio.</p>
+            <div class="rz-list" id="cme-resumo"></div></div></div>
         <div data-cme-pane="dados" hidden>
 
         ${gate ? `<div class="rz-card" style="margin-bottom:12px"><p class="text-xs" style="color:var(--wine)">🔒 ${esc(gate.textoCurto)} — esta tela está só em leitura.</p></div>` : ''}
@@ -382,6 +389,7 @@ export async function montarAbaMinhaEmpresa(mountEl, ctx) {
         <div id="cme-contas-card"></div>
         </div>
         <div data-cme-pane="rotinas" hidden><div id="cme-rotinas-card"></div></div>
+        <div data-cme-pane="controles" hidden></div>
         <div data-cme-pane="documentos" hidden></div>
         <button id="cme-btn-salvar" class="rz-btn rz-btn-1 rz-wide" hidden ${gate ? 'disabled' : ''} style="margin-bottom:12px${gate ? ';opacity:.5' : ''}">Salvar dados da empresa</button>
     `;
@@ -395,12 +403,27 @@ export async function montarAbaMinhaEmpresa(mountEl, ctx) {
         mountEl.querySelectorAll('[data-cme-pane]').forEach(p => { p.hidden = p.dataset.cmePane !== k; });
         mountEl.querySelectorAll('[data-cme-chip]').forEach(c => { const on = c.dataset.cmeChip === k; c.classList.toggle('rz-on', on); c.setAttribute('aria-selected', on ? 'true' : 'false'); });
         extras.forEach(x => { x.el.hidden = x.pane !== k; });
-        const salvar = document.getElementById('cme-btn-salvar'); if (salvar) salvar.hidden = !(k === 'dados' || k === 'fiscal');
+        const salvar = document.getElementById('cme-btn-salvar');
+        if (salvar) {
+            salvar.hidden = !(k === 'dados' || k === 'fiscal');
+            // F2.5b-2 — o botão mora logo depois dos campos que salva (em Fiscal e Pix, antes do card Contas)
+            const contas = document.getElementById('cme-contas-card');
+            if (k === 'fiscal' && contas) contas.before(salvar);
+            else if (k === 'dados') mountEl.querySelector('[data-cme-pane="dados"]')?.append(salvar);
+        }
     };
     const atualizarResumo = () => {
         const feitos = ITENS_RESUMO.filter(i => i.ok());
-        const comp = document.getElementById('cme-completude');
-        if (comp) comp.textContent = feitos.length === ITENS_RESUMO.length ? 'Empresa configurada' : `${feitos.length} de ${ITENS_RESUMO.length} itens configurados`;
+        // F2.5b-2 — cabeçalho: documento e cidade da sede (a quantidade do que falta mora nos chips)
+        const sub = document.getElementById('cme-sub');
+        if (sub) {
+            const docTxt = (document.getElementById('cme-cnpj')?.value || '').trim();
+            const docRot = document.getElementById('cme-doc-label')?.textContent || 'CNPJ';
+            const cid = (document.getElementById('cme-cidade')?.value || '').trim();
+            const uf = document.getElementById('cme-uf')?.value || '';
+            const partes = [docTxt ? `${docRot} ${docTxt}` : '', cid ? (uf ? `${cid}/${uf}` : cid) : ''].filter(Boolean);
+            sub.textContent = partes.length ? partes.join(' · ') : 'Dados da empresa';
+        }
         const st = (sem, txt) => typeof window.renderStatus === 'function' ? window.renderStatus(sem, txt) : `<span class="rz-st rz-${sem}">${txt}</span>`;
         const lista = document.getElementById('cme-resumo');
         if (lista) lista.innerHTML = [...ITENS_RESUMO.filter(i => !i.ok()), ...feitos].map(i => `
@@ -408,9 +431,16 @@ export async function montarAbaMinhaEmpresa(mountEl, ctx) {
                 <div class="rz-tx"><b>${esc(i.rot)}</b><span>${i.pane === 'fiscal' ? 'Fiscal e Pix' : 'Dados'}</span></div>
                 <div class="rz-rt">${i.ok() ? st('ok', 'Pronto') : st('warn', 'Falta')}</div>
             </div>`).join('');
-        ['dados', 'fiscal'].forEach(k => {
-            const pt = mountEl.querySelector(`[data-cme-pt="${k}"]`);
-            if (pt) pt.classList.toggle('hidden', ITENS_RESUMO.every(i => i.pane !== k || i.ok()));
+        // F2.5b-2 — quantidade do que falta no chip, tom --warning (padrão .rz-chip.rz-warn .rz-n)
+        ['resumo', 'dados', 'fiscal'].forEach(k => {
+            const n = ITENS_RESUMO.filter(i => (k === 'resumo' || i.pane === k) && !i.ok()).length;
+            const el = mountEl.querySelector(`[data-cme-n="${k}"]`);
+            if (el) { el.textContent = String(n); el.hidden = n === 0; }
+            const chip = mountEl.querySelector(`[data-cme-chip="${k}"]`);
+            if (chip) {
+                chip.classList.toggle('rz-warn', n > 0);
+                chip.setAttribute('aria-label', n ? `${chip.firstChild.textContent.trim()}, ${n} ${n === 1 ? 'item faltando' : 'itens faltando'}` : chip.firstChild.textContent.trim());
+            }
         });
     };
     mountEl.querySelector('#cme-chips').addEventListener('click', (ev) => { const c = ev.target.closest('[data-cme-chip]'); if (c) mostrarPane(c.dataset.cmeChip); });
@@ -423,6 +453,12 @@ export async function montarAbaMinhaEmpresa(mountEl, ctx) {
     });
     mostrarPane('resumo');
     atualizarResumo();
+    // F2.5b-2 — atalhos de fora (Financeiro › Rotinas, links empresa/pix e empresa/rotinas) rolam até estes
+    // cards com scrollIntoView: abre o chip deles antes, senão rolariam até um card escondido.
+    [['cme-rotinas-card', 'rotinas'], ['cme-pix-card', 'fiscal']].forEach(([id, pane]) => {
+        const el = document.getElementById(id);
+        if (el) el.scrollIntoView = function (o) { mostrarPane(pane); return Element.prototype.scrollIntoView.call(this, o); };
+    });
 
     // -------- natureza (segmento) + máscara do documento --------
     let natureza = naturezaInicial;
@@ -583,7 +619,7 @@ export async function montarAbaMinhaEmpresa(mountEl, ctx) {
             alvo.innerHTML = '';
             return;
         }
-        if (!rotinas || !rotinas.length) { alvo.innerHTML = ''; return; }
+        if (!rotinas || !rotinas.length) { alvo.innerHTML = '<div class="rz-card"><p class="rz-desc">Nenhuma rotina disponível para esta empresa.</p></div>'; return; }
 
         const r = typeof window.renderStatus === 'function' ? window.renderStatus : (c, t) => `<span class="rz-st rz-${esc(c)}">${esc(t || c)}</span>`;
         alvo.innerHTML = `

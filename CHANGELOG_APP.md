@@ -4,6 +4,19 @@ Histórico completo de versões do `index.html`, movido automaticamente pelo `ge
 
 ---
 
+NOVIDADES (Beta v1.335.0) — UX F2.5a (demanda 639bbcd0; "De acordo, começar pela F2.5a" do Nicola 09/10 23:5x):
+menu do avatar em 4 grupos — Minha empresa (Dados da empresa · Pessoas e acessos · Licença e plano ·
+Relatórios · Fiscal, e "Trocar empresa" para quem acessa mais de uma) · Cadastros e regras · Preferências
+(Notificações · Raiz IA no WhatsApp) · Ajuda e conta (Suporte · Termos · Sobre o app · Sair). rzTrocarEmpresa
+volta à escolha de empresa do login. Nenhum objeto de banco criado por este arquivo.
+Versão anterior (Beta v1.334.0):
+------------------------------------------------------------------
+Versões anteriores (v1.334.0 … v1.334.0): CHANGELOG_APP.md, na raiz do
+repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
+das 5 versões mais recentes deste cabeçalho.
+
+---
+
 NOVIDADES (Beta v1.334.0) — demanda 4de70503 (pedido do Nicola 09/10 23:04, itens 1 a 4; item 5 no backlog 64a17c76).
 Chips do Hoje com maiúscula: Patrimônio · Minha Gestão · Fique por Dentro. Ponte de resultados ganha
 trocarIndicadorComparacao e abrirInfoContratosIndice. CSS dos quadrantes de Indicadores de mercado (.rz-ind-*),
