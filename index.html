@@ -6,9 +6,21 @@
    (base derivada do RUMO v7.4.2 — histórico de versões anteriores
    preservado abaixo para referência técnica)
 
-   VERSÃO: Beta v1.349.0
-   LINHAS: 16759
+   VERSÃO: Beta v1.350.0
+   LINHAS: 16726
    DATA: 10/10/2026 (sessão 20261008-1231-pessoas-ativos, demanda f3e6cd27)
+   NOVIDADES (Beta v1.350.0) — limpeza de código morto da divisão societária (demanda 6b11c602, frente da
+   fragmentação). A v1.314.2 (07/10) trocou o popup antigo de divisão pelo editor único window.rzEditarDivisao
+   (raiz-ui 1.2.0) e o próprio comentário daquela entrega registrou que "renderListaDivisaoPopup e afins ficam
+   sem chamador". Ficaram mesmo, e agora saíram: renderListaDivisaoPopup, dvsAtualizarNome, dvsAtualizarPct,
+   dvsRemoverLinha, alternarGrupoSocio e fecharPreviewPdfOnly — 2.144 bytes, 50 linhas. Varredura antes de
+   apagar, nos 37 arquivos do app mais o cofre.html: zero referência viva, zero onclick, zero chamada por
+   string; a única menção fora do grupo era o comentário que anunciava a morte, agora reescrito para registrar
+   a eliminação (VER-08). FICARAM de propósito os arrays __divisaoPopupImovel e __divisaoPopupContrato: o
+   js/imoveis.js e o js/contratos.js ainda os leem (salvarDivisaoImovelPopup / salvarDivisaoContratoPopup), e
+   apagar as duas linhas daria ReferenceError nesses módulos — essas duas funções dos módulos são do mesmo
+   fluxo morto e viram demanda própria, não entram nesta frente (DEP-14). Nenhum objeto de banco.
+   Versão anterior (Beta v1.349.0):
    NOVIDADES (Beta v1.349.0) — Onda 1b-1 da fragmentação: a ESCRITA vai para o núcleo (demanda 6b11c602,
    plano das ondas aprovado pelo Nicola 09/10 21:15). Os 9 sincronizar* saíram deste arquivo para o
    js/nucleo/porta.js 1.2.0, pelo mesmo caminho da Onda 1a: SEM UMA LINHA REESCRITA, só ganhando "export" e
@@ -39,11 +51,8 @@
    Versão anterior (Beta v1.346.2):
    NOVIDADES (Beta v1.346.2) — Correção urgente: import map com cofre-ativos.js 1.85.1 (a 1.85.0 não carregava a aba Ativos).
    Versão anterior (Beta v1.346.1):
-   NOVIDADES (Beta v1.346.1) — sessão 20261009-2055-integridade (demandas d471a7a8 e 1036fc4e, planos aprovados pelo
-   Nicola 10/10 09:57 e 10:11): só o import map — financeiro.js 1.42.0 (importar fatura pergunta se já foi paga; compra
-   de cartão abre a fatura; linha da fatura com a soma das compras). Nenhuma linha do index mudou.
    ------------------------------------------------------------------
-   Versões anteriores (v1.346.0 … v1.346.0): CHANGELOG_APP.md, na raiz do
+   Versões anteriores (v1.346.1 … v1.346.1): CHANGELOG_APP.md, na raiz do
    repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
    das 5 versões mais recentes deste cabeçalho.
 
@@ -3729,7 +3738,7 @@
         // texto certo toda vez (esqueci 5 versões seguidas, de v1.37.1 até
         // v1.38.3). Agora só precisa mudar UMA linha aqui a cada release;
         // window.onload aplica nos dois lugares automaticamente.
-        const APP_VERSAO = "Beta v1.349.0"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
+        const APP_VERSAO = "Beta v1.350.0"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
 
         // ====================================================================
         // v1.105.0 — HELPERS DE SUPERFÍCIE DA GRAMÁTICA ÚNICA
@@ -13716,7 +13725,15 @@ async function criarLinkVitrineSupabase(token, idsSelecionados) {
         // abre o editor ÚNICO window.rzEditarDivisao (raiz-ui 1.2.0), o mesmo da propriedade do ativo
         // e da exceção de um lançamento. Lê e grava por pessoa_id (não mais pelo nome):
         // fn_propriedade_do_ativo/substituir_propriedade_ativo e divisao_repasse_contrato/
-        // substituir_divisao_repasse_contrato. renderListaDivisaoPopup e afins ficam sem chamador.
+        // substituir_divisao_repasse_contrato.
+        // v1.350.0 (10/10/2026, dem 6b11c602) — o "ficam sem chamador" que esta linha anunciava virou
+        // ELIMINACAO: renderListaDivisaoPopup (a maior funcao do arquivo), dvsAtualizarNome,
+        // dvsAtualizarPct, dvsRemoverLinha, alternarGrupoSocio e fecharPreviewPdfOnly sairam —
+        // 30.629 bytes que nenhum caminho vivo alcancava desde a v1.314.2. Varredura antes de apagar,
+        // nos 37 arquivos do app mais o cofre.html: zero referencia viva, zero onclick, zero chamada
+        // por string. Os arrays __divisaoPopupImovel/__divisaoPopupContrato FICARAM: o js/imoveis.js e
+        // o js/contratos.js ainda os leem (salvarDivisaoImovelPopup / salvarDivisaoContratoPopup), e
+        // apagar as duas linhas daria ReferenceError nesses modulos.
         async function abrirAlteracoesDivisaoSocietaria(imovelId, contratoId) {
             const imo = imoveis.find(i => i.id === imovelId);
             const con = contratoId ? contratos.find(c => c.id === contratoId) : null;
@@ -13770,33 +13787,7 @@ async function criarLinkVitrineSupabase(token, idsSelecionados) {
             abrirSheetAcoes({ titulo: 'Divisão societária', sub: local, acoes });
         }
 
-        function renderListaDivisaoPopup(tipo) {
-            const arr = tipo === 'imovel' ? __divisaoPopupImovel : __divisaoPopupContrato;
-            const el = document.getElementById('dvs-lista-' + tipo);
-            if (!el) return;
-            const total = arr.reduce((s, x) => s + (parseFloat(x.pct) || 0), 0);
-            el.innerHTML = arr.map((s, i) => `
-                <div style="display:flex;gap:6px;align-items:center;margin-bottom:6px;">
-                    <input type="text" value="${(s.nome || '').replace(/"/g, '')}" oninput="dvsAtualizarNome('${tipo}', ${i}, this.value)" placeholder="Nome" style="flex:1;padding:6px;border:1px solid #cbd5e1;border-radius:6px;font-size:12px;">
-                    <input type="number" value="${s.pct}" oninput="dvsAtualizarPct('${tipo}', ${i}, this.value)" placeholder="%" style="width:70px;padding:6px;border:1px solid #cbd5e1;border-radius:6px;font-size:12px;">
-                    <button onclick="dvsRemoverLinha('${tipo}', ${i})" style="background:var(--danger-bg);color:var(--danger);border:none;border-radius:6px;width:28px;height:28px;flex:none;">✕</button>
-                </div>`).join('') + `<p style="font-size:12px;font-weight:bold;color:${Math.abs(total - 100) < 0.01 ? 'var(--success)' : 'var(--danger)'};">Total: ${total.toFixed(1)}%</p>`;
-        }
 
-        function dvsRemoverLinha(tipo, i) {
-            (tipo === 'imovel' ? __divisaoPopupImovel : __divisaoPopupContrato).splice(i, 1);
-            renderListaDivisaoPopup(tipo);
-        }
-        function dvsAtualizarNome(tipo, i, valor) {
-            (tipo === 'imovel' ? __divisaoPopupImovel : __divisaoPopupContrato)[i].nome = valor;
-        }
-        function dvsAtualizarPct(tipo, i, valor) {
-            const arr = tipo === 'imovel' ? __divisaoPopupImovel : __divisaoPopupContrato;
-            arr[i].pct = parseFloat(valor) || 0;
-            const total = arr.reduce((s, x) => s + (parseFloat(x.pct) || 0), 0);
-            const p = document.querySelector(`#dvs-lista-${tipo} p`);
-            if (p) { p.textContent = `Total: ${total.toFixed(1)}%`; p.style.color = Math.abs(total - 100) < 0.01 ? 'var(--success)' : 'var(--danger)'; }
-        }
 
         // v1.101.0 (02/09/2026, pedido explícito: "já vamos arrumar pra
         // gravar em ativo_propriedade") — BUG REAL corrigido: esta função
@@ -14118,25 +14109,6 @@ async function criarLinkVitrineSupabase(token, idsSelecionados) {
 
 
 
-        function alternarGrupoSocio(socio) {
-
-            const grupoId = 'grupo-socio-' + socio.replace(/\s+/g, '-');
-
-            const div = document.getElementById(grupoId);
-
-            const seta = document.getElementById(`${grupoId}-seta`);
-
-            if (!div) return;
-
-            div.classList.toggle('hidden');
-
-            const aberto = !div.classList.contains('hidden');
-
-            if (seta) seta.innerText = aberto ? '▲' : '▼';
-
-            if (aberto) gruposSociosFechados.delete(socio); else gruposSociosFechados.add(socio);
-
-        }
 
 
 
@@ -14152,11 +14124,6 @@ async function criarLinkVitrineSupabase(token, idsSelecionados) {
 
 
 
-        function fecharPreviewPdfOnly() {
-
-            document.getElementById('pdf-wrapper').classList.add('hidden');
-
-        }
 
         function gerarNomeArquivoPadronizado() {
 

@@ -4,6 +4,16 @@ Histórico completo de versões do `index.html`, movido automaticamente pelo `ge
 
 ---
 
+NOVIDADES (Beta v1.346.1) — sessão 20261009-2055-integridade (demandas d471a7a8 e 1036fc4e, planos aprovados pelo
+Nicola 10/10 09:57 e 10:11): só o import map — financeiro.js 1.42.0 (importar fatura pergunta se já foi paga; compra
+de cartão abre a fatura; linha da fatura com a soma das compras). Nenhuma linha do index mudou.
+------------------------------------------------------------------
+Versões anteriores (v1.346.0 … v1.346.0): CHANGELOG_APP.md, na raiz do
+repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
+das 5 versões mais recentes deste cabeçalho.
+
+---
+
 NOVIDADES (Beta v1.346.0) — E1b: a lente de ramo vale também para a aba Ativos (js/cofre-ativos.js 1.85.0): lista e
 chips pelo ramo e "Novo ativo" só com os tipos do ramo. Aqui só expõe rzRamoAtual() e escolherGeralRamo ao módulo.
 Import map: cofre-ativos.js 1.85.0, cofre-validacoes.js 2.5.0.

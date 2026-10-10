@@ -1,8 +1,8 @@
 {
   "app": "patrimonio",
-  "gerado_em": "2026-10-10T11:17:43",
+  "gerado_em": "2026-10-10T13:21:00",
   "arquivos": {
-    "index.html": "1.349.0",
+    "index.html": "1.350.0",
     "sw.js": "3.0",
     "js/cadastros.js": "1.2.0",
     "js/financeiro.js": "1.42.0",
@@ -42,7 +42,7 @@
   },
   "detalhes": {
     "index.html": {
-      "linhas": 16764,
+      "linhas": 16729,
       "funcoes": 76
     },
     "sw.js": {
