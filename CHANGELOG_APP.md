@@ -4,6 +4,16 @@ Histórico completo de versões do `index.html`, movido automaticamente pelo `ge
 
 ---
 
+NOVIDADES (Beta v1.333.1) — sessão 20261009-2055-integridade (demanda 56546614, teste do Nicola 09/10 22:40):
+só o import map — financeiro.js 1.39.1 (sair de Classificar/Divisão volta para a fatura; Selecionar sem
+reler a fatura nem voltar ao topo). Nenhuma linha do index mudou.
+------------------------------------------------------------------
+Versões anteriores (v1.333.0 … v1.333.0): CHANGELOG_APP.md, na raiz do
+repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
+das 5 versões mais recentes deste cabeçalho.
+
+---
+
 NOVIDADES (Beta v1.333.0) — Pessoa fora do patrimônio (F17, plano aprovado pelo Nicola 09/10 22:50). No Hoje,
 o donut "Patrimônio por tipo" deixa de contar ativo pessoa (tipo vida) dentro de "Outros". Em Ativos, chip
 "Pessoas" próprio (cofre-ativos.js 1.84.0). No banco, na mesma entrega: pessoa fora dos totais, contagens e

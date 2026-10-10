@@ -1,6 +1,19 @@
 // ============================================================================
 // comum-minha-empresa.js — Raiz Patrimônio · Administração compartilhada
-// Versão: 1.12.0 · 08/10/2026
+// Versão: 1.13.0 · 10/10/2026
+//
+// v1.13.0 (UX F2.5b, demanda 639bbcd0, sessão 20261003-1707-ux-base; plano F2.5 aprovado pelo Nicola 09/10 23:5x;
+// ESTUDO 9A.4) — Minha empresa vira ficha com chips: cabeçalho de entidade com a completude ("6 de 8 itens
+// configurados") e os chips Resumo · Dados · Fiscal e Pix · Rotinas · Documentos, um assunto por chip.
+//   · Resumo: o que está configurado e o que falta, cada linha leva ao chip e ao campo certo.
+//   · Dados: Identificação, Endereço da sede, Recibos (papel na locação e logo) e Assinatura.
+//   · Fiscal e Pix: Pix, Perfil fiscal e societário, cidade impressa no recibo e o card Contas (intocado, etapa 6).
+//   · Rotinas e Documentos: os boxes do app (Controles e Documentos da empresa) entram por ctx.extras — o módulo
+//     só mostra/esconde; quem monta continua sendo o index (cofre-documentos/cofre-controles).
+//   · O chip com algo faltando leva o ponto --warning; "Salvar dados da empresa" aparece em Dados e Fiscal e Pix.
+//   Todos os ids de campo e os handlers continuam iguais.
+//
+// Versão anterior: 1.12.0 · 08/10/2026
 //
 // v1.12.0 (UX F2.7c-2, demanda b8602a3a, sessão 20261003-1707-ux-base; plano F2.7c-2 aprovado pelo Nicola 08/10 14:04) — tela no padrão:
 //   · carregamento com esqueleto e mensagens de vazio/erro em .rz-desc (sem cor Tailwind);
@@ -34,21 +47,11 @@
 // responde explicando e sugerindo "Encerrar conta". "Encerrar" também passa a
 // aparecer na padrão de uma pessoa (o banco aceita quando é a única conta
 // dela). A padrão da empresa continua protegida. Versão anterior: 1.10.0.
-//
-// v1.10.0 (04/10/2026, sessão 20261004-1245-financeiro, demanda f3e6cd27 — P4a,
-// fichas A1–A6 aprovadas pelo Nicola 12:43) — card novo "Contas" no fim da
-// tela: a "Conta da empresa" (P3) e as contas de cada pessoa. "+" abre a ficha
-// da conta em Sheet (nome, titular, banco, 4 finais, contabilidade,
-// conciliação); toque na linha abre Editar / Definir como padrão / Encerrar.
-// Toda regra mora no banco (fn_contas_listar, fn_conta_salvar,
-// fn_conta_definir_padrao, fn_conta_encerrar — as mesmas que o bot chama).
-// Sem Premium, o card mostra só a conta da empresa e uma linha com cadeado e
-// o motivo (ACE-04). Versão anterior: 1.9.0.
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.9.0 … v1.9.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.10.0 … v1.10.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '1.12.0'; // v-check (20/09/2026): lido por Dev › Versões — manter igual ao header
+export const VERSAO = '1.13.0'; // v-check (20/09/2026): lido por Dev › Versões — manter igual ao header
 import { perguntar } from './cofre-ui.js'; // v1.9.0 (F0.2b) — sem diálogo nativo
 import { rzMostrarBloqueio as rzBloqueio, podeUsar as podeUsarMod } from './comum-licenca.js'; // v1.10.0 — porta de licença (contas)
 export const COMUM_MINHA_EMPRESA_VERSAO = '1.0.0';
@@ -198,6 +201,8 @@ function processarArquivoAssinatura(file) {
 export async function montarAbaMinhaEmpresa(mountEl, ctx) {
     if (!mountEl) return;
     const { dbAuth, clienteId, onToast, onBrandingAtualizado, registrarLog } = ctx || {};
+    // F2.5b — elementos do host que pertencem a um chip: [{ pane: 'rotinas'|'documentos', el }]
+    const extras = Array.isArray(ctx && ctx.extras) ? ctx.extras.filter(x => x && x.el) : [];
 
     mountEl.innerHTML = (typeof window !== 'undefined' && typeof window.rzSkeleton === 'function' ? window.rzSkeleton('lista', 3) : '<p class="rz-desc">Carregando…</p>');
     if (!dbAuth || !clienteId) {
@@ -236,8 +241,31 @@ export async function montarAbaMinhaEmpresa(mountEl, ctx) {
     const PAPEIS = [['', 'Não informado'], ['proprietario', 'Proprietário (aluga o que é seu)'], ['administradora', 'Administradora (aluga para terceiros)'], ['ambos', 'Os dois']];
     const opts = (lista, atual) => lista.map(([v, t]) => `<option value="${v}" ${sel(atual || '', v)}>${t}</option>`).join('');
 
+    // F2.5b — completude: os 8 itens que recibo, minuta, cobrança e leitura tributária usam.
+    const temDocs = extras.some(x => x.pane === 'documentos');
+    const ITENS_RESUMO = [
+        { k: 'doc', rot: 'CNPJ ou CPF', pane: 'dados', campo: 'cme-cnpj', ok: () => !!digitos(document.getElementById('cme-cnpj')?.value) },
+        { k: 'resp', rot: 'Responsável que assina o recibo', pane: 'dados', campo: 'cme-responsavel', ok: () => !!(document.getElementById('cme-responsavel')?.value || '').trim() },
+        { k: 'end', rot: 'Endereço da sede (cidade e UF)', pane: 'dados', campo: 'cme-cidade', ok: () => !!(document.getElementById('cme-cidade')?.value || '').trim() && !!document.getElementById('cme-uf')?.value },
+        { k: 'logo', rot: 'Logo', pane: 'dados', campo: 'cme-btn-logo', ok: () => !document.getElementById('cme-logo-preview-wrap')?.classList.contains('hidden') },
+        { k: 'ass', rot: 'Assinatura para o recibo', pane: 'dados', campo: 'cme-btn-assinatura', ok: () => !document.getElementById('cme-assinatura-preview-container')?.classList.contains('hidden') },
+        { k: 'pix', rot: 'Chave Pix para cobrança', pane: 'fiscal', campo: 'cme-pix-chave', ok: () => !!(document.getElementById('cme-pix-chave')?.value || '').trim() },
+        { k: 'reg', rot: 'Regime tributário', pane: 'fiscal', campo: 'cme-regime', ok: () => !!document.getElementById('cme-regime')?.value },
+        { k: 'ibge', rot: 'Código IBGE do município', pane: 'dados', campo: 'cme-ibge', ok: () => digitos(document.getElementById('cme-ibge')?.value).length === 7 },
+    ];
+    const CHIPS = [['resumo', 'Resumo'], ['dados', 'Dados'], ['fiscal', 'Fiscal e Pix'], ['rotinas', 'Rotinas'], ...(temDocs ? [['documentos', 'Documentos']] : [])];
+
     mountEl.innerHTML = `
-        <div class="rz-tabhead"><p>Dados da sua empresa, usados em recibos, minutas e na leitura tributária do patrimônio.</p></div>
+        <div class="rz-entity">
+            <div class="rz-ic"><svg data-lucide="building-2"></svg></div>
+            <div class="rz-tx"><b>${esc(dados.nome_empresa)}</b><span id="cme-completude">—</span></div>
+        </div>
+        <div class="rz-chips" id="cme-chips" role="tablist" aria-label="Minha empresa">${CHIPS.map(([k, r], i) =>
+            `<button type="button" class="rz-chip${i === 0 ? ' rz-on' : ''}" role="tab" data-cme-chip="${k}" aria-selected="${i === 0}">${esc(r)}<span class="rz-pt rz-warn hidden" data-cme-pt="${k}" aria-hidden="true"></span></button>`).join('')}</div>
+
+        <div data-cme-pane="resumo"><div class="rz-card rz-list" id="cme-resumo"></div>
+            <span class="rz-hint" style="display:block;margin:8px 2px 0">Estes dados saem nos recibos, nas minutas, na cobrança pelo WhatsApp e na leitura tributária do patrimônio.</span></div>
+        <div data-cme-pane="dados" hidden>
 
         ${gate ? `<div class="rz-card" style="margin-bottom:12px"><p class="text-xs" style="color:var(--wine)">🔒 ${esc(gate.textoCurto)} — esta tela está só em leitura.</p></div>` : ''}
 
@@ -270,15 +298,6 @@ export async function montarAbaMinhaEmpresa(mountEl, ctx) {
             <div class="rz-f" style="margin-bottom:0"><label>Site</label><input type="url" id="cme-site" inputmode="url" placeholder="https://" value="${val(dados.site)}"></div>
         </div>
 
-        <div class="rz-card" id="cme-pix-card"><div class="rz-card-h"><h3>Pix para cobrança de aluguel</h3></div>
-            <div class="rz-f"><label>Chave Pix</label>
-                <input type="text" id="cme-pix-chave" maxlength="77" placeholder="CPF/CNPJ, e-mail, celular ou chave aleatória" value="${val(dados.pix_chave)}">
-            </div>
-            <div class="rz-f" style="margin-bottom:0"><label>Nome do recebedor</label>
-                <input type="text" id="cme-pix-nome" maxlength="25" placeholder="${val(dados.nome_empresa)}" value="${val(dados.pix_recebedor_nome)}">
-                <span class="rz-hint">Hoje a chave é usada na cobrança de aluguel pelo WhatsApp: na hora de cobrar você escolhe se inclui a chave e o Pix copia e cola com o valor. Vazio = nome da empresa.</span>
-            </div>
-        </div>
 
         <div class="rz-card"><div class="rz-card-h"><h3>Endereço da sede</h3></div>
             <div class="rz-f" style="max-width:180px"><label>CEP</label><input type="text" id="cme-cep" inputmode="numeric" maxlength="9" placeholder="00000-000" value="${val(dados.cep)}"></div>
@@ -299,13 +318,7 @@ export async function montarAbaMinhaEmpresa(mountEl, ctx) {
             </div>
         </div>
 
-        <div class="rz-card"><div class="rz-card-h"><h3>Recibos e documentos</h3></div>
-            <div class="rz-f"><label>Cidade impressa no recibo</label>
-                <select id="cme-cidade-recibo-fonte">
-                    <option value="empresa" ${dados.cidade_recibo_fonte !== 'imovel' ? 'selected' : ''}>Cidade da empresa (a de cima)</option>
-                    <option value="imovel" ${dados.cidade_recibo_fonte === 'imovel' ? 'selected' : ''}>Cidade do imóvel alugado</option>
-                </select>
-            </div>
+        <div class="rz-card"><div class="rz-card-h"><h3>Recibos e marca</h3></div>
             <div class="rz-f"><label>Papel na locação</label>
                 <select id="cme-papel">${opts(PAPEIS, dados.papel_na_locacao)}</select>
                 <span class="rz-hint">Define como o sistema lê contratos e repasses.</span>
@@ -320,6 +333,30 @@ export async function montarAbaMinhaEmpresa(mountEl, ctx) {
             </div>
         </div>
 
+
+        <div class="rz-card"><div class="rz-card-h"><h3>Assinatura para o recibo</h3></div>
+            <span class="rz-hint" style="display:block;margin-bottom:8px">Tire uma foto da assinatura numa folha em branco — o sistema trata a imagem automaticamente (fundo transparente, traço em preto) para caber no recibo.</span>
+            <div id="cme-assinatura-preview-container" class="${dados.assinatura_url ? '' : 'hidden'} rz-quadriculado">
+                <img id="cme-assinatura-preview" style="max-height:80px" alt="Assinatura" src="${val(dados.assinatura_url)}">
+            </div>
+            <div class="rz-row" style="border-top:0;padding:4px 0">
+                <input type="file" id="cme-assinatura-input" accept="image/*" capture="environment" class="hidden">
+                <button id="cme-btn-assinatura" type="button" class="rz-btnrow" ${gate ? 'disabled' : ''}><div class="rz-ic"><svg data-lucide="camera"></svg></div><div class="rz-tx"><b id="cme-assinatura-btn-texto">${dados.assinatura_url ? 'Trocar assinatura' : 'Enviar assinatura'}</b><span>Foto da assinatura numa folha em branco</span></div></button>
+                <button id="cme-btn-apagar-assinatura" type="button" title="Mais ações da assinatura" aria-label="Mais ações da assinatura" class="${dados.assinatura_url ? '' : 'hidden'} rz-more" ${gate ? 'disabled' : ''}><svg data-lucide="ellipsis-vertical"></svg></button>
+            </div>
+        </div>
+
+        </div>
+        <div data-cme-pane="fiscal" hidden>
+        <div class="rz-card" id="cme-pix-card"><div class="rz-card-h"><h3>Pix para cobrança de aluguel</h3></div>
+            <div class="rz-f"><label>Chave Pix</label>
+                <input type="text" id="cme-pix-chave" maxlength="77" placeholder="CPF/CNPJ, e-mail, celular ou chave aleatória" value="${val(dados.pix_chave)}">
+            </div>
+            <div class="rz-f" style="margin-bottom:0"><label>Nome do recebedor</label>
+                <input type="text" id="cme-pix-nome" maxlength="25" placeholder="${val(dados.nome_empresa)}" value="${val(dados.pix_recebedor_nome)}">
+                <span class="rz-hint">Hoje a chave é usada na cobrança de aluguel pelo WhatsApp: na hora de cobrar você escolhe se inclui a chave e o Pix copia e cola com o valor. Vazio = nome da empresa.</span>
+            </div>
+        </div>
         <div class="rz-card"><div class="rz-card-h"><h3>Perfil fiscal e societário</h3></div>
             <div class="rz-f"><label>Regime tributário</label>
                 <select id="cme-regime">${opts(REGIMES, dados.regime_tributario)}</select>
@@ -334,25 +371,58 @@ export async function montarAbaMinhaEmpresa(mountEl, ctx) {
             </div>
         </div>
 
-        <button id="cme-btn-salvar" class="rz-btn rz-btn-1 rz-wide" ${gate ? 'disabled' : ''} style="margin-bottom:12px${gate ? ';opacity:.5' : ''}">Salvar dados da empresa</button>
-
-        <div class="rz-card"><div class="rz-card-h"><h3>Assinatura para o recibo</h3></div>
-            <span class="rz-hint" style="display:block;margin-bottom:8px">Tire uma foto da assinatura numa folha em branco — o sistema trata a imagem automaticamente (fundo transparente, traço em preto) para caber no recibo.</span>
-            <div id="cme-assinatura-preview-container" class="${dados.assinatura_url ? '' : 'hidden'} rz-quadriculado">
-                <img id="cme-assinatura-preview" style="max-height:80px" alt="Assinatura" src="${val(dados.assinatura_url)}">
-            </div>
-            <div class="rz-row" style="border-top:0;padding:4px 0">
-                <input type="file" id="cme-assinatura-input" accept="image/*" capture="environment" class="hidden">
-                <button id="cme-btn-assinatura" type="button" class="rz-btnrow" ${gate ? 'disabled' : ''}><div class="rz-ic"><svg data-lucide="camera"></svg></div><div class="rz-tx"><b id="cme-assinatura-btn-texto">${dados.assinatura_url ? 'Trocar assinatura' : 'Enviar assinatura'}</b><span>Foto da assinatura numa folha em branco</span></div></button>
-                <button id="cme-btn-apagar-assinatura" type="button" title="Mais ações da assinatura" aria-label="Mais ações da assinatura" class="${dados.assinatura_url ? '' : 'hidden'} rz-more" ${gate ? 'disabled' : ''}><svg data-lucide="ellipsis-vertical"></svg></button>
+        <div class="rz-card"><div class="rz-card-h"><h3>Recibo</h3></div>
+            <div class="rz-f" style="margin-bottom:0"><label>Cidade impressa no recibo</label>
+                <select id="cme-cidade-recibo-fonte">
+                    <option value="empresa" ${dados.cidade_recibo_fonte !== 'imovel' ? 'selected' : ''}>Cidade da empresa (a de cima)</option>
+                    <option value="imovel" ${dados.cidade_recibo_fonte === 'imovel' ? 'selected' : ''}>Cidade do imóvel alugado</option>
+                </select>
             </div>
         </div>
-
-        <div id="cme-rotinas-card"></div>
         <div id="cme-contas-card"></div>
+        </div>
+        <div data-cme-pane="rotinas" hidden><div id="cme-rotinas-card"></div></div>
+        <div data-cme-pane="documentos" hidden></div>
+        <button id="cme-btn-salvar" class="rz-btn rz-btn-1 rz-wide" hidden ${gate ? 'disabled' : ''} style="margin-bottom:12px${gate ? ';opacity:.5' : ''}">Salvar dados da empresa</button>
     `;
     if (typeof window !== 'undefined' && window.lucide) window.lucide.createIcons();
     if (gate) mountEl.querySelectorAll('input,select').forEach(el => { if (el.id !== 'cme-nome') el.disabled = true; });
+
+    // -------- F2.5b: chips, resumo e completude --------
+    let paneAtual = 'resumo';
+    const mostrarPane = (k) => {
+        paneAtual = k;
+        mountEl.querySelectorAll('[data-cme-pane]').forEach(p => { p.hidden = p.dataset.cmePane !== k; });
+        mountEl.querySelectorAll('[data-cme-chip]').forEach(c => { const on = c.dataset.cmeChip === k; c.classList.toggle('rz-on', on); c.setAttribute('aria-selected', on ? 'true' : 'false'); });
+        extras.forEach(x => { x.el.hidden = x.pane !== k; });
+        const salvar = document.getElementById('cme-btn-salvar'); if (salvar) salvar.hidden = !(k === 'dados' || k === 'fiscal');
+    };
+    const atualizarResumo = () => {
+        const feitos = ITENS_RESUMO.filter(i => i.ok());
+        const comp = document.getElementById('cme-completude');
+        if (comp) comp.textContent = feitos.length === ITENS_RESUMO.length ? 'Empresa configurada' : `${feitos.length} de ${ITENS_RESUMO.length} itens configurados`;
+        const st = (sem, txt) => typeof window.renderStatus === 'function' ? window.renderStatus(sem, txt) : `<span class="rz-st rz-${sem}">${txt}</span>`;
+        const lista = document.getElementById('cme-resumo');
+        if (lista) lista.innerHTML = [...ITENS_RESUMO.filter(i => !i.ok()), ...feitos].map(i => `
+            <div class="rz-row rz-link" role="button" tabindex="0" data-cme-ir="${i.k}">
+                <div class="rz-tx"><b>${esc(i.rot)}</b><span>${i.pane === 'fiscal' ? 'Fiscal e Pix' : 'Dados'}</span></div>
+                <div class="rz-rt">${i.ok() ? st('ok', 'Pronto') : st('warn', 'Falta')}</div>
+            </div>`).join('');
+        ['dados', 'fiscal'].forEach(k => {
+            const pt = mountEl.querySelector(`[data-cme-pt="${k}"]`);
+            if (pt) pt.classList.toggle('hidden', ITENS_RESUMO.every(i => i.pane !== k || i.ok()));
+        });
+    };
+    mountEl.querySelector('#cme-chips').addEventListener('click', (ev) => { const c = ev.target.closest('[data-cme-chip]'); if (c) mostrarPane(c.dataset.cmeChip); });
+    mountEl.querySelector('#cme-resumo').addEventListener('click', (ev) => {
+        const r = ev.target.closest('[data-cme-ir]'); if (!r) return;
+        const item = ITENS_RESUMO.find(i => i.k === r.dataset.cmeIr); if (!item) return;
+        mostrarPane(item.pane);
+        const el = document.getElementById(item.campo);
+        if (el) { el.scrollIntoView({ block: 'center' }); if (el.tagName !== 'BUTTON' && !el.disabled) setTimeout(() => el.focus(), 150); }
+    });
+    mostrarPane('resumo');
+    atualizarResumo();
 
     // -------- natureza (segmento) + máscara do documento --------
     let natureza = naturezaInicial;
@@ -408,6 +478,7 @@ export async function montarAbaMinhaEmpresa(mountEl, ctx) {
         try {
             await salvarDadosEmpresa(dbAuth, clienteId, payload);
             onToast?.('Dados da empresa salvos.', 'success');
+            atualizarResumo(); // F2.5b
             registrarLog?.('parametros.empresa.editar', {});
             onBrandingAtualizado?.();
         } catch (err) {
@@ -428,6 +499,7 @@ export async function montarAbaMinhaEmpresa(mountEl, ctx) {
             document.getElementById('cme-logo-preview-wrap').classList.remove('hidden');
             document.getElementById('cme-btn-apagar-logo').classList.remove('hidden');
             document.getElementById('cme-logo-btn-texto').textContent = 'Trocar logo';
+            atualizarResumo(); // F2.5b
             registrarLog?.('parametros.empresa.editar', { campo: 'logo' });
             onBrandingAtualizado?.();
         } catch (err) { onToast?.('Falha ao salvar o logo: ' + err.message, 'danger'); }
@@ -439,6 +511,7 @@ export async function montarAbaMinhaEmpresa(mountEl, ctx) {
             document.getElementById('cme-logo-preview-wrap').classList.add('hidden');
             document.getElementById('cme-btn-apagar-logo').classList.add('hidden');
             document.getElementById('cme-logo-btn-texto').textContent = 'Enviar logo';
+            atualizarResumo(); // F2.5b
             onBrandingAtualizado?.();
         } catch (err) { onToast?.('Falha ao remover: ' + err.message, 'danger'); }
     };
@@ -463,6 +536,7 @@ export async function montarAbaMinhaEmpresa(mountEl, ctx) {
             document.getElementById('cme-assinatura-preview-container').classList.remove('hidden');
             document.getElementById('cme-btn-apagar-assinatura').classList.remove('hidden');
             document.getElementById('cme-assinatura-btn-texto').textContent = 'Trocar assinatura';
+            atualizarResumo(); // F2.5b
             registrarLog?.('parametros.assinatura.editar', {});
             onBrandingAtualizado?.();
         } catch (err) {
@@ -479,6 +553,7 @@ export async function montarAbaMinhaEmpresa(mountEl, ctx) {
             document.getElementById('cme-assinatura-preview-container').classList.add('hidden');
             btnApagarAssinatura.classList.add('hidden');
             document.getElementById('cme-assinatura-btn-texto').textContent = 'Enviar assinatura';
+            atualizarResumo(); // F2.5b
             onBrandingAtualizado?.();
         } catch (err) {
             onToast?.('Falha ao remover: ' + err.message, 'danger');
