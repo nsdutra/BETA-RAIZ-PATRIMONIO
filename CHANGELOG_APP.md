@@ -4,6 +4,30 @@ Histórico completo de versões do `index.html`, movido automaticamente pelo `ge
 
 ---
 
+NOVIDADES (Beta v1.349.0) — Onda 1b-1 da fragmentação: a ESCRITA vai para o núcleo (demanda 6b11c602,
+plano das ondas aprovado pelo Nicola 09/10 21:15). Os 9 sincronizar* saíram deste arquivo para o
+js/nucleo/porta.js 1.2.0, pelo mesmo caminho da Onda 1a: SEM UMA LINHA REESCRITA, só ganhando "export" e
+passando a receber o que precisam por injeção. Foram medidos um a um: nenhum escreve em global do index —
+a única suspeita (SOCIO_PADRAO em sincronizarImovelSupabase) era menção em comentário. O que eles leem são
+5 arrays de estado vivo (contratos, mensalidades, pessoas, repasses, empreendimentosCadastrados), que
+passam a ir pela ponte a CADA chamada, pelo mesmo motivo de dbAuth: carregarTudo() reatribui cada um, e
+mandar a referência uma vez só deixaria o escritor procurando numa lista que não existe mais.
+sincronizarListaComResiliencia FICOU neste arquivo de propósito — a orquestradora sincronizarComSupabase
+também o chama, e duas cópias violariam a CAN-03; entra no módulo por injeção.
+NÃO vieram nesta onda: carregarAtivosParaSelectSupabase e carregarPartesParaSelectSupabase. Os caches
+deles têm 4 pontos de invalidação e DOIS estão dentro do js/financeiro.js, que faz `partesParaSelect =
+null` direto; mover o cache sem mover a invalidação faria o seletor nunca mais ver uma parte nova, sem
+erro na tela. Vira a 1b-2, com ficha própria.
+Índice: 1.070.799 → 1.041.857 bytes (17.273 → 16.747 linhas) — PASSA ABAIXO do teto de 1.048.576 bytes da
+API de conteúdo do GitHub pela primeira vez. Nenhum objeto de banco.
+Versão anterior (Beta v1.348.0):
+------------------------------------------------------------------
+Versões anteriores (v1.348.0 … v1.348.0): CHANGELOG_APP.md, na raiz do
+repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
+das 5 versões mais recentes deste cabeçalho.
+
+---
+
 NOVIDADES (Beta v1.348.0) — Tonalidade completa (Nicola 10/10 10:45): o botão + das telas (.rz-ico-btn.rz-primary), o
 ícone e a linha do item ativo da barra de baixo e o fundo do avatar passam a seguir o ramo da lente. Resultados
 por ramo (F23) em js/resultados.js 2.9.0.

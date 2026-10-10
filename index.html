@@ -6,9 +6,14 @@
    (base derivada do RUMO v7.4.2 — histórico de versões anteriores
    preservado abaixo para referência técnica)
 
-   VERSÃO: Beta v1.353.0
-   LINHAS: 15647
-   DATA: 10/10/2026 (sessão 20261008-1231-pessoas-ativos, demanda a3f4c73f)
+   VERSÃO: Beta v1.353.1
+   LINHAS: 15635
+   DATA: 10/10/2026 (sessão 20261008-1231-pessoas-ativos, demanda 7220bf36)
+   NOVIDADES (Beta v1.353.1) — CORREÇÃO URGENTE (Nicola 10/10 20:16: "depois da tela de login, coloco a senha e ele não
+   carrega"): o Object.assign(window, …) do catálogo de UI ainda citava abrirPreferenciasComunicacao, que a Onda 2b
+   levou para js/conta.js. ReferenceError no carregamento parava o script e o login ficava em "Entrando...". Só essa
+   linha mudou; a ponte para o módulo da Conta continua mais abaixo.
+   Versão anterior (Beta v1.353.0):
    NOVIDADES (Beta v1.353.0) — F25 (Nicola 10/10 14:57): o ramo de cada ativo vem do modelo vigente hoje (uso; senão o
    repouso; senão o tipo). A lente mostra só os ramos contratados (fn_cliente_ramos) e some com um ramo só. Ficha do
    ativo: chip "Usos e contratos" (cofre-ativos.js 1.86.0, ativos-markup.js 1.56.0).
@@ -58,25 +63,8 @@
    apagar as duas linhas daria ReferenceError nesses módulos — essas duas funções dos módulos são do mesmo
    fluxo morto e viram demanda própria, não entram nesta frente (DEP-14). Nenhum objeto de banco.
    Versão anterior (Beta v1.349.0):
-   NOVIDADES (Beta v1.349.0) — Onda 1b-1 da fragmentação: a ESCRITA vai para o núcleo (demanda 6b11c602,
-   plano das ondas aprovado pelo Nicola 09/10 21:15). Os 9 sincronizar* saíram deste arquivo para o
-   js/nucleo/porta.js 1.2.0, pelo mesmo caminho da Onda 1a: SEM UMA LINHA REESCRITA, só ganhando "export" e
-   passando a receber o que precisam por injeção. Foram medidos um a um: nenhum escreve em global do index —
-   a única suspeita (SOCIO_PADRAO em sincronizarImovelSupabase) era menção em comentário. O que eles leem são
-   5 arrays de estado vivo (contratos, mensalidades, pessoas, repasses, empreendimentosCadastrados), que
-   passam a ir pela ponte a CADA chamada, pelo mesmo motivo de dbAuth: carregarTudo() reatribui cada um, e
-   mandar a referência uma vez só deixaria o escritor procurando numa lista que não existe mais.
-   sincronizarListaComResiliencia FICOU neste arquivo de propósito — a orquestradora sincronizarComSupabase
-   também o chama, e duas cópias violariam a CAN-03; entra no módulo por injeção.
-   NÃO vieram nesta onda: carregarAtivosParaSelectSupabase e carregarPartesParaSelectSupabase. Os caches
-   deles têm 4 pontos de invalidação e DOIS estão dentro do js/financeiro.js, que faz `partesParaSelect =
-   null` direto; mover o cache sem mover a invalidação faria o seletor nunca mais ver uma parte nova, sem
-   erro na tela. Vira a 1b-2, com ficha própria.
-   Índice: 1.070.799 → 1.041.857 bytes (17.273 → 16.747 linhas) — PASSA ABAIXO do teto de 1.048.576 bytes da
-   API de conteúdo do GitHub pela primeira vez. Nenhum objeto de banco.
-   Versão anterior (Beta v1.348.0):
    ------------------------------------------------------------------
-   Versões anteriores (v1.348.0 … v1.348.0): CHANGELOG_APP.md, na raiz do
+   Versões anteriores (v1.349.0 … v1.349.0): CHANGELOG_APP.md, na raiz do
    repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
    das 5 versões mais recentes deste cabeçalho.
 
@@ -3762,7 +3750,7 @@
         // texto certo toda vez (esqueci 5 versões seguidas, de v1.37.1 até
         // v1.38.3). Agora só precisa mudar UMA linha aqui a cada release;
         // window.onload aplica nos dois lugares automaticamente.
-        const APP_VERSAO = "Beta v1.353.0"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
+        const APP_VERSAO = "Beta v1.353.1"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
 
         // ====================================================================
         // v1.105.0 — HELPERS DE SUPERFÍCIE DA GRAMÁTICA ÚNICA
@@ -4308,7 +4296,7 @@
         // Exposta pra js/comum-pessoas.js poder abrir a MESMA tela "Minhas
         // notificações" quando o ⋮ de "Comunicações" é da própria pessoa
         // logada (Sheet de ações > Comunicações).
-        Object.assign(window, { rzIcones, rzEsc, abrirSheet, fecharSheet, abrirSheetAcoes, abrirSheetForm, renderStatus, rzSemantica, RZ_STATUS, abrirPreferenciasComunicacao, rzSheetCabecalho, rzSheetTravar });
+        Object.assign(window, { rzIcones, rzEsc, abrirSheet, fecharSheet, abrirSheetAcoes, abrirSheetForm, renderStatus, rzSemantica, RZ_STATUS, rzSheetCabecalho, rzSheetTravar }); // v1.353.1 — sem abrirPreferenciasComunicacao: foi para js/conta.js (Onda 2b) e a ponte window.abrirPreferenciasComunicacao fica no bloco da Conta; citá-la aqui dava ReferenceError e o app parava no "Entrando..."
 
         const GOOGLE_API_URL = "https://script.google.com/macros/s/AKfycbyIcM2uVKmaQqghY6ur-34dfXYCF_9Q7PNeMH9jly8Le_5K-VtxJpj8NivpNBtc1_Kt/exec";
 
