@@ -4,6 +4,20 @@ Histórico completo de versões do `index.html`, movido automaticamente pelo `ge
 
 ---
 
+NOVIDADES (Beta v1.344.0) — Regras e detalhe do ativo (Nicola 10/10 00:30/00:45). Configurações › Regras: "Suas
+regras automáticas" mostrava "Categoria: [object Promise]" (ponte assíncrona do financeiro) — agora lê o catálogo;
+cada regra diz o que procura e para onde manda ("Quando a compra é de 'azul seguros' → Seguros › Seguro"); as
+sugestões de categoria pelo nome (R08–R15 e o dicionário R20–R55) ganham seção própria com as palavras procuradas.
+O seletor de ativo traz também o detalhe (pessoa, pet…), que o financeiro usa para filtrar a árvore (F9b).
+Import map: financeiro.js 1.41.0.
+Versão anterior (Beta v1.343.0):
+------------------------------------------------------------------
+Versões anteriores (v1.343.0 … v1.343.0): CHANGELOG_APP.md, na raiz do
+repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
+das 5 versões mais recentes deste cabeçalho.
+
+---
+
 NOVIDADES (Beta v1.343.0) — CORREÇÃO do defeito que a v1.342.0 introduziu na VITRINE PÚBLICA (demanda
 6b11c602, achado pelo Nicola no teste 5). A vitrine pública roda antes de qualquer login, e o
 instalarPorta() do porta.js 1.0.0 exigia clienteId — que só existe depois de entrar numa empresa. O throw

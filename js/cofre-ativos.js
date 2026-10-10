@@ -1,6 +1,10 @@
 // ============================================================================
 // cofre-ativos.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.85.0 · 10/10/2026
+// Versão: 1.85.1 · 10/10/2026
+//
+// v1.85.1 (10/10/2026, demanda f3e6cd27) — CORREÇÃO URGENTE: a v1.85.0 saiu com uma vírgula dupla no import de
+// cofre-validacoes.js ("inicializarCatalogoTiposAtivo,, tipoDoCatalogo") e o módulo não carregava — a aba Ativos
+// mostrava "Não foi possível carregar Ativos agora". Só a vírgula. Versão anterior: 1.85.0.
 //
 // v1.85.0 (10/10/2026, sessão 20261008-1231-pessoas-ativos, demanda f3e6cd27 — fichas F21/F22, E1b): a lente de ramo do
 // cabeçalho vale para Ativos. Em Todo o patrimônio, os chips são os ramos (tocar troca a lente do app); num ramo,
@@ -25,17 +29,11 @@
 // busca universal do Hoje: buscarAtivosTexto(termo) devolve os ativos com o MESMO critério de texto da
 // lista (ativoBateComTexto: nome, locatário do contrato principal, título de item de controle) e
 // verAtivosComTexto(termo) abre a lista com o termo na barra e os outros filtros limpos.
-//
-// Versão anterior: 1.81.0 · 09/10/2026
-//
-// v1.81.0 (UX F2.3a, demanda fcd3008d, sessão 20261003-1707-ux-base; "Estou de acordo com f2.3 e opcao a" do Nicola 09/10 20:52) —
-// busca da lista de Ativos em Sheet (abrirBuscaAtivos): campo ao vivo e chips de Tipo, Situação e
-// Alerta, com "Ver n ativos"; a barra do topo mostra o termo e quantos filtros estão ligados.
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.80.0 … v1.80.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.81.0 … v1.81.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '1.85.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.85.1'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 import { estado } from './cofre-estado.js';
 import * as api from './cofre-api.js';
 import { mostrarToast, erroInline, refrescarIcones, alternarToggle, abrirModal, fecharModal, modalGenerico, perguntar, avisarComDesfazer } from './cofre-ui.js';
@@ -43,7 +41,7 @@ import { mudarTela } from './cofre-navegacao.js';
 import {
     escapeHtml, formatarDataBR, diasAte, chipVencimento, mascarar,
     rotuloTipoAtivo, iconeAtivo, validarCamposAtivo,
-    obterCamposPorTipo, listarTiposPorCategoria, inicializarCatalogoTiposAtivo,, tipoDoCatalogo, categoriasDoRamo } from './cofre-validacoes.js';
+    obterCamposPorTipo, listarTiposPorCategoria, inicializarCatalogoTiposAtivo, tipoDoCatalogo, categoriasDoRamo } from './cofre-validacoes.js';
 import { montarControlesAtivo, aplicarMotorNoChipControles, reiniciarChipControlesDoMotor } from './cofre-controles.js';
 // E6.2 — retorno usado de forma síncrona em salvarAtivo/salvarEdicaoAtivo
 // (lerBlocoEndereco), por isso import estático (ver nota em technical-
