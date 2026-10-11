@@ -4,7 +4,12 @@
 //                   o estado do app (ativos, contratos, mensalidades, repasses,
 //                   lançamentos, prestadores, pessoas, empreendimentos, tipos,
 //                   minutas, links da vitrine, logs e a vitrine pública)
-// Versão: 1.2.0 · 10/10/2026
+// Versão: 1.3.0 · 10/10/2026
+//
+// v1.3.0 (10/10/2026, sessão 20261008-1231-pessoas-ativos, demanda a3f4c73f — F25c, Nicola 10/10 21:19) — contrato NOVO
+// grava contratos.modelo quando o "Adicionar" da ficha do ativo escolheu um (window.rzContratoModeloNovo, válido só
+// para aquele ativo e por 30 min). Sem escolha, o banco põe 'aluguel'. Edição não mexe no modelo.
+// Versão anterior: 1.2.0.
 //
 // v1.2.0 (10/10/2026, sessão 20261010-1115-onda1b-escrita, demanda 6b11c602 — Onda 1b-1) — a porta
 // ganha a ESCRITA: os 9 sincronizar* (5 de item + 4 de lista, mais os 3 atalhos de prestador) saíram
@@ -52,7 +57,7 @@
 // duplicar seria violação da CAN-03. Entram aqui por injeção.
 // ============================================================================
 
-export const VERSAO = '1.2.0';  // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.3.0';  // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 
 // ----------------------------------------------------------------------------
 // Injeção do host (index.html ou cofre.html). Os leitores abaixo usam estes
@@ -912,6 +917,10 @@ export async function sincronizarContratoSupabase(con) {
         if (error) throw error;
         contratoId = con.id;
     } else {
+        // v1.3.0 (F25c) — modelo escolhido no "Adicionar" do ativo (só para o mesmo ativo, por 30 min)
+        const esc = (typeof window !== 'undefined') ? window.rzContratoModeloNovo : null;
+        if (esc && esc.modelo && esc.ativo_id === linha.ativo_id && Date.now() < (esc.ate || 0)) linha.modelo = esc.modelo;
+        if (typeof window !== 'undefined') window.rzContratoModeloNovo = null;
         const { data: inserido, error } = await dbAuth.from('contratos').insert(linha).select('id').single();
         if (error) throw error;
         contratoId = inserido.id;

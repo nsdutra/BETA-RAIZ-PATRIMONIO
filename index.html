@@ -6,9 +6,13 @@
    (base derivada do RUMO v7.4.2 — histórico de versões anteriores
    preservado abaixo para referência técnica)
 
-   VERSÃO: Beta v1.353.2
-   LINHAS: 15625
+   VERSÃO: Beta v1.354.0
+   LINHAS: 15611
    DATA: 10/10/2026 (sessão 20261008-1231-pessoas-ativos, demanda a3f4c73f)
+   NOVIDADES (Beta v1.354.0) — F25c (Nicola 10/10 21:19): o contrato guarda o modelo (aluguel, temporada…) e o modelo de
+   hoje de cada ativo vem dos contratos vigentes. Ficha do ativo: "Adicionar" pelos modelos (cofre-ativos.js 1.88.0);
+   contrato novo grava o modelo (nucleo/porta.js 1.3.0).
+   Versão anterior (Beta v1.353.2):
    NOVIDADES (Beta v1.353.2) — só o import map: cofre-ativos.js 1.87.0 (card Usos vira só a barra consolidada; Nicola 10/10 20:33).
    Versão anterior (Beta v1.353.1):
    NOVIDADES (Beta v1.353.1) — CORREÇÃO URGENTE (Nicola 10/10 20:16: "depois da tela de login, coloco a senha e ele não
@@ -34,27 +38,8 @@
    filtro errado — mesma classe de armadilha do montarBoxDivisaoSocietaria.
    Índice: 991.591 → 962.496 bytes (16.005 → 15.615 linhas). Nenhum objeto de banco.
    Versão anterior (Beta v1.351.0):
-   NOVIDADES (Beta v1.351.0) — Onda 2a da fragmentação: PARTES vira módulo (demanda 6b11c602, plano das
-   ondas aprovado pelo Nicola 09/10 21:15). 30 telas de Partes — formulário, busca, ficha, papéis, vínculos,
-   empreendimentos e acesso de sócio — saíram deste arquivo para o js/partes.js 1.0.0, SEM UMA LINHA
-   REESCRITA: cada função veio byte a byte e só ganhou "export". Chegam de volta pela ponte rzPonteModulo,
-   a mesma dos outros módulos R8. Índice: 1.041.929 → 989.784 bytes (16.726 → 15.988 linhas).
-   AQUI NÃO HOUVE INJEÇÃO, e isso é deliberado: `let` no topo do script clássico do index entra no escopo
-   léxico global, que um módulo ES alcança como nome livre — e sempre no valor corrente, porque a resolução
-   é no binding, não numa cópia. O js/financeiro.js já lê `contratos` e chama `arquivoParaBase64()` assim
-   hoje, sem import. Então o módulo usa dbAuth, pessoas, partesCliente e as funções que ficaram exatamente
-   como estavam, e as 7 globais de estado que ele escreve (partesCliente, partesCarregadas, papeisPorParte,
-   partesFiltroTexto, partesFiltroPapel, vinculosFichaParte, dispositivosAprovados) foram conferidas uma a
-   uma como `let` deste arquivo.
-   FICARAM AQUI de propósito as 16 funções do domínio que DEVOLVEM VALOR e são síncronas (renderPartes,
-   pendenciasParte, parteEhPrestador, obterSociosConhecidos, calcularExtratoSocio…): a ponte é assíncrona, e
-   quem faz `const x = pendenciasParte(p)` receberia uma Promise e quebraria em silêncio — mesmo motivo pelo
-   qual montarBoxDivisaoSocietaria não se mudou. Também ficaram carregarPartesParaSelectSupabase (cache com
-   invalidação no financeiro.js, demanda 5e737cff), obterPessoaIdPorNome (é injetada no porta.js) e
-   renderSociosDistribricao + abrirFichaParte (377 bytes somados, chamadas por módulos). Nenhum objeto de banco.
-   Versão anterior (Beta v1.350.0):
    ------------------------------------------------------------------
-   Versões anteriores (v1.350.0 … v1.350.0): CHANGELOG_APP.md, na raiz do
+   Versões anteriores (v1.351.0 … v1.351.0): CHANGELOG_APP.md, na raiz do
    repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
    das 5 versões mais recentes deste cabeçalho.
 
@@ -79,7 +64,7 @@
          O navegador aplica o mapa também aos imports estáticos dentro dos
          módulos (cofre-app.js → ./cofre-api.js etc.). -->
     <!-- RZ-IMPORTMAP:INICIO -->
-    <script type="importmap">{"imports":{"./js/cadastros.js":"./js/cadastros.js?v=1.2.0","./js/financeiro.js":"./js/financeiro.js?v=1.42.0","./js/fechamento.js":"./js/fechamento.js?v=1.12.3","./js/contratos.js":"./js/contratos.js?v=1.48.0","./js/minutas.js":"./js/minutas.js?v=1.4.0","./js/vitrine.js":"./js/vitrine.js?v=1.5.2","./js/imoveis.js":"./js/imoveis.js?v=1.7.2","./js/cofre-api.js":"./js/cofre-api.js?v=1.50.0","./js/cofre-app.js":"./js/cofre-app.js?v=1.47.0","./js/cofre-ativos.js":"./js/cofre-ativos.js?v=1.87.0","./js/cofre-controles.js":"./js/cofre-controles.js?v=1.49.0","./js/cofre-documentos.js":"./js/cofre-documentos.js?v=2.35.0","./js/cofre-imagem.js":"./js/cofre-imagem.js?v=1.1.0","./js/cofre-estado.js":"./js/cofre-estado.js?v=1.5.2","./js/cofre-navegacao.js":"./js/cofre-navegacao.js?v=1.9.3","./js/cofre-ui.js":"./js/cofre-ui.js?v=1.7.2","./js/cofre-validacoes.js":"./js/cofre-validacoes.js?v=2.5.0","./js/comum-licenca.js":"./js/comum-licenca.js?v=1.7.0","./js/comum-renovacao.js":"./js/comum-renovacao.js?v=1.3.5","./js/comum-minha-empresa.js":"./js/comum-minha-empresa.js?v=1.14.0","./js/comum-pessoas.js":"./js/comum-pessoas.js?v=1.206.0","./js/comum-sobre.js":"./js/comum-sobre.js?v=1.4.0","./js/comum-endereco.js":"./js/comum-endereco.js?v=1.2.0","./js/comum-partes.js":"./js/comum-partes.js?v=1.0.0","./js/resultados.js":"./js/resultados.js?v=2.9.0","./js/indicadores.js":"./js/indicadores.js?v=1.0.0","./js/configuracao-inicial.js":"./js/configuracao-inicial.js?v=1.0.1","./js/relatorios-executivos.js":"./js/relatorios-executivos.js?v=1.1.2","./js/raiz-eventos.js":"./js/raiz-eventos.js?v=1.0.0","./js/raiz-device.js":"./js/raiz-device.js?v=1.0.0","./js/raiz-ui.js":"./js/raiz-ui.js?v=1.2.0","./js/fiscal.js":"./js/fiscal.js?v=1.5.2","./js/ativos/ativos-boot.js":"./js/ativos/ativos-boot.js?v=1.4.0","./js/ativos/ativos-markup.js":"./js/ativos/ativos-markup.js?v=1.56.0","./js/nucleo/porta.js":"./js/nucleo/porta.js?v=1.2.0","./js/partes.js":"./js/partes.js?v=1.0.0","./js/conta.js":"./js/conta.js?v=1.0.0"}}</script>
+    <script type="importmap">{"imports":{"./js/cadastros.js":"./js/cadastros.js?v=1.2.0","./js/financeiro.js":"./js/financeiro.js?v=1.42.0","./js/fechamento.js":"./js/fechamento.js?v=1.12.3","./js/contratos.js":"./js/contratos.js?v=1.48.0","./js/minutas.js":"./js/minutas.js?v=1.4.0","./js/vitrine.js":"./js/vitrine.js?v=1.5.2","./js/imoveis.js":"./js/imoveis.js?v=1.7.2","./js/cofre-api.js":"./js/cofre-api.js?v=1.50.0","./js/cofre-app.js":"./js/cofre-app.js?v=1.47.0","./js/cofre-ativos.js":"./js/cofre-ativos.js?v=1.88.0","./js/cofre-controles.js":"./js/cofre-controles.js?v=1.49.0","./js/cofre-documentos.js":"./js/cofre-documentos.js?v=2.35.0","./js/cofre-imagem.js":"./js/cofre-imagem.js?v=1.1.0","./js/cofre-estado.js":"./js/cofre-estado.js?v=1.5.2","./js/cofre-navegacao.js":"./js/cofre-navegacao.js?v=1.9.3","./js/cofre-ui.js":"./js/cofre-ui.js?v=1.7.2","./js/cofre-validacoes.js":"./js/cofre-validacoes.js?v=2.5.0","./js/comum-licenca.js":"./js/comum-licenca.js?v=1.7.0","./js/comum-renovacao.js":"./js/comum-renovacao.js?v=1.3.5","./js/comum-minha-empresa.js":"./js/comum-minha-empresa.js?v=1.14.0","./js/comum-pessoas.js":"./js/comum-pessoas.js?v=1.206.0","./js/comum-sobre.js":"./js/comum-sobre.js?v=1.4.0","./js/comum-endereco.js":"./js/comum-endereco.js?v=1.2.0","./js/comum-partes.js":"./js/comum-partes.js?v=1.0.0","./js/resultados.js":"./js/resultados.js?v=2.9.0","./js/indicadores.js":"./js/indicadores.js?v=1.0.0","./js/configuracao-inicial.js":"./js/configuracao-inicial.js?v=1.0.1","./js/relatorios-executivos.js":"./js/relatorios-executivos.js?v=1.1.2","./js/raiz-eventos.js":"./js/raiz-eventos.js?v=1.0.0","./js/raiz-device.js":"./js/raiz-device.js?v=1.0.0","./js/raiz-ui.js":"./js/raiz-ui.js?v=1.2.0","./js/fiscal.js":"./js/fiscal.js?v=1.5.2","./js/ativos/ativos-boot.js":"./js/ativos/ativos-boot.js?v=1.4.0","./js/ativos/ativos-markup.js":"./js/ativos/ativos-markup.js?v=1.56.0","./js/nucleo/porta.js":"./js/nucleo/porta.js?v=1.3.0","./js/partes.js":"./js/partes.js?v=1.0.0","./js/conta.js":"./js/conta.js?v=1.0.0"}}</script>
     <!-- RZ-IMPORTMAP:FIM -->
 
     <!-- ===== PWA: permite "instalar" o app no celular (Android e iPhone) ===== -->
@@ -3740,7 +3725,7 @@
         // texto certo toda vez (esqueci 5 versões seguidas, de v1.37.1 até
         // v1.38.3). Agora só precisa mudar UMA linha aqui a cada release;
         // window.onload aplica nos dois lugares automaticamente.
-        const APP_VERSAO = "Beta v1.353.2"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
+        const APP_VERSAO = "Beta v1.354.0"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
 
         // ====================================================================
         // v1.105.0 — HELPERS DE SUPERFÍCIE DA GRAMÁTICA ÚNICA
@@ -10940,13 +10925,14 @@ async function criarLinkVitrineSupabase(token, idsSelecionados) {
             if (!CLIENTE_ID_SUPABASE) return false;
             try {
                 const hoje = new Date().toISOString().slice(0, 10);
-                const [mod, usos, rep] = await Promise.all([
+                // v1.354.0 (F25c) — o modelo de hoje vem do contrato vigente (o mais recente, se houver dois)
+                const [mod, cons] = await Promise.all([
                     dbAuth.from('operacao_modelos').select('codigo, ramo'),
-                    dbAuth.from('ativo_usos').select('ativo_id, modelo').eq('cliente_id', CLIENTE_ID_SUPABASE).lte('inicio', hoje).or(`fim.is.null,fim.gte.${hoje}`),
-                    dbAuth.from('cofre_ativos').select('id, modelo_repouso').eq('cliente_id', CLIENTE_ID_SUPABASE).not('modelo_repouso', 'is', null),
+                    dbAuth.from('contratos').select('ativo_id, modelo, inicio').eq('cliente_id', CLIENTE_ID_SUPABASE).not('ativo_id', 'is', null)
+                        .lte('inicio', hoje).or(`fim.is.null,fim.gte.${hoje}`).order('inicio', { ascending: true }),
                 ]);
                 const rm = {}; (mod.data || []).forEach(x => { rm[x.codigo] = x.ramo; });
-                const mh = {}; (rep.data || []).forEach(x => { mh[x.id] = x.modelo_repouso; }); (usos.data || []).forEach(x => { mh[x.ativo_id] = x.modelo; });
+                const mh = {}; (cons.data || []).forEach(x => { mh[x.ativo_id] = x.modelo; });
                 RZ_RAMO_MODELO = rm; RZ_MODELO_HOJE = mh;
                 return Object.keys(mh).length > 0;
             } catch (e) { console.warn('[ramos] usos:', e.message); return false; }

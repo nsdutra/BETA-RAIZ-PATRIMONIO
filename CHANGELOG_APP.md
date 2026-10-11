@@ -4,6 +4,32 @@ Histórico completo de versões do `index.html`, movido automaticamente pelo `ge
 
 ---
 
+NOVIDADES (Beta v1.351.0) — Onda 2a da fragmentação: PARTES vira módulo (demanda 6b11c602, plano das
+ondas aprovado pelo Nicola 09/10 21:15). 30 telas de Partes — formulário, busca, ficha, papéis, vínculos,
+empreendimentos e acesso de sócio — saíram deste arquivo para o js/partes.js 1.0.0, SEM UMA LINHA
+REESCRITA: cada função veio byte a byte e só ganhou "export". Chegam de volta pela ponte rzPonteModulo,
+a mesma dos outros módulos R8. Índice: 1.041.929 → 989.784 bytes (16.726 → 15.988 linhas).
+AQUI NÃO HOUVE INJEÇÃO, e isso é deliberado: `let` no topo do script clássico do index entra no escopo
+léxico global, que um módulo ES alcança como nome livre — e sempre no valor corrente, porque a resolução
+é no binding, não numa cópia. O js/financeiro.js já lê `contratos` e chama `arquivoParaBase64()` assim
+hoje, sem import. Então o módulo usa dbAuth, pessoas, partesCliente e as funções que ficaram exatamente
+como estavam, e as 7 globais de estado que ele escreve (partesCliente, partesCarregadas, papeisPorParte,
+partesFiltroTexto, partesFiltroPapel, vinculosFichaParte, dispositivosAprovados) foram conferidas uma a
+uma como `let` deste arquivo.
+FICARAM AQUI de propósito as 16 funções do domínio que DEVOLVEM VALOR e são síncronas (renderPartes,
+pendenciasParte, parteEhPrestador, obterSociosConhecidos, calcularExtratoSocio…): a ponte é assíncrona, e
+quem faz `const x = pendenciasParte(p)` receberia uma Promise e quebraria em silêncio — mesmo motivo pelo
+qual montarBoxDivisaoSocietaria não se mudou. Também ficaram carregarPartesParaSelectSupabase (cache com
+invalidação no financeiro.js, demanda 5e737cff), obterPessoaIdPorNome (é injetada no porta.js) e
+renderSociosDistribricao + abrirFichaParte (377 bytes somados, chamadas por módulos). Nenhum objeto de banco.
+Versão anterior (Beta v1.350.0):
+------------------------------------------------------------------
+Versões anteriores (v1.350.0 … v1.350.0): CHANGELOG_APP.md, na raiz do
+repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
+das 5 versões mais recentes deste cabeçalho.
+
+---
+
 NOVIDADES (Beta v1.350.0) — limpeza de código morto da divisão societária (demanda 6b11c602, frente da
 fragmentação). A v1.314.2 (07/10) trocou o popup antigo de divisão pelo editor único window.rzEditarDivisao
 (raiz-ui 1.2.0) e o próprio comentário daquela entrega registrou que "renderListaDivisaoPopup e afins ficam

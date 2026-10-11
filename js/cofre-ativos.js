@@ -1,6 +1,11 @@
 // ============================================================================
 // cofre-ativos.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.87.0 · 10/10/2026
+// Versão: 1.88.0 · 10/10/2026
+//
+// v1.88.0 (10/10/2026, sessão 20261008-1231-pessoas-ativos, demanda a3f4c73f — F25c, Nicola 10/10 20:56/21:19): "Adicionar"
+// em Usos e contratos lista os modelos disponíveis para o ativo (matriz tipo × modelo, ramos contratados); Aluguel e
+// Temporada seguem para os 3 caminhos de contrato já com o modelo; Short stay e outros em breve aparecem apagados.
+// Cada contrato do card mostra o seu modelo. Versão anterior: 1.87.0.
 //
 // v1.87.0 (10/10/2026, sessão 20261008-1231-pessoas-ativos, demanda a3f4c73f; Nicola 10/10 20:33: "apenas deixe a barra
 // como consolidado dos usos (...) os usos não serão cadastrados, mas fruto do próprio contrato e itens de uso (...) o
@@ -23,16 +28,11 @@
 // cabeçalho vale para Ativos. Em Todo o patrimônio, os chips são os ramos (tocar troca a lente do app); num ramo,
 // a lista mostra só os ativos dele e os chips são os segmentos (ativo_tipos.segmento). "Novo ativo" oferece só as
 // categorias e os tipos do ramo; tipos de ramo em breve (Agro, Pecuária) ficam fora. Ouve o evento raiz:ramo.
-// Versão anterior: 1.84.0.
-//
-// v1.84.0 (demanda f3e6cd27, F17, sessão 20261008-1231-pessoas-ativos; plano aprovado pelo Nicola 09/10 22:50) —
-// chip "Pessoas" na lista de Ativos: ativo do tipo vida (pessoa) sai de "Outros" e ganha recorte próprio;
-// como os outros recortes, só aparece quando há pelo menos uma pessoa cadastrada como ativo.
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.83.0 … v1.83.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.84.0 … v1.84.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '1.87.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.88.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 import { estado } from './cofre-estado.js';
 import * as api from './cofre-api.js';
 import { mostrarToast, erroInline, refrescarIcones, alternarToggle, abrirModal, fecharModal, modalGenerico, perguntar, avisarComDesfazer } from './cofre-ui.js';
@@ -1461,6 +1461,16 @@ async function montarContratosAtivo(a) {
         // ativo_id agora, não imovel_id — sem isto, contrato NOVO de
         // imóvel LEGADO também sumiria daqui (achado no mesmo teste).
         const lista = (await api.buscarContratosDoAtivo(a.id)).map(c => ({ ...c, st: String(c.status || '').toLowerCase() }));
+        // v1.88.0 (F25c) — o modelo de cada contrato (Aluguel, Temporada…)
+        try {
+            const [mc, mm] = await Promise.all([
+                api.dbAuth.from('contratos').select('id, modelo').eq('ativo_id', a.id),
+                api.dbAuth.from('operacao_modelos').select('codigo, nome'),
+            ]);
+            const nomeM = Object.fromEntries((mm.data || []).map(x => [x.codigo, x.nome]));
+            const modC = Object.fromEntries((mc.data || []).map(x => [x.id, nomeM[x.modelo] || x.modelo]));
+            lista.forEach(c => { c.modeloNome = modC[c.id] || ''; });
+        } catch (e) { /* sem o nome do modelo a lista segue igual */ }
         const vigentes = lista.filter(c => c.st === 'ativo' || c.st === 'assinando');
         faAtualizarContador('contratos', vigentes.length);
         if (sub) sub.textContent = lista.length ? `${vigentes.length} vigente${vigentes.length === 1 ? '' : 's'} · ${lista.length - vigentes.length} encerrado${lista.length - vigentes.length === 1 ? '' : 's'}` : '';
@@ -1470,7 +1480,7 @@ async function montarContratosAtivo(a) {
             // Contratos do App, não daqui.
             // v1.68.0 (demanda 11afd25f) — vazio com ação própria, mesmo
             // padrão do vazio de Ativos ("+ Novo ativo").
-            painel.innerHTML = `<div class="rz-empty"><div class="rz-ic"><i data-lucide="file-text"></i></div><p>Nenhum contrato pra este imóvel ainda.</p><div class="rz-acts"><button type="button" class="rz-btn rz-btn-1" onclick="window.__rzNovoContratoAtivo && window.__rzNovoContratoAtivo()"><i data-lucide="plus"></i> Novo contrato</button></div></div>`;
+            painel.innerHTML = `<div class="rz-empty"><div class="rz-ic"><i data-lucide="file-text"></i></div><p>Nenhum contrato pra este imóvel ainda.</p><div class="rz-acts"><button type="button" class="rz-btn rz-btn-1" onclick="window.__rzAdicionarModeloAtivo && window.__rzAdicionarModeloAtivo()"><i data-lucide="plus"></i> Adicionar</button></div></div>`;
             refrescarIcones();
             return;
         }
@@ -1484,7 +1494,7 @@ async function montarContratosAtivo(a) {
                 <div class="rz-ic${(c.st === 'ativo' || c.st === 'assinando') ? '' : ' rz-neu'}"><i data-lucide="${c.st === 'assinando' ? 'file-signature' : (c.st === 'ativo' ? 'file-text' : 'archive')}"></i></div>
                 <div class="rz-tx">
                     <b>${escapeHtml(c.locatario || 'Locatário não informado')}</b>
-                    <span>${c.inicio ? formatarDataBR(c.inicio) : ''}${c.fim ? ' → ' + formatarDataBR(c.fim) : ''}</span>
+                    <span>${c.modeloNome ? escapeHtml(c.modeloNome) + ' · ' : ''}${c.inicio ? formatarDataBR(c.inicio) : ''}${c.fim ? ' → ' + formatarDataBR(c.fim) : ''}</span>
                 </div>
                 <div class="rz-rt">
                     <b>R$ ${Number(c.valor || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</b>
@@ -1918,13 +1928,47 @@ export function iniciarContratacaoDoAtivo() {
 export function abrirEscolhaNovoContratoDoAtivo() {
     const a = estado.ativoEmFoco;
     if (!ehCategoriaImovel(a?.tipo_ativo)) { mostrarToast('Contratos de locação só existem pra imóveis.', 'erro'); return; }
-    sheetOuAviso({ titulo: 'Novo contrato', sub: a.nome_exibicao, acoes: [
+    const escM = window.rzContratoModeloNovo && window.rzContratoModeloNovo.ativo_id === a.id ? window.rzContratoModeloNovo.nome : ''; // F25c
+    sheetOuAviso({ titulo: escM ? 'Contrato de ' + escM.toLowerCase() : 'Novo contrato', sub: a.nome_exibicao, acoes: [
         { icone: 'sparkles', tipo: 'ia', titulo: 'Carregar documento', codigo: 'cofre.analisar_ia', sub: 'A IA lê o contrato e já liga a este imóvel', aoTocar: () => window.__rzUploadAtivo?.(true) },
         { icone: 'plus', titulo: 'Novo contrato', codigo: 'contratos.criar', sub: 'Formulário já com este imóvel', aoTocar: () => abrirNovoContratoDoAtivo() },
         { icone: 'link', titulo: 'Coletar dados do locatário', codigo: 'contratos.criar', sub: 'Link, WhatsApp e minuta', aoTocar: () => iniciarContratacaoDoAtivo() },
     ] });
 }
 if (typeof window !== 'undefined') window.__rzNovoContratoAtivo = abrirEscolhaNovoContratoDoAtivo;
+
+// v1.88.0 (F25c, Nicola 10/10 20:56) — "Adicionar": os modelos disponíveis para este ativo. O modelo é só a escolha;
+// quem é cadastrado é o contrato, que grava o modelo (nucleo/porta.js lê window.rzContratoModeloNovo).
+export async function abrirAdicionarModeloAtivo() {
+    const a = estado.ativoEmFoco; if (!a) return;
+    const tipo = tipoDoCatalogo(a.tipo_detalhe_id)?.codigo;
+    let lista = [];
+    try {
+        const db = api.dbAuth;
+        const [mt, mods, lic] = await Promise.all([
+            tipo ? db.from('operacao_modelo_tipos').select('modelo').eq('tipo', tipo).eq('permite_uso', true) : Promise.resolve({ data: [] }),
+            db.from('operacao_modelos').select('codigo, ramo, nome, descricao, acordo, status, ordem').in('acordo', ['contrato', 'reserva']).order('ordem'),
+            db.rpc('fn_cliente_ramos', { p_cliente_id: estado.clienteId }),
+        ]);
+        const permite = new Set((mt.data || []).map(x => x.modelo));
+        const licenciados = (lic.data || []).map(x => typeof x === 'string' ? x : Object.values(x)[0]);
+        lista = (mods.data || []).filter(m => permite.has(m.codigo) || (!tipo && m.codigo === 'aluguel'));
+        lista = lista.map(m => ({ ...m, livre: m.status === 'ativo' && licenciados.includes(m.ramo) }));
+    } catch (e) { console.warn('[cofre-ativos] modelos:', e?.message || e); }
+    if (!lista.length) { abrirEscolhaNovoContratoDoAtivo(); return; } // sem catálogo: o caminho de sempre (aluguel)
+    const nomeRamo = (c) => (typeof window.rzNomeRamo === 'function' ? window.rzNomeRamo(c) : c);
+    sheetOuAviso({ titulo: 'Adicionar', sub: a.nome_exibicao, acoes: lista.map(m => ({
+        icone: m.acordo === 'reserva' ? 'calendar-days' : 'file-text', codigo: 'contratos.criar',
+        titulo: 'Contrato de ' + m.nome.toLowerCase() + (m.livre ? '' : ' · em breve'),
+        sub: m.livre ? (m.descricao || nomeRamo(m.ramo)) : (m.status !== 'ativo' ? 'Chega em breve' : `Ramo ${nomeRamo(m.ramo)} não contratado`),
+        aoTocar: () => {
+            if (!m.livre) { mostrarToast(m.status !== 'ativo' ? 'Este modelo chega em breve.' : `O ramo ${nomeRamo(m.ramo)} não está contratado.`, 'aviso'); return; }
+            window.rzContratoModeloNovo = { ativo_id: a.id, modelo: m.codigo, nome: m.nome, ate: Date.now() + 30 * 60 * 1000 };
+            abrirEscolhaNovoContratoDoAtivo();
+        },
+    })) });
+}
+if (typeof window !== 'undefined') window.__rzAdicionarModeloAtivo = abrirAdicionarModeloAtivo;
 
 export function abrirAcoesPropriedade() {
     const a = estado.ativoEmFoco; if (!a) return;
@@ -2000,8 +2044,7 @@ export function abrirAcoesAnexos() {
 export function abrirAcoesContratosAtivo() {
     const a = estado.ativoEmFoco; if (!a) return;
     sheetOuAviso({ titulo: 'Contratos', sub: a.nome_exibicao, acoes: [
-        { icone: 'link', titulo: 'Contratação: link, WhatsApp e minuta', codigo: 'contratos.criar', sub: 'Coleta de dados do locatário e minuta', aoTocar: () => iniciarContratacaoDoAtivo() },
-        { icone: 'plus', titulo: 'Cadastrar contrato manualmente', codigo: 'contratos.criar', sub: 'Já com este imóvel selecionado', aoTocar: () => abrirNovoContratoDoAtivo() },
+        { icone: 'plus', titulo: 'Adicionar', codigo: 'contratos.criar', sub: 'Escolha o modelo: aluguel, temporada…', aoTocar: () => abrirAdicionarModeloAtivo() }, // v1.88.0 (F25c)
         { icone: 'list', titulo: 'Ver todos na aba Contratos', codigo: 'contratos.ver', aoTocar: () => { if (typeof window.switchTab === 'function') window.switchTab('tab-contratos'); } },
     ] });
 }
