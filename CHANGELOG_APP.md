@@ -4,6 +4,17 @@ Histórico completo de versões do `index.html`, movido automaticamente pelo `ge
 
 ---
 
+NOVIDADES (Beta v1.369.0) — F13.7: retirada "do fluxo" ou "extraordinária" (fora do fluxo dos imóveis, não abate o
+saldo a retirar nem gera dívida), com reclassificação da retirada já lançada. Só o import map muda aqui
+(financeiro.js 1.50.0, nucleo/porta.js 1.4.0).
+Versão anterior (Beta v1.368.0):
+------------------------------------------------------------------
+Versões anteriores (v1.368.0 … v1.368.0): CHANGELOG_APP.md, na raiz do
+repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
+das 5 versões mais recentes deste cabeçalho.
+
+---
+
 NOVIDADES (Beta v1.368.0) — Marca e ramos, fases 1 a 3 (plano do PROTOTIPO_MARCA_RAMOS_RAIZ v1.1.0 aprovado pelo Nicola 11/10 11:20).
 Fase 1: splash no verde da marca com a assinatura vertical "Raiz / PATRIMÔNIO" (símbolo do ícone; sai a foto do Unsplash) e a
 frase da visão; theme-color #1e3a32; iPhone usa o ícone de fundo inteiro e o nome curto "Raiz"; título "Raiz Patrimônio".

@@ -1,7 +1,13 @@
 // ============================================================================
 // financeiro.js — Raiz Patrimônio · Financeiro (Recebimentos · Atrasados · Saídas
 //                  · conciliação de extrato · recibo · detalhe do recebimento)
-// Versão: 1.52.0 · 11/10/2026
+// Versão: 1.53.0 · 11/10/2026
+//
+// v1.53.0 (11/10/2026, sessão 20261008-1231-pessoas-ativos, demanda f3e6cd27; bloco "Produto, já registrado", Nicola 11/10 18:41 ("quero evoluir com Produto, já registrado"); F13 §3.5 e F13.4) — o editor de
+// divisão do lançamento e do recebimento abre com "%  ·  Cotas  ·  Valor" (raiz-ui modos: true) e reabre no modo em que
+// foi salvo (lê o divisao_excecao do movimento). Grava modo, cotas e valor junto do percentual.
+//
+// Versão anterior: 1.52.0 · 11/10/2026
 //
 // v1.52.0 (11/10/2026, sessão 20261008-1231-pessoas-ativos, demanda f3e6cd27; F13 4c etapa 4; Nicola 11/10 17:42, teste da etapa 3: "pode organizar melhor pro chip de performance desaparecer e deixar tudo no financeiro")
 // — NOVO rzFinCompetencias(alvo, escopo): a visão financeira única por competência, usada no chip Financeiro do ativo
@@ -42,21 +48,11 @@
 //   · o editor de divisão de lançamento não aceita mais nome solto (D60: a pessoa precisa estar em Pessoas) e grava o
 //     modo ("igual" ou "percentual") em cada linha, para reabrir igual (F13.4);
 //   · o rateio entra no Balanço quando a despesa estiver paga pela conta da pessoa (é o pagamento que cria a dívida).
-//
-// Versão anterior: 1.48.1 · 11/10/2026
-//
-// v1.48.1 (11/10/2026, sessão 20261008-1231-pessoas-ativos, demanda f3e6cd27; Nicola 10:53 "botão quitar estranho. Os 3
-// chips com retornos diferentes") —
-//   · ficha da pessoa no Balanço: sai o botão grande "Quitar" de cada linha; a LINHA inteira é o toque (rz-link com
-//     seta) e o texto da direita diz "Quitar", no padrão das outras listas;
-//   · os chips Pessoas · Sócios por mês · Grupos ficam visíveis também quando o cálculo falha (antes a mensagem de
-//     erro apagava os chips e a tela ficava presa). A causa do erro em "Sócios por mês" era de banco (embed ambíguo de
-//     repasses → pessoas depois da F13.6), corrigida na migration repasses_embed_hf3_v1.
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.48.0 … v1.48.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.48.1 … v1.48.1): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '1.52.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.53.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 
 // v1.17.0 (Fase 1 do wrapper de escrita, rollout Financeiro) — emitirEscrita
 // é o evento padrão pra "algo mudou que módulos DE FORA deste arquivo podem
@@ -775,16 +771,25 @@ function financeiroDividirNovaDespesa(id, valor, contaId) {
         ? [{ pessoa_id: conta.pessoa_id, nome: conta.titular_nome || conta.nome, percentual: 100 }] : [];
     financeiroEditarDivisao('lancamento', id, valor, pagador, () => { lancamentos && renderSaidas(); });
 }
-function financeiroEditarDivisao(origemTipo, id, valor, atuais, aoMudar) {
+async function financeiroEditarDivisao(origemTipo, id, valor, atuais, aoMudar) {
     // v1.35.1 — editor único de divisão (raiz-ui rzEditarDivisao), o mesmo do contrato e do ativo
     const lista = (typeof pessoas !== 'undefined' && Array.isArray(pessoas)) ? pessoas : [];
+    // v1.53.0 — reabre no modo salvo (% · cotas · valor): o divisao_excecao guarda modo, cotas e valor por pessoa
+    let salvo = {};
+    try {
+        const { data } = await dbAuth.from(origemTipo === 'mensalidade' ? 'mensalidades' : 'lancamentos').select('divisao_excecao').eq('id', id).maybeSingle();
+        (Array.isArray(data?.divisao_excecao) ? data.divisao_excecao : []).forEach(x => { if (x?.pessoa_id) salvo[x.pessoa_id] = x; });
+    } catch (e) { /* sem o modo salvo, abre em % */ }
     rzEditarDivisao({
         titulo: 'Editar divisão', sub: 'Só este lançamento', nota: 'O contrato e a propriedade do imóvel não mudam. Quem divide precisa estar em Pessoas (nome e WhatsApp bastam).',
-        itens: atuais.map(l => ({ pessoa_id: l.pessoa_id || null, nome_externo: l.pessoa_id ? null : (l.nome_externo || l.nome), nome: l.nome, percentual: Number(l.percentual) })),
+        itens: atuais.map(l => ({ pessoa_id: l.pessoa_id || null, nome_externo: l.pessoa_id ? null : (l.nome_externo || l.nome), nome: l.nome, percentual: Number(l.percentual),
+            modo: salvo[l.pessoa_id]?.modo === 'igual' ? 'percentual' : salvo[l.pessoa_id]?.modo, cotas: salvo[l.pessoa_id]?.cotas ?? null, valor: salvo[l.pessoa_id]?.valor ?? null })),
+        modos: true, // v1.53.0
         candidatos: lista.filter(p => p.id).sort((a, b) => String(a.nome).localeCompare(String(b.nome)))
             .map(p => ({ id: p.id, nome: p.nome, sub: Number(p.percentualCotasEmpresa) > 0 ? 'Sócio' : '' })),
         permitirExterno: false, valorBase: Number(valor || 0), igualar: true, // v1.49.0 — D60 e "Dividir igual"
-        aoSalvar: (itens, info) => financeiroGravarDivisao(origemTipo, id, itens.map(i => ({ pessoa_id: i.pessoa_id, percentual: i.percentual, modo: info?.igual ? 'igual' : 'percentual' })), aoMudar)
+        aoSalvar: (itens, info) => financeiroGravarDivisao(origemTipo, id, itens.map(i => ({ pessoa_id: i.pessoa_id, percentual: i.percentual,
+            modo: info?.modo && info.modo !== 'percentual' ? info.modo : (info?.igual ? 'igual' : 'percentual'), cotas: i.cotas, valor: i.valor })), aoMudar)
     });
 }
 
