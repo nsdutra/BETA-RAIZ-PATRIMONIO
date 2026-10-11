@@ -4,6 +4,17 @@ Histórico completo de versões do `index.html`, movido automaticamente pelo `ge
 
 ---
 
+NOVIDADES (Beta v1.354.0) — F25c (Nicola 10/10 21:19): o contrato guarda o modelo (aluguel, temporada…) e o modelo de
+hoje de cada ativo vem dos contratos vigentes. Ficha do ativo: "Adicionar" pelos modelos (cofre-ativos.js 1.88.0);
+contrato novo grava o modelo (nucleo/porta.js 1.3.0).
+Versão anterior (Beta v1.353.2):
+------------------------------------------------------------------
+Versões anteriores (v1.353.2 … v1.353.2): CHANGELOG_APP.md, na raiz do
+repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
+das 5 versões mais recentes deste cabeçalho.
+
+---
+
 NOVIDADES (Beta v1.353.2) — só o import map: cofre-ativos.js 1.87.0 (card Usos vira só a barra consolidada; Nicola 10/10 20:33).
 Versão anterior (Beta v1.353.1):
 ------------------------------------------------------------------

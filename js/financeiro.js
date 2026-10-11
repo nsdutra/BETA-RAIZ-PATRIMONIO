@@ -1,7 +1,20 @@
 // ============================================================================
 // financeiro.js — Raiz Patrimônio · Financeiro (Recebimentos · Atrasados · Saídas
 //                  · conciliação de extrato · recibo · detalhe do recebimento)
-// Versão: 1.43.0 · 10/10/2026
+// Versão: 1.44.0 · 10/10/2026
+//
+// v1.44.0 (UX etapa 6 · B e C, demanda b4b047fd, sessão 20261003-1707-ux-base; protótipo PROTOTIPO_FINANCEIRO_PESSOAS_ETAPA6
+// aprovado pelo Nicola 10/10 22:43 com os ajustes "o deslizar pro lado só abre a opção esperando toque, sem confirmar
+// apenas pelo deslize" e "não ocultar campos na baixa") —
+//   B · Recebimentos: deslizar a linha a receber para a direita REVELA "Dar baixa"; para a esquerda, "Cobrar" (só em
+//       atraso). Nada roda pelo deslize: a ação roda no toque no botão (rzSwipe do index), com a mesma checagem de
+//       acesso do ⋮ (mensal.baixar / cobrar.lembrete). O toque na linha e o ⋮ continuam iguais; o formulário de baixa
+//       NÃO mudou (todos os campos à vista).
+//   C · Cobrar pelo WhatsApp: o sheet mostra a mensagem exata que vai sair e o interruptor "Incluir o Pix", lembrado
+//       por empresa neste aparelho (localStorage raiz_pref_cob_pix_<cliente>; preferência, não dado da carteira).
+//       textoCobrancaWhatsApp() monta o texto para a prévia e para o envio (um só lugar).
+//
+// Versão anterior: 1.43.0 · 10/10/2026
 //
 // v1.43.0 (UX etapa 6 · A, demanda b4b047fd, sessão 20261003-1707-ux-base; protótipo PROTOTIPO_FINANCEIRO_PESSOAS_ETAPA6
 // aprovado pelo Nicola 10/10 22:43: "a barra digitável deve digitar na própria barra, eliminando abrir opções de filtro em
@@ -29,17 +42,11 @@
 // v1.40.2 (10/10/2026, sessão 20261009-2055-integridade, demanda 56546614 — teste do Nicola 00:15): a Divisão de uma
 // compra aberta de dentro da fatura abre por cima dela (nível 2), sem trocar o fundo pela lista de Saídas; e ganha o
 // rótulo da regra nova do banco (fn_divisao_movimento): "Fica com o titular do cartão". Versão anterior: 1.40.1.
-//
-// v1.40.1 (10/10/2026, sessão 20261010-0010-vinculo-topo, demanda 8ef4a173 — "Vinculo topo ok" do Nicola 09/10 22:45):
-// o vínculo (Empresa ou um ativo) passa a ser o primeiro campo da despesa e da receita sem contrato, com o rótulo
-// "Vínculo" (era "Ativo vinculado (opcional)" no meio da despesa e "Ativo (opcional)" no fim da receita). Só posição
-// e rótulo: os ids (desp-ativo, rav-ativo) e o que é gravado não mudam. O filtro de categorias pelo vínculo depende
-// da ficha F9' (lancamento_categorias.tipos_ativo, PLANO_PESSOAS_ATIVOS_EIXO) e não entra aqui.
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.40.0 … v1.40.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.40.1 … v1.40.1): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '1.43.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.44.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 
 // v1.17.0 (Fase 1 do wrapper de escrita, rollout Financeiro) — emitirEscrita
 // é o evento padrão pra "algo mudou que módulos DE FORA deste arquivo podem
@@ -4358,7 +4365,7 @@ function financeiroRenderCabecalho(aba) {
             abrirSheetAcoes({ titulo: emAtraso ? 'Em atraso' : 'A receber', sub, acoes: [
                 { icone: 'check', titulo: 'Dar baixa', sub: 'Registrar o recebimento', codigo: 'mensal.baixar', aoTocar: () => rzAbrirBaixaMensalidade(men.id) },
                 ...(emAtraso ? [{ icone: 'message-circle', titulo: 'Cobrar pelo WhatsApp', sub: 'Mensagem ao locatário, com o Pix da empresa', codigo: 'cobrar.lembrete',
-                    aoTocar: () => dispararCobrancaWhatsAppDirect(con.whatsapp, `Locatário: ${con.locatario || ''}`, `- Competência ${men.referencia}: R$ ${valorMen.toLocaleString('pt-BR')}`, valorMen) }] : []),
+                    aoTocar: () => financeiroCobrarMensalidade(men.id) }] : []), // v1.44.0 — mesma função do deslize
                 ...financeiroAcaoConta('mensalidade', men.id, men.contaId, (v) => { men.contaId = v; renderMensalidades(); }), // v1.33.0
                 ...financeiroAcaoDivisao('mensalidade', men.id, valorMen, men.divisaoAjustada, (aj) => { men.divisaoAjustada = aj; renderMensalidades(); }), // v1.35.0
                 { icone: 'trash-2', titulo: 'Excluir lançamento', tipo: 'bad', codigo: 'mensal.excluir', aoTocar: () => excluirLancamentoMensal(men.id) },
@@ -4608,7 +4615,7 @@ function financeiroRenderCabecalho(aba) {
                 // já está na tag (rsM), não precisa repetir mudando a forma
                 // do ícone. Cor ainda muda (rz-bad) quando atrasada, só a
                 // forma que ficou fixa.
-                return `<div class="rz-row rz-link" onclick="rzAcoesMensalidade('${men.id}')">
+                return `<div class="rz-row rz-link" data-men="${men.id}" onclick="rzAcoesMensalidade('${men.id}')">
                     <div class="rz-ic${atrasada ? ' rz-bad' : ''}"><svg data-lucide="arrow-down-left"></svg></div>
                     <div class="rz-tx"><b>${escapeHtmlSaidas(con.locatario || 'Locatário')}</b><span>${dataVencMensal(men, con)}${men.divisaoAjustada ? ' · divisão ajustada' : ''}</span></div>
                     <div class="rz-rt"><b>${formatarMoedaBR(men.valorConfirmado)}</b>${atrasada ? rsM('bad', 'Em atraso') : rsM('run', 'A vencer')}</div>
@@ -4616,8 +4623,32 @@ function financeiroRenderCabecalho(aba) {
                 </div>`;
             }).join('');
             container.innerHTML = `<div class="rz-card rz-list">${linhas}</div>`;
+            financeiroLigarDeslizeMensal(container); // v1.44.0 (etapa 6 · B)
 
             if (typeof lucide !== 'undefined') lucide.createIcons();
+        }
+
+        // v1.44.0 (etapa 6 · B) — deslizar REVELA, o toque no botão age (rzSwipe do index, decisão do Nicola 10/10).
+        // → Dar baixa (formulário de sempre) · ← Cobrar (só em atraso). Mesma checagem de acesso do ⋮.
+        function financeiroLigarDeslizeMensal(container) {
+            if (!container || typeof rzSwipe !== 'function') return;
+            const comAcesso = (codigo, fn) => () => { if (typeof rzMostrarBloqueio === 'function' && rzMostrarBloqueio(codigo)) return; fn(); };
+            container.querySelectorAll('.rz-row[data-men]').forEach(row => {
+                const men = mensalidades.find(m => m.id === row.dataset.men);
+                if (!men || men.status === 'Pago') return;
+                const dir = [{ icone: 'check', titulo: 'Dar baixa', aoTocar: comAcesso('mensal.baixar', () => rzAbrirBaixaMensalidade(men.id)) }];
+                const esq = mensalidadeEmAtraso(men)
+                    ? [{ icone: 'message-circle', titulo: 'Cobrar', tipo: 'warn', aoTocar: comAcesso('cobrar.lembrete', () => financeiroCobrarMensalidade(men.id)) }]
+                    : [];
+                rzSwipe(row, { dir, esq });
+            });
+        }
+        // Cobrança de 1 mensalidade — a mesma do ⋮ ("Cobrar pelo WhatsApp").
+        function financeiroCobrarMensalidade(menId) {
+            const men = mensalidades.find(m => m.id === menId); if (!men) return;
+            const con = contratos.find(c => c.id === men.contratoId) || {};
+            const valorMen = Number(men.valorConfirmado ?? men.valor ?? 0);
+            dispararCobrancaWhatsAppDirect(con.whatsapp, `Locatário: ${con.locatario || ''}`, `- Competência ${men.referencia}: R$ ${valorMen.toLocaleString('pt-BR')}`, valorMen);
         }
 
         // v1.13.0 — alternarGrupoMensal() removida (Entrega F.3): a lista
@@ -4940,14 +4971,19 @@ function financeiroRenderCabecalho(aba) {
                 pix = data || null;
             } catch (e) { console.warn('[financeiro] Pix da empresa:', e.message); }
             if (typeof abrirSheetForm !== 'function') return enviarCobrancaWhatsApp(celular, grupoTitle, itensText, valorTotal, null);
-            abrirSheetForm({
+            // v1.44.0 (etapa 6 · C) — mostra a mensagem exata; "Incluir o Pix" lembrado por empresa neste aparelho.
+            const esc = window.rzEsc || String;
+            const incluirPix = () => !!pix && cobrancaPixLembrado();
+            const sheetCob = abrirSheetForm({
                 titulo: 'Cobrar pelo WhatsApp', sub: `${grupoTitle} · ${formatarMoedaBR(valorTotal)}`,
-                rotuloSalvar: 'Abrir WhatsApp', rotuloCancelar: 'Cancelar',
-                corpo: pix
-                    ? `<label class="text-sm" style="display:flex;gap:10px;align-items:flex-start"><input type="checkbox" id="fin-cob-pix" checked style="margin-top:3px"><span><b>Incluir o Pix da empresa</b><br><span class="text-xs" style="color:var(--muted)">Chave ${(window.rzEsc||String)(pix.chave)} (${(window.rzEsc||String)(pix.nome)})${pix.brcode ? ' e Pix copia e cola com o valor total' : ''}.</span></span></label>`
-                    : `<p class="text-sm" style="margin:0">A empresa ainda não tem chave Pix cadastrada; a cobrança sai sem Pix.</p><p class="text-xs" style="color:var(--muted);margin:6px 0 0">Cadastre em Conta › Empresa › Minha empresa › Pix para cobrança de aluguel.</p>`,
+                rotuloSalvar: 'Abrir no WhatsApp', rotuloCancelar: 'Cancelar',
+                corpo: `<div class="rz-cob-msg" id="fin-cob-msg">${esc(textoCobrancaWhatsApp(grupoTitle, itensText, valorTotal, incluirPix() ? pix : null))}</div>`
+                    + (pix
+                        ? `<div class="rz-row"><div class="rz-tx"><b>Incluir o Pix</b><span>Chave ${esc(pix.chave)} · lembrado para as próximas cobranças</span></div>`
+                          + `<button type="button" role="switch" class="rz-switch" id="fin-cob-pix" aria-checked="${incluirPix() ? 'true' : 'false'}" aria-label="Incluir o Pix"></button></div>`
+                        : `<p class="rz-desc">A empresa ainda não tem chave Pix cadastrada; a cobrança sai sem Pix. Cadastre em Conta › Empresa › Minha empresa › Pix para cobrança de aluguel.</p>`),
                 aoSalvar: (el) => {
-                    const incluir = !!(pix && el.querySelector('#fin-cob-pix')?.checked);
+                    const incluir = incluirPix();
                     enviarCobrancaWhatsApp(celular, grupoTitle, itensText, valorTotal, incluir ? pix : null);
                     if (!incluir || !pix.brcode) return true;
                     // 2º passo: o código sozinho, para o locatário copiar com um toque longo
@@ -4962,6 +4998,29 @@ function financeiroRenderCabecalho(aba) {
                     return false;
                 },
             });
+            const corpoCob = sheetCob && sheetCob.querySelector('#rz-sheet-corpo');
+            cobrancaLigarInterruptor(corpoCob, () => {
+                const m = corpoCob.querySelector('#fin-cob-msg');
+                if (m) m.textContent = textoCobrancaWhatsApp(grupoTitle, itensText, valorTotal, incluirPix() ? pix : null);
+            });
+        }
+
+        // v1.44.0 (etapa 6 · C) — preferência "Incluir o Pix" por empresa, neste aparelho (padrão: incluir).
+        function cobrancaPixChave() { return 'raiz_pref_cob_pix_' + (CLIENTE_ID_SUPABASE || ''); }
+        function cobrancaPixLembrado() { try { return localStorage.getItem(cobrancaPixChave()) !== '0'; } catch (_) { return true; } }
+        function cobrancaPixGuardar(v) { try { localStorage.setItem(cobrancaPixChave(), v ? '1' : '0'); } catch (_) { /* sem armazenamento: vale só agora */ } }
+        function cobrancaLigarInterruptor(el, aoMudar) {
+            const sw = el && el.querySelector('#fin-cob-pix'); if (!sw) return;
+            sw.addEventListener('click', () => {
+                const novo = sw.getAttribute('aria-checked') !== 'true';
+                sw.setAttribute('aria-checked', novo ? 'true' : 'false');
+                cobrancaPixGuardar(novo); aoMudar();
+            });
+        }
+        function textoCobrancaWhatsApp(grupoTitle, itensText, valorTotal, pix) {
+            const formatText = String(itensText || '').replace(/\\n/g, '\n');
+            return `⚠️ *${CONFIG_CLIENTE.nomeEmpresa.toUpperCase()} - NOTIFICAÇÃO DE CAIXA*\nRef: *${grupoTitle}*\n\nConstam em aberto os seguintes lançamentos pendentes:\n${formatText}\n\n*Total Consolidado: R$ ${Number(valorTotal || 0).toLocaleString('pt-BR')}*\n\nQualquer dúvida sobre a conciliação, estamos à disposição.`
+                + (pix ? `\n\n💠 *Pague por Pix*\nChave: ${pix.chave}\nRecebedor: ${pix.nome}` + (pix.brcode ? `\n\nNa próxima mensagem envio o *Pix copia e cola* com o valor total — é só tocar e segurar para copiar.` : '') : '');
         }
 
         function enviarCobrancaWhatsApp(celular, grupoTitle, itensText, valorTotal, pix) {
@@ -4974,10 +5033,7 @@ function financeiroRenderCabecalho(aba) {
 
             }
 
-            const formatText = itensText.replace(/\\n/g, '\n');
-
-            const txt = `⚠️ *${CONFIG_CLIENTE.nomeEmpresa.toUpperCase()} - NOTIFICAÇÃO DE CAIXA*\nRef: *${grupoTitle}*\n\nConstam em aberto os seguintes lançamentos pendentes:\n${formatText}\n\n*Total Consolidado: R$ ${valorTotal.toLocaleString('pt-BR')}*\n\nQualquer dúvida sobre a conciliação, estamos à disposição.`
-                + (pix ? `\n\n💠 *Pague por Pix*\nChave: ${pix.chave}\nRecebedor: ${pix.nome}` + (pix.brcode ? `\n\nNa próxima mensagem envio o *Pix copia e cola* com o valor total — é só tocar e segurar para copiar.` : '') : '');
+            const txt = textoCobrancaWhatsApp(grupoTitle, itensText, valorTotal, pix); // v1.44.0 — o mesmo texto da prévia
 
             rzDev('whatsapp', '55' + celular, txt); // v1.28.0 (UXR-41) — pelo adaptador
 
