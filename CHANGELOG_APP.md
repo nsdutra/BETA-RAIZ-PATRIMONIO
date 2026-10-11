@@ -4,6 +4,20 @@ Histórico completo de versões do `index.html`, movido automaticamente pelo `ge
 
 ---
 
+NOVIDADES (Beta v1.356.0) — demanda 28aa5ce1, teste do Nicola 10/10 21:43. Sai o ícone de filtros de Contratos
+(e de Ativos, ativos-markup 1.58.0 / cofre-ativos 1.90.0): fica só a barra digitável. A barra do Hoje vira
+digitável: resultados na própria tela (#hoje-busca-res, rzLigarBuscaHoje); o miolo da busca universal vira
+rzLigarBuscaUniversal(q, res, aoEscolher), usado também pelo Sheet. HOTFIX: conta.js 1.0.1 e partes.js 1.0.2 —
+imports './js/…' dentro de js/ viravam js/js/… (Licença, Dados da empresa, Sobre, notificações e endereço da
+parte não carregavam). Nenhum objeto de banco.
+Versão anterior (Beta v1.355.0):
+------------------------------------------------------------------
+Versões anteriores (v1.355.0 … v1.355.0): CHANGELOG_APP.md, na raiz do
+repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
+das 5 versões mais recentes deste cabeçalho.
+
+---
+
 NOVIDADES (Beta v1.355.0) — busca digitável em Ativos e Contratos (demanda 28aa5ce1) e chip Pagamentos da
 Licença (demanda 2a0000a7); de acordo do Nicola 10/10 21:26. Topo de Contratos: barra digitável
 (#contratos-busca-q) + ícone de filtros (#contratos-filtros-btn, .rz-filtro-btn com o número de filtros);

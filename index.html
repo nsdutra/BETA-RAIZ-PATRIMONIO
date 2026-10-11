@@ -6,9 +6,13 @@
    (base derivada do RUMO v7.4.2 — histórico de versões anteriores
    preservado abaixo para referência técnica)
 
-   VERSÃO: Beta v1.360.0
-   LINHAS: 15698
+   VERSÃO: Beta v1.361.0
+   LINHAS: 15713
    DATA: 10/10/2026 (sessão 20261003-1707-ux-base, demanda 4fa92c2c)
+   NOVIDADES (Beta v1.361.0) — Escolha de empresa (dem 4fa92c2c; Nicola 10/10 23:23: "subir mais o Olá Nicola, ficando a busca
+   ao lado do IA"): o "Olá" sobe para o topo e a barra de busca divide a linha com o botão da IA (escPosicionarIa; o botão
+   volta ao canto da splash fora desta tela). Só index.html. Nenhum objeto de banco.
+   Versão anterior (Beta v1.360.0):
    NOVIDADES (Beta v1.360.0) — Escolha de empresa mais folgada (dem 4fa92c2c; Nicola 10/10 23:05: "ficou apertada"): saem a foto,
    o título da splash e os chips por plano; a tela começa no "Olá, <nome>", a lista ocupa o resto e o rodapé junta a versão
    (esq.) e o Sair (dir.). Corrige "Teste · NaN d" (data_expiracao com hora). Só index.html. Nenhum objeto de banco.
@@ -29,15 +33,8 @@
    TRIAL antigo marcava plano pago com término. Sair no rodapé. A consulta de pessoas traz clientes.logo_url. Nenhum
    objeto de banco.
    Versão anterior (Beta v1.356.0):
-   NOVIDADES (Beta v1.356.0) — demanda 28aa5ce1, teste do Nicola 10/10 21:43. Sai o ícone de filtros de Contratos
-   (e de Ativos, ativos-markup 1.58.0 / cofre-ativos 1.90.0): fica só a barra digitável. A barra do Hoje vira
-   digitável: resultados na própria tela (#hoje-busca-res, rzLigarBuscaHoje); o miolo da busca universal vira
-   rzLigarBuscaUniversal(q, res, aoEscolher), usado também pelo Sheet. HOTFIX: conta.js 1.0.1 e partes.js 1.0.2 —
-   imports './js/…' dentro de js/ viravam js/js/… (Licença, Dados da empresa, Sobre, notificações e endereço da
-   parte não carregavam). Nenhum objeto de banco.
-   Versão anterior (Beta v1.355.0):
    ------------------------------------------------------------------
-   Versões anteriores (v1.355.0 … v1.355.0): CHANGELOG_APP.md, na raiz do
+   Versões anteriores (v1.356.0 … v1.356.0): CHANGELOG_APP.md, na raiz do
    repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
    das 5 versões mais recentes deste cabeçalho.
 
@@ -395,8 +392,16 @@
         #splash-screen.splash-lista-ativa .rz-splash-foto,#splash-screen.splash-lista-ativa .rz-splash-titulo,
         #splash-screen.splash-lista-ativa .rz-splash-versao,#splash-screen.splash-lista-ativa #splash-status:empty{display:none}
         #splash-screen.splash-lista-ativa{padding-bottom:4px}
-        #splash-screen.splash-lista-ativa #splash-conteudo{padding-top:72px;padding-bottom:calc(8px + env(safe-area-inset-bottom))}
-        #splash-screen.splash-lista-ativa .rz-esc-topo{margin:0 2px 16px}
+        #splash-screen.splash-lista-ativa #splash-conteudo{padding-top:0;padding-bottom:calc(8px + env(safe-area-inset-bottom))}
+        #splash-screen.splash-lista-ativa .rz-esc-topo{margin:0 2px 14px}
+        /* v1.361.0 (Nicola 10/10 23:23: "subir mais o Olá Nicola, ficando a busca ao lado do IA") — o "Olá" sobe para o
+           topo; a barra de busca e o botão da IA dividem a mesma linha (o botão entra na linha da busca, sem posição absoluta).
+           Sem barra (menos de 6 empresas), o botão fica na linha do "Olá". #splash-ia-tooltip não aparece nesta tela. */
+        #splash-screen.splash-lista-ativa #splash-ia-tooltip{display:none}
+        #splash-screen.splash-lista-ativa .rz-esc-linha{display:flex;align-items:center;gap:10px}
+        #splash-screen.splash-lista-ativa .rz-esc-linha > :first-child{flex:1;min-width:0}
+        #splash-screen.splash-lista-ativa .rz-esc-linha #btn-falar-bot-splash{position:relative;top:auto;right:auto;flex:none}
+        #area-selecao-empresa .rz-topo.rz-esc-linha{margin-bottom:6px}
         .rz-esc-rodape{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:14px 4px 0}
         .rz-esc-versao{color:#9fc3ae;font-size:12px}
         .rz-esc-rodape button{background:none;border:0;color:#fff;font:600 14px var(--font-body, inherit);display:flex;align-items:center;gap:6px;cursor:pointer;padding:8px 4px}
@@ -1734,8 +1739,8 @@
                  "Olá, <nome>" · barra digitável (6+ empresas) · lista em card claro (v1.360.0: sem chips, sem foto/título; versão + Sair no rodapé)
                  com a última acessada no topo · status só para teste e vencido · Sair no rodapé. -->
             <div id="area-selecao-empresa" class="hidden text-left">
-                <div class="rz-esc-topo"><p class="rz-esc-ola" id="esc-ola">Olá</p><p class="rz-esc-sub" id="esc-sub">Escolha a empresa</p></div>
-                <div class="rz-topo" id="esc-busca-wrap" hidden>
+                <div class="rz-esc-topo rz-esc-linha" id="esc-topo"><div><p class="rz-esc-ola" id="esc-ola">Olá</p><p class="rz-esc-sub" id="esc-sub">Escolha a empresa</p></div></div>
+                <div class="rz-topo rz-esc-linha" id="esc-busca-wrap" hidden>
                     <label class="rz-search rz-search-in" id="esc-busca-btn"><svg data-lucide="search"></svg><input type="search" id="esc-busca-q" class="rz-raw" placeholder="Buscar empresa" enterkeyhint="search" autocomplete="off" aria-label="Buscar empresa"></label>
                 </div>
                 <p id="aviso-erro-licencas-selecao" class="hidden rz-esc-aviso"></p>
@@ -3757,7 +3762,7 @@
         // texto certo toda vez (esqueci 5 versões seguidas, de v1.37.1 até
         // v1.38.3). Agora só precisa mudar UMA linha aqui a cada release;
         // window.onload aplica nos dois lugares automaticamente.
-        const APP_VERSAO = "Beta v1.360.0"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
+        const APP_VERSAO = "Beta v1.361.0"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
 
         // ====================================================================
         // v1.105.0 — HELPERS DE SUPERFÍCIE DA GRAMÁTICA ÚNICA
@@ -6522,6 +6527,7 @@ async function criarLinkVitrineSupabase(token, idsSelecionados) {
             const areaSelecao = document.getElementById('area-selecao-empresa');
             if (areaSelecao) areaSelecao.classList.add('hidden');
             document.getElementById('splash-screen')?.classList.remove('splash-lista-ativa'); // v1.203.0
+            escPosicionarIa(null); // v1.361.0 — o botão da IA volta ao canto da splash
             statusEl.textContent = '';
 
             registrarLog('login', { nome: socioLogado, perfil: perfilLogado, empresa: CONFIG_CLIENTE.nomeEmpresa });
@@ -6673,6 +6679,14 @@ async function criarLinkVitrineSupabase(token, idsSelecionados) {
             if (teste) return { sem: 'warn', txt: dias !== null ? `Teste · ${dias} d` : 'Teste' };
             return null;
         }
+        // v1.361.0 — o botão da IA da splash entra na linha da busca (ou do "Olá") enquanto a escolha de empresa está
+        // aberta, e volta ao lugar de sempre (canto da splash) quando ela fecha. Mesmo elemento: handler e telemetria iguais.
+        function escPosicionarIa(linha) {
+            const ia = document.getElementById('btn-falar-bot-splash'); if (!ia) return;
+            if (linha) { if (ia.parentNode !== linha) linha.appendChild(ia); return; }
+            const splash = document.getElementById('splash-screen'), conteudo = document.getElementById('splash-conteudo');
+            if (splash && conteudo && ia.parentNode !== splash) splash.insertBefore(ia, conteudo);
+        }
         function renderizarListaSelecaoEmpresa() {
             const lista = document.getElementById('lista-selecao-empresa');
             if (!lista) return;
@@ -6687,6 +6701,7 @@ async function criarLinkVitrineSupabase(token, idsSelecionados) {
             // barra digitável a partir de 6 empresas
             const wrap = document.getElementById('esc-busca-wrap');
             if (wrap) wrap.hidden = itens.length < 6;
+            escPosicionarIa(wrap && !wrap.hidden ? wrap : document.getElementById('esc-topo')); // v1.361.0 — IA ao lado da busca
             if (itens.length >= 6) rzBuscaInline('esc-busca-q', (v) => { escTermo = v.toLowerCase(); renderizarListaSelecaoEmpresa(); });
             // filtro
             const nomeDe = (it) => (it.p.clientes && it.p.clientes.nome_empresa) || '(empresa sem nome)';
