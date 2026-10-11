@@ -4,6 +4,16 @@ Histórico completo de versões do `index.html`, movido automaticamente pelo `ge
 
 ---
 
+NOVIDADES (Beta v1.365.1) — só o import map: cofre-controles.js 1.51.0 (tipo do item com rótulo na 1ª abertura; subtipos Conta e
+Cartão de crédito; Nicola 11/10 00:08). Banco: migration contas_subtipos_f18b_v1.
+Versão anterior (Beta v1.365.0):
+------------------------------------------------------------------
+Versões anteriores (v1.365.0 … v1.365.0): CHANGELOG_APP.md, na raiz do
+repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
+das 5 versões mais recentes deste cabeçalho.
+
+---
+
 NOVIDADES (Beta v1.365.0) — UX etapa 6 · D (demanda b4b047fd; protótipo aprovado pelo Nicola 10/10 22:43). Conciliação: deslizar a
 linha com sugestão REVELA Aceitar (→) e Outra (←), a ação roda no toque; "Revisar em sequência (N)" abre uma carta por vez
 (Aceitar, Outra opção, Pular, Não controlado, Sair). CSS .rz-seq-*. financeiro.js 1.47.0. Nenhum objeto de banco.

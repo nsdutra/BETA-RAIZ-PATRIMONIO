@@ -1,7 +1,19 @@
 // ============================================================================
 // financeiro.js — Raiz Patrimônio · Financeiro (Recebimentos · Atrasados · Saídas
 //                  · conciliação de extrato · recibo · detalhe do recebimento)
-// Versão: 1.49.0 · 11/10/2026
+// Versão: 1.50.0 · 11/10/2026
+//
+// v1.50.0 (11/10/2026, sessão 20261008-1231-pessoas-ativos, demanda f3e6cd27; F13.7, FICHA_BALANCO_ACERTOS v1.3.0, D85 a
+// D88; Nicola 12:29 "Mantenha extraordinária mesmo. Restante de acordo com tudo.") — retirada do fluxo x extraordinária:
+//   · Lançar retirada ganha "Tipo": "Do fluxo" (abate o saldo a retirar, como sempre) ou "Extraordinária" (fora do
+//     fluxo dos imóveis: não abate o saldo a retirar e não gera dívida no Balanço);
+//   · Sócios por mês: as extraordinárias saem da lista "Retiradas" e ganham um quadro próprio, com o total do período;
+//     a ficha do sócio mostra as dele em separado;
+//   · tocar numa retirada oferece "Marcar como extraordinária" ou "Voltar para o fluxo" (fn_retirada_classificar,
+//     com registro de quem mudou e quando); vale também para a retirada que veio da conciliação;
+//   · histórico do Balanço: a extraordinária aparece com o selo "Extraordinária" e o valor, sem mexer no saldo.
+//
+// Versão anterior: 1.49.0 · 11/10/2026
 //
 // v1.49.0 (11/10/2026, sessão 20261008-1231-pessoas-ativos, demanda f3e6cd27; F13 4c etapa 2, §3.5; Nicola 10:53 "pode
 // corrigir e avançar") — dividir despesa entre pessoas, como no Splitwise:
@@ -45,19 +57,11 @@
 //     mesmo filtro): Aceitar (só quando a sugestão confirma sozinha; senão "Ver opções"), Outra opção, Pular (fica
 //     pendente na lista), Não controlado (fn_extrato_marcar_nao_controlado de sempre, sem observação) e Sair. Depois de
 //     aceitar ou marcar, a próxima carta abre sozinha. Nada de banco novo; OFX/CSV fica fora (precisa de ficha).
-//
-// Versão anterior: 1.46.0 · 10/10/2026
-//
-// v1.46.0 (correção da etapa 6 · C, demanda b4b047fd; teste do Nicola 10/10 23:23: "ao clicar no cobrar a 1ª vez não
-// abre, só na 2ª" e "cobrar só gera msg de celular não cadastrado") — o sheet de cobrança abre NA HORA do toque (antes
-// esperava a consulta do Pix e, sem celular, só mostrava um aviso). O Pix chega depois e atualiza a prévia. O celular
-// vem do contrato e, se faltar, do locatário em Partes (partes_papeis papel 'locatario', leitura); sem celular nenhum,
-// o sheet avisa e o WhatsApp abre para escolher o contato (wa.me sem número). Número: 10/11 dígitos ganham o 55.
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.45.0 … v1.45.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.46.0 … v1.46.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '1.49.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.50.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 
 // v1.17.0 (Fase 1 do wrapper de escrita, rollout Financeiro) — emitirEscrita
 // é o evento padrão pra "algo mudou que módulos DE FORA deste arquivo podem
@@ -5416,12 +5420,14 @@ async function distribCarregar() {
         a.retirado += Number(x.ja_repassado || 0); a.saldo += Number(x.saldo_pendente || 0);
         mapa.set(chave, a);
     }));
-    const { data: ret, error: errRet } = await dbAuth.from('repasses')
-        .select('id, pessoa_id, competencia, valor, data_real, pessoas(nome)')
+    const { data: retTodas, error: errRet } = await dbAuth.from('repasses')
+        .select('id, pessoa_id, competencia, valor, data_real, natureza, chave_transacao_origem, pessoas(nome)')
         .eq('cliente_id', CLIENTE_ID_SUPABASE).gte('competencia', meses[0]).lte('competencia', meses[meses.length - 1])
-        .eq('de_tipo', 'caixa').eq('natureza', 'distribuicao') // v1.48.0 — F13.6: repasses guarda também acertos; aqui só a retirada do sócio
+        .eq('de_tipo', 'caixa').in('natureza', ['distribuicao', 'extraordinaria']) // v1.48.0 — F13.6: aqui só a retirada do sócio; v1.50.0 — F13.7: e a extraordinária
         .order('data_real', { ascending: false });
     if (errRet) throw errRet;
+    const extras = (retTodas || []).filter(r => r.natureza === 'extraordinaria'); // v1.50.0 — fora do fluxo: quadro próprio
+    const ret = (retTodas || []).filter(r => r.natureza !== 'extraordinaria');
     // retirada de quem não teve cota no período: a função não devolve a pessoa — entra com cota zero
     (ret || []).forEach(r => {
         if (mapa.has(r.pessoa_id)) return;
@@ -5430,7 +5436,7 @@ async function distribCarregar() {
     });
     mapa.forEach(a => { if (a.soRetirada) { const v = (ret || []).filter(r => r.pessoa_id === a.pessoaId).reduce((t, r) => t + Number(r.valor || 0), 0); a.retirado = v; a.saldo = -v; } });
     const linhas = [...mapa.values()].sort((a, b) => b.saldo - a.saldo || a.nome.localeCompare(b.nome));
-    distribDados = { linhas, retiradas: ret || [], periodo: distribPeriodoRotulo(), meses };
+    distribDados = { linhas, retiradas: ret || [], extras, periodo: distribPeriodoRotulo(), meses };
 }
 
 export async function renderDistribuicao() {
@@ -5492,7 +5498,19 @@ function distribDesenhar() {
                 <svg data-lucide="ellipsis-vertical" class="rz-chev"></svg>
             </div>`).join('') + '</div>'
         : '';
-    corpo.innerHTML = chips + kpis + lista + ultimas;
+    const extras = distribDados.extras || []; // v1.50.0 — F13.7
+    const totExtra = extras.reduce((t, r) => t + Number(r.valor || 0), 0);
+    const quadroExtra = extras.length
+        ? `<div class="rz-card rz-list"><div class="rz-card-h" style="padding-top:10px;margin-bottom:0"><h3>Retiradas extraordinárias</h3><span class="rz-sub">${esc(periodo)} · ${formatarMoedaBR(totExtra)}</span></div>` +
+          `<p style="margin:0 14px 6px;font-size:12px;color:var(--muted)">Fora do fluxo dos imóveis: não abatem o saldo a retirar.</p>` +
+          extras.slice(0, 20).map(r => `<div class="rz-row rz-link" role="button" tabindex="0" onclick="rzAcoesRetirada('${r.id}')">
+                <div class="rz-ic rz-neu"><svg data-lucide="sparkles"></svg></div>
+                <div class="rz-tx"><b>${esc(r.pessoas?.nome || nomePorId[r.pessoa_id] || 'Sócio')}</b><span>${formatarDataBR(r.data_real || r.competencia)} · ref. ${esc(compCurta(r.competencia))}</span></div>
+                <div class="rz-rt"><b>${formatarMoedaBR(Number(r.valor || 0))}</b></div>
+                <svg data-lucide="ellipsis-vertical" class="rz-chev"></svg>
+            </div>`).join('') + '</div>'
+        : '';
+    corpo.innerHTML = chips + kpis + lista + ultimas + quadroExtra;
     if (typeof lucide !== 'undefined') lucide.createIcons();
 }
 
@@ -5505,7 +5523,7 @@ function distribDesenhar() {
 // ============================================================================
 let balancoVistaAtual = 'pessoas';   // 'pessoas' | 'socios' | 'grupos'
 let balancoDados = null;             // { pessoas: [{chave, pessoaId, nome, total, linhas}], ate }
-const BAL_NATUREZA = { distribuicao: 'distribuição', reembolso: 'reembolso', adiantamento: 'adiantamento', rateio: 'rateio' };
+const BAL_NATUREZA = { distribuicao: 'distribuição', reembolso: 'reembolso', adiantamento: 'adiantamento', rateio: 'rateio', extraordinaria: 'retirada extraordinária' }; // v1.50.0
 const balEsc = (t) => String(t ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;');
 const balSt = (cod, rot) => (typeof renderStatus === 'function') ? renderStatus(cod, rot) : balEsc(rot);
 
@@ -5636,7 +5654,9 @@ export async function balancoHistorico(p, alvo) {
     alvo.innerHTML = (data || []).length ? `<div class="rz-group">Histórico</div><div class="rz-card rz-list">` + data.map(e => `<div class="rz-row">
             <div class="rz-ic"><svg data-lucide="${e.origem_tipo === 'repasse' ? 'handshake' : (e.valor > 0 ? 'arrow-down-left' : 'arrow-up-right')}"></svg></div>
             <div class="rz-tx"><b>${balEsc(e.descricao || '')}</b><span>${formatarDataBR(e.data)} · ${balEsc(BAL_NATUREZA[e.natureza] || e.natureza)} · ${balEsc(e.contraparte_nome || 'Empresa')}${e.pagador ? ' · pagou ' + balEsc(e.pagador) : ''}</span></div>
-            <div class="rz-rt"><b class="${e.valor > 0 ? 'rz-in' : 'rz-out'}">${moedaSinal(e.valor)}</b></div></div>`).join('') + '</div>'
+            <div class="rz-rt">${e.natureza === 'extraordinaria' // v1.50.0 — F13.7: fora do fluxo, não mexe no saldo
+                ? `${balSt('neu', 'Extraordinária')}<small style="display:block;text-align:right">${formatarMoedaBR(Number(e.valor_movimento || 0))}</small>`
+                : `<b class="${e.valor > 0 ? 'rz-in' : 'rz-out'}">${moedaSinal(e.valor)}</b>`}</div></div>`).join('') + '</div>'
         : '<p style="font-size:13px;color:var(--muted)">Nada no histórico até esta data.</p>';
     if (typeof lucide !== 'undefined') lucide.createIcons();
 }
@@ -5711,13 +5731,16 @@ export function abrirFichaSocioDistribuicao(chave) {
     const esc = (t) => String(t ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;');
     const ret = (distribDados.retiradas || []).filter(r => r.pessoa_id && r.pessoa_id === l.pessoaId);
     const kv = (rot, val, forte) => `<div class="rz-full" style="display:flex;justify-content:space-between;gap:12px"><small>${esc(rot)}</small><b style="${forte ? 'font-weight:700' : 'font-weight:500'}">${moedaSinal(val)}</b></div>`;
+    const ext = (distribDados.extras || []).filter(r => r.pessoa_id && r.pessoa_id === l.pessoaId); // v1.50.0 — F13.7
+    const totExt = ext.reduce((t, r) => t + Number(r.valor || 0), 0);
+    const linhasExt = ext.length ? `<div class="rz-group">Retiradas extraordinárias · ${formatarMoedaBR(totExt)}</div><div class="rz-card rz-list">` + ext.map(r => `<div class="rz-row"><div class="rz-ic rz-neu"><svg data-lucide="sparkles"></svg></div><div class="rz-tx"><b>${formatarDataBR(r.data_real || r.competencia)}</b><span>ref. ${esc(compCurta(r.competencia))} · fora do saldo a retirar</span></div><div class="rz-rt"><b>${formatarMoedaBR(Number(r.valor || 0))}</b></div></div>`).join('') + '</div>' : '';
     const linhasRet = ret.length ? `<div class="rz-group">Retiradas</div><div class="rz-card rz-list">` + ret.map(r => `<div class="rz-row"><div class="rz-ic"><svg data-lucide="arrow-up-right"></svg></div><div class="rz-tx"><b>${formatarDataBR(r.data_real || r.competencia)}</b><span>ref. ${esc(compCurta(r.competencia))}</span></div><div class="rz-rt"><b class="rz-out">−${formatarMoedaBR(Number(r.valor || 0))}</b></div></div>`).join('') + '</div>' : '';
     const pode = (typeof podeUsar === 'function') ? podeUsar('repasses.registrar') : { ok: true };
     const motivo = !l.pessoaId ? 'Beneficiário externo — cadastre a pessoa em Pessoas para lançar retirada' : (!pode.ok ? (pode.textoCurto || 'Sem permissão') : '');
     const sheet = abrirSheet(rzSheetCabecalho(l.nome, `${distribDados.periodo} · visão competência`) + `<div class="rz-sh-b">
         <div class="rz-card"><div class="rz-kv" style="grid-template-columns:1fr">
             ${kv('Cotas recebidas', l.entradas)}${kv('(−) Despesas do imóvel', l.saidas)}${kv('(=) Líquido apurado', l.liquido, true)}${l.reembolso > 0.004 ? kv('(+) Reembolso · pago da própria conta', l.reembolso) : ''}${kv('(−) Retirado', l.retirado)}${kv('(=) Saldo a retirar', l.saldo, true)}
-        </div></div>${linhasRet}
+        </div></div>${linhasRet}${linhasExt}
         ${motivo ? `<p style="margin:8px 0 0;font-size:13px;color:var(--muted)">${esc(motivo)}</p>` : ''}
         <button type="button" class="rz-act" data-rz-compartilhar><div class="rz-ic"><svg data-lucide="share"></svg></div><div>Compartilhar resumo<small>WhatsApp do sócio ou outro app</small></div></button>
     </div><div class="rz-sh-f"><button type="button" class="rz-btn rz-btn-1 rz-wide" data-rz-retirada ${motivo ? 'disabled' : ''}>Lançar retirada</button></div>`);
@@ -5757,6 +5780,7 @@ export function abrirLancarRetirada(pessoaIdPre, valorSugerido) {
         corpo: `
             <div class="rz-f"><label>Sócio <i>*</i></label><select id="ret-pessoa">${optsSocio}</select></div>
             <div class="rz-f"><label>Mês de referência <i>*</i></label><select id="ret-competencia">${optsComp}</select></div>
+            <div class="rz-f"><label>Tipo <i>*</i></label><select id="ret-natureza"><option value="distribuicao" selected>Do fluxo · abate o saldo a retirar</option><option value="extraordinaria">Extraordinária · fora do fluxo dos imóveis</option></select></div>
             <div class="rz-f2 rz-f2-curto">
                 <div class="rz-f"><label>Valor (R$) <i>*</i></label><input type="number" step="0.01" inputmode="decimal" id="ret-valor" value="${sug}"></div>
                 <div class="rz-f"><label>Data da retirada <i>*</i></label><input type="date" id="ret-data" value="${hoje}"></div>
@@ -5771,38 +5795,69 @@ async function salvarRetirada() {
     const competencia = document.getElementById('ret-competencia')?.value;
     const valor = parseFloat(document.getElementById('ret-valor')?.value);
     const dataReal = document.getElementById('ret-data')?.value;
+    const natureza = document.getElementById('ret-natureza')?.value === 'extraordinaria' ? 'extraordinaria' : 'distribuicao'; // v1.50.0
     if (!pessoaId || !competencia) { rzToast('Escolha o sócio e o mês.', { tipo: 'danger' }); return false; }
     if (!(valor > 0)) { rzToast('Informe um valor maior que zero.', { tipo: 'danger' }); return false; }
     if (!dataReal) { rzToast('Informe a data da retirada.', { tipo: 'danger' }); return false; }
     const { data: ins, error } = await dbAuth.from('repasses')
-        .insert({ cliente_id: CLIENTE_ID_SUPABASE, pessoa_id: pessoaId, competencia, valor, data_real: dataReal }).select('id').single();
+        .insert({ cliente_id: CLIENTE_ID_SUPABASE, pessoa_id: pessoaId, competencia, valor, data_real: dataReal, natureza }).select('id').single();
     if (error) { rzToast('Não consegui lançar a retirada: ' + error.message, { tipo: 'danger' }); return false; }
     // mantém a lista em memória do app (Resultados, PDF por sócio) igual ao banco
     try {
         const nome = (typeof pessoas !== 'undefined' && Array.isArray(pessoas)) ? (pessoas.find(p => p.id === pessoaId)?.nome || '') : '';
-        if (typeof repasses !== 'undefined' && Array.isArray(repasses)) {
+        if (natureza === 'distribuicao' && typeof repasses !== 'undefined' && Array.isArray(repasses)) { // a lista em memória é só do fluxo
             repasses.push({ id: ins.id, socio: nome, mes: dataParaCompetencia(competencia), valor, dataReal: dataReal.split('-').reverse().join('/'), timestamp: Date.now() });
         }
     } catch (e) { /* lista em memória é conveniência */ }
-    if (typeof registrarLog === 'function') registrarLog('repasses.registrar', { repasseId: ins.id, pessoaId, competencia, valor });
+    if (typeof registrarLog === 'function') registrarLog('repasses.registrar', { repasseId: ins.id, pessoaId, competencia, valor, natureza });
     emitirEscrita('repasse', { id: ins.id, acao: 'registrar' });
-    rzToast('Retirada lançada');
+    rzToast(natureza === 'extraordinaria' ? 'Retirada extraordinária lançada' : 'Retirada lançada');
     renderDistribuicao();
     return true;
 }
 
+function distribAcharRetirada(id) { // v1.50.0 — F13.7: do fluxo ou extraordinária
+    return (distribDados?.retiradas || []).find(x => x.id === id) || (distribDados?.extras || []).find(x => x.id === id) || null;
+}
+
 export function rzAcoesRetirada(id) {
-    const r = (distribDados?.retiradas || []).find(x => x.id === id);
+    const r = distribAcharRetirada(id);
     if (!r || typeof abrirSheetAcoes !== 'function') return;
-    abrirSheetAcoes({ titulo: `Retirada · ${r.pessoas?.nome || 'Sócio'}`, sub: `${formatarMoedaBR(Number(r.valor || 0))} · ${formatarDataBR(r.data_real || r.competencia)}`, acoes: [
+    const extra = r.natureza === 'extraordinaria';
+    abrirSheetAcoes({ titulo: `Retirada${extra ? ' extraordinária' : ''} · ${r.pessoas?.nome || 'Sócio'}`, sub: `${formatarMoedaBR(Number(r.valor || 0))} · ${formatarDataBR(r.data_real || r.competencia)}`, acoes: [
+        extra
+            ? { icone: 'undo-2', titulo: 'Voltar para o fluxo', codigo: 'repasses.registrar', sub: 'Passa a abater o saldo a retirar', aoTocar: () => retiradaClassificar(id, 'distribuicao') }
+            : { icone: 'sparkles', titulo: 'Marcar como extraordinária', codigo: 'repasses.registrar', sub: 'Fora do fluxo dos imóveis: não abate o saldo a retirar', aoTocar: () => retiradaClassificar(id, 'extraordinaria') },
         { icone: 'trash-2', tipo: 'bad', titulo: 'Excluir retirada', codigo: 'repasses.excluir', aoTocar: () => excluirRetirada(id) },
     ] });
 }
 
-async function excluirRetirada(id) {
-    const r = (distribDados?.retiradas || []).find(x => x.id === id);
+async function retiradaClassificar(id, natureza) { // v1.50.0 — F13.7 (D86)
+    const r = distribAcharRetirada(id);
     if (!r) return;
-    if (!await rzConfirmar({ titulo: 'Excluir retirada', impacto: `${formatarMoedaBR(Number(r.valor || 0))} de ${r.pessoas?.nome || 'Sócio'} volta para o saldo a retirar.`, destrutivo: true, rotuloConfirmar: 'Excluir retirada' })) return;
+    const extra = natureza === 'extraordinaria';
+    if (typeof rzConfirmar === 'function' && !await rzConfirmar({ titulo: extra ? 'Marcar como extraordinária' : 'Voltar para o fluxo',
+        impacto: extra ? `${formatarMoedaBR(Number(r.valor || 0))} de ${r.pessoas?.nome || 'Sócio'} sai do saldo a retirar e não gera dívida no Balanço. Fica registrado quem mudou e quando.`
+                       : `${formatarMoedaBR(Number(r.valor || 0))} de ${r.pessoas?.nome || 'Sócio'} volta a abater o saldo a retirar.`,
+        rotuloConfirmar: extra ? 'Marcar' : 'Voltar' })) return;
+    const { data, error } = await dbAuth.rpc('fn_retirada_classificar', { p_repasse_id: id, p_natureza: natureza });
+    if (error || !data?.ok) { rzToast(data?.mensagem || ('Não consegui reclassificar: ' + (error?.message || '')), { tipo: 'danger' }); return; }
+    try {
+        if (typeof repasses !== 'undefined' && Array.isArray(repasses)) {
+            const i = repasses.findIndex(x => x.id === id);
+            if (extra && i !== -1) repasses.splice(i, 1);
+            if (!extra && i === -1) repasses.push({ id, socio: r.pessoas?.nome || '', mes: dataParaCompetencia(r.competencia), valor: Number(r.valor || 0), dataReal: String(r.data_real || '').split('-').reverse().join('/'), timestamp: Date.now() });
+        }
+    } catch (e) { /* lista em memória é conveniência */ }
+    emitirEscrita('repasse', { id, acao: 'classificar' });
+    rzToast(data.mensagem || 'Retirada reclassificada');
+    renderDistribuicao();
+}
+
+async function excluirRetirada(id) {
+    const r = distribAcharRetirada(id);
+    if (!r) return;
+    if (!await rzConfirmar({ titulo: 'Excluir retirada', impacto: r.natureza === 'extraordinaria' ? `${formatarMoedaBR(Number(r.valor || 0))} de ${r.pessoas?.nome || 'Sócio'} deixa de constar como retirada extraordinária.` : `${formatarMoedaBR(Number(r.valor || 0))} de ${r.pessoas?.nome || 'Sócio'} volta para o saldo a retirar.`, destrutivo: true, rotuloConfirmar: 'Excluir retirada' })) return;
     const { error } = await dbAuth.from('repasses').delete().eq('cliente_id', CLIENTE_ID_SUPABASE).eq('id', id);
     if (error) { rzToast('Não consegui excluir: ' + error.message, { tipo: 'danger' }); return; }
     try { if (typeof repasses !== 'undefined' && Array.isArray(repasses)) { const i = repasses.findIndex(x => x.id === id); if (i !== -1) repasses.splice(i, 1); } } catch (e) { /* idem */ }

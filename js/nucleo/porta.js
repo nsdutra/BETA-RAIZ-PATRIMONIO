@@ -4,7 +4,13 @@
 //                   o estado do app (ativos, contratos, mensalidades, repasses,
 //                   lançamentos, prestadores, pessoas, empreendimentos, tipos,
 //                   minutas, links da vitrine, logs e a vitrine pública)
-// Versão: 1.3.0 · 10/10/2026
+// Versão: 1.4.0 · 11/10/2026
+//
+// v1.4.0 (11/10/2026, sessão 20261008-1231-pessoas-ativos, demanda f3e6cd27 — F13.7, Nicola 11/10 12:29) — o leitor de
+// repasses do boot (lista que alimenta Resultados, o extrato e o PDF por sócio) passa a trazer só a retirada do FLUXO:
+// da empresa para um sócio, natureza distribuição. Ficam fora a retirada extraordinária (fora do fluxo dos imóveis) e
+// os acertos entre pessoas que a tabela guarda desde a F13.6 (antes eles entravam como "repasse" do sócio).
+// Versão anterior: 1.3.0.
 //
 // v1.3.0 (10/10/2026, sessão 20261008-1231-pessoas-ativos, demanda a3f4c73f — F25c, Nicola 10/10 21:19) — contrato NOVO
 // grava contratos.modelo quando o "Adicionar" da ficha do ativo escolheu um (window.rzContratoModeloNovo, válido só
@@ -57,7 +63,7 @@
 // duplicar seria violação da CAN-03. Entram aqui por injeção.
 // ============================================================================
 
-export const VERSAO = '1.3.0';  // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.4.0';  // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 
 // ----------------------------------------------------------------------------
 // Injeção do host (index.html ou cofre.html). Os leitores abaixo usam estes
@@ -504,7 +510,8 @@ export async function carregarMensalidadesSupabase() {
 }
 
 export async function carregarRepassesSupabase() {
-    const { data, error } = await dbAuth.from('repasses').select('*, pessoas(nome)').eq('cliente_id', CLIENTE_ID_SUPABASE);
+    const { data, error } = await dbAuth.from('repasses').select('*, pessoas(nome)').eq('cliente_id', CLIENTE_ID_SUPABASE)
+        .eq('de_tipo', 'caixa').eq('para_tipo', 'pessoa').eq('natureza', 'distribuicao'); // v1.4.0 — só a retirada do fluxo (F13.7)
     if (error) throw error;
     return (data || []).map(function(row) {
         return {
