@@ -4,6 +4,21 @@ Histórico completo de versões do `index.html`, movido automaticamente pelo `ge
 
 ---
 
+NOVIDADES (Beta v1.368.0) — Marca e ramos, fases 1 a 3 (plano do PROTOTIPO_MARCA_RAMOS_RAIZ v1.1.0 aprovado pelo Nicola 11/10 11:20).
+Fase 1: splash no verde da marca com a assinatura vertical "Raiz / PATRIMÔNIO" (símbolo do ícone; sai a foto do Unsplash) e a
+frase da visão; theme-color #1e3a32; iPhone usa o ícone de fundo inteiro e o nome curto "Raiz"; título "Raiz Patrimônio".
+Fase 2: paleta dos 8 tons (hdr/acc/--ramo-txt/papel; varejo e investimentos já previstos); texto colorido do ramo usa
+--ramo-txt; cor da barra de baixo saiu do JS para a CSS; theme-color acompanha a lente. Fase 3: ícone da lente vem de
+ativo_ramos.icone (UPDATE de dados em 5 linhas: heart-handshake, gem, wheat, fence, coins). comum-sobre.js 1.5.0 (assinatura no
+Suporte), manifest 1.2.0. Nenhum objeto de banco novo.
+Versão anterior (Beta v1.367.0):
+------------------------------------------------------------------
+Versões anteriores (v1.367.0 … v1.367.0): CHANGELOG_APP.md, na raiz do
+repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
+das 5 versões mais recentes deste cabeçalho.
+
+---
+
 NOVIDADES (Beta v1.367.0) — F13 4c etapa 2: Nova despesa com "Quem pagou (conta)" e "Dividir com outras pessoas";
 editor de divisão com "Dividir igual" e só pessoas cadastradas. Só o import map muda aqui (financeiro.js 1.49.0,
 raiz-ui.js 1.3.0).
