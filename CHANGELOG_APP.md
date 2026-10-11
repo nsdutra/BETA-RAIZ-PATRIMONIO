@@ -4,6 +4,20 @@ Histórico completo de versões do `index.html`, movido automaticamente pelo `ge
 
 ---
 
+NOVIDADES (Beta v1.355.0) — busca digitável em Ativos e Contratos (demanda 28aa5ce1) e chip Pagamentos da
+Licença (demanda 2a0000a7); de acordo do Nicola 10/10 21:26. Topo de Contratos: barra digitável
+(#contratos-busca-q) + ícone de filtros (#contratos-filtros-btn, .rz-filtro-btn com o número de filtros);
+rzAbrirBuscaTela ganha cfg.semTexto (Sheet só com filtros). Módulos: contratos.js 1.49.0, cofre-ativos.js 1.89.0,
+ativos-markup.js 1.57.0, partes.js 1.0.1, comum-licenca.js 1.8.0. Banco: função fn_licenca_pagamentos_listar
+(migration fn_licenca_pagamentos_listar_v1, só leitura, ficha aprovada).
+Versão anterior (Beta v1.354.0):
+------------------------------------------------------------------
+Versões anteriores (v1.354.0 … v1.354.0): CHANGELOG_APP.md, na raiz do
+repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
+das 5 versões mais recentes deste cabeçalho.
+
+---
+
 NOVIDADES (Beta v1.354.0) — F25c (Nicola 10/10 21:19): o contrato guarda o modelo (aluguel, temporada…) e o modelo de
 hoje de cada ativo vem dos contratos vigentes. Ficha do ativo: "Adicionar" pelos modelos (cofre-ativos.js 1.88.0);
 contrato novo grava o modelo (nucleo/porta.js 1.3.0).

@@ -6,9 +6,13 @@
    (base derivada do RUMO v7.4.2 — histórico de versões anteriores
    preservado abaixo para referência técnica)
 
-   VERSÃO: Beta v1.359.0
-   LINHAS: 15706
-   DATA: 10/10/2026 (sessão 20261003-1707-ux-base, demanda b4b047fd)
+   VERSÃO: Beta v1.360.0
+   LINHAS: 15698
+   DATA: 10/10/2026 (sessão 20261003-1707-ux-base, demanda 4fa92c2c)
+   NOVIDADES (Beta v1.360.0) — Escolha de empresa mais folgada (dem 4fa92c2c; Nicola 10/10 23:05: "ficou apertada"): saem a foto,
+   o título da splash e os chips por plano; a tela começa no "Olá, <nome>", a lista ocupa o resto e o rodapé junta a versão
+   (esq.) e o Sair (dir.). Corrige "Teste · NaN d" (data_expiracao com hora). Só index.html. Nenhum objeto de banco.
+   Versão anterior (Beta v1.359.0):
    NOVIDADES (Beta v1.359.0) — UX etapa 6 · B e C (demanda b4b047fd; protótipo aprovado pelo Nicola 10/10 22:43 com ajustes).
    Recebimentos: deslizar a linha a receber REVELA "Dar baixa" (→) e "Cobrar" (←, só em atraso); a ação roda só no toque
    no botão (rzSwipe). Cobrar pelo WhatsApp mostra a mensagem exata que vai sair e o interruptor "Incluir o Pix",
@@ -32,15 +36,8 @@
    imports './js/…' dentro de js/ viravam js/js/… (Licença, Dados da empresa, Sobre, notificações e endereço da
    parte não carregavam). Nenhum objeto de banco.
    Versão anterior (Beta v1.355.0):
-   NOVIDADES (Beta v1.355.0) — busca digitável em Ativos e Contratos (demanda 28aa5ce1) e chip Pagamentos da
-   Licença (demanda 2a0000a7); de acordo do Nicola 10/10 21:26. Topo de Contratos: barra digitável
-   (#contratos-busca-q) + ícone de filtros (#contratos-filtros-btn, .rz-filtro-btn com o número de filtros);
-   rzAbrirBuscaTela ganha cfg.semTexto (Sheet só com filtros). Módulos: contratos.js 1.49.0, cofre-ativos.js 1.89.0,
-   ativos-markup.js 1.57.0, partes.js 1.0.1, comum-licenca.js 1.8.0. Banco: função fn_licenca_pagamentos_listar
-   (migration fn_licenca_pagamentos_listar_v1, só leitura, ficha aprovada).
-   Versão anterior (Beta v1.354.0):
    ------------------------------------------------------------------
-   Versões anteriores (v1.354.0 … v1.354.0): CHANGELOG_APP.md, na raiz do
+   Versões anteriores (v1.355.0 … v1.355.0): CHANGELOG_APP.md, na raiz do
    repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
    das 5 versões mais recentes deste cabeçalho.
 
@@ -385,11 +382,6 @@
         #area-selecao-empresa .rz-search.rz-search-in input{color:#fff}
         #area-selecao-empresa .rz-search.rz-search-in input::placeholder{color:#b9d0c3}
         #area-selecao-empresa .rz-search-x{background:rgba(255,255,255,.16);color:#fff}
-        #area-selecao-empresa .rz-chips{margin-bottom:6px}
-        #area-selecao-empresa .rz-chip{background:transparent;border-color:rgba(255,255,255,.24);color:#e3eee8}
-        #area-selecao-empresa .rz-chip .rz-n{background:rgba(255,255,255,.14);color:#e3eee8}
-        #area-selecao-empresa .rz-chip.rz-on{background:#fff;border-color:#fff;color:var(--pine)}
-        #area-selecao-empresa .rz-chip.rz-on .rz-n{background:var(--tile);color:var(--pine)}
         .rz-esc-grupo{color:#9fc3ae;font-size:12px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;margin:10px 4px 6px}
         #lista-selecao-empresa .rz-card{margin-bottom:4px;color:var(--ink)}
         #lista-selecao-empresa .rz-row{width:100%;background:none;border:0;border-bottom:1px solid var(--line);text-align:left;font:inherit;color:inherit}
@@ -398,7 +390,15 @@
         #lista-selecao-empresa .rz-ic.rz-esc-sigla{font:700 15px var(--font-title)}
         .rz-esc-aviso{color:#f0c88a;font-size:13px;margin:0 4px 8px}
         .rz-esc-vazio{text-align:center;margin:10px 0}
-        .rz-esc-rodape{display:flex;justify-content:flex-end;padding:12px 4px 0}
+        /* v1.360.0 (Nicola 10/10 23:05: "ficou apertada") — na escolha de empresa saem a foto e o título da splash, os chips e
+           a linha de versão solta; a tela começa no "Olá", a lista ocupa o resto e o rodapé junta versão (esq.) e Sair (dir.). */
+        #splash-screen.splash-lista-ativa .rz-splash-foto,#splash-screen.splash-lista-ativa .rz-splash-titulo,
+        #splash-screen.splash-lista-ativa .rz-splash-versao,#splash-screen.splash-lista-ativa #splash-status:empty{display:none}
+        #splash-screen.splash-lista-ativa{padding-bottom:4px}
+        #splash-screen.splash-lista-ativa #splash-conteudo{padding-top:72px;padding-bottom:calc(8px + env(safe-area-inset-bottom))}
+        #splash-screen.splash-lista-ativa .rz-esc-topo{margin:0 2px 16px}
+        .rz-esc-rodape{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:14px 4px 0}
+        .rz-esc-versao{color:#9fc3ae;font-size:12px}
         .rz-esc-rodape button{background:none;border:0;color:#fff;font:600 14px var(--font-body, inherit);display:flex;align-items:center;gap:6px;cursor:pointer;padding:8px 4px}
         .rz-esc-rodape svg{width:16px;height:16px}
 
@@ -1692,9 +1692,9 @@
 
         <div id="splash-conteudo" class="w-full max-w-sm text-center space-y-5 py-8">
 
-            <div class="w-full h-36 rounded-2xl bg-cover bg-center shadow-2xl border border-emerald-700" style="background-image: url('https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?auto=format&fit=crop&w=800&q=80');"></div>
+            <div class="rz-splash-foto w-full h-36 rounded-2xl bg-cover bg-center shadow-2xl border border-emerald-700" style="background-image: url('https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?auto=format&fit=crop&w=800&q=80');"></div>
 
-            <div>
+            <div class="rz-splash-titulo">
 
                 <h1 id="logo-splash" class="hidden"></h1>
 
@@ -1731,24 +1731,23 @@
             </div>
 
             <!-- dem 4fa92c2c (protótipo aprovado pelo Nicola 10/10 22:26) — escolha de empresa na gramática do app:
-                 "Olá, <nome>" · barra digitável (6+ empresas) · chips por plano (só os que existem) · lista em card claro
+                 "Olá, <nome>" · barra digitável (6+ empresas) · lista em card claro (v1.360.0: sem chips, sem foto/título; versão + Sair no rodapé)
                  com a última acessada no topo · status só para teste e vencido · Sair no rodapé. -->
             <div id="area-selecao-empresa" class="hidden text-left">
                 <div class="rz-esc-topo"><p class="rz-esc-ola" id="esc-ola">Olá</p><p class="rz-esc-sub" id="esc-sub">Escolha a empresa</p></div>
                 <div class="rz-topo" id="esc-busca-wrap" hidden>
                     <label class="rz-search rz-search-in" id="esc-busca-btn"><svg data-lucide="search"></svg><input type="search" id="esc-busca-q" class="rz-raw" placeholder="Buscar empresa" enterkeyhint="search" autocomplete="off" aria-label="Buscar empresa"></label>
                 </div>
-                <div class="rz-chips" id="esc-chips" role="tablist" aria-label="Plano"></div>
                 <p id="aviso-erro-licencas-selecao" class="hidden rz-esc-aviso"></p>
                 <div id="lista-selecao-empresa"></div>
-                <div class="rz-esc-rodape"><button type="button" onclick="fazerLogoutSupabase()">Sair <svg data-lucide="log-out"></svg></button></div>
+                <div class="rz-esc-rodape"><span class="rz-esc-versao" id="esc-versao"></span><button type="button" onclick="fazerLogoutSupabase()">Sair <svg data-lucide="log-out"></svg></button></div>
             </div>
 
             <div id="splash-status" class="text-[13px] text-amber-400 font-semibold px-4 break-words"></div>
 
                 <div id="splash-error-detail" class="text-[12px] text-red-400 font-mono hidden max-h-24 overflow-y-auto bg-emerald-950 p-2 rounded border border-red-900/50 text-left mx-4"></div>
 
-            <div class="text-[13px] text-slate-500 font-mono">
+            <div class="rz-splash-versao text-[13px] text-slate-500 font-mono">
 
                 Versão do Sistema: <span id="logo-splash-versao-texto" class="text-emerald-400/70 font-bold">Beta v1.43.2</span>
 
@@ -3758,7 +3757,7 @@
         // texto certo toda vez (esqueci 5 versões seguidas, de v1.37.1 até
         // v1.38.3). Agora só precisa mudar UMA linha aqui a cada release;
         // window.onload aplica nos dois lugares automaticamente.
-        const APP_VERSAO = "Beta v1.359.0"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
+        const APP_VERSAO = "Beta v1.360.0"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
 
         // ====================================================================
         // v1.105.0 — HELPERS DE SUPERFÍCIE DA GRAMÁTICA ÚNICA
@@ -6666,7 +6665,9 @@ async function criarLinkVitrineSupabase(token, idsSelecionados) {
         function escUltimaEmpresa() { try { return localStorage.getItem(escChaveUltima()); } catch (_) { return null; } }
         function escSituacao(lic) {
             if (!lic) return null;
-            const dias = lic.data_expiracao ? Math.ceil((new Date(lic.data_expiracao + 'T23:59:59') - new Date()) / 86400000) : null;
+            // v1.360.0 — data_expiracao pode vir com hora ("2026-10-20T00:00:00"): usa só o dia (antes dava "Teste · NaN d")
+            const diaExp = lic.data_expiracao ? String(lic.data_expiracao).slice(0, 10) : null;
+            const dias = diaExp && /^\d{4}-\d{2}-\d{2}$/.test(diaExp) ? Math.ceil((new Date(diaExp + 'T23:59:59') - new Date()) / 86400000) : null;
             if ((lic.status && lic.status !== 'ativo') || (dias !== null && dias < 0)) return { sem: 'bad', txt: 'Vencido' };
             const teste = lic.plano_codigo === 'trial' || (!!lic.data_expiracao && !lic.id_item_pagamento && !lic.id_plano_contratado);
             if (teste) return { sem: 'warn', txt: dias !== null ? `Teste · ${dias} d` : 'Teste' };
@@ -6680,18 +6681,9 @@ async function criarLinkVitrineSupabase(token, idsSelecionados) {
             const nome = (pessoaRowsSelecaoEmpresa[0]?.nome || '').trim().split(/\s+/)[0];
             const ola = document.getElementById('esc-ola'); if (ola) ola.textContent = nome ? 'Olá, ' + nome : 'Olá';
             const sub = document.getElementById('esc-sub'); if (sub) sub.textContent = `Escolha a empresa · você acessa ${itens.length}`;
-            // chips por plano (só os que existem; sem planos carregados, não há chips)
-            const contagem = {};
-            itens.forEach(it => { if (it.lic) { const k = it.lic.plano_codigo || '-'; contagem[k] = (contagem[k] || 0) + 1; } });
-            const planos = Object.keys(contagem).sort((a, b) => contagem[b] - contagem[a]);
-            if (escFiltroPlano !== 'todos' && !contagem[escFiltroPlano]) escFiltroPlano = 'todos';
-            const chips = document.getElementById('esc-chips');
-            if (chips) {
-                chips.innerHTML = planos.length > 1 ? [['todos', 'Todas', itens.length], ...planos.map(k => [k, escNomePlano(k === '-' ? '' : k), contagem[k]])]
-                    .map(([k, r, n]) => `<button type="button" role="tab" class="rz-chip${escFiltroPlano === k ? ' rz-on' : ''}" data-esc-plano="${rzEsc(k)}" aria-selected="${escFiltroPlano === k}">${rzEsc(r)} <span class="rz-n">${n}</span></button>`).join('') : '';
-                chips.hidden = planos.length <= 1;
-                chips.onclick = (ev) => { const c = ev.target.closest('[data-esc-plano]'); if (c) { escFiltroPlano = c.dataset.escPlano; renderizarListaSelecaoEmpresa(); } };
-            }
+            // v1.360.0 — chips por plano retirados (Nicola 10/10 23:05); a versão vai para o rodapé, junto do Sair
+            escFiltroPlano = 'todos';
+            const ver = document.getElementById('esc-versao'); if (ver) ver.textContent = APP_VERSAO;
             // barra digitável a partir de 6 empresas
             const wrap = document.getElementById('esc-busca-wrap');
             if (wrap) wrap.hidden = itens.length < 6;
