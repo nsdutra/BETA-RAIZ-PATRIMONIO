@@ -1,7 +1,13 @@
 // ============================================================================
 // financeiro.js — Raiz Patrimônio · Financeiro (Recebimentos · Atrasados · Saídas
 //                  · conciliação de extrato · recibo · detalhe do recebimento)
-// Versão: 1.44.0 · 10/10/2026
+// Versão: 1.45.0 · 10/10/2026
+//
+// v1.45.0 (10/10/2026, sessão 20261008-1231-pessoas-ativos, demanda f3e6cd27; F18) — financeiroImportarFatura aceita
+// { cartaoId } e já abre com o cartão escolhido: é o atalho "Importar fatura" da ocorrência do cartão, na ficha do item
+// de controle (cofre-controles.js). Sem opção, segue igual.
+//
+// Versão anterior: 1.44.0 · 10/10/2026
 //
 // v1.44.0 (UX etapa 6 · B e C, demanda b4b047fd, sessão 20261003-1707-ux-base; protótipo PROTOTIPO_FINANCEIRO_PESSOAS_ETAPA6
 // aprovado pelo Nicola 10/10 22:43 com os ajustes "o deslizar pro lado só abre a opção esperando toque, sem confirmar
@@ -37,16 +43,11 @@
 // aprovada 00:45): (1) "classificar igual" pergunta ANTES de gravar; fechar a pergunta (X ou fora) cancela e nada
 // é classificado — antes a compra escolhida já estava gravada quando a pergunta aparecia; (2) o ativo filtra a
 // árvore também pelo detalhe (lancamento_categorias.tipos_detalhe): pet vê Pets, pessoa vê as pessoais.
-// Versão anterior: 1.40.2.
-//
-// v1.40.2 (10/10/2026, sessão 20261009-2055-integridade, demanda 56546614 — teste do Nicola 00:15): a Divisão de uma
-// compra aberta de dentro da fatura abre por cima dela (nível 2), sem trocar o fundo pela lista de Saídas; e ganha o
-// rótulo da regra nova do banco (fn_divisao_movimento): "Fica com o titular do cartão". Versão anterior: 1.40.1.
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.40.1 … v1.40.1): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.40.2 … v1.40.2): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '1.44.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.45.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 
 // v1.17.0 (Fase 1 do wrapper de escrita, rollout Financeiro) — emitirEscrita
 // é o evento padrão pra "algo mudou que módulos DE FORA deste arquivo podem
@@ -1604,7 +1605,7 @@ function financeiroRenderCabecalho(aba) {
         }
 
         /** Lançar › Importar fatura do cartão: escolhe o cartão, lê o PDF/foto com IA, confere e importa. */
-        export async function financeiroImportarFatura() {
+        export async function financeiroImportarFatura(opcoes = {}) {
             if (typeof abrirSheetForm !== 'function') return;
             financeiroContasInfo.clienteId = null; // v1.38.1 — relê as contas: cartão cadastrado depois de abrir o Financeiro aparece
             await financeiroGarantirContas();
@@ -1621,6 +1622,7 @@ function financeiroRenderCabecalho(aba) {
                     <input type="file" id="fi-arquivo" accept="application/pdf,image/*" style="display:none">
                     <button type="button" class="rz-act" id="fi-escolher"><div class="rz-ic rz-ia"><svg data-lucide="file-up"></svg></div><div>Escolher PDF ou foto da fatura<small>A Raiz IA lê as compras; você confere antes de importar</small></div></button>
                     <div id="fi-conf"></div>`;
+                if (opcoes.cartaoId && cartoes.some(c => c.id === opcoes.cartaoId)) el.querySelector('#fi-cartao').value = opcoes.cartaoId; // v1.45.0 (F18)
                 el.querySelector('#fi-escolher').addEventListener('click', () => el.querySelector('#fi-arquivo').click());
                 el.querySelector('#fi-arquivo').addEventListener('change', async (ev) => {
                     const file = ev.target.files?.[0]; if (!file) return;

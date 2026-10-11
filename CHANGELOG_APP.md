@@ -4,6 +4,17 @@ Histórico completo de versões do `index.html`, movido automaticamente pelo `ge
 
 ---
 
+NOVIDADES (Beta v1.358.0) — UX etapa 6 · A (demanda b4b047fd; protótipo aprovado pelo Nicola 10/10 22:43). Financeiro:
+Recebimentos, Saídas, Conciliação e Atrasados com a barra de busca digitável (#fin-busca-q-<aba>, rzBuscaInline), sem
+abrir formulário de filtros; o texto procura também no valor (financeiro.js 1.43.0). Nenhum objeto de banco.
+Versão anterior (Beta v1.357.0):
+------------------------------------------------------------------
+Versões anteriores (v1.357.0 … v1.357.0): CHANGELOG_APP.md, na raiz do
+repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
+das 5 versões mais recentes deste cabeçalho.
+
+---
+
 NOVIDADES (Beta v1.357.0) — demanda 4fa92c2c (protótipo aprovado pelo Nicola 10/10 22:26). Escolha de empresa depois
 do login na gramática do app: "Olá, <nome>" e quantas empresas, barra digitável a partir de 6, chips por plano (só os
 que existem, no lugar do select), lista em card claro com logo ou sigla, perfil e plano, a última acessada no topo

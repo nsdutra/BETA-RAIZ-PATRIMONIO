@@ -1,6 +1,21 @@
 // ============================================================================
 // cofre-controles.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.49.0 · 07/10/2026
+// Versão: 1.50.0 · 10/10/2026
+//
+// v1.50.0 (10/10/2026, sessão 20261008-1231-pessoas-ativos, demanda f3e6cd27; F18 — conta e cartão viram item de controle.
+// Nicola 10/10 23:16: "não vejo valores nas ocorrências (...) atalho pro lançamento financeiro quando existir e o valor
+// da fatura se já tiver (...) ícone de cartão ou conta (...) pode avançar") —
+//   · ocorrência: o valor sai do título (cortava no celular) e abre a linha de baixo ("R$ 30.826,11 · Fatura paga");
+//   · item de cartão: a ocorrência ligada à fatura abre a fatura no Financeiro (a baixa e o estorno vêm do pagamento
+//     dela); a ocorrência em aberto sem fatura oferece "Importar fatura" com o cartão já escolhido;
+//   · qualquer item: a ocorrência que tem lançamento no Financeiro ganha "Ver no Financeiro" (Saídas, no mês dele);
+//   · ícone do item de conta: cartão (credit-card) ou conta (landmark); conta corrente sem aviso mostra "Sem aviso"
+//     no lugar de "Alertas desligados" (o aviso de extrato por conta vem no lote 1 de alertas);
+//   · toque na ocorrência abre o sheet com os DETALHES dela no topo (situação, datas, competência, valores, baixa,
+//     origem, descrição e lançamento) e as ações embaixo — inclusive a cancelada, que antes só dava um aviso
+//     (Nicola 10/10 23:25: "ao clicar na ocorrência permita ver seus detalhes").
+//
+// Versão anterior: 1.49.0 · 07/10/2026
 //
 // v1.49.0 (demanda a30da78b, item 2, sessão 20261007-2025-controles-empresa; plano aprovado pelo Nicola 07/10 20:14) —
 // card "Controles da empresa" em ⚙️ › Minha empresa (montarBoxControlesEmpresa): lista os itens
@@ -26,16 +41,11 @@
 // ⋮ do chip Partes do item ganha "Encerrar vínculo" (troca real: sai do item e fica no histórico da
 // parte, via fn_vinculo_encerrar); "Remover parte" vira "Excluir vínculo" (cadastro errado — mesmo
 // caminho de antes, que agora exclui o vínculo).
-//
-// Versão anterior: 1.46.0 · 04/10/2026
-//
-// v1.46.0 (UX F1.4a, demanda c71f617c, sessão 20261003-1707-ux-base; aprovada pelo Nicola 04/10 15:46) —
-// esqueleto no lugar de "Carregando..." nas partes do item de controle.
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.45.0 … v1.45.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.46.0 … v1.46.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '1.49.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.50.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 import { estado } from './cofre-estado.js';
 import * as api from './cofre-api.js';
 import { mostrarToast, refrescarIcones, abrirModal, fecharModal, modalGenerico, perguntar, escolher, avisarComDesfazer } from './cofre-ui.js';
@@ -357,6 +367,14 @@ function renderizarListaControles() {
 // comparação mesmo havendo uma ocorrência aberta de verdade mais à
 // frente. Corrigido pra filtrar primeiro, ordenar ascendente depois —
 // mesmo padrão da ficha do item.
+// v1.50.0 (F18) — item de conta (tipo 'conta'): cartão ou conta corrente. O item guarda só conta_id, e a conta
+// não é lida direto pelo app (conta_controle sem grant de tabela, só pelas funções); a descrição que a
+// fn_conta_item_sincronizar grava diz se é cartão, e uma ocorrência ligada a fatura confirma.
+function ehItemCartao(item) {
+    return item?.tipo === 'conta' && (/^Fatura do cartão/.test(item.descricao || '') || (item.cofre_ocorrencias_controle || []).some(o => o.origem === 'fatura'));
+}
+function iconeItemConta(item) { return ehItemCartao(item) ? 'credit-card' : 'landmark'; }
+
 function itemResumoHtml(item) {
     // NOVO (29/08/2026) — item com alerta_ativo=false (ex.: ativo marcado
     // como vendido, cascata em marcarAtivoVendido) não mostra chip de
@@ -373,7 +391,8 @@ function itemResumoHtml(item) {
     const subtitulo = (item.data_fim ? 'Até ' + formatarDataBR(item.data_fim) + ' · ' : '') // v1.40.0 — data primeiro (não corta no celular)
         + (item.cofre_controle_subtipos?.nome || rotuloTipoControle(item.tipo))
         + (item.responsavel_pagamento === 'locatario' ? ' · Paga: locatário' : '');
-    const iconeTipo = { seguro: 'shield', tributo: 'landmark', manutencao: 'wrench' }[item.tipo] || 'clipboard-check';
+    const iconeTipo = item.tipo === 'conta' ? iconeItemConta(item) // v1.50.0 (F18)
+        : ({ seguro: 'shield', tributo: 'landmark', manutencao: 'wrench' }[item.tipo] || 'clipboard-check');
     if (item.ativo === false) { // v1.20.0 — encerrado: histórico visível, sem urgência
         return `<div class="rz-row rz-link" data-action="abrir-item-controle" data-id="${item.id}">
             <div class="rz-ic rz-neu"><i data-lucide="archive"></i></div>
@@ -383,10 +402,11 @@ function itemResumoHtml(item) {
         </div>`;
     }
     if (item.alerta_ativo === false) {
+        const ehConta = item.tipo === 'conta'; // v1.50.0 (F18) — conta corrente: ainda sem aviso (extrato por conta vem no lote 1)
         return `<div class="rz-row rz-link" data-action="abrir-item-controle" data-id="${item.id}">
-            <div class="rz-ic rz-neu"><i data-lucide="bell-off"></i></div>
+            <div class="rz-ic rz-neu"><i data-lucide="${ehConta ? iconeItemConta(item) : 'bell-off'}"></i></div>
             <div class="rz-tx"><b>${escapeHtml(item.titulo)}</b><span>${escapeHtml(subtitulo)}</span></div>
-            <div class="rz-rt">${statusHtml('neu', 'Alertas desligados')}</div>
+            <div class="rz-rt">${statusHtml('neu', ehConta ? 'Sem aviso' : 'Alertas desligados')}</div>
             <i data-lucide="chevron-right" class="rz-chev"></i>
         </div>`;
     }
@@ -873,9 +893,17 @@ function renderizarFichaItemControle() {
             // rodada: "run"/azul (REGRAS_EXPERIENCIA §9, "A vencer"/"A
             // pagar"), não "warn"/marrom, pro prazo ainda não vencido.
             else if (dias <= 30) { sem = 'run'; rot = `Em ${dias}d`; ic = 'clock'; cls = ''; }
+            // v1.50.0 — o valor saiu do título (cortava no celular) e abre a linha de baixo. Cartão (F18): a
+            // ocorrência ligada à fatura diz "Fatura importada/paga"; sem fatura, "Esperando a fatura".
+            const valorOc = oc.valor_real ?? oc.valor_previsto;
+            const daFatura = oc.origem === 'fatura' && !!oc.origem_id;
+            let textoOc = oc.tratamento_descricao ? escapeHtml(oc.tratamento_descricao) : (aberta ? (oc.descricao ? escapeHtml(oc.descricao.replace(/\n+/g, ' · ')) : 'Toque pra tratar ou reagendar') : rotuloStatusOcorrencia(oc.status_execucao));
+            if (daFatura) textoOc = aberta ? 'Fatura importada · toque para abrir' : 'Fatura paga · toque para abrir';
+            else if (aberta && ehItemCartao(item)) textoOc = 'Esperando a fatura';
+            const prefixoOc = aberta ? 'Vence ' : (oc.status_execucao === 'concluido' ? (daFatura ? 'Paga · ' : 'Tratada · ') : '');
             return `<div class="rz-row rz-link" data-action="abrir-acoes-ocorrencia" data-id="${oc.id}">
                 <div class="rz-ic${cls}"><i data-lucide="${ic}"></i></div>
-                <div class="rz-tx"><b>${aberta ? 'Vence ' : (oc.status_execucao === 'concluido' ? 'Tratada · ' : '')}${formatarDataBR(oc.data_prevista_atual)}${(oc.valor_real ?? oc.valor_previsto) ? ` · ${moedaBR(oc.valor_real ?? oc.valor_previsto)}` : ''}</b><span>${oc.tratamento_descricao ? escapeHtml(oc.tratamento_descricao) : (aberta ? (oc.descricao ? escapeHtml(oc.descricao.replace(/\n+/g, ' · ')) : 'Toque pra tratar ou reagendar') : rotuloStatusOcorrencia(oc.status_execucao))}</span></div>
+                <div class="rz-tx"><b>${prefixoOc}${formatarDataBR(oc.data_prevista_atual)}</b><span>${valorOc ? `${moedaBR(valorOc)} · ` : ''}${textoOc}</span></div>
                 <div class="rz-rt">${statusHtml(sem, rot)}</div>
                 <i data-lucide="ellipsis-vertical" class="rz-chev"></i>
             </div>`;
@@ -1124,19 +1152,90 @@ export async function excluirDocumentoDoItem(vinculoId) {
 function ocorrenciaPorId(id) {
     return (itemEmFoco?.cofre_ocorrencias_controle || []).find(o => o.id === id);
 }
-export function abrirAcoesOcorrencia(ocorrenciaId) {
+export async function abrirAcoesOcorrencia(ocorrenciaId) {
     const oc = ocorrenciaPorId(ocorrenciaId);
     if (!oc) return;
     const acoes = [];
+    const item = itemEmFoco;
+    const lanc = (oc.origem === 'fatura' && oc.origem_id) ? null : await lancamentoDaOcorrencia(oc.id); // v1.50.0 — atalho e detalhe
+    // v1.50.0 (F18) — ocorrência do cartão ligada à fatura: abre a fatura. A baixa e o estorno dela vêm do pagamento
+    // da fatura (fn_fatura_pagar_interna / estorno da conciliação), então "Dar baixa" e "Estornar" não aparecem aqui.
+    if (oc.origem === 'fatura' && oc.origem_id) {
+        acoes.push({ icone: 'credit-card', titulo: 'Abrir fatura', sub: `${(oc.valor_real ?? oc.valor_previsto) ? moedaBR(oc.valor_real ?? oc.valor_previsto) + ' · ' : ''}compras, classificação e pagamento, no Financeiro`,
+            aoTocar: () => abrirFaturaDaOcorrencia(oc.origem_id) });
+        abrirSheetOcorrencia(oc, null, acoes, `Fatura · vence ${formatarDataBR(oc.data_prevista_atual)}`);
+        return;
+    }
+    if (oc.status_execucao === 'aberto' && ehItemCartao(item)) {
+        acoes.push({ icone: 'file-up', tipo: 'ia', titulo: 'Importar fatura', codigo: 'cartao.importar', sub: 'PDF ou foto · a fatura entra nesta ocorrência', aoTocar: () => importarFaturaDoItem(item) });
+    }
+    // v1.50.0 — atalho para o lançamento que a ocorrência gerou no Financeiro (quando existe)
+    if (lanc) {
+        acoes.push({ icone: 'wallet', titulo: 'Ver no Financeiro', sub: `${moedaBR(lanc.valor)} · ${lanc.status === 'realizado' ? 'pago' : 'previsto'} · ${String(lanc.competencia || '').slice(5, 7)}/${String(lanc.competencia || '').slice(0, 4)}`,
+            aoTocar: () => abrirLancamentoNoFinanceiro(lanc) });
+    }
     if (oc.status_execucao === 'aberto') {
         acoes.push({ icone: 'check', titulo: 'Dar baixa', codigo: 'cofre.ocorrencias.tratar', sub: 'Marca como tratada, com descrição opcional', aoTocar: () => alternarAcaoOcorrencia(ocorrenciaId, 'tratar') });
         acoes.push({ icone: 'calendar', titulo: 'Reagendar', codigo: 'cofre.ocorrencias.reagendar', sub: 'Muda a data prevista desta ocorrência', aoTocar: () => alternarAcaoOcorrencia(ocorrenciaId, 'reagendar') });
     } else if (oc.status_execucao === 'concluido') {
         acoes.push({ icone: 'undo-2', titulo: 'Estornar', codigo: 'cofre.ocorrencias.estornar', sub: 'Volta pra "Em aberto", fica no histórico', tipo: 'bad', aoTocar: () => alternarAcaoOcorrencia(ocorrenciaId, 'estornar') });
     }
-    if (!acoes.length) { mostrarToast('Ocorrência cancelada — sem ações.'); return; }
-    if (typeof window.abrirSheetAcoes !== 'function') { mostrarToast('Ações disponíveis só dentro do app principal.', 'erro'); return; }
-    window.abrirSheetAcoes({ titulo: `Ocorrência · ${formatarDataBR(oc.data_prevista_atual)}`, sub: itemEmFoco?.titulo || '', acoes });
+    abrirSheetOcorrencia(oc, lanc, acoes, `Ocorrência · ${formatarDataBR(oc.data_prevista_atual)}`); // v1.50.0 — detalhes + ações (a cancelada também abre)
+}
+
+// v1.50.0 — detalhes da ocorrência no topo do sheet de ações (Nicola 10/10 23:25).
+function detalhesOcorrenciaHtml(oc, lanc) {
+    const kv = (r, v) => `<div><small>${escapeHtml(r)}</small><b>${v}</b></div>`;
+    const comp = String(oc.competencia || '');
+    const origem = { fatura: 'Fatura do cartão', regra: 'Frequência do item', parcelamento: 'Parcela do item', documento: 'Documento' }[oc.origem] || (oc.origem || '—');
+    const reagendada = oc.data_prevista_original && oc.data_prevista_original !== oc.data_prevista_atual;
+    return `<div class="rz-kv" style="margin-bottom:14px">` +
+        kv('Situação', escapeHtml(rotuloStatusOcorrencia(oc.status_execucao))) +
+        kv('Prevista para', formatarDataBR(oc.data_prevista_atual) + (reagendada ? ` <small>(era ${formatarDataBR(oc.data_prevista_original)})</small>` : '')) +
+        (comp ? kv('Competência', `${comp.slice(5, 7)}/${comp.slice(0, 4)}`) : '') +
+        kv('Valor previsto', oc.valor_previsto != null ? moedaBR(oc.valor_previsto) : '—') +
+        (oc.valor_real != null ? kv(oc.origem === 'fatura' ? 'Valor pago' : 'Valor realizado', moedaBR(oc.valor_real)) : '') +
+        (oc.tratado_em ? kv('Baixa em', formatarDataBR(String(oc.tratado_em).slice(0, 10))) : '') +
+        kv('Origem', escapeHtml(origem)) +
+        (oc.tratamento_descricao ? kv('Descrição da baixa', escapeHtml(oc.tratamento_descricao)) : '') +
+        (oc.descricao ? kv('Observação', escapeHtml(oc.descricao.replace(/\n+/g, ' · '))) : '') +
+        (lanc ? kv('No Financeiro', `${moedaBR(lanc.valor)} · ${lanc.status === 'realizado' ? 'pago' : 'previsto'}`) : '') +
+        `</div>`;
+}
+function abrirSheetOcorrencia(oc, lanc, acoes, titulo) {
+    if (typeof window.abrirSheetAcoes !== 'function') { mostrarToast('Detalhes disponíveis só dentro do app principal.', 'erro'); return; }
+    const sheet = window.abrirSheetAcoes({ titulo, sub: itemEmFoco?.titulo || '', acoes });
+    sheet?.querySelector('.rz-sh-b')?.insertAdjacentHTML('afterbegin', detalhesOcorrenciaHtml(oc, lanc));
+}
+
+// v1.50.0 (F18) — atalhos da ocorrência para o Financeiro. As funções do Financeiro moram em js/financeiro.js e
+// chegam pelo window (index.html as expõe); fora do app principal, avisa.
+function abrirFaturaDaOcorrencia(faturaId) {
+    if (typeof window.fecharSheet === 'function') window.fecharSheet();
+    if (typeof window.financeiroAbrirFatura !== 'function') { mostrarToast('A fatura abre só dentro do app principal.', 'erro'); return; }
+    setTimeout(() => window.financeiroAbrirFatura(faturaId), 30);
+}
+function importarFaturaDoItem(item) {
+    if (typeof window.fecharSheet === 'function') window.fecharSheet();
+    if (typeof window.financeiroImportarFatura !== 'function') { mostrarToast('A importação abre só dentro do app principal.', 'erro'); return; }
+    setTimeout(() => window.financeiroImportarFatura({ cartaoId: item?.conta_id || null }), 30);
+}
+async function lancamentoDaOcorrencia(ocorrenciaId) {
+    try {
+        const { data } = await api.dbAuth.from('lancamentos').select('id, valor, status, competencia, ativo_id')
+            .eq('origem_tipo', 'ocorrencia_controle').eq('origem_id', ocorrenciaId).limit(1);
+        return (data || [])[0] || null;
+    } catch (e) { console.warn('[cofre-controles] lançamento da ocorrência:', e?.message || e); return null; }
+}
+function abrirLancamentoNoFinanceiro(lanc) {
+    if (typeof window.switchTab !== 'function') { mostrarToast('O Financeiro abre só dentro do app principal.', 'erro'); return; }
+    if (typeof window.fecharSheet === 'function') window.fecharSheet();
+    window.switchTab('tab-saidas');
+    // vai para o mês do lançamento pelo ‹ › do próprio Financeiro (único que muda a competência)
+    const atual = window.RZ_FIN_COMPETENCIA || new Date().toISOString().slice(0, 7) + '-01';
+    const meses = (Number(lanc.competencia.slice(0, 4)) - Number(atual.slice(0, 4))) * 12 + (Number(lanc.competencia.slice(5, 7)) - Number(atual.slice(5, 7)));
+    if (meses && typeof window.financeiroMudarCompetencia === 'function') window.financeiroMudarCompetencia(meses);
+    mostrarToast(`Lançamento de ${moedaBR(lanc.valor)} em Saídas, ${lanc.competencia.slice(5, 7)}/${lanc.competencia.slice(0, 4)}.`);
 }
 
 export function alternarAcaoOcorrencia(ocorrenciaId, modo) {
