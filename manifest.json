@@ -1,6 +1,7 @@
 {
-  "name": "BETA-RAIZ-PATRIMONIO",
-  "short_name": "RAIZ-Patrimônio",
+  "x_raiz_versao": "Versão: 1.1.0 · 11/10/2026 · nomes \"Raiz\" (tela inicial) e \"Raiz Patrimônio\" (instalação) e ícones novos — demanda 680ee9f8. Versão anterior: 1.0.0 (sem número no arquivo).",
+  "name": "Raiz Patrimônio",
+  "short_name": "Raiz",
   "description": "RAIZ Patrimônio — Software de Gestão de Imóveis e Patrimônio",
   "start_url": ".",
   "display": "standalone",
