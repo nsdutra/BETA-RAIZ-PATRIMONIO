@@ -1,7 +1,17 @@
 // ============================================================================
 // financeiro.js — Raiz Patrimônio · Financeiro (Recebimentos · Atrasados · Saídas
 //                  · conciliação de extrato · recibo · detalhe do recebimento)
-// Versão: 1.48.0 · 11/10/2026
+// Versão: 1.48.1 · 11/10/2026
+//
+// v1.48.1 (11/10/2026, sessão 20261008-1231-pessoas-ativos, demanda f3e6cd27; Nicola 10:53 "botão quitar estranho. Os 3
+// chips com retornos diferentes") —
+//   · ficha da pessoa no Balanço: sai o botão grande "Quitar" de cada linha; a LINHA inteira é o toque (rz-link com
+//     seta) e o texto da direita diz "Quitar", no padrão das outras listas;
+//   · os chips Pessoas · Sócios por mês · Grupos ficam visíveis também quando o cálculo falha (antes a mensagem de
+//     erro apagava os chips e a tela ficava presa). A causa do erro em "Sócios por mês" era de banco (embed ambíguo de
+//     repasses → pessoas depois da F13.6), corrigida na migration repasses_embed_hf3_v1.
+//
+// Versão anterior: 1.48.0 · 11/10/2026
 //
 // v1.48.0 (11/10/2026, sessão 20261008-1231-pessoas-ativos, demanda f3e6cd27; F13 entrega 4c, etapa 1 — FICHA_BALANCO_ACERTOS
 // v1.2.0, D58; Nicola 11/10 10:15 "Correto. Pode fazer") — a 4ª opção do Financeiro vira "Balanço", com três vistas:
@@ -38,24 +48,11 @@
 // v1.45.0 (10/10/2026, sessão 20261008-1231-pessoas-ativos, demanda f3e6cd27; F18) — financeiroImportarFatura aceita
 // { cartaoId } e já abre com o cartão escolhido: é o atalho "Importar fatura" da ocorrência do cartão, na ficha do item
 // de controle (cofre-controles.js). Sem opção, segue igual.
-//
-// Versão anterior: 1.44.0 · 10/10/2026
-//
-// v1.44.0 (UX etapa 6 · B e C, demanda b4b047fd, sessão 20261003-1707-ux-base; protótipo PROTOTIPO_FINANCEIRO_PESSOAS_ETAPA6
-// aprovado pelo Nicola 10/10 22:43 com os ajustes "o deslizar pro lado só abre a opção esperando toque, sem confirmar
-// apenas pelo deslize" e "não ocultar campos na baixa") —
-//   B · Recebimentos: deslizar a linha a receber para a direita REVELA "Dar baixa"; para a esquerda, "Cobrar" (só em
-//       atraso). Nada roda pelo deslize: a ação roda no toque no botão (rzSwipe do index), com a mesma checagem de
-//       acesso do ⋮ (mensal.baixar / cobrar.lembrete). O toque na linha e o ⋮ continuam iguais; o formulário de baixa
-//       NÃO mudou (todos os campos à vista).
-//   C · Cobrar pelo WhatsApp: o sheet mostra a mensagem exata que vai sair e o interruptor "Incluir o Pix", lembrado
-//       por empresa neste aparelho (localStorage raiz_pref_cob_pix_<cliente>; preferência, não dado da carteira).
-//       textoCobrancaWhatsApp() monta o texto para a prévia e para o envio (um só lugar).
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.43.0 … v1.43.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.44.0 … v1.44.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '1.48.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.48.1'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 
 // v1.17.0 (Fase 1 do wrapper de escrita, rollout Financeiro) — emitirEscrita
 // é o evento padrão pra "algo mudou que módulos DE FORA deste arquivo podem
@@ -5431,7 +5428,8 @@ export async function renderDistribuicao() {
     try { await distribCarregar(); }
     catch (e) {
         console.error('[financeiro] distribuição', e);
-        corpo.innerHTML = `<div class="rz-card"><div class="rz-empty"><div class="rz-ic"><svg data-lucide="alert-circle"></svg></div><p>Não consegui calcular a distribuição agora.</p></div></div>`;
+        corpo.innerHTML = balancoChipsVista() + `<div class="rz-card"><div class="rz-empty"><div class="rz-ic"><svg data-lucide="alert-circle"></svg></div><p>Não consegui calcular a distribuição agora.</p></div></div>`;
+        if (typeof lucide !== 'undefined') lucide.createIcons();
         return;
     }
     distribDesenhar();
@@ -5593,9 +5591,10 @@ export function balancoAbrirPessoa(chave) {
     const pode = (typeof podeUsar === 'function') ? podeUsar('repasses.registrar') : { ok: true };
     const linhas = p.linhas.map((l, i) => {
         const txt = l.valor > 0 ? `${balEsc(l.contraparteNome)} deve` : `deve a ${balEsc(l.contraparteNome)}`;
-        return `<div class="rz-row"><div class="rz-ic${l.valor > 0 ? ' rz-ok' : ''}"><svg data-lucide="${l.valor > 0 ? 'arrow-down-left' : 'arrow-up-right'}"></svg></div>
+        const pq = p.pessoaId && pode.ok;
+        return `<div class="rz-row${pq ? ' rz-link' : ''}"${pq ? ` role="button" tabindex="0" data-bal-quitar="${i}"` : ''}><div class="rz-ic${l.valor > 0 ? ' rz-ok' : ''}"><svg data-lucide="${l.valor > 0 ? 'arrow-down-left' : 'arrow-up-right'}"></svg></div>
             <div class="rz-tx"><b>${formatarMoedaBR(Math.abs(l.valor))}</b><span>${txt} · ${balEsc(BAL_NATUREZA[l.natureza] || l.natureza)}</span></div>
-            <div class="rz-rt">${p.pessoaId && pode.ok ? `<button type="button" class="rz-btn rz-btn-2" style="min-height:36px;padding:0 12px" data-bal-quitar="${i}">Quitar</button>` : ''}</div></div>`;
+            ${pq ? `<div class="rz-rt"><b style="color:var(--accent,var(--pine));font-weight:600">Quitar</b></div><svg data-lucide="chevron-right" class="rz-chev"></svg>` : ''}</div>`;
     }).join('');
     // Compensar (D59): crédito e débito de naturezas diferentes com a mesma contraparte
     const pares = [];

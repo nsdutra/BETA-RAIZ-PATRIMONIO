@@ -4,6 +4,18 @@ Histórico completo de versões do `index.html`, movido automaticamente pelo `ge
 
 ---
 
+NOVIDADES (Beta v1.363.0) — F18 no app (Nicola 10/10 23:16 e 23:25): ocorrência mostra o valor e abre com os detalhes;
+item de cartão abre a fatura e importa a fatura com o cartão escolhido; "Ver no Financeiro" quando a ocorrência tem
+lançamento; ícone de cartão/conta. Só o import map muda aqui (cofre-controles.js 1.50.0, financeiro.js 1.45.0).
+Banco: migration contas_item_controle_f18_v1 (já aplicada).
+Versão anterior (Beta v1.362.0):
+------------------------------------------------------------------
+Versões anteriores (v1.362.0 … v1.362.0): CHANGELOG_APP.md, na raiz do
+repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
+das 5 versões mais recentes deste cabeçalho.
+
+---
+
 NOVIDADES (Beta v1.362.0) — UX etapa 6 · E (demanda b4b047fd; protótipo aprovado pelo Nicola 10/10 22:43). Pessoas e acessos no
 padrão de Partes: barra digitável, chips por perfil + "Sem acesso", status de acesso na linha e ficha com chips Dados ·
 Acesso · Comunicação · Atividade (as ações do ⋮ distribuídas; o ⋮ fica na pressão longa). Só o import map muda aqui
