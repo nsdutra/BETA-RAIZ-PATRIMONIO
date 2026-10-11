@@ -1,7 +1,18 @@
 // ============================================================================
 // financeiro.js — Raiz Patrimônio · Financeiro (Recebimentos · Atrasados · Saídas
 //                  · conciliação de extrato · recibo · detalhe do recebimento)
-// Versão: 1.48.1 · 11/10/2026
+// Versão: 1.49.0 · 11/10/2026
+//
+// v1.49.0 (11/10/2026, sessão 20261008-1231-pessoas-ativos, demanda f3e6cd27; F13 4c etapa 2, §3.5; Nicola 10:53 "pode
+// corrigir e avançar") — dividir despesa entre pessoas, como no Splitwise:
+//   · Nova despesa: o campo de conta passa a se chamar "Quem pagou (conta)" e ganha "Dividir com outras pessoas". Ao
+//     salvar com a opção ligada, abre o editor de divisão já com quem pagou (o titular da conta, se for de pessoa) e o
+//     botão "Dividir igual entre todos";
+//   · o editor de divisão de lançamento não aceita mais nome solto (D60: a pessoa precisa estar em Pessoas) e grava o
+//     modo ("igual" ou "percentual") em cada linha, para reabrir igual (F13.4);
+//   · o rateio entra no Balanço quando a despesa estiver paga pela conta da pessoa (é o pagamento que cria a dívida).
+//
+// Versão anterior: 1.48.1 · 11/10/2026
 //
 // v1.48.1 (11/10/2026, sessão 20261008-1231-pessoas-ativos, demanda f3e6cd27; Nicola 10:53 "botão quitar estranho. Os 3
 // chips com retornos diferentes") —
@@ -42,17 +53,11 @@
 // esperava a consulta do Pix e, sem celular, só mostrava um aviso). O Pix chega depois e atualiza a prévia. O celular
 // vem do contrato e, se faltar, do locatário em Partes (partes_papeis papel 'locatario', leitura); sem celular nenhum,
 // o sheet avisa e o WhatsApp abre para escolher o contato (wa.me sem número). Número: 10/11 dígitos ganham o 55.
-//
-// Versão anterior: 1.45.0 · 10/10/2026
-//
-// v1.45.0 (10/10/2026, sessão 20261008-1231-pessoas-ativos, demanda f3e6cd27; F18) — financeiroImportarFatura aceita
-// { cartaoId } e já abre com o cartão escolhido: é o atalho "Importar fatura" da ocorrência do cartão, na ficha do item
-// de controle (cofre-controles.js). Sem opção, segue igual.
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.44.0 … v1.44.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.45.0 … v1.45.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '1.48.1'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.49.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 
 // v1.17.0 (Fase 1 do wrapper de escrita, rollout Financeiro) — emitirEscrita
 // é o evento padrão pra "algo mudou que módulos DE FORA deste arquivo podem
@@ -764,16 +769,23 @@ async function financeiroGravarDivisao(origemTipo, id, itens, aoMudar) {
     aoMudar?.(data.acao === 'divisao_ajustada');
     return true;
 }
+// v1.49.0 — "Dividir com outras pessoas" na Nova despesa: abre o editor com quem pagou já na lista.
+function financeiroDividirNovaDespesa(id, valor, contaId) {
+    const conta = (financeiroContasInfo.contas || []).find(c => c.id === contaId);
+    const pagador = conta && conta.titular_tipo === 'pessoa' && conta.pessoa_id
+        ? [{ pessoa_id: conta.pessoa_id, nome: conta.titular_nome || conta.nome, percentual: 100 }] : [];
+    financeiroEditarDivisao('lancamento', id, valor, pagador, () => { lancamentos && renderSaidas(); });
+}
 function financeiroEditarDivisao(origemTipo, id, valor, atuais, aoMudar) {
     // v1.35.1 — editor único de divisão (raiz-ui rzEditarDivisao), o mesmo do contrato e do ativo
     const lista = (typeof pessoas !== 'undefined' && Array.isArray(pessoas)) ? pessoas : [];
     rzEditarDivisao({
-        titulo: 'Editar divisão', sub: 'Só este lançamento', nota: 'O contrato e a propriedade do imóvel não mudam.',
+        titulo: 'Editar divisão', sub: 'Só este lançamento', nota: 'O contrato e a propriedade do imóvel não mudam. Quem divide precisa estar em Pessoas (nome e WhatsApp bastam).',
         itens: atuais.map(l => ({ pessoa_id: l.pessoa_id || null, nome_externo: l.pessoa_id ? null : (l.nome_externo || l.nome), nome: l.nome, percentual: Number(l.percentual) })),
         candidatos: lista.filter(p => p.id).sort((a, b) => String(a.nome).localeCompare(String(b.nome)))
             .map(p => ({ id: p.id, nome: p.nome, sub: Number(p.percentualCotasEmpresa) > 0 ? 'Sócio' : '' })),
-        permitirExterno: true, valorBase: Number(valor || 0),
-        aoSalvar: (itens) => financeiroGravarDivisao(origemTipo, id, itens.map(i => ({ pessoa_id: i.pessoa_id, nome_externo: i.nome_externo, percentual: i.percentual })), aoMudar)
+        permitirExterno: false, valorBase: Number(valor || 0), igualar: true, // v1.49.0 — D60 e "Dividir igual"
+        aoSalvar: (itens, info) => financeiroGravarDivisao(origemTipo, id, itens.map(i => ({ pessoa_id: i.pessoa_id, percentual: i.percentual, modo: info?.igual ? 'igual' : 'percentual' })), aoMudar)
     });
 }
 
@@ -1971,7 +1983,8 @@ function financeiroRenderCabecalho(aba) {
                             <input id="desp-fornecedor-novo-nome" type="text" placeholder="Nome do novo fornecedor" style="width:100%;padding:8px;border:1px solid #cbd5e1;border-radius:6px;font-size:13px;margin-top:6px;display:none;">
                             <p style="font-size:10px;color:#94a3b8;margin-top:2px;">Vira um cadastro em Partes, mesmo que incompleto — dá pra completar depois.</p>
                         </div>
-                        ${financeiroContasMultiplas() && (typeof podeUsar !== 'function' || podeUsar('financeiro.contas.escolher').ok) ? `<div class="rz-f"><label>Conta</label><select id="desp-conta">${financeiroContasInfo.contas.map(c => `<option value="${c.id}" ${(d?.contaId ? d.contaId === c.id : (c.padrao && c.titular_tipo === 'empresa')) ? 'selected' : ''}>${escapeHtmlSaidas(c.nome)}</option>`).join('')}</select></div>` : ''}
+                        ${financeiroContasMultiplas() && (typeof podeUsar !== 'function' || podeUsar('financeiro.contas.escolher').ok) ? `<div class="rz-f"><label>Quem pagou (conta)</label><select id="desp-conta">${financeiroContasInfo.contas.map(c => `<option value="${c.id}" ${(d?.contaId ? d.contaId === c.id : (c.padrao && c.titular_tipo === 'empresa')) ? 'selected' : ''}>${escapeHtmlSaidas(c.nome)}</option>`).join('')}</select></div>` : ''}
+                        ${ehEdicao ? '' : `<label class="rz-row rz-chk"><input type="checkbox" id="desp-dividir"><div class="rz-tx"><b>Dividir com outras pessoas</b><span>Depois de salvar, escolha quem divide e quanto (igual ou %)</span></div></label>`}
                         <div style="display:flex;align-items:flex-start;gap:8px;background:#f8fafc;border-radius:8px;padding:8px;">
                             <input id="desp-reembolsavel" type="checkbox" ${d?.reembolsavel ? 'checked' : ''} style="margin-top:2px;">
                             <label for="desp-reembolsavel" style="font-size:11px;color:#475569;">Reembolsável — não entra no cálculo de líquido dos sócios</label>
@@ -2109,6 +2122,7 @@ function financeiroRenderCabecalho(aba) {
         }
 
         export async function salvarDespesa() {
+            let dividirDepois = null; // v1.49.0 — Dividir com outras pessoas
             const descricao = document.getElementById('desp-descricao').value.trim();
             const categoria = document.getElementById('desp-categoria').value;
             const valor = parseFloat(document.getElementById('desp-valor').value);
@@ -2181,6 +2195,7 @@ function financeiroRenderCabecalho(aba) {
                     }).select('id').single();
                     if (error) throw error;
                     idParaEventoDespesa = criado.id;
+                    if (document.getElementById('desp-dividir')?.checked) dividirDepois = { id: criado.id, valor, contaId: payload.conta_id || null }; // v1.49.0
                     if (despesaOrigemFingerprintId) {
                         const { error: erroVinculo } = await dbAuth.from('extrato_fingerprints').update({
                             status_conciliacao: 'conciliado', destino_tipo: 'lancamento', destino_id: criado.id, conciliado_em: new Date().toISOString(),
@@ -2217,6 +2232,7 @@ function financeiroRenderCabecalho(aba) {
                 fecharPopupDespesa();
                 renderSaidas();
                 if (typeof renderSociosDistribricao === 'function') renderSociosDistribricao();
+                if (dividirDepois) setTimeout(() => financeiroDividirNovaDespesa(dividirDepois.id, dividirDepois.valor, dividirDepois.contaId), 60); // v1.49.0
             } catch (err) {
                 esconderCarregamentoGlobal();
                 mostrarToast('Erro ao salvar despesa: ' + err.message, 'danger');

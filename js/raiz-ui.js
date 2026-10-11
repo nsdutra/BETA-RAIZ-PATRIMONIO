@@ -1,6 +1,12 @@
 // ============================================================================
 // raiz-ui.js — Raiz Patrimônio · Diálogos sem diálogo nativo (UXR-29/30)
-// Versão: 1.2.0 · 07/10/2026
+// Versão: 1.3.0 · 11/10/2026
+//
+// v1.3.0 (11/10/2026, sessão 20261008-1231-pessoas-ativos, demanda f3e6cd27; F13 §3.5) — rzEditarDivisao ganha a opção
+// igualar: true, que mostra "Dividir igual entre todos" (percentuais iguais; o arredondamento fica com o primeiro, que é
+// quem pagou). O retorno de aoSalvar passa a trazer igual: true quando a divisão ficou igual. Sem a opção, nada muda.
+//
+// Versão anterior: 1.2.0 · 07/10/2026
 //
 // v1.2.0 (07/10/2026, sessão 20261007-0158-financeiro, demanda f3e6cd27 — pedido do Nicola
 // 01:58: "há 3 telas distintas, padronize"): componente ÚNICO rzEditarDivisao para toda
@@ -41,7 +47,7 @@
 // 'warning' (UXR-35). Também publica window.rzToast/rzConfirmar/rzEscolher/
 // rzAviso para código inline do index.html.
 // ============================================================================
-export const VERSAO = '1.2.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.3.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 
 const esc = (v) => String(v ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 const g = (nome) => (typeof window !== 'undefined' && typeof window[nome] === 'function') ? window[nome] : null;
@@ -149,7 +155,7 @@ export function rzAviso({ titulo = 'Aviso', linhas = [], rotulo = 'Entendi' } = 
  * itens: [{ pessoa_id, nome_externo, nome, percentual }] · candidatos: [{ id, nome, sub }]
  * aoSalvar(itens) → Promise<boolean> (true fecha). Valor de cada parte aparece quando há valorBase. */
 export function rzEditarDivisao({ titulo = 'Editar divisão', sub = '', nota = '', itens = [], candidatos = [], permitirExterno = false,
-                                  valorBase = null, rotuloSalvar = 'Salvar divisão', rotuloAdicionar = 'Adicionar pessoa', aoSalvar } = {}) {
+                                  valorBase = null, rotuloSalvar = 'Salvar divisão', rotuloAdicionar = 'Adicionar pessoa', aoSalvar, igualar = false } = {}) {
     const abrir = g('abrirSheet'), fechar = g('fecharSheet');
     if (!abrir || !fechar) return;
     const lista = itens.map(i => ({ pessoa_id: i.pessoa_id || null, nome_externo: i.pessoa_id ? null : (i.nome_externo || ''), nome: i.nome || i.nome_externo || '', percentual: Number(i.percentual) || 0 }));
@@ -186,6 +192,7 @@ export function rzEditarDivisao({ titulo = 'Editar divisão', sub = '', nota = '
         corpo.innerHTML = (nota ? `<p style="margin:0 0 10px;font-size:14px;color:var(--muted);line-height:1.4">${esc(nota)}</p>` : '') +
             `<div class="rz-card rz-list">${lista.map(linha).join('') || '<div class="rz-empty"><p>Ninguém na divisão ainda.</p></div>'}</div>` +
             `<button type="button" class="rz-act" data-rzd-add><div class="rz-ic"><svg data-lucide="user-plus"></svg></div><div>${esc(rotuloAdicionar)}<small>${permitirExterno ? 'Pessoa cadastrada ou parte externa' : 'Pessoa cadastrada'}</small></div></button>` +
+            (igualar && lista.length > 1 ? `<button type="button" class="rz-act" data-rzd-igual><div class="rz-ic"><svg data-lucide="equal"></svg></div><div>Dividir igual entre todos<small>${lista.length} pessoas · ${pctTxt(Math.floor(10000 / lista.length) / 100)} cada</small></div></button>` : '') +
             `<div data-rzd-soma style="display:flex;justify-content:space-between;align-items:baseline;margin-top:12px;padding-top:12px;border-top:1px solid var(--line);font-size:15px">` +
             `<span style="color:var(--muted)"></span><div style="display:flex;gap:8px;align-items:baseline"><small style="color:var(--muted);font-size:13px">Soma</small><b style="font-size:17px"></b></div></div>`;
         // a frase "falta x%" fica à esquerda, a soma à direita
@@ -199,6 +206,13 @@ export function rzEditarDivisao({ titulo = 'Editar divisão', sub = '', nota = '
         }));
         corpo.querySelectorAll('[data-rzd-nome]').forEach(inp => inp.addEventListener('input', () => { lista[Number(inp.dataset.rzdNome)].nome_externo = inp.value; atualizarSoma(); }));
         corpo.querySelectorAll('[data-rzd-tirar]').forEach(b => b.addEventListener('click', () => { lista.splice(Number(b.dataset.rzdTirar), 1); desenhar(); }));
+        corpo.querySelector('[data-rzd-igual]')?.addEventListener('click', () => { // v1.3.0
+            const n = lista.length; if (!n) return;
+            const cada = Math.floor(10000 / n) / 100;
+            lista.forEach(i => { i.percentual = cada; });
+            lista[0].percentual = Math.round((100 - cada * (n - 1)) * 100) / 100;
+            desenhar();
+        });
         corpo.querySelector('[data-rzd-add]')?.addEventListener('click', async () => {
             const ja = new Set(lista.map(i => i.pessoa_id).filter(Boolean));
             const opcoes = (candidatos || []).filter(c => c.id && !ja.has(c.id)).map(c => ({ valor: c.id, titulo: c.nome, sub: c.sub || '', icone: 'user' }));
@@ -221,7 +235,8 @@ export function rzEditarDivisao({ titulo = 'Editar divisão', sub = '', nota = '
         btnSalvar.disabled = true;
         try {
             const ok = typeof aoSalvar === 'function'
-                ? await aoSalvar(lista.map(i => ({ pessoa_id: i.pessoa_id, nome_externo: i.pessoa_id ? null : String(i.nome_externo || '').trim(), nome: i.pessoa_id ? (nomeCand[i.pessoa_id] || i.nome) : String(i.nome_externo || '').trim(), percentual: Number(i.percentual) || 0 })))
+                ? await aoSalvar(lista.map(i => ({ pessoa_id: i.pessoa_id, nome_externo: i.pessoa_id ? null : String(i.nome_externo || '').trim(), nome: i.pessoa_id ? (nomeCand[i.pessoa_id] || i.nome) : String(i.nome_externo || '').trim(), percentual: Number(i.percentual) || 0 })),
+                                 { igual: lista.length > 1 && lista.slice(1).every(i => Math.abs(Number(i.percentual) - Number(lista[1].percentual)) < 0.01) && Math.abs(Number(lista[0].percentual) - Number(lista[1].percentual)) < 0.05 })
                 : true;
             if (ok !== false) fechar();
         } catch (e) {

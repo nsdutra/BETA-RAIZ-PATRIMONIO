@@ -4,6 +4,19 @@ Histórico completo de versões do `index.html`, movido automaticamente pelo `ge
 
 ---
 
+NOVIDADES (Beta v1.364.0) — Ajustes do teste do Nicola (10/10 23:23 e 23:50), demanda b4b047fd. Cobrar pelo WhatsApp: o sheet abre
+no 1º toque; o celular vem do contrato ou do locatário em Partes; sem celular, o WhatsApp abre para escolher o contato
+(financeiro.js 1.46.0). Pessoas e acessos: os números dos chips acompanham o texto da barra; o toque na pessoa abre a
+lista de ações em grupos Dados · Acesso · Comunicação · Atividade, sem pressão longa (comum-pessoas.js 1.208.0).
+Nenhum objeto de banco.
+Versão anterior (Beta v1.363.0):
+------------------------------------------------------------------
+Versões anteriores (v1.363.0 … v1.363.0): CHANGELOG_APP.md, na raiz do
+repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
+das 5 versões mais recentes deste cabeçalho.
+
+---
+
 NOVIDADES (Beta v1.363.0) — F18 no app (Nicola 10/10 23:16 e 23:25): ocorrência mostra o valor e abre com os detalhes;
 item de cartão abre a fatura e importa a fatura com o cartão escolhido; "Ver no Financeiro" quando a ocorrência tem
 lançamento; ícone de cartão/conta. Só o import map muda aqui (cofre-controles.js 1.50.0, financeiro.js 1.45.0).
