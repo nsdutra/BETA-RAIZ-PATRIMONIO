@@ -1,7 +1,13 @@
 // ============================================================================
 // contratos.js — Raiz Patrimônio · Contratos (lista · ficha · formulário ·
 //                 status/reajuste/detalhes · fiadores · documentos · histórico)
-// Versão: 1.49.0 · 10/10/2026
+// Versão: 1.50.0 · 10/10/2026
+//
+// v1.50.0 (sessão 20261003-1707-ux-base, demanda 28aa5ce1 — teste do Nicola 10/10 21:43: "Retire o botão de filtro
+// porque o filtro oferecido é o mesmo dos chips") — o topo fica só com a barra digitável; o ícone de filtros e o
+// número de filtros ligados saem. abrirBuscaContratos continua exportada (sem botão que a chame no app).
+//
+// Versão anterior: 1.49.0 · 10/10/2026
 //
 // v1.49.0 (demanda 28aa5ce1, sessão 20261003-1707-ux-base; de acordo do Nicola 10/10 21:26) — a barra de busca de
 // Contratos é digitável: o texto filtra enquanto digita (rzBuscaInline do index, × limpa só o texto) e o ícone de
@@ -27,16 +33,8 @@
 // busca de Contratos em Sheet (abrirBuscaContratos): texto livre ao vivo (locatário, CPF/CNPJ, imóvel,
 // endereço, empreendimento — antes não havia busca por texto), chips de Empreendimento e a linha Imóvel,
 // com "Ver n contratos"; Situação e alerta continuam nos chips da tela (F2.4). O popup de filtros saiu.
-//
-// Versão anterior: 1.45.0 · 07/10/2026
-//
-// v1.45.0 (UX F2.7a, demanda b8602a3a, sessão 20261003-1707-ux-base; plano aprovado pelo Nicola 07/10 20:05) —
-// primeiro uso, o vazio convida: Contratos sem nenhum contrato (e sem filtro) mostra a caixa rzVazio.
-// Com bem cadastrado: "Seu primeiro contrato", com "Enviar contrato" (Raiz IA) e "Novo contrato".
-// Sem bem nenhum: o passo "Comece pelo primeiro imóvel" da campanha, porque o contrato nasce do
-// imóvel. Com filtro, ou sem rzVazio, fica o vazio de antes.
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.44.1 … v1.44.1): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.45.0 … v1.45.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
 import { avaliarProntidaoContratoParaMinuta } from './minutas.js'; // v1.0.1
@@ -48,7 +46,7 @@ import { emitirEscrita, aoEscrever } from './raiz-eventos.js'; // v1.18.0 — Fa
 import { renderizarBlocoEndereco, lerBlocoEndereco } from './comum-endereco.js';
 import { formatarEnderecoParte } from './comum-partes.js';
 
-export const VERSAO = '1.49.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.50.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 
 /** Ponto de entrada do switchTab('tab-contratos'). */
 export function montarAbaContratos() {
@@ -1392,7 +1390,7 @@ if (!window.__rzListenerEscritaParteContratoLigado) {
         // ficam nos chips da tela. Os campos guardadores estão em #contratos-filtros-estado (index). (dem fcd3008d)
         let ultimaContagemContratos = 0;
         const campoCon = (id) => document.getElementById(id);
-        // v1.49.0 (dem 28aa5ce1) — barra digitável + número de filtros ligados no ícone de filtros.
+        // v1.49.0 (dem 28aa5ce1) — barra digitável (v1.50.0: sem ícone de filtros; os chips já filtram).
         function atualizarRotuloBuscaContratos() {
             const oculto = campoCon('contratos-filtro-texto');
             if (typeof rzBuscaInline === 'function') {
@@ -1400,11 +1398,6 @@ if (!window.__rzListenerEscritaParteContratoLigado) {
                 // vindo de fora (busca universal, limpar): a barra mostra o termo; nunca reescreve enquanto a pessoa digita
                 if (el && oculto && document.activeElement !== el && el.value.trim() !== oculto.value) { el.value = oculto.value; el._rzMarcar && el._rzMarcar(); }
             }
-            const n = ((campoCon('contratos-filtro-emp')?.value || 'todos') !== 'todos' ? 1 : 0)
-                + ((campoCon('contratos-filtro-imovel-id')?.value || 'todos') !== 'todos' ? 1 : 0);
-            const badge = campoCon('contratos-filtros-n');
-            if (badge) { badge.textContent = String(n); badge.hidden = !n; }
-            campoCon('contratos-filtros-btn')?.classList.toggle('rz-ativo', !!n);
         }
         // Limpa texto, empreendimento, imóvel e locatário; os chips da tela continuam. (dem 1f98c359)
         function limparBuscaContratos() {

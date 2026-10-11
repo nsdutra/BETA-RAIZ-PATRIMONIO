@@ -1,7 +1,13 @@
 // ============================================================================
 // partes.js — Raiz Patrimônio · Partes (pessoas do negócio): lista, busca,
 //             ficha, papéis, vínculos, empreendimentos e acesso de sócio
-// Versão: 1.0.1 · 10/10/2026
+// Versão: 1.0.2 · 10/10/2026
+//
+// v1.0.2 (10/10/2026, sessão 20261003-1707-ux-base, demanda 28aa5ce1) — HOTFIX dos imports dinâmicos (mesma causa do
+// conta.js 1.0.1): import("./js/comum-endereco.js") e import("./js/comum-partes.js") viravam js/js/… dentro do módulo.
+// O formulário da parte caía no campo de endereço simples e o salvar não lia o endereço estruturado.
+//
+// Versão anterior: 1.0.1 · 10/10/2026
 //
 // v1.0.1 (demanda 28aa5ce1, sessão 20261003-1707-ux-base) — ligarBuscaPartes não reescreve a barra enquanto a pessoa
 // digita: o termo guardado vem sem espaços nas pontas e, na pausa da digitação, o espaço depois de "Maria " sumia.
@@ -39,7 +45,7 @@
 // mesmo rzPonteModulo dos outros módulos R8.
 // ============================================================================
 
-export const VERSAO = '1.0.1';  // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.0.2';  // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 
 // FORMULÁRIO — abrirSheetForm; campos base sempre, campos de
 // prestador aparecem quando o papel escolhido pede (pedido: "a
@@ -84,7 +90,7 @@ export async function abrirFormParteSheet(parteId, opcoes = {}) {
         `<div class="rz-f"><label for="${id}">${rot}</label><input type="${tipo}" id="${id}" value="${val}" ${extra}></div>`;
     let blocoEndereco = `${campo('Endereço', 'parte-endereco', v('endereco'))}`; // fallback se o import falhar
     try {
-        const { renderizarBlocoEndereco } = await import('./js/comum-endereco.js');
+        const { renderizarBlocoEndereco } = await import('./comum-endereco.js');
         blocoEndereco = renderizarBlocoEndereco('parte', pt || {}, { mostrarBotaoCopiar: false });
     } catch (err) { console.warn('[partes] Falha ao carregar bloco de endereço, usando campo simples:', err.message); }
     // F2.5c — parte existente abre como FICHA com chips (Dados · Vínculos — F2.5c-2); o chip Dados
@@ -208,8 +214,8 @@ export async function salvarParteSheet(el, parteId) {
     let enderecoTexto = g('parte-endereco'); // fallback
     if (el.querySelector('#parte-rua') || el.querySelector('#parte-cep')) {
         try {
-            const { lerBlocoEndereco } = await import('./js/comum-endereco.js');
-            const { formatarEnderecoParte } = await import('./js/comum-partes.js');
+            const { lerBlocoEndereco } = await import('./comum-endereco.js');
+            const { formatarEnderecoParte } = await import('./comum-partes.js');
             enderecoEstruturado = lerBlocoEndereco('parte');
             const formatado = formatarEnderecoParte(enderecoEstruturado);
             if (formatado) {

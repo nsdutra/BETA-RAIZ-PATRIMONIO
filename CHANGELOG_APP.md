@@ -4,6 +4,17 @@ Histórico completo de versões do `index.html`, movido automaticamente pelo `ge
 
 ---
 
+NOVIDADES (Beta v1.353.0) — F25 (Nicola 10/10 14:57): o ramo de cada ativo vem do modelo vigente hoje (uso; senão o
+repouso; senão o tipo). A lente mostra só os ramos contratados (fn_cliente_ramos) e some com um ramo só. Ficha do
+ativo: chip "Usos e contratos" (cofre-ativos.js 1.86.0, ativos-markup.js 1.56.0).
+Versão anterior (Beta v1.352.0):
+------------------------------------------------------------------
+Versões anteriores (v1.352.0 … v1.352.0): CHANGELOG_APP.md, na raiz do
+repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
+das 5 versões mais recentes deste cabeçalho.
+
+---
+
 NOVIDADES (Beta v1.352.0) — Onda 2b da fragmentação: CONTA E PREFERÊNCIAS vira módulo (demanda
 6b11c602, plano das ondas aprovado pelo Nicola 09/10 21:15). 13 telas — menu da conta, seção Sobre,
 licença, preferências de comunicação e de alerta e os atalhos de configuração — saíram deste arquivo

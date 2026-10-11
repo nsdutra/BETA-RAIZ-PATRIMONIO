@@ -2,7 +2,15 @@
 // conta.js — Raiz Patrimônio · Conta e preferências: menu da conta, seção Sobre,
 //            licença, preferências de comunicação e de alerta, atalhos de
 //            configuração (Cofre, configuração inicial, cadastro do contador)
-// Versão: 1.0.0 · 10/10/2026
+// Versão: 1.0.1 · 10/10/2026
+//
+// v1.0.1 (10/10/2026, sessão 20261003-1707-ux-base, demanda 28aa5ce1 — teste do Nicola 10/10 21:43: "Tela licença não
+// carrega") — HOTFIX dos imports dinâmicos. As funções vieram do index.html com import("./js/<módulo>.js"); dentro de
+// js/conta.js o "./" passa a ser a pasta js/, e o caminho virava js/js/<módulo>.js (404). Licença, Dados da empresa
+// (e os boxes Documentos e Controles), Sobre, Minhas notificações e a volta para Ativos caíam no catch. Agora é
+// import('./<módulo>.js'), que bate com a chave do import map (./js/<módulo>.js resolvido a partir da raiz).
+//
+// Versão anterior: 1.0.0 · 10/10/2026
 //
 // v1.0.0 (10/10/2026, sessão 20261010-1500-onda2b-conta, demanda 6b11c602 — Onda 2b da
 // fragmentação, plano aprovado pelo Nicola 09/10 21:15) — 13 telas saíram do index.html
@@ -24,7 +32,7 @@
 //    por 345 bytes — é a mesma classe de armadilha do montarBoxDivisaoSocietaria.
 // ============================================================================
 
-export const VERSAO = '1.0.0';  // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.0.1';  // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 
 // v1.71.0 — LGPD: tela de preferências de comunicação, 1 toggle por
 // mensagem que permite opt-out (permite_opt_out=true) — substitui o
@@ -75,7 +83,7 @@ export async function abrirPreferenciasComunicacao() {
     // não uma pessoa escolhida numa lista — esta tela é sempre sobre
     // "eu mesmo").
     try {
-        const { buscarProativasDisponiveis, buscarPreferenciasComunicacao, FREQUENCIA_OPCOES } = await import('./js/comum-pessoas.js');
+        const { buscarProativasDisponiveis, buscarPreferenciasComunicacao, FREQUENCIA_OPCOES } = await import('./comum-pessoas.js');
         const [proativas, preferenciasMap] = await Promise.all([
             buscarProativasDisponiveis(dbAuth, CLIENTE_ID_SUPABASE),
             buscarPreferenciasComunicacao(dbAuth, CLIENTE_ID_SUPABASE),
@@ -194,7 +202,7 @@ export function dev_carregarDadosEmpresa() {
     // chamada de dev_param_inicializar() com outra aba aberta.
     const secaoAtiva = document.querySelector('.tab-content.active')?.id;
     if (secaoAtiva !== 'tab-minha-empresa') return;
-    import('./js/comum-minha-empresa.js').then(({ montarAbaMinhaEmpresa }) => {
+    import('./comum-minha-empresa.js').then(({ montarAbaMinhaEmpresa }) => {
         montarAbaMinhaEmpresa(mount, {
             dbAuth, clienteId: CLIENTE_ID_SUPABASE,
             onToast: mostrarToast,
@@ -234,14 +242,14 @@ export function dev_carregarDadosEmpresa() {
     // não é o lugar certo pra essa lógica — ver nota no topo de
     // js/cofre-documentos.js). Import separado, próprio
     // catch — uma falha aqui não pode derrubar o formulário acima.
-    import('./js/cofre-documentos.js').then(function(docs) {
+    import('./cofre-documentos.js').then(function(docs) {
         docs.montarBoxDocumentosEmpresa();
     }).catch(function(err) {
         console.warn('Falha ao carregar js/cofre-documentos.js (box de documentos da empresa):', err.message);
     });
     // v1.324.0 (demanda a30da78b) — card "Controles da empresa", mesmo
     // padrão: import próprio, catch próprio (não derruba o resto da aba).
-    import('./js/cofre-controles.js').then(function(ctrl) {
+    import('./cofre-controles.js').then(function(ctrl) {
         ctrl.montarBoxControlesEmpresa();
     }).catch(function(err) {
         console.warn('Falha ao carregar js/cofre-controles.js (controles da empresa):', err.message);
@@ -265,7 +273,7 @@ export async function atualizarSecaoSobreLicenca() {
     const mount = document.getElementById('mount-sobre');
     if (!mount) return;
     try {
-        const { montarAbaSobre } = await import('./js/comum-sobre.js');
+        const { montarAbaSobre } = await import('./comum-sobre.js');
         await montarAbaSobre(mount, {
             dbAuth, clienteId: CLIENTE_ID_SUPABASE, pessoaId: pessoaIdLogada,
             configCliente: CONFIG_CLIENTE,
@@ -368,7 +376,7 @@ export function abrirConfiguracaoCofre(tela) {
     const disparar = () => window.dispatchEvent(new CustomEvent('cofre:abrir-configuracao', { detail: { tela } }));
     if (Array.isArray(window.__cofreAtivos)) { setTimeout(disparar, 0); return; }
     window.addEventListener('cofre:dados-carregados', () => setTimeout(disparar, 80), { once: true });
-    if (porCima) import('./js/ativos/ativos-boot.js').then(({ montarAtivosTab }) => montarAtivosTab(CLIENTE_ID_SUPABASE))
+    if (porCima) import('./ativos/ativos-boot.js').then(({ montarAtivosTab }) => montarAtivosTab(CLIENTE_ID_SUPABASE))
         .catch(err => { console.warn('[arquivados] módulo de Ativos:', err.message); switchTab('tab-ativos'); });
 }
 
@@ -427,7 +435,7 @@ export async function inicializarLicenca() {
     const mount = document.getElementById('mount-licenca');
     if (!mount) return;
     try {
-        const { montarAbaLicenca } = await import('./js/comum-licenca.js');
+        const { montarAbaLicenca } = await import('./comum-licenca.js');
         await montarAbaLicenca(mount, { dbAuth, clienteId: CLIENTE_ID_SUPABASE, pessoaId: pessoaIdLogada, toast: mostrarToast });
     } catch (err) {
         console.warn('Falha ao carregar js/comum-licenca.js:', err.message);

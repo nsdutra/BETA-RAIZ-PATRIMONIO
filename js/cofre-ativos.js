@@ -1,6 +1,11 @@
 // ============================================================================
 // cofre-ativos.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.89.0 · 10/10/2026
+// Versão: 1.90.0 · 10/10/2026
+//
+// v1.90.0 (sessão 20261003-1707-ux-base, demanda 28aa5ce1 — teste do Nicola 10/10 21:43) — sem o ícone de filtros:
+// os chips já filtram por tipo; o topo fica só com a barra digitável. abrirBuscaAtivos continua exportada.
+//
+// Versão anterior: 1.89.0 · 10/10/2026
 //
 // v1.89.0 (demanda 28aa5ce1, sessão 20261003-1707-ux-base; de acordo do Nicola 10/10 21:26) — a busca de Ativos é
 // digitável: o texto filtra enquanto digita (window.rzBuscaInline do index; × limpa só o texto) e o ícone de filtros
@@ -25,16 +30,11 @@
 // Novo uso, Encerrar e Excluir (fn_ativo_uso_*) e Trocar repouso (fn_ativo_repouso_definir). As opções vêm da matriz
 // tipo × modelo e só dos ramos licenciados (fn_cliente_ramos); modelo em breve aparece apagado. O card Contratos só
 // aparece para imóvel. Ramo do ativo na lista = modelo vigente hoje (rzRamoDoAtivo do index).
-// Versão anterior: 1.85.1.
-//
-// v1.85.1 (10/10/2026, demanda f3e6cd27) — CORREÇÃO URGENTE: a v1.85.0 saiu com uma vírgula dupla no import de
-// cofre-validacoes.js ("inicializarCatalogoTiposAtivo,, tipoDoCatalogo") e o módulo não carregava — a aba Ativos
-// mostrava "Não foi possível carregar Ativos agora". Só a vírgula. Versão anterior: 1.85.0.
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.85.0 … v1.85.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.85.1 … v1.85.1): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '1.89.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.90.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 import { estado } from './cofre-estado.js';
 import * as api from './cofre-api.js';
 import { mostrarToast, erroInline, refrescarIcones, alternarToggle, abrirModal, fecharModal, modalGenerico, perguntar, avisarComDesfazer } from './cofre-ui.js';
@@ -688,7 +688,7 @@ function renderChipsAtivos() {
 let ultimaContagemAtivos = 0;
 const campoFiltro = (id) => document.getElementById(id);
 
-// v1.89.0 (dem 28aa5ce1) — barra digitável + número de filtros ligados no ícone de filtros.
+// v1.89.0 (dem 28aa5ce1) — barra digitável (v1.90.0: sem ícone de filtros; os chips já filtram).
 function atualizarRotuloBuscaAtivos() {
     if (typeof window === 'undefined') return;
     const oculto = campoFiltro('filtro-ativo-busca');
@@ -697,10 +697,6 @@ function atualizarRotuloBuscaAtivos() {
         // vindo de fora (busca universal, limpar): a barra mostra o termo; nunca reescreve enquanto a pessoa digita
         if (el && oculto && document.activeElement !== el && el.value.trim() !== oculto.value) { el.value = oculto.value; el._rzMarcar && el._rzMarcar(); }
     }
-    const n = ['filtro-ativo-tipo', 'filtro-ativo-status', 'filtro-ativo-alerta'].filter(id => campoFiltro(id)?.value).length;
-    const badge = campoFiltro('ativos-filtros-n');
-    if (badge) { badge.textContent = String(n); badge.hidden = !n; }
-    campoFiltro('ativos-filtros-btn')?.classList.toggle('rz-ativo', !!n);
 }
 
 // × da barra (dem 1f98c359): limpa texto, tipo fino, situação e alerta; o chip escolhido continua.
