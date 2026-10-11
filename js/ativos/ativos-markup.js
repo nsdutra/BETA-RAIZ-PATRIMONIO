@@ -1,6 +1,12 @@
 // ============================================================================
 // js/ativos/ativos-markup.js — Raiz Patrimônio · Módulo Único, fatia frontend 1
-// Versão: 1.59.0 · 11/10/2026
+// Versão: 1.60.0 · 11/10/2026
+//
+// v1.60.0 (11/10/2026, sessão 20261008-1231-pessoas-ativos, demanda f3e6cd27; F13 4c etapa 4; Nicola 11/10 17:42, teste da etapa 3: "pode organizar melhor pro chip de performance desaparecer e deixar tudo no financeiro")
+// — sai o chip Performance: os indicadores do ano (grid e revisão de valor) vão para o fim do chip Financeiro, e o card
+// novo "Ocupação" (dias alugado e vago, por ano ou todos) fica em Usos e contratos, logo abaixo de Usos.
+//
+// Versão anterior: 1.59.0 · 11/10/2026
 //
 // v1.59.0 (11/10/2026, sessão 20261008-1231-pessoas-ativos, demanda f3e6cd27; F13 4c etapa 3, D81 a D84) — a ficha
 // do ativo ganha o chip "Financeiro" (data-fa-aba="movimento"), entre Controles e Performance: balanço pendente com
@@ -22,17 +28,11 @@
 // v1.56.0 (10/10/2026, sessão 20261008-1231-pessoas-ativos, demanda a3f4c73f — F25, aprovada pelo Nicola 10/10 14:57) —
 // chip "Contratos" da ficha vira "Usos e contratos" (D73): card Usos (linha do tempo, Novo uso, repouso) acima
 // do card Contratos, que só aparece para imóvel.
-//
-// Versão anterior: 1.55.0 · 09/10/2026
-//
-// v1.55.0 (UX F2.3b, demanda fcd3008d, sessão 20261003-1707-ux-base; plano F2.3 aprovado pelo Nicola 09/10 20:52 ("Estou de acordo com f2.3 e opcao a")) —
-// sai o popup "Buscar no Cofre" (#modal-busca-global): no app, buscar documento é a busca universal do
-// Hoje (Ativos, Contratos, Partes e Documentos num painel só). O cofre.html avulso mantém o dele.
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.54.0 … v1.54.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.55.0 … v1.55.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '1.59.0'; // v-check (28/09/2026): lido por Dev › Versões — manter igual ao header
+export const VERSAO = '1.60.0'; // v-check (28/09/2026): lido por Dev › Versões — manter igual ao header
 export const ATIVOS_MARKUP = `<style>
     /* v1.94.1 (31/08/2026, pedido explícito: "anexo uma barra de
        rolagem que fica feia... ao rolar os chips não mostrar a barra")
@@ -408,7 +408,6 @@ export const ATIVOS_MARKUP = `<style>
         <button data-action="fa-trocar-aba" data-fa-aba="contratos" class="fa-subtab rz-chip">Usos e contratos <span class="rz-n" id="fa-chip-n-contratos">0</span></button>
         <button data-action="fa-trocar-aba" data-fa-aba="controles" class="fa-subtab rz-chip">Controles <span class="rz-n" id="fa-chip-n-controles">0</span></button>
         <button data-action="fa-trocar-aba" data-fa-aba="movimento" class="fa-subtab rz-chip">Financeiro</button>
-        <button data-action="fa-trocar-aba" data-fa-aba="financeiro" class="fa-subtab rz-chip">Performance</button>
         <button data-action="fa-trocar-aba" data-fa-aba="arquivos" class="fa-subtab rz-chip">Anexos <span class="rz-n" id="fa-chip-n-arquivos">0</span></button>
     </div>
 
@@ -451,6 +450,7 @@ export const ATIVOS_MARKUP = `<style>
             <div class="rz-card-h"><h3>Usos</h3><span class="rz-sub" id="fa-usos-sub"></span></div>
             <div id="fa-usos-lista"></div>
         </div>
+        <div class="rz-card hidden" id="fa-card-ocupacao"></div>
         <div class="rz-card" id="fa-card-contratos">
             <div class="rz-card-h"><h3>Contratos</h3><span class="rz-sub" id="fa-contratos-sub"></span><button data-action="fa-acoes-contratos" class="rz-more" aria-label="Mais ações"><i data-lucide="ellipsis-vertical"></i></button></div>
             <div id="fa-contratos-lista"></div>
@@ -468,7 +468,14 @@ export const ATIVOS_MARKUP = `<style>
     <!-- ===== Painel: Financeiro (v1.59.0, F13 4c etapa 3, D81 a D84) — o dinheiro que passa pelo ativo:
          balanço pendente com Quitar, contas e cartões (ativo pessoa), movimentações do mês. Montado por
          cofre-ativos.montarMovimentoAtivo() ao abrir o chip. ===== -->
-    <div id="fa-painel-movimento" class="fa-painel hidden"><div id="fa-movimento-corpo"></div></div>
+    <div id="fa-painel-movimento" class="fa-painel hidden"><div id="fa-movimento-corpo"></div>
+        <!-- v1.60.0: os indicadores do ano (antes no chip Performance) moram aqui, no fim. resumo e gráfico ficam
+             escondidos: a lista por competência já mostra recebido e despesas mês a mês. -->
+        <div id="fa-financeiro-resumo" class="rz-kpis hidden"></div>
+        <div id="fa-financeiro-grafico" class="hidden"></div>
+        <div id="fa-financeiro-grid"></div>
+        <div id="fa-financeiro-revisao"></div>
+    </div>
 
     <!-- ===== Painel: Performance (id interno "financeiro" não mudou —
          mesmo princípio já usado no chip Cobranças→Financeiro do contrato:
@@ -485,12 +492,7 @@ export const ATIVOS_MARKUP = `<style>
          mudou. Card "Revisão anual de valor" (C6) fica fora desta entrega
          — depende da Fase B1.1 (índice IVG-R), critério de pronto próprio
          (R.4), não da A.7. -->
-    <div id="fa-painel-financeiro" class="fa-painel hidden">
-        <div id="fa-financeiro-resumo" class="rz-kpis"></div>
-        <div id="fa-financeiro-grafico"></div>
-        <div id="fa-financeiro-grid"></div>
-        <div id="fa-financeiro-revisao"></div>
-    </div>
+    <!-- v1.60.0: o painel Performance (fa-painel-financeiro) saiu; o conteúdo foi para o fim do painel Financeiro. -->
 
     <!-- ===== Painel: Arquivos (Documentos · Fotos) ===== -->
     <div id="fa-painel-arquivos" class="fa-painel hidden">

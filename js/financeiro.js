@@ -1,7 +1,20 @@
 // ============================================================================
 // financeiro.js — Raiz Patrimônio · Financeiro (Recebimentos · Atrasados · Saídas
 //                  · conciliação de extrato · recibo · detalhe do recebimento)
-// Versão: 1.51.0 · 11/10/2026
+// Versão: 1.52.0 · 11/10/2026
+//
+// v1.52.0 (11/10/2026, sessão 20261008-1231-pessoas-ativos, demanda f3e6cd27; F13 4c etapa 4; Nicola 11/10 17:42, teste da etapa 3: "pode organizar melhor pro chip de performance desaparecer e deixar tudo no financeiro")
+// — NOVO rzFinCompetencias(alvo, escopo): a visão financeira única por competência, usada no chip Financeiro do ativo
+// (escopo { ativoId, pessoaId }) e no do contrato (escopo { contratoId }):
+//   · filtro de ano (ano atual · anterior · Todos);
+//   · atalhos do que está pendente: lançamentos a classificar (abre a fatura ou o lançamento), pagos sem conciliação
+//     (abre a Conciliação) e recebimentos em atraso;
+//   · lista de competências (mês a mês, como já era no contrato): recebido, despesas e situação; tocar abre as
+//     categorias do mês, receitas e despesas juntas; tocar na categoria abre os lançamentos; tocar no lançamento abre
+//     o detalhe de sempre (recebimento, despesa ou fatura).
+// Também: "‹ Financeiro" não aparece mais acima de Saídas, Conciliação e Balanço (são irmãs no segmento).
+//
+// Versão anterior: 1.51.0 · 11/10/2026
 //
 // v1.51.0 (11/10/2026, sessão 20261008-1231-pessoas-ativos, demanda f3e6cd27; F13 4c etapa 3) — quando o
 // Balanço ou Sócios por mês não conseguem calcular, a mensagem mostra também o motivo que o banco devolveu (antes só
@@ -39,23 +52,11 @@
 //   · os chips Pessoas · Sócios por mês · Grupos ficam visíveis também quando o cálculo falha (antes a mensagem de
 //     erro apagava os chips e a tela ficava presa). A causa do erro em "Sócios por mês" era de banco (embed ambíguo de
 //     repasses → pessoas depois da F13.6), corrigida na migration repasses_embed_hf3_v1.
-//
-// Versão anterior: 1.48.0 · 11/10/2026
-//
-// v1.48.0 (11/10/2026, sessão 20261008-1231-pessoas-ativos, demanda f3e6cd27; F13 entrega 4c, etapa 1 — FICHA_BALANCO_ACERTOS
-// v1.2.0, D58; Nicola 11/10 10:15 "Correto. Pode fazer") — a 4ª opção do Financeiro vira "Balanço", com três vistas:
-//   · Pessoas (padrão): quem tem a receber e quem deve, acumulado até o fim do mês escolhido (fn_balanco_pessoas). Toque
-//     abre a pessoa com cada saldo por contraparte e natureza, o botão Quitar (fn_acerto_registrar), Compensar quando há
-//     crédito e débito com a mesma contraparte (fn_acerto_compensar) e o histórico (fn_balanco_extrato);
-//   · Sócios por mês: a Distribuição de antes, sem mudar número; as retiradas listadas são só caixa → sócio de natureza
-//     distribuição (repasses virou a tabela única de quitação, F13.6);
-//   · Grupos: os ativos com despesa dividida entre pessoas (rateio), com o saldo de cada participante.
-// O "+" ganha "Quitar ou registrar pagamento".
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.47.0 … v1.47.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.48.0 … v1.48.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '1.51.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.52.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 
 // v1.17.0 (Fase 1 do wrapper de escrita, rollout Financeiro) — emitirEscrita
 // é o evento padrão pra "algo mudou que módulos DE FORA deste arquivo podem
@@ -5859,4 +5860,179 @@ async function excluirRetirada(id) {
     emitirEscrita('repasse', { id, acao: 'excluir' });
     rzToast('Retirada excluída');
     renderDistribuicao();
+}
+
+
+// ============================================================================
+// v1.52.0 — VISÃO FINANCEIRA POR COMPETÊNCIA (F13 4c etapa 4). Componente único para o ativo e o contrato.
+// Só lê (RLS de contas visíveis vale); os números do mês são a soma do que a lista mostra.
+// ============================================================================
+const FC_MESES = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez'];
+const fcEstado = {}; // por alvo: { escopo, ano, aberto: {mes, cat}, itens }
+const fcEsc = (t) => String(t ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;');
+function fcHojeComp() { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-01`; }
+function fcRotuloMes(iso) { return `${FC_MESES[Number(iso.slice(5, 7)) - 1]}/${iso.slice(0, 4)}`; }
+
+export async function rzFinCompetencias(alvo, escopo = {}) {
+    const el = typeof alvo === 'string' ? document.getElementById(alvo) : alvo;
+    if (!el) return;
+    if (!el.id) el.id = 'fc-comp-' + Math.random().toString(36).slice(2, 8);
+    const ant = fcEstado[el.id];
+    const mesmo = ant && JSON.stringify(ant.escopo) === JSON.stringify(escopo);
+    const st = fcEstado[el.id] = { escopo, ano: mesmo ? ant.ano : String(new Date().getFullYear()), aberto: mesmo ? ant.aberto : {}, itens: [] };
+    el.innerHTML = fcChipsAno(st) + `<p class="text-xs text-center py-3" style="color:var(--sage)">Carregando…</p>`;
+    fcLigar(el);
+    try {
+        st.itens = await fcCarregar(escopo, st.ano);
+        if (fcEstado[el.id] !== st) return;
+        fcDesenhar(el);
+    } catch (e) {
+        console.error('[financeiro] competências', e);
+        el.innerHTML = fcChipsAno(st) + `<div class="rz-card"><div class="rz-empty"><div class="rz-ic"><svg data-lucide="alert-circle"></svg></div><p>Não consegui carregar o financeiro agora.<br><small style="color:var(--muted)">${fcEsc(e?.message || e)}</small></p></div></div>`;
+        fcLigar(el);
+        if (typeof lucide !== 'undefined') lucide.createIcons();
+    }
+}
+
+function fcChipsAno(st) {
+    const a = new Date().getFullYear();
+    const c = (v, r) => `<button type="button" class="rz-chip${st.ano === v ? ' rz-on' : ''}" data-fc-ano="${v}">${r}</button>`;
+    return `<div class="rz-chips">${c(String(a), String(a))}${c(String(a - 1), String(a - 1))}${c('todos', 'Todos')}</div>`;
+}
+
+async function fcCarregar(e, ano) {
+    const cli = CLIENTE_ID_SUPABASE, hoje = fcHojeComp();
+    const de = ano === 'todos' ? '2000-01-01' : `${ano}-01-01`;
+    const ate = ano === 'todos' ? hoje : (`${ano}-12-01` < hoje ? `${ano}-12-01` : hoje);
+    const ok = (r, nome) => { if (r?.error) throw new Error(`${nome}: ${r.error.message || r.error}`); return r?.data || []; };
+    let contas = [];
+    if (e.pessoaId) contas = ok(await dbAuth.from('conta_controle').select('id, nome, final_identificador').eq('cliente_id', cli).eq('titular_tipo', 'pessoa').eq('pessoa_id', e.pessoaId), 'contas');
+    let qL = dbAuth.from('lancamentos').select('id, descricao, categoria, valor, direcao, status, vencimento, data_pagamento, competencia, conta_id, fatura_id, conciliado_em')
+        .eq('cliente_id', cli).gte('competencia', de).lte('competencia', ate);
+    if (e.contratoId) qL = qL.eq('contrato_id', e.contratoId);
+    else if (contas.length) qL = qL.or(`ativo_id.eq.${e.ativoId},conta_id.in.(${contas.map(c => c.id).join(',')})`);
+    else qL = qL.eq('ativo_id', e.ativoId);
+    let qM = null;
+    if (e.contratoId) qM = dbAuth.from('mensalidades').select('id, competencia, status, valor_confirmado, data_pgto, contratos!inner(id, locatario, valor, vencimento_dia)').eq('contrato_id', e.contratoId);
+    else if (!e.pessoaId) qM = dbAuth.from('mensalidades').select('id, competencia, status, valor_confirmado, data_pgto, contratos!inner(id, ativo_id, locatario, valor, vencimento_dia)').eq('contratos.ativo_id', e.ativoId);
+    if (qM) qM = qM.eq('cliente_id', cli).gte('competencia', de).lte('competencia', ate);
+    let qR = null;
+    if (!e.contratoId) {
+        qR = dbAuth.from('repasses').select('id, valor, data_real, competencia, natureza, de_tipo, de_pessoa_id, para_tipo, pessoa_id').eq('cliente_id', cli).gte('competencia', de).lte('competencia', ate);
+        qR = e.pessoaId ? qR.or(`pessoa_id.eq.${e.pessoaId},de_pessoa_id.eq.${e.pessoaId}`) : qR.eq('ativo_id', e.ativoId);
+    }
+    const [rL, rM, rR, rC] = await Promise.all([qL, qM || Promise.resolve({ data: [] }), qR || Promise.resolve({ data: [] }),
+        dbAuth.from('lancamento_categorias').select('codigo, nome')]);
+    const cat = Object.fromEntries((rC?.data || []).map(c => [c.codigo, c.nome]));
+    const contaPor = Object.fromEntries(contas.map(c => [c.id, `${c.nome}${c.final_identificador ? ' ··' + c.final_identificador : ''}`]));
+    const reps = ok(rR, 'quitações');
+    const idsP = [...new Set(reps.flatMap(r => [r.pessoa_id, r.de_pessoa_id]).filter(Boolean))];
+    const nomes = idsP.length ? Object.fromEntries(ok(await dbAuth.from('pessoas').select('id, nome').in('id', idsP), 'pessoas').map(p => [p.id, p.nome])) : {};
+    const itens = [];
+    ok(rL, 'lançamentos').forEach(l => {
+        const entrada = l.direcao === 'entrada';
+        itens.push({ k: 'lanc', id: l.id, faturaId: l.fatura_id, comp: l.competencia, grupo: entrada ? 'receita' : 'despesa',
+            cat: cat[l.categoria] || l.categoria || 'Sem categoria', aClassificar: l.categoria === 'a_classificar',
+            semConciliar: l.status === 'realizado' && !!l.conta_id && !l.conciliado_em && !l.fatura_id,
+            titulo: l.descricao || cat[l.categoria] || 'Lançamento', data: l.data_pagamento || l.vencimento || l.competencia,
+            sub: contaPor[l.conta_id] || '', valor: (entrada ? 1 : -1) * Number(l.valor || 0), status: l.status === 'realizado' ? (entrada ? 'Recebido' : 'Pago') : 'Previsto' });
+    });
+    ok(rM, 'recebimentos').forEach(m => {
+        const pago = m.status === 'pago';
+        itens.push({ k: 'mens', id: m.id, comp: m.competencia, grupo: 'receita', cat: 'Aluguel', atraso: m.status === 'atrasado',
+            titulo: `Aluguel · ${m.contratos?.locatario || 'contrato'}`, data: m.data_pgto || m.competencia,
+            sub: pago ? `recebido em ${formatarDataBR(m.data_pgto)}` : `vence dia ${m.contratos?.vencimento_dia || '—'}`,
+            valor: Number((pago ? m.valor_confirmado : null) ?? m.contratos?.valor ?? 0), pago, isento: m.status === 'isento',
+            status: pago ? 'Pago' : m.status === 'atrasado' ? 'Em atraso' : m.status === 'isento' ? 'Isento' : 'A receber' });
+    });
+    reps.forEach(r => {
+        const nome = (id) => (id && id === e.pessoaId ? (e.nome || nomes[id]) : nomes[id]) || 'Pessoa';
+        const sinal = e.pessoaId ? (r.pessoa_id === e.pessoaId ? 1 : -1) : (r.de_tipo === 'caixa' ? -1 : 1);
+        itens.push({ k: 'rep', id: r.id, comp: r.competencia, grupo: 'quitacao', cat: 'Quitações',
+            titulo: `${r.de_tipo === 'caixa' ? 'Empresa' : nome(r.de_pessoa_id)} pagou a ${r.para_tipo === 'caixa' ? 'Empresa' : nome(r.pessoa_id)}`,
+            data: r.data_real || r.competencia, sub: BAL_NATUREZA[r.natureza] || r.natureza, valor: sinal * Number(r.valor || 0),
+            status: r.natureza === 'extraordinaria' ? 'Extraordinária' : '' });
+    });
+    return itens;
+}
+
+function fcDesenhar(el) {
+    const st = fcEstado[el.id]; if (!st) return;
+    const it = st.itens;
+    // atalhos do que está pendente
+    const aClass = it.filter(i => i.aClassificar), semConc = it.filter(i => i.semConciliar), atraso = it.filter(i => i.atraso);
+    const atalho = (k, ic, t, sb) => `<button type="button" class="rz-act" data-fc-atalho="${k}"><div class="rz-ic"><svg data-lucide="${ic}"></svg></div><div>${t}<small>${sb}</small></div></button>`;
+    const pend = (aClass.length || semConc.length || atraso.length) ? `<div class="rz-card rz-list"><div class="rz-card-h" style="padding-top:10px;margin-bottom:0"><h3>Pendências</h3></div>` +
+        (atraso.length ? atalho('atraso', 'alarm-clock', `${atraso.length} ${atraso.length === 1 ? 'recebimento em atraso' : 'recebimentos em atraso'}`, formatarMoedaBR(atraso.reduce((t, i) => t + i.valor, 0)) + ' · cobrar no Financeiro') : '') +
+        (aClass.length ? atalho('classificar', 'tags', `${aClass.length} ${aClass.length === 1 ? 'lançamento a classificar' : 'lançamentos a classificar'}`, 'Escolher a categoria') : '') +
+        (semConc.length ? atalho('conciliar', 'link-2', `${semConc.length} ${semConc.length === 1 ? 'pago sem conciliação' : 'pagos sem conciliação'}`, 'Conferir com o extrato') : '') + '</div>' : '';
+    // competências
+    const porMes = new Map();
+    it.forEach(i => { const a = porMes.get(i.comp) || []; a.push(i); porMes.set(i.comp, a); });
+    const meses = [...porMes.keys()].sort().reverse();
+    const soma = (l, f) => l.filter(f).reduce((t, i) => t + i.valor, 0);
+    const rs = (c, r) => (typeof renderStatus === 'function') ? renderStatus(c, r) : fcEsc(r);
+    const situacao = (l) => l.some(i => i.atraso) ? rs('bad', 'Em atraso') : l.some(i => i.aClassificar) ? rs('warn', 'A classificar')
+        : l.some(i => i.k === 'mens' && !i.pago && !i.isento) ? rs('run', 'A receber') : rs('ok', 'Em dia');
+    const linhasCat = (l, mes) => {
+        const cats = new Map();
+        l.forEach(i => { const ch = i.grupo + '|' + i.cat; const a = cats.get(ch) || { grupo: i.grupo, cat: i.cat, itens: [] }; a.itens.push(i); cats.set(ch, a); });
+        const ordem = { receita: 0, despesa: 1, quitacao: 2 };
+        return [...cats.values()].sort((a, b) => ordem[a.grupo] - ordem[b.grupo] || Math.abs(soma(b.itens, () => true)) - Math.abs(soma(a.itens, () => true))).map(c => {
+            const ch = mes + '|' + c.grupo + '|' + c.cat, aberta = st.aberto.cat === ch, tot = soma(c.itens, () => true);
+            return `<div class="rz-row rz-link" role="button" tabindex="0" data-fc-cat="${fcEsc(ch)}" style="padding-left:12px">
+                <div class="rz-ic${tot > 0 ? '' : ' rz-neu'}"><svg data-lucide="${c.grupo === 'quitacao' ? 'handshake' : (tot > 0 ? 'arrow-down-left' : 'arrow-up-right')}"></svg></div>
+                <div class="rz-tx"><b>${fcEsc(c.cat)}</b><span>${c.itens.length} ${c.itens.length === 1 ? 'lançamento' : 'lançamentos'}</span></div>
+                <div class="rz-rt"><b class="${tot > 0 ? 'rz-in' : ''}">${moedaSinal(tot)}</b></div>
+                <svg data-lucide="${aberta ? 'chevron-up' : 'chevron-down'}" class="rz-chev"></svg></div>` +
+                (aberta ? c.itens.sort((x, y) => String(y.data).localeCompare(String(x.data))).map(i => `<div class="rz-row rz-link" role="button" tabindex="0" data-fc-item="${it.indexOf(i)}" style="padding-left:28px">
+                    <div class="rz-tx"><b>${fcEsc(i.titulo)}</b><span>${formatarDataBR(i.data)}${i.sub ? ' · ' + fcEsc(i.sub) : ''}</span></div>
+                    <div class="rz-rt"><b class="${i.valor > 0 ? 'rz-in' : ''}">${moedaSinal(i.valor)}</b>${i.status ? `<small style="display:block;text-align:right;color:var(--muted)">${fcEsc(i.status)}</small>` : ''}</div>
+                    <svg data-lucide="chevron-right" class="rz-chev"></svg></div>`).join('') : '');
+        }).join('');
+    };
+    const recebido = soma(it, i => i.grupo === 'receita' && (i.k !== 'mens' || i.pago)), despesas = -soma(it, i => i.grupo === 'despesa');
+    const kpis = `<div class="rz-kpis"><div class="rz-kpi rz-in"><small>Recebido</small><b>${formatarMoedaBR(recebido)}</b></div><div class="rz-kpi"><small>Despesas</small><b>${formatarMoedaBR(despesas)}</b></div></div>`;
+    const lista = meses.length ? `<div class="rz-card rz-list"><div class="rz-card-h" style="padding-top:10px;margin-bottom:0"><h3>Por competência</h3><span class="rz-sub">${st.ano === 'todos' ? 'todos os anos' : st.ano}</span></div>` +
+        meses.map(m => { const l = porMes.get(m), aberto = st.aberto.mes === m;
+            const rec = soma(l, i => i.grupo === 'receita' && (i.k !== 'mens' || i.pago)), desp = -soma(l, i => i.grupo === 'despesa');
+            return `<div class="rz-row rz-link" role="button" tabindex="0" data-fc-mes="${m}">
+                <div class="rz-ic"><svg data-lucide="calendar"></svg></div>
+                <div class="rz-tx"><b>${fcRotuloMes(m)}</b><span>Recebido ${formatarMoedaBR(rec)} · despesas ${formatarMoedaBR(desp)}</span></div>
+                <div class="rz-rt"><b>${moedaSinal(rec - desp)}</b>${situacao(l)}</div>
+                <svg data-lucide="${aberto ? 'chevron-up' : 'chevron-down'}" class="rz-chev"></svg></div>` + (aberto ? linhasCat(l, m) : ''); }).join('') + '</div>'
+        : `<div class="rz-card"><div class="rz-empty"><div class="rz-ic"><svg data-lucide="wallet"></svg></div><p>Nenhum movimento ${st.ano === 'todos' ? 'ainda' : 'em ' + st.ano}.</p></div></div>`;
+    el.innerHTML = fcChipsAno(st) + pend + kpis + lista;
+    fcLigar(el);
+    if (typeof lucide !== 'undefined') lucide.createIcons();
+}
+
+function fcLigar(el) {
+    const st = fcEstado[el.id]; if (!st) return;
+    el.querySelectorAll('[data-fc-ano]').forEach(b => b.addEventListener('click', (ev) => { ev.stopPropagation(); st.ano = b.dataset.fcAno; st.aberto = {}; rzFinCompetencias(el, st.escopo); }));
+    el.querySelectorAll('[data-fc-mes]').forEach(b => b.addEventListener('click', (ev) => { ev.stopPropagation(); st.aberto = st.aberto.mes === b.dataset.fcMes ? {} : { mes: b.dataset.fcMes }; fcDesenhar(el); }));
+    el.querySelectorAll('[data-fc-cat]').forEach(b => b.addEventListener('click', (ev) => { ev.stopPropagation(); st.aberto.cat = st.aberto.cat === b.dataset.fcCat ? null : b.dataset.fcCat; fcDesenhar(el); }));
+    el.querySelectorAll('[data-fc-item]').forEach(b => b.addEventListener('click', (ev) => { ev.stopPropagation(); fcAbrirItem(st.itens[Number(b.dataset.fcItem)]); }));
+    el.querySelectorAll('[data-fc-atalho]').forEach(b => b.addEventListener('click', (ev) => { ev.stopPropagation(); fcAtalho(st, b.dataset.fcAtalho); }));
+}
+
+function fcAbrirItem(i) {
+    if (!i) return;
+    if (i.faturaId) return financeiroAbrirFatura(i.faturaId);
+    if (i.k === 'mens') return rzAcoesMensalidade(i.id);
+    if (i.k === 'lanc' && i.grupo === 'despesa') return rzAcoesDespesa(i.id);
+    if (i.k === 'lanc' && typeof window.rzAcoesReceitaAvulsa === 'function') return window.rzAcoesReceitaAvulsa(i.id);
+    if (i.k === 'rep' && typeof switchTab === 'function') { switchTab('tab-socios'); balancoVista('pessoas'); }
+}
+function fcAtalho(st, k) {
+    if (k === 'classificar') {
+        const l = st.itens.filter(i => i.aClassificar);
+        const fat = l.find(i => i.faturaId);
+        if (fat && l.every(i => i.faturaId === fat.faturaId)) return financeiroAbrirFatura(fat.faturaId);
+        if (l.length === 1) return fcAbrirItem(l[0]);
+        if (typeof abrirSheetAcoes === 'function') abrirSheetAcoes({ titulo: 'A classificar', sub: `${l.length} lançamentos`, acoes: l.slice(0, 30).map(i => ({ icone: i.faturaId ? 'credit-card' : 'tag', titulo: i.titulo, sub: `${formatarDataBR(i.data)} · ${moedaSinal(i.valor)}`, aoTocar: () => fcAbrirItem(i) })) });
+        return;
+    }
+    if (k === 'conciliar' && typeof switchTab === 'function') return switchTab('tab-conciliacao');
+    if (k === 'atraso' && typeof switchTab === 'function') return switchTab('tab-inadimplencia');
 }

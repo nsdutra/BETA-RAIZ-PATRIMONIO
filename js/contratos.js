@@ -1,7 +1,15 @@
 // ============================================================================
 // contratos.js — Raiz Patrimônio · Contratos (lista · ficha · formulário ·
 //                 status/reajuste/detalhes · fiadores · documentos · histórico)
-// Versão: 1.50.0 · 10/10/2026
+// Versão: 1.51.0 · 11/10/2026
+//
+// v1.51.0 (11/10/2026, sessão 20261008-1231-pessoas-ativos, demanda f3e6cd27; F13 4c etapa 4; Nicola 11/10 17:42, teste da etapa 3: "pode organizar melhor pro chip de performance desaparecer e deixar tudo no financeiro" e "Tente
+// unificar a experiência financeira pro ativo + contrato") — o chip Financeiro do contrato passa a usar a mesma visão
+// por competência do ativo (rzFinCompetencias, js/financeiro.js): mês a mês com recebido, despesas e situação; tocar
+// abre as categorias (o aluguel e as despesas do contrato) e daí os lançamentos — o recebimento abre o mesmo sheet de
+// sempre (Dar baixa, Recibo, Estornar). O cabeçalho do card (em atraso / em dia e o ⋮) continua igual.
+//
+// Versão anterior: 1.50.0 · 10/10/2026
 //
 // v1.50.0 (sessão 20261003-1707-ux-base, demanda 28aa5ce1 — teste do Nicola 10/10 21:43: "Retire o botão de filtro
 // porque o filtro oferecido é o mesmo dos chips") — o topo fica só com a barra digitável; o ícone de filtros e o
@@ -26,15 +34,8 @@
 // busca universal do Hoje: buscarContratosTexto(termo) usa o MESMO critério de texto da lista
 // (contratoBateTexto: locatário, CPF/CNPJ a partir de 3 dígitos, imóvel, endereço, empreendimento) e
 // verContratosComTexto(termo) abre a lista com o termo na barra, chip Todos e os outros filtros limpos.
-//
-// Versão anterior: 1.46.0 · 09/10/2026
-//
-// v1.46.0 (UX F2.3a, demanda fcd3008d, sessão 20261003-1707-ux-base; "Estou de acordo com f2.3 e opcao a" do Nicola 09/10 20:52) —
-// busca de Contratos em Sheet (abrirBuscaContratos): texto livre ao vivo (locatário, CPF/CNPJ, imóvel,
-// endereço, empreendimento — antes não havia busca por texto), chips de Empreendimento e a linha Imóvel,
-// com "Ver n contratos"; Situação e alerta continuam nos chips da tela (F2.4). O popup de filtros saiu.
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.45.0 … v1.45.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.46.0 … v1.46.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
 import { avaliarProntidaoContratoParaMinuta } from './minutas.js'; // v1.0.1
@@ -46,7 +47,7 @@ import { emitirEscrita, aoEscrever } from './raiz-eventos.js'; // v1.18.0 — Fa
 import { renderizarBlocoEndereco, lerBlocoEndereco } from './comum-endereco.js';
 import { formatarEnderecoParte } from './comum-partes.js';
 
-export const VERSAO = '1.50.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.51.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 
 /** Ponto de entrada do switchTab('tab-contratos'). */
 export function montarAbaContratos() {
@@ -1722,13 +1723,7 @@ if (!window.__rzListenerEscritaParteContratoLigado) {
                              de tab-mensal estar visível — leem/escrevem no
                              array global mensalidades, o mesmo em
                              qualquer aba. -->
-                        ${ultimasSeis.length ? ultimasSeis.map(m => `
-                        <div class="rz-row" onclick="switchTab('tab-mensal'); rzAcoesMensalidade('${m.id}')" style="cursor:pointer">
-                            <div class="rz-ic${classeMensal(m)}"><svg data-lucide="${iconeMensal(m)}"></svg></div>
-                            <div class="rz-tx"><b>${escapeHtmlSaidas(m.referencia || '—')}</b><span>${dataVencMensal(m)}</span></div>
-                            <div class="rz-rt"><b>${formatarMoedaBR(m.valorConfirmado)}</b>${statusMensal(m)}</div>
-                            <button type="button" class="rz-more" aria-label="Mais ações" onclick="event.stopPropagation(); rzAcoesMensalidade('${m.id}')"><svg data-lucide="ellipsis-vertical"></svg></button>
-                        </div>`).join('') : `<div class="rz-empty"><div class="rz-ic"><svg data-lucide="wallet"></svg></div><p>Nenhum recebimento lançado ainda. Eles nascem na aba Financeiro a cada competência.</p></div>`}
+                        <div id="fc-fin-comp"></div> <!-- v1.51.0 — visão única por competência (rzFinCompetencias) -->
 
                     </div>
                 </div>
@@ -1826,6 +1821,7 @@ if (!window.__rzListenerEscritaParteContratoLigado) {
             montarDistribuicaoContrato(con.id); // NOVO (19/09/2026, rodada 10)
             montarSimulacaoReajusteContrato(con.id); // v1.14.0 (B1.2)
             montarItensControleContrato(con.id); // v1.27.0 (Bloco B)
+            if (typeof window.rzFinCompetencias === 'function') window.rzFinCompetencias('fc-fin-comp', { contratoId: con.id }); // v1.51.0
         }
 
         // NOVO (19/09/2026, rodada 10, pedido explícito: "visão de

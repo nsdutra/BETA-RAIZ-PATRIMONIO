@@ -6,9 +6,14 @@
    (base derivada do RUMO v7.4.2 — histórico de versões anteriores
    preservado abaixo para referência técnica)
 
-   VERSÃO: Beta v1.371.0
-   LINHAS: 15786
-   DATA: 11/10/2026 (sessão 20261011-1315-marca-saidas, demanda 680ee9f8)
+   VERSÃO: Beta v1.372.0
+   LINHAS: 15789
+   DATA: 11/10/2026 (sessão 20261008-1231-pessoas-ativos, demanda f3e6cd27)
+   NOVIDADES (Beta v1.372.0) — F13 4c etapa 4: visão financeira única por competência no ativo e no contrato
+   (rzFinCompetencias), Performance dentro do Financeiro, Ocupação em Usos e contratos. Sem "‹ Financeiro" acima
+   de Saídas, Conciliação e Balanço. Import map: financeiro.js 1.52.0, cofre-ativos.js 1.92.0, ativos-markup.js 1.60.0,
+   contratos.js 1.51.0.
+   Versão anterior (Beta v1.371.0):
    NOVIDADES (Beta v1.371.0) — Marca e ramos, fase 6 — assinatura nas saídas (plano aprovado pelo Nicola 11/10 11:20; "Vamos avançar" 13:11).
    Recibo de aluguel: azul-marinho (#1a365d, fora da paleta) vira o verde da marca e ganha rodapé discreto com o símbolo
    "Emitido com Raiz Patrimônio · raizpatrimonio.com.br" (classe .rz-pdf-marca). PDFs de texto (demonstrativo de recebimentos e
@@ -32,12 +37,8 @@
    ativo_ramos.icone (UPDATE de dados em 5 linhas: heart-handshake, gem, wheat, fence, coins). comum-sobre.js 1.5.0 (assinatura no
    Suporte), manifest 1.2.0. Nenhum objeto de banco novo.
    Versão anterior (Beta v1.367.0):
-   NOVIDADES (Beta v1.367.0) — F13 4c etapa 2: Nova despesa com "Quem pagou (conta)" e "Dividir com outras pessoas";
-   editor de divisão com "Dividir igual" e só pessoas cadastradas. Só o import map muda aqui (financeiro.js 1.49.0,
-   raiz-ui.js 1.3.0).
-   Versão anterior (Beta v1.366.1):
    ------------------------------------------------------------------
-   Versões anteriores (v1.366.1 … v1.366.1): CHANGELOG_APP.md, na raiz do
+   Versões anteriores (v1.367.0 … v1.367.0): CHANGELOG_APP.md, na raiz do
    repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
    das 5 versões mais recentes deste cabeçalho.
 
@@ -62,7 +63,7 @@
          O navegador aplica o mapa também aos imports estáticos dentro dos
          módulos (cofre-app.js → ./cofre-api.js etc.). -->
     <!-- RZ-IMPORTMAP:INICIO -->
-    <script type="importmap">{"imports":{"./js/cadastros.js":"./js/cadastros.js?v=1.2.0","./js/financeiro.js":"./js/financeiro.js?v=1.51.0","./js/fechamento.js":"./js/fechamento.js?v=1.13.0","./js/contratos.js":"./js/contratos.js?v=1.50.0","./js/minutas.js":"./js/minutas.js?v=1.4.0","./js/vitrine.js":"./js/vitrine.js?v=1.5.2","./js/imoveis.js":"./js/imoveis.js?v=1.7.2","./js/cofre-api.js":"./js/cofre-api.js?v=1.50.0","./js/cofre-app.js":"./js/cofre-app.js?v=1.47.0","./js/cofre-ativos.js":"./js/cofre-ativos.js?v=1.91.0","./js/cofre-controles.js":"./js/cofre-controles.js?v=1.51.0","./js/cofre-documentos.js":"./js/cofre-documentos.js?v=2.35.0","./js/cofre-imagem.js":"./js/cofre-imagem.js?v=1.1.0","./js/cofre-estado.js":"./js/cofre-estado.js?v=1.5.2","./js/cofre-navegacao.js":"./js/cofre-navegacao.js?v=1.9.3","./js/cofre-ui.js":"./js/cofre-ui.js?v=1.7.2","./js/cofre-validacoes.js":"./js/cofre-validacoes.js?v=2.5.0","./js/comum-licenca.js":"./js/comum-licenca.js?v=1.8.0","./js/comum-renovacao.js":"./js/comum-renovacao.js?v=1.3.5","./js/comum-minha-empresa.js":"./js/comum-minha-empresa.js?v=1.14.0","./js/comum-pessoas.js":"./js/comum-pessoas.js?v=1.208.0","./js/comum-sobre.js":"./js/comum-sobre.js?v=1.5.0","./js/comum-endereco.js":"./js/comum-endereco.js?v=1.2.0","./js/comum-partes.js":"./js/comum-partes.js?v=1.0.0","./js/resultados.js":"./js/resultados.js?v=2.9.0","./js/indicadores.js":"./js/indicadores.js?v=1.0.0","./js/configuracao-inicial.js":"./js/configuracao-inicial.js?v=1.0.1","./js/relatorios-executivos.js":"./js/relatorios-executivos.js?v=1.2.0","./js/raiz-eventos.js":"./js/raiz-eventos.js?v=1.0.0","./js/raiz-device.js":"./js/raiz-device.js?v=1.0.0","./js/raiz-ui.js":"./js/raiz-ui.js?v=1.3.0","./js/fiscal.js":"./js/fiscal.js?v=1.5.2","./js/ativos/ativos-boot.js":"./js/ativos/ativos-boot.js?v=1.4.0","./js/ativos/ativos-markup.js":"./js/ativos/ativos-markup.js?v=1.59.0","./js/nucleo/porta.js":"./js/nucleo/porta.js?v=1.4.0","./js/partes.js":"./js/partes.js?v=1.0.2","./js/conta.js":"./js/conta.js?v=1.0.1"}}</script>
+    <script type="importmap">{"imports":{"./js/cadastros.js":"./js/cadastros.js?v=1.2.0","./js/financeiro.js":"./js/financeiro.js?v=1.52.0","./js/fechamento.js":"./js/fechamento.js?v=1.13.0","./js/contratos.js":"./js/contratos.js?v=1.51.0","./js/minutas.js":"./js/minutas.js?v=1.4.0","./js/vitrine.js":"./js/vitrine.js?v=1.5.2","./js/imoveis.js":"./js/imoveis.js?v=1.7.2","./js/cofre-api.js":"./js/cofre-api.js?v=1.50.0","./js/cofre-app.js":"./js/cofre-app.js?v=1.47.0","./js/cofre-ativos.js":"./js/cofre-ativos.js?v=1.92.0","./js/cofre-controles.js":"./js/cofre-controles.js?v=1.51.0","./js/cofre-documentos.js":"./js/cofre-documentos.js?v=2.35.0","./js/cofre-imagem.js":"./js/cofre-imagem.js?v=1.1.0","./js/cofre-estado.js":"./js/cofre-estado.js?v=1.5.2","./js/cofre-navegacao.js":"./js/cofre-navegacao.js?v=1.9.3","./js/cofre-ui.js":"./js/cofre-ui.js?v=1.7.2","./js/cofre-validacoes.js":"./js/cofre-validacoes.js?v=2.5.0","./js/comum-licenca.js":"./js/comum-licenca.js?v=1.8.0","./js/comum-renovacao.js":"./js/comum-renovacao.js?v=1.3.5","./js/comum-minha-empresa.js":"./js/comum-minha-empresa.js?v=1.14.0","./js/comum-pessoas.js":"./js/comum-pessoas.js?v=1.208.0","./js/comum-sobre.js":"./js/comum-sobre.js?v=1.5.0","./js/comum-endereco.js":"./js/comum-endereco.js?v=1.2.0","./js/comum-partes.js":"./js/comum-partes.js?v=1.0.0","./js/resultados.js":"./js/resultados.js?v=2.9.0","./js/indicadores.js":"./js/indicadores.js?v=1.0.0","./js/configuracao-inicial.js":"./js/configuracao-inicial.js?v=1.0.1","./js/relatorios-executivos.js":"./js/relatorios-executivos.js?v=1.2.0","./js/raiz-eventos.js":"./js/raiz-eventos.js?v=1.0.0","./js/raiz-device.js":"./js/raiz-device.js?v=1.0.0","./js/raiz-ui.js":"./js/raiz-ui.js?v=1.3.0","./js/fiscal.js":"./js/fiscal.js?v=1.5.2","./js/ativos/ativos-boot.js":"./js/ativos/ativos-boot.js?v=1.4.0","./js/ativos/ativos-markup.js":"./js/ativos/ativos-markup.js?v=1.60.0","./js/nucleo/porta.js":"./js/nucleo/porta.js?v=1.4.0","./js/partes.js":"./js/partes.js?v=1.0.2","./js/conta.js":"./js/conta.js?v=1.0.1"}}</script>
     <!-- RZ-IMPORTMAP:FIM -->
 
     <!-- ===== PWA: permite "instalar" o app no celular (Android e iPhone) ===== -->
@@ -3812,7 +3813,7 @@
         // texto certo toda vez (esqueci 5 versões seguidas, de v1.37.1 até
         // v1.38.3). Agora só precisa mudar UMA linha aqui a cada release;
         // window.onload aplica nos dois lugares automaticamente.
-        const APP_VERSAO = "Beta v1.371.0"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
+        const APP_VERSAO = "Beta v1.372.0"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
 
         // ====================================================================
         // v1.105.0 — HELPERS DE SUPERFÍCIE DA GRAMÁTICA ÚNICA
@@ -8274,6 +8275,7 @@ async function criarLinkVitrineSupabase(token, idsSelecionados) {
             'abrirLancarFinanceiro', 'abrirBuscaFinanceiro',
             'renderDistribuicao', 'distribMudarModo', 'distribFiltrar', 'abrirLancarDistribuicao', 'abrirFichaSocioDistribuicao', 'abrirLancarRetirada', 'rzAcoesRetirada', // v1.295.0 — Distribuição (P1b)
             'balancoVista', 'balancoAbrirPessoa', 'balancoHistorico', 'balancoQuitar', 'balancoCompensar', // v1.366.0 — Balanço (F13)
+            'rzFinCompetencias', // v1.372.0 — visão financeira por competência do ativo e do contrato (F13 4c etapa 4)
             'abrirAdicionarRecebimento', 'abrirReceitaAvulsa', 'renderOutrasReceitas', 'rzAcoesReceitaAvulsa', // v1.295.0 — receita sem contrato // v1.294.0 — "+" (Lançar) e barra de busca do topo (UXR-10/12)
             'abrirAcoesAdicionarFinanceiro', 'abrirNovoRecebimento', 'nrecAoTrocarContrato', 'nrecAlternarSituacao', 'salvarNovoRecebimento', // v1.246.0 — demanda 0e40951a, complemento: criar recebimento avulso
             'financeiroRedesenharQuadrantes', 'financeiroIrParaRotinas', // v1.249.0 — demanda 7bdcb8d4: 6 botões com status (chamado por fechamento.js) + Fiscal desligado
@@ -8350,7 +8352,8 @@ async function criarLinkVitrineSupabase(token, idsSelecionados) {
         // telas que já têm o próprio "voltar" no topo — sem atalho duplicado
         // Abas principais (barra inferior) nunca mostram o "‹": quem volta é a própria barra ou o
         // voltar do celular. Só tela secundária tem "‹ Pai". (dem b8602a3a)
-        var RZ_SEM_VOLTAR_GLOBAL = ['tab-inadimplencia', 'tab-contrato-ficha', 'tab-vitrine', 'tab-geral', 'tab-ativos', 'tab-contratos', 'tab-mensal', 'tab-alertas'];
+        var RZ_SEM_VOLTAR_GLOBAL = ['tab-inadimplencia', 'tab-contrato-ficha', 'tab-vitrine', 'tab-geral', 'tab-ativos', 'tab-contratos', 'tab-mensal', 'tab-alertas',
+            'tab-saidas', 'tab-conciliacao', 'tab-socios']; // v1.372.0 — Saídas, Conciliação e Balanço são irmãs de Recebimentos no segmento: sem "‹ Financeiro" (Nicola 11/10 17:42)
         // var (não let/const): switchTab pode ser chamada no boot antes desta linha ser avaliada
         var rzNavPorRodape = false, rzNavVoltando = false, rzNavEstado = null;
 

@@ -4,6 +4,17 @@ Histórico completo de versões do `index.html`, movido automaticamente pelo `ge
 
 ---
 
+NOVIDADES (Beta v1.367.0) — F13 4c etapa 2: Nova despesa com "Quem pagou (conta)" e "Dividir com outras pessoas";
+editor de divisão com "Dividir igual" e só pessoas cadastradas. Só o import map muda aqui (financeiro.js 1.49.0,
+raiz-ui.js 1.3.0).
+Versão anterior (Beta v1.366.1):
+------------------------------------------------------------------
+Versões anteriores (v1.366.1 … v1.366.1): CHANGELOG_APP.md, na raiz do
+repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
+das 5 versões mais recentes deste cabeçalho.
+
+---
+
 NOVIDADES (Beta v1.366.1) — só o import map: financeiro.js 1.48.1 (linha do Balanço é o toque do Quitar; chips ficam na tela
 quando o cálculo falha). Banco: repasses_embed_hf3_v1 (Sócios por mês voltou).
 Versão anterior (Beta v1.366.0):

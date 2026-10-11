@@ -1,6 +1,15 @@
 // ============================================================================
 // cofre-ativos.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.91.0 · 11/10/2026
+// Versão: 1.92.0 · 11/10/2026
+//
+// v1.92.0 (11/10/2026, sessão 20261008-1231-pessoas-ativos, demanda f3e6cd27; F13 4c etapa 4; Nicola 11/10 17:42, teste da etapa 3: "pode organizar melhor pro chip de performance desaparecer e deixar tudo no financeiro")
+// — o chip Financeiro do ativo é a visão única por competência (rzFinCompetencias, js/financeiro.js, a mesma do
+// contrato), com o balanço pendente no topo (⋮: Ver o balanço completo, Novo lançamento, Ver no Financeiro), as contas
+// e as extraordinárias do ativo pessoa e, no fim, os indicadores do ano (antes no chip Performance, que saiu). Sai a
+// seta de mês. Card novo "Ocupação" em Usos e contratos: dias alugado e vago e a taxa de ocupação, por ano ou todos
+// (fn_performance_ativo de cada ano).
+//
+// Versão anterior: 1.91.0 · 11/10/2026
 //
 // v1.91.0 (11/10/2026, sessão 20261008-1231-pessoas-ativos, demanda f3e6cd27; F13 4c etapa 3,
 // PROTOTIPO_FINANCEIRO_DO_ATIVO v1.0.0, D81 a D84; Nicola 12:55 "Pode avançar") — chip "Financeiro" do ativo
@@ -32,16 +41,11 @@
 // em Usos e contratos lista os modelos disponíveis para o ativo (matriz tipo × modelo, ramos contratados); Aluguel e
 // Temporada seguem para os 3 caminhos de contrato já com o modelo; Short stay e outros em breve aparecem apagados.
 // Cada contrato do card mostra o seu modelo. Versão anterior: 1.87.0.
-//
-// v1.87.0 (10/10/2026, sessão 20261008-1231-pessoas-ativos, demanda a3f4c73f; Nicola 10/10 20:33: "apenas deixe a barra
-// como consolidado dos usos (...) os usos não serão cadastrados, mas fruto do próprio contrato e itens de uso (...) o
-// repouso é configuração por tipo de ativo, não visível ao usuário agora") — o card Usos vira só a barra consolidada
-// com "Hoje: …". Saem da tela a lista de usos, Novo uso, Encerrar, Excluir e o repouso.
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.86.0 … v1.86.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.87.0 … v1.87.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '1.91.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.92.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 import { estado } from './cofre-estado.js';
 import * as api from './cofre-api.js';
 import { mostrarToast, erroInline, refrescarIcones, alternarToggle, abrirModal, fecharModal, modalGenerico, perguntar, avisarComDesfazer } from './cofre-ui.js';
@@ -1254,6 +1258,7 @@ export async function abrirFichaAtivo(id, chipInicial = 'resumo') {
         seguro(montarControlesAtivo, 'montarControlesAtivo'),
         seguro(montarContratosAtivo, 'montarContratosAtivo'),
         seguro(montarUsosAtivo, 'montarUsosAtivo'), // v1.86.0 (F25)
+        seguro(montarOcupacaoAtivo, 'montarOcupacaoAtivo'), // v1.92.0
         seguro(montarFotosAtivo, 'montarFotosAtivo'),
         seguro(montarFinanceiroAtivo, 'montarFinanceiroAtivo'),
         seguro(montarPropriedadeAtivo, 'montarPropriedadeAtivo'),
@@ -1309,7 +1314,7 @@ export function faTrocarAba(nomeAba) {
     // inline). Compatibilidade: 'dados' → 'resumo', 'propriedade' → 'resumo',
     // 'documentos'/'fotos' → 'arquivos' (quem chamava com os nomes antigos
     // continua caindo no lugar certo).
-    const mapa = { dados: 'resumo', propriedade: 'resumo', documentos: 'arquivos', fotos: 'arquivos' };
+    const mapa = { dados: 'resumo', propriedade: 'resumo', documentos: 'arquivos', fotos: 'arquivos', financeiro: 'movimento' }; // v1.92.0 — Performance virou parte do Financeiro
     const alvo = mapa[nomeAba] || nomeAba;
     // v1.27.0 — chip com código bloqueado: cadeado e não troca (porta única).
     const cod = CHIP_CODIGO[alvo];
@@ -1673,8 +1678,6 @@ function montarGridPerformanceAtivo(perf) {
         kv('Rentabilidade', rentabilidadeTxt),
         kv('Receita do ano', fmtMoedaAtivo(perf.receita_ano)),
         kv('Patrimônio', fmtMoedaAtivo(perf.patrimonio) + (perf.patrimonio_revisado_em ? ` <small style="font-weight:400">· revisado ${formatarDataBR(perf.patrimonio_revisado_em)}</small>` : '')),
-        kv('Dias alugado no ano', perf.dias_alugado != null ? `${perf.dias_alugado} dias` : '—'),
-        kv('Dias vago no ano', perf.dias_vago != null ? `${perf.dias_vago} dias` : '—'),
         kv('Tributos', fmtMoedaAtivo(perf.tributos)),
         kv('Manutenção', fmtMoedaAtivo(perf.manutencao)),
         kv('Seguros', fmtMoedaAtivo(perf.seguros)),
@@ -1686,7 +1689,7 @@ function montarGridPerformanceAtivo(perf) {
     // nativa do Cofre, em vez do abrirSheet do app principal (os 2
     // convivem — cada módulo usa a UI que já tinha).
     return `<div class="rz-card">
-        <div class="rz-card-h" style="justify-content:space-between"><h3>Performance</h3><button type="button" data-action="fa-info-performance" class="text-slate-400" title="O que é isso?" aria-label="O que é isso?" style="line-height:0"><svg data-lucide="info" style="width:14px;height:14px"></svg></button></div>
+        <div class="rz-card-h" style="justify-content:space-between"><h3>Indicadores do ano</h3><button type="button" data-action="fa-info-performance" class="text-slate-400" title="O que é isso?" aria-label="O que é isso?" style="line-height:0"><svg data-lucide="info" style="width:14px;height:14px"></svg></button></div>
         <div class="rz-kv">${linhas.join('')}</div>
     </div>`;
 }
@@ -2041,128 +2044,47 @@ export function abrirAcoesControlesAtivo() {
 }
 
 // ============================================================================
-// v1.91.0 — CHIP FINANCEIRO DO ATIVO (F13 4c etapa 3, D81 a D84). Uma estrutura para todo ativo: balanço pendente
-// com Quitar, Entrou/Saiu, contas e cartões (ativo pessoa), extraordinárias (F13.7) e movimentações do mês.
-// Os números vêm do banco (fn_balanco_pessoas, fn_retiradas_extraordinarias e as tabelas com RLS); a tela só soma
-// o que mostra. Quitar e os detalhes abrem as telas do Financeiro (js/financeiro.js, pelo window).
+// v1.92.0 — CHIP FINANCEIRO DO ATIVO (F13 4c etapas 3 e 4). Balanço pendente no topo (⋮ com o balanço completo),
+// contas e extraordinárias do ativo pessoa, a visão por competência (rzFinCompetencias, a mesma do contrato) e os
+// indicadores do ano no fim. Lê fn_balanco_pessoas e fn_retiradas_extraordinarias; o resto vem do Financeiro.
 // ============================================================================
-let movAtivoId = null, movMes = null, movFiltro = 'todas', movDados = null;
-const MOV_NOMES_MES = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
+let movAtivoId = null;
 const MOV_NATUREZA = { distribuicao: 'distribuição', reembolso: 'reembolso', adiantamento: 'adiantamento', rateio: 'rateio', extraordinaria: 'retirada extraordinária' };
 const movEsc = (t) => escapeHtml(String(t ?? ''));
-function movHoje() { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-01`; }
-function movFimDoMes(iso) { const d = new Date(Number(iso.slice(0, 4)), Number(iso.slice(5, 7)), 0); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; }
-function movSomarMes(iso, n) { const d = new Date(Number(iso.slice(0, 4)), Number(iso.slice(5, 7)) - 1 + n, 1); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-01`; }
-function movDataBR(iso) { return iso ? `${iso.slice(8, 10)}/${iso.slice(5, 7)}` : ''; }
 
 export async function montarMovimentoAtivo(a) {
     const corpo = document.getElementById('fa-movimento-corpo');
     if (!corpo || !a) return;
-    if (movAtivoId !== a.id) { movAtivoId = a.id; movMes = movHoje(); movFiltro = 'todas'; }
-    corpo.innerHTML = movTopo() + rzSk('linhas', 3);
+    movAtivoId = a.id;
+    const pessoaId = a.entidade_origem_tipo === 'pessoa' ? a.entidade_origem_id : null;
+    corpo.innerHTML = `<div id="fa-mov-topo">${rzSk('linhas', 2)}</div><div id="fa-mov-comp"></div>`;
     refrescarIcones();
-    const id = a.id;
+    if (typeof window.rzFinCompetencias === 'function') window.rzFinCompetencias('fa-mov-comp', { ativoId: a.id, pessoaId, nome: a.nome_exibicao });
+    else document.getElementById('fa-mov-comp').innerHTML = `<p class="rz-desc">O financeiro do ativo abre só dentro do app principal.</p>`;
     try {
-        const dados = await movCarregar(a, movMes);
-        if (movAtivoId !== id) return; // outro ativo abriu no meio
-        movDados = dados;
-        movDesenhar(a);
+        const db = api.dbAuth, cli = estado.clienteId, hoje = new Date().toISOString().slice(0, 10);
+        const ok = (r, nome) => { if (r?.error) throw new Error(`${nome}: ${r.error.message || r.error}`); return r?.data || []; };
+        const [rB, rX, rC] = await Promise.all([
+            db.rpc('fn_balanco_pessoas', { p_cliente_id: cli, p_ate: hoje, p_ativo_id: pessoaId ? null : a.id }),
+            pessoaId ? db.rpc('fn_retiradas_extraordinarias', { p_cliente_id: cli, p_pessoa_id: pessoaId, p_de: `${hoje.slice(0, 4)}-01-01`, p_ate: hoje }) : Promise.resolve({ data: [] }),
+            pessoaId ? db.from('conta_controle').select('id, nome, tipo, final_identificador, situacao, dia_vencimento').eq('cliente_id', cli).eq('titular_tipo', 'pessoa').eq('pessoa_id', pessoaId) : Promise.resolve({ data: [] }),
+        ]);
+        if (movAtivoId !== a.id) return;
+        const bal = ok(rB, 'balanço').filter(l => Math.abs(Number(l.valor || 0)) > 0.004 && (!pessoaId || l.pessoa_id === pessoaId));
+        movDesenharTopo(a, pessoaId, bal, ok(rX, 'extraordinárias'), ok(rC, 'contas'));
     } catch (err) {
         console.warn('[cofre-ativos] financeiro do ativo falhou:', err?.message || err);
-        corpo.innerHTML = movTopo() + `<div class="rz-card"><div class="rz-empty"><div class="rz-ic"><i data-lucide="alert-circle"></i></div>
-            <p>Não consegui carregar o financeiro deste ativo agora.<br><small style="color:var(--muted)">${movEsc(err?.message || err)}</small></p></div></div>`;
-        movLigarTopo(a);
-        refrescarIcones();
+        const t = document.getElementById('fa-mov-topo');
+        if (t) t.innerHTML = `<div class="rz-card"><p class="rz-desc" style="color:var(--danger)">Não consegui ler o balanço agora.<br><small>${movEsc(err?.message || err)}</small></p></div>`;
     }
 }
 
-function movTopo() {
-    const m = movMes || movHoje();
-    return `<div class="rz-card" style="display:flex;align-items:center;justify-content:space-between;padding:8px 12px">
-        <button type="button" class="rz-more" data-mov-mes="-1" aria-label="Mês anterior"><i data-lucide="chevron-left"></i></button>
-        <b>${MOV_NOMES_MES[Number(m.slice(5, 7)) - 1]}/${m.slice(0, 4)}</b>
-        <button type="button" class="rz-more" data-mov-mes="1" aria-label="Próximo mês"><i data-lucide="chevron-right"></i></button>
-    </div>`;
-}
-function movLigarTopo(a) {
-    document.querySelectorAll('#fa-movimento-corpo [data-mov-mes]').forEach(b => b.addEventListener('click', () => {
-        movMes = movSomarMes(movMes || movHoje(), Number(b.dataset.movMes)); montarMovimentoAtivo(a);
-    }));
-}
-
-async function movCarregar(a, mes) {
-    const db = api.dbAuth, cli = estado.clienteId, ate = movFimDoMes(mes);
-    const pessoaId = a.entidade_origem_tipo === 'pessoa' ? a.entidade_origem_id : null;
-    const ok = (r, nome) => { if (r?.error) throw new Error(`${nome}: ${r.error.message || r.error}`); return r?.data || []; };
-    const contas = pessoaId ? ok(await db.from('conta_controle').select('id, nome, tipo, final_identificador, situacao, dia_vencimento')
-        .eq('cliente_id', cli).eq('titular_tipo', 'pessoa').eq('pessoa_id', pessoaId), 'contas') : [];
-    const idsContas = contas.map(c => c.id);
-    let qL = db.from('lancamentos').select('id, descricao, categoria, valor, direcao, status, vencimento, data_pagamento, competencia, conta_id, fatura_id, ativo_id')
-        .eq('cliente_id', cli).eq('competencia', mes);
-    qL = idsContas.length ? qL.or(`ativo_id.eq.${a.id},conta_id.in.(${idsContas.join(',')})`) : qL.eq('ativo_id', a.id);
-    let qR = db.from('repasses').select('id, valor, data_real, competencia, natureza, de_tipo, de_pessoa_id, para_tipo, pessoa_id, observacao')
-        .eq('cliente_id', cli).eq('competencia', mes);
-    qR = pessoaId ? qR.or(`pessoa_id.eq.${pessoaId},de_pessoa_id.eq.${pessoaId}`) : qR.eq('ativo_id', a.id);
-    const [rL, rM, rR, rB, rX, rC] = await Promise.all([
-        qL,
-        pessoaId ? Promise.resolve({ data: [] }) : db.from('mensalidades').select('id, competencia, status, valor_confirmado, data_pgto, contratos!inner(id, ativo_id, locatario, valor, vencimento_dia)')
-            .eq('cliente_id', cli).eq('competencia', mes).eq('contratos.ativo_id', a.id),
-        qR,
-        db.rpc('fn_balanco_pessoas', { p_cliente_id: cli, p_ate: ate, p_ativo_id: pessoaId ? null : a.id }),
-        pessoaId ? db.rpc('fn_retiradas_extraordinarias', { p_cliente_id: cli, p_pessoa_id: pessoaId, p_de: `${mes.slice(0, 4)}-01-01`, p_ate: ate }) : Promise.resolve({ data: [] }),
-        db.from('lancamento_categorias').select('codigo, nome'),
-    ]);
-    const lanc = ok(rL, 'lançamentos'), mens = ok(rM, 'recebimentos'), reps = ok(rR, 'quitações');
-    const bal = ok(rB, 'balanço').filter(l => Math.abs(Number(l.valor || 0)) > 0.004 && (!pessoaId || l.pessoa_id === pessoaId));
-    const extras = ok(rX, 'extraordinárias');
-    const cat = Object.fromEntries((rC?.data || []).map(c => [c.codigo, c.nome]));
-    const idsP = [...new Set(reps.flatMap(r => [r.pessoa_id, r.de_pessoa_id]).filter(Boolean))];
-    const nomes = idsP.length ? Object.fromEntries(ok(await db.from('pessoas').select('id, nome').in('id', idsP), 'pessoas').map(p => [p.id, p.nome])) : {};
-    return { mes, pessoaId, contas, lanc, mens, reps, bal, extras, cat, nomes };
-}
-
-function movItens(d, a) {
-    const contaPor = Object.fromEntries(d.contas.map(c => [c.id, c]));
-    const rotConta = (id) => { const c = contaPor[id]; return c ? `${c.nome}${c.final_identificador ? ' ··' + c.final_identificador : ''}` : ''; };
-    const itens = [];
-    d.lanc.forEach(l => {
-        const entrada = l.direcao === 'entrada';
-        itens.push({ tipo: l.fatura_id ? 'cartao' : (entrada ? 'entrada' : 'saida'), id: l.id, faturaId: l.fatura_id, entrada,
-            data: l.data_pagamento || l.vencimento || l.competencia, titulo: l.descricao || d.cat[l.categoria] || 'Lançamento',
-            sub: [d.cat[l.categoria] || l.categoria, rotConta(l.conta_id)].filter(Boolean).join(' · '),
-            valor: (entrada ? 1 : -1) * Number(l.valor || 0), status: l.status === 'realizado' ? (entrada ? 'Recebido' : 'Pago') : '',
-            icone: l.fatura_id ? 'credit-card' : (entrada ? 'arrow-down-left' : 'arrow-up-right') });
-    });
-    d.mens.forEach(m => {
-        const pago = m.status === 'pago';
-        itens.push({ tipo: 'entrada', id: m.id, mensalidade: true, entrada: true, data: m.data_pgto || m.competencia,
-            titulo: `Aluguel · ${m.contratos?.locatario || 'contrato'}`, sub: pago ? `Recebido em ${movDataBR(m.data_pgto)}` : `Vence dia ${m.contratos?.vencimento_dia || '—'}`,
-            valor: Number((pago ? m.valor_confirmado : null) ?? m.contratos?.valor ?? 0), status: pago ? 'Pago' : 'Em aberto', icone: 'key' });
-    });
-    d.reps.forEach(r => {
-        const nomeP = (id) => (id && id === d.pessoaId ? (a.nome_exibicao || d.nomes[id]) : d.nomes[id]) || 'Pessoa';
-        const nomeDe = r.de_tipo === 'caixa' ? 'Empresa' : nomeP(r.de_pessoa_id);
-        const nomePara = r.para_tipo === 'caixa' ? 'Empresa' : nomeP(r.pessoa_id);
-        const sinal = d.pessoaId ? (r.pessoa_id === d.pessoaId ? 1 : -1) : (r.de_tipo === 'caixa' ? -1 : 1);
-        itens.push({ tipo: 'quitacao', id: r.id, data: r.data_real || r.competencia, entrada: sinal > 0,
-            titulo: `${nomeDe} pagou a ${nomePara}`, sub: `Quitação · ${MOV_NATUREZA[r.natureza] || r.natureza}${r.observacao ? ' · ' + r.observacao : ''}`,
-            valor: sinal * Number(r.valor || 0), status: r.natureza === 'extraordinaria' ? 'Extraordinária' : '', icone: 'handshake' });
-    });
-    return itens.sort((x, y) => String(y.data).localeCompare(String(x.data)));
-}
-
-function movDesenhar(a) {
-    const corpo = document.getElementById('fa-movimento-corpo');
-    const d = movDados; if (!corpo || !d) return;
-    const fmt = fmtMoedaAtivo;
-    const itens = movItens(d, a);
-    const entrou = itens.filter(i => i.valor > 0).reduce((t, i) => t + i.valor, 0);
-    const saiu = itens.filter(i => i.valor < 0).reduce((t, i) => t - i.valor, 0);
-    // Balanço pendente (D82): cada linha é "quem deve a quem"; o toque abre o Quitar do Balanço (D83)
-    const nomeAtivo = a.nome_exibicao || 'Pessoa';
-    const totalAberto = d.bal.reduce((t, l) => t + Math.abs(Number(l.valor || 0)), 0);
-    const linhaBal = (l, i) => {
-        const pn = (t) => String(t || '').split(' ')[0]; // primeiro nome: a frase cabe na linha
+function movDesenharTopo(a, pessoaId, bal, ex, contas) {
+    const t = document.getElementById('fa-mov-topo'); if (!t) return;
+    const fmt = fmtMoedaAtivo, nomeAtivo = a.nome_exibicao || 'Pessoa';
+    const pn = (x) => String(x || '').split(' ')[0]; // primeiro nome: a frase cabe na linha
+    const total = bal.reduce((s, l) => s + Math.abs(Number(l.valor || 0)), 0);
+    const linha = (l, i) => {
         const v = Number(l.valor || 0), quem = pn(l.nome || nomeAtivo), contra = l.contraparte_tipo === 'caixa' ? 'Empresa' : pn(l.contraparte_nome);
         const frase = v > 0 ? `${contra} deve a ${quem}` : `${quem} deve ${l.contraparte_tipo === 'caixa' ? 'à' : 'a'} ${contra}`;
         return `<div class="rz-row rz-link" role="button" tabindex="0" data-mov-bal="${i}">
@@ -2170,69 +2092,60 @@ function movDesenhar(a) {
             <div class="rz-tx"><b>${movEsc(frase)}</b><span>${movEsc(MOV_NATUREZA[l.natureza] || l.natureza)}</span></div>
             <div class="rz-rt"><b>${fmt(Math.abs(v))}</b><small style="display:block;text-align:right;color:var(--pine)">Quitar ›</small></div></div>`;
     };
-    const cardBal = `<div class="rz-card rz-list"><div class="rz-card-h" style="padding-top:10px;margin-bottom:0"><h3>Balanço pendente</h3><span class="rz-sub">${d.bal.length ? fmt(totalAberto) + ' em aberto' : 'nada em aberto'}</span></div>` +
-        (d.bal.length ? d.bal.map(linhaBal).join('') : `<p class="rz-desc" style="margin:4px 14px 10px">${d.pessoaId ? 'Nada em aberto com ' + movEsc(nomeAtivo) : 'Nada em aberto ligado a este ativo'} até o fim do mês.</p>`) +
-        `<button type="button" class="rz-act" data-mov-balanco><div class="rz-ic"><i data-lucide="scale"></i></div><div>Ver o balanço completo<small>Todas as pessoas e o histórico de quitações</small></div></button></div>`;
-    const kpis = `<div class="rz-kpis"><div class="rz-kpi"><small>Saiu no mês</small><b>${fmt(saiu)}</b></div><div class="rz-kpi rz-in"><small>Entrou no mês</small><b>${fmt(entrou)}</b></div></div>`;
-    // Contas e cartões (ativo pessoa, F18) e retiradas extraordinárias (F13.7)
-    const cardContas = d.contas.length ? `<div class="rz-card rz-list"><div class="rz-card-h" style="padding-top:10px;margin-bottom:0"><h3>Contas e cartões</h3><span class="rz-sub">${d.contas.length}</span></div>` +
-        d.contas.map(c => { const cartao = c.tipo === 'cartao_credito';
-            const gasto = d.lanc.filter(l => l.conta_id === c.id && l.direcao !== 'entrada').reduce((t, l) => t + Number(l.valor || 0), 0);
+    const cardBal = `<div class="rz-card rz-list"><div class="rz-card-h" style="padding-top:10px;margin-bottom:0"><h3>Balanço pendente</h3><span class="rz-sub">${bal.length ? fmt(total) + ' em aberto' : 'nada em aberto'}</span><button type="button" class="rz-more" data-mov-menu aria-label="Mais ações"><i data-lucide="ellipsis-vertical"></i></button></div>` +
+        (bal.length ? bal.map(linha).join('') : `<p class="rz-desc" style="margin:4px 14px 10px">${pessoaId ? 'Nada em aberto com ' + movEsc(nomeAtivo) : 'Nada em aberto ligado a este ativo'}.</p>`) + '</div>';
+    const cardContas = contas.length ? `<div class="rz-card rz-list"><div class="rz-card-h" style="padding-top:10px;margin-bottom:0"><h3>Contas e cartões</h3><span class="rz-sub">${contas.length}</span></div>` +
+        contas.map(c => { const cartao = c.tipo === 'cartao_credito';
             return `<div class="rz-row"><div class="rz-ic"><i data-lucide="${cartao ? 'credit-card' : 'landmark'}"></i></div>
-                <div class="rz-tx"><b>${movEsc(c.nome)}${c.final_identificador ? ' ··' + movEsc(c.final_identificador) : ''}</b><span>${cartao ? `Cartão de crédito${c.dia_vencimento ? ' · vence dia ' + c.dia_vencimento : ''}` : 'Conta'}${c.situacao !== 'ativa' ? ' · encerrada' : ''}</span></div>
-                <div class="rz-rt"><b>${fmt(gasto)}</b><small style="display:block;text-align:right;color:var(--muted)">no mês</small></div></div>`; }).join('') + '</div>' : '';
-    const ex = d.extras || [];
+                <div class="rz-tx"><b>${movEsc(c.nome)}${c.final_identificador ? ' ··' + movEsc(c.final_identificador) : ''}</b><span>${cartao ? `Cartão de crédito${c.dia_vencimento ? ' · vence dia ' + c.dia_vencimento : ''}` : 'Conta'}${c.situacao !== 'ativa' ? ' · encerrada' : ''}</span></div></div>`; }).join('') + '</div>' : '';
     const cardExtra = ex.length ? `<div class="rz-card"><div class="rz-card-h"><h3>Retiradas extraordinárias</h3><span class="rz-sub">fora do fluxo dos imóveis</span></div>
         <div class="rz-kv"><div><small>No ano</small><b>${fmt(ex[0].total_ano)}</b></div><div><small>Acumulado</small><b>${fmt(ex[0].total_acumulado)}</b></div><div><small>Retiradas no ano</small><b>${ex.length}</b></div></div></div>` : '';
-    // Movimentações (filtros)
-    const cont = { todas: itens.length, saida: itens.filter(i => i.tipo === 'saida').length, entrada: itens.filter(i => i.tipo === 'entrada').length,
-        cartao: itens.filter(i => i.tipo === 'cartao').length, quitacao: itens.filter(i => i.tipo === 'quitacao').length };
-    if (!cont[movFiltro]) movFiltro = 'todas';
-    const chip = (k, r) => cont[k] || k === 'todas' ? `<button type="button" class="rz-chip${movFiltro === k ? ' rz-on' : ''}" data-mov-filtro="${k}">${r} <span class="rz-n">${cont[k]}</span></button>` : '';
-    const vis = itens.filter(i => movFiltro === 'todas' || i.tipo === movFiltro);
-    const lista = vis.length ? `<div class="rz-card rz-list">` + vis.map((i, k) => `<div class="rz-row rz-link" role="button" tabindex="0" data-mov-item="${itens.indexOf(i)}">
-            <div class="rz-ic${i.valor > 0 ? '' : ' rz-neu'}"><i data-lucide="${i.icone}"></i></div>
-            <div class="rz-tx"><b>${movEsc(i.titulo)}</b><span>${movDataBR(i.data)}${i.sub ? ' · ' + movEsc(i.sub) : ''}</span></div>
-            <div class="rz-rt"><b class="${i.valor > 0 ? 'rz-in' : 'rz-out'}">${i.valor > 0 ? '+ ' : '− '}${fmt(Math.abs(i.valor))}</b>${i.status ? `<small style="display:block;text-align:right;color:var(--muted)">${movEsc(i.status)}</small>` : ''}</div></div>`).join('') + '</div>'
-        : `<div class="rz-card"><div class="rz-empty"><div class="rz-ic"><i data-lucide="wallet"></i></div><p>Nada neste mês.</p></div></div>`;
-    const nota = `<p class="rz-desc" style="margin:6px 4px 12px">Entram aqui: ${d.pessoaId ? 'lançamentos com ' + movEsc(nomeAtivo) + ' como ativo, as compras das contas e cartões da pessoa e as quitações com ela' : 'lançamentos deste ativo, os recebimentos dos contratos dele e as quitações ligadas a ele'}. Toque abre no Financeiro.</p>`;
-    corpo.innerHTML = movTopo() + cardBal + kpis + cardContas + cardExtra +
-        `<div class="rz-chips">${chip('todas', 'Todas')}${chip('saida', 'Saídas')}${chip('entrada', 'Entradas')}${chip('cartao', 'Cartão')}${chip('quitacao', 'Quitações')}</div>` + lista + nota;
-    movLigarTopo(a);
-    corpo.querySelectorAll('[data-mov-filtro]').forEach(b => b.addEventListener('click', () => { movFiltro = b.dataset.movFiltro; movDesenhar(a); }));
-    corpo.querySelectorAll('[data-mov-bal]').forEach(b => b.addEventListener('click', () => movQuitar(a, d.bal[Number(b.dataset.movBal)])));
-    corpo.querySelector('[data-mov-balanco]')?.addEventListener('click', () => movAbrirBalanco());
-    corpo.querySelectorAll('[data-mov-item]').forEach(b => b.addEventListener('click', () => movAbrirItem(itens[Number(b.dataset.movItem)])));
+    t.innerHTML = cardBal + cardContas + cardExtra;
+    t.querySelectorAll('[data-mov-bal]').forEach(b => b.addEventListener('click', (ev) => { ev.stopPropagation(); movQuitar(a, bal[Number(b.dataset.movBal)]); }));
+    t.querySelector('[data-mov-menu]')?.addEventListener('click', (ev) => { ev.stopPropagation(); abrirAcoesFinanceiroAtivo(); });
     refrescarIcones();
 }
 
 function movQuitar(a, l) {
     if (!l) return;
     if (typeof window.balancoQuitar !== 'function') { mostrarToast('O Quitar abre só dentro do app principal.', 'erro'); return; }
-    const p = { pessoaId: l.pessoa_id, nome: l.nome || a.nome_exibicao, chave: l.pessoa_id };
-    const linha = { contraparteTipo: l.contraparte_tipo, contraparteId: l.contraparte_id || null, contraparteNome: l.contraparte_nome || 'Empresa',
-        natureza: l.natureza, valor: Number(l.valor || 0), ultimo: l.ultimo_movimento };
-    window.balancoQuitar(p, linha);
+    window.balancoQuitar({ pessoaId: l.pessoa_id, nome: l.nome || a.nome_exibicao, chave: l.pessoa_id },
+        { contraparteTipo: l.contraparte_tipo, contraparteId: l.contraparte_id || null, contraparteNome: l.contraparte_nome || 'Empresa', natureza: l.natureza, valor: Number(l.valor || 0), ultimo: l.ultimo_movimento });
 }
 function movAbrirBalanco() {
     if (typeof window.switchTab !== 'function') { mostrarToast('O Balanço abre só dentro do app principal.', 'erro'); return; }
     window.switchTab('tab-socios');
     if (typeof window.balancoVista === 'function') setTimeout(() => window.balancoVista('pessoas'), 60);
 }
-function movAbrirItem(i) {
-    if (!i) return;
-    const w = window;
-    if (i.faturaId && typeof w.financeiroAbrirFatura === 'function') return w.financeiroAbrirFatura(i.faturaId);
-    if (i.mensalidade && typeof w.rzAcoesMensalidade === 'function') return w.rzAcoesMensalidade(i.id);
-    if (i.tipo === 'saida' && typeof w.rzAcoesDespesa === 'function') return w.rzAcoesDespesa(i.id);
-    if (i.tipo === 'entrada' && !i.mensalidade && typeof w.rzAcoesReceitaAvulsa === 'function') return w.rzAcoesReceitaAvulsa(i.id);
-    if (i.tipo === 'quitacao') return movAbrirBalanco();
-    mostrarToast('Este movimento abre só dentro do app principal.', 'erro');
+
+// v1.92.0 — Ocupação (antes no grid da Performance): dias alugado e vago e a taxa, por ano ou somando todos os anos
+// desde o primeiro contrato. Só aparece para ativo que tem a medida (fn_performance_ativo devolve nulo nos outros).
+let ocupAno = null, ocupAtivoId = null;
+async function montarOcupacaoAtivo(a) {
+    const card = document.getElementById('fa-card-ocupacao'); if (!card) return;
+    if (ocupAtivoId !== a.id) { ocupAtivoId = a.id; ocupAno = String(new Date().getFullYear()); }
+    const anoAtual = new Date().getFullYear();
+    const { data: cs } = await api.dbAuth.from('contratos').select('inicio').eq('ativo_id', a.id).not('inicio', 'is', null).order('inicio').limit(1);
+    const primeiro = Math.min(anoAtual, Number(String(cs?.[0]?.inicio || anoAtual).slice(0, 4)) || anoAtual);
+    const anos = ocupAno === 'todos' ? Array.from({ length: anoAtual - primeiro + 1 }, (_, i) => primeiro + i) : [Number(ocupAno)];
+    const perfs = (await Promise.all(anos.map(y => api.buscarPerformanceAtivo(a.id, y)))).filter(Boolean);
+    if (ocupAtivoId !== a.id) return;
+    if (!perfs.some(p => p.dias_alugado != null)) { card.classList.add('hidden'); return; }
+    const alug = perfs.reduce((t, p) => t + Number(p.dias_alugado || 0), 0), vago = perfs.reduce((t, p) => t + Number(p.dias_vago || 0), 0);
+    const taxa = alug + vago > 0 ? Math.round(alug * 1000 / (alug + vago)) / 10 : null;
+    const chip = (v, r) => `<button type="button" class="rz-chip${ocupAno === v ? ' rz-on' : ''}" data-ocup-ano="${v}">${r}</button>`;
+    const opcoes = [String(anoAtual), String(anoAtual - 1)].filter(y => Number(y) >= primeiro);
+    card.innerHTML = `<div class="rz-card-h"><h3>Ocupação</h3><span class="rz-sub">${ocupAno === 'todos' ? `${primeiro} a ${anoAtual}` : ocupAno}</span></div>
+        <div class="rz-chips" style="margin-top:8px">${opcoes.map(y => chip(y, y)).join('')}${chip('todos', 'Todos')}</div>
+        <div class="rz-kv"><div><small>Dias alugado</small><b>${alug} dias</b></div><div><small>Dias vago</small><b>${vago} dias</b></div><div><small>Ocupação</small><b>${taxa == null ? '—' : String(taxa).replace('.', ',') + '%'}</b></div></div>`;
+    card.classList.remove('hidden');
+    card.querySelectorAll('[data-ocup-ano]').forEach(b => b.addEventListener('click', (ev) => { ev.stopPropagation(); ocupAno = b.dataset.ocupAno; montarOcupacaoAtivo(a); }));
 }
 
 export function abrirAcoesFinanceiroAtivo() {
     const a = estado.ativoEmFoco; if (!a) return;
     sheetOuAviso({ titulo: 'Financeiro', sub: a.nome_exibicao, acoes: [
+        { icone: 'scale', titulo: 'Ver o balanço completo', codigo: 'repasses.ver', sub: 'Todas as pessoas e o histórico de quitações', aoTocar: () => movAbrirBalanco() }, // v1.92.0
         { icone: 'plus', titulo: 'Novo lançamento', codigo: 'saidas.registrar', sub: 'Saída ligada a este ativo', aoTocar: () => abrirNovoLancamentoDoAtivo() },
         { icone: 'wallet', titulo: 'Ver no Financeiro', codigo: 'mensal.ver', sub: 'Todas as saídas deste ativo', aoTocar: () => abrirSaidasDoAtivo() },
     ] });
