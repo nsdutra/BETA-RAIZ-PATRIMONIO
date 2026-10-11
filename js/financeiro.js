@@ -1,7 +1,15 @@
 // ============================================================================
 // financeiro.js — Raiz Patrimônio · Financeiro (Recebimentos · Atrasados · Saídas
 //                  · conciliação de extrato · recibo · detalhe do recebimento)
-// Versão: 1.45.0 · 10/10/2026
+// Versão: 1.46.0 · 10/10/2026
+//
+// v1.46.0 (correção da etapa 6 · C, demanda b4b047fd; teste do Nicola 10/10 23:23: "ao clicar no cobrar a 1ª vez não
+// abre, só na 2ª" e "cobrar só gera msg de celular não cadastrado") — o sheet de cobrança abre NA HORA do toque (antes
+// esperava a consulta do Pix e, sem celular, só mostrava um aviso). O Pix chega depois e atualiza a prévia. O celular
+// vem do contrato e, se faltar, do locatário em Partes (partes_papeis papel 'locatario', leitura); sem celular nenhum,
+// o sheet avisa e o WhatsApp abre para escolher o contato (wa.me sem número). Número: 10/11 dígitos ganham o 55.
+//
+// Versão anterior: 1.45.0 · 10/10/2026
 //
 // v1.45.0 (10/10/2026, sessão 20261008-1231-pessoas-ativos, demanda f3e6cd27; F18) — financeiroImportarFatura aceita
 // { cartaoId } e já abre com o cartão escolhido: é o atalho "Importar fatura" da ocorrência do cartão, na ficha do item
@@ -38,16 +46,11 @@
 // cartão não tem ações próprias de pagamento: tocar nela (de qualquer lista) abre a fatura — o banco também recusa
 // (trg_lancamento_guarda_fatura). (3) A linha da fatura em Saídas mostra a soma das compras, o mesmo número dos
 // totais do topo (fn_financeiro_totalizadores_por_conta). Versão anterior: 1.41.0.
-//
-// v1.41.0 (10/10/2026, sessão 20261008-1231-pessoas-ativos, demanda f3e6cd27 — testes do Nicola 10/10 00:30 e F9b
-// aprovada 00:45): (1) "classificar igual" pergunta ANTES de gravar; fechar a pergunta (X ou fora) cancela e nada
-// é classificado — antes a compra escolhida já estava gravada quando a pergunta aparecia; (2) o ativo filtra a
-// árvore também pelo detalhe (lancamento_categorias.tipos_detalhe): pet vê Pets, pessoa vê as pessoais.
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.40.2 … v1.40.2): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.41.0 … v1.41.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '1.45.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.46.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 
 // v1.17.0 (Fase 1 do wrapper de escrita, rollout Financeiro) — emitirEscrita
 // é o evento padrão pra "algo mudou que módulos DE FORA deste arquivo podem
@@ -4650,7 +4653,7 @@ function financeiroRenderCabecalho(aba) {
             const men = mensalidades.find(m => m.id === menId); if (!men) return;
             const con = contratos.find(c => c.id === men.contratoId) || {};
             const valorMen = Number(men.valorConfirmado ?? men.valor ?? 0);
-            dispararCobrancaWhatsAppDirect(con.whatsapp, `Locatário: ${con.locatario || ''}`, `- Competência ${men.referencia}: R$ ${valorMen.toLocaleString('pt-BR')}`, valorMen);
+            dispararCobrancaWhatsAppDirect(con.whatsapp, `Locatário: ${con.locatario || ''}`, `- Competência ${men.referencia}: R$ ${valorMen.toLocaleString('pt-BR')}`, valorMen, con.id); // v1.46.0 — + contrato (celular em Partes)
         }
 
         // v1.13.0 — alternarGrupoMensal() removida (Entrega F.3): a lista
@@ -4892,10 +4895,12 @@ function financeiroRenderCabecalho(aba) {
                 let totalGrupo = 0;
                 let listaCobrancaAgrupada = [];
                 let locatarioCelular = "";
+                let contratoDoGrupo = null; // v1.46.0 — para achar o celular em Partes quando o contrato não tem
                 groups[nomeGrupo].forEach(item => {
                     totalGrupo += item.men.valorConfirmado;
                     listaCobrancaAgrupada.push(`- Competência ${item.men.referencia}: R$ ${item.men.valorConfirmado.toLocaleString('pt-BR')}`);
-                    locatarioCelular = item.con.whatsapp;
+                    locatarioCelular = item.con.whatsapp || locatarioCelular;
+                    contratoDoGrupo = contratoDoGrupo || item.con.id || null;
                     // CORRIGIDO — mesmo padrão de endereço (com pin, número e
                     // complemento) já usado na aba Mensal, em vez de só a rua com
                     // o rótulo "Endereço:".
@@ -4930,7 +4935,7 @@ function financeiroRenderCabecalho(aba) {
                 // link wa.me), não o Robô.
                 const rzIdGrupo = 'rz-inad-' + Math.random().toString(36).slice(2, 8);
                 window.__rzCobrancaGrupo = window.__rzCobrancaGrupo || {};
-                window.__rzCobrancaGrupo[rzIdGrupo] = { celular: locatarioCelular, titulo: nomeGrupo, itens: descConsolidada, total: totalGrupo };
+                window.__rzCobrancaGrupo[rzIdGrupo] = { celular: locatarioCelular, titulo: nomeGrupo, itens: descConsolidada, total: totalGrupo, contratoId: contratoDoGrupo };
                 // v1.179.1 — achado do Nicola: agrupamento virou cortina
                 // colapsável de verdade (chevron + toque no cabeçalho),
                 // mesmo padrão das outras 3 abas — antes era só texto fixo,
@@ -4961,32 +4966,24 @@ function financeiroRenderCabecalho(aba) {
         export function rzAcoesGrupoInadimplencia(id) {
             const g = (window.__rzCobrancaGrupo || {})[id]; if (!g || typeof abrirSheetAcoes !== 'function') return;
             abrirSheetAcoes({ titulo: g.titulo, sub: `${formatarMoedaBR(g.total)} em aberto`, acoes: [
-                { icone: 'message-circle', titulo: 'Cobrar pelo WhatsApp', codigo: 'cobrar.lembrete', sub: 'Abre a conversa com a lista de competências', aoTocar: () => dispararCobrancaWhatsAppDirect(g.celular, g.titulo, g.itens, g.total) },
+                { icone: 'message-circle', titulo: 'Cobrar pelo WhatsApp', codigo: 'cobrar.lembrete', sub: 'Abre a conversa com a lista de competências', aoTocar: () => dispararCobrancaWhatsAppDirect(g.celular, g.titulo, g.itens, g.total, g.contratoId) },
             ] });
         }
 
-        export async function dispararCobrancaWhatsAppDirect(celular, grupoTitle, itensText, valorTotal) {
-            if (!celular || celular.length < 5) { rzToast('Celular do locatário não cadastrado.', { tipo: 'danger' }); return; }
-            let pix = null;
-            try {
-                const { data } = await dbAuth.rpc('fn_pix_brcode_empresa', { p_cliente_id: CLIENTE_ID_SUPABASE, p_valor: Number(valorTotal) || 0 });
-                pix = data || null;
-            } catch (e) { console.warn('[financeiro] Pix da empresa:', e.message); }
-            if (typeof abrirSheetForm !== 'function') return enviarCobrancaWhatsApp(celular, grupoTitle, itensText, valorTotal, null);
-            // v1.44.0 (etapa 6 · C) — mostra a mensagem exata; "Incluir o Pix" lembrado por empresa neste aparelho.
+        export async function dispararCobrancaWhatsAppDirect(celular, grupoTitle, itensText, valorTotal, contratoId = null) {
+            // v1.46.0 — o sheet abre NA HORA; Pix e celular (Partes) chegam depois e redesenham. Sem celular, o WhatsApp
+            // abre para escolher o contato (antes: só um aviso "celular não cadastrado").
+            let fone = cobrancaNumero(celular), pix = null, carregandoPix = true;
+            if (typeof abrirSheetForm !== 'function') return enviarCobrancaWhatsApp(fone, grupoTitle, itensText, valorTotal, null);
             const esc = window.rzEsc || String;
             const incluirPix = () => !!pix && cobrancaPixLembrado();
             const sheetCob = abrirSheetForm({
                 titulo: 'Cobrar pelo WhatsApp', sub: `${grupoTitle} · ${formatarMoedaBR(valorTotal)}`,
                 rotuloSalvar: 'Abrir no WhatsApp', rotuloCancelar: 'Cancelar',
-                corpo: `<div class="rz-cob-msg" id="fin-cob-msg">${esc(textoCobrancaWhatsApp(grupoTitle, itensText, valorTotal, incluirPix() ? pix : null))}</div>`
-                    + (pix
-                        ? `<div class="rz-row"><div class="rz-tx"><b>Incluir o Pix</b><span>Chave ${esc(pix.chave)} · lembrado para as próximas cobranças</span></div>`
-                          + `<button type="button" role="switch" class="rz-switch" id="fin-cob-pix" aria-checked="${incluirPix() ? 'true' : 'false'}" aria-label="Incluir o Pix"></button></div>`
-                        : `<p class="rz-desc">A empresa ainda não tem chave Pix cadastrada; a cobrança sai sem Pix. Cadastre em Conta › Empresa › Minha empresa › Pix para cobrança de aluguel.</p>`),
+                corpo: '<div class="rz-cob-msg" id="fin-cob-msg"></div><div id="fin-cob-pix-linha"></div><p class="rz-desc" id="fin-cob-fone" hidden></p>',
                 aoSalvar: (el) => {
                     const incluir = incluirPix();
-                    enviarCobrancaWhatsApp(celular, grupoTitle, itensText, valorTotal, incluir ? pix : null);
+                    enviarCobrancaWhatsApp(fone, grupoTitle, itensText, valorTotal, incluir ? pix : null);
                     if (!incluir || !pix.brcode) return true;
                     // 2º passo: o código sozinho, para o locatário copiar com um toque longo
                     el.innerHTML = `<p class="text-sm" style="margin:0 0 8px"><b>1. Cobrança enviada.</b> Volte aqui e mande o código em uma mensagem separada: assim o locatário copia só o Pix.</p>` +
@@ -4994,17 +4991,59 @@ function financeiroRenderCabecalho(aba) {
                     if (typeof rzIcones === 'function') rzIcones();
                     el.closest('.rz-sheet')?.querySelector('.rz-sh-f')?.classList.add('hidden');
                     el.querySelector('#fin-cob-code').addEventListener('click', () => {
-                        rzDev('whatsapp', '55' + celular, pix.brcode); // v1.28.0 (UXR-41) — pelo adaptador
+                        rzDev('whatsapp', fone, pix.brcode); // v1.28.0 (UXR-41) — pelo adaptador
                         if (typeof fecharSheet === 'function') fecharSheet();
                     });
                     return false;
                 },
             });
             const corpoCob = sheetCob && sheetCob.querySelector('#rz-sheet-corpo');
-            cobrancaLigarInterruptor(corpoCob, () => {
+            if (!corpoCob) return;
+            const desenhar = () => {
                 const m = corpoCob.querySelector('#fin-cob-msg');
                 if (m) m.textContent = textoCobrancaWhatsApp(grupoTitle, itensText, valorTotal, incluirPix() ? pix : null);
-            });
+                const linha = corpoCob.querySelector('#fin-cob-pix-linha');
+                if (linha && !linha.dataset.pronto) {
+                    if (carregandoPix) linha.innerHTML = '<p class="rz-desc">Buscando o Pix da empresa…</p>';
+                    else if (pix) {
+                        linha.dataset.pronto = '1';
+                        linha.innerHTML = `<div class="rz-row"><div class="rz-tx"><b>Incluir o Pix</b><span>Chave ${esc(pix.chave)} · lembrado para as próximas cobranças</span></div>`
+                            + `<button type="button" role="switch" class="rz-switch" id="fin-cob-pix" aria-checked="${incluirPix() ? 'true' : 'false'}" aria-label="Incluir o Pix"></button></div>`;
+                        cobrancaLigarInterruptor(linha, desenhar);
+                    } else {
+                        linha.dataset.pronto = '1';
+                        linha.innerHTML = '<p class="rz-desc">A empresa ainda não tem chave Pix cadastrada; a cobrança sai sem Pix. Cadastre em Conta › Empresa › Minha empresa › Pix para cobrança de aluguel.</p>';
+                    }
+                }
+                const avisoFone = corpoCob.querySelector('#fin-cob-fone');
+                if (avisoFone) {
+                    avisoFone.hidden = !!fone;
+                    avisoFone.textContent = 'Celular do locatário não cadastrado: o WhatsApp abre para você escolher o contato. Cadastre o celular em Partes para a próxima.';
+                }
+            };
+            desenhar();
+            const [pixR, foneR] = await Promise.all([
+                dbAuth.rpc('fn_pix_brcode_empresa', { p_cliente_id: CLIENTE_ID_SUPABASE, p_valor: Number(valorTotal) || 0 })
+                    .then(r => r.data || null, e => { console.warn('[financeiro] Pix da empresa:', e && e.message); return null; }),
+                fone || !contratoId ? Promise.resolve(fone) : cobrancaFoneDoLocatario(contratoId),
+            ]);
+            pix = pixR; fone = foneR || fone; carregandoPix = false;
+            if (corpoCob.isConnected) desenhar();
+        }
+
+        // v1.46.0 — celular do locatário em Partes (o campo do contrato ficou vazio depois da migração para Partes).
+        async function cobrancaFoneDoLocatario(contratoId) {
+            try {
+                const { data } = await dbAuth.from('partes_papeis').select('partes(whatsapp)')
+                    .eq('entidade_tipo', 'contrato').eq('entidade_id', contratoId).eq('papel', 'locatario').eq('ativo', true).limit(1).maybeSingle();
+                return cobrancaNumero(data && data.partes && data.partes.whatsapp);
+            } catch (e) { console.warn('[financeiro] celular do locatário:', e && e.message); return ''; }
+        }
+        // Só dígitos; 10 ou 11 dígitos (DDD + número) ganham o 55. Menos de 10 dígitos = sem celular.
+        function cobrancaNumero(v) {
+            const d = String(v || '').replace(/\D/g, '');
+            if (d.length < 10) return '';
+            return d.length <= 11 ? '55' + d : d;
         }
 
         // v1.44.0 (etapa 6 · C) — preferência "Incluir o Pix" por empresa, neste aparelho (padrão: incluir).
@@ -5025,20 +5064,10 @@ function financeiroRenderCabecalho(aba) {
                 + (pix ? `\n\n💠 *Pague por Pix*\nChave: ${pix.chave}\nRecebedor: ${pix.nome}` + (pix.brcode ? `\n\nNa próxima mensagem envio o *Pix copia e cola* com o valor total — é só tocar e segurar para copiar.` : '') : '');
         }
 
-        function enviarCobrancaWhatsApp(celular, grupoTitle, itensText, valorTotal, pix) {
-
-            if(!celular || celular.length < 5) {
-
-                rzToast('Celular do locatário não cadastrado.', { tipo: 'danger' });
-
-                return;
-
-            }
-
+        // v1.46.0 — `fone` já vem pronto (cobrancaNumero, com 55) ou vazio: vazio abre o WhatsApp para escolher o contato.
+        function enviarCobrancaWhatsApp(fone, grupoTitle, itensText, valorTotal, pix) {
             const txt = textoCobrancaWhatsApp(grupoTitle, itensText, valorTotal, pix); // v1.44.0 — o mesmo texto da prévia
-
-            rzDev('whatsapp', '55' + celular, txt); // v1.28.0 (UXR-41) — pelo adaptador
-
+            rzDev('whatsapp', fone || '', txt); // v1.28.0 (UXR-41) — pelo adaptador
         }
 
 // ============================================================================

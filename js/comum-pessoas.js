@@ -1,6 +1,15 @@
 // ============================================================================
 // comum-pessoas.js — Raiz Patrimônio · Administração compartilhada
-// Versão: 1.207.0 · 10/10/2026
+// Versão: 1.208.0 · 10/10/2026
+//
+// v1.208.0 (ajuste da etapa 6 · E, demanda b4b047fd; teste do Nicola 10/10 23:50) —
+//   · os números dos chips acompanham o texto digitado na barra ("Filtro só não atualizou os chips");
+//   · o toque na pessoa volta a abrir a LISTA de ações (como era o ⋮), agora em grupos Dados · Acesso · Comunicação ·
+//     Atividade ("prefiro como estava: ao clicar abrir uma lista com as opções"); a ficha com chips sai e "Ver dados"
+//     abre a ficha de leitura de antes; a pressão longa sai ("eliminar o segurar pra abrir o menu"). A linha volta a
+//     ter o ⋮ à direita (o toque abre ações), junto do status Acessa / Sem acesso.
+//
+// Versão anterior: 1.207.0 · 10/10/2026
 //
 // v1.207.0 (UX etapa 6 · E, demanda b4b047fd, sessão 20261003-1707-ux-base; protótipo PROTOTIPO_FINANCEIRO_PESSOAS_ETAPA6
 // aprovado pelo Nicola 10/10 22:43, "Pode corrigir e avançar" 23:32) — Pessoas e acessos no padrão de Partes:
@@ -32,20 +41,11 @@
 // v1.204.1 (07/10/2026, sessão 20261007-1721-rolo-changelog, demanda 2507d554 — VER-06, "de acordo" do Nicola 07/10 17:21) — SÓ
 // CABEÇALHO: as versões além das 5 mais recentes rolaram para o CHANGELOG_MODULOS.md.
 // Nenhuma linha de código mudou — conferido token a token contra o publicado.
-//
-// Versão anterior: 1.204.0 · 04/10/2026
-//
-// v1.204.0 (04/10/2026, sessão 20261004-1245-financeiro, demanda f3e6cd27 — P4a,
-// aprovada pelo Nicola 12:43) — contas da pessoa: card "Contas" na ficha e ação
-// "Contas" no ⋮. Mostra as contas de que a pessoa é titular (criar, editar,
-// padrão, encerrar — mesma ficha de Minha empresa) e "Quem ela vê": Todas ·
-// Só as dela · As dela e as da empresa (fn_pessoa_escopo_contas_definir, só
-// master). Master sempre vê todas. Sem Premium, a ação aparece com cadeado.
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.203.0 … v1.203.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.204.0 … v1.204.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '1.207.0'; // v-check (18/09/2026): lido por Dev › Versões — manter igual ao header
+export const VERSAO = '1.208.0'; // v-check (18/09/2026): lido por Dev › Versões — manter igual ao header
 import { perguntar, avisarComDesfazer } from './cofre-ui.js'; // v1.203.0 (F0.2b) — sem diálogo nativo
 import { buscarContas, contasListaHtml, abrirFichaConta, abrirAcoesConta } from './comum-minha-empresa.js'; // v1.204.0 — contas da pessoa (P4a)
 import { rzMostrarBloqueio as rzBloqueio } from './comum-licenca.js'; // v1.204.0
@@ -309,23 +309,27 @@ export async function montarAbaPessoas(mountEl, ctx) {
         }
         // v1.207.0 — chips por perfil (só os que existem) + "Sem acesso"; o texto procura em nome, e-mail, WhatsApp e função
         const chipsEl = document.getElementById('cp-chips');
+        const termo = filtroTexto.trim().toLowerCase();
+        const bateTexto = (p) => !termo || [p.nome, p.email, p.whatsapp, p.funcao, rotuloPerfil(p.perfil)].some(c => (c || '').toString().toLowerCase().includes(termo));
         if (chipsEl) {
+            // v1.208.0 — os chips são os perfis que existem; os números contam só quem bate com o texto da barra
+            const comTexto = visiveis.filter(bateTexto);
             const cont = new Map();
-            visiveis.forEach(p => { const k = p.perfil || '-'; cont.set(k, (cont.get(k) || 0) + 1); });
-            const semAcesso = visiveis.filter(p => !p.userId).length;
+            visiveis.forEach(p => { const k = p.perfil || '-'; if (!cont.has(k)) cont.set(k, 0); });
+            comTexto.forEach(p => { const k = p.perfil || '-'; cont.set(k, cont.get(k) + 1); });
+            const temSemAcesso = visiveis.some(p => !p.userId);
+            const semAcesso = comTexto.filter(p => !p.userId).length;
             const ordem = ['master', 'admin', 'operador', 'consulta'];
             const perfis = [...cont.keys()].sort((x, y) => (ordem.indexOf(x) + 1 || 99) - (ordem.indexOf(y) + 1 || 99) || x.localeCompare(y));
-            const chips = [['todos', 'Todas', visiveis.length], ...perfis.map(k => [k, k === '-' ? 'Sem perfil' : rotuloPerfil(k), cont.get(k)]), ...(semAcesso ? [['sem-acesso', 'Sem acesso', semAcesso]] : [])];
+            const chips = [['todos', 'Todas', comTexto.length], ...perfis.map(k => [k, k === '-' ? 'Sem perfil' : rotuloPerfil(k), cont.get(k)]), ...(temSemAcesso ? [['sem-acesso', 'Sem acesso', semAcesso]] : [])];
             if (!chips.some(c => c[0] === filtroChip)) filtroChip = 'todos';
             chipsEl.innerHTML = chips.map(([k, r, n]) => `<button type="button" role="tab" class="rz-chip${filtroChip === k ? ' rz-on' : ''}" data-cp-chip="${esc(k)}" aria-selected="${filtroChip === k}">${esc(r)} <span class="rz-n">${n}</span></button>`).join('');
             chipsEl.hidden = visiveis.length < 2;
         }
-        const termo = filtroTexto.trim().toLowerCase();
         const filtradas = visiveis.filter(p => {
             if (filtroChip === 'sem-acesso' && p.userId) return false;
             if (filtroChip !== 'todos' && filtroChip !== 'sem-acesso' && (p.perfil || '-') !== filtroChip) return false;
-            if (termo && ![p.nome, p.email, p.whatsapp, p.funcao, rotuloPerfil(p.perfil)].some(c => (c || '').toString().toLowerCase().includes(termo))) return false;
-            return true;
+            return bateTexto(p);
         });
         if (chipsEl && filtradas.length === 0 && visiveis.length > 0) {
             lista.innerHTML = `<div class="rz-empty"><div class="rz-ic"><svg data-lucide="search"></svg></div><p>${esc(termo ? `Ninguém com "${filtroTexto.trim()}".` : 'Ninguém neste filtro.')}</p></div>`;
@@ -346,19 +350,16 @@ export async function montarAbaPessoas(mountEl, ctx) {
             const icone = ehMaster ? 'shield-check' : 'user';
             const fato = p.perfil ? rotuloPerfil(p.perfil) : 'Sem perfil';
             const contexto = p.funcao || 'Sem função definida';
-            // v1.207.0 — status de acesso à direita; o toque abre a ficha (com chips) e a pressão longa, o ⋮
+            // v1.207.0 — status de acesso à direita. v1.208.0 — o toque abre a lista de ações (⋮), sem pressão longa
             const status = chipsEl ? statusAcesso(p) : '';
             return `
                 <div class="rz-row rz-link" data-acao="ficha" data-id="${p.id}">
                     <div class="rz-ic"><svg data-lucide="${icone}"></svg></div>
                     <div class="rz-tx"><b>${esc(p.nome || '(sem nome)')}</b><span>${esc(fato)} · ${esc(contexto)}</span></div>
-                    ${chipsEl && comFicha ? `<div class="rz-rt">${status}</div><svg data-lucide="chevron-right" class="rz-chev"></svg>`
+                    ${chipsEl && comFicha ? `<div class="rz-rt">${status}</div><svg data-lucide="ellipsis-vertical" class="rz-chev"></svg>`
                         : `<button type="button" data-acao="mais" data-id="${p.id}" class="rz-more" aria-label="Mais ações"><svg data-lucide="ellipsis-vertical"></svg></button>`}
                 </div>`;
         }).join('');
-        if (chipsEl && typeof window.rzLongPress === 'function') {
-            lista.querySelectorAll('.rz-row[data-acao="ficha"]').forEach(row => window.rzLongPress(row, () => abrirAcoesPessoa(row.dataset.id)));
-        }
         icones();
     }
     function rotuloPerfil(k) { return ({ master: 'Master', admin: 'Administrador', operador: 'Operador', consulta: 'Consulta' })[k] || (k ? capitalizar(k) : 'Sem perfil'); }
@@ -371,7 +372,7 @@ export async function montarAbaPessoas(mountEl, ctx) {
     // ---------------------------------------------------------------
     // FICHA — leitura (Sheet), igual ao padrão de abrirFichaParte.
     // ---------------------------------------------------------------
-    // v1.207.0 (etapa 6 · E) — ficha com chips Dados · Acesso · Comunicação · Atividade. As ações são as do ⋮
+    // v1.207.0 (etapa 6 · E; v1.208.0: grupos da lista de ações) — Dados · Acesso · Comunicação · Atividade. As ações são as do ⋮
     // (abrirAcoesPessoa), distribuídas por assunto, com as mesmas travas e a mesma checagem de acesso (codigo).
     function acoesFichaPessoa(p) {
         const ehMaster = p.perfil === 'master';
@@ -416,64 +417,37 @@ export async function montarAbaPessoas(mountEl, ctx) {
         if (typeof window.rzDev === 'function') window.rzDev('whatsapp', numero, texto);
         else window.open('https://wa.me/' + numero + '?text=' + encodeURIComponent(texto), '_blank', 'noopener');
     }
-    function abrirFichaPessoa(id, paneInicial = 'dados') {
+    // Ficha de leitura (a de antes da v1.207.0) — aberta por "Ver dados" na lista de ações.
+    function abrirFichaPessoa(id) {
         const p = pessoas.find(x => x.id === id);
         if (!p || typeof window.abrirSheet !== 'function') { onToast?.(AVISO_SO_APP, 'info'); return; }
         const kv = (r, v) => v ? `<div><small>${esc(r)}</small><b>${esc(v)}</b></div>` : '';
         const modulos = modulosPorPerfil.get(p.perfil);
         const modulosTxt = modulos && modulos.size ? Array.from(modulos).sort().join(', ') : 'Nenhum';
         const cabecalho = typeof window.rzSheetCabecalho === 'function'
-            ? window.rzSheetCabecalho(p.nome || '(sem nome)', `${rotuloPerfil(p.perfil)}${p.funcao ? ' · ' + p.funcao : ''}`)
+            ? window.rzSheetCabecalho(p.nome || '(sem nome)', p.perfil ? rotuloPerfil(p.perfil) : 'Sem perfil')
             : `<div class="rz-sh-h"><h3>${esc(p.nome || '(sem nome)')}</h3></div>`;
-        const grupos = acoesFichaPessoa(p);
-        const planas = [];
-        const acaoHtml = (a) => {
-            const i = planas.push(a) - 1;
-            if (typeof window.rzAcaoItemHtml === 'function') return window.rzAcaoItemHtml(a, i);
-            return `<button type="button" class="rz-act${a.tipo === 'bad' ? ' rz-bad' : ''}" data-rz-i="${i}"><div class="rz-ic"><svg data-lucide="${esc(a.icone)}"></svg></div><div>${esc(a.titulo)}${a.sub ? `<small>${esc(a.sub)}</small>` : ''}</div></button>`;
-        };
-        const lista = (acoes) => acoes.length ? `<div class="rz-card rz-list">${acoes.map(acaoHtml).join('')}</div>` : '';
-        const CHIPS = [['dados', 'Dados'], ['acesso', 'Acesso'], ['comunicacao', 'Comunicação'], ['atividade', 'Atividade']];
         const sheet = window.abrirSheet(cabecalho + `
             <div class="rz-sh-b">
-                <div class="rz-chips" data-cpf-chips role="tablist" aria-label="Ficha da pessoa">${CHIPS.map(([k, r]) =>
-                    `<button type="button" role="tab" data-cpf-chip="${k}" class="rz-chip${k === paneInicial ? ' rz-on' : ''}" aria-selected="${k === paneInicial}">${r}</button>`).join('')}</div>
-                <div data-cpf-pane="dados"${paneInicial !== 'dados' ? ' hidden' : ''}>
-                    <div class="rz-card"><div class="rz-kv">
+                <div class="rz-card">
+                    <div class="rz-card-h"><h3>Dados</h3><button type="button" data-acao="ficha-editar" class="rz-more" aria-label="Editar"><svg data-lucide="pencil"></svg></button></div>
+                    <div class="rz-kv">
                         ${kv('E-mail', p.email)}
                         ${kv('WhatsApp', p.whatsapp)}
                         ${kv('Função na empresa', p.funcao)}
                         ${p.percentualCotasEmpresa != null ? kv('% de cotas', String(p.percentualCotasEmpresa).replace('.', ',') + '%') : ''}
-                        ${!p.email && !p.whatsapp && !p.funcao && p.percentualCotasEmpresa == null ? '<p class="rz-desc">Sem dados além do nome.</p>' : ''}
-                    </div></div>
-                    ${lista(grupos.dados)}
-                </div>
-                <div data-cpf-pane="acesso"${paneInicial !== 'acesso' ? ' hidden' : ''}>
-                    <div class="rz-card"><div class="rz-kv">
-                        ${kv('Login', p.userId ? `${p.email || 'Entra no app'} · entra no app` : 'Não entra no app')}
                         ${kv('Acesso a módulos', modulosTxt)}
-                    </div></div>
-                    ${lista(grupos.acesso)}
+                        ${kv('Acesso ao sistema', p.userId ? 'Sim' : 'Não')}
+                    </div>
                 </div>
-                <div data-cpf-pane="comunicacao"${paneInicial !== 'comunicacao' ? ' hidden' : ''}>
-                    ${grupos.comunicacao.length ? lista(grupos.comunicacao) : '<p class="rz-desc">Nenhum aviso automático disponível no plano atual.</p>'}
-                </div>
-                <div data-cpf-pane="atividade"${paneInicial !== 'atividade' ? ' hidden' : ''}>
-                    ${grupos.atividade.length ? lista(grupos.atividade) : '<p class="rz-desc">Os acessos recentes aparecem no app, em Conta › Pessoas e acessos.</p>'}
-                </div>
+                <div class="rz-card rz-list"><div class="rz-row rz-link" role="button" tabindex="0" data-acao="ficha-contas">
+                    <div class="rz-ic"><svg data-lucide="wallet"></svg></div>
+                    <div class="rz-tx"><b>Contas</b><span>${esc(p.perfil === 'master' ? 'Vê todas as contas' : ESCOPO_CONTAS_ROTULO[p.escopoContas] || '')}</span></div>
+                    <svg data-lucide="chevron-right" class="rz-chev"></svg>
+                </div></div>
             </div>`);
-        sheet.querySelector('[data-cpf-chips]')?.addEventListener('click', (ev) => {
-            const c = ev.target.closest('[data-cpf-chip]'); if (!c) return;
-            sheet.querySelectorAll('[data-cpf-chip]').forEach(b => { const on = b === c; b.classList.toggle('rz-on', on); b.setAttribute('aria-selected', String(on)); });
-            sheet.querySelectorAll('[data-cpf-pane]').forEach(pn => { pn.hidden = pn.dataset.cpfPane !== c.dataset.cpfChip; });
-        });
-        sheet.querySelectorAll('[data-rz-i]').forEach(btn => btn.addEventListener('click', () => {
-            const a = planas[Number(btn.dataset.rzI)];
-            if (!a || typeof a.aoTocar !== 'function') return; // linha informativa (travas de master/admin)
-            if (a.codigo && typeof window.rzMostrarBloqueio === 'function' && window.rzMostrarBloqueio(a.codigo)) return;
-            window.fecharSheet?.();
-            try { a.aoTocar(); } catch (e) { console.error('[comum-pessoas] ação da ficha:', e); onToast?.('Não consegui fazer isso agora.', 'danger'); }
-        }));
+        sheet.querySelector('[data-acao="ficha-editar"]')?.addEventListener('click', () => abrirFormPessoaSheet(p.id));
+        sheet.querySelector('[data-acao="ficha-contas"]')?.addEventListener('click', () => abrirContasPessoaSheet(p.id));
         icones();
     }
 
@@ -486,6 +460,19 @@ export async function montarAbaPessoas(mountEl, ctx) {
         const p = pessoas.find(x => x.id === id);
         if (!p) return;
         if (typeof window.abrirSheetAcoes !== 'function') { onToast?.(AVISO_SO_APP, 'info'); return; }
+        // v1.208.0 (Nicola 10/10 23:50) — no app, a lista de ações vem em grupos por assunto; "Ver dados" abre a ficha
+        if (document.getElementById('cp-chips')) {
+            const g = acoesFichaPessoa(p);
+            const semAcao = (lista) => lista.map(a => (typeof a.aoTocar === 'function' ? a : { ...a, aoTocar: () => {} }));
+            const grupos = [
+                { titulo: 'Dados', acoes: semAcao([{ icone: 'id-card', titulo: 'Ver dados', sub: 'E-mail, WhatsApp, função, % de cotas', aoTocar: () => abrirFichaPessoa(p.id) }, ...g.dados]) },
+                { titulo: 'Acesso', acoes: semAcao(g.acesso) },
+                { titulo: 'Comunicação', acoes: semAcao(g.comunicacao) },
+                { titulo: 'Atividade', acoes: semAcao(g.atividade) },
+            ].filter(x => x.acoes.length);
+            window.abrirSheetAcoes({ titulo: p.nome || '(sem nome)', sub: `${rotuloPerfil(p.perfil)}${p.funcao ? ' · ' + p.funcao : ''}`, grupos });
+            return;
+        }
         const ehMaster = p.perfil === 'master';
         // Dados básicos do master só editáveis pelo próprio master —
         // ninguém mais, nem admin (mesma trava de sempre).
@@ -901,7 +888,7 @@ export async function montarAbaPessoas(mountEl, ctx) {
         const maisBtn = ev.target.closest('[data-acao="mais"]');
         if (maisBtn) { abrirAcoesPessoa(maisBtn.dataset.id); return; }
         const linha = ev.target.closest('[data-acao="ficha"]');
-        if (linha) { abrirFichaPessoa(linha.dataset.id); return; }
+        if (linha) { if (document.getElementById('cp-chips')) abrirAcoesPessoa(linha.dataset.id); else abrirFichaPessoa(linha.dataset.id); return; } // v1.208.0
     });
 
     document.getElementById('cp-btn-nova')?.addEventListener('click', () => abrirFormPessoaSheet(null));

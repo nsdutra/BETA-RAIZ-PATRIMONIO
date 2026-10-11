@@ -4,6 +4,18 @@ Histórico completo de versões do `index.html`, movido automaticamente pelo `ge
 
 ---
 
+NOVIDADES (Beta v1.359.0) — UX etapa 6 · B e C (demanda b4b047fd; protótipo aprovado pelo Nicola 10/10 22:43 com ajustes).
+Recebimentos: deslizar a linha a receber REVELA "Dar baixa" (→) e "Cobrar" (←, só em atraso); a ação roda só no toque
+no botão (rzSwipe). Cobrar pelo WhatsApp mostra a mensagem exata que vai sair e o interruptor "Incluir o Pix",
+lembrado por empresa neste aparelho (CSS .rz-cob-msg). Baixa sem mudança. financeiro.js 1.44.0. Nenhum objeto de banco.
+Versão anterior (Beta v1.358.0):
+------------------------------------------------------------------
+Versões anteriores (v1.358.0 … v1.358.0): CHANGELOG_APP.md, na raiz do
+repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
+das 5 versões mais recentes deste cabeçalho.
+
+---
+
 NOVIDADES (Beta v1.358.0) — UX etapa 6 · A (demanda b4b047fd; protótipo aprovado pelo Nicola 10/10 22:43). Financeiro:
 Recebimentos, Saídas, Conciliação e Atrasados com a barra de busca digitável (#fin-busca-q-<aba>, rzBuscaInline), sem
 abrir formulário de filtros; o texto procura também no valor (financeiro.js 1.43.0). Nenhum objeto de banco.
