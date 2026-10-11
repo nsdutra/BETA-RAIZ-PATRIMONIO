@@ -1,6 +1,14 @@
 // ============================================================================
 // comum-licenca.js — Raiz Patrimônio · Administração compartilhada
-// Versão: 1.7.0 · 10/10/2026
+// Versão: 1.8.0 · 10/10/2026
+//
+// v1.8.0 (UX F2.5d-2, demanda 2a0000a7, sessão 20261003-1707-ux-base; ficha aprovada pelo Nicola 10/10 21:26) —
+// terceiro chip da Licença, Pagamentos: o histórico de pagamentos do plano lido por fn_licenca_pagamentos_listar
+// (SECURITY DEFINER, só a própria empresa ou o master; sem txid, gateway nem quem confirmou — migration
+// fn_licenca_pagamentos_listar_v1). Cada linha: plano, período, valor e status (Pago · Em análise · Aguardando
+// pagamento · Recusado · Cancelado · Expirado). O chip mostra quantos estão aguardando pagamento (tom --warning).
+//
+// Versão anterior: 1.7.0 · 10/10/2026
 //
 // v1.7.0 (UX F2.5d, demanda 639bbcd0, sessão 20261003-1707-ux-base; plano F2.5 aprovado pelo Nicola 09/10 23:5x;
 // ESTUDO 9A.4) — Licença vira ficha com chips, um assunto por chip:
@@ -36,16 +44,11 @@
 // v1.5.2 (07/10/2026, sessão 20261007-1721-rolo-changelog, demanda 2507d554 — VER-06, "de acordo" do Nicola 07/10 17:21) — SÓ
 // CABEÇALHO: as versões além das 5 mais recentes rolaram para o CHANGELOG_MODULOS.md.
 // Nenhuma linha de código mudou — conferido token a token contra o publicado.
-//
-// Versão anterior: 1.5.1 · 01/10/2026
-//
-// v1.5.1 — pedido do Nicola (01/10): a lista "Limites do plano" deixa de ter
-// rolagem própria (max-h-96 overflow-y-auto saiu); a tela rola inteira.
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.5.0 … v1.5.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.5.1 … v1.5.1): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '1.7.0'; // v-check (22/09/2026): lido por Dev › Versões — manter igual ao header
+export const VERSAO = '1.8.0'; // v-check (22/09/2026): lido por Dev › Versões — manter igual ao header
 export const COMUM_LICENCA_VERSAO = '1.0.0';
 
 // ----------------------------------------------------------------------------
@@ -409,6 +412,32 @@ function cardLicencaHtml(licenca, funcionalidades, mostrarRotuloModulo) {
     return { plano, uso, alerta };
 }
 
+// F2.5d-2 — histórico de pagamentos do plano (chip Pagamentos).
+const STATUS_PAGAMENTO = {
+    confirmado: ['ok', 'Pago'], informado: ['run', 'Em análise'], aguardando_pagamento: ['warn', 'Aguardando'],
+    recusado: ['bad', 'Recusado'], cancelado: ['neu', 'Cancelado'], expirado: ['neu', 'Expirado'],
+};
+async function listarPagamentosLicenca(dbAuth, clienteId) {
+    const { data, error } = await dbAuth.rpc('fn_licenca_pagamentos_listar', { p_cliente_id: clienteId });
+    if (error) throw error;
+    return data || [];
+}
+function pagamentosHtml(pagamentos) {
+    if (!pagamentos.length) return '<div class="rz-card"><p class="rz-desc">Nenhum pagamento registrado ainda. Quando você renovar ou ampliar o plano, o pagamento aparece aqui.</p></div>';
+    const brl = (v) => Number(v || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+    const dia = (v) => v ? dataLocal(String(v).slice(0, 10)).toLocaleDateString('pt-BR') : '';
+    return `<div class="rz-card rz-list"><div class="rz-card-h"><h3>Pagamentos do plano</h3></div>${pagamentos.map(p => {
+        const [sem, txt] = STATUS_PAGAMENTO[p.status] || ['neu', p.status ? p.status.charAt(0).toUpperCase() + p.status.slice(1) : '—'];
+        const periodo = p.periodo_inicio ? `${dia(p.periodo_inicio)} a ${dia(p.periodo_fim)}` : dia(p.data_contratacao);
+        const quando = p.confirmado_em ? 'pago em ' + dia(p.confirmado_em) : p.informado_em ? 'informado em ' + dia(p.informado_em) : '';
+        return `<div class="rz-row">
+            <div class="rz-ic${sem === 'ok' ? '' : ' rz-neu'}"><svg data-lucide="receipt"></svg></div>
+            <div class="rz-tx"><b>${esc(nomePlano(p.plano_codigo).replace(/_/g, ' '))} · ${esc(brl(p.valor))}</b><span>${esc([periodo, quando].filter(Boolean).join(' · '))}</span></div>
+            <div class="rz-rt"><span class="rz-st rz-${sem}">${esc(txt)}</span></div>
+        </div>`;
+    }).join('')}</div>`;
+}
+
 const CARD_DUVIDAS = `<div class="rz-card"><div class="rz-card-h"><h3>Dúvidas sobre o plano?</h3></div>${linhaLink({ href: LINK_CONTATOS_RAIZ, icone: 'message-circle', titulo: 'Fale com a Raiz', sub: 'Contatos na página raizpatrimonio.com.br' })}</div>`;
 
 // Ponto de entrada da tela. mountEl = container do host (index.html: #mount-licenca).
@@ -450,6 +479,11 @@ export async function montarAbaLicenca(mountEl, ctx) {
             }
         }));
         const alertas = blocos.reduce((s, b) => s + b.alerta, 0);
+        // F2.5d-2 — Pagamentos: falha na leitura não derruba a tela (o chip mostra o aviso)
+        let pagamentos = null;
+        try { pagamentos = await listarPagamentosLicenca(dbAuth, clienteId); }
+        catch (err) { console.warn('[comum-licenca] Falha ao ler pagamentos:', err.message); }
+        const aguardando = (pagamentos || []).filter(p => p.status === 'aguardando_pagamento').length;
 
         const principal = escolherLicencaPrincipal(licencas);
         const convite = await htmlContratarConvidar(dbAuth, clienteId, principal);
@@ -459,9 +493,11 @@ export async function montarAbaLicenca(mountEl, ctx) {
             <div class="rz-chips" id="lic-chips" role="tablist" aria-label="Licença">
                 <button type="button" role="tab" class="rz-chip rz-on" data-lic-chip="plano" aria-selected="true">Plano</button>
                 <button type="button" role="tab" class="rz-chip${alertas ? ' rz-warn' : ''}" data-lic-chip="uso" aria-selected="false"${alertas ? ` aria-label="Uso, ${alertas} ${alertas === 1 ? 'limite perto do fim' : 'limites perto do fim'}"` : ''}>Uso${alertas ? ` <span class="rz-n">${alertas}</span>` : ''}</button>
+                <button type="button" role="tab" class="rz-chip${aguardando ? ' rz-warn' : ''}" data-lic-chip="pagamentos" aria-selected="false">Pagamentos${aguardando ? ` <span class="rz-n">${aguardando}</span>` : ''}</button>
             </div>
             <div data-lic-pane="plano">${blocos.map(b => b.plano).join('')}${convite}${CARD_DUVIDAS}</div>
-            <div data-lic-pane="uso" hidden>${blocos.map(b => b.uso).join('')}</div>`;
+            <div data-lic-pane="uso" hidden>${blocos.map(b => b.uso).join('')}</div>
+            <div data-lic-pane="pagamentos" hidden>${pagamentos ? pagamentosHtml(pagamentos) : '<div class="rz-card"><p class="rz-desc">Não foi possível carregar os pagamentos agora. Tente de novo em instantes.</p></div>'}</div>`;
         mountEl.querySelector('#lic-chips').addEventListener('click', (ev) => {
             const c = ev.target.closest('[data-lic-chip]'); if (!c) return;
             const k = c.dataset.licChip;

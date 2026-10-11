@@ -1,7 +1,13 @@
 // ============================================================================
 // partes.js — Raiz Patrimônio · Partes (pessoas do negócio): lista, busca,
 //             ficha, papéis, vínculos, empreendimentos e acesso de sócio
-// Versão: 1.0.0 · 10/10/2026
+// Versão: 1.0.1 · 10/10/2026
+//
+// v1.0.1 (demanda 28aa5ce1, sessão 20261003-1707-ux-base) — ligarBuscaPartes não reescreve a barra enquanto a pessoa
+// digita: o termo guardado vem sem espaços nas pontas e, na pausa da digitação, o espaço depois de "Maria " sumia.
+// Só sincroniza a barra quando o termo muda por fora (limpar, outra tela).
+//
+// Versão anterior: 1.0.0 · 10/10/2026
 //
 // v1.0.0 (10/10/2026, sessão 20261010-1425-onda2a-partes, demanda 6b11c602 — Onda 2a da
 // fragmentação, plano aprovado pelo Nicola 09/10 21:15) — 30 telas de Partes saíram do
@@ -33,7 +39,7 @@
 // mesmo rzPonteModulo dos outros módulos R8.
 // ============================================================================
 
-export const VERSAO = '1.0.0';  // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.0.1';  // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 
 // FORMULÁRIO — abrirSheetForm; campos base sempre, campos de
 // prestador aparecem quando o papel escolhido pede (pedido: "a
@@ -811,7 +817,7 @@ export function enviarResumoSocioZap(socio) {
 // Partes: o termo mora em partesFiltroTexto; quem chama abrirBuscaPartes() só põe o foco na barra.
 export function ligarBuscaPartes() {
     const el = rzBuscaInline('partes-busca-q', (v) => { partesFiltroTexto = v; renderPartes(); });
-    if (el && el.value !== partesFiltroTexto) { el.value = partesFiltroTexto; el._rzMarcar && el._rzMarcar(); }
+    if (el && document.activeElement !== el && el.value !== partesFiltroTexto) { el.value = partesFiltroTexto; el._rzMarcar && el._rzMarcar(); }
 }
 
 export function filtrarPartesPorChip(chave) {

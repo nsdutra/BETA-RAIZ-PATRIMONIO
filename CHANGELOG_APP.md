@@ -4,6 +4,27 @@ Histórico completo de versões do `index.html`, movido automaticamente pelo `ge
 
 ---
 
+NOVIDADES (Beta v1.352.0) — Onda 2b da fragmentação: CONTA E PREFERÊNCIAS vira módulo (demanda
+6b11c602, plano das ondas aprovado pelo Nicola 09/10 21:15). 13 telas — menu da conta, seção Sobre,
+licença, preferências de comunicação e de alerta e os atalhos de configuração — saíram deste arquivo
+para o js/conta.js 1.0.0, SEM UMA LINHA REESCRITA, e voltam pela ponte rzPonteModulo. Sem injeção,
+como na Onda 2a: as 3 globais que o módulo escreve (partesFiltroPapel, rzMenuOrigemTab, LICENCA_ATUAL)
+foram conferidas uma a uma como `let` deste arquivo.
+NÃO VIERAM, de propósito: entrarNaEmpresa, mostrarSelecaoEmpresa, escolherEmpresa, rzTrocarEmpresa e
+renderizarListaSelecaoEmpresa — são o boot e a troca de empresa, e atribuem CLIENTE_ID_SUPABASE. Isso é
+estado de sessão, escopo da Onda 1c, que pede ficha própria; misturar o dono do estado com as telas que
+o consomem juntaria duas decisões numa entrega só. Ficou também configurarFiltrosIniciais (345 bytes):
+o entrarNoSistema a chama SOLTA, sem await, e virar assíncrona poderia deixar o primeiro render com o
+filtro errado — mesma classe de armadilha do montarBoxDivisaoSocietaria.
+Índice: 991.591 → 962.496 bytes (16.005 → 15.615 linhas). Nenhum objeto de banco.
+Versão anterior (Beta v1.351.0):
+------------------------------------------------------------------
+Versões anteriores (v1.351.0 … v1.351.0): CHANGELOG_APP.md, na raiz do
+repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
+das 5 versões mais recentes deste cabeçalho.
+
+---
+
 NOVIDADES (Beta v1.351.0) — Onda 2a da fragmentação: PARTES vira módulo (demanda 6b11c602, plano das
 ondas aprovado pelo Nicola 09/10 21:15). 30 telas de Partes — formulário, busca, ficha, papéis, vínculos,
 empreendimentos e acesso de sócio — saíram deste arquivo para o js/partes.js 1.0.0, SEM UMA LINHA

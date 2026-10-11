@@ -1,6 +1,12 @@
 // ============================================================================
 // js/ativos/ativos-markup.js — Raiz Patrimônio · Módulo Único, fatia frontend 1
-// Versão: 1.56.0 · 10/10/2026
+// Versão: 1.57.0 · 10/10/2026
+//
+// v1.57.0 (demanda 28aa5ce1, sessão 20261003-1707-ux-base; de acordo do Nicola 10/10 21:26) — topo de Ativos: a
+// barra de busca é digitável (#ativos-busca-q, ligada por cofre-ativos.js) e ganha o ícone de filtros ao lado
+// (#ativos-filtros-btn, data-action abrir-busca-ativos: Sheet só com Tipo, Situação e Alerta).
+//
+// Versão anterior: 1.56.0 · 10/10/2026
 //
 // v1.56.0 (10/10/2026, sessão 20261008-1231-pessoas-ativos, demanda a3f4c73f — F25, aprovada pelo Nicola 10/10 14:57) —
 // chip "Contratos" da ficha vira "Usos e contratos" (D73): card Usos (linha do tempo, Novo uso, repouso) acima
@@ -25,17 +31,11 @@
 // #ativos-estado-vazio deixa de ser um botão inteiro: no app ele recebe a caixa rzVazio, que tem os
 // próprios botões, e o toque na caixa toda abria o "+" por cima deles. O conteúdo que fica no markup
 // é o vazio do cofre.html avulso, agora com o "+ Novo ativo" como botão de verdade.
-//
-// Versão anterior: 1.52.2 · 07/10/2026
-//
-// v1.52.1 (07/10/2026, sessão 20261007-1721-rolo-changelog, demanda 2507d554 — VER-06, "de acordo" do Nicola 07/10 17:21) — SÓ
-// CABEÇALHO: as versões além das 5 mais recentes rolaram para o CHANGELOG_MODULOS.md.
-// Nenhuma linha de código mudou — conferido token a token contra o publicado.
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.52.0 … v1.52.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.52.1 … v1.52.1): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '1.56.0'; // v-check (28/09/2026): lido por Dev › Versões — manter igual ao header
+export const VERSAO = '1.57.0'; // v-check (28/09/2026): lido por Dev › Versões — manter igual ao header
 export const ATIVOS_MARKUP = `<style>
     /* v1.94.1 (31/08/2026, pedido explícito: "anexo uma barra de
        rolagem que fica feia... ao rolar os chips não mostrar a barra")
@@ -205,7 +205,8 @@ export const ATIVOS_MARKUP = `<style>
             <!-- Topo (F2.3): barra de busca + "+" (o "+" abre Carregar documento · Configuração inicial ·
                  Novo ativo · Compartilhar imóveis). (dem fcd3008d) -->
             <div class="rz-topo">
-                <button type="button" class="rz-search" id="ativos-busca-btn" data-action="abrir-busca-ativos" aria-label="Buscar ativo"><i data-lucide="search"></i><span>Buscar ativo, locatário ou item</span></button>
+                <label class="rz-search rz-search-in" id="ativos-busca-btn"><i data-lucide="search"></i><input type="search" id="ativos-busca-q" class="rz-raw" placeholder="Buscar ativo, locatário ou item" enterkeyhint="search" autocomplete="off" aria-label="Buscar ativo"></label>
+                <button type="button" class="rz-ico-btn rz-filtro-btn" id="ativos-filtros-btn" data-action="abrir-busca-ativos" title="Filtros" aria-label="Filtros"><i data-lucide="sliders-horizontal"></i><span class="rz-n" id="ativos-filtros-n" hidden></span></button>
                 <button data-action="abrir-acoes-ativos" id="btn-toggle-ativo" class="rz-ico-btn rz-primary" title="Adicionar" aria-label="Adicionar">
                     <i data-lucide="plus"></i>
                 </button>

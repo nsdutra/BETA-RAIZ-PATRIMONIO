@@ -1,6 +1,13 @@
 // ============================================================================
 // cofre-ativos.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.88.0 · 10/10/2026
+// Versão: 1.89.0 · 10/10/2026
+//
+// v1.89.0 (demanda 28aa5ce1, sessão 20261003-1707-ux-base; de acordo do Nicola 10/10 21:26) — a busca de Ativos é
+// digitável: o texto filtra enquanto digita (window.rzBuscaInline do index; × limpa só o texto) e o ícone de filtros
+// abre o Sheet só com Tipo, Situação e Alerta (rzAbrirBuscaTela com semTexto; Limpar zera só os filtros). O número
+// no ícone diz quantos filtros estão ligados. O campo guardador continua #filtro-ativo-busca.
+//
+// Versão anterior: 1.88.0 · 10/10/2026
 //
 // v1.88.0 (10/10/2026, sessão 20261008-1231-pessoas-ativos, demanda a3f4c73f — F25c, Nicola 10/10 20:56/21:19): "Adicionar"
 // em Usos e contratos lista os modelos disponíveis para o ativo (matriz tipo × modelo, ramos contratados); Aluguel e
@@ -23,16 +30,11 @@
 // v1.85.1 (10/10/2026, demanda f3e6cd27) — CORREÇÃO URGENTE: a v1.85.0 saiu com uma vírgula dupla no import de
 // cofre-validacoes.js ("inicializarCatalogoTiposAtivo,, tipoDoCatalogo") e o módulo não carregava — a aba Ativos
 // mostrava "Não foi possível carregar Ativos agora". Só a vírgula. Versão anterior: 1.85.0.
-//
-// v1.85.0 (10/10/2026, sessão 20261008-1231-pessoas-ativos, demanda f3e6cd27 — fichas F21/F22, E1b): a lente de ramo do
-// cabeçalho vale para Ativos. Em Todo o patrimônio, os chips são os ramos (tocar troca a lente do app); num ramo,
-// a lista mostra só os ativos dele e os chips são os segmentos (ativo_tipos.segmento). "Novo ativo" oferece só as
-// categorias e os tipos do ramo; tipos de ramo em breve (Agro, Pecuária) ficam fora. Ouve o evento raiz:ramo.
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.84.0 … v1.84.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.85.0 … v1.85.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '1.88.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.89.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 import { estado } from './cofre-estado.js';
 import * as api from './cofre-api.js';
 import { mostrarToast, erroInline, refrescarIcones, alternarToggle, abrirModal, fecharModal, modalGenerico, perguntar, avisarComDesfazer } from './cofre-ui.js';
@@ -686,10 +688,19 @@ function renderChipsAtivos() {
 let ultimaContagemAtivos = 0;
 const campoFiltro = (id) => document.getElementById(id);
 
+// v1.89.0 (dem 28aa5ce1) — barra digitável + número de filtros ligados no ícone de filtros.
 function atualizarRotuloBuscaAtivos() {
-    if (typeof window === 'undefined' || typeof window.rzRotuloBusca !== 'function') return;
+    if (typeof window === 'undefined') return;
+    const oculto = campoFiltro('filtro-ativo-busca');
+    if (typeof window.rzBuscaInline === 'function') {
+        const el = window.rzBuscaInline('ativos-busca-q', (v) => { if (oculto) oculto.value = v; redesenharComFiltros(); });
+        // vindo de fora (busca universal, limpar): a barra mostra o termo; nunca reescreve enquanto a pessoa digita
+        if (el && oculto && document.activeElement !== el && el.value.trim() !== oculto.value) { el.value = oculto.value; el._rzMarcar && el._rzMarcar(); }
+    }
     const n = ['filtro-ativo-tipo', 'filtro-ativo-status', 'filtro-ativo-alerta'].filter(id => campoFiltro(id)?.value).length;
-    window.rzRotuloBusca('ativos-busca-btn', 'Buscar ativo, locatário ou item', campoFiltro('filtro-ativo-busca')?.value || '', n, limparBuscaAtivos);
+    const badge = campoFiltro('ativos-filtros-n');
+    if (badge) { badge.textContent = String(n); badge.hidden = !n; }
+    campoFiltro('ativos-filtros-btn')?.classList.toggle('rz-ativo', !!n);
 }
 
 // × da barra (dem 1f98c359): limpa texto, tipo fino, situação e alerta; o chip escolhido continua.
@@ -747,12 +758,10 @@ export function abrirBuscaAtivos() {
     const grupo = (titulo, id) => ({ titulo, opcoes: opcoes(id), valor: () => campoFiltro(id)?.value || '',
         aoEscolher: (v) => { if (campoFiltro(id)) campoFiltro(id).value = v; redesenharComFiltros(); } });
     window.rzAbrirBuscaTela({
-        titulo: 'Buscar ativos', placeholder: 'Nome, locatário ou item de controle',
-        termo: () => campoFiltro('filtro-ativo-busca')?.value || '',
-        aoTermo: (v) => { if (campoFiltro('filtro-ativo-busca')) campoFiltro('filtro-ativo-busca').value = v; redesenharComFiltros(); },
+        titulo: 'Filtros', semTexto: true, // v1.89.0 — o texto é digitado na barra da tela
         grupos: [grupo('Tipo', 'filtro-ativo-tipo'), grupo('Situação', 'filtro-ativo-status'), grupo('Alerta', 'filtro-ativo-alerta')],
         contar: () => ultimaContagemAtivos, nomes: ['ativo', 'ativos'],
-        aoLimpar: () => { ['filtro-ativo-busca', 'filtro-ativo-tipo', 'filtro-ativo-status', 'filtro-ativo-alerta'].forEach(id => { if (campoFiltro(id)) campoFiltro(id).value = ''; }); renderAtivosLista('', ''); },
+        aoLimpar: () => { ['filtro-ativo-tipo', 'filtro-ativo-status', 'filtro-ativo-alerta'].forEach(id => { if (campoFiltro(id)) campoFiltro(id).value = ''; }); redesenharComFiltros(); }, // v1.89.0 — o texto da barra fica
     });
 }
 

@@ -6,9 +6,16 @@
    (base derivada do RUMO v7.4.2 — histórico de versões anteriores
    preservado abaixo para referência técnica)
 
-   VERSÃO: Beta v1.354.0
-   LINHAS: 15611
-   DATA: 10/10/2026 (sessão 20261008-1231-pessoas-ativos, demanda a3f4c73f)
+   VERSÃO: Beta v1.355.0
+   LINHAS: 15612
+   DATA: 10/10/2026 (sessão 20261003-1707-ux-base, demandas 28aa5ce1 e 2a0000a7)
+   NOVIDADES (Beta v1.355.0) — busca digitável em Ativos e Contratos (demanda 28aa5ce1) e chip Pagamentos da
+   Licença (demanda 2a0000a7); de acordo do Nicola 10/10 21:26. Topo de Contratos: barra digitável
+   (#contratos-busca-q) + ícone de filtros (#contratos-filtros-btn, .rz-filtro-btn com o número de filtros);
+   rzAbrirBuscaTela ganha cfg.semTexto (Sheet só com filtros). Módulos: contratos.js 1.49.0, cofre-ativos.js 1.89.0,
+   ativos-markup.js 1.57.0, partes.js 1.0.1, comum-licenca.js 1.8.0. Banco: função fn_licenca_pagamentos_listar
+   (migration fn_licenca_pagamentos_listar_v1, só leitura, ficha aprovada).
+   Versão anterior (Beta v1.354.0):
    NOVIDADES (Beta v1.354.0) — F25c (Nicola 10/10 21:19): o contrato guarda o modelo (aluguel, temporada…) e o modelo de
    hoje de cada ativo vem dos contratos vigentes. Ficha do ativo: "Adicionar" pelos modelos (cofre-ativos.js 1.88.0);
    contrato novo grava o modelo (nucleo/porta.js 1.3.0).
@@ -24,22 +31,8 @@
    repouso; senão o tipo). A lente mostra só os ramos contratados (fn_cliente_ramos) e some com um ramo só. Ficha do
    ativo: chip "Usos e contratos" (cofre-ativos.js 1.86.0, ativos-markup.js 1.56.0).
    Versão anterior (Beta v1.352.0):
-   NOVIDADES (Beta v1.352.0) — Onda 2b da fragmentação: CONTA E PREFERÊNCIAS vira módulo (demanda
-   6b11c602, plano das ondas aprovado pelo Nicola 09/10 21:15). 13 telas — menu da conta, seção Sobre,
-   licença, preferências de comunicação e de alerta e os atalhos de configuração — saíram deste arquivo
-   para o js/conta.js 1.0.0, SEM UMA LINHA REESCRITA, e voltam pela ponte rzPonteModulo. Sem injeção,
-   como na Onda 2a: as 3 globais que o módulo escreve (partesFiltroPapel, rzMenuOrigemTab, LICENCA_ATUAL)
-   foram conferidas uma a uma como `let` deste arquivo.
-   NÃO VIERAM, de propósito: entrarNaEmpresa, mostrarSelecaoEmpresa, escolherEmpresa, rzTrocarEmpresa e
-   renderizarListaSelecaoEmpresa — são o boot e a troca de empresa, e atribuem CLIENTE_ID_SUPABASE. Isso é
-   estado de sessão, escopo da Onda 1c, que pede ficha própria; misturar o dono do estado com as telas que
-   o consomem juntaria duas decisões numa entrega só. Ficou também configurarFiltrosIniciais (345 bytes):
-   o entrarNoSistema a chama SOLTA, sem await, e virar assíncrona poderia deixar o primeiro render com o
-   filtro errado — mesma classe de armadilha do montarBoxDivisaoSocietaria.
-   Índice: 991.591 → 962.496 bytes (16.005 → 15.615 linhas). Nenhum objeto de banco.
-   Versão anterior (Beta v1.351.0):
    ------------------------------------------------------------------
-   Versões anteriores (v1.351.0 … v1.351.0): CHANGELOG_APP.md, na raiz do
+   Versões anteriores (v1.352.0 … v1.352.0): CHANGELOG_APP.md, na raiz do
    repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
    das 5 versões mais recentes deste cabeçalho.
 
@@ -64,7 +57,7 @@
          O navegador aplica o mapa também aos imports estáticos dentro dos
          módulos (cofre-app.js → ./cofre-api.js etc.). -->
     <!-- RZ-IMPORTMAP:INICIO -->
-    <script type="importmap">{"imports":{"./js/cadastros.js":"./js/cadastros.js?v=1.2.0","./js/financeiro.js":"./js/financeiro.js?v=1.42.0","./js/fechamento.js":"./js/fechamento.js?v=1.12.3","./js/contratos.js":"./js/contratos.js?v=1.48.0","./js/minutas.js":"./js/minutas.js?v=1.4.0","./js/vitrine.js":"./js/vitrine.js?v=1.5.2","./js/imoveis.js":"./js/imoveis.js?v=1.7.2","./js/cofre-api.js":"./js/cofre-api.js?v=1.50.0","./js/cofre-app.js":"./js/cofre-app.js?v=1.47.0","./js/cofre-ativos.js":"./js/cofre-ativos.js?v=1.88.0","./js/cofre-controles.js":"./js/cofre-controles.js?v=1.49.0","./js/cofre-documentos.js":"./js/cofre-documentos.js?v=2.35.0","./js/cofre-imagem.js":"./js/cofre-imagem.js?v=1.1.0","./js/cofre-estado.js":"./js/cofre-estado.js?v=1.5.2","./js/cofre-navegacao.js":"./js/cofre-navegacao.js?v=1.9.3","./js/cofre-ui.js":"./js/cofre-ui.js?v=1.7.2","./js/cofre-validacoes.js":"./js/cofre-validacoes.js?v=2.5.0","./js/comum-licenca.js":"./js/comum-licenca.js?v=1.7.0","./js/comum-renovacao.js":"./js/comum-renovacao.js?v=1.3.5","./js/comum-minha-empresa.js":"./js/comum-minha-empresa.js?v=1.14.0","./js/comum-pessoas.js":"./js/comum-pessoas.js?v=1.206.0","./js/comum-sobre.js":"./js/comum-sobre.js?v=1.4.0","./js/comum-endereco.js":"./js/comum-endereco.js?v=1.2.0","./js/comum-partes.js":"./js/comum-partes.js?v=1.0.0","./js/resultados.js":"./js/resultados.js?v=2.9.0","./js/indicadores.js":"./js/indicadores.js?v=1.0.0","./js/configuracao-inicial.js":"./js/configuracao-inicial.js?v=1.0.1","./js/relatorios-executivos.js":"./js/relatorios-executivos.js?v=1.1.2","./js/raiz-eventos.js":"./js/raiz-eventos.js?v=1.0.0","./js/raiz-device.js":"./js/raiz-device.js?v=1.0.0","./js/raiz-ui.js":"./js/raiz-ui.js?v=1.2.0","./js/fiscal.js":"./js/fiscal.js?v=1.5.2","./js/ativos/ativos-boot.js":"./js/ativos/ativos-boot.js?v=1.4.0","./js/ativos/ativos-markup.js":"./js/ativos/ativos-markup.js?v=1.56.0","./js/nucleo/porta.js":"./js/nucleo/porta.js?v=1.3.0","./js/partes.js":"./js/partes.js?v=1.0.0","./js/conta.js":"./js/conta.js?v=1.0.0"}}</script>
+    <script type="importmap">{"imports":{"./js/cadastros.js":"./js/cadastros.js?v=1.2.0","./js/financeiro.js":"./js/financeiro.js?v=1.42.0","./js/fechamento.js":"./js/fechamento.js?v=1.12.3","./js/contratos.js":"./js/contratos.js?v=1.49.0","./js/minutas.js":"./js/minutas.js?v=1.4.0","./js/vitrine.js":"./js/vitrine.js?v=1.5.2","./js/imoveis.js":"./js/imoveis.js?v=1.7.2","./js/cofre-api.js":"./js/cofre-api.js?v=1.50.0","./js/cofre-app.js":"./js/cofre-app.js?v=1.47.0","./js/cofre-ativos.js":"./js/cofre-ativos.js?v=1.89.0","./js/cofre-controles.js":"./js/cofre-controles.js?v=1.49.0","./js/cofre-documentos.js":"./js/cofre-documentos.js?v=2.35.0","./js/cofre-imagem.js":"./js/cofre-imagem.js?v=1.1.0","./js/cofre-estado.js":"./js/cofre-estado.js?v=1.5.2","./js/cofre-navegacao.js":"./js/cofre-navegacao.js?v=1.9.3","./js/cofre-ui.js":"./js/cofre-ui.js?v=1.7.2","./js/cofre-validacoes.js":"./js/cofre-validacoes.js?v=2.5.0","./js/comum-licenca.js":"./js/comum-licenca.js?v=1.8.0","./js/comum-renovacao.js":"./js/comum-renovacao.js?v=1.3.5","./js/comum-minha-empresa.js":"./js/comum-minha-empresa.js?v=1.14.0","./js/comum-pessoas.js":"./js/comum-pessoas.js?v=1.206.0","./js/comum-sobre.js":"./js/comum-sobre.js?v=1.4.0","./js/comum-endereco.js":"./js/comum-endereco.js?v=1.2.0","./js/comum-partes.js":"./js/comum-partes.js?v=1.0.0","./js/resultados.js":"./js/resultados.js?v=2.9.0","./js/indicadores.js":"./js/indicadores.js?v=1.0.0","./js/configuracao-inicial.js":"./js/configuracao-inicial.js?v=1.0.1","./js/relatorios-executivos.js":"./js/relatorios-executivos.js?v=1.1.2","./js/raiz-eventos.js":"./js/raiz-eventos.js?v=1.0.0","./js/raiz-device.js":"./js/raiz-device.js?v=1.0.0","./js/raiz-ui.js":"./js/raiz-ui.js?v=1.2.0","./js/fiscal.js":"./js/fiscal.js?v=1.5.2","./js/ativos/ativos-boot.js":"./js/ativos/ativos-boot.js?v=1.4.0","./js/ativos/ativos-markup.js":"./js/ativos/ativos-markup.js?v=1.57.0","./js/nucleo/porta.js":"./js/nucleo/porta.js?v=1.3.0","./js/partes.js":"./js/partes.js?v=1.0.1","./js/conta.js":"./js/conta.js?v=1.0.0"}}</script>
     <!-- RZ-IMPORTMAP:FIM -->
 
     <!-- ===== PWA: permite "instalar" o app no celular (Android e iPhone) ===== -->
@@ -979,6 +972,11 @@
         .rz-search.rz-search-in:focus-within{border-color:var(--sprout);color:var(--ink)}
         .rz-search.rz-search-in input{flex:1;min-width:0;height:44px;border:0;outline:0;background:transparent;font:inherit;font-size:16px;color:var(--ink);padding:0}
         .rz-search.rz-search-in input::-webkit-search-cancel-button{display:none}
+        /* dem 28aa5ce1 — botão de filtros ao lado da barra digitável: abre o Sheet só com os filtros; o número diz quantos estão ligados */
+        .rz-filtro-btn{position:relative}
+        .rz-filtro-btn.rz-ativo{border-color:var(--pine);color:var(--pine)}
+        .rz-filtro-btn .rz-n{position:absolute;top:-3px;right:-3px;min-width:18px;height:18px;padding:0 5px;border-radius:9px;background:var(--pine);color:#fff;font-size:11px;font-weight:700;line-height:18px;text-align:center}
+        .rz-filtro-btn .rz-n[hidden]{display:none}
         .rz-topo .rz-search-x{flex:none;width:40px;height:40px;margin:0 4px 0 -54px;border:0;border-radius:50%;background:var(--tile);color:var(--ink);display:flex;align-items:center;justify-content:center;position:relative;z-index:1;cursor:pointer}
         .rz-topo .rz-search-x[hidden]{display:none}
         .rz-topo .rz-search-x svg{width:18px;height:18px}
@@ -2492,7 +2490,9 @@
                  renderContratos() não precisou mudar nada de lógica. -->
             <!-- Topo (F2.3): barra de busca + "+"; os chips da F2.4 vêm logo abaixo. (dem fcd3008d) -->
             <div class="rz-topo">
-                <button type="button" class="rz-search" id="contratos-busca-btn" onclick="abrirBuscaContratos()" aria-label="Buscar contrato"><svg data-lucide="search"></svg><span>Buscar contrato, locatário ou imóvel</span></button>
+                <!-- dem 28aa5ce1 — barra digitável (rzBuscaInline) + filtros (Empreendimento, Imóvel) num Sheet só de filtros -->
+                <label class="rz-search rz-search-in" id="contratos-busca-btn"><svg data-lucide="search"></svg><input type="search" id="contratos-busca-q" class="rz-raw" placeholder="Buscar contrato, locatário ou imóvel" enterkeyhint="search" autocomplete="off" aria-label="Buscar contrato"></label>
+                <button type="button" id="contratos-filtros-btn" onclick="abrirBuscaContratos()" class="rz-ico-btn rz-filtro-btn" title="Filtros" aria-label="Filtros"><svg data-lucide="sliders-horizontal"></svg><span class="rz-n" id="contratos-filtros-n" hidden></span></button>
 
                 <button id="btn-toggle-contrato" onclick="abrirEscolhaNovoContrato()" class="rz-ico-btn rz-primary" title="Novo contrato" aria-label="Novo contrato"><svg data-lucide="plus"></svg></button>
             </div>
@@ -3725,7 +3725,7 @@
         // texto certo toda vez (esqueci 5 versões seguidas, de v1.37.1 até
         // v1.38.3). Agora só precisa mudar UMA linha aqui a cada release;
         // window.onload aplica nos dois lugares automaticamente.
-        const APP_VERSAO = "Beta v1.354.0"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
+        const APP_VERSAO = "Beta v1.355.0"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
 
         // ====================================================================
         // v1.105.0 — HELPERS DE SUPERFÍCIE DA GRAMÁTICA ÚNICA
@@ -14711,8 +14711,9 @@ async function criarLinkVitrineSupabase(token, idsSelecionados) {
             const grupos = cfg.grupos || [], linhas = cfg.linhas || [];
             const chipsHtml = (g, gi) => g.opcoes.map((o, oi) =>
                 `<button type="button" class="rz-chip${String(g.valor()) === String(o.valor) ? ' rz-on' : ''}" data-g="${gi}" data-o="${oi}">${esc(o.rotulo)}${o.n != null ? ` <span class="rz-n">${esc(o.n)}</span>` : ''}</button>`).join('');
+            // dem 28aa5ce1 — cfg.semTexto: o texto mora na barra digitável da tela; o Sheet fica só com os filtros
             const corpoHtml = () => `
-                <label class="rz-busca-campo"><svg data-lucide="search"></svg><input type="search" id="rz-busca-q" class="rz-raw" placeholder="${esc(cfg.placeholder || 'Buscar')}" value="${esc(cfg.termo ? cfg.termo() : '')}" enterkeyhint="search" autocomplete="off" aria-label="${esc(cfg.placeholder || 'Buscar')}"></label>
+                ${cfg.semTexto ? '' : `<label class="rz-busca-campo"><svg data-lucide="search"></svg><input type="search" id="rz-busca-q" class="rz-raw" placeholder="${esc(cfg.placeholder || 'Buscar')}" value="${esc(cfg.termo ? cfg.termo() : '')}" enterkeyhint="search" autocomplete="off" aria-label="${esc(cfg.placeholder || 'Buscar')}"></label>`}
                 ${grupos.map((g, gi) => `<div class="rz-group">${esc(g.titulo)}</div><div class="rz-chips rz-chips-wrap" data-grupo="${gi}">${chipsHtml(g, gi)}</div>`).join('')}
                 ${linhas.length ? `<div class="rz-card rz-list rz-busca-linhas">${linhas.map((l, li) => `<button type="button" class="rz-row rz-link" data-l="${li}"><div class="rz-tx"><b>${esc(l.rotulo)}</b><span data-lv="${li}">${esc(l.valor())}</span></div><svg data-lucide="chevron-right" class="rz-chev"></svg></button>`).join('')}</div>` : ''}`;
             const sheet = abrirSheet(rzSheetCabecalho(cfg.titulo || 'Buscar', '') +
