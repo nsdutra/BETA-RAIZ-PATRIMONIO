@@ -1,7 +1,16 @@
 // ============================================================================
 // financeiro.js — Raiz Patrimônio · Financeiro (Recebimentos · Atrasados · Saídas
 //                  · conciliação de extrato · recibo · detalhe do recebimento)
-// Versão: 1.42.0 · 10/10/2026
+// Versão: 1.43.0 · 10/10/2026
+//
+// v1.43.0 (UX etapa 6 · A, demanda b4b047fd, sessão 20261003-1707-ux-base; protótipo PROTOTIPO_FINANCEIRO_PESSOAS_ETAPA6
+// aprovado pelo Nicola 10/10 22:43: "a barra digitável deve digitar na própria barra, eliminando abrir opções de filtro em
+// form") — Recebimentos, Saídas, Conciliação e Atrasados digitam na própria barra (rzBuscaInline do index; × limpa;
+// nunca reescreve a barra enquanto ela tem o foco). O texto procura também no valor ("15500", "15.500"), e em Saídas na
+// categoria; em Conciliação, no valor do extrato. Os campos guardadores (men-/saidas-/conc-/inad-busca-texto) e os
+// filtros escondidos continuam (atalhos de outras telas ainda os usam); os formulários de filtro deixam de ser abertos.
+//
+// Versão anterior: 1.42.0 · 10/10/2026
 //
 // v1.42.0 (10/10/2026, sessão 20261009-2055-integridade — demandas d471a7a8 e 1036fc4e, planos aprovados pelo Nicola
 // 10/10 09:57 e 10:11): a fatura do cartão é paga inteira ou não é paga. (1) Importar fatura pergunta "Esta fatura já
@@ -26,21 +35,11 @@
 // "Vínculo" (era "Ativo vinculado (opcional)" no meio da despesa e "Ativo (opcional)" no fim da receita). Só posição
 // e rótulo: os ids (desp-ativo, rav-ativo) e o que é gravado não mudam. O filtro de categorias pelo vínculo depende
 // da ficha F9' (lancamento_categorias.tipos_ativo, PLANO_PESSOAS_ATIVOS_EIXO) e não entra aqui.
-// Versão anterior: 1.40.0.
-//
-// v1.40.0 (10/10/2026, sessão 20261008-1231-pessoas-ativos, demanda f3e6cd27 — P2b aprovado pelo Nicola 09/10 23:59):
-// (1) classificar igual: depois de classificar uma compra da fatura (aceitando a sugestão ou à mão), se ainda há
-// compras do mesmo estabelecimento a classificar na fatura (fn_fatura_item_classificar devolve dados.semelhantes),
-// o app pergunta: classificar as N igual, as N e sempre assim, ou só esta; (2) o ativo vem primeiro e filtra a
-// árvore de categorias pelo tipo dele (lancamento_categorias.tipos_ativo; sem ativo = árvore inteira) na folha
-// Classificar e em Nova despesa; o seletor de ativo mostra todos; (3) chave "Vai para o contador" na folha
-// Classificar (padrão pela categoria e pelo ativo; grava por fn_financeiro_incluir_contabilidade, com a mesma
-// funcionalidade financeiro.contabilidade_ajustar). Versão anterior: 1.39.1.
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.39.1 … v1.39.1): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.40.0 … v1.40.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '1.42.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.43.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 
 // v1.17.0 (Fase 1 do wrapper de escrita, rollout Financeiro) — emitirEscrita
 // é o evento padrão pra "algo mudou que módulos DE FORA deste arquivo podem
@@ -51,6 +50,27 @@ import { emitirEscrita, aoEscrever } from './raiz-eventos.js';
 import { rzToast, rzConfirmar, rzAviso, rzEscolher, rzEditarDivisao } from './raiz-ui.js';
 
 /** Ponto de entrada do switchTab (1 chamada por troca de aba; barato). */
+// v1.43.0 (etapa 6 · A) — barra digitável de cada aba: o termo mora no campo guardador de sempre.
+const FIN_BUSCA = {
+    mensal: { guarda: 'men-busca-texto', redesenha: () => renderMensalidades() },
+    saidas: { guarda: 'saidas-busca-texto', redesenha: () => renderSaidas() },
+    conciliacao: { guarda: 'conc-busca-texto', redesenha: () => renderConciliacaoUnificada() },
+    inad: { guarda: 'inad-busca-texto', redesenha: () => renderInadimplencia() },
+};
+function financeiroLigarBusca(aba) {
+    const cfg = FIN_BUSCA[aba]; if (!cfg || typeof rzBuscaInline !== 'function') return;
+    const guarda = document.getElementById(cfg.guarda);
+    const el = rzBuscaInline('fin-busca-q-' + aba, (v) => { if (guarda) guarda.value = v; cfg.redesenha(); });
+    if (el && guarda && document.activeElement !== el && el.value.trim() !== guarda.value) { el.value = guarda.value; el._rzMarcar && el._rzMarcar(); }
+}
+// Texto ou valor: "nexo", "15500", "15.500,00" — valor compara pelos dígitos (inteiro ou com centavos).
+function financeiroTextoBate(termo, campos, valor) {
+    if (campos.some(c => (c || '').toString().toLowerCase().includes(termo))) return true;
+    const dig = termo.replace(/\D/g, '');
+    if (!dig || valor == null || isNaN(Number(valor))) return false;
+    const v = Math.abs(Number(valor));
+    return String(Math.round(v)).includes(dig) || String(Math.round(v * 100)).includes(dig);
+}
 export function montarAbaFinanceiro(tabId) {
     // v1.30.1 — rotinas podem ter sido ligadas/desligadas em Minha empresa
     // desde a última visita: reverifica nesta entrada (fechamento também).
@@ -78,6 +98,8 @@ export function montarAbaFinanceiro(tabId) {
             else if (document.getElementById('tab-conciliacao')?.classList.contains('active')) { financeiroRenderCabecalho('conciliacao'); carregarConciliacaoUnificada(); }
         });
     }
+    const abaBusca = { 'tab-mensal': 'mensal', 'tab-saidas': 'saidas', 'tab-conciliacao': 'conciliacao' }[tabId]; // v1.43.0
+    if (abaBusca) financeiroLigarBusca(abaBusca);
     if (tabId === 'tab-mensal') { financeiroRenderCabecalho('mensal'); renderMensalidades(); renderOutrasReceitas(); }
     else if (tabId === 'tab-socios') { renderDistribuicao(); } // v1.29.0 — Distribuição (P1b)
     else if (tabId === 'tab-inadimplencia') { renderInadimplencia(); }
@@ -402,9 +424,10 @@ export function abrirLancarFinanceiro(aba) {
 // v1.28.0 — barra de busca do topo (UXR-10/11): abre o filtro da lista da aba
 // em que está (os mesmos overlays de antes; a busca universal é a F2.3).
 export function abrirBuscaFinanceiro(aba) {
-    if (aba === 'saidas') return abrirBuscaSaidas();
-    if (aba === 'conciliacao') return abrirBuscaConciliacao();
-    return abrirBuscaMensal();
+    // v1.43.0 — a busca é a própria barra: põe o foco nela (o formulário de filtros não abre mais)
+    const k = aba === 'saidas' || aba === 'conciliacao' ? aba : 'mensal';
+    financeiroLigarBusca(k);
+    document.getElementById('fin-busca-q-' + k)?.focus();
 }
 
 // Mantidas por compatibilidade (ponte window do index.html e chamadas antigas):
@@ -826,10 +849,9 @@ function financeiroRenderCabecalho(aba) {
         }
 
         export function abrirBuscaInadimplencia() {
-            const modal = document.getElementById('modal-busca-inadimplencia');
-            modal.classList.remove('hidden');
-            modal.onclick = (ev) => { if (ev.target === modal) fecharBuscaInadimplencia(); };
-            if (typeof lucide !== 'undefined') lucide.createIcons();
+            // v1.43.0 — a busca é a barra digitável da tela (o formulário não abre mais)
+            financeiroLigarBusca('inad');
+            document.getElementById('fin-busca-q-inad')?.focus();
         }
 
         export function fecharBuscaInadimplencia() {
@@ -1116,8 +1138,8 @@ function financeiroRenderCabecalho(aba) {
                 if (fAtivo !== 'todos' && d.ativoId !== fAtivo) return false;
                 if (fFornecedor !== 'todos' && d.parteId !== fFornecedor) return false;
                 if (termoBusca) {
-                    const campos = [d.descricao, d.parteNome, d.ativoNome];
-                    if (!campos.some(c => (c || '').toLowerCase().includes(termoBusca))) return false;
+                    const campos = [d.descricao, d.parteNome, d.ativoNome, d.categoria, rotuloCategoriaSaida(d.categoria)]; // v1.43.0 — + categoria e valor
+                    if (!financeiroTextoBate(termoBusca, campos, d.valor)) return false;
                 }
                 return true;
             });
@@ -3698,7 +3720,7 @@ function financeiroRenderCabecalho(aba) {
 
             const filtrados = conciliacaoUniCache.filter(f => {
                 if (conciliacaoUniSegmento !== 'tudo' && f.direcao !== conciliacaoUniSegmento) return false;
-                if (termoConc && !(f.razao_social || '').toLowerCase().includes(termoConc)) return false;
+                if (termoConc && !financeiroTextoBate(termoConc, [f.razao_social, f.descricao], f.valor)) return false; // v1.43.0 — + valor
                 if ((fLocConc !== 'todos' || fEmpConc !== 'todos') && f.direcao === 'entrada') {
                     const men = f.destino_tipo === 'mensalidade' ? mensalidades.find(m => m.id === f.destino_id) : null;
                     const con = men ? contratos.find(c => c.id === men.contratoId) : null;
@@ -4507,7 +4529,7 @@ function financeiroRenderCabecalho(aba) {
                 }
                 if (termoBuscaMen) {
                     const campos = [con.locatario, imo?.enderecoRua, imo?.enderecoNum, imo?.enderecoBairro, imo?.enderecoCidade, imo?.empreendimento];
-                    if (!campos.some(c => (c || '').toString().toLowerCase().includes(termoBuscaMen))) return false;
+                    if (!financeiroTextoBate(termoBuscaMen, campos, men.valorConfirmado)) return false; // v1.43.0 — + valor
                 }
                 return true;
             });
@@ -4732,6 +4754,7 @@ function financeiroRenderCabecalho(aba) {
         }
 
         export function renderInadimplencia() {
+            financeiroLigarBusca('inad'); // v1.43.0 — barra digitável
             const container = document.getElementById('lista-inadimplencia');
             if(!container) return;
             container.innerHTML = '';
@@ -4766,7 +4789,7 @@ function financeiroRenderCabecalho(aba) {
                 const imoDaBusca = imoveis.find(i => i.id === con.imovelId);
                 if (termoBuscaInad) {
                     const campos = [con.locatario, imoDaBusca?.enderecoRua, imoDaBusca?.enderecoNum, imoDaBusca?.enderecoBairro, imoDaBusca?.enderecoCidade, imoDaBusca?.empreendimento];
-                    if (!campos.some(c => (c || '').toString().toLowerCase().includes(termoBuscaInad))) return;
+                    if (!financeiroTextoBate(termoBuscaInad, campos, men.valorConfirmado)) return; // v1.43.0 — + valor
                 }
                 if(mensalidadeEmAtraso(men)) {
                     totalInad += men.valorConfirmado;

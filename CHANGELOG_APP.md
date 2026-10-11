@@ -4,6 +4,15 @@ Histórico completo de versões do `index.html`, movido automaticamente pelo `ge
 
 ---
 
+NOVIDADES (Beta v1.353.2) — só o import map: cofre-ativos.js 1.87.0 (card Usos vira só a barra consolidada; Nicola 10/10 20:33).
+Versão anterior (Beta v1.353.1):
+------------------------------------------------------------------
+Versões anteriores (v1.353.1 … v1.353.1): CHANGELOG_APP.md, na raiz do
+repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
+das 5 versões mais recentes deste cabeçalho.
+
+---
+
 NOVIDADES (Beta v1.353.1) — CORREÇÃO URGENTE (Nicola 10/10 20:16: "depois da tela de login, coloco a senha e ele não
 carrega"): o Object.assign(window, …) do catálogo de UI ainda citava abrirPreferenciasComunicacao, que a Onda 2b
 levou para js/conta.js. ReferenceError no carregamento parava o script e o login ficava em "Entrando...". Só essa
