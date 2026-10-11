@@ -4,6 +4,17 @@ Histórico completo de versões do `index.html`, movido automaticamente pelo `ge
 
 ---
 
+NOVIDADES (Beta v1.360.0) — Escolha de empresa mais folgada (dem 4fa92c2c; Nicola 10/10 23:05: "ficou apertada"): saem a foto,
+o título da splash e os chips por plano; a tela começa no "Olá, <nome>", a lista ocupa o resto e o rodapé junta a versão
+(esq.) e o Sair (dir.). Corrige "Teste · NaN d" (data_expiracao com hora). Só index.html. Nenhum objeto de banco.
+Versão anterior (Beta v1.359.0):
+------------------------------------------------------------------
+Versões anteriores (v1.359.0 … v1.359.0): CHANGELOG_APP.md, na raiz do
+repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
+das 5 versões mais recentes deste cabeçalho.
+
+---
+
 NOVIDADES (Beta v1.359.0) — UX etapa 6 · B e C (demanda b4b047fd; protótipo aprovado pelo Nicola 10/10 22:43 com ajustes).
 Recebimentos: deslizar a linha a receber REVELA "Dar baixa" (→) e "Cobrar" (←, só em atraso); a ação roda só no toque
 no botão (rzSwipe). Cobrar pelo WhatsApp mostra a mensagem exata que vai sair e o interruptor "Incluir o Pix",

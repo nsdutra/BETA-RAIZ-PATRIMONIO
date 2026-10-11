@@ -1,7 +1,19 @@
 // ============================================================================
 // financeiro.js — Raiz Patrimônio · Financeiro (Recebimentos · Atrasados · Saídas
 //                  · conciliação de extrato · recibo · detalhe do recebimento)
-// Versão: 1.46.0 · 10/10/2026
+// Versão: 1.47.0 · 11/10/2026
+//
+// v1.47.0 (UX etapa 6 · D, demanda b4b047fd, sessão 20261003-1707-ux-base; protótipo PROTOTIPO_FINANCEIRO_PESSOAS_ETAPA6
+// aprovado pelo Nicola 10/10 22:43 com "o deslizar pro lado só abre a opção esperando toque"; "Vamos ajustar e seguir"
+// 23:50) — Conciliação:
+//   · deslizar a linha com sugestão da Raiz IA REVELA "Aceitar" (→, confirmarSugestaoConciliacao de sempre) e "Outra"
+//     (←, abrirAcoesConciliacaoLinha); nada roda pelo deslize. O toque na linha continua igual;
+//   · "Revisar em sequência (N)" em cima da lista abre uma carta por vez com as pendências da lista (mesma ordem e
+//     mesmo filtro): Aceitar (só quando a sugestão confirma sozinha; senão "Ver opções"), Outra opção, Pular (fica
+//     pendente na lista), Não controlado (fn_extrato_marcar_nao_controlado de sempre, sem observação) e Sair. Depois de
+//     aceitar ou marcar, a próxima carta abre sozinha. Nada de banco novo; OFX/CSV fica fora (precisa de ficha).
+//
+// Versão anterior: 1.46.0 · 10/10/2026
 //
 // v1.46.0 (correção da etapa 6 · C, demanda b4b047fd; teste do Nicola 10/10 23:23: "ao clicar no cobrar a 1ª vez não
 // abre, só na 2ª" e "cobrar só gera msg de celular não cadastrado") — o sheet de cobrança abre NA HORA do toque (antes
@@ -36,21 +48,11 @@
 // nunca reescreve a barra enquanto ela tem o foco). O texto procura também no valor ("15500", "15.500"), e em Saídas na
 // categoria; em Conciliação, no valor do extrato. Os campos guardadores (men-/saidas-/conc-/inad-busca-texto) e os
 // filtros escondidos continuam (atalhos de outras telas ainda os usam); os formulários de filtro deixam de ser abertos.
-//
-// Versão anterior: 1.42.0 · 10/10/2026
-//
-// v1.42.0 (10/10/2026, sessão 20261009-2055-integridade — demandas d471a7a8 e 1036fc4e, planos aprovados pelo Nicola
-// 10/10 09:57 e 10:11): a fatura do cartão é paga inteira ou não é paga. (1) Importar fatura pergunta "Esta fatura já
-// foi paga?" (obrigatório quando há compras novas e a fatura não está paga); "Sim" manda ja_paga e a data do pagamento
-// (padrão: o vencimento, ou hoje se ele ainda não chegou) e o banco marca fatura e compras como pagas. (2) Compra de
-// cartão não tem ações próprias de pagamento: tocar nela (de qualquer lista) abre a fatura — o banco também recusa
-// (trg_lancamento_guarda_fatura). (3) A linha da fatura em Saídas mostra a soma das compras, o mesmo número dos
-// totais do topo (fn_financeiro_totalizadores_por_conta). Versão anterior: 1.41.0.
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.41.0 … v1.41.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.42.0 … v1.42.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '1.46.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.47.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 
 // v1.17.0 (Fase 1 do wrapper de escrita, rollout Financeiro) — emitirEscrita
 // é o evento padrão pra "algo mudou que módulos DE FORA deste arquivo podem
@@ -3677,7 +3679,7 @@ function financeiroRenderCabecalho(aba) {
             if (sug) {
                 const confPct = Math.round((sug.confianca || 0));
                 const semConfianca = confPct < 70 ? 'warn' : 'ia';
-                return `<div class="rz-row rz-link" onclick="abrirAcoesConciliacaoLinha('${f.id}')">
+                return `<div class="rz-row rz-link" data-conc="${f.id}" onclick="abrirAcoesConciliacaoLinha('${f.id}')">
                     <div class="rz-ic rz-${semConfianca}"><svg data-lucide="sparkles"></svg></div>
                     <div class="rz-tx"><b>${escapeHtmlSaidas(limparRotuloConciliacao(f.razao_social))}</b><span>Parece: ${escapeHtmlSaidas(sug.detalhe || nomeRegraConc(sug.regra_codigo))}${conciliacaoAtivoDaSugestao(sug) ? ' · ' + escapeHtmlSaidas(conciliacaoAtivoDaSugestao(sug)) : ''}</span></div>
                     <div class="rz-rt">${valorSpan}<span class="rz-ia-tag"><svg data-lucide="sparkles"></svg>${confPct}%</span></div>
@@ -3762,9 +3764,107 @@ function financeiroRenderCabecalho(aba) {
             // Mais recente primeiro — sem agrupador (Entrega F.4: 1 mês só,
             // não tem por que colapsar/expandir).
             const ordenados = [...filtrados].sort((a, b) => (b.data || '').localeCompare(a.data || ''));
-            lista.innerHTML = `<div class="rz-card rz-list">${ordenados.map(linhaConciliacaoUniHtml).join('')}</div>`;
+            // v1.47.0 (etapa 6 · D) — "Revisar em sequência (N)": as pendências desta lista, na mesma ordem
+            concSeqOrdem = ordenados.filter(f => f.status_conciliacao === 'pendente').map(f => f.id);
+            const seqHtml = concSeqOrdem.length ? `<div class="rz-card rz-list"><div class="rz-row rz-link" role="button" tabindex="0" data-conc-seq>
+                    <div class="rz-ic rz-ia"><svg data-lucide="sparkles"></svg></div>
+                    <div class="rz-tx"><b>Revisar em sequência (${concSeqOrdem.length})</b><span>Uma pendência por vez, com a sugestão da Raiz IA</span></div>
+                    <svg data-lucide="chevron-right" class="rz-chev"></svg>
+                </div></div>` : '';
+            lista.innerHTML = `${seqHtml}<div class="rz-card rz-list">${ordenados.map(linhaConciliacaoUniHtml).join('')}</div>`;
+            conciliacaoLigarDeslize(lista); // v1.47.0
+            lista.querySelector('[data-conc-seq]')?.addEventListener('click', conciliacaoRevisarEmSequencia);
 
             if (typeof lucide !== 'undefined') lucide.createIcons();
+        }
+
+        // v1.47.0 (etapa 6 · D) — deslizar REVELA, o toque no botão age (rzSwipe do index).
+        // → Aceitar a sugestão (mesma confirmação do toque) · ← Outra opção (o sheet de opções de sempre).
+        function conciliacaoLigarDeslize(lista) {
+            if (!lista || typeof rzSwipe !== 'function') return;
+            lista.querySelectorAll('.rz-row[data-conc]').forEach(row => {
+                const id = row.dataset.conc;
+                rzSwipe(row, {
+                    dir: [{ icone: 'check', titulo: 'Aceitar', aoTocar: () => confirmarSugestaoConciliacao(id) }],
+                    esq: [{ icone: 'search', titulo: 'Outra', tipo: 'warn', aoTocar: () => abrirAcoesConciliacaoLinha(id) }],
+                });
+            });
+        }
+
+        // v1.47.0 (etapa 6 · D) — "Revisar em sequência": uma carta por vez. O que não for tratado continua pendente.
+        let concSeqOrdem = [], concSeq = null;
+        // A sugestão confirma sozinha (sem abrir outro formulário)? Mesmas regras de confirmarSugestaoConciliacao.
+        function conciliacaoSugestaoDireta(sug) {
+            if (!sug) return false;
+            if (sug.acao === 'nao_controlar') return true;
+            if (sug.acao === 'dar_baixa') return sug.destino_tipo === 'mensalidade' && !!sug.destino_id;
+            if (sug.acao === 'vincular_saida_prevista') return sug.destino_tipo === 'lancamento' && !!sug.destino_id;
+            if (sug.acao === 'sugerir_categoria') return categoriaRegraConc(sug.regra_codigo) !== 'tributo';
+            return false;
+        }
+        export function conciliacaoRevisarEmSequencia() {
+            concSeq = { ordem: concSeqOrdem.slice(), total: concSeqOrdem.length, pulados: new Set(), tratados: 0 };
+            conciliacaoSeqMostrar();
+        }
+        function conciliacaoSeqProximo() {
+            if (!concSeq) return null;
+            return concSeq.ordem.map(id => conciliacaoUniCache.find(x => x.id === id))
+                .find(f => f && f.status_conciliacao === 'pendente' && !concSeq.pulados.has(f.id)) || null;
+        }
+        function conciliacaoSeqMostrar() {
+            const f = conciliacaoSeqProximo();
+            if (!f) {
+                const tratados = concSeq ? concSeq.tratados : 0, pulados = concSeq ? concSeq.pulados.size : 0;
+                concSeq = null;
+                if (typeof fecharSheet === 'function') fecharSheet();
+                mostrarToast(pulados ? `Revisão concluída. ${pulados} ${pulados === 1 ? 'ficou pendente' : 'ficaram pendentes'} na lista.` : `Revisão concluída${tratados ? '' : ': nada mais pendente'}.`, 'success');
+                return;
+            }
+            const sug = conciliacaoUniSugestoes[f.id] || null;
+            const entrada = f.direcao === 'entrada';
+            const valorAbs = Math.abs(parseFloat(f.valor)).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+            const pos = concSeq.tratados + concSeq.pulados.size + 1;
+            const restantes = Math.max(0, concSeq.total - pos);
+            const comp = financeiroCompetenciaAtual || financeiroCompetenciaHojeISO();
+            const mes = new Date(comp + 'T12:00:00').toLocaleDateString('pt-BR', { month: 'long' });
+            const direta = conciliacaoSugestaoDireta(sug);
+            const ativoSug = sug ? conciliacaoAtivoDaSugestao(sug) : '';
+            const e = escapeHtmlSaidas;
+            const corpo = `<div class="rz-sh-b">
+                <div class="rz-seq-prog"><b>${pos} de ${concSeq.total}</b><span>${restantes} ${restantes === 1 ? 'restante' : 'restantes'}</span></div>
+                <div class="rz-card rz-seq-card">
+                    <small>${formatarDataBR(f.data)} · ${entrada ? 'entrada' : 'saída'} no extrato</small>
+                    <b class="rz-seq-valor${entrada ? ' rz-in' : ''}">${entrada ? '+' : '−'} R$ ${valorAbs}</b>
+                    <p class="rz-seq-nome">${e(limparRotuloConciliacao(f.razao_social) || (entrada ? 'Entrada' : 'Saída'))}</p>
+                    ${sug ? `<div class="rz-seq-sug"><small>Sugestão da Raiz IA · ${Math.round(sug.confianca || 0)}%</small><b>${e(sug.detalhe || nomeRegraConc(sug.regra_codigo))}</b>${ativoSug ? `<span class="rz-desc">${e(ativoSug)}</span>` : ''}</div>`
+                          : '<div class="rz-seq-sug rz-sem"><small>Sem sugestão da Raiz IA</small><b>Escolha em "Outra opção"</b></div>'}
+                </div>
+                <div class="rz-seq-btns">
+                    <button type="button" class="rz-btn rz-btn-2" data-seq="outra">Outra opção</button>
+                    ${sug ? `<button type="button" class="rz-btn rz-btn-1" data-seq="${direta ? 'aceitar' : 'outra'}">${direta ? 'Aceitar' : 'Ver opções'}</button>` : ''}
+                </div>
+                <div class="rz-seq-mais">
+                    <button type="button" class="rz-btn rz-btn-3" data-seq="pular">Pular</button>
+                    <button type="button" class="rz-btn rz-btn-3" data-seq="nao">Não controlado</button>
+                    <button type="button" class="rz-btn rz-btn-3" data-seq="sair">Sair</button>
+                </div>
+            </div>`;
+            const sheet = abrirSheet(rzSheetCabecalho('Revisar em sequência', `Conciliação · ${mes}`) + corpo);
+            if (typeof lucide !== 'undefined') lucide.createIcons();
+            sheet.querySelectorAll('[data-seq]').forEach(b => b.addEventListener('click', async () => {
+                const acao = b.dataset.seq;
+                if (acao === 'sair') { concSeq = null; fecharSheet(); return; }
+                if (acao === 'pular') { concSeq.pulados.add(f.id); conciliacaoSeqMostrar(); return; }
+                if (acao === 'outra') { concSeq = null; abrirAcoesConciliacaoLinha(f.id); return; } // sai da sequência para as opções
+                const estado = concSeq;
+                if (acao === 'aceitar') await confirmarSugestaoConciliacao(f.id);
+                if (acao === 'nao') await confirmarNaoControlarConciliacao(f.id, null);
+                if (concSeq !== estado) return; // saiu no meio
+                const ainda = conciliacaoUniCache.find(x => x.id === f.id);
+                if (!ainda || ainda.status_conciliacao !== 'pendente') concSeq.tratados++;
+                else concSeq.pulados.add(f.id); // não gravou (erro): não insiste nesta carta
+                conciliacaoSeqMostrar();
+            }));
         }
 
         // v1.6.0 — ficha completa do item sugerido, antes de confirmar
