@@ -4,6 +4,17 @@ Histórico completo de versões do `index.html`, movido automaticamente pelo `ge
 
 ---
 
+NOVIDADES (Beta v1.370.0) — F13 4c etapa 3: chip "Financeiro" na ficha de todo ativo (balanço pendente com Quitar,
+contas e cartões, extraordinárias, movimentações do mês). Só o import map muda aqui (cofre-ativos.js 1.91.0,
+ativos-markup.js 1.59.0, financeiro.js 1.51.0).
+Versão anterior (Beta v1.369.0):
+------------------------------------------------------------------
+Versões anteriores (v1.369.0 … v1.369.0): CHANGELOG_APP.md, na raiz do
+repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
+das 5 versões mais recentes deste cabeçalho.
+
+---
+
 NOVIDADES (Beta v1.369.0) — F13.7: retirada "do fluxo" ou "extraordinária" (fora do fluxo dos imóveis, não abate o
 saldo a retirar nem gera dívida), com reclassificação da retirada já lançada. Só o import map muda aqui
 (financeiro.js 1.50.0, nucleo/porta.js 1.4.0).

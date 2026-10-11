@@ -1,6 +1,13 @@
 // ============================================================================
 // comum-pessoas.js — Raiz Patrimônio · Administração compartilhada
-// Versão: 1.208.0 · 10/10/2026
+// Versão: 1.209.0 · 11/10/2026
+//
+// v1.209.0 (fase 5 do plano de marca e ramos, demanda 680ee9f8; Nicola 11/10 18:47 "Sobre ramo por pessoa, estou de
+// acordo"; FICHA_RAMO_PADRAO_PESSOA_RAIZ v1.0.0) — "Abrir o app em" no grupo Acesso da pessoa: escolhe o ramo em que
+// ela entra no app (Todo o patrimônio ou um ramo contratado). Aparece para quem tem login, quando a empresa tem 2+ ramos,
+// para a própria pessoa ou admin/master. Grava por fn_pessoa_ramo_padrao_definir (coluna pessoas.ramo_padrao).
+//
+// Versão anterior: 1.208.0 · 10/10/2026
 //
 // v1.208.0 (ajuste da etapa 6 · E, demanda b4b047fd; teste do Nicola 10/10 23:50) —
 //   · os números dos chips acompanham o texto digitado na barra ("Filtro só não atualizou os chips");
@@ -35,17 +42,11 @@
 // v1.205.0 (UX F2.7b, demanda b8602a3a, sessão 20261003-1707-ux-base; plano F2.7 aprovado pelo Nicola 07/10 20:05; achado do teste da F2.7a em 08/10 08:12) — Pessoas sem ninguém
 // cadastrado usa a caixa rzVazio do app ("Quem usa o Raiz com você" + "Adicionar pessoa" para quem pode
 // gerenciar). Pessoa que não se achou e o cofre.html avulso (sem rzVazio) mantêm o vazio de antes.
-//
-// Versão anterior: 1.204.2 · 07/10/2026
-//
-// v1.204.1 (07/10/2026, sessão 20261007-1721-rolo-changelog, demanda 2507d554 — VER-06, "de acordo" do Nicola 07/10 17:21) — SÓ
-// CABEÇALHO: as versões além das 5 mais recentes rolaram para o CHANGELOG_MODULOS.md.
-// Nenhuma linha de código mudou — conferido token a token contra o publicado.
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.204.0 … v1.204.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.204.1 … v1.204.1): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '1.208.0'; // v-check (18/09/2026): lido por Dev › Versões — manter igual ao header
+export const VERSAO = '1.209.0'; // v-check (18/09/2026): lido por Dev › Versões — manter igual ao header
 import { perguntar, avisarComDesfazer } from './cofre-ui.js'; // v1.203.0 (F0.2b) — sem diálogo nativo
 import { buscarContas, contasListaHtml, abrirFichaConta, abrirAcoesConta } from './comum-minha-empresa.js'; // v1.204.0 — contas da pessoa (P4a)
 import { rzMostrarBloqueio as rzBloqueio } from './comum-licenca.js'; // v1.204.0
@@ -90,6 +91,7 @@ export async function listarPessoas(dbAuth, clienteId) {
         funcao: row.funcao, percentualCotasEmpresa: row.percentual_cotas_empresa,
         userId: row.user_id, perfil: row.perfil,
         escopoContas: row.escopo_contas || 'propria_mais_empresa', // v1.204.0
+        ramoPadrao: row.ramo_padrao || null, // v1.209.0 — ramo em que a pessoa abre o app (null = Todo o patrimônio)
     }));
 }
 
@@ -374,6 +376,22 @@ export async function montarAbaPessoas(mountEl, ctx) {
     // ---------------------------------------------------------------
     // v1.207.0 (etapa 6 · E; v1.208.0: grupos da lista de ações) — Dados · Acesso · Comunicação · Atividade. As ações são as do ⋮
     // (abrirAcoesPessoa), distribuídas por assunto, com as mesmas travas e a mesma checagem de acesso (codigo).
+    // v1.209.0 (fase 5) — ramos ativos e contratados, na ordem do catálogo (index: rzRamoLiberado/rzRamoInfo)
+    function ramosDaEmpresa() {
+        if (typeof window.rzRamoLiberado !== 'function') return [];
+        return ['imoveis', 'familia', 'outros', 'agro', 'pecuaria', 'varejo', 'investimentos'].filter(c => window.rzRamoLiberado(c));
+    }
+    async function escolherRamoPadrao(p) {
+        if (typeof window.rzEscolher !== 'function') return;
+        const opcoes = [{ valor: 'tudo', titulo: 'Todo o patrimônio', icone: 'layers' }]
+            .concat(ramosDaEmpresa().map(c => ({ valor: c, titulo: window.rzNomeRamo?.(c) || c, icone: window.rzRamoInfo?.(c)?.icone || 'circle' })));
+        const escolha = await window.rzEscolher({ titulo: 'Abrir o app em', sub: p.nome || '', opcoes });
+        if (!escolha || escolha === (p.ramoPadrao || 'tudo')) return;
+        const { data, error } = await dbAuth.rpc('fn_pessoa_ramo_padrao_definir', { p_cliente_id: clienteId, p_pessoa_alvo_id: p.id, p_ramo: escolha === 'tudo' ? null : escolha });
+        if (error) { onToast?.(error.message, 'danger'); return; }
+        onToast?.(data?.mensagem || 'Feito.', data?.ok ? 'success' : 'danger');
+        if (data?.ok) { p.ramoPadrao = escolha === 'tudo' ? null : escolha; renderLista(); }
+    }
     function acoesFichaPessoa(p) {
         const ehMaster = p.perfil === 'master';
         const perfilTravado = ehMaster && perfilLogado !== 'master';
@@ -386,6 +404,10 @@ export async function montarAbaPessoas(mountEl, ctx) {
         else dados.push({ icone: 'trash-2', titulo: 'Excluir pessoa', codigo: 'pessoas.excluir', tipo: 'bad', aoTocar: () => excluirPessoa(p.id) });
         if (!ehMaster) acesso.push({ icone: 'shield', titulo: 'Perfil de acesso', sub: rotuloPerfil(p.perfil), codigo: 'pessoas.editar', aoTocar: () => alterarPerfilPessoa(p.id) });
         else acesso.push({ icone: 'shield-check', titulo: 'Perfil de acesso', sub: 'Master — não muda pela tela', aoTocar: null });
+        // v1.209.0 (fase 5, dem 680ee9f8) — ramo em que a pessoa abre o app; ela mesma ou admin/master; só com 2+ ramos contratados
+        if (temLogin && (p.id === pessoaId || ['admin', 'master', 'master_plataforma'].includes(perfilLogado)) && ramosDaEmpresa().length > 1) {
+            acesso.push({ icone: 'layers', titulo: 'Abrir o app em', sub: p.ramoPadrao ? (window.rzNomeRamo?.(p.ramoPadrao) || p.ramoPadrao) : 'Todo o patrimônio', codigo: 'pessoas.editar', aoTocar: () => escolherRamoPadrao(p) });
+        }
         acesso.push({ icone: 'wallet', titulo: 'Contas que vê', sub: ehMaster ? 'Vê todas as contas' : (ESCOPO_CONTAS_ROTULO[p.escopoContas] || 'Contas dela e quais contas ela vê'), codigo: 'financeiro.contas.ver', aoTocar: () => abrirContasPessoaSheet(p.id) });
         if (!perfilTravado) {
             if (temLogin) {
