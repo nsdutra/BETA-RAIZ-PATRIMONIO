@@ -6,9 +6,16 @@
    (base derivada do RUMO v7.4.2 — histórico de versões anteriores
    preservado abaixo para referência técnica)
 
-   VERSÃO: Beta v1.356.0
-   LINHAS: 15639
-   DATA: 10/10/2026 (sessão 20261003-1707-ux-base, demanda 28aa5ce1)
+   VERSÃO: Beta v1.357.0
+   LINHAS: 15699
+   DATA: 10/10/2026 (sessão 20261003-1707-ux-base, demanda 4fa92c2c)
+   NOVIDADES (Beta v1.357.0) — demanda 4fa92c2c (protótipo aprovado pelo Nicola 10/10 22:26). Escolha de empresa depois
+   do login na gramática do app: "Olá, <nome>" e quantas empresas, barra digitável a partir de 6, chips por plano (só os
+   que existem, no lugar do select), lista em card claro com logo ou sigla, perfil e plano, a última acessada no topo
+   (raiz_d_ultima_empresa_<dono>, apagada no Sair), status só para teste grátis (com os dias) e vencido — o selo
+   TRIAL antigo marcava plano pago com término. Sair no rodapé. A consulta de pessoas traz clientes.logo_url. Nenhum
+   objeto de banco.
+   Versão anterior (Beta v1.356.0):
    NOVIDADES (Beta v1.356.0) — demanda 28aa5ce1, teste do Nicola 10/10 21:43. Sai o ícone de filtros de Contratos
    (e de Ativos, ativos-markup 1.58.0 / cofre-ativos 1.90.0): fica só a barra digitável. A barra do Hoje vira
    digitável: resultados na própria tela (#hoje-busca-res, rzLigarBuscaHoje); o miolo da busca universal vira
@@ -29,13 +36,8 @@
    Versão anterior (Beta v1.353.2):
    NOVIDADES (Beta v1.353.2) — só o import map: cofre-ativos.js 1.87.0 (card Usos vira só a barra consolidada; Nicola 10/10 20:33).
    Versão anterior (Beta v1.353.1):
-   NOVIDADES (Beta v1.353.1) — CORREÇÃO URGENTE (Nicola 10/10 20:16: "depois da tela de login, coloco a senha e ele não
-   carrega"): o Object.assign(window, …) do catálogo de UI ainda citava abrirPreferenciasComunicacao, que a Onda 2b
-   levou para js/conta.js. ReferenceError no carregamento parava o script e o login ficava em "Entrando...". Só essa
-   linha mudou; a ponte para o módulo da Conta continua mais abaixo.
-   Versão anterior (Beta v1.353.0):
    ------------------------------------------------------------------
-   Versões anteriores (v1.353.0 … v1.353.0): CHANGELOG_APP.md, na raiz do
+   Versões anteriores (v1.353.1 … v1.353.1): CHANGELOG_APP.md, na raiz do
    repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
    das 5 versões mais recentes deste cabeçalho.
 
@@ -370,6 +372,32 @@
             scrollbar-width:none; -ms-overflow-style:none; /* Firefox/IE — sem barra visível */
         }
         #splash-screen.splash-lista-ativa #lista-selecao-empresa::-webkit-scrollbar{ display:none; } /* Chrome/Safari/WebView */
+        /* dem 4fa92c2c — escolha de empresa na gramática do app, sobre o fundo verde do login (protótipo aprovado 10/10 22:26):
+           cabeçalho, barra digitável (6+ empresas), chips por plano, lista em card claro, Sair no rodapé. */
+        .rz-esc-topo{margin:4px 2px 12px}
+        .rz-esc-ola{font:700 24px var(--font-title);letter-spacing:-.02em;color:#fff;margin:0}
+        .rz-esc-sub{color:#b9d0c3;font-size:14px;margin:4px 0 0}
+        #area-selecao-empresa .rz-topo{margin-bottom:10px}
+        #area-selecao-empresa .rz-search{background:rgba(255,255,255,.1);border-color:rgba(255,255,255,.2);color:#cfe0d6}
+        #area-selecao-empresa .rz-search.rz-search-in input{color:#fff}
+        #area-selecao-empresa .rz-search.rz-search-in input::placeholder{color:#b9d0c3}
+        #area-selecao-empresa .rz-search-x{background:rgba(255,255,255,.16);color:#fff}
+        #area-selecao-empresa .rz-chips{margin-bottom:6px}
+        #area-selecao-empresa .rz-chip{background:transparent;border-color:rgba(255,255,255,.24);color:#e3eee8}
+        #area-selecao-empresa .rz-chip .rz-n{background:rgba(255,255,255,.14);color:#e3eee8}
+        #area-selecao-empresa .rz-chip.rz-on{background:#fff;border-color:#fff;color:var(--pine)}
+        #area-selecao-empresa .rz-chip.rz-on .rz-n{background:var(--tile);color:var(--pine)}
+        .rz-esc-grupo{color:#9fc3ae;font-size:12px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;margin:10px 4px 6px}
+        #lista-selecao-empresa .rz-card{margin-bottom:4px;color:var(--ink)}
+        #lista-selecao-empresa .rz-row{width:100%;background:none;border:0;border-bottom:1px solid var(--line);text-align:left;font:inherit;color:inherit}
+        #lista-selecao-empresa .rz-row:last-child{border-bottom:0}
+        #lista-selecao-empresa .rz-ic img{width:100%;height:100%;object-fit:contain;border-radius:inherit}
+        #lista-selecao-empresa .rz-ic.rz-esc-sigla{font:700 15px var(--font-title)}
+        .rz-esc-aviso{color:#f0c88a;font-size:13px;margin:0 4px 8px}
+        .rz-esc-vazio{text-align:center;margin:10px 0}
+        .rz-esc-rodape{display:flex;justify-content:flex-end;padding:12px 4px 0}
+        .rz-esc-rodape button{background:none;border:0;color:#fff;font:600 14px var(--font-body, inherit);display:flex;align-items:center;gap:6px;cursor:pointer;padding:8px 4px}
+        .rz-esc-rodape svg{width:16px;height:16px}
 
 
         /* Barra inferior (v1.39.8) — indicador do item ativo: barrinha fina no
@@ -1696,22 +1724,18 @@
 
             </div>
 
-            <div id="area-selecao-empresa" class="hidden space-y-3 text-left">
-
-                <p class="text-emerald-100 text-sm text-center px-2 mb-2">Você tem acesso a mais de uma empresa. Escolha qual entrar:</p>
-
-                <!-- FASE 1A (v1.39.0) — filtro por plano, útil quando a lista crescer -->
-                <select id="filtro-plano-selecao-empresa" onchange="renderizarListaSelecaoEmpresa()" class="w-full bg-emerald-950 text-emerald-100 text-xs font-semibold rounded-lg px-3 py-2 mb-1">
-                    <option value="todos">Todos os planos</option>
-                    <option value="trial">Trial</option>
-                    <option value="standard">Standard</option>
-                    <option value="plus">Plus</option>
-                </select>
-
-                <p id="aviso-erro-licencas-selecao" class="hidden text-[10.5px] text-amber-400 px-1 -mt-1 mb-1"></p>
-
-                <div id="lista-selecao-empresa" class="space-y-2"></div>
-
+            <!-- dem 4fa92c2c (protótipo aprovado pelo Nicola 10/10 22:26) — escolha de empresa na gramática do app:
+                 "Olá, <nome>" · barra digitável (6+ empresas) · chips por plano (só os que existem) · lista em card claro
+                 com a última acessada no topo · status só para teste e vencido · Sair no rodapé. -->
+            <div id="area-selecao-empresa" class="hidden text-left">
+                <div class="rz-esc-topo"><p class="rz-esc-ola" id="esc-ola">Olá</p><p class="rz-esc-sub" id="esc-sub">Escolha a empresa</p></div>
+                <div class="rz-topo" id="esc-busca-wrap" hidden>
+                    <label class="rz-search rz-search-in" id="esc-busca-btn"><svg data-lucide="search"></svg><input type="search" id="esc-busca-q" class="rz-raw" placeholder="Buscar empresa" enterkeyhint="search" autocomplete="off" aria-label="Buscar empresa"></label>
+                </div>
+                <div class="rz-chips" id="esc-chips" role="tablist" aria-label="Plano"></div>
+                <p id="aviso-erro-licencas-selecao" class="hidden rz-esc-aviso"></p>
+                <div id="lista-selecao-empresa"></div>
+                <div class="rz-esc-rodape"><button type="button" onclick="fazerLogoutSupabase()">Sair <svg data-lucide="log-out"></svg></button></div>
             </div>
 
             <div id="splash-status" class="text-[13px] text-amber-400 font-semibold px-4 break-words"></div>
@@ -3727,7 +3751,7 @@
         // texto certo toda vez (esqueci 5 versões seguidas, de v1.37.1 até
         // v1.38.3). Agora só precisa mudar UMA linha aqui a cada release;
         // window.onload aplica nos dois lugares automaticamente.
-        const APP_VERSAO = "Beta v1.356.0"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
+        const APP_VERSAO = "Beta v1.357.0"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
 
         // ====================================================================
         // v1.105.0 — HELPERS DE SUPERFÍCIE DA GRAMÁTICA ÚNICA
@@ -6382,7 +6406,7 @@ async function criarLinkVitrineSupabase(token, idsSelecionados) {
             // qual é). Busca TODAS as empresas às quais este login tem acesso.
             const { data: pessoaRows, error } = await dbAuth
                 .from('pessoas')
-                .select('id, nome, perfil, cliente_id, clientes(nome_empresa)')
+                .select('id, nome, perfil, cliente_id, clientes(nome_empresa, logo_url)') // dem 4fa92c2c — logo na escolha
                 .eq('user_id', meuUserId);
 
             if (error) {
@@ -6585,7 +6609,7 @@ async function criarLinkVitrineSupabase(token, idsSelecionados) {
                 const clienteIds = pessoaRows.map(function(p) { return p.cliente_id; });
                 const { data: licData, error } = await dbAuth
                     .from('licencas')
-                    .select('cliente_id, plano_codigo, status, data_expiracao')
+                    .select('cliente_id, plano_codigo, status, data_expiracao, id_item_pagamento, id_plano_contratado') // dem 4fa92c2c
                     .in('cliente_id', clienteIds)
                     .eq('modulo', 'imoveis');
                 if (error) throw error;
@@ -6603,7 +6627,7 @@ async function criarLinkVitrineSupabase(token, idsSelecionados) {
             const avisoErro = document.getElementById('aviso-erro-licencas-selecao');
             if (avisoErro) {
                 if (erroCarregarLicencas) {
-                    avisoErro.textContent = 'Não foi possível carregar os planos (filtro pode não funcionar): ' + erroCarregarLicencas;
+                    avisoErro.textContent = 'Não consegui carregar os planos agora; a lista aparece sem eles.';
                     avisoErro.classList.remove('hidden');
                 } else {
                     avisoErro.classList.add('hidden');
@@ -6623,42 +6647,78 @@ async function criarLinkVitrineSupabase(token, idsSelecionados) {
 
         }
 
-        // Recebe o valor do <select id="filtro-plano-selecao-empresa"> — 'todos'
-        // ou um plano_codigo específico ('trial', 'standard', 'plus'...).
+        // dem 4fa92c2c — escolha de empresa (protótipo aprovado 10/10 22:26). Chips por plano (só os que existem), barra
+        // digitável a partir de 6 empresas, última acessada no topo (guardada no aparelho com o prefixo raiz_d_, que o
+        // Sair apaga), status só para teste grátis (com os dias) e vencido. Teste segue a regra do comum-licenca:
+        // plano 'trial', ou término sem pagamento e sem plano contratado.
+        let escFiltroPlano = 'todos', escTermo = '';
+        const ESC_PLANOS = { trial: 'Teste grátis', standard: 'Standard', plus: 'Plus', premium: 'Premium', premium_ampliado: 'Premium ampliado' };
+        const ESC_PERFIS = { master: 'Master', admin: 'Administrador', operador: 'Operador', consulta: 'Consulta' };
+        const escNomePlano = (c) => c ? (ESC_PLANOS[c] || (c.charAt(0).toUpperCase() + c.slice(1)).replace(/_/g, ' ')) : 'Sem plano';
+        const escChaveUltima = () => RZ_CACHE_PREFIXO + 'ultima_empresa_' + (rzDonoCache() || 'x');
+        function escUltimaEmpresa() { try { return localStorage.getItem(escChaveUltima()); } catch (_) { return null; } }
+        function escSituacao(lic) {
+            if (!lic) return null;
+            const dias = lic.data_expiracao ? Math.ceil((new Date(lic.data_expiracao + 'T23:59:59') - new Date()) / 86400000) : null;
+            if ((lic.status && lic.status !== 'ativo') || (dias !== null && dias < 0)) return { sem: 'bad', txt: 'Vencido' };
+            const teste = lic.plano_codigo === 'trial' || (!!lic.data_expiracao && !lic.id_item_pagamento && !lic.id_plano_contratado);
+            if (teste) return { sem: 'warn', txt: dias !== null ? `Teste · ${dias} d` : 'Teste' };
+            return null;
+        }
         function renderizarListaSelecaoEmpresa() {
-
             const lista = document.getElementById('lista-selecao-empresa');
-            const selectFiltro = document.getElementById('filtro-plano-selecao-empresa');
-            const filtro = selectFiltro ? selectFiltro.value : 'todos';
-
-            const itensFiltrados = pessoaRowsSelecaoEmpresa
-                .map(function(p, i) { return { p: p, indice: i, lic: licencasSelecaoEmpresa[p.cliente_id] }; })
-                .filter(function(item) {
-                    if (!filtro || filtro === 'todos') return true;
-                    return item.lic && item.lic.plano_codigo === filtro;
-                });
-
-            if (itensFiltrados.length === 0) {
-                lista.innerHTML = '<p class="text-center text-emerald-300 text-xs py-4">Nenhuma empresa com esse plano.</p>';
+            if (!lista) return;
+            const itens = pessoaRowsSelecaoEmpresa.map((p, i) => ({ p, indice: i, lic: licencasSelecaoEmpresa[p.cliente_id] }));
+            // cabeçalho
+            const nome = (pessoaRowsSelecaoEmpresa[0]?.nome || '').trim().split(/\s+/)[0];
+            const ola = document.getElementById('esc-ola'); if (ola) ola.textContent = nome ? 'Olá, ' + nome : 'Olá';
+            const sub = document.getElementById('esc-sub'); if (sub) sub.textContent = `Escolha a empresa · você acessa ${itens.length}`;
+            // chips por plano (só os que existem; sem planos carregados, não há chips)
+            const contagem = {};
+            itens.forEach(it => { if (it.lic) { const k = it.lic.plano_codigo || '-'; contagem[k] = (contagem[k] || 0) + 1; } });
+            const planos = Object.keys(contagem).sort((a, b) => contagem[b] - contagem[a]);
+            if (escFiltroPlano !== 'todos' && !contagem[escFiltroPlano]) escFiltroPlano = 'todos';
+            const chips = document.getElementById('esc-chips');
+            if (chips) {
+                chips.innerHTML = planos.length > 1 ? [['todos', 'Todas', itens.length], ...planos.map(k => [k, escNomePlano(k === '-' ? '' : k), contagem[k]])]
+                    .map(([k, r, n]) => `<button type="button" role="tab" class="rz-chip${escFiltroPlano === k ? ' rz-on' : ''}" data-esc-plano="${rzEsc(k)}" aria-selected="${escFiltroPlano === k}">${rzEsc(r)} <span class="rz-n">${n}</span></button>`).join('') : '';
+                chips.hidden = planos.length <= 1;
+                chips.onclick = (ev) => { const c = ev.target.closest('[data-esc-plano]'); if (c) { escFiltroPlano = c.dataset.escPlano; renderizarListaSelecaoEmpresa(); } };
+            }
+            // barra digitável a partir de 6 empresas
+            const wrap = document.getElementById('esc-busca-wrap');
+            if (wrap) wrap.hidden = itens.length < 6;
+            if (itens.length >= 6) rzBuscaInline('esc-busca-q', (v) => { escTermo = v.toLowerCase(); renderizarListaSelecaoEmpresa(); });
+            // filtro
+            const nomeDe = (it) => (it.p.clientes && it.p.clientes.nome_empresa) || '(empresa sem nome)';
+            const vis = itens.filter(it => (escFiltroPlano === 'todos' || (it.lic && (it.lic.plano_codigo || '-') === escFiltroPlano))
+                && (!escTermo || nomeDe(it).toLowerCase().includes(escTermo)))
+                .sort((a, b) => nomeDe(a).localeCompare(nomeDe(b), 'pt-BR'));
+            if (!vis.length) {
+                lista.innerHTML = `<div class="rz-card"><p class="rz-desc rz-esc-vazio">${escTermo ? `Nenhuma empresa com “${rzEsc(escTermo)}”. Toque no × para ver todas.` : 'Nenhuma empresa com esse plano.'}</p></div>`;
                 return;
             }
-
-            lista.innerHTML = itensFiltrados.map(function(item) {
-                const nomeEmpresa = item.p.clientes ? item.p.clientes.nome_empresa : '(empresa sem nome)';
-                let selo = '';
-                if (item.lic && item.lic.data_expiracao) { // v1.124
-                    selo = ` <span style="background:var(--brass-light,#f0c88a); color:var(--brass-deep,#a86f27); font-size:12px; font-weight:800; padding:2px 8px; border-radius:999px; vertical-align:1px;">TRIAL</span>`;
-                }
-                return `<button onclick="escolherEmpresa(${item.indice})" class="w-full bg-emerald-800 hover:bg-emerald-700 text-white font-bold py-3 px-4 rounded-xl text-left transition active:scale-95 flex justify-between items-center">
-                    <span>${nomeEmpresa}${selo}</span>
-                    <span class="text-emerald-300 text-[12px] font-normal bg-emerald-950 px-2 py-0.5 rounded-full">${item.p.perfil}</span>
+            const sigla = (n) => n.split(/\s+/).filter(w => w.length > 2 || /^[A-Z]/.test(w)).slice(0, 2).map(w => w[0]).join('').toUpperCase() || n.slice(0, 2).toUpperCase();
+            const linha = (it) => {
+                const n = nomeDe(it), st = escSituacao(it.lic), logo = it.p.clientes && it.p.clientes.logo_url;
+                const perfil = ESC_PERFIS[it.p.perfil] || (it.p.perfil ? it.p.perfil.charAt(0).toUpperCase() + it.p.perfil.slice(1) : '');
+                return `<button type="button" class="rz-row rz-link" onclick="escolherEmpresa(${it.indice})">
+                    <div class="rz-ic${logo ? '' : ' rz-esc-sigla'}">${logo ? `<img src="${rzEsc(logo)}" alt="">` : rzEsc(sigla(n))}</div>
+                    <div class="rz-tx"><b>${rzEsc(n)}</b><span>${rzEsc([perfil, it.lic ? escNomePlano(it.lic.plano_codigo) : ''].filter(Boolean).join(' · '))}</span></div>
+                    ${st ? `<div class="rz-rt">${renderStatus(st.sem, st.txt)}</div>` : '<svg data-lucide="chevron-right" class="rz-chev"></svg>'}
                 </button>`;
-            }).join('');
-
+            };
+            const ultimaId = escUltimaEmpresa();
+            const ultima = !escTermo && escFiltroPlano === 'todos' ? vis.find(it => it.p.cliente_id === ultimaId) : null;
+            const resto = vis.filter(it => it !== ultima);
+            lista.innerHTML = (ultima ? `<div class="rz-esc-grupo">Última acessada</div><div class="rz-card rz-list">${linha(ultima)}</div>` : '')
+                + (resto.length ? `<div class="rz-esc-grupo">${ultima ? 'Outras empresas' : (escTermo ? (resto.length === 1 ? '1 empresa' : resto.length + ' empresas') : 'Empresas')}</div><div class="rz-card rz-list">${resto.map(linha).join('')}</div>` : '');
+            rzIcones();
         }
 
         function escolherEmpresa(indice) {
             const pessoaRow = pessoaRowsSelecaoEmpresa[indice];
+            try { if (pessoaRow) localStorage.setItem(escChaveUltima(), pessoaRow.cliente_id); } catch (_) { /* sem armazenamento: só não lembra a última */ }
             entrarNaEmpresa(pessoaRow);
         }
 

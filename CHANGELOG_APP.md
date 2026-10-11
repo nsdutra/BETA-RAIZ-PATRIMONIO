@@ -4,6 +4,18 @@ Histórico completo de versões do `index.html`, movido automaticamente pelo `ge
 
 ---
 
+NOVIDADES (Beta v1.353.1) — CORREÇÃO URGENTE (Nicola 10/10 20:16: "depois da tela de login, coloco a senha e ele não
+carrega"): o Object.assign(window, …) do catálogo de UI ainda citava abrirPreferenciasComunicacao, que a Onda 2b
+levou para js/conta.js. ReferenceError no carregamento parava o script e o login ficava em "Entrando...". Só essa
+linha mudou; a ponte para o módulo da Conta continua mais abaixo.
+Versão anterior (Beta v1.353.0):
+------------------------------------------------------------------
+Versões anteriores (v1.353.0 … v1.353.0): CHANGELOG_APP.md, na raiz do
+repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
+das 5 versões mais recentes deste cabeçalho.
+
+---
+
 NOVIDADES (Beta v1.353.0) — F25 (Nicola 10/10 14:57): o ramo de cada ativo vem do modelo vigente hoje (uso; senão o
 repouso; senão o tipo). A lente mostra só os ramos contratados (fn_cliente_ramos) e some com um ramo só. Ficha do
 ativo: chip "Usos e contratos" (cofre-ativos.js 1.86.0, ativos-markup.js 1.56.0).
