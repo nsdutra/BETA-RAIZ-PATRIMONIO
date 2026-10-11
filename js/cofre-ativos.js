@@ -1,6 +1,20 @@
 // ============================================================================
 // cofre-ativos.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.90.0 · 10/10/2026
+// Versão: 1.91.0 · 11/10/2026
+//
+// v1.91.0 (11/10/2026, sessão 20261008-1231-pessoas-ativos, demanda f3e6cd27; F13 4c etapa 3,
+// PROTOTIPO_FINANCEIRO_DO_ATIVO v1.0.0, D81 a D84; Nicola 12:55 "Pode avançar") — chip "Financeiro" do ativo
+// (montarMovimentoAtivo), em todo ativo e com a mesma estrutura por ramo:
+//   · ‹ mês › no topo;
+//   · Balanço pendente (fn_balanco_pessoas): ativo pessoa = o saldo da pessoa com todos; outro ativo = os saldos
+//     ligados a ele. Tocar abre o Quitar do Balanço (balancoQuitar, js/financeiro.js);
+//   · Entrou e Saiu no mês;
+//   · ativo pessoa: Contas e cartões dela e Retiradas extraordinárias no ano (fn_retiradas_extraordinarias, F13.7);
+//   · Movimentações do mês: lançamentos do ativo (e, se é pessoa, das contas e cartões dela), recebimentos dos
+//     contratos do ativo e quitações, com filtros. Tocar abre o lançamento, a fatura ou o recebimento no Financeiro.
+// Só leitura pelo que já existe (RLS de contas visíveis vale). Carrega ao abrir o chip e a cada toque nele.
+//
+// Versão anterior: 1.90.0 · 10/10/2026
 //
 // v1.90.0 (sessão 20261003-1707-ux-base, demanda 28aa5ce1 — teste do Nicola 10/10 21:43) — sem o ícone de filtros:
 // os chips já filtram por tipo; o topo fica só com a barra digitável. abrirBuscaAtivos continua exportada.
@@ -23,18 +37,11 @@
 // como consolidado dos usos (...) os usos não serão cadastrados, mas fruto do próprio contrato e itens de uso (...) o
 // repouso é configuração por tipo de ativo, não visível ao usuário agora") — o card Usos vira só a barra consolidada
 // com "Hoje: …". Saem da tela a lista de usos, Novo uso, Encerrar, Excluir e o repouso.
-// Versão anterior: 1.86.0.
-//
-// v1.86.0 (10/10/2026, sessão 20261008-1231-pessoas-ativos, demanda a3f4c73f — F25 v1.4.0, aprovada pelo Nicola 10/10 14:57):
-// chip "Usos e contratos" (D73). Card Usos: linha do tempo do ativo (fn_ativo_usos), com os trechos de repouso;
-// Novo uso, Encerrar e Excluir (fn_ativo_uso_*) e Trocar repouso (fn_ativo_repouso_definir). As opções vêm da matriz
-// tipo × modelo e só dos ramos licenciados (fn_cliente_ramos); modelo em breve aparece apagado. O card Contratos só
-// aparece para imóvel. Ramo do ativo na lista = modelo vigente hoje (rzRamoDoAtivo do index).
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.85.1 … v1.85.1): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.86.0 … v1.86.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '1.90.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.91.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 import { estado } from './cofre-estado.js';
 import * as api from './cofre-api.js';
 import { mostrarToast, erroInline, refrescarIcones, alternarToggle, abrirModal, fecharModal, modalGenerico, perguntar, avisarComDesfazer } from './cofre-ui.js';
@@ -1296,7 +1303,7 @@ async function aplicarAlertaMotorNoChipControles(a) {
 // acontece ao trocar de aba) — esta função só troca visibilidade +
 // destaque visual, mesmo espírito leve do trocarSub() do protótipo.
 // v1.27.0 — chip → código *.ver que o gateia (Resumo é sempre livre)
-const CHIP_CODIGO = { contratos: 'contratos.ver', controles: 'cofre.controles.ver', financeiro: 'mensal.ver', arquivos: 'cofre.ver' };
+const CHIP_CODIGO = { contratos: 'contratos.ver', controles: 'cofre.controles.ver', financeiro: 'mensal.ver', movimento: 'mensal.ver', arquivos: 'cofre.ver' };
 export function faTrocarAba(nomeAba) {
     // v1.17.0 — chips .rz-chip: destaque é só a classe .rz-on (sem style
     // inline). Compatibilidade: 'dados' → 'resumo', 'propriedade' → 'resumo',
@@ -1320,6 +1327,7 @@ export function faTrocarAba(nomeAba) {
     });
     if (nomeAba === 'fotos') faTrocarSegArquivos('fotos');
     if (nomeAba === 'documentos') faTrocarSegArquivos('documentos');
+    if (alvo === 'movimento' && estado.ativoEmFoco) montarMovimentoAtivo(estado.ativoEmFoco); // v1.91.0 — carrega ao abrir
     refrescarIcones();
 }
 
@@ -2031,6 +2039,197 @@ export function abrirAcoesControlesAtivo() {
         { icone: 'plus', titulo: 'Novo item de controle', codigo: 'cofre.controles.criar', sub: 'Seguro, tributo, vistoria, manutenção', aoTocar: () => window.__rzAbrirFormControle?.() },
     ] });
 }
+
+// ============================================================================
+// v1.91.0 — CHIP FINANCEIRO DO ATIVO (F13 4c etapa 3, D81 a D84). Uma estrutura para todo ativo: balanço pendente
+// com Quitar, Entrou/Saiu, contas e cartões (ativo pessoa), extraordinárias (F13.7) e movimentações do mês.
+// Os números vêm do banco (fn_balanco_pessoas, fn_retiradas_extraordinarias e as tabelas com RLS); a tela só soma
+// o que mostra. Quitar e os detalhes abrem as telas do Financeiro (js/financeiro.js, pelo window).
+// ============================================================================
+let movAtivoId = null, movMes = null, movFiltro = 'todas', movDados = null;
+const MOV_NOMES_MES = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
+const MOV_NATUREZA = { distribuicao: 'distribuição', reembolso: 'reembolso', adiantamento: 'adiantamento', rateio: 'rateio', extraordinaria: 'retirada extraordinária' };
+const movEsc = (t) => escapeHtml(String(t ?? ''));
+function movHoje() { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-01`; }
+function movFimDoMes(iso) { const d = new Date(Number(iso.slice(0, 4)), Number(iso.slice(5, 7)), 0); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; }
+function movSomarMes(iso, n) { const d = new Date(Number(iso.slice(0, 4)), Number(iso.slice(5, 7)) - 1 + n, 1); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-01`; }
+function movDataBR(iso) { return iso ? `${iso.slice(8, 10)}/${iso.slice(5, 7)}` : ''; }
+
+export async function montarMovimentoAtivo(a) {
+    const corpo = document.getElementById('fa-movimento-corpo');
+    if (!corpo || !a) return;
+    if (movAtivoId !== a.id) { movAtivoId = a.id; movMes = movHoje(); movFiltro = 'todas'; }
+    corpo.innerHTML = movTopo() + rzSk('linhas', 3);
+    refrescarIcones();
+    const id = a.id;
+    try {
+        const dados = await movCarregar(a, movMes);
+        if (movAtivoId !== id) return; // outro ativo abriu no meio
+        movDados = dados;
+        movDesenhar(a);
+    } catch (err) {
+        console.warn('[cofre-ativos] financeiro do ativo falhou:', err?.message || err);
+        corpo.innerHTML = movTopo() + `<div class="rz-card"><div class="rz-empty"><div class="rz-ic"><i data-lucide="alert-circle"></i></div>
+            <p>Não consegui carregar o financeiro deste ativo agora.<br><small style="color:var(--muted)">${movEsc(err?.message || err)}</small></p></div></div>`;
+        movLigarTopo(a);
+        refrescarIcones();
+    }
+}
+
+function movTopo() {
+    const m = movMes || movHoje();
+    return `<div class="rz-card" style="display:flex;align-items:center;justify-content:space-between;padding:8px 12px">
+        <button type="button" class="rz-more" data-mov-mes="-1" aria-label="Mês anterior"><i data-lucide="chevron-left"></i></button>
+        <b>${MOV_NOMES_MES[Number(m.slice(5, 7)) - 1]}/${m.slice(0, 4)}</b>
+        <button type="button" class="rz-more" data-mov-mes="1" aria-label="Próximo mês"><i data-lucide="chevron-right"></i></button>
+    </div>`;
+}
+function movLigarTopo(a) {
+    document.querySelectorAll('#fa-movimento-corpo [data-mov-mes]').forEach(b => b.addEventListener('click', () => {
+        movMes = movSomarMes(movMes || movHoje(), Number(b.dataset.movMes)); montarMovimentoAtivo(a);
+    }));
+}
+
+async function movCarregar(a, mes) {
+    const db = api.dbAuth, cli = estado.clienteId, ate = movFimDoMes(mes);
+    const pessoaId = a.entidade_origem_tipo === 'pessoa' ? a.entidade_origem_id : null;
+    const ok = (r, nome) => { if (r?.error) throw new Error(`${nome}: ${r.error.message || r.error}`); return r?.data || []; };
+    const contas = pessoaId ? ok(await db.from('conta_controle').select('id, nome, tipo, final_identificador, situacao, dia_vencimento')
+        .eq('cliente_id', cli).eq('titular_tipo', 'pessoa').eq('pessoa_id', pessoaId), 'contas') : [];
+    const idsContas = contas.map(c => c.id);
+    let qL = db.from('lancamentos').select('id, descricao, categoria, valor, direcao, status, vencimento, data_pagamento, competencia, conta_id, fatura_id, ativo_id')
+        .eq('cliente_id', cli).eq('competencia', mes);
+    qL = idsContas.length ? qL.or(`ativo_id.eq.${a.id},conta_id.in.(${idsContas.join(',')})`) : qL.eq('ativo_id', a.id);
+    let qR = db.from('repasses').select('id, valor, data_real, competencia, natureza, de_tipo, de_pessoa_id, para_tipo, pessoa_id, observacao')
+        .eq('cliente_id', cli).eq('competencia', mes);
+    qR = pessoaId ? qR.or(`pessoa_id.eq.${pessoaId},de_pessoa_id.eq.${pessoaId}`) : qR.eq('ativo_id', a.id);
+    const [rL, rM, rR, rB, rX, rC] = await Promise.all([
+        qL,
+        pessoaId ? Promise.resolve({ data: [] }) : db.from('mensalidades').select('id, competencia, status, valor_confirmado, data_pgto, contratos!inner(id, ativo_id, locatario, valor, vencimento_dia)')
+            .eq('cliente_id', cli).eq('competencia', mes).eq('contratos.ativo_id', a.id),
+        qR,
+        db.rpc('fn_balanco_pessoas', { p_cliente_id: cli, p_ate: ate, p_ativo_id: pessoaId ? null : a.id }),
+        pessoaId ? db.rpc('fn_retiradas_extraordinarias', { p_cliente_id: cli, p_pessoa_id: pessoaId, p_de: `${mes.slice(0, 4)}-01-01`, p_ate: ate }) : Promise.resolve({ data: [] }),
+        db.from('lancamento_categorias').select('codigo, nome'),
+    ]);
+    const lanc = ok(rL, 'lançamentos'), mens = ok(rM, 'recebimentos'), reps = ok(rR, 'quitações');
+    const bal = ok(rB, 'balanço').filter(l => Math.abs(Number(l.valor || 0)) > 0.004 && (!pessoaId || l.pessoa_id === pessoaId));
+    const extras = ok(rX, 'extraordinárias');
+    const cat = Object.fromEntries((rC?.data || []).map(c => [c.codigo, c.nome]));
+    const idsP = [...new Set(reps.flatMap(r => [r.pessoa_id, r.de_pessoa_id]).filter(Boolean))];
+    const nomes = idsP.length ? Object.fromEntries(ok(await db.from('pessoas').select('id, nome').in('id', idsP), 'pessoas').map(p => [p.id, p.nome])) : {};
+    return { mes, pessoaId, contas, lanc, mens, reps, bal, extras, cat, nomes };
+}
+
+function movItens(d, a) {
+    const contaPor = Object.fromEntries(d.contas.map(c => [c.id, c]));
+    const rotConta = (id) => { const c = contaPor[id]; return c ? `${c.nome}${c.final_identificador ? ' ··' + c.final_identificador : ''}` : ''; };
+    const itens = [];
+    d.lanc.forEach(l => {
+        const entrada = l.direcao === 'entrada';
+        itens.push({ tipo: l.fatura_id ? 'cartao' : (entrada ? 'entrada' : 'saida'), id: l.id, faturaId: l.fatura_id, entrada,
+            data: l.data_pagamento || l.vencimento || l.competencia, titulo: l.descricao || d.cat[l.categoria] || 'Lançamento',
+            sub: [d.cat[l.categoria] || l.categoria, rotConta(l.conta_id)].filter(Boolean).join(' · '),
+            valor: (entrada ? 1 : -1) * Number(l.valor || 0), status: l.status === 'realizado' ? (entrada ? 'Recebido' : 'Pago') : '',
+            icone: l.fatura_id ? 'credit-card' : (entrada ? 'arrow-down-left' : 'arrow-up-right') });
+    });
+    d.mens.forEach(m => {
+        const pago = m.status === 'pago';
+        itens.push({ tipo: 'entrada', id: m.id, mensalidade: true, entrada: true, data: m.data_pgto || m.competencia,
+            titulo: `Aluguel · ${m.contratos?.locatario || 'contrato'}`, sub: pago ? `Recebido em ${movDataBR(m.data_pgto)}` : `Vence dia ${m.contratos?.vencimento_dia || '—'}`,
+            valor: Number((pago ? m.valor_confirmado : null) ?? m.contratos?.valor ?? 0), status: pago ? 'Pago' : 'Em aberto', icone: 'key' });
+    });
+    d.reps.forEach(r => {
+        const nomeP = (id) => (id && id === d.pessoaId ? (a.nome_exibicao || d.nomes[id]) : d.nomes[id]) || 'Pessoa';
+        const nomeDe = r.de_tipo === 'caixa' ? 'Empresa' : nomeP(r.de_pessoa_id);
+        const nomePara = r.para_tipo === 'caixa' ? 'Empresa' : nomeP(r.pessoa_id);
+        const sinal = d.pessoaId ? (r.pessoa_id === d.pessoaId ? 1 : -1) : (r.de_tipo === 'caixa' ? -1 : 1);
+        itens.push({ tipo: 'quitacao', id: r.id, data: r.data_real || r.competencia, entrada: sinal > 0,
+            titulo: `${nomeDe} pagou a ${nomePara}`, sub: `Quitação · ${MOV_NATUREZA[r.natureza] || r.natureza}${r.observacao ? ' · ' + r.observacao : ''}`,
+            valor: sinal * Number(r.valor || 0), status: r.natureza === 'extraordinaria' ? 'Extraordinária' : '', icone: 'handshake' });
+    });
+    return itens.sort((x, y) => String(y.data).localeCompare(String(x.data)));
+}
+
+function movDesenhar(a) {
+    const corpo = document.getElementById('fa-movimento-corpo');
+    const d = movDados; if (!corpo || !d) return;
+    const fmt = fmtMoedaAtivo;
+    const itens = movItens(d, a);
+    const entrou = itens.filter(i => i.valor > 0).reduce((t, i) => t + i.valor, 0);
+    const saiu = itens.filter(i => i.valor < 0).reduce((t, i) => t - i.valor, 0);
+    // Balanço pendente (D82): cada linha é "quem deve a quem"; o toque abre o Quitar do Balanço (D83)
+    const nomeAtivo = a.nome_exibicao || 'Pessoa';
+    const totalAberto = d.bal.reduce((t, l) => t + Math.abs(Number(l.valor || 0)), 0);
+    const linhaBal = (l, i) => {
+        const pn = (t) => String(t || '').split(' ')[0]; // primeiro nome: a frase cabe na linha
+        const v = Number(l.valor || 0), quem = pn(l.nome || nomeAtivo), contra = l.contraparte_tipo === 'caixa' ? 'Empresa' : pn(l.contraparte_nome);
+        const frase = v > 0 ? `${contra} deve a ${quem}` : `${quem} deve ${l.contraparte_tipo === 'caixa' ? 'à' : 'a'} ${contra}`;
+        return `<div class="rz-row rz-link" role="button" tabindex="0" data-mov-bal="${i}">
+            <div class="rz-ic${v > 0 ? '' : ' rz-neu'}"><i data-lucide="${v > 0 ? 'arrow-down-left' : 'arrow-up-right'}"></i></div>
+            <div class="rz-tx"><b>${movEsc(frase)}</b><span>${movEsc(MOV_NATUREZA[l.natureza] || l.natureza)}</span></div>
+            <div class="rz-rt"><b>${fmt(Math.abs(v))}</b><small style="display:block;text-align:right;color:var(--pine)">Quitar ›</small></div></div>`;
+    };
+    const cardBal = `<div class="rz-card rz-list"><div class="rz-card-h" style="padding-top:10px;margin-bottom:0"><h3>Balanço pendente</h3><span class="rz-sub">${d.bal.length ? fmt(totalAberto) + ' em aberto' : 'nada em aberto'}</span></div>` +
+        (d.bal.length ? d.bal.map(linhaBal).join('') : `<p class="rz-desc" style="margin:4px 14px 10px">${d.pessoaId ? 'Nada em aberto com ' + movEsc(nomeAtivo) : 'Nada em aberto ligado a este ativo'} até o fim do mês.</p>`) +
+        `<button type="button" class="rz-act" data-mov-balanco><div class="rz-ic"><i data-lucide="scale"></i></div><div>Ver o balanço completo<small>Todas as pessoas e o histórico de quitações</small></div></button></div>`;
+    const kpis = `<div class="rz-kpis"><div class="rz-kpi"><small>Saiu no mês</small><b>${fmt(saiu)}</b></div><div class="rz-kpi rz-in"><small>Entrou no mês</small><b>${fmt(entrou)}</b></div></div>`;
+    // Contas e cartões (ativo pessoa, F18) e retiradas extraordinárias (F13.7)
+    const cardContas = d.contas.length ? `<div class="rz-card rz-list"><div class="rz-card-h" style="padding-top:10px;margin-bottom:0"><h3>Contas e cartões</h3><span class="rz-sub">${d.contas.length}</span></div>` +
+        d.contas.map(c => { const cartao = c.tipo === 'cartao_credito';
+            const gasto = d.lanc.filter(l => l.conta_id === c.id && l.direcao !== 'entrada').reduce((t, l) => t + Number(l.valor || 0), 0);
+            return `<div class="rz-row"><div class="rz-ic"><i data-lucide="${cartao ? 'credit-card' : 'landmark'}"></i></div>
+                <div class="rz-tx"><b>${movEsc(c.nome)}${c.final_identificador ? ' ··' + movEsc(c.final_identificador) : ''}</b><span>${cartao ? `Cartão de crédito${c.dia_vencimento ? ' · vence dia ' + c.dia_vencimento : ''}` : 'Conta'}${c.situacao !== 'ativa' ? ' · encerrada' : ''}</span></div>
+                <div class="rz-rt"><b>${fmt(gasto)}</b><small style="display:block;text-align:right;color:var(--muted)">no mês</small></div></div>`; }).join('') + '</div>' : '';
+    const ex = d.extras || [];
+    const cardExtra = ex.length ? `<div class="rz-card"><div class="rz-card-h"><h3>Retiradas extraordinárias</h3><span class="rz-sub">fora do fluxo dos imóveis</span></div>
+        <div class="rz-kv"><div><small>No ano</small><b>${fmt(ex[0].total_ano)}</b></div><div><small>Acumulado</small><b>${fmt(ex[0].total_acumulado)}</b></div><div><small>Retiradas no ano</small><b>${ex.length}</b></div></div></div>` : '';
+    // Movimentações (filtros)
+    const cont = { todas: itens.length, saida: itens.filter(i => i.tipo === 'saida').length, entrada: itens.filter(i => i.tipo === 'entrada').length,
+        cartao: itens.filter(i => i.tipo === 'cartao').length, quitacao: itens.filter(i => i.tipo === 'quitacao').length };
+    if (!cont[movFiltro]) movFiltro = 'todas';
+    const chip = (k, r) => cont[k] || k === 'todas' ? `<button type="button" class="rz-chip${movFiltro === k ? ' rz-on' : ''}" data-mov-filtro="${k}">${r} <span class="rz-n">${cont[k]}</span></button>` : '';
+    const vis = itens.filter(i => movFiltro === 'todas' || i.tipo === movFiltro);
+    const lista = vis.length ? `<div class="rz-card rz-list">` + vis.map((i, k) => `<div class="rz-row rz-link" role="button" tabindex="0" data-mov-item="${itens.indexOf(i)}">
+            <div class="rz-ic${i.valor > 0 ? '' : ' rz-neu'}"><i data-lucide="${i.icone}"></i></div>
+            <div class="rz-tx"><b>${movEsc(i.titulo)}</b><span>${movDataBR(i.data)}${i.sub ? ' · ' + movEsc(i.sub) : ''}</span></div>
+            <div class="rz-rt"><b class="${i.valor > 0 ? 'rz-in' : 'rz-out'}">${i.valor > 0 ? '+ ' : '− '}${fmt(Math.abs(i.valor))}</b>${i.status ? `<small style="display:block;text-align:right;color:var(--muted)">${movEsc(i.status)}</small>` : ''}</div></div>`).join('') + '</div>'
+        : `<div class="rz-card"><div class="rz-empty"><div class="rz-ic"><i data-lucide="wallet"></i></div><p>Nada neste mês.</p></div></div>`;
+    const nota = `<p class="rz-desc" style="margin:6px 4px 12px">Entram aqui: ${d.pessoaId ? 'lançamentos com ' + movEsc(nomeAtivo) + ' como ativo, as compras das contas e cartões da pessoa e as quitações com ela' : 'lançamentos deste ativo, os recebimentos dos contratos dele e as quitações ligadas a ele'}. Toque abre no Financeiro.</p>`;
+    corpo.innerHTML = movTopo() + cardBal + kpis + cardContas + cardExtra +
+        `<div class="rz-chips">${chip('todas', 'Todas')}${chip('saida', 'Saídas')}${chip('entrada', 'Entradas')}${chip('cartao', 'Cartão')}${chip('quitacao', 'Quitações')}</div>` + lista + nota;
+    movLigarTopo(a);
+    corpo.querySelectorAll('[data-mov-filtro]').forEach(b => b.addEventListener('click', () => { movFiltro = b.dataset.movFiltro; movDesenhar(a); }));
+    corpo.querySelectorAll('[data-mov-bal]').forEach(b => b.addEventListener('click', () => movQuitar(a, d.bal[Number(b.dataset.movBal)])));
+    corpo.querySelector('[data-mov-balanco]')?.addEventListener('click', () => movAbrirBalanco());
+    corpo.querySelectorAll('[data-mov-item]').forEach(b => b.addEventListener('click', () => movAbrirItem(itens[Number(b.dataset.movItem)])));
+    refrescarIcones();
+}
+
+function movQuitar(a, l) {
+    if (!l) return;
+    if (typeof window.balancoQuitar !== 'function') { mostrarToast('O Quitar abre só dentro do app principal.', 'erro'); return; }
+    const p = { pessoaId: l.pessoa_id, nome: l.nome || a.nome_exibicao, chave: l.pessoa_id };
+    const linha = { contraparteTipo: l.contraparte_tipo, contraparteId: l.contraparte_id || null, contraparteNome: l.contraparte_nome || 'Empresa',
+        natureza: l.natureza, valor: Number(l.valor || 0), ultimo: l.ultimo_movimento };
+    window.balancoQuitar(p, linha);
+}
+function movAbrirBalanco() {
+    if (typeof window.switchTab !== 'function') { mostrarToast('O Balanço abre só dentro do app principal.', 'erro'); return; }
+    window.switchTab('tab-socios');
+    if (typeof window.balancoVista === 'function') setTimeout(() => window.balancoVista('pessoas'), 60);
+}
+function movAbrirItem(i) {
+    if (!i) return;
+    const w = window;
+    if (i.faturaId && typeof w.financeiroAbrirFatura === 'function') return w.financeiroAbrirFatura(i.faturaId);
+    if (i.mensalidade && typeof w.rzAcoesMensalidade === 'function') return w.rzAcoesMensalidade(i.id);
+    if (i.tipo === 'saida' && typeof w.rzAcoesDespesa === 'function') return w.rzAcoesDespesa(i.id);
+    if (i.tipo === 'entrada' && !i.mensalidade && typeof w.rzAcoesReceitaAvulsa === 'function') return w.rzAcoesReceitaAvulsa(i.id);
+    if (i.tipo === 'quitacao') return movAbrirBalanco();
+    mostrarToast('Este movimento abre só dentro do app principal.', 'erro');
+}
+
 export function abrirAcoesFinanceiroAtivo() {
     const a = estado.ativoEmFoco; if (!a) return;
     sheetOuAviso({ titulo: 'Financeiro', sub: a.nome_exibicao, acoes: [

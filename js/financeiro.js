@@ -1,7 +1,13 @@
 // ============================================================================
 // financeiro.js — Raiz Patrimônio · Financeiro (Recebimentos · Atrasados · Saídas
 //                  · conciliação de extrato · recibo · detalhe do recebimento)
-// Versão: 1.50.0 · 11/10/2026
+// Versão: 1.51.0 · 11/10/2026
+//
+// v1.51.0 (11/10/2026, sessão 20261008-1231-pessoas-ativos, demanda f3e6cd27; F13 4c etapa 3) — quando o
+// Balanço ou Sócios por mês não conseguem calcular, a mensagem mostra também o motivo que o banco devolveu (antes só
+// "Não consegui calcular"), para o próximo erro já vir com a causa.
+//
+// Versão anterior: 1.50.0 · 11/10/2026
 //
 // v1.50.0 (11/10/2026, sessão 20261008-1231-pessoas-ativos, demanda f3e6cd27; F13.7, FICHA_BALANCO_ACERTOS v1.3.0, D85 a
 // D88; Nicola 12:29 "Mantenha extraordinária mesmo. Restante de acordo com tudo.") — retirada do fluxo x extraordinária:
@@ -45,23 +51,11 @@
 //     distribuição (repasses virou a tabela única de quitação, F13.6);
 //   · Grupos: os ativos com despesa dividida entre pessoas (rateio), com o saldo de cada participante.
 // O "+" ganha "Quitar ou registrar pagamento".
-//
-// Versão anterior: 1.47.0 · 11/10/2026
-//
-// v1.47.0 (UX etapa 6 · D, demanda b4b047fd, sessão 20261003-1707-ux-base; protótipo PROTOTIPO_FINANCEIRO_PESSOAS_ETAPA6
-// aprovado pelo Nicola 10/10 22:43 com "o deslizar pro lado só abre a opção esperando toque"; "Vamos ajustar e seguir"
-// 23:50) — Conciliação:
-//   · deslizar a linha com sugestão da Raiz IA REVELA "Aceitar" (→, confirmarSugestaoConciliacao de sempre) e "Outra"
-//     (←, abrirAcoesConciliacaoLinha); nada roda pelo deslize. O toque na linha continua igual;
-//   · "Revisar em sequência (N)" em cima da lista abre uma carta por vez com as pendências da lista (mesma ordem e
-//     mesmo filtro): Aceitar (só quando a sugestão confirma sozinha; senão "Ver opções"), Outra opção, Pular (fica
-//     pendente na lista), Não controlado (fn_extrato_marcar_nao_controlado de sempre, sem observação) e Sair. Depois de
-//     aceitar ou marcar, a próxima carta abre sozinha. Nada de banco novo; OFX/CSV fica fora (precisa de ficha).
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.46.0 … v1.46.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.47.0 … v1.47.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '1.50.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.51.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 
 // v1.17.0 (Fase 1 do wrapper de escrita, rollout Financeiro) — emitirEscrita
 // é o evento padrão pra "algo mudou que módulos DE FORA deste arquivo podem
@@ -5450,7 +5444,7 @@ export async function renderDistribuicao() {
     try { await distribCarregar(); }
     catch (e) {
         console.error('[financeiro] distribuição', e);
-        corpo.innerHTML = balancoChipsVista() + `<div class="rz-card"><div class="rz-empty"><div class="rz-ic"><svg data-lucide="alert-circle"></svg></div><p>Não consegui calcular a distribuição agora.</p></div></div>`;
+        corpo.innerHTML = balancoChipsVista() + `<div class="rz-card"><div class="rz-empty"><div class="rz-ic"><svg data-lucide="alert-circle"></svg></div><p>Não consegui calcular a distribuição agora.<br><small style="color:var(--muted)">${String(e?.message || e).replace(/</g, '&lt;')}</small></p></div></div>`;
         if (typeof lucide !== 'undefined') lucide.createIcons();
         return;
     }
@@ -5562,7 +5556,7 @@ async function balancoRender() {
     try { await balancoCarregar(); }
     catch (e) {
         console.error('[financeiro] balanço', e);
-        corpo.innerHTML = balancoChipsVista() + `<div class="rz-card"><div class="rz-empty"><div class="rz-ic"><svg data-lucide="alert-circle"></svg></div><p>Não consegui calcular o balanço agora.</p></div></div>`;
+        corpo.innerHTML = balancoChipsVista() + `<div class="rz-card"><div class="rz-empty"><div class="rz-ic"><svg data-lucide="alert-circle"></svg></div><p>Não consegui calcular o balanço agora.<br><small style="color:var(--muted)">${balEsc(e?.message || e)}</small></p></div></div>`;
         if (typeof lucide !== 'undefined') lucide.createIcons();
         return;
     }

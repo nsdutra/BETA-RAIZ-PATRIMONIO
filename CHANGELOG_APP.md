@@ -4,6 +4,17 @@ Histórico completo de versões do `index.html`, movido automaticamente pelo `ge
 
 ---
 
+NOVIDADES (Beta v1.366.0) — F13 4c etapa 1 (D58): Financeiro › Distribuição vira Balanço, com Pessoas · Sócios por mês ·
+Grupos, Quitar e Compensar (financeiro.js 1.48.0). Aqui: rótulo do segmento e do título, ponte das funções novas e
+import map. Banco: balanco_leitura_f13a_v1, balanco_escrita_f13b_v1, repasses_unica_f13c_v1 (já aplicadas).
+Versão anterior (Beta v1.365.1):
+------------------------------------------------------------------
+Versões anteriores (v1.365.1 … v1.365.1): CHANGELOG_APP.md, na raiz do
+repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
+das 5 versões mais recentes deste cabeçalho.
+
+---
+
 NOVIDADES (Beta v1.365.1) — só o import map: cofre-controles.js 1.51.0 (tipo do item com rótulo na 1ª abertura; subtipos Conta e
 Cartão de crédito; Nicola 11/10 00:08). Banco: migration contas_subtipos_f18b_v1.
 Versão anterior (Beta v1.365.0):

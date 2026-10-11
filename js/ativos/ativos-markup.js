@@ -1,6 +1,12 @@
 // ============================================================================
 // js/ativos/ativos-markup.js — Raiz Patrimônio · Módulo Único, fatia frontend 1
-// Versão: 1.58.0 · 10/10/2026
+// Versão: 1.59.0 · 11/10/2026
+//
+// v1.59.0 (11/10/2026, sessão 20261008-1231-pessoas-ativos, demanda f3e6cd27; F13 4c etapa 3, D81 a D84) — a ficha
+// do ativo ganha o chip "Financeiro" (data-fa-aba="movimento"), entre Controles e Performance: balanço pendente com
+// Quitar, contas e cartões, movimentações do mês. O id interno "financeiro" continua sendo a Performance.
+//
+// Versão anterior: 1.58.0 · 10/10/2026
 //
 // v1.58.0 (sessão 20261003-1707-ux-base, demanda 28aa5ce1 — teste do Nicola 10/10 21:43) — sai o ícone de filtros do
 // topo de Ativos; fica a barra digitável e o "+".
@@ -22,18 +28,11 @@
 // v1.55.0 (UX F2.3b, demanda fcd3008d, sessão 20261003-1707-ux-base; plano F2.3 aprovado pelo Nicola 09/10 20:52 ("Estou de acordo com f2.3 e opcao a")) —
 // sai o popup "Buscar no Cofre" (#modal-busca-global): no app, buscar documento é a busca universal do
 // Hoje (Ativos, Contratos, Partes e Documentos num painel só). O cofre.html avulso mantém o dele.
-//
-// Versão anterior: 1.54.0 · 09/10/2026
-//
-// v1.54.0 (UX F2.3a, demanda fcd3008d, sessão 20261003-1707-ux-base; "Estou de acordo com f2.3 e opcao a" do Nicola 09/10 20:52) —
-// topo da lista de Ativos vira a barra de busca de largura inteira + "+" (.rz-topo); sai a linha de
-// descrição e a lupa. O popup "Buscar / Filtrar" vira só o guardador dos filtros (#ativos-filtros-estado,
-// escondido): no app a busca abre em Sheet (abrirBuscaAtivos, cofre-ativos).
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.53.0 … v1.53.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.54.0 … v1.54.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '1.58.0'; // v-check (28/09/2026): lido por Dev › Versões — manter igual ao header
+export const VERSAO = '1.59.0'; // v-check (28/09/2026): lido por Dev › Versões — manter igual ao header
 export const ATIVOS_MARKUP = `<style>
     /* v1.94.1 (31/08/2026, pedido explícito: "anexo uma barra de
        rolagem que fica feia... ao rolar os chips não mostrar a barra")
@@ -408,6 +407,7 @@ export const ATIVOS_MARKUP = `<style>
         <button data-action="fa-trocar-aba" data-fa-aba="resumo" class="fa-subtab rz-chip rz-on">Resumo</button>
         <button data-action="fa-trocar-aba" data-fa-aba="contratos" class="fa-subtab rz-chip">Usos e contratos <span class="rz-n" id="fa-chip-n-contratos">0</span></button>
         <button data-action="fa-trocar-aba" data-fa-aba="controles" class="fa-subtab rz-chip">Controles <span class="rz-n" id="fa-chip-n-controles">0</span></button>
+        <button data-action="fa-trocar-aba" data-fa-aba="movimento" class="fa-subtab rz-chip">Financeiro</button>
         <button data-action="fa-trocar-aba" data-fa-aba="financeiro" class="fa-subtab rz-chip">Performance</button>
         <button data-action="fa-trocar-aba" data-fa-aba="arquivos" class="fa-subtab rz-chip">Anexos <span class="rz-n" id="fa-chip-n-arquivos">0</span></button>
     </div>
@@ -464,6 +464,11 @@ export const ATIVOS_MARKUP = `<style>
             <div id="fa-tab-controles"></div>
         </div>
     </div>
+
+    <!-- ===== Painel: Financeiro (v1.59.0, F13 4c etapa 3, D81 a D84) — o dinheiro que passa pelo ativo:
+         balanço pendente com Quitar, contas e cartões (ativo pessoa), movimentações do mês. Montado por
+         cofre-ativos.montarMovimentoAtivo() ao abrir o chip. ===== -->
+    <div id="fa-painel-movimento" class="fa-painel hidden"><div id="fa-movimento-corpo"></div></div>
 
     <!-- ===== Painel: Performance (id interno "financeiro" não mudou —
          mesmo princípio já usado no chip Cobranças→Financeiro do contrato:
