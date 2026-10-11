@@ -4,6 +4,20 @@ Histórico completo de versões do `index.html`, movido automaticamente pelo `ge
 
 ---
 
+NOVIDADES (Beta v1.357.0) — demanda 4fa92c2c (protótipo aprovado pelo Nicola 10/10 22:26). Escolha de empresa depois
+do login na gramática do app: "Olá, <nome>" e quantas empresas, barra digitável a partir de 6, chips por plano (só os
+que existem, no lugar do select), lista em card claro com logo ou sigla, perfil e plano, a última acessada no topo
+(raiz_d_ultima_empresa_<dono>, apagada no Sair), status só para teste grátis (com os dias) e vencido — o selo
+TRIAL antigo marcava plano pago com término. Sair no rodapé. A consulta de pessoas traz clientes.logo_url. Nenhum
+objeto de banco.
+Versão anterior (Beta v1.356.0):
+------------------------------------------------------------------
+Versões anteriores (v1.356.0 … v1.356.0): CHANGELOG_APP.md, na raiz do
+repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
+das 5 versões mais recentes deste cabeçalho.
+
+---
+
 NOVIDADES (Beta v1.356.0) — demanda 28aa5ce1, teste do Nicola 10/10 21:43. Sai o ícone de filtros de Contratos
 (e de Ativos, ativos-markup 1.58.0 / cofre-ativos 1.90.0): fica só a barra digitável. A barra do Hoje vira
 digitável: resultados na própria tela (#hoje-busca-res, rzLigarBuscaHoje); o miolo da busca universal vira

@@ -1,6 +1,19 @@
 // ============================================================================
 // comum-pessoas.js — Raiz Patrimônio · Administração compartilhada
-// Versão: 1.206.0 · 08/10/2026
+// Versão: 1.207.0 · 10/10/2026
+//
+// v1.207.0 (UX etapa 6 · E, demanda b4b047fd, sessão 20261003-1707-ux-base; protótipo PROTOTIPO_FINANCEIRO_PESSOAS_ETAPA6
+// aprovado pelo Nicola 10/10 22:43, "Pode corrigir e avançar" 23:32) — Pessoas e acessos no padrão de Partes:
+//   · topo com a barra digitável (nome, e-mail, WhatsApp ou função; rzBuscaInline do index) e o "+";
+//   · chips por perfil, só os que existem, com o número, e "Sem acesso" (quem não entra no app);
+//   · linha: "perfil · função" e o status à direita (Acessa / Sem acesso); o toque abre a ficha, a pressão longa
+//     abre o ⋮ de sempre (abrirAcoesPessoa, intocado);
+//   · ficha com chips Dados · Acesso · Comunicação · Atividade — as ações do ⋮ distribuídas por assunto, com a mesma
+//     checagem de acesso (codigo) e as mesmas travas de master/admin. Novo no Acesso: "Convidar pelo WhatsApp" (só
+//     para quem tem login e WhatsApp; abre o WhatsApp com o convite, nada é gravado).
+//   Fora do app (cofre.html sem a barra/sheet do index), a lista cai no comportamento de antes.
+//
+// Versão anterior: 1.206.0 · 08/10/2026
 //
 // v1.206.0 (UX F2.7c-2, demanda b8602a3a, sessão 20261003-1707-ux-base; plano F2.7c-2 aprovado pelo Nicola 08/10 14:04) — Pessoas e acessos no
 // padrão: esqueleto no lugar de "Carregando…" (lista e acessos recentes); formulário da pessoa com o
@@ -28,16 +41,11 @@
 // padrão, encerrar — mesma ficha de Minha empresa) e "Quem ela vê": Todas ·
 // Só as dela · As dela e as da empresa (fn_pessoa_escopo_contas_definir, só
 // master). Master sempre vê todas. Sem Premium, a ação aparece com cadeado.
-// Versão anterior: 1.203.0.
-//
-// v1.203.0 (F0.2b do PLANO_UX, demanda 9e4aca28, sessão 20261003-1707-ux-base; UXR-29/30) — zero diálogo nativo: excluir pessoa vira perguntar() (Sheet,
-// item vermelho); tirar acesso não pergunta mais e ganha "Desfazer" (devolve login e perfil);
-// o prompt() de perfil fora do app virou aviso.
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.202.0 … v1.202.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.203.0 … v1.203.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '1.206.0'; // v-check (18/09/2026): lido por Dev › Versões — manter igual ao header
+export const VERSAO = '1.207.0'; // v-check (18/09/2026): lido por Dev › Versões — manter igual ao header
 import { perguntar, avisarComDesfazer } from './cofre-ui.js'; // v1.203.0 (F0.2b) — sem diálogo nativo
 import { buscarContas, contasListaHtml, abrirFichaConta, abrirAcoesConta } from './comum-minha-empresa.js'; // v1.204.0 — contas da pessoa (P4a)
 import { rzMostrarBloqueio as rzBloqueio } from './comum-licenca.js'; // v1.204.0
@@ -215,11 +223,17 @@ export async function montarAbaPessoas(mountEl, ctx) {
     // outra pessoa numa tela que só mostra a si mesmo).
     const podeGerenciarOutras = !autoFiltro || podeVerTodas;
 
+    // v1.207.0 (etapa 6 · E) — quem vê todo mundo ganha a barra digitável e os chips por perfil (padrão de Partes).
+    const comBusca = podeGerenciarOutras && typeof window !== 'undefined' && typeof window.rzBuscaInline === 'function';
     mountEl.innerHTML = `
-        <div class="rz-tabhead">
+        ${comBusca ? `<div class="rz-topo">
+            <label class="rz-search rz-search-in"><svg data-lucide="search"></svg><input type="search" id="cp-busca-q" class="rz-raw" placeholder="Buscar nome, e-mail ou função" enterkeyhint="search" autocomplete="off" aria-label="Buscar pessoa"></label>
+            <button type="button" id="cp-btn-nova" class="rz-ico-btn rz-primary" aria-label="Nova pessoa" title="Nova pessoa"><svg data-lucide="plus"></svg></button>
+        </div>
+        <div class="rz-chips" id="cp-chips" role="tablist" aria-label="Perfil" hidden></div>` : `<div class="rz-tabhead">
             <p>${autoFiltro && !podeVerTodas ? 'Seu cadastro, seus avisos e seus acessos recentes.' : 'Cadastro unificado de sócios e usuários do sistema — quem tem acesso ao app e a divisão societária da empresa.'}</p>
             ${podeGerenciarOutras ? '<button type="button" id="cp-btn-nova" class="rz-ico-btn rz-primary" aria-label="Nova pessoa" title="Nova pessoa"><svg data-lucide="plus"></svg></button>' : ''}
-        </div>
+        </div>`}
         <div class="rz-card rz-list" id="cp-lista">${(typeof window !== 'undefined' && typeof window.rzSkeleton === 'function' ? window.rzSkeleton('linhas', 3) : '<p class="rz-desc">Carregando…</p>')}</div>
     `;
 
@@ -269,6 +283,7 @@ export async function montarAbaPessoas(mountEl, ctx) {
         return;
     }
 
+    let filtroChip = 'todos', filtroTexto = ''; // v1.207.0
     function renderLista() {
         const lista = document.getElementById('cp-lista');
         if (!lista) return;
@@ -292,6 +307,31 @@ export async function montarAbaPessoas(mountEl, ctx) {
             icones();
             return;
         }
+        // v1.207.0 — chips por perfil (só os que existem) + "Sem acesso"; o texto procura em nome, e-mail, WhatsApp e função
+        const chipsEl = document.getElementById('cp-chips');
+        if (chipsEl) {
+            const cont = new Map();
+            visiveis.forEach(p => { const k = p.perfil || '-'; cont.set(k, (cont.get(k) || 0) + 1); });
+            const semAcesso = visiveis.filter(p => !p.userId).length;
+            const ordem = ['master', 'admin', 'operador', 'consulta'];
+            const perfis = [...cont.keys()].sort((x, y) => (ordem.indexOf(x) + 1 || 99) - (ordem.indexOf(y) + 1 || 99) || x.localeCompare(y));
+            const chips = [['todos', 'Todas', visiveis.length], ...perfis.map(k => [k, k === '-' ? 'Sem perfil' : rotuloPerfil(k), cont.get(k)]), ...(semAcesso ? [['sem-acesso', 'Sem acesso', semAcesso]] : [])];
+            if (!chips.some(c => c[0] === filtroChip)) filtroChip = 'todos';
+            chipsEl.innerHTML = chips.map(([k, r, n]) => `<button type="button" role="tab" class="rz-chip${filtroChip === k ? ' rz-on' : ''}" data-cp-chip="${esc(k)}" aria-selected="${filtroChip === k}">${esc(r)} <span class="rz-n">${n}</span></button>`).join('');
+            chipsEl.hidden = visiveis.length < 2;
+        }
+        const termo = filtroTexto.trim().toLowerCase();
+        const filtradas = visiveis.filter(p => {
+            if (filtroChip === 'sem-acesso' && p.userId) return false;
+            if (filtroChip !== 'todos' && filtroChip !== 'sem-acesso' && (p.perfil || '-') !== filtroChip) return false;
+            if (termo && ![p.nome, p.email, p.whatsapp, p.funcao, rotuloPerfil(p.perfil)].some(c => (c || '').toString().toLowerCase().includes(termo))) return false;
+            return true;
+        });
+        if (chipsEl && filtradas.length === 0 && visiveis.length > 0) {
+            lista.innerHTML = `<div class="rz-empty"><div class="rz-ic"><svg data-lucide="search"></svg></div><p>${esc(termo ? `Ninguém com "${filtroTexto.trim()}".` : 'Ninguém neste filtro.')}</p></div>`;
+            icones();
+            return;
+        }
         if (visiveis.length === 0) {
             const msg = autoFiltro && !podeVerTodas
                 ? 'Não achamos seu cadastro de pessoa. Fale com quem administra esta empresa.'
@@ -300,55 +340,140 @@ export async function montarAbaPessoas(mountEl, ctx) {
             icones();
             return;
         }
-        lista.innerHTML = visiveis.map(p => {
+        const comFicha = typeof window.abrirSheet === 'function';
+        lista.innerHTML = (chipsEl ? filtradas : visiveis).map(p => {
             const ehMaster = p.perfil === 'master';
             const icone = ehMaster ? 'shield-check' : 'user';
-            const fato = p.perfil ? capitalizar(p.perfil) : 'Sem perfil';
+            const fato = p.perfil ? rotuloPerfil(p.perfil) : 'Sem perfil';
             const contexto = p.funcao || 'Sem função definida';
+            // v1.207.0 — status de acesso à direita; o toque abre a ficha (com chips) e a pressão longa, o ⋮
+            const status = chipsEl ? statusAcesso(p) : '';
             return `
                 <div class="rz-row rz-link" data-acao="ficha" data-id="${p.id}">
                     <div class="rz-ic"><svg data-lucide="${icone}"></svg></div>
                     <div class="rz-tx"><b>${esc(p.nome || '(sem nome)')}</b><span>${esc(fato)} · ${esc(contexto)}</span></div>
-                    <button type="button" data-acao="mais" data-id="${p.id}" class="rz-more" aria-label="Mais ações"><svg data-lucide="ellipsis-vertical"></svg></button>
+                    ${chipsEl && comFicha ? `<div class="rz-rt">${status}</div><svg data-lucide="chevron-right" class="rz-chev"></svg>`
+                        : `<button type="button" data-acao="mais" data-id="${p.id}" class="rz-more" aria-label="Mais ações"><svg data-lucide="ellipsis-vertical"></svg></button>`}
                 </div>`;
         }).join('');
+        if (chipsEl && typeof window.rzLongPress === 'function') {
+            lista.querySelectorAll('.rz-row[data-acao="ficha"]').forEach(row => window.rzLongPress(row, () => abrirAcoesPessoa(row.dataset.id)));
+        }
         icones();
+    }
+    function rotuloPerfil(k) { return ({ master: 'Master', admin: 'Administrador', operador: 'Operador', consulta: 'Consulta' })[k] || (k ? capitalizar(k) : 'Sem perfil'); }
+    function statusAcesso(p) {
+        const rs = typeof window.renderStatus === 'function' ? window.renderStatus : (s, x) => `<span class="rz-st rz-${s}">${esc(x)}</span>`;
+        return p.userId ? rs('ok', 'Acessa') : rs('neu', 'Sem acesso');
     }
     renderLista();
 
     // ---------------------------------------------------------------
     // FICHA — leitura (Sheet), igual ao padrão de abrirFichaParte.
     // ---------------------------------------------------------------
-    function abrirFichaPessoa(id) {
+    // v1.207.0 (etapa 6 · E) — ficha com chips Dados · Acesso · Comunicação · Atividade. As ações são as do ⋮
+    // (abrirAcoesPessoa), distribuídas por assunto, com as mesmas travas e a mesma checagem de acesso (codigo).
+    function acoesFichaPessoa(p) {
+        const ehMaster = p.perfil === 'master';
+        const perfilTravado = ehMaster && perfilLogado !== 'master';
+        const protegidoExclusao = p.perfil === 'admin' || p.perfil === 'master';
+        const temLogin = !!p.userId;
+        const dados = [], acesso = [], comunicacao = [], atividade = [];
+        if (!perfilTravado) dados.push({ icone: 'pencil', titulo: 'Editar dados', sub: 'Nome, e-mail, WhatsApp, função e % de cotas', codigo: 'pessoas.editar', aoTocar: () => abrirFormPessoaSheet(p.id) });
+        else dados.push({ icone: 'lock', titulo: 'Dados protegidos do master', sub: 'Só o próprio master edita', aoTocar: null });
+        if (protegidoExclusao) dados.push({ icone: 'lock', titulo: ehMaster ? 'Master não pode ser removido por aqui' : 'Admin não pode ser removido por aqui', sub: 'Fale com a Raiz', aoTocar: null });
+        else dados.push({ icone: 'trash-2', titulo: 'Excluir pessoa', codigo: 'pessoas.excluir', tipo: 'bad', aoTocar: () => excluirPessoa(p.id) });
+        if (!ehMaster) acesso.push({ icone: 'shield', titulo: 'Perfil de acesso', sub: rotuloPerfil(p.perfil), codigo: 'pessoas.editar', aoTocar: () => alterarPerfilPessoa(p.id) });
+        else acesso.push({ icone: 'shield-check', titulo: 'Perfil de acesso', sub: 'Master — não muda pela tela', aoTocar: null });
+        acesso.push({ icone: 'wallet', titulo: 'Contas que vê', sub: ehMaster ? 'Vê todas as contas' : (ESCOPO_CONTAS_ROTULO[p.escopoContas] || 'Contas dela e quais contas ela vê'), codigo: 'financeiro.contas.ver', aoTocar: () => abrirContasPessoaSheet(p.id) });
+        if (!perfilTravado) {
+            if (temLogin) {
+                if (p.whatsapp) acesso.push({ icone: 'message-circle', titulo: 'Convidar pelo WhatsApp', sub: 'Mensagem com o endereço do app', aoTocar: () => convidarPessoaWhatsapp(p) });
+                if (protegidoExclusao) acesso.push({ icone: 'lock', titulo: 'Acesso protegido', sub: 'Admin e master não perdem o acesso por aqui', aoTocar: null });
+                else acesso.push({ icone: 'user-x', titulo: 'Remover acesso ao sistema', sub: 'A pessoa continua cadastrada', codigo: 'pessoas.editar', tipo: 'bad', aoTocar: () => desvincularAcessoPessoa(p.id) });
+            } else {
+                acesso.push({ icone: 'user-check', titulo: 'Criar acesso', sub: 'Envia e-mail para definir senha', codigo: 'pessoas.editar', aoTocar: () => criarAcessoPessoa(p.id) });
+                acesso.push({ icone: 'link', titulo: 'Vincular login existente', sub: 'Pelo e-mail de quem já entra no Raiz', codigo: 'pessoas.editar', aoTocar: () => vincularLoginPessoa(p.id) });
+            }
+        }
+        if (proativasDisponiveis.length > 0) {
+            comunicacao.push({ icone: 'bell', titulo: 'Avisos automáticos por WhatsApp', sub: p.whatsapp ? 'Quais avisos e com que frequência' : 'Sem WhatsApp cadastrado — os avisos não chegam', aoTocar: () => {
+                if (p.id === pessoaId && typeof window.abrirPreferenciasComunicacao === 'function') { window.abrirPreferenciasComunicacao(); return; }
+                abrirComunicacoesPessoaSheet(p.id);
+            } });
+        }
+        if (autoFiltro && typeof carregarAcessosDaPessoa === 'function') {
+            atividade.push({ icone: 'history', titulo: 'Acessos recentes', sub: 'Últimas entradas no app', aoTocar: () => abrirAcessosPessoaSheet(p.id) });
+        }
+        return { dados, acesso, comunicacao, atividade };
+    }
+    function convidarPessoaWhatsapp(p) {
+        const d = String(p.whatsapp || '').replace(/\D/g, '');
+        const numero = d.length >= 10 && d.length <= 11 ? '55' + d : d;
+        const primeiro = (p.nome || '').trim().split(/\s+/)[0] || '';
+        const empresa = (typeof CONFIG_CLIENTE !== 'undefined' && CONFIG_CLIENTE && CONFIG_CLIENTE.nomeEmpresa) || 'a empresa'; // global do index (let), não window
+        const texto = `Olá${primeiro ? ', ' + primeiro : ''}! Você tem acesso a ${empresa} no Raiz Patrimônio. Entre em https://app.raizpatrimonio.com.br com o seu e-mail${p.email ? ' (' + p.email + ')' : ''}. Se ainda não definiu a senha, toque em "Esqueci minha senha" na tela de entrada.`;
+        if (typeof window.rzDev === 'function') window.rzDev('whatsapp', numero, texto);
+        else window.open('https://wa.me/' + numero + '?text=' + encodeURIComponent(texto), '_blank', 'noopener');
+    }
+    function abrirFichaPessoa(id, paneInicial = 'dados') {
         const p = pessoas.find(x => x.id === id);
         if (!p || typeof window.abrirSheet !== 'function') { onToast?.(AVISO_SO_APP, 'info'); return; }
         const kv = (r, v) => v ? `<div><small>${esc(r)}</small><b>${esc(v)}</b></div>` : '';
         const modulos = modulosPorPerfil.get(p.perfil);
         const modulosTxt = modulos && modulos.size ? Array.from(modulos).sort().join(', ') : 'Nenhum';
         const cabecalho = typeof window.rzSheetCabecalho === 'function'
-            ? window.rzSheetCabecalho(p.nome || '(sem nome)', p.perfil ? capitalizar(p.perfil) : 'Sem perfil')
+            ? window.rzSheetCabecalho(p.nome || '(sem nome)', `${rotuloPerfil(p.perfil)}${p.funcao ? ' · ' + p.funcao : ''}`)
             : `<div class="rz-sh-h"><h3>${esc(p.nome || '(sem nome)')}</h3></div>`;
+        const grupos = acoesFichaPessoa(p);
+        const planas = [];
+        const acaoHtml = (a) => {
+            const i = planas.push(a) - 1;
+            if (typeof window.rzAcaoItemHtml === 'function') return window.rzAcaoItemHtml(a, i);
+            return `<button type="button" class="rz-act${a.tipo === 'bad' ? ' rz-bad' : ''}" data-rz-i="${i}"><div class="rz-ic"><svg data-lucide="${esc(a.icone)}"></svg></div><div>${esc(a.titulo)}${a.sub ? `<small>${esc(a.sub)}</small>` : ''}</div></button>`;
+        };
+        const lista = (acoes) => acoes.length ? `<div class="rz-card rz-list">${acoes.map(acaoHtml).join('')}</div>` : '';
+        const CHIPS = [['dados', 'Dados'], ['acesso', 'Acesso'], ['comunicacao', 'Comunicação'], ['atividade', 'Atividade']];
         const sheet = window.abrirSheet(cabecalho + `
             <div class="rz-sh-b">
-                <div class="rz-card">
-                    <div class="rz-card-h"><h3>Dados</h3><button type="button" data-acao="ficha-editar" class="rz-more" aria-label="Editar"><svg data-lucide="pencil"></svg></button></div>
-                    <div class="rz-kv">
+                <div class="rz-chips" data-cpf-chips role="tablist" aria-label="Ficha da pessoa">${CHIPS.map(([k, r]) =>
+                    `<button type="button" role="tab" data-cpf-chip="${k}" class="rz-chip${k === paneInicial ? ' rz-on' : ''}" aria-selected="${k === paneInicial}">${r}</button>`).join('')}</div>
+                <div data-cpf-pane="dados"${paneInicial !== 'dados' ? ' hidden' : ''}>
+                    <div class="rz-card"><div class="rz-kv">
                         ${kv('E-mail', p.email)}
                         ${kv('WhatsApp', p.whatsapp)}
                         ${kv('Função na empresa', p.funcao)}
                         ${p.percentualCotasEmpresa != null ? kv('% de cotas', String(p.percentualCotasEmpresa).replace('.', ',') + '%') : ''}
-                        ${kv('Acesso a módulos', modulosTxt)}
-                        ${kv('Acesso ao sistema', p.userId ? 'Sim' : 'Não')}
-                    </div>
+                        ${!p.email && !p.whatsapp && !p.funcao && p.percentualCotasEmpresa == null ? '<p class="rz-desc">Sem dados além do nome.</p>' : ''}
+                    </div></div>
+                    ${lista(grupos.dados)}
                 </div>
-                <div class="rz-card rz-list"><div class="rz-row rz-link" role="button" tabindex="0" data-acao="ficha-contas">
-                    <div class="rz-ic"><svg data-lucide="wallet"></svg></div>
-                    <div class="rz-tx"><b>Contas</b><span>${esc(p.perfil === 'master' ? 'Vê todas as contas' : ESCOPO_CONTAS_ROTULO[p.escopoContas] || '')}</span></div>
-                    <svg data-lucide="chevron-right" class="rz-chev"></svg>
-                </div></div>
+                <div data-cpf-pane="acesso"${paneInicial !== 'acesso' ? ' hidden' : ''}>
+                    <div class="rz-card"><div class="rz-kv">
+                        ${kv('Login', p.userId ? `${p.email || 'Entra no app'} · entra no app` : 'Não entra no app')}
+                        ${kv('Acesso a módulos', modulosTxt)}
+                    </div></div>
+                    ${lista(grupos.acesso)}
+                </div>
+                <div data-cpf-pane="comunicacao"${paneInicial !== 'comunicacao' ? ' hidden' : ''}>
+                    ${grupos.comunicacao.length ? lista(grupos.comunicacao) : '<p class="rz-desc">Nenhum aviso automático disponível no plano atual.</p>'}
+                </div>
+                <div data-cpf-pane="atividade"${paneInicial !== 'atividade' ? ' hidden' : ''}>
+                    ${grupos.atividade.length ? lista(grupos.atividade) : '<p class="rz-desc">Os acessos recentes aparecem no app, em Conta › Pessoas e acessos.</p>'}
+                </div>
             </div>`);
-        sheet.querySelector('[data-acao="ficha-editar"]')?.addEventListener('click', () => abrirFormPessoaSheet(p.id));
-        sheet.querySelector('[data-acao="ficha-contas"]')?.addEventListener('click', () => abrirContasPessoaSheet(p.id));
+        sheet.querySelector('[data-cpf-chips]')?.addEventListener('click', (ev) => {
+            const c = ev.target.closest('[data-cpf-chip]'); if (!c) return;
+            sheet.querySelectorAll('[data-cpf-chip]').forEach(b => { const on = b === c; b.classList.toggle('rz-on', on); b.setAttribute('aria-selected', String(on)); });
+            sheet.querySelectorAll('[data-cpf-pane]').forEach(pn => { pn.hidden = pn.dataset.cpfPane !== c.dataset.cpfChip; });
+        });
+        sheet.querySelectorAll('[data-rz-i]').forEach(btn => btn.addEventListener('click', () => {
+            const a = planas[Number(btn.dataset.rzI)];
+            if (!a || typeof a.aoTocar !== 'function') return; // linha informativa (travas de master/admin)
+            if (a.codigo && typeof window.rzMostrarBloqueio === 'function' && window.rzMostrarBloqueio(a.codigo)) return;
+            window.fecharSheet?.();
+            try { a.aoTocar(); } catch (e) { console.error('[comum-pessoas] ação da ficha:', e); onToast?.('Não consegui fazer isso agora.', 'danger'); }
+        }));
         icones();
     }
 
@@ -780,4 +905,12 @@ export async function montarAbaPessoas(mountEl, ctx) {
     });
 
     document.getElementById('cp-btn-nova')?.addEventListener('click', () => abrirFormPessoaSheet(null));
+    // v1.207.0 (etapa 6 · E) — barra digitável e chips por perfil
+    if (comBusca) {
+        window.rzBuscaInline('cp-busca-q', (v) => { filtroTexto = v || ''; renderLista(); });
+        document.getElementById('cp-chips')?.addEventListener('click', (ev) => {
+            const c = ev.target.closest('[data-cp-chip]'); if (!c) return;
+            filtroChip = c.dataset.cpChip; renderLista();
+        });
+    }
 }
