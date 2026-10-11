@@ -1,6 +1,14 @@
 // ============================================================================
 // cofre-controles.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.50.0 · 10/10/2026
+// Versão: 1.51.0 · 11/10/2026
+//
+// v1.51.0 (11/10/2026, sessão 20261008-1231-pessoas-ativos, demanda f3e6cd27; Nicola 11/10 00:08: "no item aparece tipo
+// conta minúscula (...) subtipos em branco. Pode ser subtipos conta e o outro cartão crédito. Pode seguir") — a ficha do
+// item carrega o catálogo controle_tipos ANTES de desenhar (o rótulo do tipo só vinha depois de abrir o Editar; sem ele
+// aparecia o código cru "conta"). Os subtipos Conta e Cartão de crédito nasceram no banco (migration
+// contas_subtipos_f18b_v1); o item de cartão passa a ser reconhecido também pelo subtipo.
+//
+// Versão anterior: 1.50.0 · 10/10/2026
 //
 // v1.50.0 (10/10/2026, sessão 20261008-1231-pessoas-ativos, demanda f3e6cd27; F18 — conta e cartão viram item de controle.
 // Nicola 10/10 23:16: "não vejo valores nas ocorrências (...) atalho pro lançamento financeiro quando existir e o valor
@@ -34,18 +42,11 @@
 // v1.48.0 (demanda b94ef7d5, sessão 20261007-0231-vinculos-reativar; plano aprovado pelo Nicola 07/10 02:31) —
 // chip Partes do item ganha o grupo "Encerrados" (com a data); ⋮ de um encerrado: "Reativar"
 // (fn_vinculo_reativar) e "Excluir" (fn_vinculo_excluir). Excluídos não aparecem.
-//
-// Versão anterior: 1.47.0 · 07/10/2026
-//
-// v1.47.0 (demanda b94ef7d5, sessão 20261007-0005-vinculos-chips; plano aprovado pelo Nicola 07/10 00:05) —
-// ⋮ do chip Partes do item ganha "Encerrar vínculo" (troca real: sai do item e fica no histórico da
-// parte, via fn_vinculo_encerrar); "Remover parte" vira "Excluir vínculo" (cadastro errado — mesmo
-// caminho de antes, que agora exclui o vínculo).
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.46.0 … v1.46.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.47.0 … v1.47.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '1.50.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.51.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 import { estado } from './cofre-estado.js';
 import * as api from './cofre-api.js';
 import { mostrarToast, refrescarIcones, abrirModal, fecharModal, modalGenerico, perguntar, escolher, avisarComDesfazer } from './cofre-ui.js';
@@ -371,7 +372,7 @@ function renderizarListaControles() {
 // não é lida direto pelo app (conta_controle sem grant de tabela, só pelas funções); a descrição que a
 // fn_conta_item_sincronizar grava diz se é cartão, e uma ocorrência ligada a fatura confirma.
 function ehItemCartao(item) {
-    return item?.tipo === 'conta' && (/^Fatura do cartão/.test(item.descricao || '') || (item.cofre_ocorrencias_controle || []).some(o => o.origem === 'fatura'));
+    return item?.tipo === 'conta' && (item.cofre_controle_subtipos?.nome === 'Cartão de crédito' || /^Fatura do cartão/.test(item.descricao || '') || (item.cofre_ocorrencias_controle || []).some(o => o.origem === 'fatura'));
 }
 function iconeItemConta(item) { return ehItemCartao(item) ? 'credit-card' : 'landmark'; }
 
@@ -746,6 +747,7 @@ export async function abrirFichaItemControle(itemId) {
         mostrarToast('Erro ao abrir item de controle: ' + err.message, 'erro');
         return;
     }
+    await carregarCatalogoTiposControle(); // v1.51.0 — rótulo do tipo ("Contas e cartões", não "conta") já na 1ª abertura
     mudarTela('ficha-item-controle');
     renderizarFichaItemControle();
 }

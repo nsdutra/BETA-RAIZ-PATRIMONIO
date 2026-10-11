@@ -4,6 +4,17 @@ Histórico completo de versões do `index.html`, movido automaticamente pelo `ge
 
 ---
 
+NOVIDADES (Beta v1.361.0) — Escolha de empresa (dem 4fa92c2c; Nicola 10/10 23:23: "subir mais o Olá Nicola, ficando a busca
+ao lado do IA"): o "Olá" sobe para o topo e a barra de busca divide a linha com o botão da IA (escPosicionarIa; o botão
+volta ao canto da splash fora desta tela). Só index.html. Nenhum objeto de banco.
+Versão anterior (Beta v1.360.0):
+------------------------------------------------------------------
+Versões anteriores (v1.360.0 … v1.360.0): CHANGELOG_APP.md, na raiz do
+repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
+das 5 versões mais recentes deste cabeçalho.
+
+---
+
 NOVIDADES (Beta v1.360.0) — Escolha de empresa mais folgada (dem 4fa92c2c; Nicola 10/10 23:05: "ficou apertada"): saem a foto,
 o título da splash e os chips por plano; a tela começa no "Olá, <nome>", a lista ocupa o resto e o rodapé junta a versão
 (esq.) e o Sair (dir.). Corrige "Teste · NaN d" (data_expiracao com hora). Só index.html. Nenhum objeto de banco.
