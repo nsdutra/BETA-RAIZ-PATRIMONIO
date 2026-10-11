@@ -1,7 +1,19 @@
 // ============================================================================
 // financeiro.js — Raiz Patrimônio · Financeiro (Recebimentos · Atrasados · Saídas
 //                  · conciliação de extrato · recibo · detalhe do recebimento)
-// Versão: 1.47.0 · 11/10/2026
+// Versão: 1.48.0 · 11/10/2026
+//
+// v1.48.0 (11/10/2026, sessão 20261008-1231-pessoas-ativos, demanda f3e6cd27; F13 entrega 4c, etapa 1 — FICHA_BALANCO_ACERTOS
+// v1.2.0, D58; Nicola 11/10 10:15 "Correto. Pode fazer") — a 4ª opção do Financeiro vira "Balanço", com três vistas:
+//   · Pessoas (padrão): quem tem a receber e quem deve, acumulado até o fim do mês escolhido (fn_balanco_pessoas). Toque
+//     abre a pessoa com cada saldo por contraparte e natureza, o botão Quitar (fn_acerto_registrar), Compensar quando há
+//     crédito e débito com a mesma contraparte (fn_acerto_compensar) e o histórico (fn_balanco_extrato);
+//   · Sócios por mês: a Distribuição de antes, sem mudar número; as retiradas listadas são só caixa → sócio de natureza
+//     distribuição (repasses virou a tabela única de quitação, F13.6);
+//   · Grupos: os ativos com despesa dividida entre pessoas (rateio), com o saldo de cada participante.
+// O "+" ganha "Quitar ou registrar pagamento".
+//
+// Versão anterior: 1.47.0 · 11/10/2026
 //
 // v1.47.0 (UX etapa 6 · D, demanda b4b047fd, sessão 20261003-1707-ux-base; protótipo PROTOTIPO_FINANCEIRO_PESSOAS_ETAPA6
 // aprovado pelo Nicola 10/10 22:43 com "o deslizar pro lado só abre a opção esperando toque"; "Vamos ajustar e seguir"
@@ -39,20 +51,11 @@
 //   C · Cobrar pelo WhatsApp: o sheet mostra a mensagem exata que vai sair e o interruptor "Incluir o Pix", lembrado
 //       por empresa neste aparelho (localStorage raiz_pref_cob_pix_<cliente>; preferência, não dado da carteira).
 //       textoCobrancaWhatsApp() monta o texto para a prévia e para o envio (um só lugar).
-//
-// Versão anterior: 1.43.0 · 10/10/2026
-//
-// v1.43.0 (UX etapa 6 · A, demanda b4b047fd, sessão 20261003-1707-ux-base; protótipo PROTOTIPO_FINANCEIRO_PESSOAS_ETAPA6
-// aprovado pelo Nicola 10/10 22:43: "a barra digitável deve digitar na própria barra, eliminando abrir opções de filtro em
-// form") — Recebimentos, Saídas, Conciliação e Atrasados digitam na própria barra (rzBuscaInline do index; × limpa;
-// nunca reescreve a barra enquanto ela tem o foco). O texto procura também no valor ("15500", "15.500"), e em Saídas na
-// categoria; em Conciliação, no valor do extrato. Os campos guardadores (men-/saidas-/conc-/inad-busca-texto) e os
-// filtros escondidos continuam (atalhos de outras telas ainda os usam); os formulários de filtro deixam de ser abertos.
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.42.0 … v1.42.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.43.0 … v1.43.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '1.47.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.48.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 
 // v1.17.0 (Fase 1 do wrapper de escrita, rollout Financeiro) — emitirEscrita
 // é o evento padrão pra "algo mudou que módulos DE FORA deste arquivo podem
@@ -237,7 +240,7 @@ function financeiroChipsNivelHtml(aba) {
         { chave: 'mensal', rotulo: '<span class="rz-seg-l">Recebimentos</span><span class="rz-seg-s">Receb.</span>', tab: 'tab-mensal' },
         { chave: 'saidas', rotulo: 'Saídas', tab: 'tab-saidas' },
         { chave: 'conciliacao', rotulo: 'Conciliação', tab: 'tab-conciliacao', off: fechamentoOff }, // v1.21.0 — pedido explícito: "Mude o titulo da aba fechamento para conciliacao"
-        { chave: 'socios', rotulo: 'Distribuição', tab: 'tab-socios', bloqueio: distrib.ok ? null : 'repasses.ver' },
+        { chave: 'socios', rotulo: 'Balanço', tab: 'tab-socios', bloqueio: distrib.ok ? null : 'repasses.ver' },
     ];
     return itens.map(it => {
         const off = it.off || !!it.bloqueio;
@@ -5403,6 +5406,7 @@ async function distribCarregar() {
     const { data: ret, error: errRet } = await dbAuth.from('repasses')
         .select('id, pessoa_id, competencia, valor, data_real, pessoas(nome)')
         .eq('cliente_id', CLIENTE_ID_SUPABASE).gte('competencia', meses[0]).lte('competencia', meses[meses.length - 1])
+        .eq('de_tipo', 'caixa').eq('natureza', 'distribuicao') // v1.48.0 — F13.6: repasses guarda também acertos; aqui só a retirada do sócio
         .order('data_real', { ascending: false });
     if (errRet) throw errRet;
     // retirada de quem não teve cota no período: a função não devolve a pessoa — entra com cota zero
@@ -5420,6 +5424,7 @@ export async function renderDistribuicao() {
     const corpo = document.getElementById('distrib-corpo');
     if (!corpo) return;
     if (!financeiroCompetenciaAtual) financeiroDefinirCompetencia(financeiroCompetenciaHojeISO());
+    if (balancoVistaAtual !== 'socios') return balancoRender(); // v1.48.0 — F13: Pessoas e Grupos
     const elLabel = document.getElementById('fin-competencia-label-socios');
     if (elLabel) elLabel.textContent = distribModo === 'ano' ? financeiroCompetenciaAtual.slice(0, 4) : financeiroCompetenciaLabel(financeiroCompetenciaAtual);
     corpo.innerHTML = `<p class="text-xs text-center py-3" style="color:var(--sage)">Carregando…</p>`;
@@ -5440,7 +5445,7 @@ function distribDesenhar() {
     const { linhas, retiradas, periodo } = distribDados;
     const soma = (k) => linhas.reduce((t, l) => t + l[k], 0); // soma de linhas já calculadas pelo banco — só agrega o que a função devolveu
     const anoTxt = (financeiroCompetenciaAtual || '').slice(0, 4);
-    const chips = `<div class="rz-chips">
+    const chips = balancoChipsVista() + `<div class="rz-chips">
         <button type="button" class="rz-chip${distribModo === 'mes' ? ' rz-on' : ''}" onclick="distribMudarModo('mes')">Mês</button>
         <button type="button" class="rz-chip${distribModo === 'ano' ? ' rz-on' : ''}" onclick="distribMudarModo('ano')">Ano ${esc(anoTxt)}</button>
     </div>`;
@@ -5477,12 +5482,210 @@ function distribDesenhar() {
     if (typeof lucide !== 'undefined') lucide.createIcons();
 }
 
+
+// ============================================================================
+// v1.48.0 — BALANÇO (F13, entrega 4c etapa 1). Os números vêm do banco: fn_balanco_pessoas (saldo por pessoa,
+// contraparte e natureza; valor > 0 = a pessoa tem a receber) e fn_balanco_extrato (histórico). Quitar grava em
+// repasses pela fn_acerto_registrar (tabela única, F13.6); Compensar pela fn_acerto_compensar (dois registros, D59).
+// A tela só agrupa o que o banco devolveu, sem somar regra própria.
+// ============================================================================
+let balancoVistaAtual = 'pessoas';   // 'pessoas' | 'socios' | 'grupos'
+let balancoDados = null;             // { pessoas: [{chave, pessoaId, nome, total, linhas}], ate }
+const BAL_NATUREZA = { distribuicao: 'distribuição', reembolso: 'reembolso', adiantamento: 'adiantamento', rateio: 'rateio' };
+const balEsc = (t) => String(t ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;');
+const balSt = (cod, rot) => (typeof renderStatus === 'function') ? renderStatus(cod, rot) : balEsc(rot);
+
+function balancoAte() { // último dia do mês escolhido
+    const c = financeiroCompetenciaAtual || financeiroCompetenciaHojeISO();
+    const d = new Date(Number(c.slice(0, 4)), Number(c.slice(5, 7)), 0);
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+function balancoChipsVista() {
+    const b = (v, rot) => `<button type="button" class="rz-chip${balancoVistaAtual === v ? ' rz-on' : ''}" onclick="balancoVista('${v}')">${rot}</button>`;
+    return `<div class="rz-chips">${b('pessoas', 'Pessoas')}${b('socios', 'Sócios por mês')}${b('grupos', 'Grupos')}</div>`;
+}
+export function balancoVista(v) { balancoVistaAtual = ['pessoas', 'socios', 'grupos'].includes(v) ? v : 'pessoas'; renderDistribuicao(); }
+
+async function balancoCarregar() {
+    const { data, error } = await dbAuth.rpc('fn_balanco_pessoas', { p_cliente_id: CLIENTE_ID_SUPABASE, p_ate: balancoAte() });
+    if (error) throw error;
+    const mapa = new Map();
+    (data || []).forEach(x => {
+        const chave = x.pessoa_id || ('ext:' + (x.nome_externo || x.nome));
+        const a = mapa.get(chave) || { chave, pessoaId: x.pessoa_id || null, nome: x.nome, total: 0, linhas: [] };
+        a.total += Number(x.valor || 0);
+        a.linhas.push({ contraparteTipo: x.contraparte_tipo, contraparteId: x.contraparte_id || null, contraparteNome: x.contraparte_nome || 'Empresa',
+            natureza: x.natureza, valor: Number(x.valor || 0), ultimo: x.ultimo_movimento });
+        mapa.set(chave, a);
+    });
+    const pessoas = [...mapa.values()].sort((a, b) => Math.abs(b.total) - Math.abs(a.total) || a.nome.localeCompare(b.nome));
+    balancoDados = { pessoas, ate: balancoAte() };
+}
+
+async function balancoRender() {
+    const corpo = document.getElementById('distrib-corpo');
+    const elLabel = document.getElementById('fin-competencia-label-socios');
+    if (elLabel) elLabel.textContent = financeiroCompetenciaLabel(financeiroCompetenciaAtual);
+    corpo.innerHTML = balancoChipsVista() + `<p class="text-xs text-center py-3" style="color:var(--sage)">Carregando…</p>`;
+    try { await balancoCarregar(); }
+    catch (e) {
+        console.error('[financeiro] balanço', e);
+        corpo.innerHTML = balancoChipsVista() + `<div class="rz-card"><div class="rz-empty"><div class="rz-ic"><svg data-lucide="alert-circle"></svg></div><p>Não consegui calcular o balanço agora.</p></div></div>`;
+        if (typeof lucide !== 'undefined') lucide.createIcons();
+        return;
+    }
+    if (balancoVistaAtual === 'grupos') return balancoRenderGrupos();
+    const filtro = distribBusca.trim().toLowerCase();
+    const lista = balancoDados.pessoas.filter(p => !filtro || p.nome.toLowerCase().includes(filtro));
+    const todas = balancoDados.pessoas.flatMap(p => p.linhas);
+    const aReceber = todas.reduce((t, l) => t + Math.max(l.valor, 0), 0);
+    const aPagar = todas.reduce((t, l) => t + Math.max(-l.valor, 0), 0);
+    const kpis = `<div class="rz-kpis">
+        <div class="rz-kpi rz-in"><small>A receber</small><b>${formatarMoedaBR(aReceber)}</b></div>
+        <div class="rz-kpi"><small>A pagar</small><b>${formatarMoedaBR(aPagar)}</b></div>
+    </div>`;
+    const resumo = (p) => p.linhas.map(l => `${BAL_NATUREZA[l.natureza] || l.natureza} ${moedaSinal(l.valor)}`).join(' · ');
+    const status = (v) => v > 0.004 ? balSt('run', `${formatarMoedaBR(v)} a receber`) : v < -0.004 ? balSt('warn', `deve ${formatarMoedaBR(-v)}`) : balSt('ok', 'Em dia');
+    const html = lista.length
+        ? `<div class="rz-card rz-list"><div class="rz-card-h" style="padding-top:10px;margin-bottom:0"><h3>Quem deve a quem</h3><span class="rz-sub">até ${balEsc(formatarDataBR(balancoDados.ate))}</span></div>` +
+          lista.map(p => `<div class="rz-row rz-link" role="button" tabindex="0" onclick="balancoAbrirPessoa('${balEsc(p.chave)}')">
+                <div class="rz-ic${p.pessoaId ? '' : ' rz-neu'}"><svg data-lucide="user"></svg></div>
+                <div class="rz-tx"><b>${balEsc(p.nome)}</b><span>${balEsc(resumo(p))}</span></div>
+                <div class="rz-rt">${status(p.total)}</div>
+                <svg data-lucide="chevron-right" class="rz-chev"></svg>
+            </div>`).join('') + '</div>'
+        : `<div class="rz-card"><div class="rz-empty"><div class="rz-ic"><svg data-lucide="handshake"></svg></div><p>${filtro ? 'Ninguém com esse nome.' : 'Ninguém deve nada a ninguém até aqui. O balanço nasce da distribuição dos sócios, dos reembolsos e das despesas divididas.'}</p></div></div>`;
+    corpo.innerHTML = balancoChipsVista() + kpis + html;
+    if (typeof lucide !== 'undefined') lucide.createIcons();
+}
+
+async function balancoRenderGrupos() {
+    const corpo = document.getElementById('distrib-corpo');
+    let grupos = [];
+    try {
+        const { data, error } = await dbAuth.rpc('fn_balanco_extrato', { p_cliente_id: CLIENTE_ID_SUPABASE, p_limite: null, p_ate: balancoAte() });
+        if (error) throw error;
+        const porAtivo = new Map();
+        (data || []).filter(e => e.natureza === 'rateio' && e.ativo_id).forEach(e => {
+            const g = porAtivo.get(e.ativo_id) || { ativoId: e.ativo_id, gasto: new Map(), saldo: new Map() };
+            if (e.origem_tipo === 'lancamento' && e.valor > 0) g.gasto.set(e.origem_id || Math.random(), Number(e.valor_movimento || 0));
+            g.saldo.set(e.nome, (g.saldo.get(e.nome) || 0) + Number(e.valor || 0));
+            porAtivo.set(e.ativo_id, g);
+        });
+        grupos = [...porAtivo.values()];
+        if (grupos.length) {
+            const { data: at } = await dbAuth.from('cofre_ativos').select('id, nome_exibicao').in('id', grupos.map(g => g.ativoId));
+            const nomes = Object.fromEntries((at || []).map(a => [a.id, a.nome_exibicao]));
+            grupos.forEach(g => { g.nome = nomes[g.ativoId] || 'Grupo'; });
+        }
+    } catch (e) { console.error('[financeiro] grupos', e); }
+    const html = grupos.length
+        ? grupos.map(g => `<div class="rz-card"><div class="rz-card-h"><h3>${balEsc(g.nome)}</h3><span class="rz-sub">gasto ${formatarMoedaBR([...g.gasto.values()].reduce((t, v) => t + v, 0))}</span></div>` +
+            [...g.saldo.entries()].map(([nome, v]) => `<div class="rz-row"><div class="rz-ic"><svg data-lucide="user"></svg></div><div class="rz-tx"><b>${balEsc(nome)}</b></div><div class="rz-rt">${v > 0.004 ? balSt('run', `${formatarMoedaBR(v)} a receber`) : v < -0.004 ? balSt('warn', `deve ${formatarMoedaBR(-v)}`) : balSt('ok', 'Em dia')}</div></div>`).join('') + '</div>').join('')
+        : `<div class="rz-card"><div class="rz-empty"><div class="rz-ic"><svg data-lucide="users"></svg></div><p>Nenhum grupo com despesa dividida. Um grupo é um ativo (viagem, casa de praia, cuidado do pai): as despesas lançadas nele e divididas entre as pessoas aparecem aqui.</p></div></div>`;
+    corpo.innerHTML = balancoChipsVista() + html;
+    if (typeof lucide !== 'undefined') lucide.createIcons();
+}
+
+export function balancoAbrirPessoa(chave) {
+    const p = balancoDados?.pessoas.find(x => x.chave === chave);
+    if (!p || typeof abrirSheet !== 'function') return;
+    const pode = (typeof podeUsar === 'function') ? podeUsar('repasses.registrar') : { ok: true };
+    const linhas = p.linhas.map((l, i) => {
+        const txt = l.valor > 0 ? `${balEsc(l.contraparteNome)} deve` : `deve a ${balEsc(l.contraparteNome)}`;
+        return `<div class="rz-row"><div class="rz-ic${l.valor > 0 ? ' rz-ok' : ''}"><svg data-lucide="${l.valor > 0 ? 'arrow-down-left' : 'arrow-up-right'}"></svg></div>
+            <div class="rz-tx"><b>${formatarMoedaBR(Math.abs(l.valor))}</b><span>${txt} · ${balEsc(BAL_NATUREZA[l.natureza] || l.natureza)}</span></div>
+            <div class="rz-rt">${p.pessoaId && pode.ok ? `<button type="button" class="rz-btn rz-btn-2" style="min-height:36px;padding:0 12px" data-bal-quitar="${i}">Quitar</button>` : ''}</div></div>`;
+    }).join('');
+    // Compensar (D59): crédito e débito de naturezas diferentes com a mesma contraparte
+    const pares = [];
+    p.linhas.forEach(c => { if (c.valor > 0.004) p.linhas.forEach(d => { if (d.valor < -0.004 && d.natureza !== c.natureza && d.contraparteTipo === c.contraparteTipo && (d.contraparteId || null) === (c.contraparteId || null)) pares.push({ c, d }); }); });
+    const comp = (p.pessoaId && pode.ok && pares.length) ? pares.map((x, i) => `<button type="button" class="rz-act" data-bal-comp="${i}"><div class="rz-ic"><svg data-lucide="arrow-left-right"></svg></div><div>Compensar ${formatarMoedaBR(Math.min(x.c.valor, -x.d.valor))} com ${balEsc(x.c.contraparteNome)}<small>abate ${balEsc(BAL_NATUREZA[x.c.natureza])} contra ${balEsc(BAL_NATUREZA[x.d.natureza])} · dois registros</small></div></button>`).join('') : '';
+    const motivo = !p.pessoaId ? 'Pessoa sem cadastro: cadastre em Pessoas (nome e WhatsApp bastam) para quitar.' : (!pode.ok ? (pode.textoCurto || 'Sem permissão para quitar.') : '');
+    const sheet = abrirSheet(rzSheetCabecalho(p.nome, `até ${formatarDataBR(balancoDados.ate)}`) + `<div class="rz-sh-b">
+        <div class="rz-card rz-list">${linhas}</div>${comp}
+        ${motivo ? `<p style="margin:8px 0 0;font-size:13px;color:var(--muted)">${balEsc(motivo)}</p>` : ''}
+        <button type="button" class="rz-act" data-bal-hist><div class="rz-ic"><svg data-lucide="list"></svg></div><div>Ver histórico<small>de onde vem cada valor, e as quitações</small></div></button>
+        <div id="bal-hist"></div>
+    </div>`);
+    sheet.querySelectorAll('[data-bal-quitar]').forEach(b => b.addEventListener('click', () => { fecharSheet(); balancoQuitar(p, p.linhas[Number(b.dataset.balQuitar)]); }));
+    sheet.querySelectorAll('[data-bal-comp]').forEach(b => b.addEventListener('click', () => { fecharSheet(); balancoCompensar(p, pares[Number(b.dataset.balComp)]); }));
+    sheet.querySelector('[data-bal-hist]')?.addEventListener('click', () => balancoHistorico(p, sheet.querySelector('#bal-hist')));
+}
+
+export async function balancoHistorico(p, alvo) {
+    if (!alvo || !p.pessoaId) { if (alvo) alvo.innerHTML = '<p style="font-size:13px;color:var(--muted)">Sem histórico para pessoa sem cadastro.</p>'; return; }
+    alvo.innerHTML = '<p class="text-xs text-center py-3" style="color:var(--sage)">Carregando…</p>';
+    const { data, error } = await dbAuth.rpc('fn_balanco_extrato', { p_cliente_id: CLIENTE_ID_SUPABASE, p_pessoa_id: p.pessoaId, p_limite: 60, p_ate: balancoDados?.ate || balancoAte() });
+    if (error) { alvo.innerHTML = '<p style="font-size:13px;color:var(--danger)">Não consegui ler o histórico.</p>'; return; }
+    alvo.innerHTML = (data || []).length ? `<div class="rz-group">Histórico</div><div class="rz-card rz-list">` + data.map(e => `<div class="rz-row">
+            <div class="rz-ic"><svg data-lucide="${e.origem_tipo === 'repasse' ? 'handshake' : (e.valor > 0 ? 'arrow-down-left' : 'arrow-up-right')}"></svg></div>
+            <div class="rz-tx"><b>${balEsc(e.descricao || '')}</b><span>${formatarDataBR(e.data)} · ${balEsc(BAL_NATUREZA[e.natureza] || e.natureza)} · ${balEsc(e.contraparte_nome || 'Empresa')}${e.pagador ? ' · pagou ' + balEsc(e.pagador) : ''}</span></div>
+            <div class="rz-rt"><b class="${e.valor > 0 ? 'rz-in' : 'rz-out'}">${moedaSinal(e.valor)}</b></div></div>`).join('') + '</div>'
+        : '<p style="font-size:13px;color:var(--muted)">Nada no histórico até esta data.</p>';
+    if (typeof lucide !== 'undefined') lucide.createIcons();
+}
+
+// Quitar (Splitwise "acertar"): não é despesa — baixa o pendente. valor > 0: a contraparte paga à pessoa; < 0: a pessoa paga.
+export function balancoQuitar(p, l) {
+    if (!p?.pessoaId || !l || typeof abrirSheetForm !== 'function') return;
+    const recebe = l.valor > 0;
+    const de = recebe ? (l.contraparteTipo === 'caixa' ? null : l.contraparteId) : p.pessoaId;
+    const para = recebe ? p.pessoaId : (l.contraparteTipo === 'caixa' ? null : l.contraparteId);
+    const quem = recebe ? `${l.contraparteNome} paga a ${p.nome}` : `${p.nome} paga a ${l.contraparteNome}`;
+    const pend = Math.round(Math.abs(l.valor) * 100) / 100;
+    const hoje = new Date().toISOString().slice(0, 10);
+    abrirSheetForm({
+        titulo: 'Quitar', sub: `${quem} · ${BAL_NATUREZA[l.natureza] || l.natureza}`, rotuloSalvar: 'Registrar quitação',
+        corpo: `<p class="rz-desc" style="margin:0 0 10px">Pendente: <b>${formatarMoedaBR(pend)}</b>. Quitar não é despesa nova: é o registro do pagamento. Valor menor deixa o resto pendente.</p>
+            <div class="rz-f2 rz-f2-curto">
+                <div class="rz-f"><label>Valor (R$) <i>*</i></label><input type="number" step="0.01" inputmode="decimal" id="bal-valor" value="${pend}"></div>
+                <div class="rz-f"><label>Data <i>*</i></label><input type="date" id="bal-data" value="${hoje}"></div>
+            </div>
+            <div class="rz-f"><label>Como foi pago</label><select id="bal-meio"><option value="pix">Pix</option><option value="transferencia">Transferência</option><option value="dinheiro">Dinheiro</option><option value="outro">Outro</option></select></div>
+            <div class="rz-f"><label>Observação</label><input type="text" id="bal-obs" placeholder="Opcional"></div>`,
+        aoSalvar: async () => {
+            const valor = parseFloat(document.getElementById('bal-valor')?.value);
+            if (!(valor > 0)) { rzToast('Informe o valor.', { tipo: 'danger' }); return false; }
+            const { data, error } = await dbAuth.rpc('fn_acerto_registrar', { p_cliente_id: CLIENTE_ID_SUPABASE, p_de_pessoa_id: de, p_para_pessoa_id: para,
+                p_valor: valor, p_data: document.getElementById('bal-data')?.value || hoje, p_natureza: l.natureza,
+                p_meio: document.getElementById('bal-meio')?.value || 'pix', p_obs: document.getElementById('bal-obs')?.value || null });
+            if (error || !data?.ok) { rzToast(error?.message || data?.mensagem || 'Não consegui registrar.', { tipo: 'danger' }); return false; }
+            emitirEscrita('repasse', { id: data.id, acao: 'quitar' });
+            rzToast(data.mensagem || 'Quitação registrada.');
+            renderDistribuicao();
+            return true;
+        },
+    });
+}
+
+export async function balancoCompensar(p, par) {
+    if (!p?.pessoaId || !par) return;
+    const valor = Math.round(Math.min(par.c.valor, -par.d.valor) * 100) / 100;
+    if (typeof rzConfirmar === 'function' && !await rzConfirmar({ titulo: 'Compensar', impacto: `${formatarMoedaBR(valor)} de ${BAL_NATUREZA[par.c.natureza]} a receber abatem ${BAL_NATUREZA[par.d.natureza]} que ${p.nome} deve a ${par.c.contraparteNome}. Ficam dois registros ligados.`, rotuloConfirmar: 'Compensar' })) return;
+    const { data, error } = await dbAuth.rpc('fn_acerto_compensar', { p_cliente_id: CLIENTE_ID_SUPABASE, p_pessoa_alvo: p.pessoaId,
+        p_contraparte_pessoa_id: par.c.contraparteTipo === 'caixa' ? null : par.c.contraparteId, p_valor: valor,
+        p_natureza_credito: par.c.natureza, p_natureza_debito: par.d.natureza, p_data: new Date().toISOString().slice(0, 10) });
+    if (error || !data?.ok) { rzToast(error?.message || data?.mensagem || 'Não consegui compensar.', { tipo: 'danger' }); return; }
+    emitirEscrita('repasse', { id: data.id, acao: 'compensar' });
+    rzToast(data.mensagem || 'Compensação registrada.');
+    renderDistribuicao();
+}
+
+async function balancoEscolherPessoaQuitar() {
+    if (!balancoDados) { try { await balancoCarregar(); } catch (e) { rzToast('Não consegui ler o balanço.', { tipo: 'danger' }); return; } }
+    const comSaldo = balancoDados.pessoas.filter(p => p.pessoaId && Math.abs(p.total) > 0.004 || p.linhas.some(l => Math.abs(l.valor) > 0.004));
+    if (!comSaldo.length) { rzToast('Nenhum saldo pendente para quitar.', { tipo: 'info' }); return; }
+    abrirSheetAcoes({ titulo: 'Quitar', sub: 'Escolha a pessoa', acoes: comSaldo.map(p => ({ icone: 'user', titulo: p.nome, sub: p.linhas.map(l => `${BAL_NATUREZA[l.natureza]} ${moedaSinal(l.valor)}`).join(' · '), aoTocar: () => balancoAbrirPessoa(p.chave) })) });
+}
+
 export function distribMudarModo(modo) { distribModo = modo === 'ano' ? 'ano' : 'mes'; renderDistribuicao(); }
-export function distribFiltrar(texto) { distribBusca = String(texto || ''); distribDesenhar(); }
+export function distribFiltrar(texto) { distribBusca = String(texto || ''); if (balancoVistaAtual === 'socios') distribDesenhar(); else renderDistribuicao(); }
 
 export function abrirLancarDistribuicao() {
     if (typeof abrirSheetAcoes !== 'function') return;
-    abrirSheetAcoes({ titulo: 'Distribuição', sub: distribPeriodoRotulo(), acoes: [
+    abrirSheetAcoes({ titulo: 'Balanço', sub: distribPeriodoRotulo(), acoes: [
+        { icone: 'handshake', titulo: 'Quitar ou registrar pagamento', codigo: 'repasses.registrar', sub: 'Escolha a pessoa e o saldo que foi pago', aoTocar: () => balancoEscolherPessoaQuitar() },
         { icone: 'arrow-up-right', titulo: 'Lançar retirada', codigo: 'repasses.registrar', sub: 'Valor que um sócio retirou da empresa', aoTocar: () => abrirLancarRetirada() },
     ] });
 }

@@ -6,9 +6,13 @@
    (base derivada do RUMO v7.4.2 — histórico de versões anteriores
    preservado abaixo para referência técnica)
 
-   VERSÃO: Beta v1.365.1
+   VERSÃO: Beta v1.366.0
    LINHAS: 15729
    DATA: 11/10/2026 (sessão 20261008-1231-pessoas-ativos, demanda f3e6cd27)
+   NOVIDADES (Beta v1.366.0) — F13 4c etapa 1 (D58): Financeiro › Distribuição vira Balanço, com Pessoas · Sócios por mês ·
+   Grupos, Quitar e Compensar (financeiro.js 1.48.0). Aqui: rótulo do segmento e do título, ponte das funções novas e
+   import map. Banco: balanco_leitura_f13a_v1, balanco_escrita_f13b_v1, repasses_unica_f13c_v1 (já aplicadas).
+   Versão anterior (Beta v1.365.1):
    NOVIDADES (Beta v1.365.1) — só o import map: cofre-controles.js 1.51.0 (tipo do item com rótulo na 1ª abertura; subtipos Conta e
    Cartão de crédito; Nicola 11/10 00:08). Banco: migration contas_subtipos_f18b_v1.
    Versão anterior (Beta v1.365.0):
@@ -27,13 +31,8 @@
    lançamento; ícone de cartão/conta. Só o import map muda aqui (cofre-controles.js 1.50.0, financeiro.js 1.45.0).
    Banco: migration contas_item_controle_f18_v1 (já aplicada).
    Versão anterior (Beta v1.362.0):
-   NOVIDADES (Beta v1.362.0) — UX etapa 6 · E (demanda b4b047fd; protótipo aprovado pelo Nicola 10/10 22:43). Pessoas e acessos no
-   padrão de Partes: barra digitável, chips por perfil + "Sem acesso", status de acesso na linha e ficha com chips Dados ·
-   Acesso · Comunicação · Atividade (as ações do ⋮ distribuídas; o ⋮ fica na pressão longa). Só o import map muda aqui
-   (comum-pessoas.js 1.207.0). Nenhum objeto de banco.
-   Versão anterior (Beta v1.361.0):
    ------------------------------------------------------------------
-   Versões anteriores (v1.361.0 … v1.361.0): CHANGELOG_APP.md, na raiz do
+   Versões anteriores (v1.362.0 … v1.362.0): CHANGELOG_APP.md, na raiz do
    repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
    das 5 versões mais recentes deste cabeçalho.
 
@@ -58,7 +57,7 @@
          O navegador aplica o mapa também aos imports estáticos dentro dos
          módulos (cofre-app.js → ./cofre-api.js etc.). -->
     <!-- RZ-IMPORTMAP:INICIO -->
-    <script type="importmap">{"imports":{"./js/cadastros.js":"./js/cadastros.js?v=1.2.0","./js/financeiro.js":"./js/financeiro.js?v=1.47.0","./js/fechamento.js":"./js/fechamento.js?v=1.12.3","./js/contratos.js":"./js/contratos.js?v=1.50.0","./js/minutas.js":"./js/minutas.js?v=1.4.0","./js/vitrine.js":"./js/vitrine.js?v=1.5.2","./js/imoveis.js":"./js/imoveis.js?v=1.7.2","./js/cofre-api.js":"./js/cofre-api.js?v=1.50.0","./js/cofre-app.js":"./js/cofre-app.js?v=1.47.0","./js/cofre-ativos.js":"./js/cofre-ativos.js?v=1.90.0","./js/cofre-controles.js":"./js/cofre-controles.js?v=1.51.0","./js/cofre-documentos.js":"./js/cofre-documentos.js?v=2.35.0","./js/cofre-imagem.js":"./js/cofre-imagem.js?v=1.1.0","./js/cofre-estado.js":"./js/cofre-estado.js?v=1.5.2","./js/cofre-navegacao.js":"./js/cofre-navegacao.js?v=1.9.3","./js/cofre-ui.js":"./js/cofre-ui.js?v=1.7.2","./js/cofre-validacoes.js":"./js/cofre-validacoes.js?v=2.5.0","./js/comum-licenca.js":"./js/comum-licenca.js?v=1.8.0","./js/comum-renovacao.js":"./js/comum-renovacao.js?v=1.3.5","./js/comum-minha-empresa.js":"./js/comum-minha-empresa.js?v=1.14.0","./js/comum-pessoas.js":"./js/comum-pessoas.js?v=1.208.0","./js/comum-sobre.js":"./js/comum-sobre.js?v=1.4.0","./js/comum-endereco.js":"./js/comum-endereco.js?v=1.2.0","./js/comum-partes.js":"./js/comum-partes.js?v=1.0.0","./js/resultados.js":"./js/resultados.js?v=2.9.0","./js/indicadores.js":"./js/indicadores.js?v=1.0.0","./js/configuracao-inicial.js":"./js/configuracao-inicial.js?v=1.0.1","./js/relatorios-executivos.js":"./js/relatorios-executivos.js?v=1.1.2","./js/raiz-eventos.js":"./js/raiz-eventos.js?v=1.0.0","./js/raiz-device.js":"./js/raiz-device.js?v=1.0.0","./js/raiz-ui.js":"./js/raiz-ui.js?v=1.2.0","./js/fiscal.js":"./js/fiscal.js?v=1.5.2","./js/ativos/ativos-boot.js":"./js/ativos/ativos-boot.js?v=1.4.0","./js/ativos/ativos-markup.js":"./js/ativos/ativos-markup.js?v=1.58.0","./js/nucleo/porta.js":"./js/nucleo/porta.js?v=1.3.0","./js/partes.js":"./js/partes.js?v=1.0.2","./js/conta.js":"./js/conta.js?v=1.0.1"}}</script>
+    <script type="importmap">{"imports":{"./js/cadastros.js":"./js/cadastros.js?v=1.2.0","./js/financeiro.js":"./js/financeiro.js?v=1.48.0","./js/fechamento.js":"./js/fechamento.js?v=1.12.3","./js/contratos.js":"./js/contratos.js?v=1.50.0","./js/minutas.js":"./js/minutas.js?v=1.4.0","./js/vitrine.js":"./js/vitrine.js?v=1.5.2","./js/imoveis.js":"./js/imoveis.js?v=1.7.2","./js/cofre-api.js":"./js/cofre-api.js?v=1.50.0","./js/cofre-app.js":"./js/cofre-app.js?v=1.47.0","./js/cofre-ativos.js":"./js/cofre-ativos.js?v=1.90.0","./js/cofre-controles.js":"./js/cofre-controles.js?v=1.51.0","./js/cofre-documentos.js":"./js/cofre-documentos.js?v=2.35.0","./js/cofre-imagem.js":"./js/cofre-imagem.js?v=1.1.0","./js/cofre-estado.js":"./js/cofre-estado.js?v=1.5.2","./js/cofre-navegacao.js":"./js/cofre-navegacao.js?v=1.9.3","./js/cofre-ui.js":"./js/cofre-ui.js?v=1.7.2","./js/cofre-validacoes.js":"./js/cofre-validacoes.js?v=2.5.0","./js/comum-licenca.js":"./js/comum-licenca.js?v=1.8.0","./js/comum-renovacao.js":"./js/comum-renovacao.js?v=1.3.5","./js/comum-minha-empresa.js":"./js/comum-minha-empresa.js?v=1.14.0","./js/comum-pessoas.js":"./js/comum-pessoas.js?v=1.208.0","./js/comum-sobre.js":"./js/comum-sobre.js?v=1.4.0","./js/comum-endereco.js":"./js/comum-endereco.js?v=1.2.0","./js/comum-partes.js":"./js/comum-partes.js?v=1.0.0","./js/resultados.js":"./js/resultados.js?v=2.9.0","./js/indicadores.js":"./js/indicadores.js?v=1.0.0","./js/configuracao-inicial.js":"./js/configuracao-inicial.js?v=1.0.1","./js/relatorios-executivos.js":"./js/relatorios-executivos.js?v=1.1.2","./js/raiz-eventos.js":"./js/raiz-eventos.js?v=1.0.0","./js/raiz-device.js":"./js/raiz-device.js?v=1.0.0","./js/raiz-ui.js":"./js/raiz-ui.js?v=1.2.0","./js/fiscal.js":"./js/fiscal.js?v=1.5.2","./js/ativos/ativos-boot.js":"./js/ativos/ativos-boot.js?v=1.4.0","./js/ativos/ativos-markup.js":"./js/ativos/ativos-markup.js?v=1.58.0","./js/nucleo/porta.js":"./js/nucleo/porta.js?v=1.3.0","./js/partes.js":"./js/partes.js?v=1.0.2","./js/conta.js":"./js/conta.js?v=1.0.1"}}</script>
     <!-- RZ-IMPORTMAP:FIM -->
 
     <!-- ===== PWA: permite "instalar" o app no celular (Android e iPhone) ===== -->
@@ -3410,14 +3409,14 @@
                  por renderDistribuicao() em js/financeiro.js (número de fn_apurar_distribuicao). Os campos
                  escondidos rep-* continuam porque rotinas antigas ainda os preenchem (PDF por sócio). -->
             <div class="rz-topo">
-                <label class="rz-search" style="cursor:text"><svg data-lucide="search"></svg><input type="search" id="distrib-busca" placeholder="Buscar sócio" oninput="distribFiltrar(this.value)" aria-label="Buscar sócio" style="flex:1;min-width:0;border:0;outline:0;background:transparent;height:44px;padding:0;color:var(--ink)"></label>
+                <label class="rz-search" style="cursor:text"><svg data-lucide="search"></svg><input type="search" id="distrib-busca" placeholder="Buscar pessoa" oninput="distribFiltrar(this.value)" aria-label="Buscar sócio" style="flex:1;min-width:0;border:0;outline:0;background:transparent;height:44px;padding:0;color:var(--ink)"></label>
                 <button type="button" class="rz-ico-btn rz-primary" onclick="abrirLancarDistribuicao()" aria-label="Lançar retirada"><svg data-lucide="plus"></svg></button>
             </div>
             <div class="rz-seg rz-seg-4">
                 <button onclick="switchTab('tab-mensal')"><span class="rz-seg-l">Recebimentos</span><span class="rz-seg-s">Receb.</span></button>
                 <button onclick="switchTab('tab-saidas')">Saídas</button>
                 <button onclick="switchTab('tab-conciliacao')">Conciliação</button>
-                <button class="rz-on" onclick="switchTab('tab-socios')">Distribuição</button>
+                <button class="rz-on" onclick="switchTab('tab-socios')">Balanço</button>
             </div>
             <div class="rz-mes-bar">
                 <button type="button" class="rz-ico-btn" onclick="financeiroMudarCompetencia(-1)" aria-label="Período anterior"><svg data-lucide="chevron-left"></svg></button>
@@ -3778,7 +3777,7 @@
         // texto certo toda vez (esqueci 5 versões seguidas, de v1.37.1 até
         // v1.38.3). Agora só precisa mudar UMA linha aqui a cada release;
         // window.onload aplica nos dois lugares automaticamente.
-        const APP_VERSAO = "Beta v1.365.1"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
+        const APP_VERSAO = "Beta v1.366.0"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
 
         // ====================================================================
         // v1.105.0 — HELPERS DE SUPERFÍCIE DA GRAMÁTICA ÚNICA
@@ -8239,6 +8238,7 @@ async function criarLinkVitrineSupabase(token, idsSelecionados) {
             'financeiroMudarCompetencia', 'rzTocarChipFechamentoDesligado', // Entrega F.1 (21/09/2026) — card de competência + chip Fechamento
             'abrirLancarFinanceiro', 'abrirBuscaFinanceiro',
             'renderDistribuicao', 'distribMudarModo', 'distribFiltrar', 'abrirLancarDistribuicao', 'abrirFichaSocioDistribuicao', 'abrirLancarRetirada', 'rzAcoesRetirada', // v1.295.0 — Distribuição (P1b)
+            'balancoVista', 'balancoAbrirPessoa', 'balancoHistorico', 'balancoQuitar', 'balancoCompensar', // v1.366.0 — Balanço (F13)
             'abrirAdicionarRecebimento', 'abrirReceitaAvulsa', 'renderOutrasReceitas', 'rzAcoesReceitaAvulsa', // v1.295.0 — receita sem contrato // v1.294.0 — "+" (Lançar) e barra de busca do topo (UXR-10/12)
             'abrirAcoesAdicionarFinanceiro', 'abrirNovoRecebimento', 'nrecAoTrocarContrato', 'nrecAlternarSituacao', 'salvarNovoRecebimento', // v1.246.0 — demanda 0e40951a, complemento: criar recebimento avulso
             'financeiroRedesenharQuadrantes', 'financeiroIrParaRotinas', // v1.249.0 — demanda 7bdcb8d4: 6 botões com status (chamado por fechamento.js) + Fiscal desligado
@@ -8310,7 +8310,7 @@ async function criarLinkVitrineSupabase(token, idsSelecionados) {
             'tab-relatorios': 'Resultados', 'tab-alertas': 'Alertas', 'tab-fiscal': 'Fiscal', 'tab-fiscal-competencia': 'Fiscal da competência',
             'tab-minha-empresa': 'Minha empresa', 'tab-partes': 'Partes', 'tab-saidas': 'Saídas', 'tab-conciliacao': 'Conciliação',
             'tab-inadimplencia': 'Atrasados', 'tab-pessoas': 'Pessoas', 'tab-minutas': 'Minutas', 'tab-licenca': 'Licença',
-            'tab-sobre': 'Sobre', 'tab-contrato-ficha': 'Contrato', 'tab-relatorios-catalogo': 'Relatórios', 'tab-socios': 'Distribuição',
+            'tab-sobre': 'Sobre', 'tab-contrato-ficha': 'Contrato', 'tab-relatorios-catalogo': 'Relatórios', 'tab-socios': 'Balanço',
         };
         // telas que já têm o próprio "voltar" no topo — sem atalho duplicado
         // Abas principais (barra inferior) nunca mostram o "‹": quem volta é a própria barra ou o

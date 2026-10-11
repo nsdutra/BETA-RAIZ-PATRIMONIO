@@ -4,6 +4,18 @@ Histórico completo de versões do `index.html`, movido automaticamente pelo `ge
 
 ---
 
+NOVIDADES (Beta v1.362.0) — UX etapa 6 · E (demanda b4b047fd; protótipo aprovado pelo Nicola 10/10 22:43). Pessoas e acessos no
+padrão de Partes: barra digitável, chips por perfil + "Sem acesso", status de acesso na linha e ficha com chips Dados ·
+Acesso · Comunicação · Atividade (as ações do ⋮ distribuídas; o ⋮ fica na pressão longa). Só o import map muda aqui
+(comum-pessoas.js 1.207.0). Nenhum objeto de banco.
+Versão anterior (Beta v1.361.0):
+------------------------------------------------------------------
+Versões anteriores (v1.361.0 … v1.361.0): CHANGELOG_APP.md, na raiz do
+repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
+das 5 versões mais recentes deste cabeçalho.
+
+---
+
 NOVIDADES (Beta v1.361.0) — Escolha de empresa (dem 4fa92c2c; Nicola 10/10 23:23: "subir mais o Olá Nicola, ficando a busca
 ao lado do IA"): o "Olá" sobe para o topo e a barra de busca divide a linha com o botão da IA (escPosicionarIa; o botão
 volta ao canto da splash fora desta tela). Só index.html. Nenhum objeto de banco.
