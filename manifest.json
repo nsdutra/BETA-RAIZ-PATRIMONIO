@@ -1,8 +1,8 @@
 {
-  "x_raiz_versao": "Versão: 1.1.0 · 11/10/2026 · nomes \"Raiz\" (tela inicial) e \"Raiz Patrimônio\" (instalação) e ícones novos — demanda 680ee9f8. Versão anterior: 1.0.0 (sem número no arquivo).",
+  "x_raiz_versao": "Versão: 1.2.0 · 11/10/2026 · descrição multi-ramo (marca e ramos, fase 1, demanda 680ee9f8). Versão anterior: 1.1.0.",
   "name": "Raiz Patrimônio",
   "short_name": "Raiz",
-  "description": "RAIZ Patrimônio — Software de Gestão de Imóveis e Patrimônio",
+  "description": "Raiz Patrimônio — o patrimônio da família em um lugar: imóveis, vidas, bens e agro.",
   "start_url": ".",
   "display": "standalone",
   "background_color": "#1e3a32",

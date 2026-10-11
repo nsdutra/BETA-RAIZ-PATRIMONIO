@@ -1,6 +1,11 @@
 // ============================================================================
 // comum-sobre.js — Raiz Patrimônio · Administração compartilhada
-// Versão: 1.4.0 · 08/10/2026
+// Versão: 1.5.0 · 11/10/2026
+//
+// v1.5.0 (marca e ramos, fase 1, demanda 680ee9f8, sessão 20261011-1120-marca-ramos; plano aprovado pelo Nicola 11/10 11:20) —
+// o rodapé do Suporte ganha a assinatura horizontal "Raiz Patrimônio" (símbolo + nome), a mesma do ícone do app.
+//
+// Versão anterior: 1.4.0 · 08/10/2026
 //
 // v1.4.0 (UX F2.7c-1, demanda b8602a3a, sessão 20261003-1707-ux-base; plano F2.7c-1 aprovado pelo Nicola 08/10 12:51) — no app a tela Sobre
 // sai e vira o sheet de Suporte: abrirSuporte(ctx) — WhatsApp, e-mail, página de contatos da Raiz,
@@ -27,16 +32,11 @@
 // versão anterior desde o bump do header; ⚙️ › Versões lia a constante e
 // acusava "cache segurou" sem haver cache). gerar_versoes.py v1.3 agora
 // trava a entrega se header ≠ VERSAO.
-//
-// Versão anterior: 1.2.0 · 06/09/2026
-//
-// v1.2.0 — gramática (REGRAS §6/§7): caixa alta fora, badge do plano vira .rz-st,
-// cards .rz-card com .rz-card-h, Enviar/Sair no catálogo de botões. Lógica intocada.
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.1.2 … v1.1.2): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.2.0 … v1.2.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '1.4.0'; // v-check (06/09/2026): lido por Dev › Versões — manter igual ao header
+export const VERSAO = '1.5.0'; // v-check (06/09/2026): lido por Dev › Versões — manter igual ao header
 import { buscarLicencaPrincipal, htmlContratarConvidar, ligarContratarConvidar, LINK_CONTATOS_RAIZ } from './comum-licenca.js';
 
 export const COMUM_SOBRE_VERSAO = '1.1.0';
@@ -169,6 +169,7 @@ export function abrirSuporte(ctx = {}) {
             </div>
             <button type="button" id="rz-sup-enviar" class="rz-btn rz-btn-1 rz-wide">Enviar sugestão</button>
         </div>
+        <p class="rz-sh-marca"><span class="rz-marca-h"><svg class="rz-simbolo" viewBox="16 2 88 112" width="26" height="33" fill="none" stroke="#1e3a32" stroke-width="5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M60 64 C60 50 26 52 26 30"/><path d="M60 64 C60 50 44 38 44 16"/><path d="M60 64 C60 50 60 32 60 10"/><path d="M60 64 C60 50 76 38 76 16"/><path d="M60 64 C60 50 94 52 94 30"/><path d="M60 64 V92"/><path d="M60 80 C52 86 44 88 36 98"/><path d="M60 80 C68 86 76 88 84 98"/><path d="M60 92 C56 98 54 102 52 110"/><path d="M60 92 C64 98 66 102 68 110"/><path d="M30 72 H90" stroke-opacity=".3"/><circle cx="26" cy="30" r="6.5" fill="#7e6596" stroke="none"/><circle cx="44" cy="16" r="6.5" fill="#3c4f9a" stroke="none"/><circle cx="60" cy="10" r="6.5" fill="#3f8163" stroke="none"/><circle cx="76" cy="16" r="6.5" fill="#7a8f3c" stroke="none"/><circle cx="94" cy="30" r="6.5" fill="#966040" stroke="none"/></svg><span><b>Raiz</b><small>Patrimônio</small></span></span></p>
         <p class="rz-desc" style="text-align:center">Raiz Patrimônio ${appVersao ? '· ' + appVersao + ' ' : ''}· <a href="https://raizpatrimonio.com.br/termos-de-uso" target="_blank" rel="noopener" style="color:var(--pine)">Termos e privacidade</a></p>
     </div>`;
     const sheet = abrirSheet((typeof cabecalho === 'function' ? cabecalho('Suporte', 'WhatsApp, e-mail e sugestões') : '') + corpo);
