@@ -1,6 +1,10 @@
 // ============================================================================
 // relatorios-executivos.js — Raiz Patrimônio · Relatórios no modelo executivo
-// Versão: 1.1.2 · 09/10/2026
+// Versão: 1.2.0 · 11/10/2026
+//
+// v1.2.0 (11/10/2026, sessão 20261011-1315-marca-saidas, demanda 680ee9f8 — marca e ramos, fase 6; plano aprovado pelo
+// Nicola 11/10 11:20): a assinatura "Raiz Patrimônio" do canto do cabeçalho ganha o símbolo da marca (DIRETRIZES_MARCA
+// MAR-06/09). Empresa do cliente continua à esquerda; nada mais muda. Versão anterior: 1.1.2.
 //
 // v1.1.2 (09/10/2026, sessão 20261009-2055-integridade, demanda 0e5618ca): a tela do relatório sai da camada 96
 // (aposentada no DESIGN_SYSTEM §5) para a 80, criada para tela cheia de leitura — acima do cabeçalho (50) e
@@ -16,25 +20,15 @@
 // v1.0.1 (07/10/2026, sessão 20261007-0137-financeiro — teste do Nicola 01:37): os
 // filtros (período, conta) abriam POR TRÁS do relatório. A tela do relatório passa a
 // ficar na camada 96, logo abaixo dos sheets (#rz-veil, 97). Versão anterior: 1.0.0.
-//
-// v1.0.0 (07/10/2026, sessão 20261007-0110-financeiro, demanda f3e6cd27 — P4b,
-// fichas B3/B5 e decisões D35/D36 aprovadas pelo Nicola): renderizador único
-// (tela e PDF pelo MESMO HTML, REL-37/38) dos relatórios no modelo executivo
-// (PADRAO_RELATORIOS v1.2.0, REL-49 a REL-55): capa que responde sozinha
-// (manchete-conclusão marcada "Leitura", 3 pontos-chave, 4 números, 2 gráficos
-// com título-conclusão e fonte) e páginas de detalhe com rastreador de seção.
-// Rodapé de toda página: nome do relatório, data e hora da geração e usuário
-// (REL-10). Primeiros relatórios: Fluxo de caixa (relatorios.fluxo_caixa →
-// fn_contas_fluxo_caixa) e Visão gerencial (relatorios.gerencial →
-// fn_contas_visao_gerencial). Os números vêm prontos do banco (o mesmo modelo
-// que o bot usa); aqui só se monta o texto e o desenho — nunca se recalcula
-// (REL-02). Protótipo: raiz\docs\PROTOTIPO_RELATORIOS_FLUXO_GERENCIAL v1.1.0.
-// ============================================================================
+// --------------------------------------------------------------------------
+// Versões anteriores (v1.0.0 … v1.0.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
+// mais recentes deste cabeçalho (VER-06).
 import { rzMostrarBloqueio } from './comum-licenca.js';
 import { rzToast } from './raiz-ui.js';
 import RaizDevice from './raiz-device.js';
 
-export const VERSAO = '1.1.2';
+export const VERSAO = '1.2.0';
 
 // ---------------------------------------------------------------------------
 // Formatos (REL-13 a REL-17)
@@ -145,8 +139,8 @@ const SECOES = ['Resumo', 'Evolução', 'Composição', 'Detalhe', 'Notas'];
 function pagina(d, cfg, n, total, corpo, secoesOn) {
     const c = carimbo(d.gerado_em);
     const cab = n === 1
-        ? `<div class="r"><b>Raiz Patrimônio</b>Gerado em ${c.data} às ${c.hora}<br>por ${esc(d.gerado_por || 'Raiz')}</div>`
-        : `<div class="r"><b>Raiz Patrimônio</b>${esc(cfg.nome)}</div>`;
+        ? `<div class="r"><b class="rzm"><svg class="rzm-s" viewBox="16 2 88 112" width="11" height="14" fill="none" stroke="#1e3a32" stroke-width="7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M60 64 C60 50 26 52 26 30"/><path d="M60 64 C60 50 44 38 44 16"/><path d="M60 64 C60 50 60 32 60 10"/><path d="M60 64 C60 50 76 38 76 16"/><path d="M60 64 C60 50 94 52 94 30"/><path d="M60 64 V92"/><path d="M60 80 C52 86 44 88 36 98"/><path d="M60 80 C68 86 76 88 84 98"/><circle cx="26" cy="30" r="7" fill="#7e6596" stroke="none"/><circle cx="44" cy="16" r="7" fill="#3c4f9a" stroke="none"/><circle cx="60" cy="10" r="7" fill="#3f8163" stroke="none"/><circle cx="76" cy="16" r="7" fill="#7a8f3c" stroke="none"/><circle cx="94" cy="30" r="7" fill="#966040" stroke="none"/></svg>Raiz Patrimônio</b>Gerado em ${c.data} às ${c.hora}<br>por ${esc(d.gerado_por || 'Raiz')}</div>`
+        : `<div class="r"><b class="rzm"><svg class="rzm-s" viewBox="16 2 88 112" width="11" height="14" fill="none" stroke="#1e3a32" stroke-width="7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M60 64 C60 50 26 52 26 30"/><path d="M60 64 C60 50 44 38 44 16"/><path d="M60 64 C60 50 60 32 60 10"/><path d="M60 64 C60 50 76 38 76 16"/><path d="M60 64 C60 50 94 52 94 30"/><path d="M60 64 V92"/><path d="M60 80 C52 86 44 88 36 98"/><path d="M60 80 C68 86 76 88 84 98"/><circle cx="26" cy="30" r="7" fill="#7e6596" stroke="none"/><circle cx="44" cy="16" r="7" fill="#3c4f9a" stroke="none"/><circle cx="60" cy="10" r="7" fill="#3f8163" stroke="none"/><circle cx="76" cy="16" r="7" fill="#7a8f3c" stroke="none"/><circle cx="94" cy="30" r="7" fill="#966040" stroke="none"/></svg>Raiz Patrimônio</b>${esc(cfg.nome)}</div>`;
     return `<section class="page">
       ${cfg.previa ? '<div class="wm">PRÉVIA</div>' : ''}
       <div class="ph"><div class="logo">${esc(iniciais(d.empresa))}</div><div class="t"><div class="l1">${esc(d.empresa || 'Empresa')} · ${esc(cfg.medida)}</div><div class="l2">${esc(cfg.subtitulo)}</div></div>${cab}</div>
@@ -403,7 +397,7 @@ const CSS = `
 .rzrel .page{overflow:hidden;box-sizing:border-box;width:210mm;min-height:297mm;background:#fff;color:#17211e;padding:16mm 18mm 18mm;box-shadow:0 2px 16px rgba(23,33,30,.12);position:relative;font-size:9.5pt;line-height:1.35;font-family:Inter,system-ui,sans-serif}
 .rzrel .page .ph{display:flex;align-items:flex-start;gap:12px;border-bottom:2px solid #1e3a32;padding-bottom:8px;margin-bottom:10px}
 .rzrel .page .ph .logo{width:34px;height:34px;border-radius:8px;background:#1e3a32;color:#fff;display:grid;place-items:center;font:700 13px 'Bricolage Grotesque',Inter,sans-serif;flex:none}
-.rzrel .page .ph .t{flex:1}.rzrel .page .ph .t .l1{font:700 13pt/1.15 'Bricolage Grotesque',Inter,sans-serif;letter-spacing:-.01em}.rzrel .page .ph .t .l2{font-size:9pt;color:#6f7a76;margin-top:3px}.rzrel .page .ph .r{text-align:right;font-size:7.5pt;color:#6f7a76}.rzrel .page .ph .r b{display:block;color:#1e3a32;font-size:9pt}
+.rzrel .page .ph .t{flex:1}.rzrel .page .ph .t .l1{font:700 13pt/1.15 'Bricolage Grotesque',Inter,sans-serif;letter-spacing:-.01em}.rzrel .page .ph .t .l2{font-size:9pt;color:#6f7a76;margin-top:3px}.rzrel .page .ph .r{text-align:right;font-size:7.5pt;color:#6f7a76}.rzrel .page .ph .r b{display:block;color:#1e3a32;font-size:9pt}.rzrel .page .ph .r b.rzm{display:flex;align-items:center;justify-content:flex-end;gap:4px}.rzrel .page .ph .r .rzm-s{flex:none}
 .rzrel .page .trk{display:flex;font-size:7.5pt;color:#9aa49f;margin:-4px 0 10px}.rzrel .page .trk span{padding:2px 8px;border-right:1px solid #e6e3da}.rzrel .page .trk span:last-child{border:0}.rzrel .page .trk span.on{color:#1e3a32;font-weight:700}
 .rzrel .page .acao{font:700 17pt/1.18 'Bricolage Grotesque',Inter,sans-serif;letter-spacing:-.015em;color:#17211e;margin:6px 0 4px}
 .rzrel .page .acao-sub{font-size:8pt;color:#6f7a76;margin-bottom:12px}.rzrel .page .acao-sub i{font-style:normal;border:1px solid #e6e3da;border-radius:999px;padding:1px 7px;margin-right:6px}

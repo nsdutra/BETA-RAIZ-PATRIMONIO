@@ -6,9 +6,16 @@
    (base derivada do RUMO v7.4.2 — histórico de versões anteriores
    preservado abaixo para referência técnica)
 
-   VERSÃO: Beta v1.370.0
-   LINHAS: 15754
-   DATA: 11/10/2026 (sessão 20261008-1231-pessoas-ativos, demanda f3e6cd27)
+   VERSÃO: Beta v1.371.0
+   LINHAS: 15786
+   DATA: 11/10/2026 (sessão 20261011-1315-marca-saidas, demanda 680ee9f8)
+   NOVIDADES (Beta v1.371.0) — Marca e ramos, fase 6 — assinatura nas saídas (plano aprovado pelo Nicola 11/10 11:20; "Vamos avançar" 13:11).
+   Recibo de aluguel: azul-marinho (#1a365d, fora da paleta) vira o verde da marca e ganha rodapé discreto com o símbolo
+   "Emitido com Raiz Patrimônio · raizpatrimonio.com.br" (classe .rz-pdf-marca). PDFs de texto (demonstrativo de recebimentos e
+   do sócio) no verde da marca e com rzPdfRodapeMarca(pdf) em toda página: pontos dos ramos, "Raiz Patrimônio", paginação; a
+   função fica em window para o fechamento.js 1.13.0 (pacote do contador). relatorios-executivos.js 1.2.0: símbolo junto da
+   assinatura do cabeçalho. Nenhum objeto de banco.
+   Versão anterior (Beta v1.370.0):
    NOVIDADES (Beta v1.370.0) — F13 4c etapa 3: chip "Financeiro" na ficha de todo ativo (balanço pendente com Quitar,
    contas e cartões, extraordinárias, movimentações do mês). Só o import map muda aqui (cofre-ativos.js 1.91.0,
    ativos-markup.js 1.59.0, financeiro.js 1.51.0).
@@ -29,11 +36,8 @@
    editor de divisão com "Dividir igual" e só pessoas cadastradas. Só o import map muda aqui (financeiro.js 1.49.0,
    raiz-ui.js 1.3.0).
    Versão anterior (Beta v1.366.1):
-   NOVIDADES (Beta v1.366.1) — só o import map: financeiro.js 1.48.1 (linha do Balanço é o toque do Quitar; chips ficam na tela
-   quando o cálculo falha). Banco: repasses_embed_hf3_v1 (Sócios por mês voltou).
-   Versão anterior (Beta v1.366.0):
    ------------------------------------------------------------------
-   Versões anteriores (v1.366.0 … v1.366.0): CHANGELOG_APP.md, na raiz do
+   Versões anteriores (v1.366.1 … v1.366.1): CHANGELOG_APP.md, na raiz do
    repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
    das 5 versões mais recentes deste cabeçalho.
 
@@ -58,7 +62,7 @@
          O navegador aplica o mapa também aos imports estáticos dentro dos
          módulos (cofre-app.js → ./cofre-api.js etc.). -->
     <!-- RZ-IMPORTMAP:INICIO -->
-    <script type="importmap">{"imports":{"./js/cadastros.js":"./js/cadastros.js?v=1.2.0","./js/financeiro.js":"./js/financeiro.js?v=1.51.0","./js/fechamento.js":"./js/fechamento.js?v=1.12.3","./js/contratos.js":"./js/contratos.js?v=1.50.0","./js/minutas.js":"./js/minutas.js?v=1.4.0","./js/vitrine.js":"./js/vitrine.js?v=1.5.2","./js/imoveis.js":"./js/imoveis.js?v=1.7.2","./js/cofre-api.js":"./js/cofre-api.js?v=1.50.0","./js/cofre-app.js":"./js/cofre-app.js?v=1.47.0","./js/cofre-ativos.js":"./js/cofre-ativos.js?v=1.91.0","./js/cofre-controles.js":"./js/cofre-controles.js?v=1.51.0","./js/cofre-documentos.js":"./js/cofre-documentos.js?v=2.35.0","./js/cofre-imagem.js":"./js/cofre-imagem.js?v=1.1.0","./js/cofre-estado.js":"./js/cofre-estado.js?v=1.5.2","./js/cofre-navegacao.js":"./js/cofre-navegacao.js?v=1.9.3","./js/cofre-ui.js":"./js/cofre-ui.js?v=1.7.2","./js/cofre-validacoes.js":"./js/cofre-validacoes.js?v=2.5.0","./js/comum-licenca.js":"./js/comum-licenca.js?v=1.8.0","./js/comum-renovacao.js":"./js/comum-renovacao.js?v=1.3.5","./js/comum-minha-empresa.js":"./js/comum-minha-empresa.js?v=1.14.0","./js/comum-pessoas.js":"./js/comum-pessoas.js?v=1.208.0","./js/comum-sobre.js":"./js/comum-sobre.js?v=1.5.0","./js/comum-endereco.js":"./js/comum-endereco.js?v=1.2.0","./js/comum-partes.js":"./js/comum-partes.js?v=1.0.0","./js/resultados.js":"./js/resultados.js?v=2.9.0","./js/indicadores.js":"./js/indicadores.js?v=1.0.0","./js/configuracao-inicial.js":"./js/configuracao-inicial.js?v=1.0.1","./js/relatorios-executivos.js":"./js/relatorios-executivos.js?v=1.1.2","./js/raiz-eventos.js":"./js/raiz-eventos.js?v=1.0.0","./js/raiz-device.js":"./js/raiz-device.js?v=1.0.0","./js/raiz-ui.js":"./js/raiz-ui.js?v=1.3.0","./js/fiscal.js":"./js/fiscal.js?v=1.5.2","./js/ativos/ativos-boot.js":"./js/ativos/ativos-boot.js?v=1.4.0","./js/ativos/ativos-markup.js":"./js/ativos/ativos-markup.js?v=1.59.0","./js/nucleo/porta.js":"./js/nucleo/porta.js?v=1.4.0","./js/partes.js":"./js/partes.js?v=1.0.2","./js/conta.js":"./js/conta.js?v=1.0.1"}}</script>
+    <script type="importmap">{"imports":{"./js/cadastros.js":"./js/cadastros.js?v=1.2.0","./js/financeiro.js":"./js/financeiro.js?v=1.51.0","./js/fechamento.js":"./js/fechamento.js?v=1.13.0","./js/contratos.js":"./js/contratos.js?v=1.50.0","./js/minutas.js":"./js/minutas.js?v=1.4.0","./js/vitrine.js":"./js/vitrine.js?v=1.5.2","./js/imoveis.js":"./js/imoveis.js?v=1.7.2","./js/cofre-api.js":"./js/cofre-api.js?v=1.50.0","./js/cofre-app.js":"./js/cofre-app.js?v=1.47.0","./js/cofre-ativos.js":"./js/cofre-ativos.js?v=1.91.0","./js/cofre-controles.js":"./js/cofre-controles.js?v=1.51.0","./js/cofre-documentos.js":"./js/cofre-documentos.js?v=2.35.0","./js/cofre-imagem.js":"./js/cofre-imagem.js?v=1.1.0","./js/cofre-estado.js":"./js/cofre-estado.js?v=1.5.2","./js/cofre-navegacao.js":"./js/cofre-navegacao.js?v=1.9.3","./js/cofre-ui.js":"./js/cofre-ui.js?v=1.7.2","./js/cofre-validacoes.js":"./js/cofre-validacoes.js?v=2.5.0","./js/comum-licenca.js":"./js/comum-licenca.js?v=1.8.0","./js/comum-renovacao.js":"./js/comum-renovacao.js?v=1.3.5","./js/comum-minha-empresa.js":"./js/comum-minha-empresa.js?v=1.14.0","./js/comum-pessoas.js":"./js/comum-pessoas.js?v=1.208.0","./js/comum-sobre.js":"./js/comum-sobre.js?v=1.5.0","./js/comum-endereco.js":"./js/comum-endereco.js?v=1.2.0","./js/comum-partes.js":"./js/comum-partes.js?v=1.0.0","./js/resultados.js":"./js/resultados.js?v=2.9.0","./js/indicadores.js":"./js/indicadores.js?v=1.0.0","./js/configuracao-inicial.js":"./js/configuracao-inicial.js?v=1.0.1","./js/relatorios-executivos.js":"./js/relatorios-executivos.js?v=1.2.0","./js/raiz-eventos.js":"./js/raiz-eventos.js?v=1.0.0","./js/raiz-device.js":"./js/raiz-device.js?v=1.0.0","./js/raiz-ui.js":"./js/raiz-ui.js?v=1.3.0","./js/fiscal.js":"./js/fiscal.js?v=1.5.2","./js/ativos/ativos-boot.js":"./js/ativos/ativos-boot.js?v=1.4.0","./js/ativos/ativos-markup.js":"./js/ativos/ativos-markup.js?v=1.59.0","./js/nucleo/porta.js":"./js/nucleo/porta.js?v=1.4.0","./js/partes.js":"./js/partes.js?v=1.0.2","./js/conta.js":"./js/conta.js?v=1.0.1"}}</script>
     <!-- RZ-IMPORTMAP:FIM -->
 
     <!-- ===== PWA: permite "instalar" o app no celular (Android e iPhone) ===== -->
@@ -363,6 +367,9 @@
         /* v1.368.0 (marca e ramos, fase 1) — splash no verde da marca (o Tailwind bg-emerald-900 ficava fora da paleta) e
            assinatura vertical "Raiz Patrimônio" no lugar da foto de prédios do Unsplash (sem chamada a terceiro) */
         #splash-screen{background:var(--pine)}
+        /* v1.371.0 (fase 6) — assinatura discreta no rodapé do recibo (html2canvas lê classe normalmente) */
+        .rz-pdf-marca{margin-top:12px;display:flex;align-items:center;justify-content:center;gap:5px;font:7.5px Arial,sans-serif;color:#6f7a76}
+        .rz-pdf-simb{flex:none}
         .rz-marca-v{display:flex;flex-direction:column;align-items:center;gap:2px}
         .rz-marca-v b{font:800 40px/1 var(--font-title);letter-spacing:-.02em;color:#fff;margin-top:6px}
         .rz-marca-v small{font:600 11px var(--font-body);letter-spacing:.2em;color:#9fc3ae}
@@ -3738,15 +3745,15 @@
 
             <div id="pdf-template" style="font-family: Arial, sans-serif; color: #333; line-height: 1.4; width: 100%; background-color: #ffffff; padding: 12px; border-radius: 8px;">
 
-                <div style="border: 2px solid #1a365d; padding: 16px; border-radius: 8px; background-color: #fafafa; min-height: 200px; position: relative;">
+                <div style="border: 2px solid #1e3a32; padding: 16px; border-radius: 8px; background-color: #fafafa; min-height: 200px; position: relative;">
 
                     
 
-                    <div style="display: flex; justify-content: space-between; align-items: flex-end; border-bottom: 2px solid #1a365d; padding-bottom: 5px; margin-bottom: 10px;">
+                    <div style="display: flex; justify-content: space-between; align-items: flex-end; border-bottom: 2px solid #1e3a32; padding-bottom: 5px; margin-bottom: 10px;">
 
                         <div>
 
-                            <div id="pdf-logo-empresa" style="color: #1a365d; font-size: 15px; font-weight: 900; letter-spacing: 0.5px;">RAIZ PATRIMÔNIO</div>
+                            <div id="pdf-logo-empresa" style="color: #1e3a32; font-size: 15px; font-weight: 900; letter-spacing: 0.5px;">RAIZ PATRIMÔNIO</div>
 
                             <div id="pdf-cnpj-empresa" style="color: #718096; font-size: 8px; letter-spacing: 0.3px;"></div>
 
@@ -3758,7 +3765,7 @@
 
                     <div style="margin-top: 10px; font-size: 12px; text-align: justify; line-height: 1.6; color: #2d3748;">
 
-                        Confirmamos que o locatário <strong id="pdf-locatario" style="color:#1a365d;">-</strong>, portador do documento nº <strong id="pdf-cpf">-</strong>, efetuou o pagamento de <strong style="color:#2f855a;">R$ <span id="pdf-valor">0,00</span> (<span id="pdf-extenso">-</span>)</strong> referente à locação do imóvel localizado no endereço <strong id="pdf-endereco">-</strong>, para a competência de <strong id="pdf-mes">-</strong>, pago em <strong id="pdf-data">-</strong>. <span id="pdf-obs-texto"></span>
+                        Confirmamos que o locatário <strong id="pdf-locatario" style="color:#1e3a32;">-</strong>, portador do documento nº <strong id="pdf-cpf">-</strong>, efetuou o pagamento de <strong style="color:#2f855a;">R$ <span id="pdf-valor">0,00</span> (<span id="pdf-extenso">-</span>)</strong> referente à locação do imóvel localizado no endereço <strong id="pdf-endereco">-</strong>, para a competência de <strong id="pdf-mes">-</strong>, pago em <strong id="pdf-data">-</strong>. <span id="pdf-obs-texto"></span>
 
                     </div>
 
@@ -3774,15 +3781,18 @@
 
                         <div id="pdf-assinatura-espaco" style="min-height: 4px;"></div>
 
-                        <div style="width: 220px; margin: 0 auto; border-top: 1px solid #1a365d; padding-top: 2px;">
+                        <div style="width: 220px; margin: 0 auto; border-top: 1px solid #1e3a32; padding-top: 2px;">
 
-                            <div id="pdf-nome-responsavel" style="font-size: 12px; font-weight: bold; color: #1a365d;">[Nome do Responsável]</div>
+                            <div id="pdf-nome-responsavel" style="font-size: 12px; font-weight: bold; color: #1e3a32;">[Nome do Responsável]</div>
 
                             <div style="font-size: 7.5px; color: #718096;">Sócio &ndash; <span id="pdf-nome-empresa-assinatura">[Nome da Empresa]</span> <span id="pdf-cnpj-assinatura-bloco">(CNPJ <span id="pdf-cnpj-assinatura"></span>)</span></div>
 
                         </div>
 
                     </div>
+
+                    <!-- v1.371.0 (marca e ramos, fase 6) — o recibo é da empresa do cliente; a Raiz assina discreta no rodapé -->
+                    <div class="rz-pdf-marca"><svg class="rz-pdf-simb" viewBox="16 2 88 112" width="9" height="11" fill="none" stroke="#1e3a32" stroke-width="7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M60 64 C60 50 26 52 26 30"/><path d="M60 64 C60 50 44 38 44 16"/><path d="M60 64 C60 50 60 32 60 10"/><path d="M60 64 C60 50 76 38 76 16"/><path d="M60 64 C60 50 94 52 94 30"/><path d="M60 64 V92"/><path d="M60 80 C52 86 44 88 36 98"/><path d="M60 80 C68 86 76 88 84 98"/><circle cx="26" cy="30" r="7" fill="#7e6596" stroke="none"/><circle cx="44" cy="16" r="7" fill="#3c4f9a" stroke="none"/><circle cx="60" cy="10" r="7" fill="#3f8163" stroke="none"/><circle cx="76" cy="16" r="7" fill="#7a8f3c" stroke="none"/><circle cx="94" cy="30" r="7" fill="#966040" stroke="none"/></svg><span>Emitido com Raiz Patrimônio · raizpatrimonio.com.br</span></div>
 
                 </div>
 
@@ -3802,7 +3812,7 @@
         // texto certo toda vez (esqueci 5 versões seguidas, de v1.37.1 até
         // v1.38.3). Agora só precisa mudar UMA linha aqui a cada release;
         // window.onload aplica nos dois lugares automaticamente.
-        const APP_VERSAO = "Beta v1.370.0"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
+        const APP_VERSAO = "Beta v1.371.0"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
 
         // ====================================================================
         // v1.105.0 — HELPERS DE SUPERFÍCIE DA GRAMÁTICA ÚNICA
@@ -13817,6 +13827,26 @@ async function criarLinkVitrineSupabase(token, idsSelecionados) {
 
         }
 
+        // Rodapé de marca em toda página de um PDF jsPDF: 5 pontos nas cores dos ramos (o símbolo, em miniatura),
+        // "Raiz Patrimônio · raizpatrimonio.com.br" e a paginação. Chamar logo antes do save()/output(). (dem 680ee9f8)
+        function rzPdfRodapeMarca(pdf) {
+            const total = pdf.getNumberOfPages();
+            const w = pdf.internal.pageSize.getWidth(), h = pdf.internal.pageSize.getHeight();
+            const cores = [[126, 101, 150], [60, 79, 154], [63, 129, 99], [122, 143, 60], [150, 96, 64]];
+            for (let p = 1; p <= total; p++) {
+                pdf.setPage(p);
+                pdf.setDrawColor(230, 227, 218); pdf.setLineWidth(0.2); pdf.line(12, h - 11, w - 12, h - 11);
+                cores.forEach((c, i) => { pdf.setFillColor(c[0], c[1], c[2]); pdf.circle(13.2 + i * 2.2, h - 7.6, 0.75, 'F'); });
+                pdf.setFont('Helvetica', 'bold'); pdf.setFontSize(7.5); pdf.setTextColor(30, 58, 50);
+                pdf.text('Raiz Patrimônio', 25, h - 6.8);
+                pdf.setFont('Helvetica', 'normal'); pdf.setTextColor(111, 122, 118);
+                pdf.text('raizpatrimonio.com.br', 25 + pdf.getTextWidth('Raiz Patrimônio') + 2, h - 6.8); // sem "·": a Helvetica padrão do jsPDF não desenha o ponto médio
+                pdf.text(`Página ${p} de ${total}`, w - 12, h - 6.8, { align: 'right' });
+            }
+            pdf.setTextColor(0, 0, 0);
+        }
+        window.rzPdfRodapeMarca = rzPdfRodapeMarca;
+
         function baixarRelatorioPdfLocal() {
 
             const { jsPDF } = window.jspdf;
@@ -13833,7 +13863,7 @@ async function criarLinkVitrineSupabase(token, idsSelecionados) {
 
             pdf.setFontSize(14);
 
-            pdf.setTextColor(26, 54, 93);
+            pdf.setTextColor(30, 58, 50); // verde da marca (era azul-marinho fora da paleta)
 
             pdf.text(CONFIG_CLIENTE.nomeEmpresa.toUpperCase() + " - RELATÓRIO DEMONSTRATIVO DE RECEBIMENTOS", margin, currentY);
 
@@ -13863,7 +13893,7 @@ async function criarLinkVitrineSupabase(token, idsSelecionados) {
 
             pdf.setFontSize(12); 
 
-            pdf.setTextColor(26, 54, 93);
+            pdf.setTextColor(30, 58, 50); // verde da marca (era azul-marinho fora da paleta)
 
             pdf.text("Detalhamento Analítico:", margin, currentY);
 
@@ -13925,7 +13955,7 @@ async function criarLinkVitrineSupabase(token, idsSelecionados) {
 
             pdf.setFontSize(12);
 
-            pdf.setTextColor(26, 54, 93);
+            pdf.setTextColor(30, 58, 50); // verde da marca (era azul-marinho fora da paleta)
 
             pdf.text("RESUMO CONSOLIDADO:", margin, currentY);
 
@@ -13959,6 +13989,7 @@ async function criarLinkVitrineSupabase(token, idsSelecionados) {
 
             pdf.text(`R$ ${(potTotal - fatTotal).toLocaleString('pt-BR', {minimumFractionDigits: 2})}`, 140, currentY);
 
+            rzPdfRodapeMarca(pdf);
             pdf.save(`Demonstrativo_Analitico_Rumo_${Date.now()}.pdf`);
 
         }
@@ -13989,7 +14020,7 @@ async function criarLinkVitrineSupabase(token, idsSelecionados) {
 
             pdf.setFontSize(14);
 
-            pdf.setTextColor(26, 54, 93);
+            pdf.setTextColor(30, 58, 50); // verde da marca (era azul-marinho fora da paleta)
 
             pdf.text(`DEMONSTRATIVO DE SÓCIO: ${socioSelecionado.toUpperCase()}`, margin, currentY);
 
@@ -14019,7 +14050,7 @@ async function criarLinkVitrineSupabase(token, idsSelecionados) {
 
             pdf.setFontSize(12);
 
-            pdf.setTextColor(26, 54, 93);
+            pdf.setTextColor(30, 58, 50); // verde da marca (era azul-marinho fora da paleta)
 
             pdf.text("Créditos de Distribuição de Lucros:", margin, currentY);
 
@@ -14101,7 +14132,7 @@ async function criarLinkVitrineSupabase(token, idsSelecionados) {
 
             pdf.setFontSize(12);
 
-            pdf.setTextColor(26, 54, 93);
+            pdf.setTextColor(30, 58, 50); // verde da marca (era azul-marinho fora da paleta)
 
             pdf.text("Repasses Efetuados:", margin, currentY);
 
@@ -14159,7 +14190,7 @@ async function criarLinkVitrineSupabase(token, idsSelecionados) {
 
             pdf.setFontSize(12);
 
-            pdf.setTextColor(26, 54, 93);
+            pdf.setTextColor(30, 58, 50); // verde da marca (era azul-marinho fora da paleta)
 
             pdf.text("PRESTAÇÃO DE CONTAS FINAL:", margin, currentY);
 
@@ -14193,6 +14224,7 @@ async function criarLinkVitrineSupabase(token, idsSelecionados) {
 
             pdf.text(`R$ ${saldoFinal.toLocaleString('pt-BR', {minimumFractionDigits: 2})}`, 140, currentY);
 
+            rzPdfRodapeMarca(pdf);
             pdf.save(`Demonstrativo_Socio_${socioSelecionado}_${Date.now()}.pdf`);
 
         }

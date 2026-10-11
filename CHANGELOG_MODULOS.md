@@ -636,6 +636,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/cofre-api.js`
 
 //
@@ -1175,6 +1177,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/cofre-app.js`
 
 //
@@ -1565,6 +1569,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 // cofre-ativos.js). Prefere addEventListener a onclick inline em todo
 // código novo (Diretriz Arquitetural — Passo 2).
 // ============================================================================
+
+---
 
 ---
 
@@ -2876,6 +2882,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/cofre-controles.js`
 
 //
@@ -3479,6 +3487,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 // não está implementado (geração automática de ocorrências recorrentes,
 // Central de Alertas consolidada).
 // ============================================================================
+
+---
 
 ---
 
@@ -4300,6 +4310,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/cofre-estado.js`
 
 //
@@ -4445,6 +4457,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 // v1.21.6 (Arquivar/RLS, sessão paralela) nem esta entrega — fechado
 // agora. Ver changelog completo em cofre.html v1.22.0 (merge das 2
 // sessões paralelas + badge fix + form fix + função Vendido).
+
+---
 
 ---
 
@@ -4783,6 +4797,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/cofre-ui.js`
 
 //
@@ -4814,6 +4830,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 // genérica, template de card, indicador de "liga/desliga" (Design System
 // v1.43.0 §2). Não importa cofre-api.js — não sabe nada de Supabase.
 // ============================================================================
+
+---
 
 ---
 
@@ -5026,6 +5044,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 // pilha; os demais (cofre-ui, cofre-documentos, cofre-ativos) importam
 // daqui, nunca o contrário.
 // ============================================================================
+
+---
 
 ---
 
@@ -5379,6 +5399,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/comum-minha-empresa.js`
 
 //
@@ -5513,6 +5535,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 // `dbAuth` já autenticado do host, por parâmetro (ver nota completa em
 // comum-licenca.js).
 // ============================================================================
+
+---
 
 ---
 
@@ -5996,6 +6020,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/comum-renovacao.js`
 
 //
@@ -6038,6 +6064,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 // jsdelivr (mesma origem já usada pelo app); se não carregar, o "copia e cola"
 // continua funcionando sozinho.
 // ============================================================================
+
+---
 
 ---
 
@@ -6217,6 +6245,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 // dados de conta — recebe `dbAuth` já autenticado do host, por
 // parâmetro (ver nota completa em comum-licenca.js).
 // ============================================================================
+
+---
 
 ---
 
@@ -7201,7 +7231,24 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/fechamento.js`
+
+//
+// v1.10.0 (achado do Nicola, 23/09/2026 — Albuquerque): com "Planilha" e
+// "XML" marcados, o WhatsApp recebeu só o texto, sem nenhum anexo. Causa:
+// navigator.share com vários arquivos de TIPOS diferentes (PDF + CSV + XML)
+// junto com texto — o WhatsApp do Android descarta os arquivos e fica só
+// com o texto. Correção: quando há mais de 1 arquivo, vai 1 ZIP só
+// (PDF + planilha + XMLs dentro, fechamentoMontarZip, sem biblioteca) e o
+// compartilhamento leva só o arquivo; o texto-resumo vai para a área de
+// transferência ("cole na conversa"). Só o PDF continua indo como PDF.
+// "Só baixar" não muda (baixa cada arquivo, como já funcionava).
+// --------------------------------------------------------------------------
+// Versões anteriores (v1.1.0 … v1.9.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
+// mais recentes deste cabeçalho (VER-06).
 
 //
 // v1.9.0 (achado do Nicola, 23/09/2026 — Albuquerque): o checklist fiscal
@@ -7487,6 +7534,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 // window.jspdf, CONFIG_CLIENTE (todos já globais no index.html clássico —
 // mesmo acesso que financeiro.js já faz).
 // ============================================================================
+
+---
 
 ---
 
@@ -8863,6 +8912,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/fiscal.js`
 
 //
@@ -8922,6 +8973,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 // abrirSheet, abrirSheetAcoes, abrirSheetForm, rzSheetCabecalho, fecharSheet,
 // mostrarToast, switchTab, rzIcones, podeUsar, window.fechamentoAbrirChecklistFiscalAtualizado.
 // ============================================================================
+
+---
 
 ---
 
@@ -9228,6 +9281,27 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 ---
 
 ---
+
+---
+
+---
+
+## `js/relatorios-executivos.js`
+
+//
+// v1.0.0 (07/10/2026, sessão 20261007-0110-financeiro, demanda f3e6cd27 — P4b,
+// fichas B3/B5 e decisões D35/D36 aprovadas pelo Nicola): renderizador único
+// (tela e PDF pelo MESMO HTML, REL-37/38) dos relatórios no modelo executivo
+// (PADRAO_RELATORIOS v1.2.0, REL-49 a REL-55): capa que responde sozinha
+// (manchete-conclusão marcada "Leitura", 3 pontos-chave, 4 números, 2 gráficos
+// com título-conclusão e fonte) e páginas de detalhe com rastreador de seção.
+// Rodapé de toda página: nome do relatório, data e hora da geração e usuário
+// (REL-10). Primeiros relatórios: Fluxo de caixa (relatorios.fluxo_caixa →
+// fn_contas_fluxo_caixa) e Visão gerencial (relatorios.gerencial →
+// fn_contas_visao_gerencial). Os números vêm prontos do banco (o mesmo modelo
+// que o bot usa); aqui só se monta o texto e o desenho — nunca se recalcula
+// (REL-02). Protótipo: raiz\docs\PROTOTIPO_RELATORIOS_FLUXO_GERENCIAL v1.1.0.
+// ============================================================================
 
 ---
 
@@ -9617,6 +9691,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/vitrine.js`
 
 //
@@ -9726,6 +9802,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 // CLIENTE_ID_SUPABASE, dbAuth. Exclusivo (4) virou nível de módulo.
 // Indentação de origem mantida. Strict verificado.
 // ============================================================================
+
+---
 
 ---
 

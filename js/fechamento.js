@@ -1,6 +1,10 @@
 // ============================================================================
 // js/fechamento.js — Raiz Patrimônio · Fechamento da competência
-// Versão: 1.12.3 · 07/10/2026
+// Versão: 1.13.0 · 11/10/2026
+//
+// v1.13.0 (11/10/2026, sessão 20261011-1315-marca-saidas, demanda 680ee9f8 — marca e ramos, fase 6; plano aprovado pelo
+// Nicola 11/10 11:20): o PDF do pacote do contador troca o azul-marinho pelo verde da marca e ganha, em toda página, o
+// rodapé de marca do app (rzPdfRodapeMarca do index: pontos dos ramos, "Raiz Patrimônio", paginação). Versão anterior: 1.12.3.
 //
 // v1.12.2 (07/10/2026, sessão 20261007-1721-rolo-changelog, demanda 2507d554 — VER-06, "de acordo" do Nicola 07/10 17:21) — SÓ
 // CABEÇALHO: as versões além das 5 mais recentes rolaram para o CHANGELOG_MODULOS.md.
@@ -32,22 +36,11 @@
 // mudar. (2) "Compartilhar com o contador": o PDF sempre ia no pacote, sem
 // checkbox pra desmarcar, ao contrário de CSV/XML — ganhou checkbox igual
 // aos outros 2, com guarda de "nenhum arquivo selecionado".
-//
-// v1.10.0 (achado do Nicola, 23/09/2026 — Albuquerque): com "Planilha" e
-// "XML" marcados, o WhatsApp recebeu só o texto, sem nenhum anexo. Causa:
-// navigator.share com vários arquivos de TIPOS diferentes (PDF + CSV + XML)
-// junto com texto — o WhatsApp do Android descarta os arquivos e fica só
-// com o texto. Correção: quando há mais de 1 arquivo, vai 1 ZIP só
-// (PDF + planilha + XMLs dentro, fechamentoMontarZip, sem biblioteca) e o
-// compartilhamento leva só o arquivo; o texto-resumo vai para a área de
-// transferência ("cole na conversa"). Só o PDF continua indo como PDF.
-// "Só baixar" não muda (baixa cada arquivo, como já funcionava).
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.1.0 … v1.9.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.10.0 … v1.10.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-
-export const VERSAO = '1.12.3'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.13.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 
 // v1.3.0 (Fase 1 do wrapper de escrita, rollout Financeiro) — emitirEscrita
 // é o evento padrão pra "algo mudou que módulos DE FORA deste arquivo podem
@@ -872,7 +865,7 @@ function fechamentoMontarPdfPacote(linha) {
     const mesRotulo = new Date(linha.competencia + 'T00:00:00').toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
     const nomeEmpresa = (typeof CONFIG_CLIENTE !== 'undefined' && CONFIG_CLIENTE && CONFIG_CLIENTE.nomeEmpresa) ? CONFIG_CLIENTE.nomeEmpresa : 'RAIZ PATRIMÔNIO';
 
-    pdf.setFont('Helvetica', 'bold'); pdf.setFontSize(14); pdf.setTextColor(26, 54, 93);
+    pdf.setFont('Helvetica', 'bold'); pdf.setFontSize(14); pdf.setTextColor(30, 58, 50);
     pdf.text(`${nomeEmpresa.toUpperCase()} — PACOTE DO CONTADOR`, margin, y);
     pdf.setFont('Helvetica', 'normal'); pdf.setFontSize(10); pdf.setTextColor(113, 128, 150);
     y += 7; pdf.text(`Competência: ${mesRotulo}`, margin, y);
@@ -890,13 +883,13 @@ function fechamentoMontarPdfPacote(linha) {
     const totalOut = outrasRec.reduce((s, i) => s + Number(i.valor || 0), 0);
     const totalSai = saidas.reduce((s, i) => s + Number(i.valor || 0), 0);
     const totalRep = repasses.reduce((s, i) => s + Number(i.valor || 0), 0);
-    pdf.setFont('Helvetica', 'bold'); pdf.setFontSize(10); pdf.setTextColor(26, 54, 93);
+    pdf.setFont('Helvetica', 'bold'); pdf.setFontSize(10); pdf.setTextColor(30, 58, 50);
     pdf.text(`Recebido: ${fechamentoMoeda(totalRec)}${outrasRec.length ? `   ·   Outras receitas: ${fechamentoMoeda(totalOut)}` : ''}   ·   Pago: ${fechamentoMoeda(totalSai)}   ·   Repasses: ${fechamentoMoeda(totalRep)}`, margin, y);
     y += 10;
 
     const secao = (titulo, itens, colunas) => {
         if (y > 265) { pdf.addPage(); y = 15; }
-        pdf.setFont('Helvetica', 'bold'); pdf.setFontSize(11); pdf.setTextColor(26, 54, 93);
+        pdf.setFont('Helvetica', 'bold'); pdf.setFontSize(11); pdf.setTextColor(30, 58, 50);
         pdf.text(`${titulo} (${itens.length})`, margin, y); y += 6;
         pdf.setFont('Helvetica', 'normal'); pdf.setFontSize(9); pdf.setTextColor(45, 55, 72);
         if (!itens.length) { pdf.text('Nenhum lançamento.', margin, y); y += 8; return; }
@@ -931,7 +924,7 @@ function fechamentoMontarPdfPacote(linha) {
             pdf.splitTextToSize(String(txt), larg - recuo).forEach(l => { if (y > 280) { pdf.addPage(); y = 15; } pdf.text(l, margin + recuo, y); y += 5; });
         };
         if (y > 250) { pdf.addPage(); y = 15; }
-        pdf.setFont('Helvetica', 'bold'); pdf.setFontSize(12); pdf.setTextColor(26, 54, 93);
+        pdf.setFont('Helvetica', 'bold'); pdf.setFontSize(12); pdf.setTextColor(30, 58, 50);
         pdf.text('Fiscal (NFS-e)', margin, y); y += 6;
         pdf.setFont('Helvetica', 'normal'); pdf.setFontSize(9); pdf.setTextColor(45, 55, 72);
         const desde = fis.obrigatoria_desde ? new Date(fis.obrigatoria_desde + 'T00:00:00').toLocaleDateString('pt-BR') : null;
@@ -946,7 +939,7 @@ function fechamentoMontarPdfPacote(linha) {
             `Nº ${d.numero || '—'}  ·  ${d.emitida_em ? new Date(d.emitida_em + 'T00:00:00').toLocaleDateString('pt-BR') : '—'}  ·  ${fechamentoMoeda(d.valor)}  ·  ${d.tomador_nome || ''}  ·  ${(d.imoveis || []).join(', ')}`);
         if (rascunhos.length) {
             if (y > 260) { pdf.addPage(); y = 15; }
-            pdf.setFont('Helvetica', 'bold'); pdf.setFontSize(11); pdf.setTextColor(26, 54, 93);
+            pdf.setFont('Helvetica', 'bold'); pdf.setFontSize(11); pdf.setTextColor(30, 58, 50);
             pdf.text(`Rascunhos para emitir (${rascunhos.length}) — campos na ordem do Emissor Nacional`, margin, y); y += 6;
             pdf.setFontSize(9); pdf.setTextColor(45, 55, 72);
             rascunhos.forEach((d, n) => {
@@ -971,6 +964,7 @@ function fechamentoMontarPdfPacote(linha) {
     }
 
     const nomeArquivo = `pacote-contador-${linha.competencia}.pdf`;
+    if (typeof window.rzPdfRodapeMarca === 'function') window.rzPdfRodapeMarca(pdf); // rodapé de marca em toda página
     return { pdf, blob: pdf.output('blob'), nome: nomeArquivo, tipo: 'application/pdf' };
 }
 

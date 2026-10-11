@@ -4,6 +4,16 @@ Histórico completo de versões do `index.html`, movido automaticamente pelo `ge
 
 ---
 
+NOVIDADES (Beta v1.366.1) — só o import map: financeiro.js 1.48.1 (linha do Balanço é o toque do Quitar; chips ficam na tela
+quando o cálculo falha). Banco: repasses_embed_hf3_v1 (Sócios por mês voltou).
+Versão anterior (Beta v1.366.0):
+------------------------------------------------------------------
+Versões anteriores (v1.366.0 … v1.366.0): CHANGELOG_APP.md, na raiz do
+repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
+das 5 versões mais recentes deste cabeçalho.
+
+---
+
 NOVIDADES (Beta v1.366.0) — F13 4c etapa 1 (D58): Financeiro › Distribuição vira Balanço, com Pessoas · Sócios por mês ·
 Grupos, Quitar e Compensar (financeiro.js 1.48.0). Aqui: rótulo do segmento e do título, ponte das funções novas e
 import map. Banco: balanco_leitura_f13a_v1, balanco_escrita_f13b_v1, repasses_unica_f13c_v1 (já aplicadas).
