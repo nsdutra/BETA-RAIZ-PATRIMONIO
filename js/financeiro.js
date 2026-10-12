@@ -1,7 +1,17 @@
 // ============================================================================
 // financeiro.js — Raiz Patrimônio · Financeiro (Recebimentos · Atrasados · Saídas
 //                  · conciliação de extrato · recibo · detalhe do recebimento)
-// Versão: 1.55.0 · 11/10/2026
+// Versão: 1.56.0 · 12/10/2026
+//
+// v1.56.0 (12/10/2026, sessão 20261012-0220-ux-onda4a, demanda a05ad2ee; UX onda 4, estudo PROTOTIPO_UX_DENSIDADE_RAMOS_RAIZ
+// v1.2.0 D9; Nicola 12/10 02:15 "muita moldura estreitando as informações. Pendências são alertas? … Vamos avançar") — a
+// visão por competência (rzFinCompetencias, ficha do contrato e do ativo) fica sem moldura dentro de moldura: o card
+// "Pendências" sai (o atraso vira o 3º número do resumo, que leva aos atrasados; "a classificar" e "sem conciliação" viram
+// uma linha curta de atalhos), os dois KPIs em caixas viram uma faixa Recebido · Despesas · Em atraso, e a lista dos meses
+// entra direto no card que já existe (na ficha do ativo, um card só). A linha do mês mostra o que falta receber
+// (antes "R$ 0,00 · Em atraso") e perde a placa de calendário.
+//
+// Versão anterior: 1.55.0 · 11/10/2026
 //
 // v1.55.0 (11/10/2026, sessão 20261008-1231-pessoas-ativos, demanda 6adc50ef; F13.9, ficha v1.0.0; de acordo do
 // Nicola 11/10 23:52) — dividir uma retirada em partes, mesmo conciliada:
@@ -36,17 +46,11 @@
 //     categorias do mês, receitas e despesas juntas; tocar na categoria abre os lançamentos; tocar no lançamento abre
 //     o detalhe de sempre (recebimento, despesa ou fatura).
 // Também: "‹ Financeiro" não aparece mais acima de Saídas, Conciliação e Balanço (são irmãs no segmento).
-//
-// Versão anterior: 1.51.0 · 11/10/2026
-//
-// v1.51.0 (11/10/2026, sessão 20261008-1231-pessoas-ativos, demanda f3e6cd27; F13 4c etapa 3) — quando o
-// Balanço ou Sócios por mês não conseguem calcular, a mensagem mostra também o motivo que o banco devolveu (antes só
-// "Não consegui calcular"), para o próximo erro já vir com a causa.
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.50.0 … v1.50.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.51.0 … v1.51.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '1.55.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.56.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 
 // v1.17.0 (Fase 1 do wrapper de escrita, rollout Financeiro) — emitirEscrita
 // é o evento padrão pra "algo mudou que módulos DE FORA deste arquivo podem
@@ -6071,13 +6075,13 @@ async function fcCarregar(e, ano) {
 function fcDesenhar(el) {
     const st = fcEstado[el.id]; if (!st) return;
     const it = st.itens;
-    // atalhos do que está pendente
+    // v1.56.0 (UX onda 4) — sai o card "Pendências": o atraso vira um número do resumo (toque leva aos atrasados) e
+    // "a classificar" / "sem conciliação" viram uma linha de atalhos curta, só quando existem.
     const aClass = it.filter(i => i.aClassificar), semConc = it.filter(i => i.semConciliar), atraso = it.filter(i => i.atraso);
-    const atalho = (k, ic, t, sb) => `<button type="button" class="rz-act" data-fc-atalho="${k}"><div class="rz-ic"><svg data-lucide="${ic}"></svg></div><div>${t}<small>${sb}</small></div></button>`;
-    const pend = (aClass.length || semConc.length || atraso.length) ? `<div class="rz-card rz-list"><div class="rz-card-h" style="padding-top:10px;margin-bottom:0"><h3>Pendências</h3></div>` +
-        (atraso.length ? atalho('atraso', 'alarm-clock', `${atraso.length} ${atraso.length === 1 ? 'recebimento em atraso' : 'recebimentos em atraso'}`, formatarMoedaBR(atraso.reduce((t, i) => t + i.valor, 0)) + ' · cobrar no Financeiro') : '') +
-        (aClass.length ? atalho('classificar', 'tags', `${aClass.length} ${aClass.length === 1 ? 'lançamento a classificar' : 'lançamentos a classificar'}`, 'Escolher a categoria') : '') +
-        (semConc.length ? atalho('conciliar', 'link-2', `${semConc.length} ${semConc.length === 1 ? 'pago sem conciliação' : 'pagos sem conciliação'}`, 'Conferir com o extrato') : '') + '</div>' : '';
+    const atalho = (k, t) => `<button type="button" class="rz-fc-atalho" data-fc-atalho="${k}">${t}<svg data-lucide="chevron-right"></svg></button>`;
+    const pend = (aClass.length || semConc.length) ? `<div class="rz-fc-atalhos">` +
+        (aClass.length ? atalho('classificar', `${aClass.length} ${aClass.length === 1 ? 'a classificar' : 'a classificar'}`) : '') +
+        (semConc.length ? atalho('conciliar', `${semConc.length} sem conciliação`) : '') + '</div>' : '';
     // competências
     const porMes = new Map();
     it.forEach(i => { const a = porMes.get(i.comp) || []; a.push(i); porMes.set(i.comp, a); });
@@ -6104,17 +6108,26 @@ function fcDesenhar(el) {
         }).join('');
     };
     const recebido = soma(it, i => i.grupo === 'receita' && (i.k !== 'mens' || i.pago)), despesas = -soma(it, i => i.grupo === 'despesa');
-    const kpis = `<div class="rz-kpis"><div class="rz-kpi rz-in"><small>Recebido</small><b>${formatarMoedaBR(recebido)}</b></div><div class="rz-kpi"><small>Despesas</small><b>${formatarMoedaBR(despesas)}</b></div></div>`;
-    const lista = meses.length ? `<div class="rz-card rz-list"><div class="rz-card-h" style="padding-top:10px;margin-bottom:0"><h3>Por competência</h3><span class="rz-sub">${st.ano === 'todos' ? 'todos os anos' : st.ano}</span></div>` +
-        meses.map(m => { const l = porMes.get(m), aberto = st.aberto.mes === m;
+    // v1.56.0 (UX onda 4) — resumo numa faixa só, sem caixas: Recebido · Despesas · Em atraso (este só quando há; toque
+    // leva aos atrasados). Dentro de um card (ficha do contrato) a lista não ganha outra moldura; fora (ficha do ativo),
+    // ganha um card só.
+    const emAtraso = soma(atraso, () => true);
+    const kpis = `<div class="rz-fc-resumo"><div><small>Recebido</small><b class="rz-in">${formatarMoedaBR(recebido)}</b></div><div><small>Despesas</small><b>${formatarMoedaBR(despesas)}</b></div>` +
+        (atraso.length ? `<button type="button" class="rz-bad" data-fc-atalho="atraso"><small>Em atraso · ${atraso.length}</small><b>${formatarMoedaBR(emAtraso)}</b></button>` : '') + `</div>`;
+    const dentroDeCard = !!el.closest('.rz-card');
+    const linhasMes = meses.map(m => { const l = porMes.get(m), aberto = st.aberto.mes === m;
             const rec = soma(l, i => i.grupo === 'receita' && (i.k !== 'mens' || i.pago)), desp = -soma(l, i => i.grupo === 'despesa');
+            // v1.56.0 — o que falta receber no mês (aluguel em aberto) vem à direita; sem nada em aberto, o resultado do mês
+            const falta = soma(l, i => i.k === 'mens' && !i.pago && !i.isento);
+            const aberta = l.find(i => i.k === 'mens' && !i.pago && !i.isento);
+            const sub = falta > 0 ? `${aberta?.sub || 'em aberto'}${rec || desp ? ' · recebido ' + formatarMoedaBR(rec) : ''}` : `recebido ${formatarMoedaBR(rec)}${desp ? ' · despesas ' + formatarMoedaBR(desp) : ''}`;
             return `<div class="rz-row rz-link" role="button" tabindex="0" data-fc-mes="${m}">
-                <div class="rz-ic"><svg data-lucide="calendar"></svg></div>
-                <div class="rz-tx"><b>${fcRotuloMes(m)}</b><span>Recebido ${formatarMoedaBR(rec)} · despesas ${formatarMoedaBR(desp)}</span></div>
-                <div class="rz-rt"><b>${moedaSinal(rec - desp)}</b>${situacao(l)}</div>
-                <svg data-lucide="${aberto ? 'chevron-up' : 'chevron-down'}" class="rz-chev"></svg></div>` + (aberto ? linhasCat(l, m) : ''); }).join('') + '</div>'
-        : `<div class="rz-card"><div class="rz-empty"><div class="rz-ic"><svg data-lucide="wallet"></svg></div><p>Nenhum movimento ${st.ano === 'todos' ? 'ainda' : 'em ' + st.ano}.</p></div></div>`;
-    el.innerHTML = fcChipsAno(st) + pend + kpis + lista;
+                <div class="rz-tx"><b>${fcRotuloMes(m)}</b><span>${sub}</span></div>
+                <div class="rz-rt"><b class="${falta > 0 ? '' : (rec - desp > 0 ? 'rz-in' : '')}">${falta > 0 ? formatarMoedaBR(falta) : moedaSinal(rec - desp)}</b>${situacao(l)}</div>
+                <svg data-lucide="${aberto ? 'chevron-up' : 'chevron-down'}" class="rz-chev"></svg></div>` + (aberto ? linhasCat(l, m) : ''); }).join('');
+    const lista = meses.length ? (dentroDeCard ? `<div class="rz-fc-meses">${linhasMes}</div>` : `<div class="rz-card rz-list">${linhasMes}</div>`)
+        : `<div class="rz-empty"><div class="rz-ic"><svg data-lucide="wallet"></svg></div><p>Nenhum movimento ${st.ano === 'todos' ? 'ainda' : 'em ' + st.ano}.</p></div>`;
+    el.innerHTML = fcChipsAno(st) + kpis + pend + lista;
     fcLigar(el);
     if (typeof lucide !== 'undefined') lucide.createIcons();
 }

@@ -4,6 +4,21 @@ Histórico completo de versões do `index.html`, movido automaticamente pelo `ge
 
 ---
 
+NOVIDADES (Beta v1.380.0) — UX onda 1: escala compacta e topo com frutos (estudo PROTOTIPO_UX_DENSIDADE_RAMOS_RAIZ
+v1.2.0, D1/D3/D5; APV Nicola 11/10 21:47 e 23:44: "inclua a melhora também dos botões de avatar e outros do
+cabeçalho para ficarem compatíveis com o novo dos ramos"). Corpo 14, secundário 12,5, títulos de tela 17, sheet 16,
+entidade 17 com placa 40, linha com placa 34 e título em até 2 linhas, botão 44 (pequeno 36), chip e segmento 32,
+cards 12/14 com raio 14, KPI 17 e herói 26. Tailwind text-sm/xs passam a 14/12,5. No topo, ramo, Raiz IA e avatar
+viram frutos do mesmo tamanho (36), com brilho e sombra: o ramo na cor dele, a IA no dourado do splash, o avatar em
+creme. Alvos de 48 mantidos onde já eram; piso de 12 px mantido. Nenhum objeto de banco.
+Versão anterior (Beta v1.379.0):
+------------------------------------------------------------------
+Versões anteriores (v1.379.0 … v1.379.0): CHANGELOG_APP.md, na raiz do
+repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
+das 5 versões mais recentes deste cabeçalho.
+
+---
+
 NOVIDADES (Beta v1.379.0) — F13.8: relatório "Retiradas extraordinárias" na lista de Relatórios (só fatos e dados;
 partes por pessoa quando o controle está ligado em Minha empresa › Rotinas). Import map: relatorios-executivos.js 1.3.0,
 comum-minha-empresa.js 1.15.0, comum-pessoas.js 1.210.0, financeiro.js 1.54.0, cofre-ativos.js 1.93.0.

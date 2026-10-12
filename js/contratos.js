@@ -1,7 +1,14 @@
 // ============================================================================
 // contratos.js — Raiz Patrimônio · Contratos (lista · ficha · formulário ·
 //                 status/reajuste/detalhes · fiadores · documentos · histórico)
-// Versão: 1.52.0 · 12/10/2026
+// Versão: 1.53.0 · 12/10/2026
+//
+// v1.53.0 (12/10/2026, sessão 20261012-0220-ux-onda4a, demanda a05ad2ee; UX onda 4) — o card Financeiro da ficha do contrato
+// perde a borda vermelha de crítico e o selo do cabeçalho (o atraso aparece uma vez só, no resumo, que leva aos
+// atrasados); o miolo (rzFinCompetencias,
+// financeiro.js 1.56.0) fica sem moldura dentro de moldura.
+//
+// Versão anterior: 1.52.0 · 12/10/2026
 //
 // v1.52.0 (12/10/2026, sessão 20261012-0155-ux-onda3a, demanda a05ad2ee; UX onda 3, estudo PROTOTIPO_UX_DENSIDADE_RAMOS_RAIZ
 // v1.2.0 D11/D12 aprovado pelo Nicola 11/10 e "pode avançar" 12/10 01:53) — ficha do contrato com um jeito só de agir: o ⋮
@@ -30,14 +37,8 @@
 // Contratos é digitável: o texto filtra enquanto digita (rzBuscaInline do index, × limpa só o texto) e o ícone de
 // filtros ao lado abre o Sheet só com Empreendimento e Imóvel (rzAbrirBuscaTela com semTexto; Limpar zera só os
 // filtros). O número no ícone diz quantos filtros estão ligados. O campo guardador continua #contratos-filtro-texto.
-//
-// Versão anterior: 1.48.0 · 09/10/2026
-//
-// v1.48.0 (demandas 1f98c359, 43bc3cab e f0ab422d, sessão 20261003-1707-ux-base; plano aprovado pelo Nicola 09/10 22:3x ("De acordo, tudo numa entrega só")) —
-// os números dos chips contam os contratos que a busca deixou (texto, empreendimento, imóvel), não a carteira
-// inteira; a barra ganha o × que limpa a busca em um toque.
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.47.0 … v1.47.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.48.0 … v1.48.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
 import { avaliarProntidaoContratoParaMinuta } from './minutas.js'; // v1.0.1
@@ -49,7 +50,7 @@ import { emitirEscrita, aoEscrever } from './raiz-eventos.js'; // v1.18.0 — Fa
 import { renderizarBlocoEndereco, lerBlocoEndereco } from './comum-endereco.js';
 import { formatarEnderecoParte } from './comum-partes.js';
 
-export const VERSAO = '1.52.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.53.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 
 /** Ponto de entrada do switchTab('tab-contratos'). */
 export function montarAbaContratos() {
@@ -1700,8 +1701,8 @@ if (!window.__rzListenerEscritaParteContratoLigado) {
                 </div>
 
                 <div class="fc-painel hidden" id="fc-painel-cobrancas">
-                    <div class="rz-card ${atrasadas.length ? 'rz-critico' : ''}">
-                        <div class="rz-card-h"><h3>Financeiro</h3>${atrasadas.length ? rs('bad', `${formatarMoedaBR(totalAtrasado)} em atraso`) : (ultimasSeis.length ? rs('ok', 'Em dia') : '')}</div>
+                    <div class="rz-card"><!-- v1.53.0 (UX onda 4) — sem a borda vermelha: o selo "em atraso" já diz -->
+                        <div class="rz-card-h"><h3>Financeiro</h3></div><!-- v1.53.0 — o selo saiu: o atraso aparece uma vez só, no resumo logo abaixo -->
                         <!-- v1.116.0 (pedido explícito: "colocar no ⋮ a
                              opção de tratar aquele recebimento") — cada
                              linha ganhou ⋮ chamando rzAcoesMensalidade(),

@@ -6,9 +6,16 @@
    (base derivada do RUMO v7.4.2 — histórico de versões anteriores
    preservado abaixo para referência técnica)
 
-   VERSÃO: Beta v1.384.0
-   LINHAS: 16115
-   DATA: 12/10/2026 (sessão 20261012-0215-ux-onda3b, demanda a05ad2ee)
+   VERSÃO: Beta v1.385.0
+   LINHAS: 16137
+   DATA: 12/10/2026 (sessão 20261012-0220-ux-onda4a, demanda a05ad2ee)
+   NOVIDADES (Beta v1.385.0) — UX onda 4a: Financeiro da ficha sem moldura dentro de moldura (Nicola 12/10 02:15:
+   "muita moldura estreitando as informações … Vamos avançar"). O card "Pendências" sai: o atraso vira o 3º número da
+   faixa Recebido · Despesas · Em atraso (toque leva aos atrasados) e "a classificar"/"sem conciliação" viram atalhos
+   curtos; a lista dos meses entra direto no card e mostra o que falta receber. Volta o CSS de .rz-add e .rz-more-topo,
+   que não tinha entrado na 1.383.0 (o "+ Adicionar" aparecia com o ícone em cima do texto). financeiro.js 1.56.0,
+   contratos.js 1.53.0. Nenhum objeto de banco.
+   Versão anterior (Beta v1.384.0):
    NOVIDADES (Beta v1.384.0) — UX onda 3b: um jeito só de agir na ficha do ativo (estudo PROTOTIPO_UX_DENSIDADE_
    RAMOS_RAIZ v1.2.0, D11/D12; "pode avançar" do Nicola 12/10 01:53). O ⋮ do topo da ficha reúne todas as ações em
    grupos (Ativo · Usos e contratos · Controles · Financeiro · Propriedade · Anexos · Situação); os ⋮ dos cabeçalhos dos
@@ -33,16 +40,8 @@
    numa placa clara de 36 px (quadrado com o nome ao lado, largo sozinho; sem logo, o nome). Vazios ganham as raízes do
    splash ao fundo. Nenhum objeto de banco.
    Versão anterior (Beta v1.380.0):
-   NOVIDADES (Beta v1.380.0) — UX onda 1: escala compacta e topo com frutos (estudo PROTOTIPO_UX_DENSIDADE_RAMOS_RAIZ
-   v1.2.0, D1/D3/D5; APV Nicola 11/10 21:47 e 23:44: "inclua a melhora também dos botões de avatar e outros do
-   cabeçalho para ficarem compatíveis com o novo dos ramos"). Corpo 14, secundário 12,5, títulos de tela 17, sheet 16,
-   entidade 17 com placa 40, linha com placa 34 e título em até 2 linhas, botão 44 (pequeno 36), chip e segmento 32,
-   cards 12/14 com raio 14, KPI 17 e herói 26. Tailwind text-sm/xs passam a 14/12,5. No topo, ramo, Raiz IA e avatar
-   viram frutos do mesmo tamanho (36), com brilho e sombra: o ramo na cor dele, a IA no dourado do splash, o avatar em
-   creme. Alvos de 48 mantidos onde já eram; piso de 12 px mantido. Nenhum objeto de banco.
-   Versão anterior (Beta v1.379.0):
    ------------------------------------------------------------------
-   Versões anteriores (v1.379.0 … v1.379.0): CHANGELOG_APP.md, na raiz do
+   Versões anteriores (v1.380.0 … v1.380.0): CHANGELOG_APP.md, na raiz do
    repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
    das 5 versões mais recentes deste cabeçalho.
 
@@ -67,7 +66,7 @@
          O navegador aplica o mapa também aos imports estáticos dentro dos
          módulos (cofre-app.js → ./cofre-api.js etc.). -->
     <!-- RZ-IMPORTMAP:INICIO -->
-    <script type="importmap">{"imports":{"./js/cadastros.js":"./js/cadastros.js?v=1.2.0","./js/financeiro.js":"./js/financeiro.js?v=1.55.0","./js/fechamento.js":"./js/fechamento.js?v=1.13.0","./js/contratos.js":"./js/contratos.js?v=1.52.0","./js/minutas.js":"./js/minutas.js?v=1.4.0","./js/vitrine.js":"./js/vitrine.js?v=1.5.2","./js/imoveis.js":"./js/imoveis.js?v=1.7.2","./js/cofre-api.js":"./js/cofre-api.js?v=1.50.0","./js/cofre-app.js":"./js/cofre-app.js?v=1.47.0","./js/cofre-ativos.js":"./js/cofre-ativos.js?v=1.94.0","./js/cofre-controles.js":"./js/cofre-controles.js?v=1.51.0","./js/cofre-documentos.js":"./js/cofre-documentos.js?v=2.35.0","./js/cofre-imagem.js":"./js/cofre-imagem.js?v=1.1.0","./js/cofre-estado.js":"./js/cofre-estado.js?v=1.5.2","./js/cofre-navegacao.js":"./js/cofre-navegacao.js?v=1.9.3","./js/cofre-ui.js":"./js/cofre-ui.js?v=1.7.2","./js/cofre-validacoes.js":"./js/cofre-validacoes.js?v=2.5.0","./js/comum-licenca.js":"./js/comum-licenca.js?v=1.8.0","./js/comum-renovacao.js":"./js/comum-renovacao.js?v=1.3.5","./js/comum-minha-empresa.js":"./js/comum-minha-empresa.js?v=1.15.0","./js/comum-pessoas.js":"./js/comum-pessoas.js?v=1.210.0","./js/comum-sobre.js":"./js/comum-sobre.js?v=1.5.0","./js/comum-endereco.js":"./js/comum-endereco.js?v=1.2.0","./js/comum-partes.js":"./js/comum-partes.js?v=1.0.0","./js/resultados.js":"./js/resultados.js?v=2.9.0","./js/indicadores.js":"./js/indicadores.js?v=1.0.0","./js/configuracao-inicial.js":"./js/configuracao-inicial.js?v=1.0.1","./js/relatorios-executivos.js":"./js/relatorios-executivos.js?v=1.3.0","./js/raiz-eventos.js":"./js/raiz-eventos.js?v=1.0.0","./js/raiz-device.js":"./js/raiz-device.js?v=1.0.0","./js/raiz-ui.js":"./js/raiz-ui.js?v=1.4.0","./js/fiscal.js":"./js/fiscal.js?v=1.5.2","./js/ativos/ativos-boot.js":"./js/ativos/ativos-boot.js?v=1.4.0","./js/ativos/ativos-markup.js":"./js/ativos/ativos-markup.js?v=1.61.0","./js/nucleo/porta.js":"./js/nucleo/porta.js?v=1.4.0","./js/partes.js":"./js/partes.js?v=1.0.2","./js/conta.js":"./js/conta.js?v=1.0.1"}}</script>
+    <script type="importmap">{"imports":{"./js/cadastros.js":"./js/cadastros.js?v=1.2.0","./js/financeiro.js":"./js/financeiro.js?v=1.56.0","./js/fechamento.js":"./js/fechamento.js?v=1.13.0","./js/contratos.js":"./js/contratos.js?v=1.53.0","./js/minutas.js":"./js/minutas.js?v=1.4.0","./js/vitrine.js":"./js/vitrine.js?v=1.5.2","./js/imoveis.js":"./js/imoveis.js?v=1.7.2","./js/cofre-api.js":"./js/cofre-api.js?v=1.50.0","./js/cofre-app.js":"./js/cofre-app.js?v=1.47.0","./js/cofre-ativos.js":"./js/cofre-ativos.js?v=1.94.0","./js/cofre-controles.js":"./js/cofre-controles.js?v=1.51.0","./js/cofre-documentos.js":"./js/cofre-documentos.js?v=2.35.0","./js/cofre-imagem.js":"./js/cofre-imagem.js?v=1.1.0","./js/cofre-estado.js":"./js/cofre-estado.js?v=1.5.2","./js/cofre-navegacao.js":"./js/cofre-navegacao.js?v=1.9.3","./js/cofre-ui.js":"./js/cofre-ui.js?v=1.7.2","./js/cofre-validacoes.js":"./js/cofre-validacoes.js?v=2.5.0","./js/comum-licenca.js":"./js/comum-licenca.js?v=1.8.0","./js/comum-renovacao.js":"./js/comum-renovacao.js?v=1.3.5","./js/comum-minha-empresa.js":"./js/comum-minha-empresa.js?v=1.15.0","./js/comum-pessoas.js":"./js/comum-pessoas.js?v=1.210.0","./js/comum-sobre.js":"./js/comum-sobre.js?v=1.5.0","./js/comum-endereco.js":"./js/comum-endereco.js?v=1.2.0","./js/comum-partes.js":"./js/comum-partes.js?v=1.0.0","./js/resultados.js":"./js/resultados.js?v=2.9.0","./js/indicadores.js":"./js/indicadores.js?v=1.0.0","./js/configuracao-inicial.js":"./js/configuracao-inicial.js?v=1.0.1","./js/relatorios-executivos.js":"./js/relatorios-executivos.js?v=1.3.0","./js/raiz-eventos.js":"./js/raiz-eventos.js?v=1.0.0","./js/raiz-device.js":"./js/raiz-device.js?v=1.0.0","./js/raiz-ui.js":"./js/raiz-ui.js?v=1.4.0","./js/fiscal.js":"./js/fiscal.js?v=1.5.2","./js/ativos/ativos-boot.js":"./js/ativos/ativos-boot.js?v=1.4.0","./js/ativos/ativos-markup.js":"./js/ativos/ativos-markup.js?v=1.61.0","./js/nucleo/porta.js":"./js/nucleo/porta.js?v=1.4.0","./js/partes.js":"./js/partes.js?v=1.0.2","./js/conta.js":"./js/conta.js?v=1.0.1"}}</script>
     <!-- RZ-IMPORTMAP:FIM -->
 
     <!-- ===== PWA: permite "instalar" o app no celular (Android e iPhone) ===== -->
@@ -1335,6 +1334,29 @@
         .rz-vazio > *{position:relative;z-index:1}
         .rz-vazio::after{content:"";position:absolute;left:50%;bottom:-8px;width:260px;height:110px;transform:translateX(-50%);background:var(--sage);opacity:.13;pointer-events:none;
             -webkit-mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 240 150' fill='none' stroke='black' stroke-width='1.6' stroke-linecap='round'%3E%3Cpath d='M120 0 C120 40 118 80 120 140'/%3E%3Cpath d='M120 10 C100 30 70 40 40 70 C30 80 20 100 14 120'/%3E%3Cpath d='M120 10 C140 30 170 40 200 70 C210 80 220 100 226 120'/%3E%3Cpath d='M118 40 C95 55 80 75 70 110'/%3E%3Cpath d='M122 40 C145 55 160 75 170 110'/%3E%3Cpath d='M70 55 C55 60 45 70 30 72'/%3E%3Cpath d='M170 55 C185 60 195 70 210 72'/%3E%3Cpath d='M119 80 C108 95 100 115 96 140'/%3E%3Cpath d='M121 80 C132 95 140 115 144 140'/%3E%3C/svg%3E") center bottom/100% 100% no-repeat;mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 240 150' fill='none' stroke='black' stroke-width='1.6' stroke-linecap='round'%3E%3Cpath d='M120 0 C120 40 118 80 120 140'/%3E%3Cpath d='M120 10 C100 30 70 40 40 70 C30 80 20 100 14 120'/%3E%3Cpath d='M120 10 C140 30 170 40 200 70 C210 80 220 100 226 120'/%3E%3Cpath d='M118 40 C95 55 80 75 70 110'/%3E%3Cpath d='M122 40 C145 55 160 75 170 110'/%3E%3Cpath d='M70 55 C55 60 45 70 30 72'/%3E%3Cpath d='M170 55 C185 60 195 70 210 72'/%3E%3Cpath d='M119 80 C108 95 100 115 96 140'/%3E%3Cpath d='M121 80 C132 95 140 115 144 140'/%3E%3C/svg%3E") center bottom/100% 100% no-repeat}
+
+        /* ============================================================================================================
+           v1.385.0 — UX ONDA 3 (CSS que faltou na 1.383.0) e ONDA 4a (Financeiro da ficha).
+           .rz-more-topo — o ⋮ do cabeçalho de entidade · .rz-add — "+ Adicionar …" como última linha do card.
+           .rz-fc-resumo — Recebido · Despesas · Em atraso numa faixa, sem caixas · .rz-fc-atalhos — "a classificar" e
+           "sem conciliação" · .rz-fc-meses — a lista dos meses direto no card que já existe.
+           ============================================================================================================ */
+        .rz-entity .rz-more-topo{margin:0 -8px 0 2px;width:44px;height:44px;color:var(--ink)}
+        .rz-entity .rz-more-topo svg{width:21px;height:21px}
+        .rz-add{display:flex;align-items:center;gap:10px;width:100%;min-height:48px;padding:0;background:none;border:0;border-top:1px solid var(--line);font:600 14px var(--font-body);color:var(--ramo-txt);cursor:pointer;text-align:left}
+        .rz-add svg{width:34px;height:18px;flex:none}
+        .rz-card > .rz-add:first-child{border-top:0}
+        .rz-add.rz-off{opacity:.5}
+        .rz-fc-resumo{display:flex;gap:12px;padding:6px 0 10px;border-bottom:1px solid var(--line);margin-bottom:2px}
+        .rz-fc-resumo > *{flex:1;min-width:0;text-align:left;background:none;border:0;padding:0;font:inherit}
+        .rz-fc-resumo small{display:block;font-size:12.5px;color:var(--muted)}
+        .rz-fc-resumo b{display:block;font:700 15px var(--font-title);letter-spacing:-.01em;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+        .rz-fc-resumo b.rz-in{color:var(--success)}
+        .rz-fc-resumo button.rz-bad{cursor:pointer}.rz-fc-resumo button.rz-bad small,.rz-fc-resumo button.rz-bad b{color:var(--danger)}
+        .rz-fc-atalhos{display:flex;flex-wrap:wrap;gap:6px 14px;padding:8px 0 2px}
+        .rz-fc-atalho{display:inline-flex;align-items:center;gap:2px;min-height:32px;padding:0;background:none;border:0;font:600 13px var(--font-body);color:var(--warning);cursor:pointer}
+        .rz-fc-atalho svg{width:15px;height:15px}
+        .rz-fc-meses .rz-row:last-child{border-bottom:0}
     </style>
 
 </head>
@@ -4019,7 +4041,7 @@
         // texto certo toda vez (esqueci 5 versões seguidas, de v1.37.1 até
         // v1.38.3). Agora só precisa mudar UMA linha aqui a cada release;
         // window.onload aplica nos dois lugares automaticamente.
-        const APP_VERSAO = "Beta v1.384.0"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
+        const APP_VERSAO = "Beta v1.385.0"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
 
         // ====================================================================
         // v1.105.0 — HELPERS DE SUPERFÍCIE DA GRAMÁTICA ÚNICA
