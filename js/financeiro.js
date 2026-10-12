@@ -1,7 +1,14 @@
 // ============================================================================
 // financeiro.js — Raiz Patrimônio · Financeiro (Recebimentos · Atrasados · Saídas
 //                  · conciliação de extrato · recibo · detalhe do recebimento)
-// Versão: 1.58.0 · 12/10/2026
+// Versão: 1.59.0 · 12/10/2026
+//
+// v1.59.0 (12/10/2026, sessão 20261012-0320-ux-busca, demanda a05ad2ee; Nicola 12/10 03:18: "o seletor no Usos aparece
+// dentro de um card Usos com o seletor à frente deste título. Ajuste isto nos 2 financeiros") — a visão por competência
+// (ficha do contrato e do ativo) é um card só, "Financeiro", com ‹ ano › à frente do título; o resumo, os atalhos e os
+// meses ficam dentro dele (fcEnvolver).
+//
+// Versão anterior: 1.58.0 · 12/10/2026
 //
 // v1.58.0 (12/10/2026, sessão 20261012-0300-ux-onda5, demanda a05ad2ee; Nicola 12/10 02:50: "padronize os seletores de ano
 // para o padrão das setinhas. No financeiro pode deixar sem a opção todos") — na visão por competência (ficha do contrato
@@ -34,17 +41,11 @@
 //   · "Unir partes" volta a uma retirada só, com o tipo escolhido (fn_retirada_unir);
 //   · cada parte leva "parte k de n" nas listas; uma parte (2…n) não tem "Excluir" (D103) e excluir a original avisa
 //     que as partes vão junto.
-//
-// Versão anterior: 1.54.0 · 11/10/2026
-//
-// v1.54.0 (11/10/2026, sessão 20261008-1231-pessoas-ativos, demanda 0aa64e93; F13.8, ficha v1.4.0 e protótipo v1.3.0; de acordo do Nicola 11/10 22:55) — quadro Retiradas
-// extraordinárias (Balanço › Sócios por mês) ganha "Ver relatório" (relatório Retiradas extraordinárias). Os textos de
-// apoio deixam de usar "fora do fluxo" como sinônimo: dizem só que a retirada extraordinária não abate o saldo a retirar.
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.53.0 … v1.53.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.54.0 … v1.54.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '1.58.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.59.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 
 // v1.17.0 (Fase 1 do wrapper de escrita, rollout Financeiro) — emitirEscrita
 // é o evento padrão pra "algo mudou que módulos DE FORA deste arquivo podem
@@ -5962,7 +5963,7 @@ export async function rzFinCompetencias(alvo, escopo = {}) {
     const ant = fcEstado[el.id];
     const mesmo = ant && JSON.stringify(ant.escopo) === JSON.stringify(escopo);
     const st = fcEstado[el.id] = { escopo, ano: mesmo && ant.ano !== 'todos' ? ant.ano : String(new Date().getFullYear()), aberto: mesmo ? ant.aberto : {}, itens: [] };
-    el.innerHTML = fcChipsAno(st) + `<p class="text-xs text-center py-3" style="color:var(--sage)">Carregando…</p>`;
+    fcEnvolver(el, st, `<p class="text-xs text-center py-3" style="color:var(--sage)">Carregando…</p>`);
     fcLigar(el);
     try {
         st.itens = await fcCarregar(escopo, st.ano);
@@ -5970,17 +5971,24 @@ export async function rzFinCompetencias(alvo, escopo = {}) {
         fcDesenhar(el);
     } catch (e) {
         console.error('[financeiro] competências', e);
-        el.innerHTML = fcChipsAno(st) + `<div class="rz-card"><div class="rz-empty"><div class="rz-ic"><svg data-lucide="alert-circle"></svg></div><p>Não consegui carregar o financeiro agora.<br><small style="color:var(--muted)">${fcEsc(e?.message || e)}</small></p></div></div>`;
+        fcEnvolver(el, st, `<div class="rz-empty"><div class="rz-ic"><svg data-lucide="alert-circle"></svg></div><p>Não consegui carregar o financeiro agora.<br><small style="color:var(--muted)">${fcEsc(e?.message || e)}</small></p></div>`);
         fcLigar(el);
         if (typeof lucide !== 'undefined') lucide.createIcons();
     }
 }
 
+// v1.59.0 (Nicola 12/10 03:18: "veja que o seletor no Usos aparece dentro de um card Usos com o seletor à frente deste
+// título. Ajuste isto nos 2 financeiros") — a visão por competência é UM card "Financeiro" com ‹ ano › à frente do título.
+// Dentro de um card que já existe (ficha do contrato), só o cabeçalho; fora (ficha do ativo), o card inteiro.
+function fcEnvolver(el, st, corpo) {
+    const cab = `<div class="rz-card-h"><h3>Financeiro</h3><span class="rz-sub">${fcChipsAno(st)}</span></div>`;
+    el.innerHTML = el.closest('.rz-card') ? cab + corpo : `<div class="rz-card">${cab}${corpo}</div>`;
+}
 function fcChipsAno(st) {
     // v1.58.0 (Nicola 12/10 02:50: "padronize os seletores de ano para o padrão das setinhas. No financeiro pode deixar
     // sem a opção todos") — ‹ ano › (classe .rz-ano do index), de 10 anos atrás até o ano atual.
     const a = new Date().getFullYear(), y = Number(st.ano) || a;
-    return `<div class="rz-ano-linha"><span class="rz-ano"><button type="button" data-fc-ano="${y - 1}" aria-label="Ano anterior"${y <= a - 10 ? ' disabled' : ''}><svg data-lucide="chevron-left"></svg></button><b>${y}</b><button type="button" data-fc-ano="${y + 1}" aria-label="Próximo ano"${y >= a ? ' disabled' : ''}><svg data-lucide="chevron-right"></svg></button></span></div>`;
+    return `<span class="rz-ano"><button type="button" data-fc-ano="${y - 1}" aria-label="Ano anterior"${y <= a - 10 ? ' disabled' : ''}><svg data-lucide="chevron-left"></svg></button><b>${y}</b><button type="button" data-fc-ano="${y + 1}" aria-label="Próximo ano"${y >= a ? ' disabled' : ''}><svg data-lucide="chevron-right"></svg></button></span>`;
 }
 
 async function fcCarregar(e, ano) {
@@ -6092,9 +6100,10 @@ function fcDesenhar(el) {
                 <div class="rz-tx"><b>${fcRotuloMes(m)}</b><span>${sub}</span></div>
                 <div class="rz-rt"><b class="${falta > 0 ? '' : (rec - desp > 0 ? 'rz-in' : '')}">${falta > 0 ? formatarMoedaBR(falta) : moedaSinal(rec - desp)}</b>${situacao(l)}</div>
                 <svg data-lucide="${aberto ? 'chevron-up' : 'chevron-down'}" class="rz-chev"></svg></div>` + (aberto ? linhasCat(l, m) : ''); }).join('');
-    const lista = meses.length ? (dentroDeCard ? `<div class="rz-fc-meses">${linhasMes}</div>` : `<div class="rz-card rz-list">${linhasMes}</div>`)
+    const lista = meses.length ? `<div class="rz-fc-meses">${linhasMes}</div>` // v1.59.0 — sempre dentro do card Financeiro
         : `<div class="rz-empty"><div class="rz-ic"><svg data-lucide="wallet"></svg></div><p>Nenhum movimento ${st.ano === 'todos' ? 'ainda' : 'em ' + st.ano}.</p></div>`;
-    el.innerHTML = fcChipsAno(st) + kpis + pend + lista;
+    void dentroDeCard;
+    fcEnvolver(el, st, kpis + pend + lista);
     fcLigar(el);
     if (typeof lucide !== 'undefined') lucide.createIcons();
 }

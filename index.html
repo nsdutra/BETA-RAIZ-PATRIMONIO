@@ -6,9 +6,17 @@
    (base derivada do RUMO v7.4.2 — histórico de versões anteriores
    preservado abaixo para referência técnica)
 
-   VERSÃO: Beta v1.389.0
-   LINHAS: 16270
-   DATA: 12/10/2026 (sessão 20261012-0300-ux-onda5, demanda a05ad2ee)
+   VERSÃO: Beta v1.390.0
+   LINHAS: 16334
+   DATA: 12/10/2026 (sessão 20261012-0320-ux-busca, demanda a05ad2ee)
+   NOVIDADES (Beta v1.390.0) — Busca pela lupa do topo e Financeiro das fichas num card só (Nicola 12/10 03:18). A lupa
+   do cabeçalho é a busca da tela aberta: abre em leque para a esquerda por cima do nome da empresa, digita e recolhe;
+   com filtro, o ícone fica claro com um ponto dourado; tocar de novo limpa e abre. Tela com busca por sheet (Agenda,
+   Vitrine) abre o sheet; tela sem busca abre a busca em tudo. As barras de busca das telas ficam escondidas (o topo
+   escreve nelas — rzHdrBusca/rzBuscaDaTela/rzHdrBuscaSync); o "+" vai para a direita e, em Ativos e Contratos, sobe
+   para a linha das abas. Financeiro das fichas: card "Financeiro" com ‹ ano › à frente do título, como Usos
+   (financeiro.js 1.59.0, contratos.js 1.55.0). Nenhum objeto de banco.
+   Versão anterior (Beta v1.389.0):
    NOVIDADES (Beta v1.389.0) — UX onda 5: voltar por plataforma (estudo PROTOTIPO_UX_DENSIDADE_RAMOS_RAIZ v1.2.0, D4;
    "Vamos adiante" 12/10 02:46) e ajustes pedidos às 02:50. <html> recebe rz-plat-android/ios/web. Android: o "‹ Tela"
    some (o voltar do celular faz, e agora fecha também as subtelas do Cofre em Ativos); iPhone e computador: só a seta.
@@ -35,15 +43,8 @@
    Fique por dentro), fichas do contrato e do ativo, Minha empresa e Licença. Chip fica só para filtrar lista. Em todo
    chip e aba o número é só o número, sem pílula (vermelho quando há atraso). Só CSS. Nenhum objeto de banco.
    Versão anterior (Beta v1.385.0):
-   NOVIDADES (Beta v1.385.0) — UX onda 4a: Financeiro da ficha sem moldura dentro de moldura (Nicola 12/10 02:15:
-   "muita moldura estreitando as informações … Vamos avançar"). O card "Pendências" sai: o atraso vira o 3º número da
-   faixa Recebido · Despesas · Em atraso (toque leva aos atrasados) e "a classificar"/"sem conciliação" viram atalhos
-   curtos; a lista dos meses entra direto no card e mostra o que falta receber. Volta o CSS de .rz-add e .rz-more-topo,
-   que não tinha entrado na 1.383.0 (o "+ Adicionar" aparecia com o ícone em cima do texto). financeiro.js 1.56.0,
-   contratos.js 1.53.0. Nenhum objeto de banco.
-   Versão anterior (Beta v1.384.0):
    ------------------------------------------------------------------
-   Versões anteriores (v1.384.0 … v1.384.0): CHANGELOG_APP.md, na raiz do
+   Versões anteriores (v1.385.0 … v1.385.0): CHANGELOG_APP.md, na raiz do
    repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
    das 5 versões mais recentes deste cabeçalho.
 
@@ -71,7 +72,7 @@
          O navegador aplica o mapa também aos imports estáticos dentro dos
          módulos (cofre-app.js → ./cofre-api.js etc.). -->
     <!-- RZ-IMPORTMAP:INICIO -->
-    <script type="importmap">{"imports":{"./js/cadastros.js":"./js/cadastros.js?v=1.2.0","./js/financeiro.js":"./js/financeiro.js?v=1.58.0","./js/fechamento.js":"./js/fechamento.js?v=1.13.0","./js/contratos.js":"./js/contratos.js?v=1.54.0","./js/minutas.js":"./js/minutas.js?v=1.4.0","./js/vitrine.js":"./js/vitrine.js?v=1.5.2","./js/imoveis.js":"./js/imoveis.js?v=1.7.2","./js/cofre-api.js":"./js/cofre-api.js?v=1.50.0","./js/cofre-app.js":"./js/cofre-app.js?v=1.47.0","./js/cofre-ativos.js":"./js/cofre-ativos.js?v=1.96.0","./js/cofre-controles.js":"./js/cofre-controles.js?v=1.51.0","./js/cofre-documentos.js":"./js/cofre-documentos.js?v=2.35.0","./js/cofre-imagem.js":"./js/cofre-imagem.js?v=1.1.0","./js/cofre-estado.js":"./js/cofre-estado.js?v=1.5.2","./js/cofre-navegacao.js":"./js/cofre-navegacao.js?v=1.9.3","./js/cofre-ui.js":"./js/cofre-ui.js?v=1.7.2","./js/cofre-validacoes.js":"./js/cofre-validacoes.js?v=2.5.0","./js/comum-licenca.js":"./js/comum-licenca.js?v=1.8.0","./js/comum-renovacao.js":"./js/comum-renovacao.js?v=1.3.5","./js/comum-minha-empresa.js":"./js/comum-minha-empresa.js?v=1.15.0","./js/comum-pessoas.js":"./js/comum-pessoas.js?v=1.210.0","./js/comum-sobre.js":"./js/comum-sobre.js?v=1.5.0","./js/comum-endereco.js":"./js/comum-endereco.js?v=1.2.0","./js/comum-partes.js":"./js/comum-partes.js?v=1.0.0","./js/resultados.js":"./js/resultados.js?v=2.9.0","./js/indicadores.js":"./js/indicadores.js?v=1.1.0","./js/configuracao-inicial.js":"./js/configuracao-inicial.js?v=1.0.1","./js/relatorios-executivos.js":"./js/relatorios-executivos.js?v=1.3.0","./js/raiz-eventos.js":"./js/raiz-eventos.js?v=1.0.0","./js/raiz-device.js":"./js/raiz-device.js?v=1.0.0","./js/raiz-ui.js":"./js/raiz-ui.js?v=1.4.0","./js/fiscal.js":"./js/fiscal.js?v=1.5.2","./js/ativos/ativos-boot.js":"./js/ativos/ativos-boot.js?v=1.4.0","./js/ativos/ativos-markup.js":"./js/ativos/ativos-markup.js?v=1.61.0","./js/nucleo/porta.js":"./js/nucleo/porta.js?v=1.4.0","./js/partes.js":"./js/partes.js?v=1.0.2","./js/conta.js":"./js/conta.js?v=1.0.1"}}</script>
+    <script type="importmap">{"imports":{"./js/cadastros.js":"./js/cadastros.js?v=1.2.0","./js/financeiro.js":"./js/financeiro.js?v=1.59.0","./js/fechamento.js":"./js/fechamento.js?v=1.13.0","./js/contratos.js":"./js/contratos.js?v=1.55.0","./js/minutas.js":"./js/minutas.js?v=1.4.0","./js/vitrine.js":"./js/vitrine.js?v=1.5.2","./js/imoveis.js":"./js/imoveis.js?v=1.7.2","./js/cofre-api.js":"./js/cofre-api.js?v=1.50.0","./js/cofre-app.js":"./js/cofre-app.js?v=1.47.0","./js/cofre-ativos.js":"./js/cofre-ativos.js?v=1.96.0","./js/cofre-controles.js":"./js/cofre-controles.js?v=1.51.0","./js/cofre-documentos.js":"./js/cofre-documentos.js?v=2.35.0","./js/cofre-imagem.js":"./js/cofre-imagem.js?v=1.1.0","./js/cofre-estado.js":"./js/cofre-estado.js?v=1.5.2","./js/cofre-navegacao.js":"./js/cofre-navegacao.js?v=1.9.3","./js/cofre-ui.js":"./js/cofre-ui.js?v=1.7.2","./js/cofre-validacoes.js":"./js/cofre-validacoes.js?v=2.5.0","./js/comum-licenca.js":"./js/comum-licenca.js?v=1.8.0","./js/comum-renovacao.js":"./js/comum-renovacao.js?v=1.3.5","./js/comum-minha-empresa.js":"./js/comum-minha-empresa.js?v=1.15.0","./js/comum-pessoas.js":"./js/comum-pessoas.js?v=1.210.0","./js/comum-sobre.js":"./js/comum-sobre.js?v=1.5.0","./js/comum-endereco.js":"./js/comum-endereco.js?v=1.2.0","./js/comum-partes.js":"./js/comum-partes.js?v=1.0.0","./js/resultados.js":"./js/resultados.js?v=2.9.0","./js/indicadores.js":"./js/indicadores.js?v=1.1.0","./js/configuracao-inicial.js":"./js/configuracao-inicial.js?v=1.0.1","./js/relatorios-executivos.js":"./js/relatorios-executivos.js?v=1.3.0","./js/raiz-eventos.js":"./js/raiz-eventos.js?v=1.0.0","./js/raiz-device.js":"./js/raiz-device.js?v=1.0.0","./js/raiz-ui.js":"./js/raiz-ui.js?v=1.4.0","./js/fiscal.js":"./js/fiscal.js?v=1.5.2","./js/ativos/ativos-boot.js":"./js/ativos/ativos-boot.js?v=1.4.0","./js/ativos/ativos-markup.js":"./js/ativos/ativos-markup.js?v=1.61.0","./js/nucleo/porta.js":"./js/nucleo/porta.js?v=1.4.0","./js/partes.js":"./js/partes.js?v=1.0.2","./js/conta.js":"./js/conta.js?v=1.0.1"}}</script>
     <!-- RZ-IMPORTMAP:FIM -->
 
     <!-- ===== PWA: permite "instalar" o app no celular (Android e iPhone) ===== -->
@@ -1440,6 +1441,27 @@
         .rz-ano svg{width:17px;height:17px}
         .rz-ano-linha{display:flex;justify-content:flex-end;margin:-4px 0 4px}
         #jornal-data{display:none}
+        /* ============================================================================================================
+           v1.390.0 — BUSCA PELA LUPA DO TOPO (Nicola 12/10 03:18) e Financeiro das fichas num card só.
+           As barras de busca das telas ficam escondidas (o campo do topo escreve nelas); o "+" que dividia a linha com a
+           barra vai para a direita, e em Ativos/Contratos sobe para a linha das abas.
+           ============================================================================================================ */
+        .rz-hdr-busca{position:absolute;left:12px;top:calc(10px + env(safe-area-inset-top));height:44px;right:120px;z-index:2;display:flex;align-items:center;
+            background:var(--card);border-radius:22px;box-shadow:0 4px 14px rgba(5,15,12,.25);padding:0 16px;
+            transform:scaleX(0);transform-origin:right center;opacity:0;pointer-events:none;transition:transform var(--m-base,200ms) var(--m-ease,ease),opacity var(--m-rapido,120ms)}
+        .rz-hdr-busca.rz-aberta{transform:scaleX(1);opacity:1;pointer-events:auto}
+        .rz-hdr-busca input{flex:1;min-width:0;height:40px;border:0;background:none;font:400 16px var(--font-body);color:var(--ink);outline:none}
+        .rz-hdr .rz-busca-hdr{position:relative;z-index:3}
+        .rz-hdr .rz-busca-hdr.rz-filtrado{background:rgba(255,255,255,.16)}
+        .rz-hdr .rz-busca-hdr.rz-filtrado::after{content:"";position:absolute;top:6px;right:6px;width:8px;height:8px;border-radius:50%;background:var(--brass)}
+        .rz-hdr.rz-buscando .rz-brand{visibility:hidden}
+        @media (prefers-reduced-motion:reduce){.rz-hdr-busca{transition:none}}
+        #main-content .rz-topo > .rz-search,#main-content .rz-topo > .rz-search-x,#main-content .rz-fin-busca,#main-content .rz-fin-lupa{display:none!important}
+        #main-content .rz-topo{justify-content:flex-end}
+        #main-content .rz-topo:not(:has(.rz-primary)){display:none}
+        #main-content .rz-vista{padding-right:56px}
+        #tab-contratos > .rz-vista + * + .rz-topo,#tab-contratos > .rz-vista + .rz-topo,#tab-ativos [data-screen="ativos"] > .rz-topo{margin-top:-58px;position:relative;z-index:1;pointer-events:none}
+        #tab-contratos .rz-topo .rz-primary,#tab-ativos [data-screen="ativos"] > .rz-topo .rz-primary{pointer-events:auto}
     </style>
 
 </head>
@@ -2150,7 +2172,10 @@
             <!-- v1.303.0 (UX F2.2, UXR-08) — o sino saiu do cabeçalho: Alertas é a 5ª aba da barra inferior. -->
             <!-- v1.345.0 (F21) — lente de ramo: vale para o app inteiro; muda a tonalidade (rzAbrirLenteRamo) -->
             <!-- v1.381.0 (UX onda 2, D7) — topo com busca, ramo e avatar; a Raiz IA desceu para o centro da barra -->
-            <button type="button" id="btn-busca-header" class="rz-busca-hdr" onclick="rzAbrirBuscaUniversal()" title="Buscar em tudo" aria-label="Buscar em tudo"><svg data-lucide="search"></svg></button>
+            <!-- v1.390.0 (Nicola 12/10 03:18) — a lupa do topo é a busca da tela aberta: abre em leque para a esquerda, por
+                 cima do nome da empresa; filtrado, o ícone muda; tocar de novo limpa e abre. Sem busca na tela, busca em tudo. -->
+            <div class="rz-hdr-busca" id="rz-hdr-busca"><input type="search" id="rz-hdr-busca-q" class="rz-raw" enterkeyhint="search" autocomplete="off" aria-label="Buscar"></div>
+            <button type="button" id="btn-busca-header" class="rz-busca-hdr" onclick="rzHdrBusca()" title="Buscar" aria-label="Buscar"><svg data-lucide="search"></svg></button>
             <button type="button" id="btn-ramo-lente" class="rz-lente" onclick="rzAbrirLenteRamo()" title="Todo o patrimônio" aria-label="Ramo: Todo o patrimônio"><svg data-lucide="layers"></svg></button>
             <button type="button" id="btn-conta-avatar" class="rz-avatar" onclick="abrirMenuConta()" title="Menu" aria-label="Menu">
                 <svg data-lucide="user" id="icone-conta-avatar-fallback" style="width:18px;height:18px"></svg>
@@ -4143,7 +4168,7 @@
         // texto certo toda vez (esqueci 5 versões seguidas, de v1.37.1 até
         // v1.38.3). Agora só precisa mudar UMA linha aqui a cada release;
         // window.onload aplica nos dois lugares automaticamente.
-        const APP_VERSAO = "Beta v1.389.0"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
+        const APP_VERSAO = "Beta v1.390.0"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
 
         // ====================================================================
         // v1.105.0 — HELPERS DE SUPERFÍCIE DA GRAMÁTICA ÚNICA
@@ -9143,6 +9168,7 @@ async function criarLinkVitrineSupabase(token, idsSelecionados) {
                 btnDestaque.classList.add('bottomnav-active');
             }
 
+            if (typeof rzHdrBuscaSync === 'function') rzHdrBuscaSync(); // v1.390.0 — a lupa do topo reflete o filtro da tela
             devLog("NAVEGACAO", `Usuário acessou a aba: ${tabId}`);
 
             // v1.199.0 (bc9df144) — tab-developer eliminada; dev_inicializar()
@@ -15996,6 +16022,44 @@ async function criarLinkVitrineSupabase(token, idsSelecionados) {
                 if (dx > 80 && dy < 50) history.back();
             }, { passive: true });
         })();
+
+        // v1.390.0 (Nicola 12/10 03:18: "a lupa será usada apenas a do cabeçalho dentro do contexto da tela. Ao clicar nela
+        // abre tipo leque pra esquerda acima do nome da empresa, digita e depois recolhe. Ao clicar novamente abre. Se tiver
+        // filtrado, muda levemente o estilo ou cor do ícone; ao clicar nele limpa e abre novamente.")
+        // A barra de busca de cada tela continua no lugar (escondida): o campo do topo só escreve nela e dispara o mesmo
+        // 'input', então cada tela filtra como antes (rzBuscaInline, distribFiltrar…). Tela cuja busca é um botão
+        // (Agenda, Vitrine) abre o sheet dela; tela sem busca abre a busca em tudo.
+        function rzBuscaDaTela() {
+            const sec = document.querySelector('#main-content .tab-content.active'); if (!sec) return null;
+            const el = [...sec.querySelectorAll('.rz-search')].find(b => !b.closest('.hidden,[hidden]'));
+            if (!el) return null;
+            if (el.tagName === 'BUTTON') return { botao: el };
+            const inp = el.querySelector('input'); return inp ? { inp } : null;
+        }
+        function rzHdrBuscaSync() {
+            const lupa = document.getElementById('btn-busca-header'), caixa = document.getElementById('rz-hdr-busca');
+            if (!lupa || !caixa) return;
+            caixa.classList.remove('rz-aberta'); document.querySelector('.rz-hdr')?.classList.remove('rz-buscando');
+            const alvo = rzBuscaDaTela();
+            lupa.classList.toggle('rz-filtrado', !!(alvo && alvo.inp && alvo.inp.value.trim()));
+        }
+        function rzHdrBusca() {
+            const caixa = document.getElementById('rz-hdr-busca'), q = document.getElementById('rz-hdr-busca-q');
+            const lupa = document.getElementById('btn-busca-header'), hdr = document.querySelector('.rz-hdr');
+            const alvo = rzBuscaDaTela();
+            if (!alvo) { rzAbrirBuscaUniversal(); return; }
+            if (alvo.botao) { alvo.botao.click(); return; }
+            if (caixa.classList.contains('rz-aberta')) { q.blur(); return; }
+            if (alvo.inp.value) { alvo.inp.value = ''; alvo.inp.dispatchEvent(new Event('input', { bubbles: true })); }
+            lupa.classList.remove('rz-filtrado');
+            caixa.style.right = (hdr.getBoundingClientRect().right - lupa.getBoundingClientRect().left + 4) + 'px';
+            q.value = ''; q.placeholder = alvo.inp.placeholder || 'Buscar';
+            q.oninput = () => { alvo.inp.value = q.value; alvo.inp.dispatchEvent(new Event('input', { bubbles: true })); };
+            q.onkeydown = (ev) => { if (ev.key === 'Enter') { ev.preventDefault(); alvo.inp.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter' })); q.blur(); } };
+            q.onblur = () => setTimeout(() => { caixa.classList.remove('rz-aberta'); hdr.classList.remove('rz-buscando'); lupa.classList.toggle('rz-filtrado', !!alvo.inp.value.trim()); }, 120);
+            caixa.classList.add('rz-aberta'); hdr.classList.add('rz-buscando');
+            setTimeout(() => q.focus(), 40);
+        }
 
         function rzBuscaInline(input, aoMudar) {
             const el = typeof input === 'string' ? document.getElementById(input) : input;

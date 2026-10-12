@@ -4,6 +4,20 @@ Histórico completo de versões do `index.html`, movido automaticamente pelo `ge
 
 ---
 
+NOVIDADES (Beta v1.385.0) — UX onda 4a: Financeiro da ficha sem moldura dentro de moldura (Nicola 12/10 02:15:
+"muita moldura estreitando as informações … Vamos avançar"). O card "Pendências" sai: o atraso vira o 3º número da
+faixa Recebido · Despesas · Em atraso (toque leva aos atrasados) e "a classificar"/"sem conciliação" viram atalhos
+curtos; a lista dos meses entra direto no card e mostra o que falta receber. Volta o CSS de .rz-add e .rz-more-topo,
+que não tinha entrado na 1.383.0 (o "+ Adicionar" aparecia com o ícone em cima do texto). financeiro.js 1.56.0,
+contratos.js 1.53.0. Nenhum objeto de banco.
+Versão anterior (Beta v1.384.0):
+------------------------------------------------------------------
+Versões anteriores (v1.384.0 … v1.384.0): CHANGELOG_APP.md, na raiz do
+repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
+das 5 versões mais recentes deste cabeçalho.
+
+---
+
 NOVIDADES (Beta v1.384.0) — UX onda 3b: um jeito só de agir na ficha do ativo (estudo PROTOTIPO_UX_DENSIDADE_
 RAMOS_RAIZ v1.2.0, D11/D12; "pode avançar" do Nicola 12/10 01:53). O ⋮ do topo da ficha reúne todas as ações em
 grupos (Ativo · Usos e contratos · Controles · Financeiro · Propriedade · Anexos · Situação); os ⋮ dos cabeçalhos dos
