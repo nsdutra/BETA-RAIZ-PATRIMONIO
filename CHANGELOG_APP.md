@@ -4,6 +4,22 @@ Histórico completo de versões do `index.html`, movido automaticamente pelo `ge
 
 ---
 
+NOVIDADES (Beta v1.378.0) — Continuidade splash → empresas → app (Nicola 11/10 22:51: "Gostei. vamos fazer";
+PROTOTIPO_CONTINUIDADE_SPLASH_APP_RAIZ v1.0.0, C1–C5). C1: na escolha de empresa a árvore do splash fica, menor, no
+céu (rzSplashChaoAnimar acompanha a altura); saudação pela hora; cartões creme com o logo (sem logo, só o nome — sem
+iniciais) e os ramos de cada empresa como frutos (fn_cliente_ramos, cache por sessão). C2: ao escolher a empresa, o
+logo/nome fica no centro e as raízes se desenham enquanto carrega (escMostrarAbrindo), no lugar de "Carregando
+empresa..."; em falha volta para a lista. C3: linha do horizonte na borda do topo (máscara SVG, cor do ramo) e o botão
+do ramo como fruto (brilho e sombra). C4: "Sua árvore" no Hoje (Todo o patrimônio), antes das seções por ramo: frutos
+do tamanho do ramo, brotos para os ramos em breve, toque troca a lente. Nenhum objeto de banco.
+Versão anterior (Beta v1.377.0):
+------------------------------------------------------------------
+Versões anteriores (v1.377.0 … v1.377.0): CHANGELOG_APP.md, na raiz do
+repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
+das 5 versões mais recentes deste cabeçalho.
+
+---
+
 NOVIDADES (Beta v1.377.0) — Splash: ícones centralizados nos frutos (Nicola 11/10 22:03: "Os ícones estão mal feitos,
 descentralizados"). O desenho Lucide tem 24 unidades e entrava com translate(cx-9, cy-9) em escala 1 — o centro
 caía 3 unidades à direita e abaixo. Agora escala .8 centrada no fruto, traço 2,3. A folha do cruzamento dos galhos

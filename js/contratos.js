@@ -1,7 +1,16 @@
 // ============================================================================
 // contratos.js — Raiz Patrimônio · Contratos (lista · ficha · formulário ·
 //                 status/reajuste/detalhes · fiadores · documentos · histórico)
-// Versão: 1.51.0 · 11/10/2026
+// Versão: 1.52.0 · 12/10/2026
+//
+// v1.52.0 (12/10/2026, sessão 20261012-0155-ux-onda3a, demanda a05ad2ee; UX onda 3, estudo PROTOTIPO_UX_DENSIDADE_RAMOS_RAIZ
+// v1.2.0 D11/D12 aprovado pelo Nicola 11/10 e "pode avançar" 12/10 01:53) — ficha do contrato com um jeito só de agir: o ⋮
+// no topo (ao lado da situação) reúne todas as ações em grupos (Contrato · Financeiro · Partes e anexos · Situação, com
+// Excluir por último em vermelho); os ⋮ dos cabeçalhos dos cards (Condições, Ocorrências, Distribuição, Financeiro,
+// Partes, Anexos) saem. Adicionar vira a última linha do card: "+ Adicionar recebimento", "+ Adicionar parte",
+// "+ Adicionar documento". O ⋮ de cada linha (locatário, fiador, recebimento, anexo) e o botão do aviso continuam.
+//
+// Versão anterior: 1.51.0 · 11/10/2026
 //
 // v1.51.0 (11/10/2026, sessão 20261008-1231-pessoas-ativos, demanda f3e6cd27; F13 4c etapa 4; Nicola 11/10 17:42, teste da etapa 3: "pode organizar melhor pro chip de performance desaparecer e deixar tudo no financeiro" e "Tente
 // unificar a experiência financeira pro ativo + contrato") — o chip Financeiro do contrato passa a usar a mesma visão
@@ -27,15 +36,8 @@
 // v1.48.0 (demandas 1f98c359, 43bc3cab e f0ab422d, sessão 20261003-1707-ux-base; plano aprovado pelo Nicola 09/10 22:3x ("De acordo, tudo numa entrega só")) —
 // os números dos chips contam os contratos que a busca deixou (texto, empreendimento, imóvel), não a carteira
 // inteira; a barra ganha o × que limpa a busca em um toque.
-//
-// Versão anterior: 1.47.0 · 09/10/2026
-//
-// v1.47.0 (UX F2.3b, demanda fcd3008d, sessão 20261003-1707-ux-base; plano F2.3 aprovado pelo Nicola 09/10 20:52 ("Estou de acordo com f2.3 e opcao a")) —
-// busca universal do Hoje: buscarContratosTexto(termo) usa o MESMO critério de texto da lista
-// (contratoBateTexto: locatário, CPF/CNPJ a partir de 3 dígitos, imóvel, endereço, empreendimento) e
-// verContratosComTexto(termo) abre a lista com o termo na barra, chip Todos e os outros filtros limpos.
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.46.0 … v1.46.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.47.0 … v1.47.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
 import { avaliarProntidaoContratoParaMinuta } from './minutas.js'; // v1.0.1
@@ -47,7 +49,7 @@ import { emitirEscrita, aoEscrever } from './raiz-eventos.js'; // v1.18.0 — Fa
 import { renderizarBlocoEndereco, lerBlocoEndereco } from './comum-endereco.js';
 import { formatarEnderecoParte } from './comum-partes.js';
 
-export const VERSAO = '1.51.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.52.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 
 /** Ponto de entrada do switchTab('tab-contratos'). */
 export function montarAbaContratos() {
@@ -1645,6 +1647,8 @@ if (!window.__rzListenerEscritaParteContratoLigado) {
                     <div class="rz-ic"><svg data-lucide="${con.status === 'Assinando' ? 'file-signature' : 'file-text'}"></svg></div>
                     <div class="rz-tx"><b>${escapeHtmlSaidas(con.locatario || 'Locatário não informado')}</b><span>${escapeHtmlSaidas(enderecoCurto)} · ${formatarMoedaBR(con.valor)}/mês</span></div>
                     ${statusFicha}
+                    <!-- v1.52.0 (UX onda 3, D11) — o ⋮ do topo é o lugar de todas as ações do contrato, em grupos -->
+                    <button type="button" onclick="abrirAcoesFichaContrato('${con.id}')" class="rz-more rz-more-topo" id="fc-mais" aria-label="Ações do contrato"><svg data-lucide="ellipsis-vertical"></svg></button>
                 </div>
                 <div class="rz-chips" id="fc-chips">
                     <button type="button" class="rz-chip rz-on" data-fc-chip="resumo" onclick="fcTrocarChip('resumo')">Resumo</button>
@@ -1662,7 +1666,7 @@ if (!window.__rzListenerEscritaParteContratoLigado) {
                         <div class="rz-card-f"><button type="button" onclick="verAlertasContrato('${con.id}')" class="rz-btn rz-btn-1 rz-sm"><svg data-lucide="bell"></svg> Ver alertas</button></div>
                     </div>` : ''}
                     <div class="rz-card">
-                        <div class="rz-card-h"><h3>Condições</h3><button type="button" onclick="abrirAcoesFichaContrato('${con.id}')" class="rz-more" aria-label="Mais ações"><svg data-lucide="ellipsis-vertical"></svg></button></div>
+                        <div class="rz-card-h"><h3>Condições</h3></div>
                         <div class="rz-kv">
                             ${kv('Início', formatarDataBR(con.inicio))}
                             ${kv('Fim', formatarDataBR(con.fim))}
@@ -1674,7 +1678,7 @@ if (!window.__rzListenerEscritaParteContratoLigado) {
                         </div>
                     </div>
                     <div class="rz-card" id="fc-card-ocorrencias">
-                        <div class="rz-card-h"><h3>Ocorrências</h3><span class="rz-sub" id="fc-ocorrencias-status"></span><button type="button" onclick="abrirAcoesFichaContrato('${con.id}')" class="rz-more" aria-label="Mais ações"><svg data-lucide="ellipsis-vertical"></svg></button></div>
+                        <div class="rz-card-h"><h3>Ocorrências</h3><span class="rz-sub" id="fc-ocorrencias-status"></span></div>
                         <div id="fc-ocorrencias">${rzSk('linhas', 2)}</div>
                     </div>
                     <!-- NOVO (19/09/2026, rodada 10, pedido explícito: "no chip
@@ -1690,14 +1694,14 @@ if (!window.__rzListenerEscritaParteContratoLigado) {
                          proprietários), não propriedade_ativo (dono do bem).
                          montarDistribuicaoContrato() abaixo. -->
                     <div class="rz-card" id="fc-card-distribuicao">
-                        <div class="rz-card-h"><h3>Distribuição</h3><span class="rz-sub">Rateio do aluguel entre proprietários</span><button type="button" onclick="abrirAcoesDistribuicaoContrato('${con.id}')" class="rz-more" aria-label="Mais ações"><svg data-lucide="ellipsis-vertical"></svg></button></div>
+                        <div class="rz-card-h"><h3>Distribuição</h3><span class="rz-sub">Rateio do aluguel entre proprietários</span></div>
                         <div id="fc-distribuicao">${rzSk('linhas', 2)}</div>
                     </div>
                 </div>
 
                 <div class="fc-painel hidden" id="fc-painel-cobrancas">
                     <div class="rz-card ${atrasadas.length ? 'rz-critico' : ''}">
-                        <div class="rz-card-h"><h3>Financeiro</h3>${atrasadas.length ? rs('bad', `${formatarMoedaBR(totalAtrasado)} em atraso`) : (ultimasSeis.length ? rs('ok', 'Em dia') : '')}<button type="button" onclick="abrirAcoesCobrancasContrato('${con.id}')" class="rz-more" aria-label="Mais ações"><svg data-lucide="ellipsis-vertical"></svg></button></div>
+                        <div class="rz-card-h"><h3>Financeiro</h3>${atrasadas.length ? rs('bad', `${formatarMoedaBR(totalAtrasado)} em atraso`) : (ultimasSeis.length ? rs('ok', 'Em dia') : '')}</div>
                         <!-- v1.116.0 (pedido explícito: "colocar no ⋮ a
                              opção de tratar aquele recebimento") — cada
                              linha ganhou ⋮ chamando rzAcoesMensalidade(),
@@ -1724,6 +1728,7 @@ if (!window.__rzListenerEscritaParteContratoLigado) {
                              array global mensalidades, o mesmo em
                              qualquer aba. -->
                         <div id="fc-fin-comp"></div> <!-- v1.51.0 — visão única por competência (rzFinCompetencias) -->
+                        <button type="button" class="rz-add" data-rz-codigo="mensal.ver" onclick="if (rzMostrarBloqueio('mensal.ver')) return; window.abrirNovoRecebimento && window.abrirNovoRecebimento('${con.id}')"><svg data-lucide="plus"></svg>Adicionar recebimento</button>
 
                     </div>
                 </div>
@@ -1773,7 +1778,7 @@ if (!window.__rzListenerEscritaParteContratoLigado) {
 
                 <div class="fc-painel hidden" id="fc-painel-partes">
                     <div class="rz-card">
-                        <div class="rz-card-h"><h3>Partes</h3><span class="rz-sub">Locatário e garantias</span><button type="button" onclick="abrirAcoesPartesContrato('${con.id}')" class="rz-more" aria-label="Mais ações"><svg data-lucide="ellipsis-vertical"></svg></button></div>
+                        <div class="rz-card-h"><h3>Partes</h3><span class="rz-sub">Locatário e garantias</span></div>
                         <!-- v1.116.0 (pedido explícito: "a edição deve estar
                              à frente de cada parte") — linha deixou de ser
                              clicável inteira (o ícone ali era um
@@ -1798,6 +1803,7 @@ if (!window.__rzListenerEscritaParteContratoLigado) {
                             <button type="button" onclick="event.stopPropagation(); abrirAcoesFiadorContrato('${con.id}', ${iFiador})" class="rz-more" aria-label="Mais ações"><svg data-lucide="ellipsis-vertical"></svg></button>
                         </div>`).join('') : `<div class="rz-empty" style="padding-top:8px"><p>Nenhum fiador. Adicione se a minuta exigir.</p></div>`}
                         <div id="fc-partes-encerrados"></div>
+                        <button type="button" class="rz-add" data-rz-codigo="contratos.editar" onclick="if (rzMostrarBloqueio('contratos.editar')) return; adicionarParteContrato('${con.id}')"><svg data-lucide="plus"></svg>Adicionar parte</button>
 
                     </div>
                 </div>
@@ -1805,9 +1811,9 @@ if (!window.__rzListenerEscritaParteContratoLigado) {
                 <div class="fc-painel hidden" id="fc-painel-arquivos">
                     <div class="rz-chips" id="fc-anexos-chips"></div>
                     <div class="rz-card">
-                        <div class="rz-card-h"><h3 id="fc-anexos-titulo">Anexos</h3><span class="rz-sub" id="fc-anexos-sub"></span>${abreArquivos ? `<button type="button" onclick="abrirAcoesAnexosContrato('${con.id}')" class="rz-more" aria-label="Mais ações"><svg data-lucide="ellipsis-vertical"></svg></button>` : ''}</div>
+                        <div class="rz-card-h"><h3 id="fc-anexos-titulo">Anexos</h3><span class="rz-sub" id="fc-anexos-sub"></span></div>
                         ${abreArquivos
-                            ? `<div id="fc-documentos">${rzSk('linhas', 2)}</div>`
+                            ? `<div id="fc-documentos">${rzSk('linhas', 2)}</div><button type="button" class="rz-add" data-rz-codigo="cofre.upload" onclick="if (rzMostrarBloqueio('cofre.upload')) return; abrirAcoesAnexosContrato('${con.id}')"><svg data-lucide="plus"></svg>Adicionar documento</button>`
                             : `<div class="rz-empty"><div class="rz-ic"><svg data-lucide="archive"></svg></div><p>Contrato encerrado: os documentos ficam guardados no Cofre.</p></div>`}
                     </div>
                 </div>`;
@@ -2733,7 +2739,28 @@ if (!window.__rzListenerEscritaParteContratoLigado) {
                 acoes.push({ icone: 'square-check-big', titulo: 'Encerrar contrato', codigo: 'contratos.editar', aoTocar: () => abrirAcaoStatusContrato(con.id, 'Finalizado') });
             }
             acoes.push({ icone: 'trash-2', titulo: 'Excluir contrato', codigo: 'contratos.excluir', tipo: 'bad', aoTocar: () => excluirContrato(con.id) });
-            abrirSheetAcoes({ titulo: con.locatario || 'Contrato', sub: imo ? `${imo.enderecoRua || ''}, ${imo.enderecoNum || ''}` : '', acoes });
+            // v1.52.0 (UX onda 3, D11) — é o ⋮ do topo da ficha: todas as ações do contrato, em grupos curtos; os ⋮ dos
+            // cabeçalhos dos cards saíram. As de situação (suspender, reativar, encerrar, excluir) ficam por último.
+            const situacao = acoes.filter(a => /contrato$/.test(a.titulo) && /^(Suspender|Reativar|Encerrar|Excluir)/.test(a.titulo));
+            const doContrato = acoes.filter(a => !situacao.includes(a));
+            const abre = (con.status === 'Ativo' || con.status === 'Assinando');
+            const financeiro = emAssinatura ? [] : [
+                { icone: 'plus', titulo: 'Adicionar recebimento', codigo: 'mensal.ver', sub: 'Recebimento avulso deste contrato', aoTocar: () => { if (typeof window.abrirNovoRecebimento === 'function') window.abrirNovoRecebimento(con.id); } },
+                { icone: 'wallet', titulo: 'Ver no Financeiro', codigo: 'mensal.ver', sub: 'Todas as competências deste imóvel', aoTocar: () => { document.getElementById('men-filtro-imovel').value = con.imovelId; document.getElementById('men-filtro-imovel-resumo').textContent = (imo ? imo.empreendimento : '-'); switchTab('tab-mensal'); renderMensalidades(); } },
+            ];
+            const partesAnexos = [
+                ...(!con.locatario ? [{ icone: 'user-plus', titulo: 'Adicionar locatário', codigo: 'contratos.editar', sub: 'Quem aluga o imóvel', aoTocar: () => abrirFichaParteDoContrato(con.id, 'locatario') }] : []),
+                { icone: 'user-plus', titulo: 'Adicionar parte', codigo: 'contratos.editar', sub: 'Novo fiador do contrato', aoTocar: () => adicionarParteContrato(con.id) },
+                { icone: 'pie-chart', titulo: 'Editar distribuição', codigo: 'contratos.editar', sub: 'Rateio do aluguel entre proprietários', aoTocar: () => { if (typeof abrirAlteracoesDivisaoSocietaria === 'function') abrirAlteracoesDivisaoSocietaria(con.imovelId, con.id); else editarContrato(con.id); } },
+                ...(abre ? [{ icone: 'paperclip', titulo: 'Adicionar documento', codigo: 'cofre.upload', sub: 'Com leitura por IA ou só o arquivo', aoTocar: () => abrirAcoesAnexosContrato(con.id) }] : []),
+            ];
+            const grupos = [
+                { titulo: 'Contrato', acoes: doContrato },
+                { titulo: 'Financeiro', acoes: financeiro },
+                { titulo: 'Partes e anexos', acoes: partesAnexos },
+                { titulo: 'Situação', acoes: situacao },
+            ].filter(g => g.acoes.length);
+            abrirSheetAcoes({ titulo: con.locatario || 'Contrato', sub: imo ? `${imo.enderecoRua || ''}, ${imo.enderecoNum || ''}` : '', grupos });
         }
 
         // v1.34.0 (pedido do Nicola, 02/10/2026) — "Dados do contrato": tudo o que
