@@ -4,6 +4,20 @@ Histórico completo de versões do `index.html`, movido automaticamente pelo `ge
 
 ---
 
+NOVIDADES (Beta v1.384.0) — UX onda 3b: um jeito só de agir na ficha do ativo (estudo PROTOTIPO_UX_DENSIDADE_
+RAMOS_RAIZ v1.2.0, D11/D12; "pode avançar" do Nicola 12/10 01:53). O ⋮ do topo da ficha reúne todas as ações em
+grupos (Ativo · Usos e contratos · Controles · Financeiro · Propriedade · Anexos · Situação); os ⋮ dos cabeçalhos dos
+cards saem; adicionar vira a última linha ("+ Adicionar uso", "+ Adicionar item de controle", "+ Adicionar
+documento", "+ Adicionar fotos"). js/cofre-ativos.js 1.93.0 → 1.94.0, js/ativos/ativos-markup.js 1.60.0 → 1.61.0;
+aqui só o import map. Nenhum objeto de banco.
+Versão anterior (Beta v1.383.0):
+------------------------------------------------------------------
+Versões anteriores (v1.383.0 … v1.383.0): CHANGELOG_APP.md, na raiz do
+repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
+das 5 versões mais recentes deste cabeçalho.
+
+---
+
 NOVIDADES (Beta v1.383.0) — UX onda 3a: um jeito só de agir na ficha do contrato (estudo PROTOTIPO_UX_DENSIDADE_
 RAMOS_RAIZ v1.2.0, D11/D12; "pode avançar" do Nicola 12/10 01:53). O ⋮ fica no topo da ficha, ao lado da situação,
 com todas as ações em grupos; os ⋮ dos cabeçalhos dos cards saem; adicionar vira a última linha do card

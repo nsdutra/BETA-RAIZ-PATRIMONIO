@@ -1,7 +1,13 @@
 // ============================================================================
 // financeiro.js — Raiz Patrimônio · Financeiro (Recebimentos · Atrasados · Saídas
 //                  · conciliação de extrato · recibo · detalhe do recebimento)
-// Versão: 1.57.0 · 12/10/2026
+// Versão: 1.58.0 · 12/10/2026
+//
+// v1.58.0 (12/10/2026, sessão 20261012-0300-ux-onda5, demanda a05ad2ee; Nicola 12/10 02:50: "padronize os seletores de ano
+// para o padrão das setinhas. No financeiro pode deixar sem a opção todos") — na visão por competência (ficha do contrato
+// e do ativo) os chips 2026 · 2025 · Todos viram ‹ 2026 ›, de 10 anos atrás até o ano atual; "Todos" sai.
+//
+// Versão anterior: 1.57.0 · 12/10/2026
 //
 // v1.57.0 (12/10/2026, sessão 20261012-0240-ux-onda4c, demanda a05ad2ee; UX onda 4, estudo PROTOTIPO_UX_DENSIDADE_RAMOS_RAIZ
 // v1.2.0 D9; "Pode fazer e seguir" do Nicola 12/10 02:26) — financeiroRotinasHtml: o card "Rotinas de <mês>" (4 linhas
@@ -34,17 +40,11 @@
 // v1.54.0 (11/10/2026, sessão 20261008-1231-pessoas-ativos, demanda 0aa64e93; F13.8, ficha v1.4.0 e protótipo v1.3.0; de acordo do Nicola 11/10 22:55) — quadro Retiradas
 // extraordinárias (Balanço › Sócios por mês) ganha "Ver relatório" (relatório Retiradas extraordinárias). Os textos de
 // apoio deixam de usar "fora do fluxo" como sinônimo: dizem só que a retirada extraordinária não abate o saldo a retirar.
-//
-// Versão anterior: 1.53.0 · 11/10/2026
-//
-// v1.53.0 (11/10/2026, sessão 20261008-1231-pessoas-ativos, demanda f3e6cd27; bloco "Produto, já registrado", Nicola 11/10 18:41 ("quero evoluir com Produto, já registrado"); F13 §3.5 e F13.4) — o editor de
-// divisão do lançamento e do recebimento abre com "%  ·  Cotas  ·  Valor" (raiz-ui modos: true) e reabre no modo em que
-// foi salvo (lê o divisao_excecao do movimento). Grava modo, cotas e valor junto do percentual.
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.52.0 … v1.52.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.53.0 … v1.53.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '1.57.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.58.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 
 // v1.17.0 (Fase 1 do wrapper de escrita, rollout Financeiro) — emitirEscrita
 // é o evento padrão pra "algo mudou que módulos DE FORA deste arquivo podem
@@ -5961,7 +5961,7 @@ export async function rzFinCompetencias(alvo, escopo = {}) {
     if (!el.id) el.id = 'fc-comp-' + Math.random().toString(36).slice(2, 8);
     const ant = fcEstado[el.id];
     const mesmo = ant && JSON.stringify(ant.escopo) === JSON.stringify(escopo);
-    const st = fcEstado[el.id] = { escopo, ano: mesmo ? ant.ano : String(new Date().getFullYear()), aberto: mesmo ? ant.aberto : {}, itens: [] };
+    const st = fcEstado[el.id] = { escopo, ano: mesmo && ant.ano !== 'todos' ? ant.ano : String(new Date().getFullYear()), aberto: mesmo ? ant.aberto : {}, itens: [] };
     el.innerHTML = fcChipsAno(st) + `<p class="text-xs text-center py-3" style="color:var(--sage)">Carregando…</p>`;
     fcLigar(el);
     try {
@@ -5977,9 +5977,10 @@ export async function rzFinCompetencias(alvo, escopo = {}) {
 }
 
 function fcChipsAno(st) {
-    const a = new Date().getFullYear();
-    const c = (v, r) => `<button type="button" class="rz-chip${st.ano === v ? ' rz-on' : ''}" data-fc-ano="${v}">${r}</button>`;
-    return `<div class="rz-chips">${c(String(a), String(a))}${c(String(a - 1), String(a - 1))}${c('todos', 'Todos')}</div>`;
+    // v1.58.0 (Nicola 12/10 02:50: "padronize os seletores de ano para o padrão das setinhas. No financeiro pode deixar
+    // sem a opção todos") — ‹ ano › (classe .rz-ano do index), de 10 anos atrás até o ano atual.
+    const a = new Date().getFullYear(), y = Number(st.ano) || a;
+    return `<div class="rz-ano-linha"><span class="rz-ano"><button type="button" data-fc-ano="${y - 1}" aria-label="Ano anterior"${y <= a - 10 ? ' disabled' : ''}><svg data-lucide="chevron-left"></svg></button><b>${y}</b><button type="button" data-fc-ano="${y + 1}" aria-label="Próximo ano"${y >= a ? ' disabled' : ''}><svg data-lucide="chevron-right"></svg></button></span></div>`;
 }
 
 async function fcCarregar(e, ano) {

@@ -1,8 +1,11 @@
 // =====================================================================
 // RAIZ PATRIMÔNIO — js/indicadores.js
-// VERSÃO: Beta v1.0.0 (04/10/2026 — demanda e42f649b)
+// VERSÃO: Beta v1.1.0 (12/10/2026 — demanda a05ad2ee)
 // LINHAS: (ver versoes.json)
 // -----------------------------------------------------------------
+// NOVIDADES (Beta v1.1.0) — sessão 20261012-0300-ux-onda5 (Nicola 12/10 02:50: "padronize os seletores de ano para o
+//   padrão das setinhas") — o ano do "Mês a mês" vira ‹ ano › (classe .rz-ano do index), nos mesmos 3 anos de antes.
+// Versão anterior (Beta v1.0.0):
 // NOVIDADES (Beta v1.0.0) — frente 5, fatia 5B (sessão 20261004-1800-indicadores; "De acordo
 //   com D1 e 5B" e "Simulador ipca, incc e igpm. Demais não." do Nicola, 04/10 22:06; protótipo
 //   PROTOTIPO_INDICADORES_RAIZ v1.0.0). Módulo novo, lazy (UI-05): só carrega quando a pessoa toca
@@ -21,7 +24,7 @@
 // Depende de globais do index.html: dbAuth, CLIENTE_ID_SUPABASE, abrirSheet, rzSheetCabecalho,
 // rzEsc, rzIcones, formatarMoedaBR.
 
-export const VERSAO = '1.0.0';
+export const VERSAO = '1.1.0';
 
 const NOME = { ipca: 'IPCA', igpm: 'IGP-M', inccdi: 'INCC-DI', selic: 'Selic', cdi: 'CDI', ivgr: 'IVG-R' };
 const ORDEM = ['ipca', 'igpm', 'inccdi', 'selic', 'cdi', 'ivgr'];
@@ -114,7 +117,9 @@ async function telaMes() {
         <td style="${TD1};background:var(--tile)">${rotulo}</td>
         ${ORDEM.map(c => `<td style="${TD};background:var(--tile)">${pct(obj?.[c], false)}</td>`).join('')}</tr>`;
     const a12 = Object.fromEntries(ORDEM.map(c => [c, d.acumulados?.[c]?.a12]));
-    return `<div class="rz-chips">${anos.map(a => `<button type="button" class="rz-chip ${estado.ano === a ? 'rz-on' : ''}" data-ano="${a}">${a}</button>`).join('')}</div>
+    // v1.1.0 — ‹ ano › no lugar dos chips de ano (padrão único do app, Nicola 12/10 02:50)
+    const y = estado.ano;
+    return `<div class="rz-ano-linha"><span class="rz-ano"><button type="button" data-ano="${y - 1}" aria-label="Ano anterior"${y <= anos[0] ? ' disabled' : ''}><svg data-lucide="chevron-left"></svg></button><b>${y}</b><button type="button" data-ano="${y + 1}" aria-label="Próximo ano"${y >= anoAtual ? ' disabled' : ''}><svg data-lucide="chevron-right"></svg></button></span></div>
         <div class="rz-card" style="padding:8px 0">
             <div style="overflow-x:auto">
                 <table style="border-collapse:separate;border-spacing:0;font-size:13px;min-width:520px;width:100%;font-variant-numeric:tabular-nums">
