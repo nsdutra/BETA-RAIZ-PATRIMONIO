@@ -6,9 +6,17 @@
    (base derivada do RUMO v7.4.2 — histórico de versões anteriores
    preservado abaixo para referência técnica)
 
-   VERSÃO: Beta v1.379.0
-   LINHAS: 16004
-   DATA: 11/10/2026 (sessão 20261008-1231-pessoas-ativos, demandas 0aa64e93 e 7c5c4c65)
+   VERSÃO: Beta v1.380.0
+   LINHAS: 16061
+   DATA: 11/10/2026 (sessão 20261011-2350-ux-onda1, demanda a05ad2ee)
+   NOVIDADES (Beta v1.380.0) — UX onda 1: escala compacta e topo com frutos (estudo PROTOTIPO_UX_DENSIDADE_RAMOS_RAIZ
+   v1.2.0, D1/D3/D5; APV Nicola 11/10 21:47 e 23:44: "inclua a melhora também dos botões de avatar e outros do
+   cabeçalho para ficarem compatíveis com o novo dos ramos"). Corpo 14, secundário 12,5, títulos de tela 17, sheet 16,
+   entidade 17 com placa 40, linha com placa 34 e título em até 2 linhas, botão 44 (pequeno 36), chip e segmento 32,
+   cards 12/14 com raio 14, KPI 17 e herói 26. Tailwind text-sm/xs passam a 14/12,5. No topo, ramo, Raiz IA e avatar
+   viram frutos do mesmo tamanho (36), com brilho e sombra: o ramo na cor dele, a IA no dourado do splash, o avatar em
+   creme. Alvos de 48 mantidos onde já eram; piso de 12 px mantido. Nenhum objeto de banco.
+   Versão anterior (Beta v1.379.0):
    NOVIDADES (Beta v1.379.0) — F13.8: relatório "Retiradas extraordinárias" na lista de Relatórios (só fatos e dados;
    partes por pessoa quando o controle está ligado em Minha empresa › Rotinas). Import map: relatorios-executivos.js 1.3.0,
    comum-minha-empresa.js 1.15.0, comum-pessoas.js 1.210.0, financeiro.js 1.54.0, cofre-ativos.js 1.93.0.
@@ -33,14 +41,8 @@
    frutos deixou de ser filtro (redesenhado a cada quadro) e virou um círculo. A abertura só começa depois do load (classe
    rz-sp-play); se o carregamento passar de 4 s, a arte aparece pronta. "Reduzir movimento" continua sem animação.
    Versão anterior (Beta v1.375.0):
-   NOVIDADES (Beta v1.375.0) — Ramo padrão por pessoa (fase 5; Nicola 11/10 18:47 "Sobre ramo por pessoa, estou de acordo").
-   Ao entrar numa empresa, rzCarregarRamos lê pessoas.ramo_padrao de quem está logado e, se o ramo está ativo e
-   contratado, abre o app nele (uma vez por empresa — depois a lente é livre, como sempre). Sem ramo padrão, segue abrindo
-   em Todo o patrimônio. A escolha fica em Pessoas › pessoa › Acesso › "Abrir o app em" (comum-pessoas.js 1.209.0).
-   Banco: coluna pessoas.ramo_padrao e fn_pessoa_ramo_padrao_definir (migração marca_ramo_padrao_pessoa_v1, aprovada).
-   Versão anterior (Beta v1.374.0):
    ------------------------------------------------------------------
-   Versões anteriores (v1.374.0 … v1.374.0): CHANGELOG_APP.md, na raiz do
+   Versões anteriores (v1.375.0 … v1.375.0): CHANGELOG_APP.md, na raiz do
    repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
    das 5 versões mais recentes deste cabeçalho.
 
@@ -193,8 +195,8 @@
 
           /* v1.291.0 — F0.1 (UXR-31): corpo 15 px, secundário 13 px. text-sm e text-xs são as
              classes de corpo e de texto secundário em todo o app; mudar o token muda tudo. */
-          --text-sm: 0.9375rem;   --text-sm--line-height: 1.4;
-          --text-xs: 0.8125rem;   --text-xs--line-height: 1.35;
+          --text-sm: 0.875rem;    --text-sm--line-height: 1.4;   /* v1.380.0 (UX onda 1): 15 → 14 px */
+          --text-xs: 0.78125rem;  --text-xs--line-height: 1.35;  /* v1.380.0 (UX onda 1): 13 → 12,5 px */
         }
     </style>
 
@@ -259,7 +261,7 @@
             --danger:#c1463a; --danger-bg:#fbebe9;
             --info:#3d6b8c; --info-bg:#e8f0f5;
             /* v1.105.0 — geometria e sombra únicas da gramática (REGRAS §17) */
-            --r-card:16px; --r-ctl:10px; --r-pill:999px;
+            --r-card:14px; --r-ctl:10px; --r-pill:999px;
             --sh-card:0 1px 2px rgba(23,33,30,.06),0 4px 14px rgba(23,33,30,.05);
             --font-title:"Bricolage Grotesque",sans-serif; --font-body:"Inter",system-ui,sans-serif;
         }
@@ -1250,6 +1252,61 @@
         @media (prefers-reduced-motion:reduce){.rz-sw>.rz-row{transition:none}}
         #rz-ptr.rz-girando svg{animation:rz-ptr-girar .8s linear infinite}
         @media (prefers-reduced-motion:reduce){#rz-ptr.rz-girando svg{animation:none}}
+
+        /* ============================================================================================================
+           v1.380.0 — UX ONDA 1: ESCALA COMPACTA (PROTOTIPO_UX_DENSIDADE_RAMOS_RAIZ v1.2.0 §9; D1, D3, D5).
+           Corpo 14 · secundário 12,5 · títulos 16–17 · KPI herói 26 · placa de linha 34 · botão 44 · chip/segmento 32.
+           O alvo de toque segue 48 px onde já era (linhas, itens de sheet, barra inferior). O piso de 12 px continua:
+           o 11 px da D2 (rótulo da barra, contador) espera a regra nova do verificador.
+           Título de linha quebra em até 2 linhas (nada cortado em 1 linha); o detalhe fica em 1 linha com reticências e o
+           toque na linha abre a ficha com o texto inteiro (D5).
+           ============================================================================================================ */
+        body{font-size:14px}
+        .rz-tabhead h2{font-size:17px}
+        .rz-card{padding:12px 14px;margin-bottom:10px}
+        .rz-card.rz-list{padding:2px 14px}
+        .rz-card-h h3{font-size:14px}
+        .rz-row{gap:10px;padding:9px 0;min-height:52px}
+        .rz-row .rz-ic{width:34px;height:34px;border-radius:10px}
+        .rz-row .rz-ic svg{width:17px;height:17px}
+        .rz-row .rz-tx b{font-size:14px;white-space:normal;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;line-height:1.3}
+        .rz-row .rz-tx span{font-size:12.5px}
+        .rz-row .rz-rt b{font-size:14px}
+        .rz-entity .rz-ic{width:40px;height:40px;border-radius:11px}
+        .rz-entity .rz-ic svg{width:20px;height:20px}
+        .rz-entity .rz-tx b{font-size:17px}
+        .rz-entity .rz-tx span{font-size:12.5px}
+        .rz-kv{gap:8px 12px}
+        .rz-kv b{font-size:14px}
+        .rz-kpi b{font-size:17px}
+        .rz-kpi.rz-hero b{font-size:22px}
+        .rz-heroi-pat{font-size:26px}
+        .rz-heroi-res b{font-size:19px}
+        .rz-btn{height:44px;font-size:14px}
+        .rz-btn.rz-sm{height:36px;font-size:12.5px}
+        .rz-chip{height:32px;padding:0 12px;font-size:12.5px}
+        .rz-seg button{height:32px;font-size:12.5px}
+        .rz-sh-h h3{font-size:16px}
+        .rz-act{gap:10px;padding:10px 6px;font-size:14px}
+        .rz-act .rz-ic{width:32px;height:32px;border-radius:9px}
+        .rz-act .rz-ic svg{width:17px;height:17px}
+        .rz-act small{font-size:12.5px}
+        .rz-nav button svg{width:22px;height:22px}
+        .rz-ramo-k3 b{font-size:15px}
+        .rz-ramo-cab h3{font-size:15px}
+        /* Topo: os botões redondos viram frutos da árvore — o do ramo (cor do ramo), a Raiz IA (o sol dourado do splash) e
+           o avatar (fruto claro com as iniciais ou a foto). Mesmo tamanho (36), mesmo brilho e mesma sombra; alvo 44. */
+        .rz-hdr{gap:8px}
+        .rz-hdr .rz-brand h1{font-size:17px}
+        .rz-hdr .rz-lente,.rz-hdr .rz-ia,.rz-hdr .rz-avatar{width:36px;height:36px;border:0;margin:4px 2px;flex:none;
+            box-shadow:0 2px 5px rgba(5,15,12,.35),0 0 0 2px rgba(255,255,255,.24)}
+        .rz-hdr .rz-ia,:root[data-ramo] .rz-hdr .rz-ia{background:radial-gradient(circle at 34% 28%,rgba(255,255,255,.45),rgba(255,255,255,0) 58%),radial-gradient(circle at 50% 50%,#e0a656,#c68a3b 62%,#a86f27)}
+        .rz-hdr .rz-ia .rz-dot{top:0;right:0;width:9px;height:9px;background:#fff;border:2px solid #a86f27}
+        .rz-hdr .rz-avatar,:root[data-ramo] .rz-hdr .rz-avatar{background:radial-gradient(circle at 34% 28%,rgba(255,255,255,.7),rgba(255,255,255,0) 60%),#efe3c6;color:#1e3a32;font:700 12.5px var(--font-body);overflow:hidden}
+        .rz-hdr .rz-avatar img{width:100%;height:100%;object-fit:cover;border-radius:50%}
+        .rz-hdr .rz-lente svg,.rz-hdr .rz-ia svg{width:18px;height:18px}
+        .rz-hdr .rz-avatar svg{width:17px;height:17px;color:#1e3a32}
+        .rz-hdr button:active{transform:scale(.92)}
     </style>
 
 </head>
@@ -3929,7 +3986,7 @@
         // texto certo toda vez (esqueci 5 versões seguidas, de v1.37.1 até
         // v1.38.3). Agora só precisa mudar UMA linha aqui a cada release;
         // window.onload aplica nos dois lugares automaticamente.
-        const APP_VERSAO = "Beta v1.379.0"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
+        const APP_VERSAO = "Beta v1.380.0"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
 
         // ====================================================================
         // v1.105.0 — HELPERS DE SUPERFÍCIE DA GRAMÁTICA ÚNICA

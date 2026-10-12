@@ -4,6 +4,19 @@ Histórico completo de versões do `index.html`, movido automaticamente pelo `ge
 
 ---
 
+NOVIDADES (Beta v1.375.0) — Ramo padrão por pessoa (fase 5; Nicola 11/10 18:47 "Sobre ramo por pessoa, estou de acordo").
+Ao entrar numa empresa, rzCarregarRamos lê pessoas.ramo_padrao de quem está logado e, se o ramo está ativo e
+contratado, abre o app nele (uma vez por empresa — depois a lente é livre, como sempre). Sem ramo padrão, segue abrindo
+em Todo o patrimônio. A escolha fica em Pessoas › pessoa › Acesso › "Abrir o app em" (comum-pessoas.js 1.209.0).
+Banco: coluna pessoas.ramo_padrao e fn_pessoa_ramo_padrao_definir (migração marca_ramo_padrao_pessoa_v1, aprovada).
+Versão anterior (Beta v1.374.0):
+------------------------------------------------------------------
+Versões anteriores (v1.374.0 … v1.374.0): CHANGELOG_APP.md, na raiz do
+repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
+das 5 versões mais recentes deste cabeçalho.
+
+---
+
 NOVIDADES (Beta v1.374.0) — divisão do lançamento por %, cotas ou valor (como no Splitwise). Só o import map muda
 aqui (raiz-ui.js 1.4.0, financeiro.js 1.53.0).
 Versão anterior (Beta v1.373.0):
