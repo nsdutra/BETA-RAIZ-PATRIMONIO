@@ -4,6 +4,19 @@ Histórico completo de versões do `index.html`, movido automaticamente pelo `ge
 
 ---
 
+NOVIDADES (Beta v1.376.0) — Splash "Horizonte": abre em leque e não trava (Nicola 11/10 21:47: "não está abrindo como
+leque. está travando"). Cada ramo (galho + fruto) virou um grupo .rz-sp-ramo que gira a partir do topo do tronco, do
+fechado ao lugar, do centro para as pontas (antes cada galho crescia em scaleY a partir da própria caixa). A sombra dos
+frutos deixou de ser filtro (redesenhado a cada quadro) e virou um círculo. A abertura só começa depois do load (classe
+rz-sp-play); se o carregamento passar de 4 s, a arte aparece pronta. "Reduzir movimento" continua sem animação.
+Versão anterior (Beta v1.375.0):
+------------------------------------------------------------------
+Versões anteriores (v1.375.0 … v1.375.0): CHANGELOG_APP.md, na raiz do
+repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
+das 5 versões mais recentes deste cabeçalho.
+
+---
+
 NOVIDADES (Beta v1.375.0) — Ramo padrão por pessoa (fase 5; Nicola 11/10 18:47 "Sobre ramo por pessoa, estou de acordo").
 Ao entrar numa empresa, rzCarregarRamos lê pessoas.ramo_padrao de quem está logado e, se o ramo está ativo e
 contratado, abre o app nele (uma vez por empresa — depois a lente é livre, como sempre). Sem ramo padrão, segue abrindo

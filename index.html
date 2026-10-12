@@ -6,9 +6,17 @@
    (base derivada do RUMO v7.4.2 — histórico de versões anteriores
    preservado abaixo para referência técnica)
 
-   VERSÃO: Beta v1.380.0
-   LINHAS: 16061
-   DATA: 11/10/2026 (sessão 20261011-2350-ux-onda1, demanda a05ad2ee)
+   VERSÃO: Beta v1.381.0
+   LINHAS: 16117
+   DATA: 11/10/2026 (sessão 20261011-2351-ux-onda2, demanda a05ad2ee)
+   NOVIDADES (Beta v1.381.0) — UX onda 2: topo e barra (estudo PROTOTIPO_UX_DENSIDADE_RAMOS_RAIZ v1.2.0, D7/D8/D10,
+   e continuidade C5/C6; aprovados pelo Nicola em 11/10). Barra: Hoje · Ativos · Raiz IA · Agenda · Financeiro — a Raiz
+   IA desce do topo para o centro, no sol dourado do splash; Alertas passa a se chamar Agenda (ícone de calendário).
+   Contratos mora dentro de Ativos: as duas telas abrem com a vista "Ativos · Contratos" sublinhada no alto, e o ícone
+   Ativos acende nas duas e na ficha do contrato. Topo: marca da empresa · busca em tudo · ramo · avatar; o logo vai
+   numa placa clara de 36 px (quadrado com o nome ao lado, largo sozinho; sem logo, o nome). Vazios ganham as raízes do
+   splash ao fundo. Nenhum objeto de banco.
+   Versão anterior (Beta v1.380.0):
    NOVIDADES (Beta v1.380.0) — UX onda 1: escala compacta e topo com frutos (estudo PROTOTIPO_UX_DENSIDADE_RAMOS_RAIZ
    v1.2.0, D1/D3/D5; APV Nicola 11/10 21:47 e 23:44: "inclua a melhora também dos botões de avatar e outros do
    cabeçalho para ficarem compatíveis com o novo dos ramos"). Corpo 14, secundário 12,5, títulos de tela 17, sheet 16,
@@ -35,14 +43,8 @@
    caía 3 unidades à direita e abaixo. Agora escala .8 centrada no fruto, traço 2,3. A folha do cruzamento dos galhos
    (170,170) saiu: sobrepunha os galhos no centro. Nenhum objeto de banco.
    Versão anterior (Beta v1.376.0):
-   NOVIDADES (Beta v1.376.0) — Splash "Horizonte": abre em leque e não trava (Nicola 11/10 21:47: "não está abrindo como
-   leque. está travando"). Cada ramo (galho + fruto) virou um grupo .rz-sp-ramo que gira a partir do topo do tronco, do
-   fechado ao lugar, do centro para as pontas (antes cada galho crescia em scaleY a partir da própria caixa). A sombra dos
-   frutos deixou de ser filtro (redesenhado a cada quadro) e virou um círculo. A abertura só começa depois do load (classe
-   rz-sp-play); se o carregamento passar de 4 s, a arte aparece pronta. "Reduzir movimento" continua sem animação.
-   Versão anterior (Beta v1.375.0):
    ------------------------------------------------------------------
-   Versões anteriores (v1.375.0 … v1.375.0): CHANGELOG_APP.md, na raiz do
+   Versões anteriores (v1.376.0 … v1.376.0): CHANGELOG_APP.md, na raiz do
    repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
    das 5 versões mais recentes deste cabeçalho.
 
@@ -1307,6 +1309,34 @@
         .rz-hdr .rz-lente svg,.rz-hdr .rz-ia svg{width:18px;height:18px}
         .rz-hdr .rz-avatar svg{width:17px;height:17px;color:#1e3a32}
         .rz-hdr button:active{transform:scale(.92)}
+
+        /* ============================================================================================================
+           v1.381.0 — UX ONDA 2: TOPO E BARRA (PROTOTIPO_UX_DENSIDADE_RAMOS_RAIZ v1.2.0, D7/D8/D10; continuidade C5/C6).
+           Topo: marca da empresa · busca · ramo · avatar. Barra: Hoje · Ativos · Raiz IA (sol, no centro) · Agenda ·
+           Financeiro. Contratos é vista de Ativos (.rz-vista). Vazio ganha as raízes do splash ao fundo.
+           ============================================================================================================ */
+        .rz-hdr .rz-busca-hdr{width:40px;height:40px;margin:2px 0;border-radius:50%;background:transparent;color:#fff;display:flex;align-items:center;justify-content:center;flex:none}
+        .rz-hdr .rz-busca-hdr svg{width:21px;height:21px}
+        .rz-hdr .rz-brand h1.rz-com-logo{display:flex;align-items:center;gap:8px;overflow:visible}
+        .rz-hdr .rz-marca-placa{display:inline-flex;align-items:center;justify-content:center;height:36px;max-width:150px;padding:4px 8px;border-radius:10px;background:#fff;flex:none;box-shadow:0 1px 3px rgba(5,15,12,.25)}
+        .rz-hdr .rz-marca-placa.rz-quad{width:36px;padding:3px}
+        .rz-hdr .rz-brand h1 .rz-marca-placa img{max-height:28px;max-width:134px;width:auto;height:auto;object-fit:contain;display:block}
+        .rz-hdr .rz-marca-nome{min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+        #bottom-nav-bar .rz-nav-ia{color:var(--brass-deep)}
+        #bottom-nav-bar .rz-sol{position:relative;width:46px;height:46px;margin-top:-24px;border-radius:50%;color:#fff;display:flex;align-items:center;justify-content:center;
+            background:radial-gradient(circle at 34% 28%,rgba(255,255,255,.45),rgba(255,255,255,0) 58%),radial-gradient(circle at 50% 50%,#e0a656,#c68a3b 62%,#a86f27);
+            box-shadow:0 4px 12px rgba(5,15,12,.22),0 0 0 4px var(--card);transition:transform .08s}
+        #bottom-nav-bar .rz-sol svg{width:22px;height:22px}
+        #bottom-nav-bar .rz-nav-ia:active .rz-sol{transform:scale(.92)}
+        #bottom-nav-bar .rz-sol .rz-dot{position:absolute;top:1px;right:1px;width:11px;height:11px;border-radius:50%;background:#fff;border:2px solid var(--brass-deep)}
+        .rz-vista{display:flex;gap:18px;margin:0 0 10px;border-bottom:1px solid var(--line)}
+        .rz-vista button{height:40px;padding:0;background:none;border:0;border-bottom:2px solid transparent;margin-bottom:-1px;font:700 17px var(--font-title);letter-spacing:-.02em;color:var(--muted);cursor:pointer}
+        .rz-vista button.rz-on{color:var(--ink);border-bottom-color:var(--ramo-acc)}
+        #tab-ativos:has([data-screen^="ficha"]:not(.hidden)) .rz-vista{display:none}
+        .rz-vazio{position:relative;overflow:hidden}
+        .rz-vazio > *{position:relative;z-index:1}
+        .rz-vazio::after{content:"";position:absolute;left:50%;bottom:-8px;width:260px;height:110px;transform:translateX(-50%);background:var(--sage);opacity:.13;pointer-events:none;
+            -webkit-mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 240 150' fill='none' stroke='black' stroke-width='1.6' stroke-linecap='round'%3E%3Cpath d='M120 0 C120 40 118 80 120 140'/%3E%3Cpath d='M120 10 C100 30 70 40 40 70 C30 80 20 100 14 120'/%3E%3Cpath d='M120 10 C140 30 170 40 200 70 C210 80 220 100 226 120'/%3E%3Cpath d='M118 40 C95 55 80 75 70 110'/%3E%3Cpath d='M122 40 C145 55 160 75 170 110'/%3E%3Cpath d='M70 55 C55 60 45 70 30 72'/%3E%3Cpath d='M170 55 C185 60 195 70 210 72'/%3E%3Cpath d='M119 80 C108 95 100 115 96 140'/%3E%3Cpath d='M121 80 C132 95 140 115 144 140'/%3E%3C/svg%3E") center bottom/100% 100% no-repeat;mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 240 150' fill='none' stroke='black' stroke-width='1.6' stroke-linecap='round'%3E%3Cpath d='M120 0 C120 40 118 80 120 140'/%3E%3Cpath d='M120 10 C100 30 70 40 40 70 C30 80 20 100 14 120'/%3E%3Cpath d='M120 10 C140 30 170 40 200 70 C210 80 220 100 226 120'/%3E%3Cpath d='M118 40 C95 55 80 75 70 110'/%3E%3Cpath d='M122 40 C145 55 160 75 170 110'/%3E%3Cpath d='M70 55 C55 60 45 70 30 72'/%3E%3Cpath d='M170 55 C185 60 195 70 210 72'/%3E%3Cpath d='M119 80 C108 95 100 115 96 140'/%3E%3Cpath d='M121 80 C132 95 140 115 144 140'/%3E%3C/svg%3E") center bottom/100% 100% no-repeat}
     </style>
 
 </head>
@@ -2016,11 +2046,9 @@
                  Geral continua escrevendo nele, nada mudou no JS). -->
             <!-- v1.303.0 (UX F2.2, UXR-08) — o sino saiu do cabeçalho: Alertas é a 5ª aba da barra inferior. -->
             <!-- v1.345.0 (F21) — lente de ramo: vale para o app inteiro; muda a tonalidade (rzAbrirLenteRamo) -->
+            <!-- v1.381.0 (UX onda 2, D7) — topo com busca, ramo e avatar; a Raiz IA desceu para o centro da barra -->
+            <button type="button" id="btn-busca-header" class="rz-busca-hdr" onclick="rzAbrirBuscaUniversal()" title="Buscar em tudo" aria-label="Buscar em tudo"><svg data-lucide="search"></svg></button>
             <button type="button" id="btn-ramo-lente" class="rz-lente" onclick="rzAbrirLenteRamo()" title="Todo o patrimônio" aria-label="Ramo: Todo o patrimônio"><svg data-lucide="layers"></svg></button>
-            <button type="button" id="btn-raiz-ia-header" class="rz-ia" onclick="abrirSheetRaizIA()" title="Raiz IA" aria-label="Raiz IA">
-                <svg data-lucide="sparkles"></svg>
-                <span id="raiz-ia-dot" class="rz-dot hidden"></span>
-            </button>
             <button type="button" id="btn-conta-avatar" class="rz-avatar" onclick="abrirMenuConta()" title="Menu" aria-label="Menu">
                 <svg data-lucide="user" id="icone-conta-avatar-fallback" style="width:18px;height:18px"></svg>
                 <span id="iniciais-conta-avatar" class="hidden"></span>
@@ -2087,21 +2115,6 @@
             <span class="text-[12px] font-bold">Ativos</span>
         </button>
 
-        <!-- v1.91.0 (pedido explícito, 31/08/2026) — Contratos mudou de
-             posição: agora vem logo depois de Ativos, antes de
-             Financeiro — ordem exata do protótipo (Visão geral · Ativos ·
-             Contratos · Financeiro · Resultados). Só trocou de lugar no
-             HTML, a tela em si (tab-contratos) não foi tocada. -->
-        <button onclick="irParaAbaRodape('tab-contratos')" id="btn-tab-contratos" class="flex-1 flex flex-col items-center justify-center py-2 gap-0.5">
-            <svg data-lucide="file-text" style="width:21px;height:21px"></svg>
-            <span class="text-[12px] font-bold">Contratos</span>
-        </button>
-
-        <button onclick="irParaAbaRodape('tab-mensal')" id="btn-tab-mensal" class="flex-1 flex flex-col items-center justify-center py-2 gap-0.5">
-            <svg data-lucide="wallet" style="width:21px;height:21px"></svg>
-            <span class="text-[12px] font-bold">Financeiro</span>
-        </button>
-
         <!-- v1.88.0 — pedido explícito, seguindo a proposta do protótipo:
              Cobranças (tab-inadimplencia) e Distrib. (tab-socios) saem como
              botão próprio da barra — nenhuma das duas telas foi tocada por
@@ -2112,13 +2125,25 @@
              está numa dessas telas — sem isso, o destaque da barra ficaria
              errado ao entrar nelas. -->
 
+        <!-- v1.381.0 (UX onda 2, D10) — a Raiz IA desce do topo para o centro da barra, no lugar de Contratos (que mora
+             agora dentro de Ativos: vista "Ativos · Contratos"). É o sol dourado do splash; não é aba, abre o sheet. -->
+        <button type="button" onclick="abrirSheetRaizIA()" id="btn-raiz-ia-nav" class="rz-nav-ia flex-1 flex flex-col items-center justify-center py-2 gap-0.5" aria-label="Raiz IA">
+            <span class="rz-sol"><svg data-lucide="sparkles"></svg><span id="raiz-ia-dot" class="rz-dot hidden"></span></span>
+            <span class="text-[12px] font-bold">Raiz IA</span>
+        </button>
+
         <!-- v1.303.0 (UX F2.2, demanda da6c64b6; UXR-05/06/22) — Alertas é a 5ª aba. Resultados sai da
              barra até a F2.1 (vai para dentro de Hoje); enquanto isso fica no atalho do topo da Visão
              Geral e no menu ⚙️ (opção (a), "podemos avançar" do Nicola 04/10 18:21). -->
         <button onclick="irParaAbaRodape('tab-alertas')" id="btn-tab-alertas" class="flex-1 flex flex-col items-center justify-center py-2 gap-0.5">
-            <svg data-lucide="bell" style="width:21px;height:21px"></svg>
-            <span class="text-[12px] font-bold">Alertas</span>
+            <svg data-lucide="calendar-days" style="width:21px;height:21px"></svg>
+            <span class="text-[12px] font-bold">Agenda</span><!-- v1.381.0 (UX onda 2) — Alertas passa a se chamar Agenda (a tela por tempo vem na onda 7) -->
             <span id="nav-alertas-n" class="rz-nav-n hidden" aria-live="polite"></span>
+        </button>
+
+        <button onclick="irParaAbaRodape('tab-mensal')" id="btn-tab-mensal" class="flex-1 flex flex-col items-center justify-center py-2 gap-0.5">
+            <svg data-lucide="wallet" style="width:21px;height:21px"></svg>
+            <span class="text-[12px] font-bold">Financeiro</span>
         </button>
 
     </nav>
@@ -2682,6 +2707,11 @@
                  necessária" na Visão Geral, e pelo botão "Cadastrar
                  imóvel" novo aqui embaixo. -->
 
+            <!-- v1.381.0 (UX onda 2, D10) — Contratos mora dentro de Ativos: as duas telas são vistas da mesma aba -->
+            <div class="rz-vista" role="tablist" aria-label="Ativos e contratos">
+                <button type="button" role="tab" data-rz-codigo="cofre.ver" aria-selected="true" class="rz-on" onclick="irParaAbaRodape('tab-ativos')">Ativos</button>
+                <button type="button" role="tab" data-rz-codigo="contratos.ver" aria-selected="false" onclick="irParaAbaRodape('tab-contratos')">Contratos</button>
+            </div>
             <div id="ativos-mount-point"></div>
         </section>
 
@@ -2746,6 +2776,11 @@
                  busca padrão (modal-busca-contratos, mesmo componente de
                  Recebimentos/Atrasados/Saídas) — mesmos ids de campo,
                  renderContratos() não precisou mudar nada de lógica. -->
+            <!-- v1.381.0 (UX onda 2, D10) — Contratos mora dentro de Ativos: as duas telas são vistas da mesma aba -->
+            <div class="rz-vista" role="tablist" aria-label="Ativos e contratos">
+                <button type="button" role="tab" data-rz-codigo="cofre.ver" aria-selected="false" onclick="irParaAbaRodape('tab-ativos')">Ativos</button>
+                <button type="button" role="tab" data-rz-codigo="contratos.ver" aria-selected="true" class="rz-on" onclick="irParaAbaRodape('tab-contratos')">Contratos</button>
+            </div>
             <!-- Topo (F2.3): barra de busca + "+"; os chips da F2.4 vêm logo abaixo. (dem fcd3008d) -->
             <div class="rz-topo">
                 <!-- dem 28aa5ce1 — barra digitável (rzBuscaInline); sem ícone de filtros (teste do Nicola 10/10 21:43: os chips já filtram) -->
@@ -3986,7 +4021,7 @@
         // texto certo toda vez (esqueci 5 versões seguidas, de v1.37.1 até
         // v1.38.3). Agora só precisa mudar UMA linha aqui a cada release;
         // window.onload aplica nos dois lugares automaticamente.
-        const APP_VERSAO = "Beta v1.380.0"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
+        const APP_VERSAO = "Beta v1.381.0"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
 
         // ====================================================================
         // v1.105.0 — HELPERS DE SUPERFÍCIE DA GRAMÁTICA ÚNICA
@@ -4771,6 +4806,26 @@
         // Aplica o CONFIG_CLIENTE aos elementos estáticos da página (logo do topo,
         // cabeçalho interno, recibo em PDF). Roda uma vez, assim que o script carrega
         // — os elementos-alvo já estão no DOM porque vêm antes desta <script> no HTML.
+        // v1.381.0 (UX onda 2, D8) — marca da empresa no topo: o logo numa placa clara de 36 px; logo quadrado vem com o
+        // nome ao lado; logo largo vem sozinho; sem logo, o nome. Nunca iniciais.
+        function rzMarcaHeader(nome) {
+            const el = document.getElementById('logo-header');
+            if (!el) return;
+            el.classList.remove('rz-com-logo');
+            if (!CONFIG_CLIENTE.logoUrl) { el.textContent = nome; return; }
+            el.classList.add('rz-com-logo');
+            el.innerHTML = '<span class="rz-marca-placa"><img alt=""></span><span class="rz-marca-nome hidden"></span>';
+            const img = el.querySelector('img'), placa = el.querySelector('.rz-marca-placa'), nomeEl = el.querySelector('.rz-marca-nome');
+            img.alt = nome; nomeEl.textContent = nome;
+            img.onload = () => {
+                const quadrado = img.naturalHeight > 0 && img.naturalWidth / img.naturalHeight < 1.6;
+                placa.classList.toggle('rz-quad', quadrado);
+                nomeEl.classList.toggle('hidden', !quadrado);
+            };
+            img.onerror = () => { el.classList.remove('rz-com-logo'); el.textContent = nome; };
+            img.src = CONFIG_CLIENTE.logoUrl;
+        }
+
         function aplicarBrandingCliente() {
             const nome = CONFIG_CLIENTE.nomeEmpresa || "RAIZ";
 
@@ -4785,7 +4840,7 @@
             }
 
             setLogo('logo-splash');
-            setLogo('logo-header');
+            rzMarcaHeader(nome);
 
             // v1.64.0 — as 3 linhas que escreviam direto em sobre-logo/
             // sobre-nome-empresa/sobre-dados-empresa saíram daqui: esses
@@ -8177,7 +8232,8 @@ async function criarLinkVitrineSupabase(token, idsSelecionados) {
             'tab-imovel-ficha': 'tab-ativos',
             'tab-recebimento-detalhe': 'tab-ativos',
             'tab-imoveis': 'tab-ativos',
-            'tab-contrato-ficha': 'tab-contratos',
+            'tab-contrato-ficha': 'tab-ativos', // v1.381.0 (UX onda 2) — Contratos mora em Ativos: o ícone Ativos acende
+            'tab-contratos': 'tab-ativos',
             // v1.88.0 — Cobranças e Distrib. saíram de botão próprio na
             // barra (ver comentário na v1.88.0 acima do nav); sem isso, o
             // destaque acenderia errado (ou nenhum) ao entrar nessas telas.
@@ -8569,7 +8625,7 @@ async function criarLinkVitrineSupabase(token, idsSelecionados) {
         // ===================================================================
         var RZ_NOME_TAB = {
             'tab-geral': 'Hoje', 'tab-ativos': 'Ativos', 'tab-contratos': 'Contratos', 'tab-mensal': 'Financeiro',
-            'tab-relatorios': 'Resultados', 'tab-alertas': 'Alertas', 'tab-fiscal': 'Fiscal', 'tab-fiscal-competencia': 'Fiscal da competência',
+            'tab-relatorios': 'Resultados', 'tab-alertas': 'Agenda', 'tab-fiscal': 'Fiscal', 'tab-fiscal-competencia': 'Fiscal da competência',
             'tab-minha-empresa': 'Minha empresa', 'tab-partes': 'Partes', 'tab-saidas': 'Saídas', 'tab-conciliacao': 'Conciliação',
             'tab-inadimplencia': 'Atrasados', 'tab-pessoas': 'Pessoas', 'tab-minutas': 'Minutas', 'tab-licenca': 'Licença',
             'tab-sobre': 'Sobre', 'tab-contrato-ficha': 'Contrato', 'tab-relatorios-catalogo': 'Relatórios', 'tab-socios': 'Balanço',
