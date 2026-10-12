@@ -4,6 +4,20 @@ Histórico completo de versões do `index.html`, movido automaticamente pelo `ge
 
 ---
 
+NOVIDADES (Beta v1.373.0) — Splash "Horizonte" (Nicola 11/10 18:30: "Vamos de Horizonte"; PROTOTIPO_SPLASH_RAMOS_RAIZ v1.2.0).
+A splash ganha a arte .rz-splash-arte (SVG, ~38 KB): céu de manhã com sol e colinas em névoa, a árvore com os 7 ramos
+em leque (ícones de ativo_ramos, galhos que afinam, folhas), e embaixo do chão a terra com raízes fractais; o login fica
+na terra (--rz-chao, calculado por rzSplashChao). O símbolo sai da assinatura vertical (a árvore já é o símbolo); botão
+Entrar em creme sobre a terra. Animação única de abertura, parada com "reduzir movimento". Na escolha de empresa a arte
+some e o fundo volta ao pine. Nenhum objeto de banco.
+Versão anterior (Beta v1.372.0):
+------------------------------------------------------------------
+Versões anteriores (v1.372.0 … v1.372.0): CHANGELOG_APP.md, na raiz do
+repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
+das 5 versões mais recentes deste cabeçalho.
+
+---
+
 NOVIDADES (Beta v1.372.0) — F13 4c etapa 4: visão financeira única por competência no ativo e no contrato
 (rzFinCompetencias), Performance dentro do Financeiro, Ocupação em Usos e contratos. Sem "‹ Financeiro" acima
 de Saídas, Conciliação e Balanço. Import map: financeiro.js 1.52.0, cofre-ativos.js 1.92.0, ativos-markup.js 1.60.0,

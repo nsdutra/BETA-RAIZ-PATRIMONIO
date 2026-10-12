@@ -6,9 +6,18 @@
    (base derivada do RUMO v7.4.2 — histórico de versões anteriores
    preservado abaixo para referência técnica)
 
-   VERSÃO: Beta v1.377.0
-   LINHAS: 15856
-   DATA: 11/10/2026 (sessão 20261011-2210-splash-icones, demanda 680ee9f8)
+   VERSÃO: Beta v1.378.0
+   LINHAS: 16001
+   DATA: 11/10/2026 (sessão 20261011-2300-continuidade, demanda 680ee9f8)
+   NOVIDADES (Beta v1.378.0) — Continuidade splash → empresas → app (Nicola 11/10 22:51: "Gostei. vamos fazer";
+   PROTOTIPO_CONTINUIDADE_SPLASH_APP_RAIZ v1.0.0, C1–C5). C1: na escolha de empresa a árvore do splash fica, menor, no
+   céu (rzSplashChaoAnimar acompanha a altura); saudação pela hora; cartões creme com o logo (sem logo, só o nome — sem
+   iniciais) e os ramos de cada empresa como frutos (fn_cliente_ramos, cache por sessão). C2: ao escolher a empresa, o
+   logo/nome fica no centro e as raízes se desenham enquanto carrega (escMostrarAbrindo), no lugar de "Carregando
+   empresa..."; em falha volta para a lista. C3: linha do horizonte na borda do topo (máscara SVG, cor do ramo) e o botão
+   do ramo como fruto (brilho e sombra). C4: "Sua árvore" no Hoje (Todo o patrimônio), antes das seções por ramo: frutos
+   do tamanho do ramo, brotos para os ramos em breve, toque troca a lente. Nenhum objeto de banco.
+   Versão anterior (Beta v1.377.0):
    NOVIDADES (Beta v1.377.0) — Splash: ícones centralizados nos frutos (Nicola 11/10 22:03: "Os ícones estão mal feitos,
    descentralizados"). O desenho Lucide tem 24 unidades e entrava com translate(cx-9, cy-9) em escala 1 — o centro
    caía 3 unidades à direita e abaixo. Agora escala .8 centrada no fruto, traço 2,3. A folha do cruzamento dos galhos
@@ -29,15 +38,8 @@
    NOVIDADES (Beta v1.374.0) — divisão do lançamento por %, cotas ou valor (como no Splitwise). Só o import map muda
    aqui (raiz-ui.js 1.4.0, financeiro.js 1.53.0).
    Versão anterior (Beta v1.373.0):
-   NOVIDADES (Beta v1.373.0) — Splash "Horizonte" (Nicola 11/10 18:30: "Vamos de Horizonte"; PROTOTIPO_SPLASH_RAMOS_RAIZ v1.2.0).
-   A splash ganha a arte .rz-splash-arte (SVG, ~38 KB): céu de manhã com sol e colinas em névoa, a árvore com os 7 ramos
-   em leque (ícones de ativo_ramos, galhos que afinam, folhas), e embaixo do chão a terra com raízes fractais; o login fica
-   na terra (--rz-chao, calculado por rzSplashChao). O símbolo sai da assinatura vertical (a árvore já é o símbolo); botão
-   Entrar em creme sobre a terra. Animação única de abertura, parada com "reduzir movimento". Na escolha de empresa a arte
-   some e o fundo volta ao pine. Nenhum objeto de banco.
-   Versão anterior (Beta v1.372.0):
    ------------------------------------------------------------------
-   Versões anteriores (v1.372.0 … v1.372.0): CHANGELOG_APP.md, na raiz do
+   Versões anteriores (v1.373.0 … v1.373.0): CHANGELOG_APP.md, na raiz do
    repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
    das 5 versões mais recentes deste cabeçalho.
 
@@ -449,6 +451,38 @@
         .rz-esc-versao{color:#9fc3ae;font-size:12px}
         .rz-esc-rodape button{background:none;border:0;color:#fff;font:600 14px var(--font-body, inherit);display:flex;align-items:center;gap:6px;cursor:pointer;padding:8px 4px}
         .rz-esc-rodape svg{width:16px;height:16px}
+        /* v1.378.0 — continuidade splash → empresas → app (PROTOTIPO_CONTINUIDADE_SPLASH_APP_RAIZ v1.0.0, C1–C5).
+           C1: na escolha de empresa a árvore fica, menor, no céu; a lista nasce do solo em cartões creme (o tom do Entrar),
+           com o logo (sem logo, só o nome — nada de iniciais) e os ramos da empresa como frutos. */
+        .rz-splash-arte{transition:height .9s cubic-bezier(.3,.8,.25,1)}
+        #splash-screen.splash-lista-ativa .rz-splash-arte,#splash-screen.rz-esc-abrindo .rz-splash-arte{display:block;height:min(250px,32vh)}
+        #splash-screen.splash-lista-ativa #splash-conteudo,#splash-screen.rz-esc-abrindo #splash-conteudo{padding-top:calc(var(--rz-chao,190px) + 2px)}
+        #splash-screen.splash-lista-ativa .rz-esc-ola{font-size:22px}
+        #splash-screen.splash-lista-ativa .rz-sp-raizes,#splash-screen.rz-esc-abrindo .rz-sp-raizes{opacity:.3!important;transition:opacity .6s}
+        .rz-esc-grupo{text-transform:none;letter-spacing:0;font-size:12.5px;color:#a9c4b6}
+        #lista-selecao-empresa .rz-card{background:none;border:0;box-shadow:none;padding:0;margin:0}
+        #lista-selecao-empresa .rz-row{display:flex;align-items:center;gap:12px;min-height:66px;padding:10px 12px;margin-bottom:8px;border:0!important;border-radius:16px;background:#f7f1e4;color:var(--ink);box-shadow:0 2px 0 rgba(0,0,0,.14);transition:transform .25s,box-shadow .25s}
+        #lista-selecao-empresa .rz-row:active{transform:scale(.98)}
+        #lista-selecao-empresa .rz-row .rz-tx span{color:#7d776a}
+        .rz-esc-logo{width:46px;height:46px;border-radius:12px;background:#fff;border:1px solid #e8e0cf;flex:none;display:flex;align-items:center;justify-content:center;overflow:hidden;padding:4px}
+        .rz-esc-logo img{max-width:100%;max-height:100%;object-fit:contain}
+        .rz-esc-frutos{display:flex;gap:3px;flex:none}
+        .rz-esc-frutos i{width:20px;height:20px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;background-image:radial-gradient(circle at 34% 28%,rgba(255,255,255,.35),rgba(255,255,255,0) 60%);box-shadow:0 1px 2px rgba(0,0,0,.22)}
+        .rz-esc-frutos i.rz-breve{opacity:.35}
+        .rz-esc-frutos svg{width:11px;height:11px;stroke-width:2.4}
+        /* C2: ao escolher a empresa, a lista sai, o logo da empresa fica no centro e as raízes se desenham enquanto carrega */
+        #rz-esc-abre{display:none;text-align:center;padding-top:22px}
+        #splash-screen.rz-esc-abrindo #rz-esc-abre{display:block;animation:rzEscAbre .4s ease-out both}
+        #splash-screen.rz-esc-abrindo #area-selecao-empresa,#splash-screen.rz-esc-abrindo #area-login-supabase,
+        #splash-screen.rz-esc-abrindo .rz-splash-foto,#splash-screen.rz-esc-abrindo .rz-splash-titulo,#splash-screen.rz-esc-abrindo #splash-ia-tooltip{display:none!important}
+        #rz-esc-abre .rz-esc-logo{width:auto;min-width:56px;height:56px;padding:6px 10px;margin:0 auto;display:inline-flex}
+        #rz-esc-abre .rz-esc-nome{font:700 22px/1.2 var(--font-title);letter-spacing:-.02em;color:#fff;margin:0 16px}
+        #rz-esc-abre p{color:#a9c4b6;font-size:13px;margin:12px 0 0}
+        #rz-esc-abre svg.rz-raizes{display:block;width:240px;height:150px;margin:18px auto 0}
+        .rz-raizes path{fill:none;stroke:#d7c49a;stroke-width:1.4;stroke-linecap:round;stroke-dasharray:170;stroke-dashoffset:170;animation:rzRaizDesenha 1.2s ease-out forwards}
+        @keyframes rzRaizDesenha{to{stroke-dashoffset:0}}
+        @keyframes rzEscAbre{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+        @media (prefers-reduced-motion:reduce){.rz-splash-arte{transition:none}.rz-raizes path{animation:none;stroke-dashoffset:0}#splash-screen.rz-esc-abrindo #rz-esc-abre{animation:none}}
 
 
         /* Barra inferior (v1.39.8) — indicador do item ativo: barrinha fina no
@@ -543,6 +577,17 @@
         .rz-hdr .rz-lente svg{width:19px;height:19px}
         :root[data-ramo] .rz-hdr .rz-avatar{background:rgba(255,255,255,.16);border-color:rgba(255,255,255,.3)} /* v1.348.0 */
         :root[data-ramo] .rz-hdr .rz-lente{background:var(--ramo-acc);box-shadow:0 0 0 3px rgba(255,255,255,.22)}
+        /* v1.378.0 (C3) — o botão do ramo é um fruto da árvore: cor do ramo, brilho e sombra (também em Todo o patrimônio) */
+        .rz-hdr .rz-lente,:root[data-ramo] .rz-hdr .rz-lente{background:radial-gradient(circle at 34% 28%,rgba(255,255,255,.38),rgba(255,255,255,0) 58%),var(--ramo-acc);box-shadow:0 2px 5px rgba(5,15,12,.35),0 0 0 2px rgba(255,255,255,.26)}
+        /* v1.378.0 (C4) — "Sua árvore": o patrimônio por ramo como a árvore do splash; o fruto tem o tamanho do ramo */
+        .rz-arvore{position:relative;max-width:340px;margin:0 auto}
+        .rz-arvore svg{display:block;width:100%;height:auto}
+        .rz-arvore button{position:absolute;transform:translate(-50%,-50%);border-radius:50%;border:0;padding:0;display:flex;align-items:center;justify-content:center;color:#fff;cursor:pointer;background-image:radial-gradient(circle at 34% 28%,rgba(255,255,255,.38),rgba(255,255,255,0) 58%);box-shadow:0 2px 5px rgba(5,15,12,.28);transition:transform .15s}
+        .rz-arvore button:active{transform:translate(-50%,-50%) scale(.92)}
+        .rz-arvore button svg{width:46%;height:46%}
+        .rz-arvore-leg{display:flex;justify-content:space-around;gap:6px;margin-top:2px;text-align:center}
+        .rz-arvore-leg button{background:none;border:0;padding:4px 2px;font:inherit;color:var(--muted);font-size:12px;min-width:0;cursor:pointer}
+        .rz-arvore-leg b{display:block;color:var(--ink);font-family:var(--font-title);font-size:15px}
         /* v1.347.0 — Visão geral: uma seção por ramo em Todo o patrimônio (protótipo PROTOTIPO_HOJE_RAMOS_RAIZ v1.1.0) */
         .rz-ramo-sec{margin:18px 0 6px}
         .rz-ramo-cab{display:flex;align-items:center;gap:8px;margin-bottom:8px}
@@ -560,6 +605,12 @@
         .rz-ramo-breve{border:1px dashed var(--line);border-radius:var(--r-card);padding:14px;color:var(--muted);font-size:13px;text-align:center;margin-top:12px}
         .rz-ramo-dot{display:inline-block;width:14px;height:14px;border-radius:5px}
         .rz-hdr{background:var(--ramo-hdr);color:#fff;padding:calc(14px + env(safe-area-inset-top)) 16px 12px;display:flex;align-items:center;gap:10px}
+        /* v1.378.0 (C3) — a linha do horizonte do splash na borda de baixo do topo, na cor do ramo */
+        .rz-hdr{position:relative;padding-bottom:22px}
+        .rz-hdr::before,.rz-hdr::after{content:"";position:absolute;left:0;right:0;bottom:-1px;height:14px;pointer-events:none;-webkit-mask-size:100% 100%;mask-size:100% 100%;-webkit-mask-repeat:no-repeat;mask-repeat:no-repeat}
+        .rz-hdr::before{background:var(--ramo-acc);opacity:.55;-webkit-mask-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 342 16' preserveAspectRatio='none'%3E%3Cpath d='M0%209%20C40%203%2080%203%20120%208%20C160%2013%20200%2012%20240%206%20C280%201%20310%204%20342%208%20L342%2016%20L0%2016Z'/%3E%3C/svg%3E");mask-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 342 16' preserveAspectRatio='none'%3E%3Cpath d='M0%209%20C40%203%2080%203%20120%208%20C160%2013%20200%2012%20240%206%20C280%201%20310%204%20342%208%20L342%2016%20L0%2016Z'/%3E%3C/svg%3E")}
+        .rz-hdr::after{background:var(--paper);-webkit-mask-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 342 16' preserveAspectRatio='none'%3E%3Cpath d='M0%2012%20C50%208%2090%209%20140%2012%20C190%2015%20240%2014%20290%2010%20C310%209%20330%209%20342%2011%20L342%2016%20L0%2016Z'/%3E%3C/svg%3E");mask-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 342 16' preserveAspectRatio='none'%3E%3Cpath d='M0%2012%20C50%208%2090%209%20140%2012%20C190%2015%20240%2014%20290%2010%20C310%209%20330%209%20342%2011%20L342%2016%20L0%2016Z'/%3E%3C/svg%3E")}
+        #main-header{box-shadow:none}
         .rz-hdr .rz-brand{flex:1;min-width:0}
         .rz-hdr .rz-brand h1{font-family:var(--font-title);font-size:17px;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;letter-spacing:-.02em}
         .rz-hdr .rz-brand small{display:block;font-size:12px;opacity:.85;margin-top:1px}
@@ -1763,6 +1814,12 @@
             }
             rzSplashChao();
             window.addEventListener('resize', rzSplashChao);
+            // v1.378.0 — enquanto a arte muda de altura (escolha de empresa, abrindo), o chão é recalculado a cada quadro
+            function rzSplashChaoAnimar(ms) {
+                const fim = performance.now() + (ms || 1000);
+                const passo = () => { rzSplashChao(); if (performance.now() < fim) requestAnimationFrame(passo); };
+                requestAnimationFrame(passo);
+            }
             // v1.376.0 — a abertura só começa com o app já carregado (antes disso a tela travava no meio do movimento);
             // se o carregamento passar de 4 s, a arte aparece pronta, sem animação.
             (function () {
@@ -1853,6 +1910,7 @@
                 <div class="rz-esc-rodape"><span class="rz-esc-versao" id="esc-versao"></span><button type="button" onclick="fazerLogoutSupabase()">Sair <svg data-lucide="log-out"></svg></button></div>
             </div>
 
+            <div id="rz-esc-abre" aria-live="polite"></div> <!-- v1.378.0 (C2) — empresa abrindo: logo + raízes -->
             <div id="splash-status" class="text-[13px] text-amber-400 font-semibold px-4 break-words"></div>
 
                 <div id="splash-error-detail" class="text-[12px] text-red-400 font-mono hidden max-h-24 overflow-y-auto bg-emerald-950 p-2 rounded border border-red-900/50 text-left mx-4"></div>
@@ -3870,7 +3928,7 @@
         // texto certo toda vez (esqueci 5 versões seguidas, de v1.37.1 até
         // v1.38.3). Agora só precisa mudar UMA linha aqui a cada release;
         // window.onload aplica nos dois lugares automaticamente.
-        const APP_VERSAO = "Beta v1.377.0"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
+        const APP_VERSAO = "Beta v1.378.0"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
 
         // ====================================================================
         // v1.105.0 — HELPERS DE SUPERFÍCIE DA GRAMÁTICA ÚNICA
@@ -6579,7 +6637,8 @@ async function criarLinkVitrineSupabase(token, idsSelecionados) {
         async function entrarNaEmpresa(pessoaRow) {
 
             const statusEl = document.getElementById('splash-status');
-            statusEl.textContent = 'Carregando empresa...';
+            statusEl.textContent = '';
+            escMostrarAbrindo(pessoaRow); // v1.378.0 (C2) — no lugar do "Carregando empresa..."
 
             CLIENTE_ID_SUPABASE = pessoaRow.cliente_id;
             pessoaIdLogada = pessoaRow.id;
@@ -6593,6 +6652,7 @@ async function criarLinkVitrineSupabase(token, idsSelecionados) {
                 .single();
 
             if (error || !clienteRow) {
+                escSairAbrindo(); // v1.378.0 — volta para a lista, com o erro
                 statusEl.textContent = '❌ Falha ao carregar dados da empresa: ' + (error ? error.message : 'não encontrada');
                 return;
             }
@@ -6764,6 +6824,7 @@ async function criarLinkVitrineSupabase(token, idsSelecionados) {
             // cabeçalho quando a lista era longa o bastante pra rolar a
             // splash inteira.
             document.getElementById('splash-screen')?.classList.add('splash-lista-ativa');
+            if (typeof rzSplashChaoAnimar === 'function') rzSplashChaoAnimar(1000); // v1.378.0 (C1)
 
         }
 
@@ -6801,8 +6862,9 @@ async function criarLinkVitrineSupabase(token, idsSelecionados) {
             const itens = pessoaRowsSelecaoEmpresa.map((p, i) => ({ p, indice: i, lic: licencasSelecaoEmpresa[p.cliente_id] }));
             // cabeçalho
             const nome = (pessoaRowsSelecaoEmpresa[0]?.nome || '').trim().split(/\s+/)[0];
-            const ola = document.getElementById('esc-ola'); if (ola) ola.textContent = nome ? 'Olá, ' + nome : 'Olá';
-            const sub = document.getElementById('esc-sub'); if (sub) sub.textContent = `Escolha a empresa · você acessa ${itens.length}`;
+            const hora = new Date().getHours(), cump = hora < 12 ? 'Bom dia' : hora < 18 ? 'Boa tarde' : 'Boa noite'; // v1.378.0 (C1)
+            const ola = document.getElementById('esc-ola'); if (ola) ola.textContent = nome ? cump + ', ' + nome : cump;
+            const sub = document.getElementById('esc-sub'); if (sub) sub.textContent = 'Escolha a empresa';
             // v1.360.0 — chips por plano retirados (Nicola 10/10 23:05); a versão vai para o rodapé, junto do Sair
             escFiltroPlano = 'todos';
             const ver = document.getElementById('esc-versao'); if (ver) ver.textContent = APP_VERSAO;
@@ -6824,10 +6886,12 @@ async function criarLinkVitrineSupabase(token, idsSelecionados) {
             const linha = (it) => {
                 const n = nomeDe(it), st = escSituacao(it.lic), logo = it.p.clientes && it.p.clientes.logo_url;
                 const perfil = ESC_PERFIS[it.p.perfil] || (it.p.perfil ? it.p.perfil.charAt(0).toUpperCase() + it.p.perfil.slice(1) : '');
+                // v1.378.0 (C1) — logo numa placa clara; sem logo, só o nome (sem iniciais). À direita, os ramos como frutos.
                 return `<button type="button" class="rz-row rz-link" onclick="escolherEmpresa(${it.indice})">
-                    <div class="rz-ic${logo ? '' : ' rz-esc-sigla'}">${logo ? `<img src="${rzEsc(logo)}" alt="">` : rzEsc(sigla(n))}</div>
+                    ${logo ? `<div class="rz-esc-logo"><img src="${rzEsc(logo)}" alt=""></div>` : ''}
                     <div class="rz-tx"><b>${rzEsc(n)}</b><span>${rzEsc([perfil, it.lic ? escNomePlano(it.lic.plano_codigo) : ''].filter(Boolean).join(' · '))}</span></div>
-                    ${st ? `<div class="rz-rt">${renderStatus(st.sem, st.txt)}</div>` : '<svg data-lucide="chevron-right" class="rz-chev"></svg>'}
+                    <span class="rz-esc-frutos" data-cli="${rzEsc(it.p.cliente_id)}">${escFrutosHtml(it.p.cliente_id)}</span>
+                    ${st ? `<div class="rz-rt">${renderStatus(st.sem, st.txt)}</div>` : ''}
                 </button>`;
             };
             const ultimaId = escUltimaEmpresa();
@@ -6836,7 +6900,51 @@ async function criarLinkVitrineSupabase(token, idsSelecionados) {
             lista.innerHTML = (ultima ? `<div class="rz-esc-grupo">Última acessada</div><div class="rz-card rz-list">${linha(ultima)}</div>` : '')
                 + (resto.length ? `<div class="rz-esc-grupo">${ultima ? 'Outras empresas' : (escTermo ? (resto.length === 1 ? '1 empresa' : resto.length + ' empresas') : 'Empresas')}</div><div class="rz-card rz-list">${resto.map(linha).join('')}</div>` : '');
             rzIcones();
+            escCarregarFrutos(vis.map(it => it.p.cliente_id));
         }
+        // v1.378.0 (C1) — ramos de cada empresa (fn_cliente_ramos, a mesma regra de licença do app), guardados por sessão
+        const escRamosCache = {};
+        function escFrutosHtml(cli) {
+            const rs = escRamosCache[cli];
+            if (!rs) return '';
+            return rs.map(c => {
+                const r = (typeof RZ_RAMOS !== 'undefined' ? RZ_RAMOS : []).find(x => x.codigo === c);
+                if (!r) return '';
+                return `<i class="${r.status === 'ativo' ? '' : 'rz-breve'}" style="background-color:var(--ramo-cor-${rzEsc(c)}, var(--sage))" title="${rzEsc(r.nome)}"><svg data-lucide="${rzEsc(r.icone || 'circle')}"></svg></i>`;
+            }).join('');
+        }
+        async function escCarregarFrutos(ids) {
+            const faltam = ids.filter(id => id && !escRamosCache[id]);
+            if (!faltam.length) return;
+            await Promise.all(faltam.map(async (id) => {
+                try {
+                    const { data, error } = await dbAuth.rpc('fn_cliente_ramos', { p_cliente_id: id });
+                    escRamosCache[id] = !error && Array.isArray(data) ? data.map(x => typeof x === 'string' ? x : Object.values(x)[0]) : [];
+                } catch (_) { escRamosCache[id] = []; }
+            }));
+            let mudou = false;
+            document.querySelectorAll('#lista-selecao-empresa .rz-esc-frutos').forEach(el => {
+                const h = escFrutosHtml(el.dataset.cli);
+                if (h && !el.innerHTML) { el.innerHTML = h; mudou = true; }
+            });
+            if (mudou) rzIcones();
+        }
+        // v1.378.0 (C2) — a empresa escolhida fica no centro e as raízes se desenham enquanto os dados carregam
+        function escMostrarAbrindo(pessoaRow) {
+            const s = document.getElementById('splash-screen'), box = document.getElementById('rz-esc-abre');
+            if (!s || !box) return;
+            const c = (pessoaRow && pessoaRow.clientes) || {};
+            const logo = c.logo_url, nome = c.nome_empresa || '';
+            const raizes = ['M120 0 C120 40 118 80 120 140', 'M120 10 C100 30 70 40 40 70 C30 80 20 100 14 120', 'M120 10 C140 30 170 40 200 70 C210 80 220 100 226 120',
+                'M118 40 C95 55 80 75 70 110', 'M122 40 C145 55 160 75 170 110', 'M70 55 C55 60 45 70 30 72', 'M170 55 C185 60 195 70 210 72',
+                'M119 80 C108 95 100 115 96 140', 'M121 80 C132 95 140 115 144 140'];
+            box.innerHTML = (logo ? `<span class="rz-esc-logo"><img src="${rzEsc(logo)}" alt=""></span>` : `<p class="rz-esc-nome">${rzEsc(nome)}</p>`) +
+                '<p>Abrindo o patrimônio…</p><svg class="rz-raizes" viewBox="0 0 240 150" aria-hidden="true">' +
+                raizes.map((d, i) => `<path d="${d}" style="animation-delay:${(Math.round((i * 0.08) * 100) / 100)}s"/>`).join('') + '</svg>';
+            s.classList.add('rz-esc-abrindo');
+            if (typeof rzSplashChaoAnimar === 'function') rzSplashChaoAnimar(1000);
+        }
+        function escSairAbrindo() { document.getElementById('splash-screen')?.classList.remove('rz-esc-abrindo'); }
 
         function escolherEmpresa(indice) {
             const pessoaRow = pessoaRowsSelecaoEmpresa[indice];
@@ -10749,7 +10857,44 @@ async function criarLinkVitrineSupabase(token, idsSelecionados) {
                     `<div class="rz-card">${segs.map(g => `<div class="rz-ramo-seg"><span>${rzEsc(g.sg)}</span><i><em style="width:${Math.round((soma ? g.v : g.q) / max * 100)}%;background:var(--ramo-cor-${r.codigo}, var(--sage))"></em></i><b>${soma && g.v ? formatarValorCompacto(g.v) : g.q + ' ' + un(g.q)}</b></div>`).join('')}</div></section>`;
             }).join('');
             const breve = RZ_RAMOS.filter(r => r.status === 'em_breve').map(r => r.nome);
-            mount.innerHTML = html + (breve.length ? `<div class="rz-ramo-breve">${rzEsc(breve.join(' e '))} chegam em breve.</div>` : '');
+            mount.innerHTML = rzArvoreHtml(rows, ativos) + html + (breve.length ? `<div class="rz-ramo-breve">${rzEsc(breve.join(' e '))} chegam em breve.</div>` : '');
+            rzIcones();
+        }
+        // v1.378.0 (C4, PROTOTIPO_CONTINUIDADE_SPLASH_APP_RAIZ v1.0.0) — "Sua árvore": um tronco com os ramos da empresa em
+        // leque; o fruto tem o tamanho do ramo (valor; ramo de vidas pela quantidade, menor); ramo contratado sem nada vira
+        // broto; tocar no fruto (ou no nome embaixo) troca a lente. Mesmo desenho do splash, sem imagem nova.
+        function rzArvoreHtml(rows, ativos) {
+            const liberados = ativos.filter(r => typeof rzRamoLiberado !== 'function' || rzRamoLiberado(r.codigo));
+            const breves = RZ_RAMOS.filter(r => r.status === 'em_breve');
+            const dados = liberados.map(r => {
+                const L = rows.filter(x => rzRamoDoAtivo(x) === r.codigo);
+                const soma = r.soma_valor !== false;
+                return { r, n: L.length, soma, v: L.reduce((t, x) => t + (Number(x.valor_referencia) || 0), 0) };
+            });
+            if (!dados.some(d => d.n)) return '';
+            const maxV = Math.max(1, ...dados.filter(d => d.soma).map(d => d.v)), maxN = Math.max(1, ...dados.map(d => d.n));
+            // brotos (em breve) nas pontas do leque, os ramos com patrimônio no meio — a copa fica equilibrada
+            const bro = breves.map(r => ({ r, n: 0, v: 0, soma: true, breve: true }));
+            const todos = bro.slice(0, Math.ceil(bro.length / 2)).concat(dados.map(d => ({ ...d, breve: false })), bro.slice(Math.ceil(bro.length / 2)));
+            const N = todos.length, W = 300, H = 186, PX = 150, PY = 116;
+            let galhos = '', frutos = '';
+            todos.forEach((d, i) => {
+                const ang = N === 1 ? 0 : -72 + i * (144 / (N - 1)), a = ang * Math.PI / 180;
+                const vivo = d.n > 0, L = vivo ? 78 : 56;
+                const x = PX + L * Math.sin(a), y = PY - L * Math.cos(a) * (Math.abs(ang) > 50 ? .78 : 1);
+                const cx = PX + L * 0.42 * Math.sin(a * 0.5), cy = PY - L * 0.58;
+                galhos += `<path d="M${PX} ${PY} Q${Math.round(cx)} ${Math.round(cy)} ${Math.round(x)} ${Math.round(y)}" stroke="#2f5a48" stroke-width="${vivo ? 2.6 : 1.6}" fill="none" stroke-linecap="round"/>`;
+                if (vivo) {
+                    const s = d.soma ? Math.sqrt(d.v / maxV) : 0.45 * Math.sqrt(d.n / maxN);
+                    const diam = Math.round(26 + 22 * Math.min(1, s));
+                    frutos += `<button type="button" onclick="escolherGeralRamo('${d.r.codigo}')" aria-label="Ver só ${rzEsc(d.r.nome)}" style="left:${(Math.round((x / W * 100) * 10) / 10)}%;top:${(Math.round((y / H * 100) * 10) / 10)}%;width:${diam}px;height:${diam}px;background-color:var(--ramo-cor-${d.r.codigo}, var(--sage))"><svg data-lucide="${rzEsc(d.r.icone || 'circle')}"></svg></button>`;
+                } else {
+                    galhos += `<ellipse cx="${Math.round(x)}" cy="${Math.round(y)}" rx="6" ry="9" transform="rotate(${Math.round(ang)} ${Math.round(x)} ${Math.round(y)})" fill="#9cc7a6"/>`;
+                }
+            });
+            const tronco = `<path d="M${PX - 4} ${H} C${PX - 3} ${H - 20} ${PX - 3} ${PY + 25} ${PX - 2} ${PY} L${PX + 2} ${PY} C${PX + 3} ${PY + 25} ${PX + 3} ${H - 20} ${PX + 4} ${H}Z" fill="#2f5a48"/>`;
+            const leg = dados.filter(d => d.n).map(d => `<button type="button" onclick="escolherGeralRamo('${d.r.codigo}')"><b>${d.soma ? formatarValorCompacto(d.v) : d.n + ' ' + rzEsc(d.n === 1 ? d.r.unidade_singular : d.r.unidade_plural)}</b>${rzEsc(d.r.nome)}</button>`).join('');
+            return `<div class="rz-card"><div class="rz-card-h"><h3>Sua árvore</h3></div><div class="rz-arvore"><svg viewBox="0 0 ${W} ${H}" aria-hidden="true">${galhos}${tronco}</svg>${frutos}</div><div class="rz-arvore-leg">${leg}</div></div>`;
         }
 
         function renderizarQuebraTipoGeral(rows) {
