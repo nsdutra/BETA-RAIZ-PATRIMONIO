@@ -6,9 +6,18 @@
    (base derivada do RUMO v7.4.2 — histórico de versões anteriores
    preservado abaixo para referência técnica)
 
-   VERSÃO: Beta v1.390.0
-   LINHAS: 16334
-   DATA: 12/10/2026 (sessão 20261012-0320-ux-busca, demanda a05ad2ee)
+   VERSÃO: Beta v1.391.0
+   LINHAS: 16486
+   DATA: 12/10/2026 (sessão 20261012-0335-raiz-ia-registra, demanda a05ad2ee)
+   NOVIDADES (Beta v1.391.0) — Onda 6a, Raiz IA registra (FICHA_ONDA_6_RAIZ_IA_REGISTRA v1.0.0, aprovada pelo Nicola
+   12/10 03:30: "de acordo, apenas crie de forma a reaproveitar as funções do bot e as que criar aqui, que possam ser
+   usadas por eles"). O sol da barra abre a Raiz IA com o campo único — pergunta ou registro, por texto ou voz (voz do
+   aparelho, RaizDevice.voz.ouvir) — e os atalhos Ocorrência · Lançamento · Documento. A frase vai à Edge nova
+   raiz-ia-registrar 1.0.0 (gates e log pelo _shared_core, leitura pelo _shared_ia — mesmo modelo e vocabulário do
+   robô) e volta como despesa (abre Nova saída preenchida: valor, descrição, data, categoria, bem), receita, ocorrência
+   (rzNovaOcorrencia: no contrato vigente do bem ou no item "Manutenção", D6.2 a) ou pergunta (busca em tudo com o
+   termo). Nada grava sem o toque em Salvar. Nenhuma tabela, coluna ou policy nova.
+   Versão anterior (Beta v1.390.0):
    NOVIDADES (Beta v1.390.0) — Busca pela lupa do topo e Financeiro das fichas num card só (Nicola 12/10 03:18). A lupa
    do cabeçalho é a busca da tela aberta: abre em leque para a esquerda por cima do nome da empresa, digita e recolhe;
    com filtro, o ícone fica claro com um ponto dourado; tocar de novo limpa e abre. Tela com busca por sheet (Agenda,
@@ -38,13 +47,8 @@
    (financeiro.js 1.57.0). Ficha do ativo: Usos e Ocupação num card só, com ‹ ano ›, barra de jan a dez, iniciais dos
    meses e a ocupação do ano em % (cofre-ativos.js 1.95.0). Nenhum objeto de banco.
    Versão anterior (Beta v1.386.0):
-   NOVIDADES (Beta v1.386.0) — UX onda 4b: controles (estudo PROTOTIPO_UX_DENSIDADE_RAMOS_RAIZ v1.2.0, D9; "Pode fazer
-   e seguir" do Nicola 12/10 02:26). As vistas de uma tela viram abas sublinhadas: Hoje (Visão geral · Minha gestão ·
-   Fique por dentro), fichas do contrato e do ativo, Minha empresa e Licença. Chip fica só para filtrar lista. Em todo
-   chip e aba o número é só o número, sem pílula (vermelho quando há atraso). Só CSS. Nenhum objeto de banco.
-   Versão anterior (Beta v1.385.0):
    ------------------------------------------------------------------
-   Versões anteriores (v1.385.0 … v1.385.0): CHANGELOG_APP.md, na raiz do
+   Versões anteriores (v1.386.0 … v1.386.0): CHANGELOG_APP.md, na raiz do
    repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
    das 5 versões mais recentes deste cabeçalho.
 
@@ -72,7 +76,7 @@
          O navegador aplica o mapa também aos imports estáticos dentro dos
          módulos (cofre-app.js → ./cofre-api.js etc.). -->
     <!-- RZ-IMPORTMAP:INICIO -->
-    <script type="importmap">{"imports":{"./js/cadastros.js":"./js/cadastros.js?v=1.2.0","./js/financeiro.js":"./js/financeiro.js?v=1.59.0","./js/fechamento.js":"./js/fechamento.js?v=1.13.0","./js/contratos.js":"./js/contratos.js?v=1.55.0","./js/minutas.js":"./js/minutas.js?v=1.4.0","./js/vitrine.js":"./js/vitrine.js?v=1.5.2","./js/imoveis.js":"./js/imoveis.js?v=1.7.2","./js/cofre-api.js":"./js/cofre-api.js?v=1.50.0","./js/cofre-app.js":"./js/cofre-app.js?v=1.47.0","./js/cofre-ativos.js":"./js/cofre-ativos.js?v=1.96.0","./js/cofre-controles.js":"./js/cofre-controles.js?v=1.51.0","./js/cofre-documentos.js":"./js/cofre-documentos.js?v=2.35.0","./js/cofre-imagem.js":"./js/cofre-imagem.js?v=1.1.0","./js/cofre-estado.js":"./js/cofre-estado.js?v=1.5.2","./js/cofre-navegacao.js":"./js/cofre-navegacao.js?v=1.9.3","./js/cofre-ui.js":"./js/cofre-ui.js?v=1.7.2","./js/cofre-validacoes.js":"./js/cofre-validacoes.js?v=2.5.0","./js/comum-licenca.js":"./js/comum-licenca.js?v=1.8.0","./js/comum-renovacao.js":"./js/comum-renovacao.js?v=1.3.5","./js/comum-minha-empresa.js":"./js/comum-minha-empresa.js?v=1.15.0","./js/comum-pessoas.js":"./js/comum-pessoas.js?v=1.210.0","./js/comum-sobre.js":"./js/comum-sobre.js?v=1.5.0","./js/comum-endereco.js":"./js/comum-endereco.js?v=1.2.0","./js/comum-partes.js":"./js/comum-partes.js?v=1.0.0","./js/resultados.js":"./js/resultados.js?v=2.9.0","./js/indicadores.js":"./js/indicadores.js?v=1.1.0","./js/configuracao-inicial.js":"./js/configuracao-inicial.js?v=1.0.1","./js/relatorios-executivos.js":"./js/relatorios-executivos.js?v=1.3.0","./js/raiz-eventos.js":"./js/raiz-eventos.js?v=1.0.0","./js/raiz-device.js":"./js/raiz-device.js?v=1.0.0","./js/raiz-ui.js":"./js/raiz-ui.js?v=1.4.0","./js/fiscal.js":"./js/fiscal.js?v=1.5.2","./js/ativos/ativos-boot.js":"./js/ativos/ativos-boot.js?v=1.4.0","./js/ativos/ativos-markup.js":"./js/ativos/ativos-markup.js?v=1.61.0","./js/nucleo/porta.js":"./js/nucleo/porta.js?v=1.4.0","./js/partes.js":"./js/partes.js?v=1.0.2","./js/conta.js":"./js/conta.js?v=1.0.1"}}</script>
+    <script type="importmap">{"imports":{"./js/cadastros.js":"./js/cadastros.js?v=1.2.0","./js/financeiro.js":"./js/financeiro.js?v=1.59.0","./js/fechamento.js":"./js/fechamento.js?v=1.13.0","./js/contratos.js":"./js/contratos.js?v=1.55.0","./js/minutas.js":"./js/minutas.js?v=1.4.0","./js/vitrine.js":"./js/vitrine.js?v=1.5.2","./js/imoveis.js":"./js/imoveis.js?v=1.7.2","./js/cofre-api.js":"./js/cofre-api.js?v=1.50.0","./js/cofre-app.js":"./js/cofre-app.js?v=1.47.0","./js/cofre-ativos.js":"./js/cofre-ativos.js?v=1.96.0","./js/cofre-controles.js":"./js/cofre-controles.js?v=1.51.0","./js/cofre-documentos.js":"./js/cofre-documentos.js?v=2.35.0","./js/cofre-imagem.js":"./js/cofre-imagem.js?v=1.1.0","./js/cofre-estado.js":"./js/cofre-estado.js?v=1.5.2","./js/cofre-navegacao.js":"./js/cofre-navegacao.js?v=1.9.3","./js/cofre-ui.js":"./js/cofre-ui.js?v=1.7.2","./js/cofre-validacoes.js":"./js/cofre-validacoes.js?v=2.5.0","./js/comum-licenca.js":"./js/comum-licenca.js?v=1.8.0","./js/comum-renovacao.js":"./js/comum-renovacao.js?v=1.3.5","./js/comum-minha-empresa.js":"./js/comum-minha-empresa.js?v=1.15.0","./js/comum-pessoas.js":"./js/comum-pessoas.js?v=1.210.0","./js/comum-sobre.js":"./js/comum-sobre.js?v=1.5.0","./js/comum-endereco.js":"./js/comum-endereco.js?v=1.2.0","./js/comum-partes.js":"./js/comum-partes.js?v=1.0.0","./js/resultados.js":"./js/resultados.js?v=2.9.0","./js/indicadores.js":"./js/indicadores.js?v=1.1.0","./js/configuracao-inicial.js":"./js/configuracao-inicial.js?v=1.0.1","./js/relatorios-executivos.js":"./js/relatorios-executivos.js?v=1.3.0","./js/raiz-eventos.js":"./js/raiz-eventos.js?v=1.0.0","./js/raiz-device.js":"./js/raiz-device.js?v=1.1.0","./js/raiz-ui.js":"./js/raiz-ui.js?v=1.4.0","./js/fiscal.js":"./js/fiscal.js?v=1.5.2","./js/ativos/ativos-boot.js":"./js/ativos/ativos-boot.js?v=1.4.0","./js/ativos/ativos-markup.js":"./js/ativos/ativos-markup.js?v=1.61.0","./js/nucleo/porta.js":"./js/nucleo/porta.js?v=1.4.0","./js/partes.js":"./js/partes.js?v=1.0.2","./js/conta.js":"./js/conta.js?v=1.0.1"}}</script>
     <!-- RZ-IMPORTMAP:FIM -->
 
     <!-- ===== PWA: permite "instalar" o app no celular (Android e iPhone) ===== -->
@@ -1462,6 +1466,18 @@
         #main-content .rz-vista{padding-right:56px}
         #tab-contratos > .rz-vista + * + .rz-topo,#tab-contratos > .rz-vista + .rz-topo,#tab-ativos [data-screen="ativos"] > .rz-topo{margin-top:-58px;position:relative;z-index:1;pointer-events:none}
         #tab-contratos .rz-topo .rz-primary,#tab-ativos [data-screen="ativos"] > .rz-topo .rz-primary{pointer-events:auto}
+        /* v1.391.0 — ONDA 6a: campo único da Raiz IA (texto + voz) e atalhos */
+        .rz-ia-campo{display:flex;align-items:flex-end;gap:6px;border:1.5px solid var(--brass);border-radius:22px;padding:6px 6px 6px 14px;background:var(--card);margin:2px 0 6px}
+        .rz-ia-campo textarea{flex:1;min-width:0;border:0;outline:none;resize:none;background:none;font:400 16px/1.35 var(--font-body);color:var(--ink);padding:7px 0;max-height:120px}
+        .rz-ia-mic,.rz-ia-enviar{flex:none;width:40px;height:40px;border-radius:50%;border:0;display:flex;align-items:center;justify-content:center;cursor:pointer}
+        .rz-ia-mic{background:var(--brass-bg);color:var(--brass-deep)}
+        .rz-ia-mic.rz-ouvindo{background:var(--danger);color:#fff;animation:rz-pulse 1.2s infinite}
+        .rz-ia-enviar{background:var(--brass);color:#fff}.rz-ia-enviar:disabled{opacity:.5}
+        .rz-ia-mic svg,.rz-ia-enviar svg{width:19px;height:19px}
+        .rz-ia-dica{font-size:12.5px;color:var(--muted);margin:0 4px 10px}
+        .rz-ia-atalhos{display:flex;gap:8px;margin-bottom:12px}
+        .rz-ia-atalhos button{flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;padding:10px 4px;border:1px solid var(--line);border-radius:12px;background:var(--card);font:600 12.5px var(--font-body);color:var(--ink);cursor:pointer;min-height:56px}
+        .rz-ia-atalhos svg{width:20px;height:20px;color:var(--brass-deep)}
     </style>
 
 </head>
@@ -4168,7 +4184,7 @@
         // texto certo toda vez (esqueci 5 versões seguidas, de v1.37.1 até
         // v1.38.3). Agora só precisa mudar UMA linha aqui a cada release;
         // window.onload aplica nos dois lugares automaticamente.
-        const APP_VERSAO = "Beta v1.390.0"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
+        const APP_VERSAO = "Beta v1.391.0"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
 
         // ====================================================================
         // v1.105.0 — HELPERS DE SUPERFÍCIE DA GRAMÁTICA ÚNICA
@@ -9566,17 +9582,153 @@ async function criarLinkVitrineSupabase(token, idsSelecionados) {
         // campo) é a fatia 8 (Edge Function + RPC de contexto). Até lá o
         // botão já tem o lugar e o contrato visual definitivos e abre o que
         // a IA faz HOJE no produto — nada aqui promete o que não existe.
+        // v1.391.0 (onda 6a — FICHA_ONDA_6_RAIZ_IA_REGISTRA v1.0.0, aprovada pelo Nicola 12/10 03:30) — a Raiz IA ganha o
+        // campo único: pergunta ou registro, por texto ou voz. A frase vai à Edge raiz-ia-registrar (mesmo modelo e
+        // vocabulário do robô, _shared_ia) e volta como despesa · receita · ocorrência · pergunta; o app abre SEMPRE o
+        // formulário preenchido — nada grava sem o toque em Salvar (UXR-37). Atalhos: Ocorrência · Lançamento · Documento.
         function abrirSheetRaizIA() {
-            const hero = '<div class="rz-ia-hero"><h4><svg data-lucide="sparkles"></svg>Raiz IA</h4>' +
-                '<p>Lê extratos e documentos e sugere lançamentos, vínculos e categorias. Você sempre confirma antes de gravar.</p></div>';
-            const sheet = abrirSheetAcoes({ titulo: 'Raiz IA', sub: 'O que a IA faz por você hoje', acoes: [
+            const vozOk = !!(window.RaizDevice && RaizDevice.voz && RaizDevice.voz.disponivel());
+            const campo = '<div class="rz-ia-campo"><textarea id="rz-ia-q" class="rz-raw" rows="1" maxlength="500" enterkeyhint="send" placeholder="Pergunte ou registre…" aria-label="Pergunte ou registre"></textarea>' +
+                (vozOk ? '<button type="button" class="rz-ia-mic" id="rz-ia-mic" aria-label="Falar"><svg data-lucide="mic"></svg></button>' : '') +
+                '<button type="button" class="rz-ia-enviar" id="rz-ia-enviar" aria-label="Enviar"><svg data-lucide="arrow-up"></svg></button></div>' +
+                '<p class="rz-ia-dica" id="rz-ia-dica">Ex.: “paguei 268 de gasolina no XC60” · “vazamento no apto 81”</p>' +
+                '<div class="rz-ia-atalhos"><button type="button" data-ia-atalho="ocorrencia"><svg data-lucide="wrench"></svg>Ocorrência</button>' +
+                '<button type="button" data-ia-atalho="lancamento"><svg data-lucide="wallet"></svg>Lançamento</button>' +
+                '<button type="button" data-ia-atalho="documento"><svg data-lucide="file-up"></svg>Documento</button></div>';
+            const sheet = abrirSheetAcoes({ titulo: 'Raiz IA', sub: 'Pergunte ou registre, por texto ou voz', acoes: [
                 { icone: 'sparkles', tipo: 'ia', titulo: 'Importar extrato bancário', codigo: 'conciliacao.importar', sub: 'Concilia os recebimentos automaticamente', aoTocar: () => { switchTab('tab-mensal'); setTimeout(() => document.getElementById('extrato-file-input')?.click(), 250); } },
-                { icone: 'sparkles', tipo: 'ia', titulo: 'Ler um documento', codigo: 'cofre.analisar_ia', sub: 'Classifica e sugere o ativo', aoTocar: () => abrirUploadDocumentoNoApp() },
                 { icone: 'bot', titulo: 'Raiz IA no WhatsApp', sub: 'Consultas e avisos pelo WhatsApp', aoTocar: abrirBotWhatsapp }
             ]});
             const corpo = sheet.querySelector('.rz-sh-b');
-            if (corpo) { corpo.insertAdjacentHTML('afterbegin', hero); rzIcones(); }
+            if (corpo) { corpo.insertAdjacentHTML('afterbegin', campo); rzIcones(); }
             document.getElementById('raiz-ia-dot')?.classList.add('hidden');
+            const q = sheet.querySelector('#rz-ia-q'), env = sheet.querySelector('#rz-ia-enviar'), mic = sheet.querySelector('#rz-ia-mic');
+            const crescer = () => { q.style.height = 'auto'; q.style.height = Math.min(q.scrollHeight, 120) + 'px'; };
+            q.addEventListener('input', crescer);
+            q.addEventListener('keydown', (ev) => { if (ev.key === 'Enter' && !ev.shiftKey) { ev.preventDefault(); env.click(); } });
+            env.addEventListener('click', () => rzIaRegistrar(q.value, 'texto'));
+            let escuta = null;
+            if (mic) mic.addEventListener('click', () => {
+                if (escuta) { escuta.parar(); return; }
+                mic.classList.add('rz-ouvindo'); q.placeholder = 'Ouvindo…';
+                escuta = RaizDevice.voz.ouvir({
+                    aoTexto: (t) => { q.value = t; crescer(); },
+                    aoFim: (t, erro) => { mic.classList.remove('rz-ouvindo'); q.placeholder = 'Pergunte ou registre…'; escuta = null;
+                        if (t) rzIaRegistrar(t, 'voz'); else if (erro && erro !== 'no-speech' && erro !== 'aborted') rzAvisar('Não consegui ouvir. Tente de novo ou escreva.', 'aviso'); },
+                });
+                if (!escuta.ok) { mic.classList.remove('rz-ouvindo'); escuta = null; rzAvisar('Este aparelho não reconhece voz aqui. Escreva a frase.', 'aviso'); }
+            });
+            sheet.querySelectorAll('[data-ia-atalho]').forEach(b => b.addEventListener('click', () => {
+                const k = b.dataset.iaAtalho; fecharSheet();
+                if (k === 'ocorrencia') rzNovaOcorrencia({});
+                else if (k === 'lancamento') rzEscolherLancamento({});
+                else abrirUploadDocumentoNoApp();
+            }));
+            setTimeout(() => q.focus(), 80);
+        }
+
+        async function rzIaRegistrar(texto, canal) {
+            texto = String(texto || '').trim();
+            if (texto.length < 2) return;
+            if (rzMostrarBloqueio('ia.usar')) return;
+            const env = document.getElementById('rz-ia-enviar'), dica = document.getElementById('rz-ia-dica');
+            if (env) env.disabled = true;
+            if (dica) dica.textContent = 'Lendo…';
+            let r = null;
+            try {
+                const { data, error } = await dbAuth.functions.invoke('raiz-ia-registrar', { body: { cliente_id: CLIENTE_ID_SUPABASE, texto, canal_entrada: canal } });
+                if (error) {
+                    let msg = 'Não consegui ler agora. Tente de novo.';
+                    try { const j = await error.context.json(); if (j && j.erro) msg = j.erro; } catch (_) { /* sem corpo */ }
+                    throw new Error(msg);
+                }
+                r = data;
+            } catch (e) {
+                if (env) env.disabled = false;
+                if (dica) dica.textContent = 'Ex.: “paguei 268 de gasolina no XC60” · “vazamento no apto 81”';
+                rzAvisar(e.message || 'Não consegui ler agora.', 'erro');
+                return;
+            }
+            fecharSheet();
+            if (r.aviso_limite) rzAvisar(r.aviso_limite, 'aviso');
+            const p = r.parametros || {};
+            const comAtivo = (fazer) => {
+                if (p.ativo_id || !(r.candidatos || []).length) return fazer(p.ativo_id || null);
+                abrirSheetAcoes({ titulo: 'Qual destes?', sub: `“${p.ativo_termo || ''}”`, acoes: [
+                    ...r.candidatos.map(c => ({ icone: 'boxes', titulo: c.nome, aoTocar: () => fazer(c.id) })),
+                    { icone: 'minus', titulo: 'Nenhum destes', aoTocar: () => fazer(null) },
+                ] });
+            };
+            if (r.intencao === 'despesa') return comAtivo((ativoId) => rzAbrirDespesaPreenchida(ativoId, { valor: p.valor, descricao: p.descricao, vencimento: p.data, categoria: p.categoria }));
+            if (r.intencao === 'receita') { if (typeof window.abrirNovoRecebimento === 'function') window.abrirNovoRecebimento(); if (p.valor) rzAvisar(`Confira o valor: ${formatarMoedaBR(p.valor)}`, 'info'); return; }
+            if (r.intencao === 'ocorrencia') return comAtivo((ativoId) => rzNovaOcorrencia({ ativoId, descricao: p.descricao || texto, data: p.data }));
+            if (r.intencao === 'pergunta') {
+                rzAbrirBuscaUniversal();
+                setTimeout(() => { const i = document.getElementById('rz-bu-q'); if (i) { i.value = p.termo_busca || texto; i.dispatchEvent(new Event('input', { bubbles: true })); } }, 120);
+                return;
+            }
+            abrirSheetAcoes({ titulo: 'Não entendi', sub: `“${texto.slice(0, 80)}”`, acoes: [
+                { icone: 'wallet', titulo: 'É um lançamento', sub: 'Pagamento ou recebimento', aoTocar: () => rzEscolherLancamento({ descricao: texto }) },
+                { icone: 'wrench', titulo: 'É uma ocorrência', sub: 'Algo que aconteceu com um bem', aoTocar: () => rzNovaOcorrencia({ descricao: texto }) },
+            ] });
+        }
+
+        function rzAbrirDespesaPreenchida(ativoId, sugestoes) {
+            if (typeof window.abrirNovaDespesa !== 'function') { rzAvisar('O lançamento abre em Financeiro.', 'aviso'); return; }
+            if (rzMostrarBloqueio('saidas.registrar')) return;
+            switchTab('tab-saidas');
+            window.abrirNovaDespesa(ativoId || null, sugestoes || null);
+        }
+        function rzEscolherLancamento(sug) {
+            abrirSheetAcoes({ titulo: 'Lançamento', acoes: [
+                { icone: 'arrow-up-right', titulo: 'Saída', sub: 'Algo que foi pago', codigo: 'saidas.registrar', aoTocar: () => rzAbrirDespesaPreenchida(null, sug && sug.descricao ? { descricao: sug.descricao } : null) },
+                { icone: 'arrow-down-left', titulo: 'Recebimento', sub: 'Algo que entrou', aoTocar: () => { if (typeof window.abrirNovoRecebimento === 'function') window.abrirNovoRecebimento(); } },
+            ] });
+        }
+
+        // Ocorrência solta ("vazamento no apto 81") — FICHA_ONDA_6 D6.2 (a), sem mudar o banco: vai para o contrato
+        // vigente do ativo; sem contrato, para o item "Manutenção" do ativo (criado na primeira vez). Fica aberta para
+        // ser tratada; o histórico registra a criação.
+        function rzNovaOcorrencia({ ativoId = null, descricao = '', data = null } = {}) {
+            if (rzMostrarBloqueio('cofre.controles.criar')) return;
+            const ativos = (window.__cofreAtivos || []).filter(a => (a.status || '').toLowerCase() !== 'arquivado')
+                .sort((a, b) => String(a.nome_exibicao || '').localeCompare(String(b.nome_exibicao || '')));
+            const hoje = new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 10);
+            const opcoes = '<option value="">Escolha o bem</option>' + ativos.map(a => `<option value="${a.id}"${a.id === ativoId ? ' selected' : ''}>${rzEsc(a.nome_exibicao || 'Ativo')}</option>`).join('');
+            abrirSheetForm({ titulo: 'Nova ocorrência', sub: 'Fica em aberto até você tratar', rotuloSalvar: 'Registrar ocorrência',
+                corpo: `<div class="rz-f"><label for="oc-ia-ativo">Bem</label><select id="oc-ia-ativo">${opcoes}</select></div>
+                        <div class="rz-f"><label for="oc-ia-desc">O que aconteceu</label><textarea id="oc-ia-desc" rows="3" maxlength="500">${rzEsc(descricao || '')}</textarea></div>
+                        <div class="rz-f"><label for="oc-ia-data">Quando</label><input type="date" id="oc-ia-data" value="${data || hoje}"></div>`,
+                aoSalvar: async (el) => {
+                    const aId = el.querySelector('#oc-ia-ativo').value, desc = el.querySelector('#oc-ia-desc').value.trim(), dt = el.querySelector('#oc-ia-data').value || hoje;
+                    if (!aId) { rzAvisar('Escolha o bem.', 'aviso'); return false; }
+                    if (!desc) { rzAvisar('Conte o que aconteceu.', 'aviso'); return false; }
+                    const cli = CLIENTE_ID_SUPABASE;
+                    const { data: cons } = await dbAuth.from('contratos').select('id').eq('cliente_id', cli).eq('ativo_id', aId).eq('status', 'Ativo').limit(1);
+                    let dono = cons && cons[0] ? { contrato_id: cons[0].id } : null;
+                    if (!dono) {
+                        const { data: itens } = await dbAuth.from('cofre_itens_controle').select('id').eq('cliente_id', cli).eq('ativo_id', aId).eq('tipo', 'manutencao').eq('titulo', 'Manutenção').eq('ativo', true).limit(1);
+                        let itemId = itens && itens[0] ? itens[0].id : null;
+                        if (!itemId) {
+                            const { data: novo, error: eItem } = await dbAuth.from('cofre_itens_controle').insert({
+                                cliente_id: cli, ativo_id: aId, tipo: 'manutencao', titulo: 'Manutenção', recorrente: false,
+                                data_base: dt, direcao_alerta: 'inicio', alerta_ativo: false, origem: 'manual', criado_por: pessoaIdLogada,
+                            }).select('id').single();
+                            if (eItem) throw eItem;
+                            itemId = novo.id;
+                        }
+                        dono = { item_controle_id: itemId };
+                    }
+                    const { data: oc, error } = await dbAuth.from('cofre_ocorrencias_controle').insert({
+                        cliente_id: cli, ...dono, tipo: 'ocorrencia', origem: 'raiz_ia', descricao: desc,
+                        competencia: dt.slice(0, 7) + '-01', data_prevista_original: dt, data_prevista_atual: dt, status_execucao: 'aberto',
+                    }).select().single();
+                    if (error) throw error;
+                    await dbAuth.from('cofre_ocorrencias_historico').insert({ ocorrencia_id: oc.id, acao: 'criar', antes: null, depois: oc, pessoa_id: pessoaIdLogada, origem: 'app' });
+                    rzAvisar('Ocorrência registrada', 'ok');
+                    window.dispatchEvent(new CustomEvent('cofre:recarregar-ativos'));
+                    return true;
+                } });
         }
         // Envio de documento para a Raiz IA, por cima da tela em que a pessoa está. O envio é um
         // sheet e seus modais vivem no <body>, então não depende da aba Ativos aberta: cancelar

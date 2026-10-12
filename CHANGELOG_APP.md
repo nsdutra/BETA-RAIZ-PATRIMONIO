@@ -4,6 +4,18 @@ Histórico completo de versões do `index.html`, movido automaticamente pelo `ge
 
 ---
 
+NOVIDADES (Beta v1.386.0) — UX onda 4b: controles (estudo PROTOTIPO_UX_DENSIDADE_RAMOS_RAIZ v1.2.0, D9; "Pode fazer
+e seguir" do Nicola 12/10 02:26). As vistas de uma tela viram abas sublinhadas: Hoje (Visão geral · Minha gestão ·
+Fique por dentro), fichas do contrato e do ativo, Minha empresa e Licença. Chip fica só para filtrar lista. Em todo
+chip e aba o número é só o número, sem pílula (vermelho quando há atraso). Só CSS. Nenhum objeto de banco.
+Versão anterior (Beta v1.385.0):
+------------------------------------------------------------------
+Versões anteriores (v1.385.0 … v1.385.0): CHANGELOG_APP.md, na raiz do
+repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
+das 5 versões mais recentes deste cabeçalho.
+
+---
+
 NOVIDADES (Beta v1.385.0) — UX onda 4a: Financeiro da ficha sem moldura dentro de moldura (Nicola 12/10 02:15:
 "muita moldura estreitando as informações … Vamos avançar"). O card "Pendências" sai: o atraso vira o 3º número da
 faixa Recebido · Despesas · Em atraso (toque leva aos atrasados) e "a classificar"/"sem conciliação" viram atalhos

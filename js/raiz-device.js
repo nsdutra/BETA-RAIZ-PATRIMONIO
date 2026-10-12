@@ -1,6 +1,13 @@
 // ============================================================================
 // raiz-device.js — Raiz Patrimônio · Adaptador único de dispositivo
-// Versão: 1.0.0 · 03/10/2026
+// Versão: 1.1.0 · 12/10/2026
+//
+// v1.1.0 (12/10/2026, sessão 20261012-0335-raiz-ia-registra, demanda a05ad2ee; FICHA_ONDA_6_RAIZ_IA_REGISTRA v1.0.0
+// aprovada pelo Nicola 12/10 03:30, D6.3 "reconhecimento de voz do próprio aparelho") — voz.ouvir({ aoTexto, aoFim }):
+// reconhecimento pt-BR do aparelho para o campo único da Raiz IA; onde não existe, devolve ok:false e a tela esconde o
+// microfone (UXR-40).
+//
+// Versão anterior: 1.0.0 · 03/10/2026
 //
 // v1.0.0 (F0.4 do PLANO_UX_PWA_ATUAL, demanda 717fc21d, sessão
 // 20261003-1707-ux-base; regras UXR-35/40/41 das DIRETRIZES_UX_RAIZ_2026).
@@ -21,7 +28,7 @@
 // legados).
 // ============================================================================
 
-export const VERSAO = '1.0.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.1.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 
 const ua = (typeof navigator !== 'undefined' && navigator.userAgent) || '';
 
@@ -182,6 +189,22 @@ const voz = {
     // CAPACITOR: @capacitor-community/speech-recognition
     disponivel() {
         return typeof window !== 'undefined' && !!(window.SpeechRecognition || window.webkitSpeechRecognition);
+    },
+    // v1.1.0 (onda 6a, FICHA_ONDA_6 D6.3) — reconhecimento do próprio aparelho, pt-BR, sem custo. aoTexto(parcial)
+    // a cada pedaço; aoFim(textoFinal, erro?) uma vez. Devolve { ok, parar() } — nunca lança.
+    ouvir({ aoTexto, aoFim, idioma = 'pt-BR' } = {}) {
+        const R = typeof window !== 'undefined' && (window.SpeechRecognition || window.webkitSpeechRecognition);
+        if (!R) return { ok: false, motivo: 'sem_voz', parar() {} };
+        let rec, final = '', fim = false;
+        const acabar = (erro) => { if (fim) return; fim = true; if (typeof aoFim === 'function') aoFim(final.trim(), erro || null); };
+        try {
+            rec = new R(); rec.lang = idioma; rec.interimResults = true; rec.continuous = false; rec.maxAlternatives = 1;
+            rec.onresult = (e) => { let t = ''; for (let i = 0; i < e.results.length; i++) t += e.results[i][0].transcript; final = t; if (typeof aoTexto === 'function') aoTexto(t); };
+            rec.onerror = (e) => acabar(e && e.error || 'erro');
+            rec.onend = () => acabar(null);
+            rec.start();
+        } catch (e) { return { ok: false, motivo: 'erro', parar() {} }; }
+        return { ok: true, parar() { try { rec.stop(); } catch (_) { /* já parou */ } } };
     },
 };
 
