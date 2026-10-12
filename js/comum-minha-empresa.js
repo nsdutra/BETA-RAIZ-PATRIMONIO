@@ -1,6 +1,14 @@
 // ============================================================================
 // comum-minha-empresa.js — Raiz Patrimônio · Administração compartilhada
-// Versão: 1.14.0 · 10/10/2026
+// Versão: 1.15.0 · 11/10/2026
+//
+// v1.15.0 (11/10/2026, sessão 20261008-1231-pessoas-ativos, demanda 7c5c4c65; F13.8, ficha v1.4.0 e protótipo v1.3.0; de acordo do Nicola 11/10 22:55) — chip Rotinas ganha a
+// linha fixa "Controlar retiradas extraordinárias por partes" com Ligado/Desligado. O ⋮ abre "Pessoas e partes" (o editor
+// único de divisão, com "Dividir igual"), Ligar/Desligar controle e "Ver relatório". Grava só por
+// fn_partes_retiradas_definir (soma 100%; desligar guarda as partes). Sem retiradas.partes.editar no plano/perfil, a linha
+// aparece com cadeado e o motivo (planos Plus e acima).
+//
+// Versão anterior: 1.14.0 · 10/10/2026
 //
 // v1.14.0 (UX F2.5b-2, demanda 639bbcd0, sessão 20261003-1707-ux-base; ajustes pedidos pelo Nicola no teste de
 // 10/10 01:11) — a ficha segue o padrão de chips do app:
@@ -41,21 +49,11 @@
 // v1.11.1 (07/10/2026, sessão 20261007-1721-rolo-changelog, demanda 2507d554 — VER-06, "de acordo" do Nicola 07/10 17:21) — SÓ
 // CABEÇALHO: as versões além das 5 mais recentes rolaram para o CHANGELOG_MODULOS.md.
 // Nenhuma linha de código mudou — conferido token a token contra o publicado.
-//
-// Versão anterior: 1.11.0 · 07/10/2026
-//
-// v1.11.0 (07/10/2026, sessão 20261007-0910-financeiro, demanda f3e6cd27 — P5a, fichas F1–F5
-// com de acordo do Nicola 07/10 09:09): a ficha da conta ganha "Tipo" (Conta · Cartão de
-// crédito · Caixa), escolhido na criação e fixo depois (o banco recusa trocar). Cartão pede dia
-// do fechamento, dia do vencimento e a conta que paga a fatura; não tem "Conciliar extrato" (o
-// que se concilia é a conta que paga). Lista mostra ícone de cartão e "fecha dia X · vence dia
-// Y"; "Definir como padrão" só aparece para conta. Regra no banco (fn_conta_salvar com
-// p_tipo/p_dia_fechamento/p_dia_vencimento/p_conta_pagadora_id). Versão anterior: 1.10.1.
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.10.1 … v1.10.1): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.11.0 … v1.11.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '1.14.0'; // v-check (20/09/2026): lido por Dev › Versões — manter igual ao header
+export const VERSAO = '1.15.0'; // v-check (20/09/2026): lido por Dev › Versões — manter igual ao header
 import { perguntar } from './cofre-ui.js'; // v1.9.0 (F0.2b) — sem diálogo nativo
 import { rzMostrarBloqueio as rzBloqueio, podeUsar as podeUsarMod } from './comum-licenca.js'; // v1.10.0 — porta de licença (contas)
 export const COMUM_MINHA_EMPRESA_VERSAO = '1.0.0';
@@ -619,7 +617,9 @@ export async function montarAbaMinhaEmpresa(mountEl, ctx) {
             alvo.innerHTML = '';
             return;
         }
-        if (!rotinas || !rotinas.length) { alvo.innerHTML = '<div class="rz-card"><p class="rz-desc">Nenhuma rotina disponível para esta empresa.</p></div>'; return; }
+        rotinas = rotinas || [];
+        const partesRet = await buscarPartesRetiradas(dbAuth, clienteId); // v1.15.0 — F13.8
+        if (!rotinas.length && !partesRet) { alvo.innerHTML = '<div class="rz-card"><p class="rz-desc">Nenhuma rotina disponível para esta empresa.</p></div>'; return; }
 
         const r = typeof window.renderStatus === 'function' ? window.renderStatus : (c, t) => `<span class="rz-st rz-${esc(c)}">${esc(t || c)}</span>`;
         alvo.innerHTML = `
@@ -635,10 +635,12 @@ export async function montarAbaMinhaEmpresa(mountEl, ctx) {
                             <div class="rz-rt">${rt.ligada ? r('ok', 'Ligada') : r('neu', 'Desligada')}</div>
                             <button type="button" class="rz-more" aria-label="Mais ações"><i data-lucide="ellipsis-vertical"></i></button>
                         </div>`).join('')}
+                    ${partesLinhaHtml(partesRet)}
                 </div>
                 <span class="rz-hint" style="display:block;margin-top:8px">Rotinas ligadas viram itens de controle da empresa e aparecem em Controles perto do prazo.</span>
             </div>`;
         if (typeof window !== 'undefined' && window.lucide) window.lucide.createIcons();
+        alvo.querySelector('[data-partes-ret]')?.addEventListener('click', () => abrirAcoesPartesRetiradas({ dbAuth, clienteId, pt: partesRet, onToast, aoMudar: renderRotinasCard }));
 
         alvo.querySelectorAll('[data-rotina-codigo]').forEach(row => row.addEventListener('click', () => {
             const codigo = row.getAttribute('data-rotina-codigo');
@@ -875,6 +877,83 @@ async function renderContasCard(alvo, { dbAuth, clienteId, onToast }) {
         if (!liberado) { rzBloqueio('financeiro.contas.ver'); return; }
         abrirAcoesConta({ dbAuth, clienteId, conta: c, onToast, aoMudar: recarregar });
     }));
+}
+
+// ----------------------------------------------------------------------------
+// v1.15.0 (F13.8) — Controlar retiradas extraordinárias por partes: linha fixa no chip Rotinas. Liga/desliga por empresa
+// (clientes.controla_partes_retiradas) e a parte de cada pessoa (pessoas.parte_retiradas), gravados só pela
+// fn_partes_retiradas_definir. Nenhum papel especial: só pessoas e partes.
+// ----------------------------------------------------------------------------
+async function buscarPartesRetiradas(dbAuth, clienteId) {
+    try {
+        const [c, p] = await Promise.all([
+            dbAuth.from('clientes').select('controla_partes_retiradas').eq('id', clienteId).maybeSingle(),
+            dbAuth.from('pessoas').select('id, nome, parte_retiradas').eq('cliente_id', clienteId).order('nome'),
+        ]);
+        if (c.error || p.error) throw (c.error || p.error);
+        const pessoas = p.data || [];
+        return { ligado: !!c.data?.controla_partes_retiradas, pessoas, comParte: pessoas.filter(x => x.parte_retiradas != null) };
+    } catch (err) { console.warn('[comum-minha-empresa] partes nas retiradas:', err.message); return null; }
+}
+const pctPartes = v => Number(v || 0).toLocaleString('pt-BR', { maximumFractionDigits: 2 }) + '%';
+const somaPartes = pt => Math.round(pt.comParte.reduce((t, x) => t + Number(x.parte_retiradas || 0), 0) * 100) / 100;
+function partesLinhaHtml(pt) {
+    if (!pt) return '';
+    const b = podeUsarMod('retiradas.partes.editar');
+    const st = typeof window.renderStatus === 'function' ? window.renderStatus : (c, t) => `<span class="rz-st rz-${escC(c)}">${escC(t || c)}</span>`;
+    const n = pt.comParte.length, pessoasTxt = `${n} ${n === 1 ? 'pessoa' : 'pessoas'}`;
+    const sub = !b.ok ? (b.textoCurto || 'Não incluído no plano')
+        : pt.ligado ? `${pessoasTxt} · soma ${pctPartes(somaPartes(pt))}`
+        : n ? `${pessoasTxt} com parte guardada` : 'Nenhuma pessoa com parte';
+    return `<div class="rz-row${b.ok ? '' : ' rz-off'}" data-partes-ret="1" role="button" tabindex="0" style="cursor:pointer">
+                            <div class="rz-ic${pt.ligado && b.ok ? '' : ' rz-neu'}"><i data-lucide="${b.ok ? 'percent' : 'lock'}"></i></div>
+                            <div class="rz-tx"><b>Controlar retiradas extraordinárias por partes</b><span>${escC(sub)}</span></div>
+                            <div class="rz-rt">${b.ok ? (pt.ligado ? st('ok', 'Ligado') : st('neu', 'Desligado')) : ''}</div>
+                            <button type="button" class="rz-more" aria-label="Mais ações"><i data-lucide="ellipsis-vertical"></i></button>
+                        </div>`;
+}
+async function partesGravar(dbAuth, clienteId, { ligado = null, itens = null } = {}, onToast) {
+    const { data, error } = await dbAuth.rpc('fn_partes_retiradas_definir', { p_cliente_id: clienteId, p_ligado: ligado, p_itens: itens });
+    if (error) { onToast?.('Não foi possível gravar: ' + error.message, 'danger'); return false; }
+    if (!data?.ok) { onToast?.(data?.mensagem || 'Não foi possível gravar.', 'danger'); return false; }
+    onToast?.(data.mensagem || 'Partes gravadas.', 'success');
+    return true;
+}
+function partesEditar({ dbAuth, clienteId, pt, ligar = false, onToast, aoMudar }) {
+    const editor = typeof window.rzEditarDivisao === 'function' ? window.rzEditarDivisao : null;
+    if (!editor) { onToast?.('Ação só disponível dentro do app principal.', 'danger'); return; }
+    editor({
+        titulo: 'Partes nas retiradas extraordinárias', sub: ligar ? 'Defina as partes para ligar o controle' : 'Pessoas e partes',
+        nota: 'Quem fizer retirada extraordinária e não estiver nesta lista aparece no relatório em "Pessoas sem parte definida".',
+        itens: pt.comParte.map(x => ({ pessoa_id: x.id, nome: x.nome, percentual: Number(x.parte_retiradas) })),
+        candidatos: pt.pessoas.map(x => ({ id: x.id, nome: x.nome })), igualar: true,
+        rotuloSalvar: ligar ? 'Salvar e ligar' : 'Salvar partes',
+        aoSalvar: async (itens) => {
+            const ok = await partesGravar(dbAuth, clienteId, { ligado: ligar ? true : null,
+                itens: itens.map(i => ({ pessoa_id: i.pessoa_id, parte: Math.round(Number(i.percentual) * 10000) / 10000 })) }, onToast);
+            if (ok) aoMudar?.();
+            return ok;
+        },
+    });
+}
+function abrirAcoesPartesRetiradas({ dbAuth, clienteId, pt, onToast, aoMudar }) {
+    if (!pt) return;
+    if (!podeUsarMod('retiradas.partes.editar').ok) { rzBloqueio('retiradas.partes.editar'); return; }
+    const abrir = typeof window.abrirSheetAcoes === 'function' ? window.abrirSheetAcoes : null;
+    if (!abrir) { onToast?.('Ação só disponível dentro do app principal.', 'danger'); return; }
+    const pronto = pt.comParte.length > 0 && Math.abs(somaPartes(pt) - 100) < 0.01;
+    const resumo = pt.comParte.length ? pt.comParte.map(x => `${String(x.nome || '').split(' ')[0]} ${pctPartes(x.parte_retiradas)}`).join(' · ') : 'Nenhuma pessoa com parte';
+    const ctx = { dbAuth, clienteId, pt, onToast, aoMudar };
+    abrir({ titulo: 'Controlar retiradas extraordinárias por partes', sub: pt.ligado ? 'Ligado' : 'Desligado', acoes: [
+        { icone: 'pencil', titulo: 'Pessoas e partes', sub: resumo, aoTocar: () => partesEditar(ctx) },
+        pt.ligado
+            ? { icone: 'power-off', titulo: 'Desligar controle', sub: 'As partes ficam guardadas',
+                aoTocar: async () => { if (await partesGravar(dbAuth, clienteId, { ligado: false }, onToast)) aoMudar?.(); } }
+            : { icone: 'power', titulo: 'Ligar controle', sub: pronto ? 'Usa as partes guardadas' : 'Defina as partes somando 100%',
+                aoTocar: async () => { if (!pronto) { partesEditar({ ...ctx, ligar: true }); return; } if (await partesGravar(dbAuth, clienteId, { ligado: true }, onToast)) aoMudar?.(); } },
+        { icone: 'file-text', titulo: 'Ver relatório', sub: 'Retiradas extraordinárias', codigo: 'relatorios.retiradas_extraordinarias',
+          aoTocar: () => { if (typeof window.abrirRelatorioExecutivo === 'function') window.abrirRelatorioExecutivo('retiradas'); } },
+    ] });
 }
 
 // Ícone lucide por subtipo de rotina de empresa (catálogo cofre_controle_subtipos, tipo='rotina').

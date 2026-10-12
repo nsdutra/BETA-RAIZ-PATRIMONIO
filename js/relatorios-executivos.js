@@ -1,6 +1,17 @@
 // ============================================================================
 // relatorios-executivos.js — Raiz Patrimônio · Relatórios no modelo executivo
-// Versão: 1.2.0 · 11/10/2026
+// Versão: 1.3.0 · 11/10/2026
+//
+// v1.3.0 (11/10/2026, sessão 20261008-1231-pessoas-ativos, demandas 0aa64e93 e 7c5c4c65; F13.8, ficha v1.4.0 e protótipo v1.3.0; de acordo do Nicola 11/10 22:55) — relatório
+// novo "Retiradas extraordinárias" (relatorios.retiradas_extraordinarias), lido de fn_relatorio_retiradas_extraordinarias:
+//   · só fatos e dados (REL-56): capa com cabeçalho, uma linha de números do período, 4 números e 2 gráficos de título
+//     descritivo; sem manchete, sem pontos de conclusão, sem adjetivo e sem cor de juízo;
+//   · com o controle de partes ligado na empresa: tabela "Pessoas com parte definida" (parte e diferença em cor neutra,
+//     com sinal), traço da parte no gráfico por pessoa e "Pessoas sem parte definida"; aviso quando a soma ≠ 100%;
+//   · filtro por ano ou "Todos os anos"; aberto a partir do ativo pessoa, chip com o nome (recorte por pessoa, REL-46);
+//   · abrirRelatorioExecutivo(tipo, opcoes) aceita { pessoaId, pessoaNome }.
+//
+// Versão anterior: 1.2.0 · 11/10/2026
 //
 // v1.2.0 (11/10/2026, sessão 20261011-1315-marca-saidas, demanda 680ee9f8 — marca e ramos, fase 6; plano aprovado pelo
 // Nicola 11/10 11:20): a assinatura "Raiz Patrimônio" do canto do cabeçalho ganha o símbolo da marca (DIRETRIZES_MARCA
@@ -16,19 +27,15 @@
 // v1.1.0 (07/10/2026, sessão 20261007-0137-financeiro — P4b, B4): Visão gerencial mostra o reembolso
 // de quem pagou despesa da própria conta (fn_apurar_distribuicao): passo "Reembolso" na cascata da
 // capa, coluna "(+) Reembolso" no quadro por pessoa e nota explicando. Versão anterior: 1.0.1.
-//
-// v1.0.1 (07/10/2026, sessão 20261007-0137-financeiro — teste do Nicola 01:37): os
-// filtros (período, conta) abriam POR TRÁS do relatório. A tela do relatório passa a
-// ficar na camada 96, logo abaixo dos sheets (#rz-veil, 97). Versão anterior: 1.0.0.
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.0.0 … v1.0.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.0.1 … v1.0.1): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
 import { rzMostrarBloqueio } from './comum-licenca.js';
 import { rzToast } from './raiz-ui.js';
 import RaizDevice from './raiz-device.js';
 
-export const VERSAO = '1.2.0';
+export const VERSAO = '1.3.0';
 
 // ---------------------------------------------------------------------------
 // Formatos (REL-13 a REL-17)
@@ -433,6 +440,8 @@ const CSS = `
 .rzrel.m .page .pf{position:static;margin-top:12px;font-size:11px;flex-wrap:wrap;gap:6px;border-top-color:var(--line,#e6e3da)}
 .rzrel.m .page .wm{font-size:56px;align-items:start;padding-top:40%}
 .rzrel.m svg text{fill:var(--ink,#17211e)}.rzrel.m svg text.mu{fill:var(--muted,#6f7a76)}.rzrel.m svg .zl{stroke:var(--muted,#6f7a76)}
+.rzrel .page .hbar .trk2{flex:1;position:relative;height:9px;min-width:40px}.rzrel .page .hbar .trk2 i{position:absolute;left:0;top:0}.rzrel .page .hbar .trk2 .exp{position:absolute;top:-3px;width:2px;height:15px;margin-left:-1px;background:#17211e}.rzrel .page .hbar small{color:#6f7a76;font-size:inherit}
+.rzrel.m .page .hbar .trk2 .exp{background:var(--ink,#17211e)}
 @media print{
   body.rz-imprimindo-rel>*:not(#rz-relexec){display:none!important}
   body.rz-imprimindo-rel #rz-relexec{position:static;background:#fff}
@@ -450,27 +459,153 @@ function garantirCss() {
     document.head.appendChild(st);
 }
 
+// ---------------------------------------------------------------------------
+// Retiradas extraordinárias (v1.3.0, F13.8) — só fatos e dados (REL-56): sem manchete, sem pontos de conclusão, sem
+// adjetivo e sem cor de juízo. A diferença para a parte vai em cor neutra, com sinal. O termo é sempre "retirada
+// extraordinária"; as pessoas são "pessoas".
+// ---------------------------------------------------------------------------
+const qtdTxt = (n, um, varios) => `${num(n)} ${num(n) === 1 ? um : varios}`;
+const pctParte = v => num(v).toLocaleString('pt-BR', { maximumFractionDigits: 2 }) + '%';
+const comSinal = v => (num(v) > 0 ? '+' : '') + tab(v);
+function montarRetiradas(d) {
+    const cab = d.cabecalho || {}, k = d.kpis || {};
+    const ano = cab.ano != null ? num(cab.ano) : null, ate = cab.ate || iso(new Date()), prim = cab.primeira_data || null;
+    const anoAte = dataIso(ate).getFullYear(), anoHoje = new Date().getFullYear();
+    const partes = d.partes || null, semParte = d.sem_parte || [], ligado = !!cab.controle_partes;
+    const perLongo = ano ? (ano === anoHoje ? `${ano} (jan a ${compCurto(ate)})` : String(ano)) : (prim ? `Desde ${comp(prim)}` : 'Todos os anos');
+    const perCurto = ano ? String(ano) : (prim ? 'desde ' + comp(prim) : 'todos os anos');
+    const cfg = {
+        nome: 'Retiradas extraordinárias', medida: 'Retiradas extraordinárias em R$',
+        subtitulo: [perLongo, ano && prim ? 'acumulado desde ' + comp(prim) : '', 'visão caixa', d.pessoa_nome || 'pessoas'].filter(Boolean).join(' · '),
+        previa: !!d.previa
+    };
+    const qP = num(k.qtd_periodo), tP = num(k.total_periodo), nP = num(k.pessoas_com_retirada);
+    let resumo = !prim ? 'Nenhuma retirada extraordinária registrada.'
+        : qP ? `${perLongo}: ${qtdTxt(qP, 'retirada extraordinária', 'retiradas extraordinárias')}, ${brl(tP)}, para ${qtdTxt(nP, 'pessoa', 'pessoas')}.`
+        : `${perLongo}: nenhuma retirada extraordinária.`;
+    if (ano && prim) resumo += ` Acumulado desde ${comp(prim)}: ${qtdTxt(k.qtd_acumulado, 'retirada', 'retiradas')}, ${brl(k.total_acumulado)}.`;
+    const porAno = d.por_ano || [];
+    const doAno = a => porAno.find(x => num(x.ano) === a) || { total: 0, qtd: 0 };
+    const somaPartes = partes ? num(partes.soma_partes) : 0;
+    const k4 = ligado
+        ? kpi('Pessoas com parte definida', String(num(k.pessoas_com_parte)), num(k.pessoas_sem_parte) ? qtdTxt(k.pessoas_sem_parte, 'pessoa sem parte', 'pessoas sem parte') : 'soma ' + pctParte(somaPartes))
+        : kpi(ano ? `Pessoas com retirada em ${ano}` : 'Pessoas com retirada', String(nP), 'de ' + qtdTxt(k.pessoas_total, 'pessoa', 'pessoas'));
+    const kpis = `<div class="kpis">${ano
+        ? kpi(`Retiradas extraordinárias em ${ano}`, compacto(tP), qtdTxt(qP, 'retirada', 'retiradas')) +
+          kpi(prim ? `Acumulado desde ${comp(prim)}` : 'Acumulado', compacto(k.total_acumulado), qtdTxt(k.qtd_acumulado, 'retirada', 'retiradas')) +
+          kpi(`Em ${ano - 1}`, compacto(k.total_ano_anterior), qtdTxt(k.qtd_ano_anterior, 'retirada', 'retiradas'))
+        : kpi(prim ? `Total desde ${comp(prim)}` : 'Total', compacto(tP), qtdTxt(qP, 'retirada', 'retiradas')) +
+          kpi(`Em ${anoAte}`, compacto(doAno(anoAte).total), qtdTxt(doAno(anoAte).qtd, 'retirada', 'retiradas')) +
+          kpi(`Em ${anoAte - 1}`, compacto(doAno(anoAte - 1).total), qtdTxt(doAno(anoAte - 1).qtd, 'retirada', 'retiradas'))
+    }${k4}</div>`;
+    // gráfico 1: por pessoa, com o traço da parte quando o controle está ligado
+    const linhaP = Object.fromEntries(((partes && partes.linhas) || []).map(l => [l.pessoa_id, l]));
+    const pp = (d.por_pessoa || []).filter(p => num(p.recebido_periodo) > 0 || linhaP[p.pessoa_id]);
+    const mx = Math.max(1, ...pp.map(p => num(p.recebido_periodo)), ...Object.values(linhaP).map(l => num(l.parte_periodo)));
+    const barras = pp.map(p => {
+        const l = linhaP[p.pessoa_id];
+        return `<div class="hbar"><span style="width:150px">${esc(p.nome)}</span><div class="trk2"><i style="width:${Math.max(0.6, Math.round(num(p.recebido_periodo) / mx * 1000) / 10)}%"></i>${l ? `<em class="exp" style="left:${Math.round(num(l.parte_periodo) / mx * 1000) / 10}%" title="Parte: ${esc(brl(l.parte_periodo))}"></em>` : ''}</div><b>${mil(p.recebido_periodo)}</b></div>`;
+    }).join('') || '<p class="mut">Nenhuma retirada extraordinária no período.</p>';
+    const unid1 = 'R$ mil' + (partes ? ` · traço = parte da pessoa (percentual × ${compacto(partes.base_periodo)} recebidos pelas pessoas com parte)${pp.some(p => !linhaP[p.pessoa_id]) ? ' · sem traço = pessoa sem parte definida' : ''}` : '');
+    const fonte = `Raiz · fn_relatorio_retiradas_extraordinarias · ${perCurto}`;
+    const col = ano
+        ? (d.por_mes || []).map(m => ({ l: MESES[num(m.mes) - 1], titulo: `${MESES[num(m.mes) - 1]}/${ano}`, v: num(m.total) / 1000 }))
+        : porAno.map(a => ({ l: String(a.ano), titulo: String(a.ano), v: num(a.total) / 1000 }));
+    const capa = `
+      <div class="acao-sub" style="font-size:9.5pt;color:#17211e;margin:4px 0 12px">${esc(resumo)}</div>
+      ${kpis}
+      <div class="g2">
+        ${figura(`Retiradas por pessoa ${ano ? 'em ' + ano : perCurto}`, unid1, '', fonte, barras)}
+        ${figura(ano ? `Retiradas por mês em ${ano}` : 'Retiradas por ano', ano ? 'R$ mil · data da retirada' : 'R$ mil', col.length ? svgColunas(col, { aria: ano ? 'Retiradas por mês' : 'Retiradas por ano' }) : '<p class="mut">Sem dados.</p>', fonte)}
+      </div>`;
+    // página 2: partes, detalhe, por ano e notas
+    let n = 0;
+    const rot = ano ? String(ano) : '';
+    let p2 = '';
+    if (partes) {
+        const ls = partes.linhas || [];
+        const tot = c => ls.reduce((t, l) => t + num(l[c]), 0);
+        p2 += secao(`${++n}. Pessoas com parte definida`, `Minha empresa › Rotinas · parte = percentual × total recebido pelas pessoas desta tabela ${ano ? 'no ano' : 'no período'} · diferença = recebido − parte · R$`) +
+            (partes.aviso_soma ? `<div class="box">As partes cadastradas somam ${pctParte(somaPartes)}. A parte de cada pessoa usa o percentual cadastrado.</div>` : '') +
+            `<table><thead><tr><th>Pessoa</th><th class="n">Parte</th><th class="n">Recebido ${rot}</th><th class="n">Diferença ${rot}</th>${ano ? '<th class="n hm">Recebido acumulado</th><th class="n">Diferença acumulada</th>' : ''}</tr></thead><tbody>${
+                ls.map(l => `<tr><td>${esc(l.nome)}</td><td class="n">${pctParte(l.parte)}</td><td class="n">${tab(l.recebido_periodo)}</td><td class="n">${comSinal(l.diferenca_periodo)}</td>${ano ? `<td class="n hm">${tab(l.recebido_acumulado)}</td><td class="n">${comSinal(l.diferenca_acumulado)}</td>` : ''}</tr>`).join('')
+            }<tr class="tot"><td>Total das pessoas com parte</td><td class="n">${pctParte(somaPartes)}</td><td class="n">${tab(tot('recebido_periodo'))}</td><td class="n">${comSinal(tot('diferenca_periodo'))}</td>${ano ? `<td class="n hm">${tab(tot('recebido_acumulado'))}</td><td class="n">${comSinal(tot('diferenca_acumulado'))}</td>` : ''}</tr></tbody></table>`;
+        if (semParte.length) p2 += `<h4 style="margin-top:10px">Pessoas sem parte definida</h4><div class="hu">Fizeram retirada extraordinária e não têm % no controle de partes · R$</div>` +
+            `<table><thead><tr><th>Pessoa</th><th class="n">Recebido ${rot}</th>${ano ? '<th class="n hm">Recebido acumulado</th>' : ''}</tr></thead><tbody>${
+                semParte.map(x => `<tr><td>${esc(x.nome)}</td><td class="n">${tab(x.recebido_periodo)}</td>${ano ? `<td class="n hm">${tab(x.recebido_acumulado)}</td>` : ''}</tr>`).join('')}</tbody></table>`;
+    }
+    const det = d.detalhe || [];
+    const grupos = pp.map(p => {
+        const its = det.filter(x => x.pessoa_id === p.pessoa_id);
+        return `<tr class="sub"><td colspan="3">${esc(p.nome)} · ${qtdTxt(its.length, 'retirada', 'retiradas')}</td><td class="n">${tab(p.recebido_periodo)}</td></tr>` +
+            its.map(x => `<tr><td>${dma(x.data)}</td><td>${x.origem === 'conciliada' ? 'Conciliada (extrato)' : 'Lançada no app'}</td><td class="hm">${esc(x.observacao || '—')}</td><td class="n">${tab(x.valor)}</td></tr>`).join('');
+    }).join('');
+    p2 += secao(`${++n}. Retiradas ${ano ? 'de ' + ano : perCurto} por pessoa`, 'Data da retirada · R$ · origem: conciliada (veio do extrato) ou lançada no app') +
+        `<table><thead><tr><th>Data</th><th>Origem</th><th class="hm">Observação</th><th class="n">Valor</th></tr></thead><tbody>${
+            grupos || '<tr><td colspan="4" class="mut">Nenhuma retirada extraordinária no período.</td></tr>'
+        }<tr class="tot"><td colspan="3">Total ${ano ? 'de ' + ano : perCurto}</td><td class="n">${tab(tP)}</td></tr></tbody></table>`;
+    const primAno = prim ? dataIso(prim).getFullYear() : null;
+    p2 += secao(`${++n}. Retiradas extraordinárias por ano`, `R$ · ${d.pessoa_nome ? esc(d.pessoa_nome) : 'todas as pessoas'}`) +
+        `<table><thead><tr><th>Ano</th><th class="n">Retiradas</th><th class="n">Valor</th><th class="n">Δ ano anterior</th></tr></thead><tbody>${
+            porAno.map(a => `<tr><td>${a.ano}${num(a.ano) === primAno ? ` (desde ${compCurto(prim)})` : num(a.ano) === anoHoje ? ` (até ${compCurto(ate)})` : ''}</td><td class="n">${num(a.qtd)}</td><td class="n">${tab(a.total)}</td><td class="n${a.delta_pct == null ? ' mut' : ''}">${a.delta_pct == null ? '—' : pct(a.delta_pct, true)}</td></tr>`).join('') || '<tr><td colspan="4" class="mut">Nenhuma retirada extraordinária registrada.</td></tr>'
+        }<tr class="tot"><td>Acumulado</td><td class="n">${num(k.qtd_acumulado)}</td><td class="n">${tab(k.total_acumulado)}</td><td class="n"></td></tr></tbody></table>`;
+    p2 += `<div class="notes">
+        <p><b>Retirada extraordinária</b>: retirada da empresa para uma pessoa registrada com o tipo "Extraordinária". Não abate o saldo a retirar e não gera dívida no Balanço. As retiradas do tipo "Do fluxo" ficam no relatório Distribuição aos sócios.</p>
+        ${ligado
+            ? '<p><b>Partes</b>: controle opcional da empresa (Minha empresa › Rotinas › Controlar retiradas extraordinárias por partes). Só as pessoas com % entram na tabela de partes; a parte é o percentual × o total recebido por elas no período, sem correção monetária. Quem fez retirada sem % aparece em "Pessoas sem parte definida". O relatório não lança nem sugere ajustes.</p>'
+            : '<p><b>Partes</b>: o controle de partes não está ligado nesta empresa. Ligado, o relatório mostra a parte de cada pessoa ao lado do recebido.</p>'}
+        ${d.pessoa_nome ? `<p><b>Recorte</b>: só as retiradas de ${esc(d.pessoa_nome)}.${ligado ? ' A parte usa o total recebido por todas as pessoas com parte.' : ''}</p>` : ''}
+        <p><b>Visão caixa</b>: cada retirada entra na data em que saiu da conta.${d.previa ? ` <b>PRÉVIA</b>: ${mesLongo(ate)}/${anoAte} ainda não foi fechado.` : ''}</p>
+        <p><b>Origem</b>: fn_relatorio_retiradas_extraordinarias v${d.versao || 1} · dados até ${dma(ate)}.</p>
+      </div>`;
+    return {
+        cfg, linhas3: [`${cfg.nome} · ${perLongo}`, `Total ${compacto(tP)} · ${qtdTxt(qP, 'retirada', 'retiradas')} · ${qtdTxt(nP, 'pessoa', 'pessoas')}`, resumo],
+        paginas: [[capa, ['Resumo']], [p2, ['Composição', 'Detalhe', 'Notas']]]
+    };
+}
+// quem gera (rodapé e capa): a pessoa logada nesta empresa
+async function quemGera() {
+    try {
+        const { data: u } = await dbAuth.auth.getUser();
+        const uid = u?.user?.id; if (!uid) return null;
+        const { data } = await dbAuth.from('pessoas').select('nome').eq('cliente_id', CLIENTE_ID_SUPABASE).eq('user_id', uid).maybeSingle();
+        return data?.nome || null;
+    } catch (e) { return null; }
+}
+
 const RELATORIOS = {
     fluxo: { codigo: 'relatorios.fluxo_caixa', nome: 'Fluxo de caixa', arquivo: 'fluxo_caixa', montar: montarFluxo },
-    gerencial: { codigo: 'relatorios.gerencial', nome: 'Visão gerencial', arquivo: 'gerencial', montar: montarGerencial }
+    gerencial: { codigo: 'relatorios.gerencial', nome: 'Visão gerencial', arquivo: 'gerencial', montar: montarGerencial },
+    retiradas: { codigo: 'relatorios.retiradas_extraordinarias', nome: 'Retiradas extraordinárias', arquivo: 'retiradas_extraordinarias', montar: montarRetiradas } // v1.3.0 — F13.8
 };
 let estado = null; // { tipo, filtro, dados, montado }
 
 function iso(d) { return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-01'; }
 function somaMeses(base, n) { const d = new Date(base.getFullYear(), base.getMonth() + n, 1); return d; }
-function filtroPadrao(tipo) {
+function filtroPadrao(tipo, opcoes = {}) {
     const hoje = new Date(), m0 = new Date(hoje.getFullYear(), hoje.getMonth(), 1);
+    if (tipo === 'retiradas') return { ano: hoje.getFullYear(), pessoaId: opcoes.pessoaId || null, pessoaNome: opcoes.pessoaNome || null }; // v1.3.0
     if (tipo === 'fluxo') return { de: iso(somaMeses(m0, -3)), ate: iso(somaMeses(m0, 2)), conta: null, contaNome: null, rotulo: 'Últimos 3 meses e próximos 2' };
     return { competencia: iso(somaMeses(m0, -1)) };
 }
 function rotuloFiltro() {
     if (!estado) return '';
     if (estado.tipo === 'fluxo') return `${comp(estado.filtro.de)} a ${comp(estado.filtro.ate)}`;
+    if (estado.tipo === 'retiradas') return estado.filtro.ano ? String(estado.filtro.ano) : 'Todos os anos';
     return comp(estado.filtro.competencia);
 }
 
 async function buscar() {
     const f = estado.filtro;
+    if (estado.tipo === 'retiradas') { // v1.3.0 — a função devolve o JSON direto (sem ok/dados)
+        const [{ data, error }, quem] = await Promise.all([
+            dbAuth.rpc('fn_relatorio_retiradas_extraordinarias', { p_cliente_id: CLIENTE_ID_SUPABASE, p_ano: f.ano || null, p_pessoa_id: f.pessoaId || null }),
+            quemGera()]);
+        if (error) throw new Error(error.message);
+        if (!data?.cabecalho) throw new Error('O relatório não veio.');
+        return { ...data, empresa: data.cabecalho.empresa, gerado_em: new Date().toISOString(), gerado_por: quem,
+                 relatorio: 'relatorios.retiradas_extraordinarias', versao: 1, visao: 'caixa', pessoa_nome: f.pessoaNome || null };
+    }
     const rpc = estado.tipo === 'fluxo'
         ? dbAuth.rpc('fn_contas_fluxo_caixa', { p_cliente_id: CLIENTE_ID_SUPABASE, p_de: f.de, p_ate: f.ate, p_conta_id: f.conta || null })
         : dbAuth.rpc('fn_contas_visao_gerencial', { p_cliente_id: CLIENTE_ID_SUPABASE, p_competencia: f.competencia });
@@ -482,7 +617,8 @@ async function buscar() {
 
 function telaHtml() {
     const r = RELATORIOS[estado.tipo];
-    const contaChip = estado.tipo === 'fluxo' ? `<button type="button" data-rx="conta"><svg data-lucide="wallet"></svg>${esc(estado.filtro.contaNome || 'Todas as contas')}<svg data-lucide="chevron-down"></svg></button>` : '';
+    const contaChip = estado.tipo === 'fluxo' ? `<button type="button" data-rx="conta"><svg data-lucide="wallet"></svg>${esc(estado.filtro.contaNome || 'Todas as contas')}<svg data-lucide="chevron-down"></svg></button>`
+        : estado.tipo === 'retiradas' && estado.filtro.pessoaId ? `<button type="button" data-rx="pessoa" aria-label="Ver todas as pessoas"><svg data-lucide="user"></svg>${esc(estado.filtro.pessoaNome || 'Pessoa')}<svg data-lucide="x"></svg></button>` : ''; // v1.3.0: recorte por pessoa; tocar volta a todas
     return `<div class="rx-top">
         <button type="button" class="rx-voltar" data-rx="fechar" aria-label="Voltar para Relatórios"><svg data-lucide="chevron-left"></svg>Relatórios</button>
         <span class="rx-sp"></span>
@@ -525,6 +661,7 @@ function ligar(el) {
         if (acao === 'fechar') fecharRelatorioExecutivo();
         else if (acao === 'periodo') escolherPeriodo();
         else if (acao === 'conta') escolherConta();
+        else if (acao === 'pessoa') { Object.assign(estado.filtro, { pessoaId: null, pessoaNome: null }); carregar(); }
         else if (acao === 'pdf') imprimir();
         else if (acao === 'compartilhar') compartilhar();
     }));
@@ -540,6 +677,12 @@ function escolherPeriodo() {
         abrirSheetAcoes({ titulo: 'Período', sub: 'Fluxo de caixa', acoes: ops.map(([t, a, b]) => ({
             icone: 'calendar', titulo: t, sub: `${comp(iso(somaMeses(m0, a)))} a ${comp(iso(somaMeses(m0, b)))}`,
             aoTocar: () => { Object.assign(estado.filtro, { de: iso(somaMeses(m0, a)), ate: iso(somaMeses(m0, b)), rotulo: t }); carregar(); } })) });
+    } else if (estado.tipo === 'retiradas') { // v1.3.0 — ano ou todos
+        const a0 = hoje.getFullYear();
+        const anos = [...new Set([a0, a0 - 1, ...((estado.dados && estado.dados.por_ano) || []).map(x => num(x.ano))])].sort((a, b) => b - a);
+        abrirSheetAcoes({ titulo: 'Período', sub: 'Retiradas extraordinárias', acoes: [
+            ...anos.map(a => ({ icone: 'calendar', titulo: String(a), sub: a === a0 ? 'ano atual' : '', aoTocar: () => { estado.filtro.ano = a; carregar(); } })),
+            { icone: 'layers', titulo: 'Todos os anos', sub: 'desde a primeira retirada', aoTocar: () => { estado.filtro.ano = null; carregar(); } }] });
     } else {
         const ops = Array.from({ length: 12 }, (_, i) => iso(somaMeses(m0, -i)));
         abrirSheetAcoes({ titulo: 'Competência', sub: 'Visão gerencial', acoes: ops.map(c => ({
@@ -564,7 +707,8 @@ function imprimir() {
     const doc = document.querySelector('#rz-relexec .rzrel');
     const tituloAntes = document.title;
     const empresa = String(estado.dados.empresa || 'empresa').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '');
-    const quando = estado.tipo === 'fluxo' ? estado.filtro.ate.slice(0, 7) : estado.filtro.competencia.slice(0, 7);
+    const quando = estado.tipo === 'fluxo' ? estado.filtro.ate.slice(0, 7)
+        : estado.tipo === 'retiradas' ? (estado.filtro.ano ? String(estado.filtro.ano) : 'todos') : estado.filtro.competencia.slice(0, 7);
     document.title = `raiz_${RELATORIOS[estado.tipo].arquivo}_${empresa}_${quando}`; // REL-38: nome do arquivo
     doc?.classList.remove('m');
     document.body.classList.add('rz-imprimindo-rel');
@@ -589,13 +733,13 @@ export function fecharRelatorioExecutivo() {
     estado = null;
 }
 
-export function abrirRelatorioExecutivo(tipo) {
+export function abrirRelatorioExecutivo(tipo, opcoes = {}) {
     const r = RELATORIOS[tipo];
     if (!r) return;
     if (rzMostrarBloqueio(r.codigo)) return; // ACE-04: bloqueado mostra o motivo
     garantirCss();
     fecharRelatorioExecutivo();
-    estado = { tipo, filtro: filtroPadrao(tipo), dados: null, montado: null };
+    estado = { tipo, filtro: filtroPadrao(tipo, opcoes || {}), dados: null, montado: null };
     const el = document.createElement('div');
     el.id = 'rz-relexec';
     el.setAttribute('role', 'dialog');
@@ -607,4 +751,4 @@ export function abrirRelatorioExecutivo(tipo) {
 }
 
 // usados por testes e pelo protótipo
-export const _interno = { montarFluxo, montarGerencial, compacto, comp };
+export const _interno = { montarFluxo, montarGerencial, montarRetiradas, compacto, comp };

@@ -655,6 +655,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/cofre-api.js`
 
 //
@@ -1083,6 +1085,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 // supabase-js diretamente (Diretriz Arquitetural — Passo 2: responsabilidade
 // única por módulo).
 // ============================================================================
+
+---
 
 ---
 
@@ -1711,7 +1715,21 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/cofre-ativos.js`
+
+//
+// Versão anterior: 1.88.0 · 10/10/2026
+//
+// v1.88.0 (10/10/2026, sessão 20261008-1231-pessoas-ativos, demanda a3f4c73f — F25c, Nicola 10/10 20:56/21:19): "Adicionar"
+// em Usos e contratos lista os modelos disponíveis para o ativo (matriz tipo × modelo, ramos contratados); Aluguel e
+// Temporada seguem para os 3 caminhos de contrato já com o modelo; Short stay e outros em breve aparecem apagados.
+// Cada contrato do card mostra o seu modelo. Versão anterior: 1.87.0.
+// --------------------------------------------------------------------------
+// Versões anteriores (v1.87.0 … v1.87.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
+// mais recentes deste cabeçalho (VER-06).
 
 //
 // v1.87.0 (10/10/2026, sessão 20261008-1231-pessoas-ativos, demanda a3f4c73f; Nicola 10/10 20:33: "apenas deixe a barra
@@ -2929,6 +2947,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/cofre-controles.js`
 
 //
@@ -3532,6 +3552,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 // não está implementado (geração automática de ocorrências recorrentes,
 // Central de Alertas consolidada).
 // ============================================================================
+
+---
 
 ---
 
@@ -4369,6 +4391,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/cofre-estado.js`
 
 //
@@ -4514,6 +4538,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 // v1.21.6 (Arquivar/RLS, sessão paralela) nem esta entrega — fechado
 // agora. Ver changelog completo em cofre.html v1.22.0 (merge das 2
 // sessões paralelas + badge fix + form fix + função Vendido).
+
+---
 
 ---
 
@@ -4868,6 +4894,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/cofre-ui.js`
 
 //
@@ -4899,6 +4927,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 // genérica, template de card, indicador de "liga/desliga" (Design System
 // v1.43.0 §2). Não importa cofre-api.js — não sabe nada de Supabase.
 // ============================================================================
+
+---
 
 ---
 
@@ -5119,6 +5149,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 // pilha; os demais (cofre-ui, cofre-documentos, cofre-ativos) importam
 // daqui, nunca o contrário.
 // ============================================================================
+
+---
 
 ---
 
@@ -5488,7 +5520,24 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/comum-minha-empresa.js`
+
+//
+// Versão anterior: 1.11.0 · 07/10/2026
+//
+// v1.11.0 (07/10/2026, sessão 20261007-0910-financeiro, demanda f3e6cd27 — P5a, fichas F1–F5
+// com de acordo do Nicola 07/10 09:09): a ficha da conta ganha "Tipo" (Conta · Cartão de
+// crédito · Caixa), escolhido na criação e fixo depois (o banco recusa trocar). Cartão pede dia
+// do fechamento, dia do vencimento e a conta que paga a fatura; não tem "Conciliar extrato" (o
+// que se concilia é a conta que paga). Lista mostra ícone de cartão e "fecha dia X · vence dia
+// Y"; "Definir como padrão" só aparece para conta. Regra no banco (fn_conta_salvar com
+// p_tipo/p_dia_fechamento/p_dia_vencimento/p_conta_pagadora_id). Versão anterior: 1.10.1.
+// --------------------------------------------------------------------------
+// Versões anteriores (v1.10.1 … v1.10.1): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
+// mais recentes deste cabeçalho (VER-06).
 
 //
 // Versão anterior: 1.10.1 · 04/10/2026
@@ -5741,7 +5790,20 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/comum-pessoas.js`
+
+//
+// Versão anterior: 1.205.0 · 08/10/2026
+//
+// v1.205.0 (UX F2.7b, demanda b8602a3a, sessão 20261003-1707-ux-base; plano F2.7 aprovado pelo Nicola 07/10 20:05; achado do teste da F2.7a em 08/10 08:12) — Pessoas sem ninguém
+// cadastrado usa a caixa rzVazio do app ("Quem usa o Raiz com você" + "Adicionar pessoa" para quem pode
+// gerenciar). Pessoa que não se achou e o cofre.html avulso (sem rzVazio) mantêm o vazio de antes.
+// --------------------------------------------------------------------------
+// Versões anteriores (v1.204.1 … v1.204.1): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
+// mais recentes deste cabeçalho (VER-06).
 
 //
 // Versão anterior: 1.204.2 · 07/10/2026
@@ -6132,6 +6194,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/comum-renovacao.js`
 
 //
@@ -6174,6 +6238,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 // jsdelivr (mesma origem já usada pelo app); se não carregar, o "copia e cola"
 // continua funcionando sozinho.
 // ============================================================================
+
+---
 
 ---
 
@@ -6361,6 +6427,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 // dados de conta — recebe `dbAuth` já autenticado do host, por
 // parâmetro (ver nota completa em comum-licenca.js).
 // ============================================================================
+
+---
 
 ---
 
@@ -7373,6 +7441,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/fechamento.js`
 
 //
@@ -7793,7 +7863,25 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/financeiro.js`
+
+//
+// Versão anterior: 1.49.0 · 11/10/2026
+//
+// v1.49.0 (11/10/2026, sessão 20261008-1231-pessoas-ativos, demanda f3e6cd27; F13 4c etapa 2, §3.5; Nicola 10:53 "pode
+// corrigir e avançar") — dividir despesa entre pessoas, como no Splitwise:
+//   · Nova despesa: o campo de conta passa a se chamar "Quem pagou (conta)" e ganha "Dividir com outras pessoas". Ao
+//     salvar com a opção ligada, abre o editor de divisão já com quem pagou (o titular da conta, se for de pessoa) e o
+//     botão "Dividir igual entre todos";
+//   · o editor de divisão de lançamento não aceita mais nome solto (D60: a pessoa precisa estar em Pessoas) e grava o
+//     modo ("igual" ou "percentual") em cada linha, para reabrir igual (F13.4);
+//   · o rateio entra no Balanço quando a despesa estiver paga pela conta da pessoa (é o pagamento que cria a dívida).
+// --------------------------------------------------------------------------
+// Versões anteriores (v1.48.1 … v1.48.1): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
+// mais recentes deste cabeçalho (VER-06).
 
 //
 // Versão anterior: 1.48.1 · 11/10/2026
@@ -9098,6 +9186,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/fiscal.js`
 
 //
@@ -9157,6 +9247,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 // abrirSheet, abrirSheetAcoes, abrirSheetForm, rzSheetCabecalho, fecharSheet,
 // mostrarToast, switchTab, rzIcones, podeUsar, window.fechamentoAbrirChecklistFiscalAtualizado.
 // ============================================================================
+
+---
 
 ---
 
@@ -9482,7 +9574,18 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/relatorios-executivos.js`
+
+//
+// v1.0.1 (07/10/2026, sessão 20261007-0137-financeiro — teste do Nicola 01:37): os
+// filtros (período, conta) abriam POR TRÁS do relatório. A tela do relatório passa a
+// ficar na camada 96, logo abaixo dos sheets (#rz-veil, 97). Versão anterior: 1.0.0.
+// --------------------------------------------------------------------------
+// Versões anteriores (v1.0.0 … v1.0.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
+// mais recentes deste cabeçalho (VER-06).
 
 //
 // v1.0.0 (07/10/2026, sessão 20261007-0110-financeiro, demanda f3e6cd27 — P4b,
@@ -9498,6 +9601,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 // que o bot usa); aqui só se monta o texto e o desenho — nunca se recalcula
 // (REL-02). Protótipo: raiz\docs\PROTOTIPO_RELATORIOS_FLUXO_GERENCIAL v1.1.0.
 // ============================================================================
+
+---
 
 ---
 
@@ -9901,6 +10006,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/vitrine.js`
 
 //
@@ -10010,6 +10117,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 // CLIENTE_ID_SUPABASE, dbAuth. Exclusivo (4) virou nível de módulo.
 // Indentação de origem mantida. Strict verificado.
 // ============================================================================
+
+---
 
 ---
 

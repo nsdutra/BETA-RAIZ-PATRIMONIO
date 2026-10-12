@@ -4,6 +4,16 @@ Histórico completo de versões do `index.html`, movido automaticamente pelo `ge
 
 ---
 
+NOVIDADES (Beta v1.374.0) — divisão do lançamento por %, cotas ou valor (como no Splitwise). Só o import map muda
+aqui (raiz-ui.js 1.4.0, financeiro.js 1.53.0).
+Versão anterior (Beta v1.373.0):
+------------------------------------------------------------------
+Versões anteriores (v1.373.0 … v1.373.0): CHANGELOG_APP.md, na raiz do
+repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
+das 5 versões mais recentes deste cabeçalho.
+
+---
+
 NOVIDADES (Beta v1.373.0) — Splash "Horizonte" (Nicola 11/10 18:30: "Vamos de Horizonte"; PROTOTIPO_SPLASH_RAMOS_RAIZ v1.2.0).
 A splash ganha a arte .rz-splash-arte (SVG, ~38 KB): céu de manhã com sol e colinas em névoa, a árvore com os 7 ramos
 em leque (ícones de ativo_ramos, galhos que afinam, folhas), e embaixo do chão a terra com raízes fractais; o login fica

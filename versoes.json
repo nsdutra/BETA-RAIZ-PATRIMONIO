@@ -1,11 +1,11 @@
 {
   "app": "patrimonio",
-  "gerado_em": "2026-10-11T22:55:38",
+  "gerado_em": "2026-10-12T02:13:34",
   "arquivos": {
-    "index.html": "1.378.0",
+    "index.html": "1.379.0",
     "sw.js": "3.1",
     "js/cadastros.js": "1.2.0",
-    "js/financeiro.js": "1.53.0",
+    "js/financeiro.js": "1.54.0",
     "js/fechamento.js": "1.13.0",
     "js/contratos.js": "1.51.0",
     "js/minutas.js": "1.4.0",
@@ -13,7 +13,7 @@
     "js/imoveis.js": "1.7.2",
     "js/cofre-api.js": "1.50.0",
     "js/cofre-app.js": "1.47.0",
-    "js/cofre-ativos.js": "1.92.0",
+    "js/cofre-ativos.js": "1.93.0",
     "js/cofre-controles.js": "1.51.0",
     "js/cofre-documentos.js": "2.35.0",
     "js/cofre-imagem.js": "1.1.0",
@@ -23,15 +23,15 @@
     "js/cofre-validacoes.js": "2.5.0",
     "js/comum-licenca.js": "1.8.0",
     "js/comum-renovacao.js": "1.3.5",
-    "js/comum-minha-empresa.js": "1.14.0",
-    "js/comum-pessoas.js": "1.209.0",
+    "js/comum-minha-empresa.js": "1.15.0",
+    "js/comum-pessoas.js": "1.210.0",
     "js/comum-sobre.js": "1.5.0",
     "js/comum-endereco.js": "1.2.0",
     "js/comum-partes.js": "1.0.0",
     "js/resultados.js": "2.9.0",
     "js/indicadores.js": "1.0.0",
     "js/configuracao-inicial.js": "1.0.1",
-    "js/relatorios-executivos.js": "1.2.0",
+    "js/relatorios-executivos.js": "1.3.0",
     "js/raiz-eventos.js": "1.0.0",
     "js/raiz-device.js": "1.0.0",
     "js/raiz-ui.js": "1.4.0",
@@ -44,7 +44,7 @@
   },
   "detalhes": {
     "index.html": {
-      "linhas": 16008,
+      "linhas": 16007,
       "funcoes": 68
     },
     "sw.js": {
@@ -56,7 +56,7 @@
       "funcoes": 7
     },
     "js/financeiro.js": {
-      "linhas": 6043,
+      "linhas": 6039,
       "funcoes": 222
     },
     "js/fechamento.js": {
@@ -88,7 +88,7 @@
       "funcoes": 13
     },
     "js/cofre-ativos.js": {
-      "linhas": 3127,
+      "linhas": 3128,
       "funcoes": 121
     },
     "js/cofre-controles.js": {
@@ -128,11 +128,11 @@
       "funcoes": 15
     },
     "js/comum-minha-empresa.js": {
-      "linhas": 929,
-      "funcoes": 18
+      "linhas": 1008,
+      "funcoes": 23
     },
     "js/comum-pessoas.js": {
-      "linhas": 925,
+      "linhas": 929,
       "funcoes": 29
     },
     "js/comum-sobre.js": {
@@ -160,8 +160,8 @@
       "funcoes": 14
     },
     "js/relatorios-executivos.js": {
-      "linhas": 610,
-      "funcoes": 26
+      "linhas": 754,
+      "funcoes": 28
     },
     "js/raiz-eventos.js": {
       "linhas": 85,

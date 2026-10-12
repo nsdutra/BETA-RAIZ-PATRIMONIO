@@ -1,7 +1,13 @@
 // ============================================================================
 // financeiro.js — Raiz Patrimônio · Financeiro (Recebimentos · Atrasados · Saídas
 //                  · conciliação de extrato · recibo · detalhe do recebimento)
-// Versão: 1.53.0 · 11/10/2026
+// Versão: 1.54.0 · 11/10/2026
+//
+// v1.54.0 (11/10/2026, sessão 20261008-1231-pessoas-ativos, demanda 0aa64e93; F13.8, ficha v1.4.0 e protótipo v1.3.0; de acordo do Nicola 11/10 22:55) — quadro Retiradas
+// extraordinárias (Balanço › Sócios por mês) ganha "Ver relatório" (relatório Retiradas extraordinárias). Os textos de
+// apoio deixam de usar "fora do fluxo" como sinônimo: dizem só que a retirada extraordinária não abate o saldo a retirar.
+//
+// Versão anterior: 1.53.0 · 11/10/2026
 //
 // v1.53.0 (11/10/2026, sessão 20261008-1231-pessoas-ativos, demanda f3e6cd27; bloco "Produto, já registrado", Nicola 11/10 18:41 ("quero evoluir com Produto, já registrado"); F13 §3.5 e F13.4) — o editor de
 // divisão do lançamento e do recebimento abre com "%  ·  Cotas  ·  Valor" (raiz-ui modos: true) e reabre no modo em que
@@ -37,22 +43,11 @@
 //   · tocar numa retirada oferece "Marcar como extraordinária" ou "Voltar para o fluxo" (fn_retirada_classificar,
 //     com registro de quem mudou e quando); vale também para a retirada que veio da conciliação;
 //   · histórico do Balanço: a extraordinária aparece com o selo "Extraordinária" e o valor, sem mexer no saldo.
-//
-// Versão anterior: 1.49.0 · 11/10/2026
-//
-// v1.49.0 (11/10/2026, sessão 20261008-1231-pessoas-ativos, demanda f3e6cd27; F13 4c etapa 2, §3.5; Nicola 10:53 "pode
-// corrigir e avançar") — dividir despesa entre pessoas, como no Splitwise:
-//   · Nova despesa: o campo de conta passa a se chamar "Quem pagou (conta)" e ganha "Dividir com outras pessoas". Ao
-//     salvar com a opção ligada, abre o editor de divisão já com quem pagou (o titular da conta, se for de pessoa) e o
-//     botão "Dividir igual entre todos";
-//   · o editor de divisão de lançamento não aceita mais nome solto (D60: a pessoa precisa estar em Pessoas) e grava o
-//     modo ("igual" ou "percentual") em cada linha, para reabrir igual (F13.4);
-//   · o rateio entra no Balanço quando a despesa estiver paga pela conta da pessoa (é o pagamento que cria a dívida).
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.48.1 … v1.48.1): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.49.0 … v1.49.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '1.53.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.54.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 
 // v1.17.0 (Fase 1 do wrapper de escrita, rollout Financeiro) — emitirEscrita
 // é o evento padrão pra "algo mudou que módulos DE FORA deste arquivo podem
@@ -5502,13 +5497,14 @@ function distribDesenhar() {
     const totExtra = extras.reduce((t, r) => t + Number(r.valor || 0), 0);
     const quadroExtra = extras.length
         ? `<div class="rz-card rz-list"><div class="rz-card-h" style="padding-top:10px;margin-bottom:0"><h3>Retiradas extraordinárias</h3><span class="rz-sub">${esc(periodo)} · ${formatarMoedaBR(totExtra)}</span></div>` +
-          `<p style="margin:0 14px 6px;font-size:12px;color:var(--muted)">Fora do fluxo dos imóveis: não abatem o saldo a retirar.</p>` +
+          `<p style="margin:0 14px 6px;font-size:12px;color:var(--muted)">Não abatem o saldo a retirar.</p>` +
           extras.slice(0, 20).map(r => `<div class="rz-row rz-link" role="button" tabindex="0" onclick="rzAcoesRetirada('${r.id}')">
                 <div class="rz-ic rz-neu"><svg data-lucide="sparkles"></svg></div>
                 <div class="rz-tx"><b>${esc(r.pessoas?.nome || nomePorId[r.pessoa_id] || 'Sócio')}</b><span>${formatarDataBR(r.data_real || r.competencia)} · ref. ${esc(compCurta(r.competencia))}</span></div>
                 <div class="rz-rt"><b>${formatarMoedaBR(Number(r.valor || 0))}</b></div>
                 <svg data-lucide="ellipsis-vertical" class="rz-chev"></svg>
-            </div>`).join('') + '</div>'
+            </div>`).join('') +
+          `<div class="rz-row rz-link" role="button" tabindex="0" onclick="abrirRelatorioExecutivo('retiradas')"><div class="rz-ic"><svg data-lucide="file-text"></svg></div><div class="rz-tx"><b>Ver relatório</b><span>Por pessoa, por mês e por ano</span></div><svg data-lucide="chevron-right" class="rz-chev"></svg></div>` + '</div>' // v1.54.0 — F13.8
         : '';
     corpo.innerHTML = chips + kpis + lista + ultimas + quadroExtra;
     if (typeof lucide !== 'undefined') lucide.createIcons();
@@ -5780,7 +5776,7 @@ export function abrirLancarRetirada(pessoaIdPre, valorSugerido) {
         corpo: `
             <div class="rz-f"><label>Sócio <i>*</i></label><select id="ret-pessoa">${optsSocio}</select></div>
             <div class="rz-f"><label>Mês de referência <i>*</i></label><select id="ret-competencia">${optsComp}</select></div>
-            <div class="rz-f"><label>Tipo <i>*</i></label><select id="ret-natureza"><option value="distribuicao" selected>Do fluxo · abate o saldo a retirar</option><option value="extraordinaria">Extraordinária · fora do fluxo dos imóveis</option></select></div>
+            <div class="rz-f"><label>Tipo <i>*</i></label><select id="ret-natureza"><option value="distribuicao" selected>Do fluxo · abate o saldo a retirar</option><option value="extraordinaria">Extraordinária · não abate o saldo a retirar</option></select></div>
             <div class="rz-f2 rz-f2-curto">
                 <div class="rz-f"><label>Valor (R$) <i>*</i></label><input type="number" step="0.01" inputmode="decimal" id="ret-valor" value="${sug}"></div>
                 <div class="rz-f"><label>Data da retirada <i>*</i></label><input type="date" id="ret-data" value="${hoje}"></div>
@@ -5827,7 +5823,7 @@ export function rzAcoesRetirada(id) {
     abrirSheetAcoes({ titulo: `Retirada${extra ? ' extraordinária' : ''} · ${r.pessoas?.nome || 'Sócio'}`, sub: `${formatarMoedaBR(Number(r.valor || 0))} · ${formatarDataBR(r.data_real || r.competencia)}`, acoes: [
         extra
             ? { icone: 'undo-2', titulo: 'Voltar para o fluxo', codigo: 'repasses.registrar', sub: 'Passa a abater o saldo a retirar', aoTocar: () => retiradaClassificar(id, 'distribuicao') }
-            : { icone: 'sparkles', titulo: 'Marcar como extraordinária', codigo: 'repasses.registrar', sub: 'Fora do fluxo dos imóveis: não abate o saldo a retirar', aoTocar: () => retiradaClassificar(id, 'extraordinaria') },
+            : { icone: 'sparkles', titulo: 'Marcar como extraordinária', codigo: 'repasses.registrar', sub: 'Não abate o saldo a retirar', aoTocar: () => retiradaClassificar(id, 'extraordinaria') },
         { icone: 'trash-2', tipo: 'bad', titulo: 'Excluir retirada', codigo: 'repasses.excluir', aoTocar: () => excluirRetirada(id) },
     ] });
 }

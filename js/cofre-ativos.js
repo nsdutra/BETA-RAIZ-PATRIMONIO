@@ -1,6 +1,12 @@
 // ============================================================================
 // cofre-ativos.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.92.0 · 11/10/2026
+// Versão: 1.93.0 · 11/10/2026
+//
+// v1.93.0 (11/10/2026, sessão 20261008-1231-pessoas-ativos, demanda 0aa64e93; F13.8, ficha v1.4.0 e protótipo v1.3.0; de acordo do Nicola 11/10 22:55) — ativo pessoa: o card
+// Retiradas extraordinárias ganha "Ver relatório", que abre o relatório já no recorte da pessoa (chip com o nome; tocar
+// volta a todas). O subtítulo deixa de dizer "fora do fluxo dos imóveis".
+//
+// Versão anterior: 1.92.0 · 11/10/2026
 //
 // v1.92.0 (11/10/2026, sessão 20261008-1231-pessoas-ativos, demanda f3e6cd27; F13 4c etapa 4; Nicola 11/10 17:42, teste da etapa 3: "pode organizar melhor pro chip de performance desaparecer e deixar tudo no financeiro")
 // — o chip Financeiro do ativo é a visão única por competência (rzFinCompetencias, js/financeiro.js, a mesma do
@@ -34,18 +40,11 @@
 // digitável: o texto filtra enquanto digita (window.rzBuscaInline do index; × limpa só o texto) e o ícone de filtros
 // abre o Sheet só com Tipo, Situação e Alerta (rzAbrirBuscaTela com semTexto; Limpar zera só os filtros). O número
 // no ícone diz quantos filtros estão ligados. O campo guardador continua #filtro-ativo-busca.
-//
-// Versão anterior: 1.88.0 · 10/10/2026
-//
-// v1.88.0 (10/10/2026, sessão 20261008-1231-pessoas-ativos, demanda a3f4c73f — F25c, Nicola 10/10 20:56/21:19): "Adicionar"
-// em Usos e contratos lista os modelos disponíveis para o ativo (matriz tipo × modelo, ramos contratados); Aluguel e
-// Temporada seguem para os 3 caminhos de contrato já com o modelo; Short stay e outros em breve aparecem apagados.
-// Cada contrato do card mostra o seu modelo. Versão anterior: 1.87.0.
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.87.0 … v1.87.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.88.0 … v1.88.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '1.92.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.93.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 import { estado } from './cofre-estado.js';
 import * as api from './cofre-api.js';
 import { mostrarToast, erroInline, refrescarIcones, alternarToggle, abrirModal, fecharModal, modalGenerico, perguntar, avisarComDesfazer } from './cofre-ui.js';
@@ -2098,11 +2097,13 @@ function movDesenharTopo(a, pessoaId, bal, ex, contas) {
         contas.map(c => { const cartao = c.tipo === 'cartao_credito';
             return `<div class="rz-row"><div class="rz-ic"><i data-lucide="${cartao ? 'credit-card' : 'landmark'}"></i></div>
                 <div class="rz-tx"><b>${movEsc(c.nome)}${c.final_identificador ? ' ··' + movEsc(c.final_identificador) : ''}</b><span>${cartao ? `Cartão de crédito${c.dia_vencimento ? ' · vence dia ' + c.dia_vencimento : ''}` : 'Conta'}${c.situacao !== 'ativa' ? ' · encerrada' : ''}</span></div></div>`; }).join('') + '</div>' : '';
-    const cardExtra = ex.length ? `<div class="rz-card"><div class="rz-card-h"><h3>Retiradas extraordinárias</h3><span class="rz-sub">fora do fluxo dos imóveis</span></div>
-        <div class="rz-kv"><div><small>No ano</small><b>${fmt(ex[0].total_ano)}</b></div><div><small>Acumulado</small><b>${fmt(ex[0].total_acumulado)}</b></div><div><small>Retiradas no ano</small><b>${ex.length}</b></div></div></div>` : '';
+    const cardExtra = ex.length ? `<div class="rz-card"><div class="rz-card-h"><h3>Retiradas extraordinárias</h3><span class="rz-sub">não abatem o saldo a retirar</span></div>
+        <div class="rz-kv"><div><small>No ano</small><b>${fmt(ex[0].total_ano)}</b></div><div><small>Acumulado</small><b>${fmt(ex[0].total_acumulado)}</b></div><div><small>Retiradas no ano</small><b>${ex.length}</b></div></div>
+        <div class="rz-list" style="margin-top:8px"><div class="rz-row rz-link" role="button" tabindex="0" data-mov-relret><div class="rz-ic"><i data-lucide="file-text"></i></div><div class="rz-tx"><b>Ver relatório</b><span>Retiradas extraordinárias de ${movEsc(nomeAtivo)}</span></div><i data-lucide="chevron-right" class="rz-chev"></i></div></div></div>` : ''; // v1.93.0 — F13.8
     t.innerHTML = cardBal + cardContas + cardExtra;
     t.querySelectorAll('[data-mov-bal]').forEach(b => b.addEventListener('click', (ev) => { ev.stopPropagation(); movQuitar(a, bal[Number(b.dataset.movBal)]); }));
     t.querySelector('[data-mov-menu]')?.addEventListener('click', (ev) => { ev.stopPropagation(); abrirAcoesFinanceiroAtivo(); });
+    t.querySelector('[data-mov-relret]')?.addEventListener('click', () => { if (typeof window.abrirRelatorioExecutivo === 'function') window.abrirRelatorioExecutivo('retiradas', { pessoaId, pessoaNome: nomeAtivo }); });
     refrescarIcones();
 }
 

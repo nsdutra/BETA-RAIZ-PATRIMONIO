@@ -1,6 +1,12 @@
 // ============================================================================
 // comum-pessoas.js — Raiz Patrimônio · Administração compartilhada
-// Versão: 1.209.0 · 11/10/2026
+// Versão: 1.210.0 · 11/10/2026
+//
+// v1.210.0 (11/10/2026, sessão 20261008-1231-pessoas-ativos, demanda 7c5c4c65; F13.8, ficha v1.4.0 e protótipo v1.3.0; de acordo do Nicola 11/10 22:55) — com o controle de
+// partes nas retiradas extraordinárias ligado na empresa, a ficha da pessoa mostra "Parte nas retiradas extraordinárias".
+// A parte é definida em Minha empresa › Rotinas; o formulário da pessoa não envia parte_retiradas.
+//
+// Versão anterior: 1.209.0 · 11/10/2026
 //
 // v1.209.0 (fase 5 do plano de marca e ramos, demanda 680ee9f8; Nicola 11/10 18:47 "Sobre ramo por pessoa, estou de
 // acordo"; FICHA_RAMO_PADRAO_PESSOA_RAIZ v1.0.0) — "Abrir o app em" no grupo Acesso da pessoa: escolhe o ramo em que
@@ -36,17 +42,11 @@
 // campo único (.rz-f, rótulo acima) e E-mail/WhatsApp em .rz-f2 (uma coluna no celular); sheet de
 // Comunicações da pessoa com as linhas de Minhas notificações (.rz-pref-2l) e o interruptor
 // .rz-switch (estado em aria-checked, sem cor em style).
-//
-// Versão anterior: 1.205.0 · 08/10/2026
-//
-// v1.205.0 (UX F2.7b, demanda b8602a3a, sessão 20261003-1707-ux-base; plano F2.7 aprovado pelo Nicola 07/10 20:05; achado do teste da F2.7a em 08/10 08:12) — Pessoas sem ninguém
-// cadastrado usa a caixa rzVazio do app ("Quem usa o Raiz com você" + "Adicionar pessoa" para quem pode
-// gerenciar). Pessoa que não se achou e o cofre.html avulso (sem rzVazio) mantêm o vazio de antes.
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.204.1 … v1.204.1): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.205.0 … v1.205.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '1.209.0'; // v-check (18/09/2026): lido por Dev › Versões — manter igual ao header
+export const VERSAO = '1.210.0'; // v-check (18/09/2026): lido por Dev › Versões — manter igual ao header
 import { perguntar, avisarComDesfazer } from './cofre-ui.js'; // v1.203.0 (F0.2b) — sem diálogo nativo
 import { buscarContas, contasListaHtml, abrirFichaConta, abrirAcoesConta } from './comum-minha-empresa.js'; // v1.204.0 — contas da pessoa (P4a)
 import { rzMostrarBloqueio as rzBloqueio } from './comum-licenca.js'; // v1.204.0
@@ -92,6 +92,7 @@ export async function listarPessoas(dbAuth, clienteId) {
         userId: row.user_id, perfil: row.perfil,
         escopoContas: row.escopo_contas || 'propria_mais_empresa', // v1.204.0
         ramoPadrao: row.ramo_padrao || null, // v1.209.0 — ramo em que a pessoa abre o app (null = Todo o patrimônio)
+        parteRetiradas: row.parte_retiradas ?? null, // v1.210.0 — F13.8 (só leitura aqui)
     }));
 }
 
@@ -272,12 +273,14 @@ export async function montarAbaPessoas(mountEl, ctx) {
     }
     let proativasDisponiveis = [];
     let preferenciasMap = new Map();
+    let controlaPartes = false; // v1.210.0 — F13.8
     try {
-        [pessoas, modulosPorPerfil, proativasDisponiveis, preferenciasMap] = await Promise.all([
+        [pessoas, modulosPorPerfil, proativasDisponiveis, preferenciasMap, controlaPartes] = await Promise.all([
             listarPessoas(dbAuth, clienteId),
             buscarModulosPorPerfil(dbAuth),
             buscarProativasDisponiveis(dbAuth, clienteId),
             buscarPreferenciasComunicacao(dbAuth, clienteId),
+            dbAuth.from('clientes').select('controla_partes_retiradas').eq('id', clienteId).maybeSingle().then(r => !!r?.data?.controla_partes_retiradas, () => false),
         ]);
     } catch (err) {
         console.warn('[comum-pessoas] Falha ao carregar pessoas:', err.message);
@@ -458,6 +461,7 @@ export async function montarAbaPessoas(mountEl, ctx) {
                         ${kv('WhatsApp', p.whatsapp)}
                         ${kv('Função na empresa', p.funcao)}
                         ${p.percentualCotasEmpresa != null ? kv('% de cotas', String(p.percentualCotasEmpresa).replace('.', ',') + '%') : ''}
+                        ${controlaPartes && p.parteRetiradas != null ? kv('Parte nas retiradas extraordinárias', Number(p.parteRetiradas).toLocaleString('pt-BR', { maximumFractionDigits: 2 }) + '%') : ''}
                         ${kv('Acesso a módulos', modulosTxt)}
                         ${kv('Acesso ao sistema', p.userId ? 'Sim' : 'Não')}
                     </div>
