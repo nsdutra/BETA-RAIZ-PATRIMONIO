@@ -6,9 +6,17 @@
    (base derivada do RUMO v7.4.2 — histórico de versões anteriores
    preservado abaixo para referência técnica)
 
-   VERSÃO: Beta v1.386.0
-   LINHAS: 16151
-   DATA: 12/10/2026 (sessão 20261012-0230-ux-onda4b, demanda a05ad2ee)
+   VERSÃO: Beta v1.387.0
+   LINHAS: 16225
+   DATA: 12/10/2026 (sessão 20261012-0240-ux-onda4c, demanda a05ad2ee)
+   NOVIDADES (Beta v1.387.0) — UX onda 4c: Financeiro em 2 linhas e Usos com o ano (estudo PROTOTIPO_UX_DENSIDADE_
+   RAMOS_RAIZ v1.2.0, D9; "Pode fazer e seguir" 12/10 02:26 e, 02:31, "juntar os dois cards ocupação e uso … filtrada
+   por ano … letras iniciais dos meses … apenas o % ocupação basta"). Financeiro (Recebimentos, Saídas, Conciliação):
+   linha 1 é o mês como título (‹ mês ›, cadeado) com lupa e +; linha 2 as abas sublinhadas; a busca abre pela lupa
+   (rzFinAlternarBusca) e fica aberta com texto; os 4 números sem caixas; as rotinas do mês numa faixa de status
+   (financeiro.js 1.57.0). Ficha do ativo: Usos e Ocupação num card só, com ‹ ano ›, barra de jan a dez, iniciais dos
+   meses e a ocupação do ano em % (cofre-ativos.js 1.95.0). Nenhum objeto de banco.
+   Versão anterior (Beta v1.386.0):
    NOVIDADES (Beta v1.386.0) — UX onda 4b: controles (estudo PROTOTIPO_UX_DENSIDADE_RAMOS_RAIZ v1.2.0, D9; "Pode fazer
    e seguir" do Nicola 12/10 02:26). As vistas de uma tela viram abas sublinhadas: Hoje (Visão geral · Minha gestão ·
    Fique por dentro), fichas do contrato e do ativo, Minha empresa e Licença. Chip fica só para filtrar lista. Em todo
@@ -34,11 +42,8 @@
    ("+ Adicionar recebimento", "+ Adicionar parte", "+ Adicionar documento"). Classes novas .rz-more-topo e .rz-add
    (DS §6). js/contratos.js 1.51.0 → 1.52.0. Nenhum objeto de banco.
    Versão anterior (Beta v1.382.0):
-   NOVIDADES (Beta v1.382.0) — F13.9: dividir uma retirada em partes (do fluxo e extraordinária), mesmo conciliada, e unir
-   de novo. Só o import map muda aqui (financeiro.js 1.55.0).
-   Versão anterior (Beta v1.381.0):
    ------------------------------------------------------------------
-   Versões anteriores (v1.381.0 … v1.381.0): CHANGELOG_APP.md, na raiz do
+   Versões anteriores (v1.382.0 … v1.382.0): CHANGELOG_APP.md, na raiz do
    repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
    das 5 versões mais recentes deste cabeçalho.
 
@@ -63,7 +68,7 @@
          O navegador aplica o mapa também aos imports estáticos dentro dos
          módulos (cofre-app.js → ./cofre-api.js etc.). -->
     <!-- RZ-IMPORTMAP:INICIO -->
-    <script type="importmap">{"imports":{"./js/cadastros.js":"./js/cadastros.js?v=1.2.0","./js/financeiro.js":"./js/financeiro.js?v=1.56.0","./js/fechamento.js":"./js/fechamento.js?v=1.13.0","./js/contratos.js":"./js/contratos.js?v=1.53.0","./js/minutas.js":"./js/minutas.js?v=1.4.0","./js/vitrine.js":"./js/vitrine.js?v=1.5.2","./js/imoveis.js":"./js/imoveis.js?v=1.7.2","./js/cofre-api.js":"./js/cofre-api.js?v=1.50.0","./js/cofre-app.js":"./js/cofre-app.js?v=1.47.0","./js/cofre-ativos.js":"./js/cofre-ativos.js?v=1.94.0","./js/cofre-controles.js":"./js/cofre-controles.js?v=1.51.0","./js/cofre-documentos.js":"./js/cofre-documentos.js?v=2.35.0","./js/cofre-imagem.js":"./js/cofre-imagem.js?v=1.1.0","./js/cofre-estado.js":"./js/cofre-estado.js?v=1.5.2","./js/cofre-navegacao.js":"./js/cofre-navegacao.js?v=1.9.3","./js/cofre-ui.js":"./js/cofre-ui.js?v=1.7.2","./js/cofre-validacoes.js":"./js/cofre-validacoes.js?v=2.5.0","./js/comum-licenca.js":"./js/comum-licenca.js?v=1.8.0","./js/comum-renovacao.js":"./js/comum-renovacao.js?v=1.3.5","./js/comum-minha-empresa.js":"./js/comum-minha-empresa.js?v=1.15.0","./js/comum-pessoas.js":"./js/comum-pessoas.js?v=1.210.0","./js/comum-sobre.js":"./js/comum-sobre.js?v=1.5.0","./js/comum-endereco.js":"./js/comum-endereco.js?v=1.2.0","./js/comum-partes.js":"./js/comum-partes.js?v=1.0.0","./js/resultados.js":"./js/resultados.js?v=2.9.0","./js/indicadores.js":"./js/indicadores.js?v=1.0.0","./js/configuracao-inicial.js":"./js/configuracao-inicial.js?v=1.0.1","./js/relatorios-executivos.js":"./js/relatorios-executivos.js?v=1.3.0","./js/raiz-eventos.js":"./js/raiz-eventos.js?v=1.0.0","./js/raiz-device.js":"./js/raiz-device.js?v=1.0.0","./js/raiz-ui.js":"./js/raiz-ui.js?v=1.4.0","./js/fiscal.js":"./js/fiscal.js?v=1.5.2","./js/ativos/ativos-boot.js":"./js/ativos/ativos-boot.js?v=1.4.0","./js/ativos/ativos-markup.js":"./js/ativos/ativos-markup.js?v=1.61.0","./js/nucleo/porta.js":"./js/nucleo/porta.js?v=1.4.0","./js/partes.js":"./js/partes.js?v=1.0.2","./js/conta.js":"./js/conta.js?v=1.0.1"}}</script>
+    <script type="importmap">{"imports":{"./js/cadastros.js":"./js/cadastros.js?v=1.2.0","./js/financeiro.js":"./js/financeiro.js?v=1.57.0","./js/fechamento.js":"./js/fechamento.js?v=1.13.0","./js/contratos.js":"./js/contratos.js?v=1.53.0","./js/minutas.js":"./js/minutas.js?v=1.4.0","./js/vitrine.js":"./js/vitrine.js?v=1.5.2","./js/imoveis.js":"./js/imoveis.js?v=1.7.2","./js/cofre-api.js":"./js/cofre-api.js?v=1.50.0","./js/cofre-app.js":"./js/cofre-app.js?v=1.47.0","./js/cofre-ativos.js":"./js/cofre-ativos.js?v=1.95.0","./js/cofre-controles.js":"./js/cofre-controles.js?v=1.51.0","./js/cofre-documentos.js":"./js/cofre-documentos.js?v=2.35.0","./js/cofre-imagem.js":"./js/cofre-imagem.js?v=1.1.0","./js/cofre-estado.js":"./js/cofre-estado.js?v=1.5.2","./js/cofre-navegacao.js":"./js/cofre-navegacao.js?v=1.9.3","./js/cofre-ui.js":"./js/cofre-ui.js?v=1.7.2","./js/cofre-validacoes.js":"./js/cofre-validacoes.js?v=2.5.0","./js/comum-licenca.js":"./js/comum-licenca.js?v=1.8.0","./js/comum-renovacao.js":"./js/comum-renovacao.js?v=1.3.5","./js/comum-minha-empresa.js":"./js/comum-minha-empresa.js?v=1.15.0","./js/comum-pessoas.js":"./js/comum-pessoas.js?v=1.210.0","./js/comum-sobre.js":"./js/comum-sobre.js?v=1.5.0","./js/comum-endereco.js":"./js/comum-endereco.js?v=1.2.0","./js/comum-partes.js":"./js/comum-partes.js?v=1.0.0","./js/resultados.js":"./js/resultados.js?v=2.9.0","./js/indicadores.js":"./js/indicadores.js?v=1.0.0","./js/configuracao-inicial.js":"./js/configuracao-inicial.js?v=1.0.1","./js/relatorios-executivos.js":"./js/relatorios-executivos.js?v=1.3.0","./js/raiz-eventos.js":"./js/raiz-eventos.js?v=1.0.0","./js/raiz-device.js":"./js/raiz-device.js?v=1.0.0","./js/raiz-ui.js":"./js/raiz-ui.js?v=1.4.0","./js/fiscal.js":"./js/fiscal.js?v=1.5.2","./js/ativos/ativos-boot.js":"./js/ativos/ativos-boot.js?v=1.4.0","./js/ativos/ativos-markup.js":"./js/ativos/ativos-markup.js?v=1.61.0","./js/nucleo/porta.js":"./js/nucleo/porta.js?v=1.4.0","./js/partes.js":"./js/partes.js?v=1.0.2","./js/conta.js":"./js/conta.js?v=1.0.1"}}</script>
     <!-- RZ-IMPORTMAP:FIM -->
 
     <!-- ===== PWA: permite "instalar" o app no celular (Android e iPhone) ===== -->
@@ -1371,6 +1376,48 @@
         .rz-chip.rz-warn .rz-n{color:var(--danger)}
         #hoje-chips .rz-chip.rz-on .rz-n,#fc-chips .rz-chip.rz-on .rz-n,#fa-chips .rz-chip.rz-on .rz-n,#cme-chips .rz-chip.rz-on .rz-n,#lic-chips .rz-chip.rz-on .rz-n{color:var(--muted)}
         #hoje-chips .rz-chip.rz-warn .rz-n,#fc-chips .rz-chip.rz-warn .rz-n,#fa-chips .rz-chip.rz-warn .rz-n,#cme-chips .rz-chip.rz-warn .rz-n,#lic-chips .rz-chip.rz-warn .rz-n{color:var(--danger)}
+
+        /* ============================================================================================================
+           v1.387.0 — UX ONDA 4c: FINANCEIRO EM 2 LINHAS (PROTOTIPO_UX_DENSIDADE_RAMOS_RAIZ v1.2.0 §6, D9).
+           Linha 1 (.rz-fin-topo): o mês como título (‹ mês ›, cadeado) + lupa + "+". Linha 2: abas sublinhadas
+           (.rz-fin-abas). A busca (.rz-fin-busca) aparece pela lupa ou com texto. Os 4 números sem caixas; as rotinas do
+           mês numa faixa de status (.rz-fin-rotinas).
+           ============================================================================================================ */
+        .rz-fin-topo{display:flex;align-items:center;gap:4px;margin-bottom:4px}
+        .rz-fin-topo .rz-mes-titulo{flex:1;min-width:0;justify-content:flex-start;gap:2px;background:none;padding:0;margin:0 0 0 -8px;min-height:44px}
+        .rz-fin-topo .rz-mes-titulo .rz-ico-btn{width:36px;height:36px}
+        .rz-fin-topo .rz-mes-titulo .rz-ico-btn svg{width:18px;height:18px}
+        .rz-fin-topo .rz-mes-label{font-size:19px;font-weight:700;color:var(--ink)}
+        .rz-fin-topo .rz-fin-lupa{background:none;box-shadow:none;border:0;color:var(--ink)}
+        .rz-seg.rz-fin-abas{background:none;border-radius:0;padding:0;gap:18px;box-shadow:inset 0 -1px 0 var(--line);margin:0 0 12px;overflow-x:auto;scrollbar-width:none}
+        .rz-seg.rz-fin-abas button{flex:none;height:40px;padding:0;border-radius:0;background:none;box-shadow:none;border-bottom:2px solid transparent;font:600 14px var(--font-body);color:var(--muted)}
+        .rz-seg.rz-fin-abas button.rz-on{background:none;box-shadow:none;color:var(--ink);border-bottom-color:var(--ramo-acc)}
+        .rz-seg.rz-fin-abas .rz-seg-s{display:none}.rz-seg.rz-fin-abas .rz-seg-l{display:inline}
+        .rz-fin-busca{display:none}
+        .rz-fin-busca.rz-aberta,.rz-fin-busca:has(input:not(:placeholder-shown)){display:flex}
+        #tab-mensal .rz-kpis,#tab-saidas .rz-kpis,#tab-conciliacao .rz-kpis{grid-template-columns:1fr 1fr;gap:10px 16px;padding:2px 0 10px;border-bottom:1px solid var(--line);margin-bottom:10px}
+        #tab-mensal .rz-kpi,#tab-saidas .rz-kpi,#tab-conciliacao .rz-kpi{background:none;border:0;border-radius:0;padding:0;box-shadow:none}
+        #tab-mensal .rz-kpi b,#tab-saidas .rz-kpi b,#tab-conciliacao .rz-kpi b{font-size:16px}
+        .rz-fin-rotinas{display:flex;flex-wrap:nowrap;gap:6px;margin:0 -16px 12px;padding:0 16px;overflow-x:auto;scrollbar-width:none}.rz-fin-rotinas::-webkit-scrollbar{display:none}.rz-rot{flex:none}
+        .rz-rot{display:inline-flex;align-items:center;gap:5px;height:30px;padding:0 10px;border-radius:var(--r-pill);border:1px solid var(--line);background:var(--card);font:600 12.5px var(--font-body);color:var(--ink);cursor:pointer;white-space:nowrap}
+        .rz-rot svg{width:14px;height:14px;flex:none}
+        .rz-rot.rz-ok svg{color:var(--success)}.rz-rot.rz-warn{color:var(--warning);border-color:var(--warning-bg);background:var(--warning-bg)}
+        .rz-rot.rz-bad{color:var(--danger);border-color:var(--danger-bg);background:var(--danger-bg)}.rz-rot.rz-neu{color:var(--muted)}
+        .rz-rot.rz-off{opacity:.55}
+        /* v1.387.0 — card Usos com o ano (cofre-ativos 1.95.0): barra de 1/jan a 31/dez, iniciais dos meses, % de ocupação */
+        .rz-uso-ano{display:inline-flex;align-items:center;gap:2px;color:var(--ink)}
+        .rz-uso-ano b{font:700 14px var(--font-body);min-width:38px;text-align:center}
+        .rz-uso-ano button{width:32px;height:32px;display:inline-flex;align-items:center;justify-content:center;border:0;background:none;color:var(--ink);border-radius:50%;cursor:pointer}
+        .rz-uso-ano button:disabled{opacity:.3;cursor:default}
+        .rz-uso-ano svg{width:17px;height:17px}
+        .rz-uso-barra{position:relative;height:24px;border-radius:8px;background:var(--tile);overflow:hidden;margin:6px 0 4px;
+            background-image:repeating-linear-gradient(to right,transparent 0,transparent calc(100% / 12 - 1px),var(--card) calc(100% / 12 - 1px),var(--card) calc(100% / 12))}
+        .rz-uso-seg{position:absolute;top:0;bottom:0;opacity:.88}
+        .rz-uso-hoje{position:absolute;top:-2px;bottom:-2px;width:2px;margin-left:-1px;background:var(--ink)}
+        .rz-uso-meses{display:grid;grid-template-columns:repeat(12,1fr);text-align:center;font-size:12px;color:var(--muted);margin-bottom:8px}
+        .rz-uso-meses .rz-on{color:var(--ink);font-weight:700}
+        .rz-uso-pe{display:flex;justify-content:space-between;align-items:baseline;gap:10px;font-size:12.5px;color:var(--muted);padding:2px 0 4px}
+        .rz-uso-pe b{font:700 17px var(--font-title);color:var(--ink);margin-left:4px}
     </style>
 
 </head>
@@ -3282,15 +3329,20 @@
                  (Lançar) e o segmento de 4 opções; depois a competência, os 4 KPIs e o card
                  "Rotinas de <mês>" (#fin-rotinas-*, financeiroRotinasHtml) no lugar da grade 3x2
                  e da linha de descrição + lupa. -->
-            <div class="rz-topo">
-                <label class="rz-search rz-search-in" id="fin-busca-btn-mensal"><svg data-lucide="search"></svg><input type="search" id="fin-busca-q-mensal" class="rz-raw" placeholder="Buscar locatário, imóvel ou valor" enterkeyhint="search" autocomplete="off" aria-label="Buscar"></label>
-                <button type="button" class="rz-ico-btn rz-primary" onclick="abrirLancarFinanceiro('mensal')" aria-label="Lançar"><svg data-lucide="plus"></svg></button>
-            </div>
-            <div class="rz-seg rz-seg-4" id="fin-chips-nivel-mensal"></div>
-            <div class="rz-mes-bar">
+            <!-- v1.387.0 (UX onda 4, D9) — Financeiro em 2 linhas: o mês é o título (‹ › e o cadeado), lupa e + à direita;
+                 depois as abas. A busca abre pela lupa (e fica aberta enquanto tem texto). -->
+            <div class="rz-fin-topo">
+                <div class="rz-mes-bar rz-mes-titulo">
                 <button type="button" class="rz-ico-btn" onclick="financeiroMudarCompetencia(-1)" aria-label="Mês anterior"><svg data-lucide="chevron-left"></svg></button>
                 <span class="rz-mes-centro"><b id="fin-competencia-label-mensal" class="rz-mes-label">—</b><span id="fin-competencia-lock-mensal" class="rz-mes-lock hidden" title="Competência fechada" aria-label="Competência fechada"><svg data-lucide="lock"></svg></span></span>
                 <button type="button" class="rz-ico-btn" onclick="financeiroMudarCompetencia(1)" aria-label="Próximo mês"><svg data-lucide="chevron-right"></svg></button>
+                </div>
+                <button type="button" class="rz-ico-btn rz-fin-lupa" onclick="rzFinAlternarBusca('mensal')" aria-label="Buscar"><svg data-lucide="search"></svg></button>
+                <button type="button" class="rz-ico-btn rz-primary" onclick="abrirLancarFinanceiro('mensal')" aria-label="Lançar"><svg data-lucide="plus"></svg></button>
+            </div>
+            <div class="rz-seg rz-seg-4 rz-fin-abas" id="fin-chips-nivel-mensal"></div>
+            <div class="rz-topo rz-fin-busca" id="fin-busca-wrap-mensal">
+                <label class="rz-search rz-search-in" id="fin-busca-btn-mensal"><svg data-lucide="search"></svg><input type="search" id="fin-busca-q-mensal" class="rz-raw" placeholder="Buscar locatário, imóvel ou valor" enterkeyhint="search" autocomplete="off" aria-label="Buscar"></label>
             </div>
 
             <!-- Entrega F.1 — 4 KPIs de totalizador da competência (Previsto
@@ -3358,15 +3410,20 @@
                  (Lançar) e o segmento de 4 opções; depois a competência, os 4 KPIs e o card
                  "Rotinas de <mês>" (#fin-rotinas-*, financeiroRotinasHtml) no lugar da grade 3x2
                  e da linha de descrição + lupa. -->
-            <div class="rz-topo">
-                <label class="rz-search rz-search-in" id="fin-busca-btn-conciliacao"><svg data-lucide="search"></svg><input type="search" id="fin-busca-q-conciliacao" class="rz-raw" placeholder="Buscar no extrato: nome ou valor" enterkeyhint="search" autocomplete="off" aria-label="Buscar"></label>
-                <button type="button" class="rz-ico-btn rz-primary" onclick="abrirLancarFinanceiro('conciliacao')" aria-label="Lançar"><svg data-lucide="plus"></svg></button>
-            </div>
-            <div class="rz-seg rz-seg-4" id="fin-chips-nivel-conciliacao"></div>
-            <div class="rz-mes-bar">
+            <!-- v1.387.0 (UX onda 4, D9) — Financeiro em 2 linhas: o mês é o título (‹ › e o cadeado), lupa e + à direita;
+                 depois as abas. A busca abre pela lupa (e fica aberta enquanto tem texto). -->
+            <div class="rz-fin-topo">
+                <div class="rz-mes-bar rz-mes-titulo">
                 <button type="button" class="rz-ico-btn" onclick="financeiroMudarCompetencia(-1)" aria-label="Mês anterior"><svg data-lucide="chevron-left"></svg></button>
                 <span class="rz-mes-centro"><b id="fin-competencia-label-conciliacao" class="rz-mes-label">—</b><span id="fin-competencia-lock-conciliacao" class="rz-mes-lock hidden" title="Competência fechada" aria-label="Competência fechada"><svg data-lucide="lock"></svg></span></span>
                 <button type="button" class="rz-ico-btn" onclick="financeiroMudarCompetencia(1)" aria-label="Próximo mês"><svg data-lucide="chevron-right"></svg></button>
+                </div>
+                <button type="button" class="rz-ico-btn rz-fin-lupa" onclick="rzFinAlternarBusca('conciliacao')" aria-label="Buscar"><svg data-lucide="search"></svg></button>
+                <button type="button" class="rz-ico-btn rz-primary" onclick="abrirLancarFinanceiro('conciliacao')" aria-label="Lançar"><svg data-lucide="plus"></svg></button>
+            </div>
+            <div class="rz-seg rz-seg-4 rz-fin-abas" id="fin-chips-nivel-conciliacao"></div>
+            <div class="rz-topo rz-fin-busca" id="fin-busca-wrap-conciliacao">
+                <label class="rz-search rz-search-in" id="fin-busca-btn-conciliacao"><svg data-lucide="search"></svg><input type="search" id="fin-busca-q-conciliacao" class="rz-raw" placeholder="Buscar no extrato: nome ou valor" enterkeyhint="search" autocomplete="off" aria-label="Buscar"></label>
             </div>
             <input type="file" id="extrato-file-input" accept=".xlsx,.xls,.pdf,.jpg,.jpeg,.png" class="hidden" onchange="processarExtratoImportado(this)">
 
@@ -3490,15 +3547,20 @@
                  (Lançar) e o segmento de 4 opções; depois a competência, os 4 KPIs e o card
                  "Rotinas de <mês>" (#fin-rotinas-*, financeiroRotinasHtml) no lugar da grade 3x2
                  e da linha de descrição + lupa. -->
-            <div class="rz-topo">
-                <label class="rz-search rz-search-in" id="fin-busca-btn-saidas"><svg data-lucide="search"></svg><input type="search" id="fin-busca-q-saidas" class="rz-raw" placeholder="Buscar despesa, fornecedor, ativo ou valor" enterkeyhint="search" autocomplete="off" aria-label="Buscar"></label>
-                <button type="button" class="rz-ico-btn rz-primary" onclick="abrirLancarFinanceiro('saidas')" aria-label="Lançar"><svg data-lucide="plus"></svg></button>
-            </div>
-            <div class="rz-seg rz-seg-4" id="fin-chips-nivel-saidas"></div>
-            <div class="rz-mes-bar">
+            <!-- v1.387.0 (UX onda 4, D9) — Financeiro em 2 linhas: o mês é o título (‹ › e o cadeado), lupa e + à direita;
+                 depois as abas. A busca abre pela lupa (e fica aberta enquanto tem texto). -->
+            <div class="rz-fin-topo">
+                <div class="rz-mes-bar rz-mes-titulo">
                 <button type="button" class="rz-ico-btn" onclick="financeiroMudarCompetencia(-1)" aria-label="Mês anterior"><svg data-lucide="chevron-left"></svg></button>
                 <span class="rz-mes-centro"><b id="fin-competencia-label-saidas" class="rz-mes-label">—</b><span id="fin-competencia-lock-saidas" class="rz-mes-lock hidden" title="Competência fechada" aria-label="Competência fechada"><svg data-lucide="lock"></svg></span></span>
                 <button type="button" class="rz-ico-btn" onclick="financeiroMudarCompetencia(1)" aria-label="Próximo mês"><svg data-lucide="chevron-right"></svg></button>
+                </div>
+                <button type="button" class="rz-ico-btn rz-fin-lupa" onclick="rzFinAlternarBusca('saidas')" aria-label="Buscar"><svg data-lucide="search"></svg></button>
+                <button type="button" class="rz-ico-btn rz-primary" onclick="abrirLancarFinanceiro('saidas')" aria-label="Lançar"><svg data-lucide="plus"></svg></button>
+            </div>
+            <div class="rz-seg rz-seg-4 rz-fin-abas" id="fin-chips-nivel-saidas"></div>
+            <div class="rz-topo rz-fin-busca" id="fin-busca-wrap-saidas">
+                <label class="rz-search rz-search-in" id="fin-busca-btn-saidas"><svg data-lucide="search"></svg><input type="search" id="fin-busca-q-saidas" class="rz-raw" placeholder="Buscar despesa, fornecedor, ativo ou valor" enterkeyhint="search" autocomplete="off" aria-label="Buscar"></label>
             </div>
 
             <!-- Entrega F.1 — 4 KPIs de totalizador da competência (Previsto
@@ -4055,7 +4117,7 @@
         // texto certo toda vez (esqueci 5 versões seguidas, de v1.37.1 até
         // v1.38.3). Agora só precisa mudar UMA linha aqui a cada release;
         // window.onload aplica nos dois lugares automaticamente.
-        const APP_VERSAO = "Beta v1.386.0"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
+        const APP_VERSAO = "Beta v1.387.0"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
 
         // ====================================================================
         // v1.105.0 — HELPERS DE SUPERFÍCIE DA GRAMÁTICA ÚNICA
@@ -15878,6 +15940,18 @@ async function criarLinkVitrineSupabase(token, idsSelecionados) {
         // F2.5c-2 (pedido do Nicola 10/10 01:39: "a busca não pode permitir a digitação nela própria?") — barra de
         // busca digitável, componente genérico: rzBuscaInline(input, aoMudar) filtra enquanto digita (150 ms), Enter
         // fecha o teclado e o × no fim da barra limpa em um toque. Liga uma vez por input (idempotente).
+        // v1.387.0 (UX onda 4, D9) — Financeiro: a lupa da linha do mês abre/fecha a busca da aba. Fechar limpa o texto
+        // (o filtro some junto); com texto, a busca continua aberta.
+        function rzFinAlternarBusca(aba) {
+            const wrap = document.getElementById('fin-busca-wrap-' + aba);
+            const inp = document.getElementById('fin-busca-q-' + aba);
+            if (!wrap || !inp) return;
+            const abrir = !wrap.classList.contains('rz-aberta');
+            wrap.classList.toggle('rz-aberta', abrir);
+            if (abrir) setTimeout(() => inp.focus(), 30);
+            else if (inp.value) { inp.value = ''; inp.dispatchEvent(new Event('input', { bubbles: true })); }
+        }
+
         function rzBuscaInline(input, aoMudar) {
             const el = typeof input === 'string' ? document.getElementById(input) : input;
             if (!el || el._rzBusca) return el;

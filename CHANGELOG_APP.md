@@ -4,6 +4,16 @@ Histórico completo de versões do `index.html`, movido automaticamente pelo `ge
 
 ---
 
+NOVIDADES (Beta v1.382.0) — F13.9: dividir uma retirada em partes (do fluxo e extraordinária), mesmo conciliada, e unir
+de novo. Só o import map muda aqui (financeiro.js 1.55.0).
+Versão anterior (Beta v1.381.0):
+------------------------------------------------------------------
+Versões anteriores (v1.381.0 … v1.381.0): CHANGELOG_APP.md, na raiz do
+repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
+das 5 versões mais recentes deste cabeçalho.
+
+---
+
 NOVIDADES (Beta v1.381.0) — UX onda 2: topo e barra (estudo PROTOTIPO_UX_DENSIDADE_RAMOS_RAIZ v1.2.0, D7/D8/D10,
 e continuidade C5/C6; aprovados pelo Nicola em 11/10). Barra: Hoje · Ativos · Raiz IA · Agenda · Financeiro — a Raiz
 IA desce do topo para o centro, no sol dourado do splash; Alertas passa a se chamar Agenda (ícone de calendário).

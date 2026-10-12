@@ -1,6 +1,14 @@
 // ============================================================================
 // cofre-ativos.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.94.0 · 12/10/2026
+// Versão: 1.95.0 · 12/10/2026
+//
+// v1.95.0 (12/10/2026, sessão 20261012-0240-ux-onda4c, demanda a05ad2ee; Nicola 12/10 02:31: "juntar os dois cards ocupação
+// e uso … a própria barra deveria ser filtrada por ano … letras iniciais dos meses … apenas o % ocupação basta") — Usos e
+// Ocupação viram um card só: ‹ ano › no cabeçalho, barra de 1/jan a 31/dez com os usos na cor do ramo e a marca de hoje,
+// iniciais dos meses embaixo, e no pé só a ocupação do ano em % (fn_performance_ativo; sem dado, a conta pelos usos).
+// O card aparece mesmo sem uso, com convite e "+ Adicionar uso".
+//
+// Versão anterior: 1.94.0 · 12/10/2026
 //
 // v1.94.0 (12/10/2026, sessão 20261012-0215-ux-onda3b, demanda a05ad2ee; UX onda 3, estudo PROTOTIPO_UX_DENSIDADE_RAMOS_RAIZ
 // v1.2.0 D11/D12, "pode avançar" do Nicola 12/10 01:53) — ficha do ativo com um jeito só de agir: o ⋮ do topo (ao lado da
@@ -36,16 +44,11 @@
 //   · Movimentações do mês: lançamentos do ativo (e, se é pessoa, das contas e cartões dela), recebimentos dos
 //     contratos do ativo e quitações, com filtros. Tocar abre o lançamento, a fatura ou o recebimento no Financeiro.
 // Só leitura pelo que já existe (RLS de contas visíveis vale). Carrega ao abrir o chip e a cada toque nele.
-//
-// Versão anterior: 1.90.0 · 10/10/2026
-//
-// v1.90.0 (sessão 20261003-1707-ux-base, demanda 28aa5ce1 — teste do Nicola 10/10 21:43) — sem o ícone de filtros:
-// os chips já filtram por tipo; o topo fica só com a barra digitável. abrirBuscaAtivos continua exportada.
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.89.0 … v1.89.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.90.0 … v1.90.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '1.94.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.95.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 import { estado } from './cofre-estado.js';
 import * as api from './cofre-api.js';
 import { mostrarToast, erroInline, refrescarIcones, alternarToggle, abrirModal, fecharModal, modalGenerico, perguntar, avisarComDesfazer } from './cofre-ui.js';
@@ -1568,6 +1571,13 @@ async function montarContratosAtivo(a) {
 // ============================================================================
 const nomeRamoUso = (c) => (typeof window.rzNomeRamo === 'function' ? window.rzNomeRamo(c) : c);
 
+// v1.95.0 (Nicola 12/10 02:31: "juntar os dois cards ocupação e uso, e trazer tudo num só. A própria barra deveria ser
+// filtrada por ano … ver os meses do ano com as letras iniciais. Apenas o % ocupação basta") — um card só, "Usos": no
+// cabeçalho ‹ ano ›; a barra mostra 1/jan a 31/dez do ano escolhido, com os usos na cor do ramo, a marca de hoje e as
+// iniciais dos meses embaixo (o mês atual em destaque); no pé, só a ocupação do ano em %. O card de Ocupação some.
+// O card aparece mesmo sem uso (convite + "+ Adicionar uso").
+let usosAtivoId = null, usosAno = null, usosLinhas = [];
+const USOS_MESES = ['J', 'F', 'M', 'A', 'M', 'J', 'J', 'A', 'S', 'O', 'N', 'D'];
 export async function montarUsosAtivo(a) {
     const card = document.getElementById('fa-card-usos');
     const painel = document.getElementById('fa-usos-lista');
@@ -1577,29 +1587,58 @@ export async function montarUsosAtivo(a) {
         const { data, error } = await api.dbAuth.rpc('fn_ativo_usos', { p_ativo_id: a.id });
         if (error) throw error;
         if (ativoAtualId && ativoAtualId !== a.id) return;
-        const linhas = data || [];
-        const usos = linhas.filter(u => !u.repouso);
-        card?.classList.toggle('hidden', !usos.length);
+        usosLinhas = data || [];
+        const usos = usosLinhas.filter(u => !u.repouso);
+        if (usosAtivoId !== a.id) { usosAtivoId = a.id; usosAno = new Date().getFullYear(); }
+        card?.classList.remove('hidden');
         if (!ehCategoriaImovel(a.tipo_ativo)) faAtualizarContador('contratos', usos.length);
-        if (!usos.length) { painel.innerHTML = ''; if (sub) sub.textContent = ''; return; }
         const hoje = new Date().toISOString().slice(0, 10);
         const vig = usos.find(u => u.inicio <= hoje && (!u.fim || u.fim >= hoje));
-        if (sub) sub.textContent = vig ? `Hoje: ${vig.nome} · ${nomeRamoUso(vig.ramo)}` : 'Hoje: sem uso';
-        const ini = linhas[0].inicio;
-        const fimMax = linhas.reduce((m, u) => (u.fim && u.fim > m ? u.fim : m), hoje);
-        const t0 = new Date(ini).getTime(), t1 = Math.max(new Date(fimMax).getTime(), new Date(hoje).getTime() + 90 * 864e5);
-        const pos = (d) => Math.max(0, Math.min(100, ((new Date(d).getTime() - t0) / (t1 - t0)) * 100));
-        const fimTxt = (u) => u.fim ? formatarDataBR(u.fim) : 'sem fim';
-        painel.innerHTML = `<div style="position:relative;height:26px;border-radius:8px;background:var(--tile);overflow:hidden;margin:4px 0 6px">` +
-            linhas.map(u => { const l = pos(u.inicio), w = Math.max(1.5, pos(u.fim || new Date(t1).toISOString().slice(0, 10)) - l);
-                const t = u.repouso ? 'Sem uso' : `${u.nome}: ${formatarDataBR(u.inicio)} → ${fimTxt(u)}`;
-                return `<div title="${escapeHtml(t)}" style="position:absolute;top:0;bottom:0;left:${l}%;width:${w}%;background:${u.repouso ? 'transparent' : `var(--ramo-cor-${u.ramo}, var(--sage))`};opacity:.85;border-right:2px solid var(--card)"></div>`; }).join('') +
-            `<div title="Hoje" style="position:absolute;top:0;bottom:0;width:2px;left:${pos(hoje)}%;background:var(--ink)"></div></div>` +
-            `<div class="rz-desc" style="display:flex;justify-content:space-between;margin:0"><span>${formatarDataBR(ini)}</span><span>${usos.length} uso${usos.length === 1 ? '' : 's'}</span><span>${formatarDataBR(new Date(t1).toISOString().slice(0, 10))}</span></div>`;
+        if (sub) sub.textContent = '';
+        if (!usos.length) {
+            painel.innerHTML = `<p class="rz-desc" style="margin:2px 0 6px">Nenhum uso ainda. Escolha o modelo — aluguel, temporada, uso próprio — e o Raiz acompanha o período.</p>`;
+            return;
+        }
+        await desenharUsosAno(a, vig);
     } catch (err) {
-        card?.classList.add('hidden');
         console.warn('[cofre-ativos] montarUsosAtivo falhou:', err?.message || err);
     }
+}
+
+async function desenharUsosAno(a, vig) {
+    const painel = document.getElementById('fa-usos-lista'); if (!painel) return;
+    const sub = document.getElementById('fa-usos-sub');
+    const hojeD = new Date(), hoje = hojeD.toISOString().slice(0, 10), anoHoje = hojeD.getFullYear();
+    const usos = usosLinhas.filter(u => !u.repouso);
+    const anoMin = Number(String(usosLinhas[0]?.inicio || anoHoje).slice(0, 4));
+    const anoMax = Math.max(anoHoje, ...usos.map(u => u.fim ? Number(u.fim.slice(0, 4)) : anoHoje + 1));
+    const Y = usosAno = Math.min(anoMax, Math.max(anoMin, usosAno));
+    if (sub) sub.innerHTML = `<span class="rz-uso-ano"><button type="button" data-uso-ano="-1" aria-label="Ano anterior"${Y <= anoMin ? ' disabled' : ''}><i data-lucide="chevron-left"></i></button><b>${Y}</b><button type="button" data-uso-ano="1" aria-label="Próximo ano"${Y >= anoMax ? ' disabled' : ''}><i data-lucide="chevron-right"></i></button></span>`;
+    const t0 = Date.UTC(Y, 0, 1), t1 = Date.UTC(Y + 1, 0, 1), dia = 864e5;
+    const pos = (d) => Math.max(0, Math.min(100, ((new Date(d + 'T00:00:00Z').getTime() - t0) / (t1 - t0)) * 100));
+    const fimTxt = (u) => u.fim ? formatarDataBR(u.fim) : 'sem fim';
+    const segs = usos.filter(u => u.inicio < `${Y + 1}-01-01` && (!u.fim || u.fim >= `${Y}-01-01`)).map(u => {
+        const l = pos(u.inicio), r = u.fim ? pos(u.fim) + 100 / 365 : 100, w = Math.max(1, Math.min(100, r) - l);
+        return `<i class="rz-uso-seg" title="${escapeHtml(`${u.nome}: ${formatarDataBR(u.inicio)} → ${fimTxt(u)}`)}" style="left:${l}%;width:${w}%;background:var(--ramo-cor-${u.ramo}, var(--sage))"></i>`; }).join('');
+    const marcaHoje = Y === anoHoje ? `<i class="rz-uso-hoje" title="Hoje" style="left:${pos(hoje)}%"></i>` : '';
+    const meses = USOS_MESES.map((m, i) => `<span${Y === anoHoje && i === hojeD.getMonth() ? ' class="rz-on"' : ''}>${m}</span>`).join('');
+    painel.innerHTML = `<div class="rz-uso-barra">${segs}${marcaHoje}</div><div class="rz-uso-meses">${meses}</div>
+        <div class="rz-uso-pe"><span>${vig && Y === anoHoje ? `Hoje: ${escapeHtml(vig.nome)} · ${escapeHtml(nomeRamoUso(vig.ramo))}` : `${usos.length} uso${usos.length === 1 ? '' : 's'} no total`}</span><span>Ocupação <b id="fa-uso-ocup">…</b></span></div>`;
+    painel.closest('.rz-card')?.querySelectorAll('[data-uso-ano]').forEach(b => b.addEventListener('click', (ev) => {
+        ev.stopPropagation(); usosAno = Y + Number(b.dataset.usoAno); desenharUsosAno(a, vig); }));
+    refrescarIcones();
+    // ocupação do ano: fn_performance_ativo (dias alugado × vago); sem dado, a conta pelos usos do próprio ano
+    let taxa = null;
+    const p = await api.buscarPerformanceAtivo(a.id, Y);
+    if (usosAno !== Y || usosAtivoId !== a.id) return;
+    if (p && p.dias_alugado != null) { const al = Number(p.dias_alugado || 0), va = Number(p.dias_vago || 0); if (al + va > 0) taxa = Math.round(al * 1000 / (al + va)) / 10; }
+    if (taxa == null) {
+        const fimAno = Y === anoHoje ? Date.parse(hoje + 'T00:00:00Z') + dia : t1, base = (fimAno - t0) / dia;
+        let ocup = 0;
+        usos.forEach(u => { const i = Math.max(t0, Date.parse(u.inicio + 'T00:00:00Z')), f = Math.min(fimAno, u.fim ? Date.parse(u.fim + 'T00:00:00Z') + dia : fimAno); if (f > i) ocup += (f - i) / dia; });
+        if (base > 0) taxa = Math.round(Math.min(1, ocup / base) * 1000) / 10;
+    }
+    const el = document.getElementById('fa-uso-ocup'); if (el) el.textContent = taxa == null ? '—' : String(taxa).replace('.', ',') + '%';
 }
 
 // ============================================================================
@@ -2152,26 +2191,8 @@ function movAbrirBalanco() {
 
 // v1.92.0 — Ocupação (antes no grid da Performance): dias alugado e vago e a taxa, por ano ou somando todos os anos
 // desde o primeiro contrato. Só aparece para ativo que tem a medida (fn_performance_ativo devolve nulo nos outros).
-let ocupAno = null, ocupAtivoId = null;
-async function montarOcupacaoAtivo(a) {
-    const card = document.getElementById('fa-card-ocupacao'); if (!card) return;
-    if (ocupAtivoId !== a.id) { ocupAtivoId = a.id; ocupAno = String(new Date().getFullYear()); }
-    const anoAtual = new Date().getFullYear();
-    const { data: cs } = await api.dbAuth.from('contratos').select('inicio').eq('ativo_id', a.id).not('inicio', 'is', null).order('inicio').limit(1);
-    const primeiro = Math.min(anoAtual, Number(String(cs?.[0]?.inicio || anoAtual).slice(0, 4)) || anoAtual);
-    const anos = ocupAno === 'todos' ? Array.from({ length: anoAtual - primeiro + 1 }, (_, i) => primeiro + i) : [Number(ocupAno)];
-    const perfs = (await Promise.all(anos.map(y => api.buscarPerformanceAtivo(a.id, y)))).filter(Boolean);
-    if (ocupAtivoId !== a.id) return;
-    if (!perfs.some(p => p.dias_alugado != null)) { card.classList.add('hidden'); return; }
-    const alug = perfs.reduce((t, p) => t + Number(p.dias_alugado || 0), 0), vago = perfs.reduce((t, p) => t + Number(p.dias_vago || 0), 0);
-    const taxa = alug + vago > 0 ? Math.round(alug * 1000 / (alug + vago)) / 10 : null;
-    const chip = (v, r) => `<button type="button" class="rz-chip${ocupAno === v ? ' rz-on' : ''}" data-ocup-ano="${v}">${r}</button>`;
-    const opcoes = [String(anoAtual), String(anoAtual - 1)].filter(y => Number(y) >= primeiro);
-    card.innerHTML = `<div class="rz-card-h"><h3>Ocupação</h3><span class="rz-sub">${ocupAno === 'todos' ? `${primeiro} a ${anoAtual}` : ocupAno}</span></div>
-        <div class="rz-chips" style="margin-top:8px">${opcoes.map(y => chip(y, y)).join('')}${chip('todos', 'Todos')}</div>
-        <div class="rz-kv"><div><small>Dias alugado</small><b>${alug} dias</b></div><div><small>Dias vago</small><b>${vago} dias</b></div><div><small>Ocupação</small><b>${taxa == null ? '—' : String(taxa).replace('.', ',') + '%'}</b></div></div>`;
-    card.classList.remove('hidden');
-    card.querySelectorAll('[data-ocup-ano]').forEach(b => b.addEventListener('click', (ev) => { ev.stopPropagation(); ocupAno = b.dataset.ocupAno; montarOcupacaoAtivo(a); }));
+async function montarOcupacaoAtivo(a) { // v1.95.0 — a ocupação foi para o card Usos (desenharUsosAno); este card fica escondido
+    document.getElementById('fa-card-ocupacao')?.classList.add('hidden');
 }
 
 export function abrirAcoesFinanceiroAtivo() {

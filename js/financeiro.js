@@ -1,7 +1,14 @@
 // ============================================================================
 // financeiro.js — Raiz Patrimônio · Financeiro (Recebimentos · Atrasados · Saídas
 //                  · conciliação de extrato · recibo · detalhe do recebimento)
-// Versão: 1.56.0 · 12/10/2026
+// Versão: 1.57.0 · 12/10/2026
+//
+// v1.57.0 (12/10/2026, sessão 20261012-0240-ux-onda4c, demanda a05ad2ee; UX onda 4, estudo PROTOTIPO_UX_DENSIDADE_RAMOS_RAIZ
+// v1.2.0 D9; "Pode fazer e seguir" do Nicola 12/10 02:26) — financeiroRotinasHtml: o card "Rotinas de <mês>" (4 linhas
+// de 52 px) vira uma faixa de status com um botão curto por rotina (Mês aberto/fechado · Contador · Fiscal · Atraso),
+// mesmos estados e destinos. O resto do topo do Financeiro (mês como título, abas, lupa) é do index 1.387.0.
+//
+// Versão anterior: 1.56.0 · 12/10/2026
 //
 // v1.56.0 (12/10/2026, sessão 20261012-0220-ux-onda4a, demanda a05ad2ee; UX onda 4, estudo PROTOTIPO_UX_DENSIDADE_RAMOS_RAIZ
 // v1.2.0 D9; Nicola 12/10 02:15 "muita moldura estreitando as informações. Pendências são alertas? … Vamos avançar") — a
@@ -33,24 +40,11 @@
 // v1.53.0 (11/10/2026, sessão 20261008-1231-pessoas-ativos, demanda f3e6cd27; bloco "Produto, já registrado", Nicola 11/10 18:41 ("quero evoluir com Produto, já registrado"); F13 §3.5 e F13.4) — o editor de
 // divisão do lançamento e do recebimento abre com "%  ·  Cotas  ·  Valor" (raiz-ui modos: true) e reabre no modo em que
 // foi salvo (lê o divisao_excecao do movimento). Grava modo, cotas e valor junto do percentual.
-//
-// Versão anterior: 1.52.0 · 11/10/2026
-//
-// v1.52.0 (11/10/2026, sessão 20261008-1231-pessoas-ativos, demanda f3e6cd27; F13 4c etapa 4; Nicola 11/10 17:42, teste da etapa 3: "pode organizar melhor pro chip de performance desaparecer e deixar tudo no financeiro")
-// — NOVO rzFinCompetencias(alvo, escopo): a visão financeira única por competência, usada no chip Financeiro do ativo
-// (escopo { ativoId, pessoaId }) e no do contrato (escopo { contratoId }):
-//   · filtro de ano (ano atual · anterior · Todos);
-//   · atalhos do que está pendente: lançamentos a classificar (abre a fatura ou o lançamento), pagos sem conciliação
-//     (abre a Conciliação) e recebimentos em atraso;
-//   · lista de competências (mês a mês, como já era no contrato): recebido, despesas e situação; tocar abre as
-//     categorias do mês, receitas e despesas juntas; tocar na categoria abre os lançamentos; tocar no lançamento abre
-//     o detalhe de sempre (recebimento, despesa ou fatura).
-// Também: "‹ Financeiro" não aparece mais acima de Saídas, Conciliação e Balanço (são irmãs no segmento).
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.51.0 … v1.51.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.52.0 … v1.52.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '1.56.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.57.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 
 // v1.17.0 (Fase 1 do wrapper de escrita, rollout Financeiro) — emitirEscrita
 // é o evento padrão pra "algo mudou que módulos DE FORA deste arquivo podem
@@ -318,63 +312,35 @@ function financeiroMesExtenso(iso) {
 // Rotina desligada aparece desabilitada com o motivo (UXR-25) e leva a
 // Empresa › Rotinas, como antes.
 function financeiroRotinasHtml(aba) {
+    // v1.57.0 (UX onda 4, D9) — o card "Rotinas de <mês>" (4 linhas) vira uma faixa de status: um botão curto por
+    // rotina, com ícone, texto e cor do estado. Mesmos estados (window.RZ_FIN_FECHAMENTO / RZ_FIN_FISCAL, de
+    // js/fechamento.js) e mesmos destinos de antes; rotina desligada aparece apagada e leva a Empresa › Rotinas.
     const esc = (t) => String(t ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;');
-    const st = (cod, rot) => (typeof renderStatus === 'function') ? renderStatus(cod, rot) : esc(rot);
-    const linha = ({ icone, sem = '', titulo, sub, status = '', onclick, off = false }) => `
-        <div class="rz-row rz-link${off ? ' rz-off' : ''}" role="button" tabindex="0" onclick="${esc(onclick)}"${off ? ' aria-disabled="true"' : ''}>
-            <div class="rz-ic${sem ? ' rz-' + sem : ''}"><svg data-lucide="${off ? 'lock' : icone}"></svg></div>
-            <div class="rz-tx"><b>${esc(titulo)}</b><span>${esc(sub)}</span></div>
-            <div class="rz-rt">${status}</div>
-            <svg data-lucide="chevron-right" class="rz-chev"></svg>
-        </div>`;
-
+    const rot = ({ icone, cls = 'neu', texto, onclick, off = false }) =>
+        `<button type="button" class="rz-rot rz-${off ? 'off' : cls}" onclick="${esc(onclick)}"${off ? ' aria-disabled="true"' : ''}><svg data-lucide="${off ? 'lock' : icone}"></svg>${esc(texto)}</button>`;
     const est = (typeof window !== 'undefined') ? (window.RZ_FIN_FECHAMENTO || null) : null;
     const fis = (typeof window !== 'undefined') ? (window.RZ_FIN_FISCAL || null) : null;
     const rotinaOff = financeiroRotinaFechamentoLigada === false || est?.status === 'sem_rotina';
     const fechada = est?.status === 'concluido';
     const pend = est?.pendencias || null;
-
-    let fechar;
-    if (rotinaOff) {
-        fechar = linha({ icone: 'lock-open', titulo: 'Fechar o mês', sub: 'Rotina de fechamento desligada', status: st('neu', 'Desligada'), off: true, onclick: 'rzTocarChipFechamentoDesligado()' });
-    } else if (!est) {
-        fechar = linha({ icone: 'lock-open', sem: 'neu', titulo: 'Fechar o mês', sub: 'Verificando…', onclick: 'fechamentoAlternarBotao()' });
-    } else if (fechada) {
-        const quando = est.fechadoEm ? `Fechado em ${new Date(est.fechadoEm).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })}` : 'Fechado';
-        fechar = linha({ icone: 'lock', sem: pend?.tem ? 'warn' : '', titulo: 'Reabrir o mês', sub: quando, status: st('ok', 'Fechado'), onclick: 'fechamentoAlternarBotao()' });
-    } else {
-        fechar = linha({ icone: 'lock-open', sem: pend?.tem ? 'warn' : '', titulo: 'Fechar o mês',
-                         sub: pend?.tem ? 'Há atrasos neste mês' : 'Fecha a competência', status: st(pend?.tem ? 'warn' : 'neu', 'Aberto'), onclick: 'fechamentoAlternarBotao()' });
-    }
-
-    const contador = rotinaOff
-        ? linha({ icone: 'send', titulo: 'Contador', sub: 'Rotina de fechamento desligada', status: st('neu', 'Desligada'), off: true, onclick: 'rzTocarChipFechamentoDesligado()' })
-        : linha({ icone: 'send', titulo: 'Contador', sub: fechada ? 'Pacote deste mês' : 'Meses já fechados',
-                  status: fechada ? st('ok', 'Pronto') : st('neu', 'Aguardando'), onclick: 'fechamentoAbrirCompartilharContador()' });
-
+    const fechar = rotinaOff ? rot({ icone: 'lock-open', texto: 'Fechamento desligado', off: true, onclick: 'rzTocarChipFechamentoDesligado()' })
+        : !est ? rot({ icone: 'lock-open', texto: 'Mês…', onclick: 'fechamentoAlternarBotao()' })
+        : fechada ? rot({ icone: 'lock', cls: pend?.tem ? 'warn' : 'ok', texto: 'Mês fechado', onclick: 'fechamentoAlternarBotao()' })
+        : rot({ icone: 'lock-open', cls: pend?.tem ? 'warn' : 'neu', texto: 'Mês aberto', onclick: 'fechamentoAlternarBotao()' });
+    const contador = rotinaOff ? rot({ icone: 'send', texto: 'Contador', off: true, onclick: 'rzTocarChipFechamentoDesligado()' })
+        : rot({ icone: 'send', cls: fechada ? 'ok' : 'neu', texto: fechada ? 'Contador pronto' : 'Contador', onclick: 'fechamentoAbrirCompartilharContador()' });
     let fiscal;
-    if (!fis) {
-        fiscal = linha({ icone: 'file-check-2', sem: 'neu', titulo: 'Fiscal', sub: 'Verificando…', onclick: 'abrirFiscalCompetencia()' });
-    } else if (!fis.ligada) {
-        fiscal = linha({ icone: 'file-check-2', titulo: 'Fiscal', sub: 'Rotina fiscal desligada', status: st('neu', 'Desligada'), off: true, onclick: 'financeiroIrParaRotinas()' });
-    } else if (fis.notas && (fis.notas.aPreparar + fis.notas.preparadas) > 0) {
-        const n = fis.notas.aPreparar + fis.notas.preparadas; // v1.23.0 — notas do mês primeiro
-        fiscal = linha({ icone: 'file-check-2', sem: 'warn', titulo: 'Fiscal', sub: `${n} nota${n > 1 ? 's' : ''} a preparar`, status: st('warn', String(n)), onclick: 'abrirFiscalCompetencia()' });
-    } else if (fis.total === 0) {
-        fiscal = linha({ icone: 'file-check-2', titulo: 'Fiscal', sub: 'Pronto para NFS-e', status: st('ok', 'Em dia'), onclick: 'abrirFiscalCompetencia()' });
-    } else {
-        fiscal = linha({ icone: 'file-check-2', sem: 'warn', titulo: 'Fiscal', sub: `${fis.total} pendência${fis.total > 1 ? 's' : ''} para NFS-e`, status: st('warn', String(fis.total)), onclick: 'abrirFiscalCompetencia()' });
-    }
-
+    if (!fis) fiscal = rot({ icone: 'file-check-2', texto: 'Fiscal…', onclick: 'abrirFiscalCompetencia()' });
+    else if (!fis.ligada) fiscal = rot({ icone: 'file-check-2', texto: 'Fiscal desligado', off: true, onclick: 'financeiroIrParaRotinas()' });
+    else if (fis.notas && (fis.notas.aPreparar + fis.notas.preparadas) > 0) { const n = fis.notas.aPreparar + fis.notas.preparadas; fiscal = rot({ icone: 'file-check-2', cls: 'warn', texto: `Fiscal · ${n} nota${n > 1 ? 's' : ''}`, onclick: 'abrirFiscalCompetencia()' }); }
+    else if (fis.total === 0) fiscal = rot({ icone: 'file-check-2', cls: 'ok', texto: 'Fiscal em dia', onclick: 'abrirFiscalCompetencia()' });
+    else fiscal = rot({ icone: 'file-check-2', cls: 'warn', texto: `Fiscal · ${fis.total}`, onclick: 'abrirFiscalCompetencia()' });
     const valorAtraso = Number(pend?.recebimentosEmAtraso || 0);
-    // sem rotina / falha de verificação: o banco não calculou pendências — neutro, nunca "nada em atraso"
     const atrasados = (!est || est.status === 'sem_rotina' || est.status === 'indisponivel')
-        ? linha({ icone: 'alarm-clock', sem: 'neu', titulo: 'Atrasados', sub: 'Todos os meses', onclick: 'abrirTelaAtrasados()' })
-        : valorAtraso > 0
-            ? linha({ icone: 'alarm-clock', sem: 'bad', titulo: 'Atrasados', sub: 'Em atraso neste mês', status: st('bad', formatarMoedaBR(valorAtraso)), onclick: 'abrirTelaAtrasados()' })
-            : linha({ icone: 'alarm-clock', titulo: 'Atrasados', sub: 'Nada em atraso neste mês', status: st('ok', 'Em dia'), onclick: 'abrirTelaAtrasados()' });
-
-    return `<div class="rz-card rz-list"><div class="rz-card-h" style="padding-top:10px;margin-bottom:0"><h3>Rotinas de ${financeiroMesExtenso(financeiroCompetenciaAtual)}</h3></div>${fechar}${contador}${fiscal}${atrasados}</div>`;
+        ? rot({ icone: 'alarm-clock', texto: 'Atrasados', onclick: 'abrirTelaAtrasados()' })
+        : valorAtraso > 0 ? rot({ icone: 'alarm-clock', cls: 'bad', texto: `Atraso ${formatarMoedaBR(valorAtraso)}`, onclick: 'abrirTelaAtrasados()' })
+        : rot({ icone: 'alarm-clock', cls: 'ok', texto: 'Sem atraso', onclick: 'abrirTelaAtrasados()' });
+    return `<div class="rz-fin-rotinas" aria-label="Rotinas de ${financeiroMesExtenso(financeiroCompetenciaAtual)}">${fechar}${contador}${fiscal}${atrasados}</div>`;
 }
 
 // v1.20.0 — cadeado ao lado do mês (#fin-competencia-lock-*), só com a
