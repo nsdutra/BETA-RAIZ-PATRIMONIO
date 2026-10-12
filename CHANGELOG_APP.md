@@ -4,6 +4,18 @@ Histórico completo de versões do `index.html`, movido automaticamente pelo `ge
 
 ---
 
+NOVIDADES (Beta v1.377.0) — Splash: ícones centralizados nos frutos (Nicola 11/10 22:03: "Os ícones estão mal feitos,
+descentralizados"). O desenho Lucide tem 24 unidades e entrava com translate(cx-9, cy-9) em escala 1 — o centro
+caía 3 unidades à direita e abaixo. Agora escala .8 centrada no fruto, traço 2,3. A folha do cruzamento dos galhos
+(170,170) saiu: sobrepunha os galhos no centro. Nenhum objeto de banco.
+Versão anterior (Beta v1.376.0):
+------------------------------------------------------------------
+Versões anteriores (v1.376.0 … v1.376.0): CHANGELOG_APP.md, na raiz do
+repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
+das 5 versões mais recentes deste cabeçalho.
+
+---
+
 NOVIDADES (Beta v1.376.0) — Splash "Horizonte": abre em leque e não trava (Nicola 11/10 21:47: "não está abrindo como
 leque. está travando"). Cada ramo (galho + fruto) virou um grupo .rz-sp-ramo que gira a partir do topo do tronco, do
 fechado ao lugar, do centro para as pontas (antes cada galho crescia em scaleY a partir da própria caixa). A sombra dos

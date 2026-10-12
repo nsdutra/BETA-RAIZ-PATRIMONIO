@@ -1,7 +1,18 @@
 // ============================================================================
 // financeiro.js — Raiz Patrimônio · Financeiro (Recebimentos · Atrasados · Saídas
 //                  · conciliação de extrato · recibo · detalhe do recebimento)
-// Versão: 1.54.0 · 11/10/2026
+// Versão: 1.55.0 · 11/10/2026
+//
+// v1.55.0 (11/10/2026, sessão 20261008-1231-pessoas-ativos, demanda 6adc50ef; F13.9, ficha v1.0.0; de acordo do
+// Nicola 11/10 23:52) — dividir uma retirada em partes, mesmo conciliada:
+//   · no sheet da retirada (Sócios por mês), "Dividir em partes": cada parte com valor, tipo (Do fluxo ·
+//     Extraordinária) e observação; a parte 1 é o restante do total, então a soma sempre bate com a transferência;
+//     de 2 a 6 partes (fn_retirada_dividir). Já dividida, a mesma opção refaz a divisão;
+//   · "Unir partes" volta a uma retirada só, com o tipo escolhido (fn_retirada_unir);
+//   · cada parte leva "parte k de n" nas listas; uma parte (2…n) não tem "Excluir" (D103) e excluir a original avisa
+//     que as partes vão junto.
+//
+// Versão anterior: 1.54.0 · 11/10/2026
 //
 // v1.54.0 (11/10/2026, sessão 20261008-1231-pessoas-ativos, demanda 0aa64e93; F13.8, ficha v1.4.0 e protótipo v1.3.0; de acordo do Nicola 11/10 22:55) — quadro Retiradas
 // extraordinárias (Balanço › Sócios por mês) ganha "Ver relatório" (relatório Retiradas extraordinárias). Os textos de
@@ -31,23 +42,11 @@
 // v1.51.0 (11/10/2026, sessão 20261008-1231-pessoas-ativos, demanda f3e6cd27; F13 4c etapa 3) — quando o
 // Balanço ou Sócios por mês não conseguem calcular, a mensagem mostra também o motivo que o banco devolveu (antes só
 // "Não consegui calcular"), para o próximo erro já vir com a causa.
-//
-// Versão anterior: 1.50.0 · 11/10/2026
-//
-// v1.50.0 (11/10/2026, sessão 20261008-1231-pessoas-ativos, demanda f3e6cd27; F13.7, FICHA_BALANCO_ACERTOS v1.3.0, D85 a
-// D88; Nicola 12:29 "Mantenha extraordinária mesmo. Restante de acordo com tudo.") — retirada do fluxo x extraordinária:
-//   · Lançar retirada ganha "Tipo": "Do fluxo" (abate o saldo a retirar, como sempre) ou "Extraordinária" (fora do
-//     fluxo dos imóveis: não abate o saldo a retirar e não gera dívida no Balanço);
-//   · Sócios por mês: as extraordinárias saem da lista "Retiradas" e ganham um quadro próprio, com o total do período;
-//     a ficha do sócio mostra as dele em separado;
-//   · tocar numa retirada oferece "Marcar como extraordinária" ou "Voltar para o fluxo" (fn_retirada_classificar,
-//     com registro de quem mudou e quando); vale também para a retirada que veio da conciliação;
-//   · histórico do Balanço: a extraordinária aparece com o selo "Extraordinária" e o valor, sem mexer no saldo.
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.49.0 … v1.49.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.50.0 … v1.50.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '1.54.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.55.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 
 // v1.17.0 (Fase 1 do wrapper de escrita, rollout Financeiro) — emitirEscrita
 // é o evento padrão pra "algo mudou que módulos DE FORA deste arquivo podem
@@ -5416,7 +5415,7 @@ async function distribCarregar() {
         mapa.set(chave, a);
     }));
     const { data: retTodas, error: errRet } = await dbAuth.from('repasses')
-        .select('id, pessoa_id, competencia, valor, data_real, natureza, chave_transacao_origem, pessoas(nome)')
+        .select('id, pessoa_id, competencia, valor, data_real, natureza, chave_transacao_origem, dividido_de, criado_em, observacao, pessoas(nome)') // v1.55.0 — F13.9: dividido_de e observação
         .eq('cliente_id', CLIENTE_ID_SUPABASE).gte('competencia', meses[0]).lte('competencia', meses[meses.length - 1])
         .eq('de_tipo', 'caixa').in('natureza', ['distribuicao', 'extraordinaria']) // v1.48.0 — F13.6: aqui só a retirada do sócio; v1.50.0 — F13.7: e a extraordinária
         .order('data_real', { ascending: false });
@@ -5488,7 +5487,7 @@ function distribDesenhar() {
         ? `<div class="rz-card rz-list"><div class="rz-card-h" style="padding-top:10px;margin-bottom:0"><h3>Retiradas</h3><span class="rz-sub">${esc(periodo)}</span></div>` +
           retiradas.slice(0, 20).map(r => `<div class="rz-row rz-link" role="button" tabindex="0" onclick="rzAcoesRetirada('${r.id}')">
                 <div class="rz-ic"><svg data-lucide="arrow-up-right"></svg></div>
-                <div class="rz-tx"><b>${esc(r.pessoas?.nome || nomePorId[r.pessoa_id] || 'Sócio')}</b><span>${formatarDataBR(r.data_real || r.competencia)} · ref. ${esc(compCurta(r.competencia))}</span></div>
+                <div class="rz-tx"><b>${esc(r.pessoas?.nome || nomePorId[r.pessoa_id] || 'Sócio')}</b><span>${formatarDataBR(r.data_real || r.competencia)} · ref. ${esc(compCurta(r.competencia))}${esc(retParteTxt(r))}</span></div>
                 <div class="rz-rt"><b class="rz-out">−${formatarMoedaBR(Number(r.valor || 0))}</b></div>
                 <svg data-lucide="ellipsis-vertical" class="rz-chev"></svg>
             </div>`).join('') + '</div>'
@@ -5500,7 +5499,7 @@ function distribDesenhar() {
           `<p style="margin:0 14px 6px;font-size:12px;color:var(--muted)">Não abatem o saldo a retirar.</p>` +
           extras.slice(0, 20).map(r => `<div class="rz-row rz-link" role="button" tabindex="0" onclick="rzAcoesRetirada('${r.id}')">
                 <div class="rz-ic rz-neu"><svg data-lucide="sparkles"></svg></div>
-                <div class="rz-tx"><b>${esc(r.pessoas?.nome || nomePorId[r.pessoa_id] || 'Sócio')}</b><span>${formatarDataBR(r.data_real || r.competencia)} · ref. ${esc(compCurta(r.competencia))}</span></div>
+                <div class="rz-tx"><b>${esc(r.pessoas?.nome || nomePorId[r.pessoa_id] || 'Sócio')}</b><span>${formatarDataBR(r.data_real || r.competencia)} · ref. ${esc(compCurta(r.competencia))}${esc(retParteTxt(r))}</span></div>
                 <div class="rz-rt"><b>${formatarMoedaBR(Number(r.valor || 0))}</b></div>
                 <svg data-lucide="ellipsis-vertical" class="rz-chev"></svg>
             </div>`).join('') +
@@ -5729,7 +5728,7 @@ export function abrirFichaSocioDistribuicao(chave) {
     const kv = (rot, val, forte) => `<div class="rz-full" style="display:flex;justify-content:space-between;gap:12px"><small>${esc(rot)}</small><b style="${forte ? 'font-weight:700' : 'font-weight:500'}">${moedaSinal(val)}</b></div>`;
     const ext = (distribDados.extras || []).filter(r => r.pessoa_id && r.pessoa_id === l.pessoaId); // v1.50.0 — F13.7
     const totExt = ext.reduce((t, r) => t + Number(r.valor || 0), 0);
-    const linhasExt = ext.length ? `<div class="rz-group">Retiradas extraordinárias · ${formatarMoedaBR(totExt)}</div><div class="rz-card rz-list">` + ext.map(r => `<div class="rz-row"><div class="rz-ic rz-neu"><svg data-lucide="sparkles"></svg></div><div class="rz-tx"><b>${formatarDataBR(r.data_real || r.competencia)}</b><span>ref. ${esc(compCurta(r.competencia))} · fora do saldo a retirar</span></div><div class="rz-rt"><b>${formatarMoedaBR(Number(r.valor || 0))}</b></div></div>`).join('') + '</div>' : '';
+    const linhasExt = ext.length ? `<div class="rz-group">Retiradas extraordinárias · ${formatarMoedaBR(totExt)}</div><div class="rz-card rz-list">` + ext.map(r => `<div class="rz-row"><div class="rz-ic rz-neu"><svg data-lucide="sparkles"></svg></div><div class="rz-tx"><b>${formatarDataBR(r.data_real || r.competencia)}</b><span>ref. ${esc(compCurta(r.competencia))} · fora do saldo a retirar${esc(retParteTxt(r))}</span></div><div class="rz-rt"><b>${formatarMoedaBR(Number(r.valor || 0))}</b></div></div>`).join('') + '</div>' : '';
     const linhasRet = ret.length ? `<div class="rz-group">Retiradas</div><div class="rz-card rz-list">` + ret.map(r => `<div class="rz-row"><div class="rz-ic"><svg data-lucide="arrow-up-right"></svg></div><div class="rz-tx"><b>${formatarDataBR(r.data_real || r.competencia)}</b><span>ref. ${esc(compCurta(r.competencia))}</span></div><div class="rz-rt"><b class="rz-out">−${formatarMoedaBR(Number(r.valor || 0))}</b></div></div>`).join('') + '</div>' : '';
     const pode = (typeof podeUsar === 'function') ? podeUsar('repasses.registrar') : { ok: true };
     const motivo = !l.pessoaId ? 'Beneficiário externo — cadastre a pessoa em Pessoas para lançar retirada' : (!pode.ok ? (pode.textoCurto || 'Sem permissão') : '');
@@ -5820,11 +5819,121 @@ export function rzAcoesRetirada(id) {
     const r = distribAcharRetirada(id);
     if (!r || typeof abrirSheetAcoes !== 'function') return;
     const extra = r.natureza === 'extraordinaria';
-    abrirSheetAcoes({ titulo: `Retirada${extra ? ' extraordinária' : ''} · ${r.pessoas?.nome || 'Sócio'}`, sub: `${formatarMoedaBR(Number(r.valor || 0))} · ${formatarDataBR(r.data_real || r.competencia)}`, acoes: [
+    const grupo = retGrupo(r); // v1.55.0 — F13.9
+    const dividida = grupo.length > 1, total = grupo.reduce((t, x) => t + Number(x.valor || 0), 0);
+    abrirSheetAcoes({ titulo: `Retirada${extra ? ' extraordinária' : ''} · ${r.pessoas?.nome || 'Sócio'}`, sub: `${formatarMoedaBR(Number(r.valor || 0))} · ${formatarDataBR(r.data_real || r.competencia)}${dividida ? ` · ${retParteTxt(r).replace(' · ', '')} de ${formatarMoedaBR(total)}` : ''}`, acoes: [
         extra
             ? { icone: 'undo-2', titulo: 'Voltar para o fluxo', codigo: 'repasses.registrar', sub: 'Passa a abater o saldo a retirar', aoTocar: () => retiradaClassificar(id, 'distribuicao') }
             : { icone: 'sparkles', titulo: 'Marcar como extraordinária', codigo: 'repasses.registrar', sub: 'Não abate o saldo a retirar', aoTocar: () => retiradaClassificar(id, 'extraordinaria') },
-        { icone: 'trash-2', tipo: 'bad', titulo: 'Excluir retirada', codigo: 'repasses.excluir', aoTocar: () => excluirRetirada(id) },
+        { icone: 'split', titulo: dividida ? 'Refazer a divisão' : 'Dividir em partes', codigo: 'repasses.registrar',
+          sub: dividida ? `${grupo.length} partes · ${formatarMoedaBR(total)}` : 'Parte do fluxo e parte extraordinária no mesmo valor', aoTocar: () => retiradaDividir(id) },
+        ...(dividida ? [{ icone: 'merge', titulo: 'Unir partes', codigo: 'repasses.registrar', sub: `Volta a uma retirada de ${formatarMoedaBR(total)}`, aoTocar: () => retiradaUnir(id) }] : []),
+        ...(r.dividido_de ? [] : [{ icone: 'trash-2', tipo: 'bad', titulo: 'Excluir retirada', codigo: 'repasses.excluir', sub: dividida ? (grupo.length === 2 ? 'Exclui também a outra parte' : `Exclui também as outras ${grupo.length - 1} partes`) : '', aoTocar: () => excluirRetirada(id) }]),
+    ] });
+}
+
+// ----------------------------------------------------------------------------
+// v1.55.0 — F13.9: dividir uma retirada em partes (do fluxo / extraordinária) e unir de novo. A linha original é a
+// parte 1 e guarda o vínculo com o extrato; as demais apontam para ela (repasses.dividido_de).
+// ----------------------------------------------------------------------------
+function retGrupo(r) {
+    if (!r) return [];
+    const raiz = r.dividido_de || r.id;
+    const todas = [...(distribDados?.retiradas || []), ...(distribDados?.extras || [])];
+    return todas.filter(x => x.id === raiz || x.dividido_de === raiz)
+        .sort((a, b) => (a.dividido_de ? 1 : 0) - (b.dividido_de ? 1 : 0) || String(a.criado_em || '').localeCompare(String(b.criado_em || '')) || String(a.id).localeCompare(String(b.id)));
+}
+function retParteTxt(r) {
+    const g = retGrupo(r);
+    return g.length > 1 ? ` · parte ${g.findIndex(x => x.id === r.id) + 1} de ${g.length}` : '';
+}
+async function retiradasRecarregarMemoria() { // a lista legada `repasses` do index acompanha valores e tipos
+    try {
+        if (typeof carregarRepassesSupabase === 'function' && typeof repasses !== 'undefined' && Array.isArray(repasses)) {
+            const novos = await carregarRepassesSupabase();
+            if (Array.isArray(novos)) { repasses.length = 0; repasses.push(...novos); }
+        }
+    } catch (e) { /* lista em memória é conveniência */ }
+}
+
+function retiradaDividir(id) {
+    const r = distribAcharRetirada(id);
+    if (!r || typeof abrirSheet !== 'function') return;
+    const grupo = retGrupo(r);
+    const total = Math.round(grupo.reduce((t, x) => t + Number(x.valor || 0), 0) * 100) / 100;
+    const outra = n => (n === 'extraordinaria' ? 'distribuicao' : 'extraordinaria');
+    const partes = grupo.length > 1
+        ? grupo.map(x => ({ valor: Number(x.valor || 0), natureza: x.natureza, observacao: x.observacao || '' }))
+        : [{ valor: total, natureza: r.natureza, observacao: '' }, { valor: 0, natureza: outra(r.natureza), observacao: '' }];
+    const r2 = v => Math.round((Number(v) || 0) * 100) / 100;
+    const resto = () => r2(total - partes.slice(1).reduce((t, p) => t + (Number(p.valor) || 0), 0));
+    const esc = t => String(t ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;');
+    const est = 'box-sizing:border-box;height:44px;padding:0 10px;border:1.5px solid var(--line);border-radius:var(--r-ctl);font:inherit;font-size:16px;background:var(--card);color:var(--ink)';
+    const nome = r.pessoas?.nome || 'Sócio';
+    const sheet = abrirSheet(rzSheetCabecalho(grupo.length > 1 ? 'Refazer a divisão' : 'Dividir em partes', `${nome} · ${formatarMoedaBR(total)} · ${formatarDataBR(r.data_real || r.competencia)}`) +
+        `<div class="rz-sh-b" data-dv-corpo></div><div class="rz-sh-f"><button type="button" class="rz-btn rz-btn-2" data-dv-cancelar>Cancelar</button><button type="button" class="rz-btn rz-btn-1" data-dv-salvar>Salvar partes</button></div>`);
+    const corpo = sheet.querySelector('[data-dv-corpo]'), salvar = sheet.querySelector('[data-dv-salvar]');
+    const valido = () => partes.length >= 2 && partes.length <= 6 && resto() > 0 && partes.slice(1).every(p => Number(p.valor) > 0);
+    const atualizar = () => {
+        partes[0].valor = resto();
+        const el0 = corpo.querySelector('[data-dv-resto]'); if (el0) { el0.textContent = formatarMoedaBR(partes[0].valor); el0.style.color = partes[0].valor > 0 ? 'var(--ink)' : 'var(--danger)'; }
+        const msg = corpo.querySelector('[data-dv-msg]');
+        if (msg) msg.textContent = partes[0].valor > 0 ? (partes.slice(1).every(p => Number(p.valor) > 0) ? '' : 'Informe o valor de cada parte.') : 'As outras partes passam do total da retirada.';
+        salvar.disabled = !valido();
+    };
+    const chips = (p, k) => `<div class="rz-chips" style="margin:8px 0 0">${[['distribuicao', 'Do fluxo'], ['extraordinaria', 'Extraordinária']].map(([v, t]) =>
+        `<button type="button" class="rz-chip${p.natureza === v ? ' rz-on' : ''}" data-dv-nat="${k}" data-v="${v}">${t}</button>`).join('')}</div>`;
+    const desenhar = () => {
+        corpo.innerHTML = `<p style="margin:0 0 10px;font-size:14px;color:var(--muted);line-height:1.4">A soma das partes é sempre ${esc(formatarMoedaBR(total))}: a parte 1 fica com o restante. A conciliação com o extrato continua valendo.</p>` +
+            partes.map((p, k) => `<div class="rz-card" style="padding:12px 14px;margin-bottom:8px">
+                <div style="display:flex;align-items:center;gap:10px"><b style="flex:1">Parte ${k + 1}</b>${k === 0
+                    ? `<small style="color:var(--muted)">Restante</small><b data-dv-resto style="font-variant-numeric:tabular-nums">${esc(formatarMoedaBR(p.valor))}</b>`
+                    : `<span style="color:var(--muted);font-size:14px">R$</span><input type="number" inputmode="decimal" step="0.01" min="0" data-dv-valor="${k}" value="${p.valor || ''}" aria-label="Valor da parte ${k + 1}" style="${est};width:120px;text-align:right">` +
+                      (partes.length > 2 ? `<button type="button" data-dv-tirar="${k}" aria-label="Tirar parte ${k + 1}" style="flex:none;width:40px;height:44px;border:0;background:none;color:var(--muted);display:grid;place-items:center;cursor:pointer"><svg data-lucide="trash-2" style="width:18px;height:18px"></svg></button>` : '')}</div>
+                ${chips(p, k)}
+                <input type="text" data-dv-obs="${k}" value="${esc(p.observacao)}" placeholder="Observação (opcional)" aria-label="Observação da parte ${k + 1}" style="${est};width:100%;margin-top:8px">
+            </div>`).join('') +
+            (partes.length < 6 ? `<button type="button" class="rz-act" data-dv-add><div class="rz-ic"><svg data-lucide="plus"></svg></div><div>Adicionar parte<small>Até 6 partes</small></div></button>` : '') +
+            `<p data-dv-msg style="margin:8px 0 0;font-size:13px;color:var(--danger)"></p>`;
+        corpo.querySelectorAll('[data-dv-valor]').forEach(inp => inp.addEventListener('input', () => { partes[Number(inp.dataset.dvValor)].valor = r2(String(inp.value).replace(',', '.')); atualizar(); }));
+        corpo.querySelectorAll('[data-dv-obs]').forEach(inp => inp.addEventListener('input', () => { partes[Number(inp.dataset.dvObs)].observacao = inp.value; }));
+        corpo.querySelectorAll('[data-dv-nat]').forEach(b => b.addEventListener('click', () => { partes[Number(b.dataset.dvNat)].natureza = b.dataset.v; desenhar(); }));
+        corpo.querySelectorAll('[data-dv-tirar]').forEach(b => b.addEventListener('click', () => { partes.splice(Number(b.dataset.dvTirar), 1); desenhar(); }));
+        corpo.querySelector('[data-dv-add]')?.addEventListener('click', () => { partes.push({ valor: 0, natureza: outra(partes[partes.length - 1].natureza), observacao: '' }); desenhar(); corpo.querySelector(`[data-dv-valor="${partes.length - 1}"]`)?.focus(); });
+        if (typeof lucide !== 'undefined') lucide.createIcons();
+        atualizar();
+    };
+    desenhar();
+    sheet.querySelector('[data-dv-cancelar]')?.addEventListener('click', () => fecharSheet());
+    salvar.addEventListener('click', async () => {
+        if (!valido()) return;
+        salvar.disabled = true;
+        const { data, error } = await dbAuth.rpc('fn_retirada_dividir', { p_repasse_id: r.dividido_de || r.id,
+            p_partes: partes.map(p => ({ valor: r2(p.valor), natureza: p.natureza, observacao: String(p.observacao || '').trim() })) });
+        if (error || !data?.ok) { rzToast(data?.mensagem || ('Não consegui dividir: ' + (error?.message || '')), { tipo: 'danger' }); salvar.disabled = false; return; }
+        fecharSheet();
+        await retiradasRecarregarMemoria();
+        emitirEscrita('repasse', { id: r.dividido_de || r.id, acao: 'dividir' });
+        rzToast(data.mensagem || 'Retirada dividida');
+        renderDistribuicao();
+    });
+}
+
+function retiradaUnir(id) {
+    const r = distribAcharRetirada(id);
+    if (!r || typeof abrirSheetAcoes !== 'function') return;
+    const grupo = retGrupo(r), total = grupo.reduce((t, x) => t + Number(x.valor || 0), 0);
+    const unir = async (natureza) => {
+        const { data, error } = await dbAuth.rpc('fn_retirada_unir', { p_repasse_id: r.dividido_de || r.id, p_natureza: natureza });
+        if (error || !data?.ok) { rzToast(data?.mensagem || ('Não consegui unir: ' + (error?.message || '')), { tipo: 'danger' }); return; }
+        await retiradasRecarregarMemoria();
+        emitirEscrita('repasse', { id: r.dividido_de || r.id, acao: 'unir' });
+        rzToast(data.mensagem || 'Partes unidas');
+        renderDistribuicao();
+    };
+    abrirSheetAcoes({ titulo: 'Unir partes', sub: `${r.pessoas?.nome || 'Sócio'} · ${grupo.length} partes · ${formatarMoedaBR(total)}`, acoes: [
+        { icone: 'arrow-up-right', titulo: 'Unir como do fluxo', sub: 'Abate o saldo a retirar', aoTocar: () => unir('distribuicao') },
+        { icone: 'sparkles', titulo: 'Unir como extraordinária', sub: 'Não abate o saldo a retirar', aoTocar: () => unir('extraordinaria') },
     ] });
 }
 
@@ -5853,10 +5962,12 @@ async function retiradaClassificar(id, natureza) { // v1.50.0 — F13.7 (D86)
 async function excluirRetirada(id) {
     const r = distribAcharRetirada(id);
     if (!r) return;
-    if (!await rzConfirmar({ titulo: 'Excluir retirada', impacto: r.natureza === 'extraordinaria' ? `${formatarMoedaBR(Number(r.valor || 0))} de ${r.pessoas?.nome || 'Sócio'} deixa de constar como retirada extraordinária.` : `${formatarMoedaBR(Number(r.valor || 0))} de ${r.pessoas?.nome || 'Sócio'} volta para o saldo a retirar.`, destrutivo: true, rotuloConfirmar: 'Excluir retirada' })) return;
+    const nPartes = retGrupo(r).length - 1; // v1.55.0 — F13.9: as partes vão junto (FK em cascata)
+    if (!await rzConfirmar({ titulo: 'Excluir retirada', impacto: (nPartes > 0 ? (nPartes === 1 ? 'Exclui também a outra parte desta retirada. ' : `Exclui também as outras ${nPartes} partes desta retirada. `) : '') + (r.natureza === 'extraordinaria' ? `${formatarMoedaBR(Number(r.valor || 0))} de ${r.pessoas?.nome || 'Sócio'} deixa de constar como retirada extraordinária.` : `${formatarMoedaBR(Number(r.valor || 0))} de ${r.pessoas?.nome || 'Sócio'} volta para o saldo a retirar.`), destrutivo: true, rotuloConfirmar: 'Excluir retirada' })) return;
     const { error } = await dbAuth.from('repasses').delete().eq('cliente_id', CLIENTE_ID_SUPABASE).eq('id', id);
     if (error) { rzToast('Não consegui excluir: ' + error.message, { tipo: 'danger' }); return; }
     try { if (typeof repasses !== 'undefined' && Array.isArray(repasses)) { const i = repasses.findIndex(x => x.id === id); if (i !== -1) repasses.splice(i, 1); } } catch (e) { /* idem */ }
+    if (nPartes > 0) await retiradasRecarregarMemoria();
     if (typeof registrarLog === 'function') registrarLog('repasses.excluir', { repasseId: id, valor: r.valor });
     emitirEscrita('repasse', { id, acao: 'excluir' });
     rzToast('Retirada excluída');
