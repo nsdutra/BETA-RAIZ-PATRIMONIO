@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<!--
+  Arquivo:   grupo.html — Raiz Patrimônio · página do link do rateio em grupo
+  Versão: 1.0.0
+  Data:      12/10/2026
+  Sessão:    20261008-1231-pessoas-ativos · demanda 41d771c8 · F13.10 (ficha v3.1.0; de acordo do Nicola 12/10 03:27)
+  Changelog: 1.0.0 · criação. Cada participante abre o SEU link (#t=<token>) e confirma com o telefone dele. Vê o
+             mesmo card do app (js/grupo-visao.js), lança o que pagou e cancela o que lançou. Rateio fechado: a página
+             avisa e leva para a landing do Raiz Família. "Conhecer o Raiz" discreto no rodapé e "Sair" no topo.
+             Sem login, sem cookies, sem analytics; noindex. O telefone fica só na aba (sessionStorage).
+             O componente vem por ./js/grupo-visao.js?v=X: ao mudar a versão dele, mude também o ?v= daqui.
+-->
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="robots" content="noindex,nofollow">
+<meta name="referrer" content="no-referrer">
+<meta name="theme-color" content="#1e3a32">
+<title>Rateio · Raiz</title>
+<link rel="icon" href="icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,700&family=Inter:wght@400;600&display=swap" rel="stylesheet">
+<style>
+:root{--pine:#1e3a32;--sprout:#3f8163;--sage:#6b857a;--ink:#17211e;--line:#e6e3da;--paper:#f4f3ee;--tile:#e9ece5;--card:#fff;--muted:#6f7a76;
+  --danger:#c1463a;--info:#3d6b8c;--info-bg:#e8f0f5;--r-card:14px;--r-ctl:10px;--font-title:"Bricolage Grotesque",sans-serif;--font-body:"Inter",system-ui,sans-serif}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--font-body);-webkit-text-size-adjust:100%}
+.top{position:sticky;top:0;z-index:5;display:flex;align-items:center;gap:10px;padding:12px 16px;background:var(--pine);color:#fff}
+.top b{flex:1;font:700 16px var(--font-title);letter-spacing:-.01em}
+.top button{height:34px;padding:0 12px;border-radius:999px;border:1px solid rgba(255,255,255,.35);background:none;color:#fff;font:600 13px var(--font-body);cursor:pointer}
+main{max-width:640px;margin:0 auto;padding:16px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:var(--r-card);padding:16px;box-shadow:0 1px 2px rgba(23,33,30,.06),0 4px 14px rgba(23,33,30,.05)}
+h1{font:700 20px/1.2 var(--font-title);margin:0 0 6px;letter-spacing:-.02em}
+p{line-height:1.45}
+.muted{color:var(--muted);font-size:14px}
+label{display:block;font-size:12px;font-weight:600;color:var(--sage);margin:12px 0 4px}
+input{width:100%;height:48px;padding:0 12px;border:1.5px solid var(--line);border-radius:var(--r-ctl);font:inherit;font-size:16px}
+.btn{width:100%;height:48px;margin-top:14px;border:0;border-radius:var(--r-ctl);background:var(--pine);color:#fff;font:600 15px var(--font-body);cursor:pointer}
+.btn:disabled{opacity:.5}
+.err{color:var(--danger);font-size:14px;min-height:20px;margin:8px 0 0}
+footer{max-width:640px;margin:8px auto 32px;padding:0 16px;text-align:center;font-size:12px;color:var(--muted)}
+footer a{color:var(--muted)}
+</style>
+</head>
+<body>
+<div class="top"><b>Rateio · Raiz</b><button type="button" id="sair" hidden>Sair</button></div>
+<main id="app"><div class="card"><p class="muted">Carregando…</p></div></main>
+<footer>Rateio feito com o Raiz · <a href="https://raizpatrimonio.com.br/familia/" target="_blank" rel="noopener">Conhecer o Raiz</a></footer>
+<script type="module">
+import { montarGrupoVisao } from './js/grupo-visao.js?v=1.0.0';
+const URL_API = 'https://oduwpttbbemypiypjsux.supabase.co', CHAVE = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9kdXdwdHRiYmVteXBpeXBqc3V4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODUyODEyOTcsImV4cCI6MjEwMDg1NzI5N30.9-cu1CV1wPbo5UH1G2eAsWqsvS54AWNuQZOlifc9a7w', LANDING = 'https://raizpatrimonio.com.br/familia/';
+const app = document.getElementById('app'), sair = document.getElementById('sair');
+const token = new URLSearchParams(location.hash.slice(1)).get('t') || '';
+const chaveTel = 'raiz-grupo-tel-' + token.slice(0, 8);
+const lerTel = () => { try { return sessionStorage.getItem(chaveTel) || ''; } catch (e) { return ''; } };
+const gravarTel = (v) => { try { v ? sessionStorage.setItem(chaveTel, v) : sessionStorage.removeItem(chaveTel); } catch (e) { /* aba sem storage */ } };
+const esc = (v) => String(v ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+
+async function rpc(nome, corpo) {
+    try {
+        const r = await fetch(`${URL_API}/rest/v1/rpc/${nome}`, { method: 'POST', headers: { apikey: CHAVE, Authorization: 'Bearer ' + CHAVE, 'Content-Type': 'application/json' }, body: JSON.stringify(corpo) });
+        const j = await r.json();
+        return r.ok ? j : { ok: false, mensagem: 'Não foi possível falar com o Raiz agora. Tente de novo.' };
+    } catch (e) { return { ok: false, mensagem: 'Sem conexão. Tente de novo.' }; }
+}
+
+function telaFechado(msg) {
+    sair.hidden = true; gravarTel('');
+    app.innerHTML = `<div class="card"><h1>${esc(msg || 'Este rateio foi fechado.')}</h1><p class="muted">O rateio foi encerrado por quem organizou e este link não abre mais. Você vai para a página do Raiz Família.</p>
+        <a class="btn" style="display:grid;place-items:center;text-decoration:none" href="${LANDING}">Ir agora</a></div>`;
+    setTimeout(() => { location.href = LANDING; }, 4000);
+}
+
+function telaTelefone(erro) {
+    sair.hidden = true;
+    app.innerHTML = `<div class="card"><h1>Rateio em grupo</h1>
+        <p class="muted">Este convite é pessoal. Para ver o rateio, confirme o seu celular (o mesmo que quem organizou cadastrou).</p>
+        <label for="tel">Seu celular com DDD</label><input id="tel" type="tel" inputmode="tel" autocomplete="tel" placeholder="(11) 98765-4321">
+        <p class="err" id="erro">${esc(erro || '')}</p><button type="button" class="btn" id="entrar">Entrar</button></div>`;
+    const entrar = async () => {
+        const tel = document.getElementById('tel').value.trim();
+        if (tel.replace(/\D/g, '').length < 10) { document.getElementById('erro').textContent = 'Digite o celular com DDD.'; return; }
+        document.getElementById('entrar').disabled = true;
+        await abrir(tel);
+    };
+    document.getElementById('entrar').addEventListener('click', entrar);
+    document.getElementById('tel').addEventListener('keydown', (e) => { if (e.key === 'Enter') entrar(); });
+}
+
+async function abrir(tel) {
+    const r = await rpc('fn_grupo_link_ler', { p_token: token, p_telefone: tel });
+    if (r?.acao === 'fechado') return telaFechado(r.mensagem);
+    if (!r?.ok) { gravarTel(''); return telaTelefone(r?.mensagem || 'Não foi possível abrir.'); }
+    gravarTel(tel);
+    sair.hidden = false;
+    app.innerHTML = '<div class="card" id="card"></div>';
+    const eu = (r.dados.participantes || []).find(p => p.eu)?.id || null;
+    const visao = montarGrupoVisao(document.getElementById('card'), {
+        dados: r.dados, modo: 'link', eu,
+        acoes: {
+            lancar: (d) => rpc('fn_grupo_link_lancar', { p_token: token, p_telefone: lerTel(), p_dados: d }),
+            cancelar: (id, motivo) => rpc('fn_grupo_link_cancelar', { p_token: token, p_telefone: lerTel(), p_lancamento_id: id, p_motivo: motivo }),
+        },
+        aoMudar: (resp) => { if (resp?.acao === 'fechado') return telaFechado(resp.mensagem); if (resp?.dados) visao.atualizar(resp.dados); },
+    });
+}
+
+sair.addEventListener('click', () => { gravarTel(''); telaTelefone(''); });
+if (!token) {
+    app.innerHTML = `<div class="card"><h1>Link incompleto</h1><p class="muted">Abra o link exatamente como você recebeu.</p></div>`;
+} else if (lerTel()) { abrir(lerTel()); } else { telaTelefone(''); }
+</script>
+</body>
+</html>

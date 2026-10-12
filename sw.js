@@ -1,5 +1,10 @@
 // Raiz Patrimônio — Service Worker
-// Versão: 3.1 · 10/10/2026
+// Versão: 3.2 · 12/10/2026
+//
+// v3.2 (12/10/2026, sessão 20261008-1231-pessoas-ativos, demanda 41d771c8; F13.10, de acordo do Nicola 12/10 03:27) — a
+// página do link do rateio (grupo.html) passa direto pela rede, fora do SW: sem isso, abrir o link num aparelho com o
+// app instalado guardaria o grupo.html como a cópia de "./" e "index.html" (o plano B sem rede do app).
+// Versão anterior: 3.1 · 10/10/2026
 //
 // v3.1 (10/10/2026, demanda 7220bf36, sessão 20261008-1231-pessoas-ativos; pedido do Nicola 10/10 20:08 "Estou na
 // versão 328. Algo deu erro, veja se pode publicar novamente") — o app abria uma cópia ANTIGA da página quando a rede
@@ -121,6 +126,7 @@ self.addEventListener('fetch', function (event) {
     if (req.method !== 'GET') return; // padrão do navegador
     var url = new URL(req.url);
     if (url.origin === self.location.origin) {
+        if (/\/grupo\.html$/.test(url.pathname)) return; // v3.2 — página pública do rateio: só rede
         if (req.mode === 'navigate') { event.respondWith(redePrimeiro(req, null, 15000)); return; } // v3.1 — 15 s (era 4 s)
         if (url.pathname.endsWith('.js') && url.searchParams.has('v')) { event.respondWith(cacheDepoisRede(req)); return; }
         if (url.pathname.endsWith('.js') || url.pathname.endsWith('versoes.json')) { event.respondWith(redePrimeiro(req, { cache: 'reload' })); return; }

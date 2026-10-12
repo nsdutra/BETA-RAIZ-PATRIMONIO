@@ -4,6 +4,21 @@ Histórico completo de versões do `index.html`, movido automaticamente pelo `ge
 
 ---
 
+NOVIDADES (Beta v1.387.0) — UX onda 4c: Financeiro em 2 linhas e Usos com o ano (estudo PROTOTIPO_UX_DENSIDADE_
+RAMOS_RAIZ v1.2.0, D9; "Pode fazer e seguir" 12/10 02:26 e, 02:31, "juntar os dois cards ocupação e uso … filtrada
+por ano … letras iniciais dos meses … apenas o % ocupação basta"). Financeiro (Recebimentos, Saídas, Conciliação):
+linha 1 é o mês como título (‹ mês ›, cadeado) com lupa e +; linha 2 as abas sublinhadas; a busca abre pela lupa
+(rzFinAlternarBusca) e fica aberta com texto; os 4 números sem caixas; as rotinas do mês numa faixa de status
+(financeiro.js 1.57.0). Ficha do ativo: Usos e Ocupação num card só, com ‹ ano ›, barra de jan a dez, iniciais dos
+meses e a ocupação do ano em % (cofre-ativos.js 1.95.0). Nenhum objeto de banco.
+Versão anterior (Beta v1.386.0):
+------------------------------------------------------------------
+Versões anteriores (v1.386.0 … v1.386.0): CHANGELOG_APP.md, na raiz do
+repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
+das 5 versões mais recentes deste cabeçalho.
+
+---
+
 NOVIDADES (Beta v1.386.0) — UX onda 4b: controles (estudo PROTOTIPO_UX_DENSIDADE_RAMOS_RAIZ v1.2.0, D9; "Pode fazer
 e seguir" do Nicola 12/10 02:26). As vistas de uma tela viram abas sublinhadas: Hoje (Visão geral · Minha gestão ·
 Fique por dentro), fichas do contrato e do ativo, Minha empresa e Licença. Chip fica só para filtrar lista. Em todo

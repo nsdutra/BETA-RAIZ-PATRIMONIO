@@ -1,6 +1,19 @@
 // ============================================================================
 // cofre-controles.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.51.0 · 11/10/2026
+// Versão: 1.52.0 · 12/10/2026
+//
+// v1.52.0 (12/10/2026, sessão 20261008-1231-pessoas-ativos, demanda 41d771c8; F13.10, ficha v3.1.0; de acordo do Nicola 12/10 03:27) — rateio em grupo
+// no item de controle:
+//   · ⋮ do item: "Abrir rateio" (pessoas do Raiz da lista + pessoas de fora com nome e telefone; até 10 pessoas e
+//     3 rateios abertos por empresa) e, depois de fechado, "Reabrir o rateio" (com motivo);
+//   · card "Rateio em grupo" acima das Ocorrências, com o MESMO componente da página do link (grupo-visao.js):
+//     balanço, agrupar as contas, lançamentos provisórios, lançar e cancelar;
+//   · ⋮ do card: Participantes e links (enviar pelo WhatsApp, copiar, incluir, remover) e "Fechar o rateio", que leva
+//     a parte de cada pessoa do Raiz ao financeiro por categoria e conta (fn_grupo_fechar);
+//   · a ocorrência do rateio abre o card em vez de Dar baixa/Estornar (o espelho com o financeiro não pode rodar nela);
+//   · "Excluir item de vez" recusa item com rateio.
+//
+// Versão anterior: 1.51.0 · 11/10/2026
 //
 // v1.51.0 (11/10/2026, sessão 20261008-1231-pessoas-ativos, demanda f3e6cd27; Nicola 11/10 00:08: "no item aparece tipo
 // conta minúscula (...) subtipos em branco. Pode ser subtipos conta e o outro cartão crédito. Pode seguir") — a ficha do
@@ -36,17 +49,11 @@
 // v1.48.1 (07/10/2026, sessão 20261007-1721-rolo-changelog, demanda 2507d554 — VER-06, "de acordo" do Nicola 07/10 17:21) — SÓ
 // CABEÇALHO: as versões além das 5 mais recentes rolaram para o CHANGELOG_MODULOS.md.
 // Nenhuma linha de código mudou — conferido token a token contra o publicado.
-//
-// Versão anterior: 1.48.0 · 07/10/2026
-//
-// v1.48.0 (demanda b94ef7d5, sessão 20261007-0231-vinculos-reativar; plano aprovado pelo Nicola 07/10 02:31) —
-// chip Partes do item ganha o grupo "Encerrados" (com a data); ⋮ de um encerrado: "Reativar"
-// (fn_vinculo_reativar) e "Excluir" (fn_vinculo_excluir). Excluídos não aparecem.
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.47.0 … v1.47.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.48.0 … v1.48.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '1.51.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.52.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 import { estado } from './cofre-estado.js';
 import * as api from './cofre-api.js';
 import { mostrarToast, refrescarIcones, abrirModal, fecharModal, modalGenerico, perguntar, escolher, avisarComDesfazer } from './cofre-ui.js';
@@ -73,6 +80,7 @@ import { renderizarBlocoEndereco, lerBlocoEndereco } from './comum-endereco.js';
 // Cofre por dentro — ver changelog do topo do arquivo). aoEscrever() usado
 // pelo listener module-level, perto de 'cofre:recarregar-partes'.
 import { emitirEscrita, aoEscrever } from './raiz-eventos.js';
+import { montarGrupoVisao } from './grupo-visao.js'; // v1.52.0 — F13.10
 
 let subtiposCache = null; // carregado 1x por sessão; catálogo muda pouco
 // v1.20.2 (E0.2 / A8) — cache separado do catalogo FILTRADO pelo tipo de
@@ -913,6 +921,7 @@ function renderizarFichaItemControle() {
     }
 
     montarPartesItemControle(item);
+    montarCardGrupo(item); // v1.52.0 — F13.10
 
     // ---- Box Alertas vinculados: REMOVIDO (v6) — a própria ocorrência
     // (acima) já É o alerta; não existe mais cadastro de alerta avulso.
@@ -920,6 +929,240 @@ function renderizarFichaItemControle() {
     // com Partes, ver comentário em montarPartesItemControle().
 
     refrescarIcones();
+}
+
+// ============================================================================
+// v1.52.0 — F13.10 · RATEIO EM GRUPO (card do item, abrir, participantes, fechar, reabrir)
+// O card é o mesmo componente da página do link (grupo-visao.js). Tudo passa pelas funções fn_grupo_* do banco.
+// ============================================================================
+let grupoDados = null;
+const grupoEsc = (t) => escapeHtml(String(t ?? ''));
+async function rpcGrupo(fn, args) {
+    const { data, error } = await api.dbAuth.rpc(fn, args);
+    if (error) return { ok: false, mensagem: error.message };
+    return data || { ok: false, mensagem: 'Sem resposta do banco.' };
+}
+function grupoLink(token) { return `${location.origin}/grupo.html#t=${token}`; }
+function garantirContainerGrupo() {
+    let el = document.getElementById('fic-grupo');
+    if (el) return el;
+    const oc = document.getElementById('fic-ocorrencia')?.closest('.rz-card');
+    if (!oc) return null;
+    el = document.createElement('div'); el.id = 'fic-grupo'; el.className = 'rz-card';
+    oc.parentNode.insertBefore(el, oc);
+    return el;
+}
+async function montarCardGrupo(item) {
+    const el = garantirContainerGrupo(); if (!el) return;
+    if (!item?.grupo_status) { el.hidden = true; el.innerHTML = ''; grupoDados = null; return; }
+    el.hidden = false;
+    el.innerHTML = `<div class="rz-card-h"><h3>Rateio em grupo</h3><button type="button" class="rz-more" data-grupo-menu aria-label="Ações do rateio"><i data-lucide="ellipsis-vertical"></i></button></div><div data-grupo-corpo><p class="rz-desc">Carregando…</p></div>`;
+    el.querySelector('[data-grupo-menu]').addEventListener('click', () => abrirAcoesGrupo(item));
+    refrescarIcones();
+    const r = await rpcGrupo('fn_grupo_visao', { p_item_id: item.id });
+    const corpo = el.querySelector('[data-grupo-corpo]');
+    if (!r.ok) { corpo.innerHTML = `<p class="rz-desc">Não foi possível carregar o rateio: ${grupoEsc(r.mensagem)}</p>`; return; }
+    grupoDados = r.dados;
+    const categorias = await categoriasSaidaGrupo().catch(() => []);
+    montarGrupoVisao(corpo, {
+        dados: r.dados, modo: 'app', eu: null, categorias,
+        acoes: {
+            lancar: (d) => rpcGrupo('fn_grupo_lancar', { p_item_id: item.id, p_dados: d }),
+            cancelar: (id, motivo) => rpcGrupo('fn_grupo_cancelar', { p_lancamento_id: id, p_motivo: motivo }),
+        },
+        aoMudar: () => montarCardGrupo(item),
+    });
+}
+function abrirAcoesGrupo(item) {
+    if (!grupoDados) return;
+    const aberto = grupoDados.status === 'aberto';
+    sheetAcoes({ titulo: 'Rateio em grupo', sub: `${(grupoDados.participantes || []).length} pessoas · ${moedaBR(grupoDados.total || 0)}`, acoes: aberto ? [
+        { icone: 'link', titulo: 'Participantes e links', sub: 'Enviar o link de cada um, incluir ou tirar alguém', aoTocar: () => abrirParticipantesGrupo(item) },
+        { icone: 'check-check', titulo: 'Fechar o rateio', codigo: 'grupos.gerenciar', sub: 'Com os saldos zerados, leva a parte de cada pessoa do Raiz ao financeiro', aoTocar: () => abrirFecharRateio(item) },
+    ] : [
+        { icone: 'rotate-ccw', titulo: 'Reabrir o rateio', codigo: 'grupos.gerenciar', sub: 'Tira do financeiro o que o fechamento levou', aoTocar: () => reabrirRateio(item) },
+    ] });
+}
+function enviarLinkGrupo(item, p, link) {
+    const tel = String(link.telefone || '').replace(/\D/g, '');
+    const txt = `Oi, ${String(p.nome || '').split(' ')[0]}! Este é o seu link do rateio "${item.titulo}" no Raiz: ${grupoLink(link.token)}\nPara entrar, confirme o seu celular. Lá você vê o balanço e lança o que pagou.`;
+    window.open(`https://wa.me/${tel}?text=${encodeURIComponent(txt)}`, '_blank', 'noopener');
+}
+async function copiarLinkGrupo(link) {
+    try { await navigator.clipboard.writeText(grupoLink(link.token)); mostrarToast('Link copiado.', 'sucesso'); }
+    catch (e) { mostrarToast('Não consegui copiar. Link: ' + grupoLink(link.token), 'info'); }
+}
+function abrirParticipantesGrupo(item) {
+    const d = grupoDados; if (!d) return;
+    const links = Object.fromEntries((d.links || []).map(l => [l.participante_id, l]));
+    sheetAcoes({ titulo: 'Participantes e links', sub: `${(d.participantes || []).length} de 10 · cada um entra pelo próprio link e celular`, acoes: [
+        ...(d.participantes || []).map(p => ({ icone: p.do_raiz ? 'user' : 'user-round', titulo: p.nome, sub: links[p.id]?.telefone ? `+${links[p.id].telefone}${p.do_raiz ? ' · do Raiz' : ''}` : 'sem celular: não abre o link',
+            aoTocar: () => sheetAcoes({ titulo: p.nome, sub: 'Link pessoal do rateio', acoes: [
+                ...(links[p.id]?.telefone ? [{ icone: 'send', titulo: 'Enviar pelo WhatsApp', sub: 'Abre o seu WhatsApp com a mensagem e o link', aoTocar: () => enviarLinkGrupo(item, p, links[p.id]) }] : []),
+                { icone: 'copy', titulo: 'Copiar link', aoTocar: () => copiarLinkGrupo(links[p.id]) },
+                { icone: 'user-minus', titulo: 'Tirar do rateio', codigo: 'grupos.gerenciar', tipo: 'bad', sub: 'Só quem não tem lançamento. O link dele para de abrir', aoTocar: async () => {
+                    const r = await rpcGrupo('fn_grupo_participante_remover', { p_item_id: item.id, p_participante_id: p.id });
+                    mostrarToast(r.mensagem || '', r.ok ? 'sucesso' : 'erro'); if (r.ok) montarCardGrupo(item);
+                } },
+            ] }) })),
+        ...((d.participantes || []).length < 10 ? [{ icone: 'user-plus', titulo: 'Incluir participante', codigo: 'grupos.gerenciar', sub: 'Pessoa do Raiz ou de fora (nome e celular)', aoTocar: () => incluirParticipanteGrupo(item) }] : []),
+    ] });
+}
+async function pessoasDaEmpresaGrupo() {
+    const { data } = await api.dbAuth.from('pessoas').select('id, nome, whatsapp').eq('cliente_id', clienteIdDisponivel()).order('nome');
+    return data || [];
+}
+function linhaExternoGrupo(k) {
+    return `<div class="rz-row" data-gx="${k}" style="gap:8px;padding:8px 0"><input type="text" data-gx-nome placeholder="Nome" aria-label="Nome" style="flex:1;min-width:0;height:44px;padding:0 10px;border:1.5px solid var(--line);border-radius:var(--r-ctl);font:inherit;font-size:16px">
+        <input type="tel" data-gx-tel placeholder="Celular com DDD" aria-label="Celular" style="width:150px;height:44px;padding:0 10px;border:1.5px solid var(--line);border-radius:var(--r-ctl);font:inherit;font-size:16px"></div>`;
+}
+async function incluirParticipanteGrupo(item) {
+    const v = await escolher({ titulo: 'Incluir participante', opcoes: [
+        { valor: 'raiz', titulo: 'Pessoa do Raiz', sub: 'Da lista de pessoas da empresa', icone: 'user' },
+        { valor: 'fora', titulo: 'Pessoa de fora', sub: 'Só nome e celular', icone: 'user-round' }] });
+    if (!v) return;
+    let part = null;
+    if (v === 'raiz') {
+        const ja = new Set((grupoDados?.links || []).map(l => l.pessoa_id).filter(Boolean));
+        const pes = (await pessoasDaEmpresaGrupo()).filter(p => !ja.has(p.id));
+        if (!pes.length) { mostrarToast('Todas as pessoas da empresa já estão no rateio.', 'info'); return; }
+        const id = await escolher({ titulo: 'Pessoa do Raiz', opcoes: pes.map(p => ({ valor: p.id, titulo: p.nome, sub: p.whatsapp || 'sem celular no cadastro', icone: 'user' })) });
+        if (!id) return; part = { pessoa_id: id };
+        await gravarParticipanteGrupo(item, part);
+    } else {
+        const sheet = window.abrirSheet(window.rzSheetCabecalho('Pessoa de fora', 'O link dela só abre com este celular') + `<div class="rz-sh-b">${linhaExternoGrupo(0)}</div>
+            <div class="rz-sh-f"><button type="button" class="rz-btn rz-btn-2" data-gx-cancelar>Cancelar</button><button type="button" class="rz-btn rz-btn-1" data-gx-ok>Incluir</button></div>`);
+        sheet.querySelector('[data-gx-cancelar]').addEventListener('click', () => window.fecharSheet());
+        sheet.querySelector('[data-gx-ok]').addEventListener('click', async () => {
+            part = { nome: sheet.querySelector('[data-gx-nome]').value.trim(), telefone: sheet.querySelector('[data-gx-tel]').value.trim() };
+            window.fecharSheet(); await gravarParticipanteGrupo(item, part);
+        });
+    }
+}
+async function gravarParticipanteGrupo(item, part) {
+    const r = await rpcGrupo('fn_grupo_participante_incluir', { p_item_id: item.id, p_participante: part });
+    mostrarToast(r.mensagem || '', r.ok ? 'sucesso' : 'erro');
+    if (r.ok) { await montarCardGrupo(item); abrirParticipantesGrupo(item); }
+}
+export async function abrirNovoRateio(item) {
+    item = item || itemEmFoco; if (!item || typeof window.abrirSheet !== 'function') return;
+    const pes = await pessoasDaEmpresaGrupo();
+    const sheet = window.abrirSheet(window.rzSheetCabecalho('Abrir rateio', item.titulo) + `<div class="rz-sh-b">
+        <p class="rz-desc" style="margin:0 0 8px">Cada pessoa recebe o próprio link e entra com o celular. Até 10 pessoas. Enquanto o rateio está aberto, nada vai para o financeiro.</p>
+        <div class="rz-group">Pessoas do Raiz</div><div class="rz-card rz-list">${pes.map(p => `<label class="rz-row" style="gap:10px;cursor:pointer"><input type="checkbox" data-gp="${p.id}" style="width:22px;height:22px;flex:none"><div class="rz-tx"><b>${grupoEsc(p.nome)}</b><span>${grupoEsc(p.whatsapp || 'sem celular: usa só o app')}</span></div></label>`).join('') || '<p class="rz-desc" style="padding:10px">Nenhuma pessoa cadastrada.</p>'}</div>
+        <div class="rz-group">Pessoas de fora</div><div data-gx-lista>${linhaExternoGrupo(0)}</div>
+        <button type="button" class="rz-act" data-gx-mais><div class="rz-ic"><i data-lucide="user-plus"></i></div><div>Mais uma pessoa de fora<small>Nome e celular com DDD</small></div></button>
+        <p class="rz-desc" data-gp-conta style="margin-top:8px"></p>
+    </div><div class="rz-sh-f"><button type="button" class="rz-btn rz-btn-2" data-gp-cancelar>Cancelar</button><button type="button" class="rz-btn rz-btn-1" data-gp-ok>Abrir rateio</button></div>`);
+    let k = 1;
+    const coletar = () => {
+        const lista = [...sheet.querySelectorAll('[data-gp]:checked')].map(c => ({ pessoa_id: c.dataset.gp }));
+        sheet.querySelectorAll('[data-gx]').forEach(r => { const nome = r.querySelector('[data-gx-nome]').value.trim(), tel = r.querySelector('[data-gx-tel]').value.trim(); if (nome || tel) lista.push({ nome, telefone: tel }); });
+        return lista;
+    };
+    const contar = () => { const n = coletar().length; sheet.querySelector('[data-gp-conta]').textContent = `${n} de 10 pessoas`; sheet.querySelector('[data-gp-ok]').disabled = n < 2 || n > 10; };
+    sheet.addEventListener('input', contar); sheet.addEventListener('change', contar);
+    sheet.querySelector('[data-gx-mais]').addEventListener('click', () => { sheet.querySelector('[data-gx-lista]').insertAdjacentHTML('beforeend', linhaExternoGrupo(k++)); contar(); });
+    sheet.querySelector('[data-gp-cancelar]').addEventListener('click', () => window.fecharSheet());
+    sheet.querySelector('[data-gp-ok]').addEventListener('click', async (ev) => {
+        ev.currentTarget.disabled = true;
+        const r = await rpcGrupo('fn_grupo_abrir', { p_item_id: item.id, p_participantes: coletar() });
+        if (!r.ok) { mostrarToast(r.mensagem || 'Não foi possível abrir o rateio.', 'erro'); ev.currentTarget.disabled = false; return; }
+        window.fecharSheet(); mostrarToast(r.mensagem || 'Rateio aberto.', 'sucesso');
+        emitirEscrita('item_controle', { id: item.id, acao: 'rateio_abrir' });
+        await recarregarFichaItemControle();
+        abrirParticipantesGrupo(itemEmFoco);
+    });
+    refrescarIcones(); contar();
+}
+let grupoCatCache = null;
+async function categoriasSaidaGrupo() {
+    if (grupoCatCache) return grupoCatCache;
+    const { data } = await api.dbAuth.from('lancamento_categorias').select('codigo, nome, categoria_pai, ordem').eq('direcao', 'saida').eq('ativo', true).order('ordem');
+    const pais = new Set((data || []).map(c => c.categoria_pai).filter(Boolean));
+    const nomePai = Object.fromEntries((data || []).map(c => [c.codigo, c.nome]));
+    grupoCatCache = (data || []).filter(c => !pais.has(c.codigo) && !['pagamento_grupo', 'acerto_entre_pessoas', 'repasse_socio'].includes(c.codigo))
+        .map(c => ({ codigo: c.codigo, nome: c.categoria_pai ? `${nomePai[c.categoria_pai] || ''} › ${c.nome}` : c.nome }));
+    return grupoCatCache;
+}
+async function contasParaGrupo() {
+    const { data } = await api.dbAuth.rpc('fn_contas_listar', { p_cliente_id: clienteIdDisponivel() });
+    let lista = Array.isArray(data?.dados) ? data.dados : [];
+    if (!lista.length) { const r = await api.dbAuth.from('conta_controle').select('id, nome, tipo, titular_tipo, pessoa_id, situacao, padrao').eq('cliente_id', clienteIdDisponivel()); lista = r.data || []; }
+    return lista.filter(c => c && c.id && c.tipo !== 'cartao_credito' && (c.situacao || 'ativa') === 'ativa');
+}
+export async function abrirFecharRateio(item) {
+    item = item || itemEmFoco; const d = grupoDados; if (!item || !d || typeof window.abrirSheet !== 'function') return;
+    const comSaldo = (d.participantes || []).filter(p => Math.abs(Number(p.saldo) || 0) > 0.009);
+    if (comSaldo.length) { mostrarToast(`Ainda há saldo entre os participantes (${comSaldo.length}). Registre os pagamentos em "Agrupar as contas" antes de fechar.`, 'erro'); return; }
+    const [cats, contas] = await Promise.all([categoriasSaidaGrupo(), contasParaGrupo()]);
+    const pessoaDe = Object.fromEntries((d.links || []).map(l => [l.participante_id, l.pessoa_id]));
+    const raiz = (d.participantes || []).filter(p => p.do_raiz);
+    // parte de cada pessoa do Raiz por categoria sugerida (despesas não canceladas)
+    const porPessoa = raiz.map(p => {
+        const mapa = {};
+        (d.lancamentos || []).filter(l => l.tipo === 'despesa' && !l.cancelado).forEach(l => {
+            const it = (l.divisao?.itens || []).find(x => x.participante_id === p.id); if (!it) return;
+            const k = l.categoria_sugerida || ''; mapa[k] = Math.round(((mapa[k] || 0) + Number(it.valor)) * 100) / 100;
+        });
+        const pid = pessoaDe[p.id];
+        const conta = contas.find(c => c.titular_tipo === 'pessoa' && c.pessoa_id === pid) || contas.find(c => c.padrao) || contas[0];
+        return { p, pid, conta: conta?.id || '', levar: Number(p.parte) > 0, itens: Object.entries(mapa).map(([cat, valor]) => ({ cat, valor })) };
+    });
+    const hoje = new Date(); const hojeISO = `${hoje.getFullYear()}-${String(hoje.getMonth() + 1).padStart(2, '0')}-${String(hoje.getDate()).padStart(2, '0')}`;
+    const est = 'height:44px;padding:0 8px;border:1.5px solid var(--line);border-radius:var(--r-ctl);font:inherit;font-size:15px;background:var(--card);color:var(--ink)';
+    const opCat = (sel) => `<option value="">— escolha a categoria —</option>` + cats.map(c => `<option value="${c.codigo}"${c.codigo === sel ? ' selected' : ''}>${grupoEsc(c.nome)}</option>`).join('');
+    const opConta = (sel) => contas.map(c => `<option value="${c.id}"${c.id === sel ? ' selected' : ''}>${grupoEsc(c.nome)}</option>`).join('');
+    const sheet = window.abrirSheet(window.rzSheetCabecalho('Fechar o rateio', `${item.titulo} · ${moedaBR(d.total || 0)}`) + `<div class="rz-sh-b" data-fr-corpo></div>
+        <div class="rz-sh-f"><button type="button" class="rz-btn rz-btn-2" data-fr-cancelar>Cancelar</button><button type="button" class="rz-btn rz-btn-1" data-fr-ok>Fechar o rateio</button></div>`);
+    const corpo = sheet.querySelector('[data-fr-corpo]');
+    const soma = (x) => Math.round(x.itens.reduce((t, i) => t + (Number(i.valor) || 0), 0) * 100) / 100;
+    const desenhar = () => {
+        corpo.innerHTML = `<p class="rz-desc" style="margin:0 0 8px">Os saldos estão zerados. Para cada pessoa do Raiz, a parte dela vira despesa no financeiro, na conta e nas categorias abaixo. Quem é de fora não entra no financeiro; o histórico fica no rateio. Os links param de abrir.</p>
+            <div class="rz-f"><label>Data dos lançamentos</label><input type="date" data-fr-data value="${hojeISO}" style="${est};width:100%"></div>` +
+            (porPessoa.length ? porPessoa.map((x, i) => `<div class="rz-card" style="padding:12px 14px;margin:10px 0">
+                <label style="display:flex;align-items:center;gap:10px;font-weight:600"><input type="checkbox" data-fr-levar="${i}"${x.levar ? ' checked' : ''} style="width:22px;height:22px">${grupoEsc(x.p.nome)} · parte ${moedaBR(x.p.parte)}</label>
+                ${x.levar ? `<div class="rz-f"><label>Conta</label><select data-fr-conta="${i}" style="${est};width:100%">${opConta(x.conta)}</select></div>
+                ${x.itens.map((it, j) => `<div style="display:flex;gap:6px;margin-top:6px"><select data-fr-cat="${i}:${j}" style="${est};flex:1;min-width:0">${opCat(it.cat)}</select><input type="number" step="0.01" min="0" inputmode="decimal" data-fr-val="${i}:${j}" value="${it.valor}" style="${est};width:110px;text-align:right"></div>`).join('')}
+                <button type="button" class="rz-btn rz-btn-3" data-fr-mais="${i}" style="height:36px;margin-top:4px">+ outra categoria</button>
+                <p class="rz-desc" style="margin:4px 0 0;color:${Math.abs(soma(x) - Number(x.p.parte)) < 0.01 ? 'var(--muted)' : 'var(--danger)'}">Soma ${moedaBR(soma(x))} de ${moedaBR(x.p.parte)}</p>` : '<p class="rz-desc" style="margin:4px 0 0">Não vai ao financeiro.</p>'}
+            </div>`).join('') : '<p class="rz-desc">Nenhuma pessoa do Raiz no rateio: nada vai ao financeiro.</p>');
+        corpo.querySelectorAll('[data-fr-levar]').forEach(c => c.addEventListener('change', () => { porPessoa[Number(c.dataset.frLevar)].levar = c.checked; desenhar(); }));
+        corpo.querySelectorAll('[data-fr-conta]').forEach(c => c.addEventListener('change', () => { porPessoa[Number(c.dataset.frConta)].conta = c.value; }));
+        corpo.querySelectorAll('[data-fr-cat]').forEach(c => c.addEventListener('change', () => { const [i, j] = c.dataset.frCat.split(':').map(Number); porPessoa[i].itens[j].cat = c.value; }));
+        corpo.querySelectorAll('[data-fr-val]').forEach(c => c.addEventListener('change', () => { const [i, j] = c.dataset.frVal.split(':').map(Number); porPessoa[i].itens[j].valor = Number(String(c.value).replace(',', '.')) || 0; desenhar(); }));
+        corpo.querySelectorAll('[data-fr-mais]').forEach(b => b.addEventListener('click', () => { porPessoa[Number(b.dataset.frMais)].itens.push({ cat: '', valor: 0 }); desenhar(); }));
+    };
+    desenhar();
+    sheet.querySelector('[data-fr-cancelar]').addEventListener('click', () => window.fecharSheet());
+    sheet.querySelector('[data-fr-ok]').addEventListener('click', async (ev) => {
+        const errado = porPessoa.find(x => x.levar && (Math.abs(soma(x) - Number(x.p.parte)) >= 0.01 || !x.conta || x.itens.some(i => Number(i.valor) > 0 && !i.cat)));
+        if (errado) { mostrarToast(`Confira ${errado.p.nome}: a soma precisa dar a parte no rateio, com conta e categoria em cada valor.`, 'erro'); return; }
+        ev.currentTarget.disabled = true;
+        const registros = porPessoa.filter(x => x.levar && Number(x.p.parte) > 0).map(x => ({ pessoa_id: x.pid, conta_id: x.conta, itens: x.itens.filter(i => Number(i.valor) > 0).map(i => ({ categoria: i.cat, valor: Number(i.valor) })) }));
+        const r = await rpcGrupo('fn_grupo_fechar', { p_item_id: item.id, p_registros: registros, p_data: corpo.querySelector('[data-fr-data]').value || null });
+        if (!r.ok) { mostrarToast(r.mensagem || 'Não foi possível fechar.', 'erro'); ev.currentTarget.disabled = false; return; }
+        window.fecharSheet(); mostrarToast(r.mensagem || 'Rateio fechado.', 'sucesso');
+        emitirEscrita('lancamento', { origem: 'rateio', item: item.id, acao: 'fechar' });
+        await recarregarFichaItemControle();
+    });
+}
+async function reabrirRateio(item) {
+    item = item || itemEmFoco; if (!item || typeof window.abrirSheet !== 'function') return;
+    const sheet = window.abrirSheet(window.rzSheetCabecalho('Reabrir o rateio', item.titulo) + `<div class="rz-sh-b">
+        <p class="rz-desc" style="margin:0 0 8px">Os lançamentos que o fechamento levou ao financeiro saem, e os links voltam a abrir. Não dá se algum deles já foi conciliado.</p>
+        <div class="rz-f"><label>Motivo</label><input type="text" data-rr-motivo style="width:100%;height:44px;padding:0 10px;border:1.5px solid var(--line);border-radius:var(--r-ctl);font:inherit;font-size:16px"></div></div>
+        <div class="rz-sh-f"><button type="button" class="rz-btn rz-btn-2" data-rr-cancelar>Cancelar</button><button type="button" class="rz-btn rz-btn-1" data-rr-ok>Reabrir</button></div>`);
+    sheet.querySelector('[data-rr-cancelar]').addEventListener('click', () => window.fecharSheet());
+    sheet.querySelector('[data-rr-ok]').addEventListener('click', async () => {
+        const motivo = sheet.querySelector('[data-rr-motivo]').value.trim();
+        if (!motivo) { mostrarToast('Diga o motivo.', 'erro'); return; }
+        const r = await rpcGrupo('fn_grupo_reabrir', { p_item_id: item.id, p_motivo: motivo });
+        if (!r.ok) { mostrarToast(r.mensagem || 'Não foi possível reabrir.', 'erro'); return; }
+        window.fecharSheet(); mostrarToast(r.mensagem || 'Rateio reaberto.', 'sucesso');
+        emitirEscrita('lancamento', { origem: 'rateio', item: item.id, acao: 'reabrir' });
+        await recarregarFichaItemControle();
+    });
 }
 
 // v1.13.0 (fatia 3b-i, REGRAS §6) — os 3 painéis inline de "Mais ações"
@@ -933,6 +1176,8 @@ function sheetAcoes(config) {
 export function abrirAcoesDadosItem() {
     const item = itemEmFoco; if (!item) return;
     sheetAcoes({ titulo: item.titulo, sub: rotuloTipoControle(item.tipo), acoes: [
+        ...(item.ativo !== false && !item.grupo_status ? [{ icone: 'users-round', titulo: 'Abrir rateio', codigo: 'grupos.gerenciar', sub: 'Dividir as despesas deste item com outras pessoas, cada uma pelo seu link', aoTocar: () => abrirNovoRateio(item) }] : []), // v1.52.0
+        ...(item.grupo_status === 'fechado' ? [{ icone: 'rotate-ccw', titulo: 'Reabrir o rateio', codigo: 'grupos.gerenciar', sub: 'Tira do financeiro o que o fechamento levou', aoTocar: () => reabrirRateio(item) }] : []),
         ...(item.ativo === false ? [ // v1.20.0 — encerrado
             { icone: 'rotate-ccw', titulo: 'Reabrir item', codigo: 'cofre.controles.editar', sub: 'Volta a gerar ocorrências e alertas', aoTocar: () => reabrirItemControleAtual() },
         ] : [
@@ -1157,6 +1402,11 @@ function ocorrenciaPorId(id) {
 export async function abrirAcoesOcorrencia(ocorrenciaId) {
     const oc = ocorrenciaPorId(ocorrenciaId);
     if (!oc) return;
+    if (oc.tipo === 'grupo_rateio') { // v1.52.0 — F13.10: a ocorrência do rateio se trata pelo card
+        document.getElementById('fic-grupo')?.scrollIntoView({ block: 'start', behavior: 'smooth' });
+        mostrarToast(oc.status_execucao === 'aberto' ? 'Este é o rateio do item: lance, quite e feche pelo card "Rateio em grupo".' : 'Rateio fechado. Para mudar, use "Reabrir o rateio" no ⋮ do item.', 'info');
+        return;
+    }
     const acoes = [];
     const item = itemEmFoco;
     const lanc = (oc.origem === 'fatura' && oc.origem_id) ? null : await lancamentoDaOcorrencia(oc.id); // v1.50.0 — atalho e detalhe
@@ -1525,6 +1775,7 @@ export async function reabrirItemControleAtual() {
 
 export async function excluirItemControleAtual() {
     const item = itemEmFoco;
+    if (itemEmFoco?.grupo_status) { mostrarToast('Este item tem um rateio em grupo. Ele não pode ser excluído.', 'erro'); return; } // v1.52.0
     // v1.20.0 — exclusão DE VERDADE (v2.2). Guarda no banco: com ocorrência
     // tratada, o DELETE falha com a mensagem do trigger (mostrada abaixo).
     if ((item.cofre_ocorrencias_controle || []).some(o => o.status_execucao === 'concluido')) {

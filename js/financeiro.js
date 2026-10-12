@@ -1,7 +1,13 @@
 // ============================================================================
 // financeiro.js — Raiz Patrimônio · Financeiro (Recebimentos · Atrasados · Saídas
 //                  · conciliação de extrato · recibo · detalhe do recebimento)
-// Versão: 1.59.0 · 12/10/2026
+// Versão: 1.60.0 · 12/10/2026
+//
+// v1.60.0 (12/10/2026, sessão 20261008-1231-pessoas-ativos, demanda 41d771c8; F13.10, ficha v3.1.0; de acordo do Nicola 12/10 03:27) — Balanço › Grupos ganha o
+// quadro "Rateios em grupo": os itens de controle com rateio aberto ou fechado, com o total e quantas pessoas; tocar abre a
+// ficha do item, onde fica o card do rateio. A categoria "Pagamento de grupo" já aparece no classificar (vem do catálogo).
+//
+// Versão anterior: 1.59.0 · 12/10/2026
 //
 // v1.59.0 (12/10/2026, sessão 20261012-0320-ux-busca, demanda a05ad2ee; Nicola 12/10 03:18: "o seletor no Usos aparece
 // dentro de um card Usos com o seletor à frente deste título. Ajuste isto nos 2 financeiros") — a visão por competência
@@ -30,22 +36,11 @@
 // uma linha curta de atalhos), os dois KPIs em caixas viram uma faixa Recebido · Despesas · Em atraso, e a lista dos meses
 // entra direto no card que já existe (na ficha do ativo, um card só). A linha do mês mostra o que falta receber
 // (antes "R$ 0,00 · Em atraso") e perde a placa de calendário.
-//
-// Versão anterior: 1.55.0 · 11/10/2026
-//
-// v1.55.0 (11/10/2026, sessão 20261008-1231-pessoas-ativos, demanda 6adc50ef; F13.9, ficha v1.0.0; de acordo do
-// Nicola 11/10 23:52) — dividir uma retirada em partes, mesmo conciliada:
-//   · no sheet da retirada (Sócios por mês), "Dividir em partes": cada parte com valor, tipo (Do fluxo ·
-//     Extraordinária) e observação; a parte 1 é o restante do total, então a soma sempre bate com a transferência;
-//     de 2 a 6 partes (fn_retirada_dividir). Já dividida, a mesma opção refaz a divisão;
-//   · "Unir partes" volta a uma retirada só, com o tipo escolhido (fn_retirada_unir);
-//   · cada parte leva "parte k de n" nas listas; uma parte (2…n) não tem "Excluir" (D103) e excluir a original avisa
-//     que as partes vão junto.
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.54.0 … v1.54.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.55.0 … v1.55.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '1.59.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.60.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 
 // v1.17.0 (Fase 1 do wrapper de escrita, rollout Financeiro) — emitirEscrita
 // é o evento padrão pra "algo mudou que módulos DE FORA deste arquivo podem
@@ -5581,8 +5576,24 @@ async function balancoRenderGrupos() {
         ? grupos.map(g => `<div class="rz-card"><div class="rz-card-h"><h3>${balEsc(g.nome)}</h3><span class="rz-sub">gasto ${formatarMoedaBR([...g.gasto.values()].reduce((t, v) => t + v, 0))}</span></div>` +
             [...g.saldo.entries()].map(([nome, v]) => `<div class="rz-row"><div class="rz-ic"><svg data-lucide="user"></svg></div><div class="rz-tx"><b>${balEsc(nome)}</b></div><div class="rz-rt">${v > 0.004 ? balSt('run', `${formatarMoedaBR(v)} a receber`) : v < -0.004 ? balSt('warn', `deve ${formatarMoedaBR(-v)}`) : balSt('ok', 'Em dia')}</div></div>`).join('') + '</div>').join('')
         : `<div class="rz-card"><div class="rz-empty"><div class="rz-ic"><svg data-lucide="users"></svg></div><p>Nenhum grupo com despesa dividida. Um grupo é um ativo (viagem, casa de praia, cuidado do pai): as despesas lançadas nele e divididas entre as pessoas aparecem aqui.</p></div></div>`;
-    corpo.innerHTML = balancoChipsVista() + html;
+    corpo.innerHTML = balancoChipsVista() + (await balancoRateiosGrupoHtml()) + html; // v1.60.0 — F13.10
     if (typeof lucide !== 'undefined') lucide.createIcons();
+}
+
+// v1.60.0 — F13.10: rateios em grupo (itens de controle com rateio). A conta de cada rateio vem da mesma função do card.
+async function balancoRateiosGrupoHtml() {
+    try {
+        const { data: itens } = await dbAuth.from('cofre_itens_controle').select('id, titulo, grupo_status, ativo_id')
+            .eq('cliente_id', CLIENTE_ID_SUPABASE).not('grupo_status', 'is', null).order('criado_em', { ascending: false }).limit(20);
+        if (!itens || !itens.length) return '';
+        const visoes = await Promise.all(itens.map(i => dbAuth.rpc('fn_grupo_visao', { p_item_id: i.id }).then(r => r.data?.dados || null, () => null)));
+        return `<div class="rz-card rz-list"><div class="rz-card-h" style="padding-top:10px;margin-bottom:0"><h3>Rateios em grupo</h3><span class="rz-sub">${itens.filter(i => i.grupo_status === 'aberto').length} aberto(s)</span></div>` +
+            itens.map((i, k) => { const v = visoes[k] || {}; const n = (v.participantes || []).length;
+                return `<div class="rz-row rz-link" role="button" tabindex="0" onclick="if (typeof abrirAlertaItemControle === 'function') abrirAlertaItemControle('${i.id}', ${i.ativo_id ? `'${i.ativo_id}'` : 'null'})">
+                    <div class="rz-ic${i.grupo_status === 'aberto' ? '' : ' rz-neu'}"><svg data-lucide="users-round"></svg></div>
+                    <div class="rz-tx"><b>${balEsc(i.titulo)}</b><span>${n} pessoa${n === 1 ? '' : 's'} · total ${formatarMoedaBR(Number(v.total || 0))}</span></div>
+                    <div class="rz-rt">${i.grupo_status === 'aberto' ? balSt('run', 'Aberto') : balSt('neu', 'Fechado')}</div><svg data-lucide="chevron-right" class="rz-chev"></svg></div>`; }).join('') + '</div>';
+    } catch (e) { console.warn('[financeiro] rateios em grupo', e); return ''; }
 }
 
 export function balancoAbrirPessoa(chave) {
