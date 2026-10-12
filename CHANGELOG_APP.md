@@ -4,6 +4,21 @@ Histórico completo de versões do `index.html`, movido automaticamente pelo `ge
 
 ---
 
+NOVIDADES (Beta v1.381.0) — UX onda 2: topo e barra (estudo PROTOTIPO_UX_DENSIDADE_RAMOS_RAIZ v1.2.0, D7/D8/D10,
+e continuidade C5/C6; aprovados pelo Nicola em 11/10). Barra: Hoje · Ativos · Raiz IA · Agenda · Financeiro — a Raiz
+IA desce do topo para o centro, no sol dourado do splash; Alertas passa a se chamar Agenda (ícone de calendário).
+Contratos mora dentro de Ativos: as duas telas abrem com a vista "Ativos · Contratos" sublinhada no alto, e o ícone
+Ativos acende nas duas e na ficha do contrato. Topo: marca da empresa · busca em tudo · ramo · avatar; o logo vai
+numa placa clara de 36 px (quadrado com o nome ao lado, largo sozinho; sem logo, o nome). Vazios ganham as raízes do
+splash ao fundo. Nenhum objeto de banco.
+Versão anterior (Beta v1.380.0):
+------------------------------------------------------------------
+Versões anteriores (v1.380.0 … v1.380.0): CHANGELOG_APP.md, na raiz do
+repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
+das 5 versões mais recentes deste cabeçalho.
+
+---
+
 NOVIDADES (Beta v1.380.0) — UX onda 1: escala compacta e topo com frutos (estudo PROTOTIPO_UX_DENSIDADE_RAMOS_RAIZ
 v1.2.0, D1/D3/D5; APV Nicola 11/10 21:47 e 23:44: "inclua a melhora também dos botões de avatar e outros do
 cabeçalho para ficarem compatíveis com o novo dos ramos"). Corpo 14, secundário 12,5, títulos de tela 17, sheet 16,

@@ -6,9 +6,14 @@
    (base derivada do RUMO v7.4.2 — histórico de versões anteriores
    preservado abaixo para referência técnica)
 
-   VERSÃO: Beta v1.385.0
-   LINHAS: 16137
-   DATA: 12/10/2026 (sessão 20261012-0220-ux-onda4a, demanda a05ad2ee)
+   VERSÃO: Beta v1.386.0
+   LINHAS: 16151
+   DATA: 12/10/2026 (sessão 20261012-0230-ux-onda4b, demanda a05ad2ee)
+   NOVIDADES (Beta v1.386.0) — UX onda 4b: controles (estudo PROTOTIPO_UX_DENSIDADE_RAMOS_RAIZ v1.2.0, D9; "Pode fazer
+   e seguir" do Nicola 12/10 02:26). As vistas de uma tela viram abas sublinhadas: Hoje (Visão geral · Minha gestão ·
+   Fique por dentro), fichas do contrato e do ativo, Minha empresa e Licença. Chip fica só para filtrar lista. Em todo
+   chip e aba o número é só o número, sem pílula (vermelho quando há atraso). Só CSS. Nenhum objeto de banco.
+   Versão anterior (Beta v1.385.0):
    NOVIDADES (Beta v1.385.0) — UX onda 4a: Financeiro da ficha sem moldura dentro de moldura (Nicola 12/10 02:15:
    "muita moldura estreitando as informações … Vamos avançar"). O card "Pendências" sai: o atraso vira o 3º número da
    faixa Recebido · Despesas · Em atraso (toque leva aos atrasados) e "a classificar"/"sem conciliação" viram atalhos
@@ -32,16 +37,8 @@
    NOVIDADES (Beta v1.382.0) — F13.9: dividir uma retirada em partes (do fluxo e extraordinária), mesmo conciliada, e unir
    de novo. Só o import map muda aqui (financeiro.js 1.55.0).
    Versão anterior (Beta v1.381.0):
-   NOVIDADES (Beta v1.381.0) — UX onda 2: topo e barra (estudo PROTOTIPO_UX_DENSIDADE_RAMOS_RAIZ v1.2.0, D7/D8/D10,
-   e continuidade C5/C6; aprovados pelo Nicola em 11/10). Barra: Hoje · Ativos · Raiz IA · Agenda · Financeiro — a Raiz
-   IA desce do topo para o centro, no sol dourado do splash; Alertas passa a se chamar Agenda (ícone de calendário).
-   Contratos mora dentro de Ativos: as duas telas abrem com a vista "Ativos · Contratos" sublinhada no alto, e o ícone
-   Ativos acende nas duas e na ficha do contrato. Topo: marca da empresa · busca em tudo · ramo · avatar; o logo vai
-   numa placa clara de 36 px (quadrado com o nome ao lado, largo sozinho; sem logo, o nome). Vazios ganham as raízes do
-   splash ao fundo. Nenhum objeto de banco.
-   Versão anterior (Beta v1.380.0):
    ------------------------------------------------------------------
-   Versões anteriores (v1.380.0 … v1.380.0): CHANGELOG_APP.md, na raiz do
+   Versões anteriores (v1.381.0 … v1.381.0): CHANGELOG_APP.md, na raiz do
    repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
    das 5 versões mais recentes deste cabeçalho.
 
@@ -1357,6 +1354,23 @@
         .rz-fc-atalho{display:inline-flex;align-items:center;gap:2px;min-height:32px;padding:0;background:none;border:0;font:600 13px var(--font-body);color:var(--warning);cursor:pointer}
         .rz-fc-atalho svg{width:15px;height:15px}
         .rz-fc-meses .rz-row:last-child{border-bottom:0}
+
+        /* ============================================================================================================
+           v1.386.0 — UX ONDA 4b: CONTROLES (PROTOTIPO_UX_DENSIDADE_RAMOS_RAIZ v1.2.0 §6, D9).
+           Vistas de uma tela (Hoje: Visão geral · Minha gestão · Fique por dentro; fichas do contrato, do ativo, de Minha
+           empresa e da Licença) viram ABAS SUBLINHADAS — o atual em --ink com traço na cor do ramo. Chip fica só para
+           filtrar uma lista. Em todo chip e aba, o número é só o número (sem pílula).
+           ============================================================================================================ */
+        #hoje-chips,#fc-chips,#fa-chips,#cme-chips,#lic-chips{gap:20px;box-shadow:inset 0 -1px 0 var(--line);padding-top:0;padding-bottom:0}
+        #hoje-chips .rz-chip,#fc-chips .rz-chip,#fa-chips .rz-chip,#cme-chips .rz-chip,#lic-chips .rz-chip{height:40px;padding:0;border:0;border-bottom:2px solid transparent;border-radius:0;background:none;font:600 14px var(--font-body);color:var(--muted);gap:5px}
+        #hoje-chips .rz-chip.rz-on,#fc-chips .rz-chip.rz-on,#fa-chips .rz-chip.rz-on,#cme-chips .rz-chip.rz-on,#lic-chips .rz-chip.rz-on{background:none;color:var(--ink);border-bottom-color:var(--ramo-acc)}
+        #hoje-chips .rz-chip.rz-on .rz-pt,#fc-chips .rz-chip.rz-on .rz-pt,#fa-chips .rz-chip.rz-on .rz-pt,#cme-chips .rz-chip.rz-on .rz-pt,#lic-chips .rz-chip.rz-on .rz-pt{box-shadow:none}
+        .rz-chip .rz-n,.rz-chip.rz-on .rz-n,.rz-chip.rz-warn .rz-n{background:none;padding:0;font-size:12px;font-weight:600}
+        .rz-chip .rz-n{color:var(--muted)}
+        .rz-chip.rz-on .rz-n{color:rgba(255,255,255,.78)}
+        .rz-chip.rz-warn .rz-n{color:var(--danger)}
+        #hoje-chips .rz-chip.rz-on .rz-n,#fc-chips .rz-chip.rz-on .rz-n,#fa-chips .rz-chip.rz-on .rz-n,#cme-chips .rz-chip.rz-on .rz-n,#lic-chips .rz-chip.rz-on .rz-n{color:var(--muted)}
+        #hoje-chips .rz-chip.rz-warn .rz-n,#fc-chips .rz-chip.rz-warn .rz-n,#fa-chips .rz-chip.rz-warn .rz-n,#cme-chips .rz-chip.rz-warn .rz-n,#lic-chips .rz-chip.rz-warn .rz-n{color:var(--danger)}
     </style>
 
 </head>
@@ -4041,7 +4055,7 @@
         // texto certo toda vez (esqueci 5 versões seguidas, de v1.37.1 até
         // v1.38.3). Agora só precisa mudar UMA linha aqui a cada release;
         // window.onload aplica nos dois lugares automaticamente.
-        const APP_VERSAO = "Beta v1.385.0"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
+        const APP_VERSAO = "Beta v1.386.0"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
 
         // ====================================================================
         // v1.105.0 — HELPERS DE SUPERFÍCIE DA GRAMÁTICA ÚNICA
