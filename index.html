@@ -6,9 +6,15 @@
    (base derivada do RUMO v7.4.2 — histórico de versões anteriores
    preservado abaixo para referência técnica)
 
-   VERSÃO: Beta v1.387.0
-   LINHAS: 16225
-   DATA: 12/10/2026 (sessão 20261012-0240-ux-onda4c, demanda a05ad2ee)
+   VERSÃO: Beta v1.388.0
+   LINHAS: 16232
+   DATA: 12/10/2026 (sessão 20261012-0250-ux-onda4d, demanda a05ad2ee)
+   NOVIDADES (Beta v1.388.0) — UX onda 4d (estudo PROTOTIPO_UX_DENSIDADE_RAMOS_RAIZ v1.2.0, D9; "Vamos adiante" do
+   Nicola 12/10 02:46): agrupadores com total — em Ativos, a soma do valor de referência do empreendimento; em
+   Contratos, o aluguel/mês dos contratos ativos (cofre-ativos.js 1.96.0, contratos.js 1.54.0). O Balanço ganha o
+   mesmo topo de 2 linhas do Financeiro (período como título, lupa e +; abas sublinhadas); rzFinAlternarBusca acha o
+   campo dentro da barra. Nenhum objeto de banco.
+   Versão anterior (Beta v1.387.0):
    NOVIDADES (Beta v1.387.0) — UX onda 4c: Financeiro em 2 linhas e Usos com o ano (estudo PROTOTIPO_UX_DENSIDADE_
    RAMOS_RAIZ v1.2.0, D9; "Pode fazer e seguir" 12/10 02:26 e, 02:31, "juntar os dois cards ocupação e uso … filtrada
    por ano … letras iniciais dos meses … apenas o % ocupação basta"). Financeiro (Recebimentos, Saídas, Conciliação):
@@ -36,14 +42,8 @@
    documento", "+ Adicionar fotos"). js/cofre-ativos.js 1.93.0 → 1.94.0, js/ativos/ativos-markup.js 1.60.0 → 1.61.0;
    aqui só o import map. Nenhum objeto de banco.
    Versão anterior (Beta v1.383.0):
-   NOVIDADES (Beta v1.383.0) — UX onda 3a: um jeito só de agir na ficha do contrato (estudo PROTOTIPO_UX_DENSIDADE_
-   RAMOS_RAIZ v1.2.0, D11/D12; "pode avançar" do Nicola 12/10 01:53). O ⋮ fica no topo da ficha, ao lado da situação,
-   com todas as ações em grupos; os ⋮ dos cabeçalhos dos cards saem; adicionar vira a última linha do card
-   ("+ Adicionar recebimento", "+ Adicionar parte", "+ Adicionar documento"). Classes novas .rz-more-topo e .rz-add
-   (DS §6). js/contratos.js 1.51.0 → 1.52.0. Nenhum objeto de banco.
-   Versão anterior (Beta v1.382.0):
    ------------------------------------------------------------------
-   Versões anteriores (v1.382.0 … v1.382.0): CHANGELOG_APP.md, na raiz do
+   Versões anteriores (v1.383.0 … v1.383.0): CHANGELOG_APP.md, na raiz do
    repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
    das 5 versões mais recentes deste cabeçalho.
 
@@ -68,7 +68,7 @@
          O navegador aplica o mapa também aos imports estáticos dentro dos
          módulos (cofre-app.js → ./cofre-api.js etc.). -->
     <!-- RZ-IMPORTMAP:INICIO -->
-    <script type="importmap">{"imports":{"./js/cadastros.js":"./js/cadastros.js?v=1.2.0","./js/financeiro.js":"./js/financeiro.js?v=1.57.0","./js/fechamento.js":"./js/fechamento.js?v=1.13.0","./js/contratos.js":"./js/contratos.js?v=1.53.0","./js/minutas.js":"./js/minutas.js?v=1.4.0","./js/vitrine.js":"./js/vitrine.js?v=1.5.2","./js/imoveis.js":"./js/imoveis.js?v=1.7.2","./js/cofre-api.js":"./js/cofre-api.js?v=1.50.0","./js/cofre-app.js":"./js/cofre-app.js?v=1.47.0","./js/cofre-ativos.js":"./js/cofre-ativos.js?v=1.95.0","./js/cofre-controles.js":"./js/cofre-controles.js?v=1.51.0","./js/cofre-documentos.js":"./js/cofre-documentos.js?v=2.35.0","./js/cofre-imagem.js":"./js/cofre-imagem.js?v=1.1.0","./js/cofre-estado.js":"./js/cofre-estado.js?v=1.5.2","./js/cofre-navegacao.js":"./js/cofre-navegacao.js?v=1.9.3","./js/cofre-ui.js":"./js/cofre-ui.js?v=1.7.2","./js/cofre-validacoes.js":"./js/cofre-validacoes.js?v=2.5.0","./js/comum-licenca.js":"./js/comum-licenca.js?v=1.8.0","./js/comum-renovacao.js":"./js/comum-renovacao.js?v=1.3.5","./js/comum-minha-empresa.js":"./js/comum-minha-empresa.js?v=1.15.0","./js/comum-pessoas.js":"./js/comum-pessoas.js?v=1.210.0","./js/comum-sobre.js":"./js/comum-sobre.js?v=1.5.0","./js/comum-endereco.js":"./js/comum-endereco.js?v=1.2.0","./js/comum-partes.js":"./js/comum-partes.js?v=1.0.0","./js/resultados.js":"./js/resultados.js?v=2.9.0","./js/indicadores.js":"./js/indicadores.js?v=1.0.0","./js/configuracao-inicial.js":"./js/configuracao-inicial.js?v=1.0.1","./js/relatorios-executivos.js":"./js/relatorios-executivos.js?v=1.3.0","./js/raiz-eventos.js":"./js/raiz-eventos.js?v=1.0.0","./js/raiz-device.js":"./js/raiz-device.js?v=1.0.0","./js/raiz-ui.js":"./js/raiz-ui.js?v=1.4.0","./js/fiscal.js":"./js/fiscal.js?v=1.5.2","./js/ativos/ativos-boot.js":"./js/ativos/ativos-boot.js?v=1.4.0","./js/ativos/ativos-markup.js":"./js/ativos/ativos-markup.js?v=1.61.0","./js/nucleo/porta.js":"./js/nucleo/porta.js?v=1.4.0","./js/partes.js":"./js/partes.js?v=1.0.2","./js/conta.js":"./js/conta.js?v=1.0.1"}}</script>
+    <script type="importmap">{"imports":{"./js/cadastros.js":"./js/cadastros.js?v=1.2.0","./js/financeiro.js":"./js/financeiro.js?v=1.57.0","./js/fechamento.js":"./js/fechamento.js?v=1.13.0","./js/contratos.js":"./js/contratos.js?v=1.54.0","./js/minutas.js":"./js/minutas.js?v=1.4.0","./js/vitrine.js":"./js/vitrine.js?v=1.5.2","./js/imoveis.js":"./js/imoveis.js?v=1.7.2","./js/cofre-api.js":"./js/cofre-api.js?v=1.50.0","./js/cofre-app.js":"./js/cofre-app.js?v=1.47.0","./js/cofre-ativos.js":"./js/cofre-ativos.js?v=1.96.0","./js/cofre-controles.js":"./js/cofre-controles.js?v=1.51.0","./js/cofre-documentos.js":"./js/cofre-documentos.js?v=2.35.0","./js/cofre-imagem.js":"./js/cofre-imagem.js?v=1.1.0","./js/cofre-estado.js":"./js/cofre-estado.js?v=1.5.2","./js/cofre-navegacao.js":"./js/cofre-navegacao.js?v=1.9.3","./js/cofre-ui.js":"./js/cofre-ui.js?v=1.7.2","./js/cofre-validacoes.js":"./js/cofre-validacoes.js?v=2.5.0","./js/comum-licenca.js":"./js/comum-licenca.js?v=1.8.0","./js/comum-renovacao.js":"./js/comum-renovacao.js?v=1.3.5","./js/comum-minha-empresa.js":"./js/comum-minha-empresa.js?v=1.15.0","./js/comum-pessoas.js":"./js/comum-pessoas.js?v=1.210.0","./js/comum-sobre.js":"./js/comum-sobre.js?v=1.5.0","./js/comum-endereco.js":"./js/comum-endereco.js?v=1.2.0","./js/comum-partes.js":"./js/comum-partes.js?v=1.0.0","./js/resultados.js":"./js/resultados.js?v=2.9.0","./js/indicadores.js":"./js/indicadores.js?v=1.0.0","./js/configuracao-inicial.js":"./js/configuracao-inicial.js?v=1.0.1","./js/relatorios-executivos.js":"./js/relatorios-executivos.js?v=1.3.0","./js/raiz-eventos.js":"./js/raiz-eventos.js?v=1.0.0","./js/raiz-device.js":"./js/raiz-device.js?v=1.0.0","./js/raiz-ui.js":"./js/raiz-ui.js?v=1.4.0","./js/fiscal.js":"./js/fiscal.js?v=1.5.2","./js/ativos/ativos-boot.js":"./js/ativos/ativos-boot.js?v=1.4.0","./js/ativos/ativos-markup.js":"./js/ativos/ativos-markup.js?v=1.61.0","./js/nucleo/porta.js":"./js/nucleo/porta.js?v=1.4.0","./js/partes.js":"./js/partes.js?v=1.0.2","./js/conta.js":"./js/conta.js?v=1.0.1"}}</script>
     <!-- RZ-IMPORTMAP:FIM -->
 
     <!-- ===== PWA: permite "instalar" o app no celular (Android e iPhone) ===== -->
@@ -1418,6 +1418,9 @@
         .rz-uso-meses .rz-on{color:var(--ink);font-weight:700}
         .rz-uso-pe{display:flex;justify-content:space-between;align-items:baseline;gap:10px;font-size:12.5px;color:var(--muted);padding:2px 0 4px}
         .rz-uso-pe b{font:700 17px var(--font-title);color:var(--ink);margin-left:4px}
+        /* v1.388.0 — UX ONDA 4d: agrupador com total à direita (lista de Ativos e de Contratos) */
+        .rz-group.rz-group-t{display:flex;justify-content:space-between;align-items:baseline;gap:10px}
+        .rz-group.rz-group-t b{font-weight:700;color:var(--ink);white-space:nowrap}
     </style>
 
 </head>
@@ -3745,20 +3748,24 @@
                  busca (filtra sócios) + "+" (Lançar retirada), segmento, competência e o corpo desenhado
                  por renderDistribuicao() em js/financeiro.js (número de fn_apurar_distribuicao). Os campos
                  escondidos rep-* continuam porque rotinas antigas ainda os preenchem (PDF por sócio). -->
-            <div class="rz-topo">
-                <label class="rz-search" style="cursor:text"><svg data-lucide="search"></svg><input type="search" id="distrib-busca" placeholder="Buscar pessoa" oninput="distribFiltrar(this.value)" aria-label="Buscar sócio" style="flex:1;min-width:0;border:0;outline:0;background:transparent;height:44px;padding:0;color:var(--ink)"></label>
+            <!-- v1.388.0 (UX onda 4) — Balanço no mesmo topo de 2 linhas do Financeiro: período como título, lupa e +; abas -->
+            <div class="rz-fin-topo">
+                <div class="rz-mes-bar rz-mes-titulo">
+                <button type="button" class="rz-ico-btn" onclick="financeiroMudarCompetencia(-1)" aria-label="Período anterior"><svg data-lucide="chevron-left"></svg></button>
+                <span class="rz-mes-centro"><b id="fin-competencia-label-socios" class="rz-mes-label">—</b></span>
+                <button type="button" class="rz-ico-btn" onclick="financeiroMudarCompetencia(1)" aria-label="Próximo período"><svg data-lucide="chevron-right"></svg></button>
+                </div>
+                <button type="button" class="rz-ico-btn rz-fin-lupa" onclick="rzFinAlternarBusca('socios')" aria-label="Buscar"><svg data-lucide="search"></svg></button>
                 <button type="button" class="rz-ico-btn rz-primary" onclick="abrirLancarDistribuicao()" aria-label="Lançar retirada"><svg data-lucide="plus"></svg></button>
             </div>
-            <div class="rz-seg rz-seg-4">
+            <div class="rz-seg rz-seg-4 rz-fin-abas">
                 <button onclick="switchTab('tab-mensal')"><span class="rz-seg-l">Recebimentos</span><span class="rz-seg-s">Receb.</span></button>
                 <button onclick="switchTab('tab-saidas')">Saídas</button>
                 <button onclick="switchTab('tab-conciliacao')">Conciliação</button>
                 <button class="rz-on" onclick="switchTab('tab-socios')">Balanço</button>
             </div>
-            <div class="rz-mes-bar">
-                <button type="button" class="rz-ico-btn" onclick="financeiroMudarCompetencia(-1)" aria-label="Período anterior"><svg data-lucide="chevron-left"></svg></button>
-                <span class="rz-mes-centro"><b id="fin-competencia-label-socios" class="rz-mes-label">—</b></span>
-                <button type="button" class="rz-ico-btn" onclick="financeiroMudarCompetencia(1)" aria-label="Próximo período"><svg data-lucide="chevron-right"></svg></button>
+            <div class="rz-topo rz-fin-busca" id="fin-busca-wrap-socios">
+                <label class="rz-search" style="cursor:text"><svg data-lucide="search"></svg><input type="search" id="distrib-busca" placeholder="Buscar pessoa" oninput="distribFiltrar(this.value)" aria-label="Buscar sócio" style="flex:1;min-width:0;border:0;outline:0;background:transparent;height:44px;padding:0;color:var(--ink)"></label>
             </div>
             <div id="distrib-corpo"></div>
 
@@ -4117,7 +4124,7 @@
         // texto certo toda vez (esqueci 5 versões seguidas, de v1.37.1 até
         // v1.38.3). Agora só precisa mudar UMA linha aqui a cada release;
         // window.onload aplica nos dois lugares automaticamente.
-        const APP_VERSAO = "Beta v1.387.0"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
+        const APP_VERSAO = "Beta v1.388.0"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
 
         // ====================================================================
         // v1.105.0 — HELPERS DE SUPERFÍCIE DA GRAMÁTICA ÚNICA
@@ -15944,12 +15951,12 @@ async function criarLinkVitrineSupabase(token, idsSelecionados) {
         // (o filtro some junto); com texto, a busca continua aberta.
         function rzFinAlternarBusca(aba) {
             const wrap = document.getElementById('fin-busca-wrap-' + aba);
-            const inp = document.getElementById('fin-busca-q-' + aba);
+            const inp = wrap ? wrap.querySelector('input') : null; // v1.388.0 — vale também para o Balanço (#distrib-busca)
             if (!wrap || !inp) return;
             const abrir = !wrap.classList.contains('rz-aberta');
             wrap.classList.toggle('rz-aberta', abrir);
             if (abrir) setTimeout(() => inp.focus(), 30);
-            else if (inp.value) { inp.value = ''; inp.dispatchEvent(new Event('input', { bubbles: true })); }
+            else if (inp.value) { inp.value = ''; inp.dispatchEvent(new Event('input', { bubbles: true })); if (aba === 'socios' && typeof distribFiltrar === 'function') distribFiltrar(''); }
         }
 
         function rzBuscaInline(input, aoMudar) {

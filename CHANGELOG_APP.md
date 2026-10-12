@@ -4,6 +4,19 @@ Histórico completo de versões do `index.html`, movido automaticamente pelo `ge
 
 ---
 
+NOVIDADES (Beta v1.383.0) — UX onda 3a: um jeito só de agir na ficha do contrato (estudo PROTOTIPO_UX_DENSIDADE_
+RAMOS_RAIZ v1.2.0, D11/D12; "pode avançar" do Nicola 12/10 01:53). O ⋮ fica no topo da ficha, ao lado da situação,
+com todas as ações em grupos; os ⋮ dos cabeçalhos dos cards saem; adicionar vira a última linha do card
+("+ Adicionar recebimento", "+ Adicionar parte", "+ Adicionar documento"). Classes novas .rz-more-topo e .rz-add
+(DS §6). js/contratos.js 1.51.0 → 1.52.0. Nenhum objeto de banco.
+Versão anterior (Beta v1.382.0):
+------------------------------------------------------------------
+Versões anteriores (v1.382.0 … v1.382.0): CHANGELOG_APP.md, na raiz do
+repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
+das 5 versões mais recentes deste cabeçalho.
+
+---
+
 NOVIDADES (Beta v1.382.0) — F13.9: dividir uma retirada em partes (do fluxo e extraordinária), mesmo conciliada, e unir
 de novo. Só o import map muda aqui (financeiro.js 1.55.0).
 Versão anterior (Beta v1.381.0):

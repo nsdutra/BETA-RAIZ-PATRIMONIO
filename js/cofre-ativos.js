@@ -1,6 +1,12 @@
 // ============================================================================
 // cofre-ativos.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.95.0 · 12/10/2026
+// Versão: 1.96.0 · 12/10/2026
+//
+// v1.96.0 (12/10/2026, sessão 20261012-0250-ux-onda4d, demanda a05ad2ee; UX onda 4, estudo PROTOTIPO_UX_DENSIDADE_RAMOS_RAIZ
+// v1.2.0 D9; "Vamos adiante" do Nicola 12/10 02:46) — a lista de Ativos ganha o total no agrupador: "Capital · 8" à
+// esquerda e a soma do valor de referência do grupo à direita (compacto: R$ 7,2 mi).
+//
+// Versão anterior: 1.95.0 · 12/10/2026
 //
 // v1.95.0 (12/10/2026, sessão 20261012-0240-ux-onda4c, demanda a05ad2ee; Nicola 12/10 02:31: "juntar os dois cards ocupação
 // e uso … a própria barra deveria ser filtrada por ano … letras iniciais dos meses … apenas o % ocupação basta") — Usos e
@@ -30,25 +36,11 @@
 // e as extraordinárias do ativo pessoa e, no fim, os indicadores do ano (antes no chip Performance, que saiu). Sai a
 // seta de mês. Card novo "Ocupação" em Usos e contratos: dias alugado e vago e a taxa de ocupação, por ano ou todos
 // (fn_performance_ativo de cada ano).
-//
-// Versão anterior: 1.91.0 · 11/10/2026
-//
-// v1.91.0 (11/10/2026, sessão 20261008-1231-pessoas-ativos, demanda f3e6cd27; F13 4c etapa 3,
-// PROTOTIPO_FINANCEIRO_DO_ATIVO v1.0.0, D81 a D84; Nicola 12:55 "Pode avançar") — chip "Financeiro" do ativo
-// (montarMovimentoAtivo), em todo ativo e com a mesma estrutura por ramo:
-//   · ‹ mês › no topo;
-//   · Balanço pendente (fn_balanco_pessoas): ativo pessoa = o saldo da pessoa com todos; outro ativo = os saldos
-//     ligados a ele. Tocar abre o Quitar do Balanço (balancoQuitar, js/financeiro.js);
-//   · Entrou e Saiu no mês;
-//   · ativo pessoa: Contas e cartões dela e Retiradas extraordinárias no ano (fn_retiradas_extraordinarias, F13.7);
-//   · Movimentações do mês: lançamentos do ativo (e, se é pessoa, das contas e cartões dela), recebimentos dos
-//     contratos do ativo e quitações, com filtros. Tocar abre o lançamento, a fatura ou o recebimento no Financeiro.
-// Só leitura pelo que já existe (RLS de contas visíveis vale). Carrega ao abrir o chip e a cada toque nele.
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.90.0 … v1.90.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.91.0 … v1.91.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '1.95.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.96.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 import { estado } from './cofre-estado.js';
 import * as api from './cofre-api.js';
 import { mostrarToast, erroInline, refrescarIcones, alternarToggle, abrirModal, fecharModal, modalGenerico, perguntar, avisarComDesfazer } from './cofre-ui.js';
@@ -523,8 +515,11 @@ export function renderAtivosLista(filtroTipo = '', filtroTexto = '') {
         </div>` : '';
     ultimaContagemAtivos = lista.length;
     atualizarRotuloBuscaAtivos();
+    // v1.96.0 (UX onda 4, D9) — agrupador com total: a soma do valor de referência dos ativos do grupo, à direita
+    const compacto = (v) => (typeof window.formatarValorCompacto === 'function' ? window.formatarValorCompacto(v) : Number(v || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 }));
+    const totalGrupo = (l) => { const c = l.filter(a => a.valor_referencia != null); return c.length ? compacto(c.reduce((t, a) => t + Number(a.valor_referencia || 0), 0)) : ''; };
     container.innerHTML = nomesGrupos.map(nome => `
-        <div class="rz-group">${escapeHtml(nome)} · ${grupos[nome].length}</div>
+        <div class="rz-group rz-group-t"><span>${escapeHtml(nome)} · ${grupos[nome].length}</span>${totalGrupo(grupos[nome]) ? `<b>${totalGrupo(grupos[nome])}</b>` : ''}</div>
         <div class="rz-card rz-list">${grupos[nome].map(ativoCardHtml).join('')}</div>
     `).join('') + cardConvite;
 

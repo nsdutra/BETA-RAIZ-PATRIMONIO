@@ -1,7 +1,13 @@
 // ============================================================================
 // contratos.js — Raiz Patrimônio · Contratos (lista · ficha · formulário ·
 //                 status/reajuste/detalhes · fiadores · documentos · histórico)
-// Versão: 1.53.0 · 12/10/2026
+// Versão: 1.54.0 · 12/10/2026
+//
+// v1.54.0 (12/10/2026, sessão 20261012-0250-ux-onda4d, demanda a05ad2ee; UX onda 4, D9; "Vamos adiante" 12/10 02:46) — a
+// lista de Contratos ganha o total no agrupador: "Capital · 12" à esquerda e o aluguel/mês dos contratos ativos do
+// empreendimento à direita.
+//
+// Versão anterior: 1.53.0 · 12/10/2026
 //
 // v1.53.0 (12/10/2026, sessão 20261012-0220-ux-onda4a, demanda a05ad2ee; UX onda 4) — o card Financeiro da ficha do contrato
 // perde a borda vermelha de crítico e o selo do cabeçalho (o atraso aparece uma vez só, no resumo, que leva aos
@@ -30,15 +36,8 @@
 // v1.50.0 (sessão 20261003-1707-ux-base, demanda 28aa5ce1 — teste do Nicola 10/10 21:43: "Retire o botão de filtro
 // porque o filtro oferecido é o mesmo dos chips") — o topo fica só com a barra digitável; o ícone de filtros e o
 // número de filtros ligados saem. abrirBuscaContratos continua exportada (sem botão que a chame no app).
-//
-// Versão anterior: 1.49.0 · 10/10/2026
-//
-// v1.49.0 (demanda 28aa5ce1, sessão 20261003-1707-ux-base; de acordo do Nicola 10/10 21:26) — a barra de busca de
-// Contratos é digitável: o texto filtra enquanto digita (rzBuscaInline do index, × limpa só o texto) e o ícone de
-// filtros ao lado abre o Sheet só com Empreendimento e Imóvel (rzAbrirBuscaTela com semTexto; Limpar zera só os
-// filtros). O número no ícone diz quantos filtros estão ligados. O campo guardador continua #contratos-filtro-texto.
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.48.0 … v1.48.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.49.0 … v1.49.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
 import { avaliarProntidaoContratoParaMinuta } from './minutas.js'; // v1.0.1
@@ -50,7 +49,7 @@ import { emitirEscrita, aoEscrever } from './raiz-eventos.js'; // v1.18.0 — Fa
 import { renderizarBlocoEndereco, lerBlocoEndereco } from './comum-endereco.js';
 import { formatarEnderecoParte } from './comum-partes.js';
 
-export const VERSAO = '1.53.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.54.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 
 /** Ponto de entrada do switchTab('tab-contratos'). */
 export function montarAbaContratos() {
@@ -4739,8 +4738,11 @@ if (!window.__rzListenerEscritaParteContratoLigado) {
                 const emp = empDe(con);
                 if (emp !== grupoAtual) {
                     if (grupoAtual !== null) html += '</div>';
-                    const qtd = ordenados.filter(c => empDe(c) === emp).length;
-                    html += `<div class="rz-group">${escapeHtmlSaidas(emp)} · ${qtd}</div><div class="rz-card rz-list">`;
+                    const doGrupo = ordenados.filter(c => empDe(c) === emp), qtd = doGrupo.length;
+                    // v1.54.0 (UX onda 4, D9) — agrupador com total: aluguel/mês dos contratos ativos do grupo, à direita
+                    const somaAtivos = doGrupo.filter(c => c.status === 'Ativo').reduce((t, c) => t + (Number(c.valor) || 0), 0);
+                    const totalTxt = somaAtivos > 0 ? `<b>${(typeof window.formatarValorCompacto === 'function' ? window.formatarValorCompacto(somaAtivos) : formatarMoedaBR(somaAtivos))}/mês</b>` : '';
+                    html += `<div class="rz-group rz-group-t"><span>${escapeHtmlSaidas(emp)} · ${qtd}</span>${totalTxt}</div><div class="rz-card rz-list">`;
                     grupoAtual = emp;
                 }
                 const vencido = contratoVencido(con);
