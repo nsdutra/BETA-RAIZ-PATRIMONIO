@@ -4,6 +4,20 @@ Histórico completo de versões do `index.html`, movido automaticamente pelo `ge
 
 ---
 
+NOVIDADES (Beta v1.371.0) — Marca e ramos, fase 6 — assinatura nas saídas (plano aprovado pelo Nicola 11/10 11:20; "Vamos avançar" 13:11).
+Recibo de aluguel: azul-marinho (#1a365d, fora da paleta) vira o verde da marca e ganha rodapé discreto com o símbolo
+"Emitido com Raiz Patrimônio · raizpatrimonio.com.br" (classe .rz-pdf-marca). PDFs de texto (demonstrativo de recebimentos e
+do sócio) no verde da marca e com rzPdfRodapeMarca(pdf) em toda página: pontos dos ramos, "Raiz Patrimônio", paginação; a
+função fica em window para o fechamento.js 1.13.0 (pacote do contador). relatorios-executivos.js 1.2.0: símbolo junto da
+assinatura do cabeçalho. Nenhum objeto de banco.
+Versão anterior (Beta v1.370.0):
+------------------------------------------------------------------
+Versões anteriores (v1.370.0 … v1.370.0): CHANGELOG_APP.md, na raiz do
+repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
+das 5 versões mais recentes deste cabeçalho.
+
+---
+
 NOVIDADES (Beta v1.370.0) — F13 4c etapa 3: chip "Financeiro" na ficha de todo ativo (balanço pendente com Quitar,
 contas e cartões, extraordinárias, movimentações do mês). Só o import map muda aqui (cofre-ativos.js 1.91.0,
 ativos-markup.js 1.59.0, financeiro.js 1.51.0).
