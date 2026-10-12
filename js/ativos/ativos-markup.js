@@ -1,6 +1,14 @@
 // ============================================================================
 // js/ativos/ativos-markup.js — Raiz Patrimônio · Módulo Único, fatia frontend 1
-// Versão: 1.60.0 · 11/10/2026
+// Versão: 1.61.0 · 12/10/2026
+//
+// v1.61.0 (12/10/2026, sessão 20261012-0215-ux-onda3b, demanda a05ad2ee; UX onda 3, estudo PROTOTIPO_UX_DENSIDADE_RAMOS_RAIZ
+// v1.2.0 D11/D12, "pode avançar" do Nicola 12/10 01:53) — os ⋮ dos cabeçalhos dos cards da ficha do ativo saem (Dados,
+// Propriedade, Contratos, Itens de controle, Anexos, Fotos): as ações moram no ⋮ do topo (cofre-ativos 1.94.0). Adicionar
+// vira a última linha do card: "+ Adicionar uso", "+ Adicionar item de controle", "+ Adicionar documento",
+// "+ Adicionar fotos".
+//
+// Versão anterior: 1.60.0 · 11/10/2026
 //
 // v1.60.0 (11/10/2026, sessão 20261008-1231-pessoas-ativos, demanda f3e6cd27; F13 4c etapa 4; Nicola 11/10 17:42, teste da etapa 3: "pode organizar melhor pro chip de performance desaparecer e deixar tudo no financeiro")
 // — sai o chip Performance: os indicadores do ano (grid e revisão de valor) vão para o fim do chip Financeiro, e o card
@@ -22,17 +30,11 @@
 // v1.57.0 (demanda 28aa5ce1, sessão 20261003-1707-ux-base; de acordo do Nicola 10/10 21:26) — topo de Ativos: a
 // barra de busca é digitável (#ativos-busca-q, ligada por cofre-ativos.js) e ganha o ícone de filtros ao lado
 // (#ativos-filtros-btn, data-action abrir-busca-ativos: Sheet só com Tipo, Situação e Alerta).
-//
-// Versão anterior: 1.56.0 · 10/10/2026
-//
-// v1.56.0 (10/10/2026, sessão 20261008-1231-pessoas-ativos, demanda a3f4c73f — F25, aprovada pelo Nicola 10/10 14:57) —
-// chip "Contratos" da ficha vira "Usos e contratos" (D73): card Usos (linha do tempo, Novo uso, repouso) acima
-// do card Contratos, que só aparece para imóvel.
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.55.0 … v1.55.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.56.0 … v1.56.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '1.60.0'; // v-check (28/09/2026): lido por Dev › Versões — manter igual ao header
+export const VERSAO = '1.61.0'; // v-check (28/09/2026): lido por Dev › Versões — manter igual ao header
 export const ATIVOS_MARKUP = `<style>
     /* v1.94.1 (31/08/2026, pedido explícito: "anexo uma barra de
        rolagem que fica feia... ao rolar os chips não mostrar a barra")
@@ -414,7 +416,7 @@ export const ATIVOS_MARKUP = `<style>
     <!-- ===== Painel: Resumo (Dados + Propriedade) ===== -->
     <div id="fa-painel-resumo" class="fa-painel">
         <div class="rz-card">
-            <div class="rz-card-h"><h3 id="fa-dados-titulo">Dados do ativo</h3><span id="fa-dados-status"></span><button data-action="abrir-acoes-ativo" class="rz-more" aria-label="Mais ações"><i data-lucide="ellipsis-vertical"></i></button></div>
+            <div class="rz-card-h"><h3 id="fa-dados-titulo">Dados do ativo</h3><span id="fa-dados-status"></span></div>
             <div id="fa-dados-imovel-grid" class="hidden"></div>
             <div id="fa-resumo-dados"></div>
 
@@ -437,7 +439,7 @@ export const ATIVOS_MARKUP = `<style>
         </div>
 
         <div class="rz-card">
-            <div class="rz-card-h"><h3>Propriedade</h3><span class="rz-sub">Divisão societária</span><button data-action="fa-acoes-propriedade" class="rz-more" aria-label="Mais ações"><i data-lucide="ellipsis-vertical"></i></button></div>
+            <div class="rz-card-h"><h3>Propriedade</h3><span class="rz-sub">Divisão societária</span></div>
             <div id="fa-propriedade-lista"></div>
         </div>
     </div>
@@ -449,10 +451,12 @@ export const ATIVOS_MARKUP = `<style>
         <div class="rz-card" id="fa-card-usos">
             <div class="rz-card-h"><h3>Usos</h3><span class="rz-sub" id="fa-usos-sub"></span></div>
             <div id="fa-usos-lista"></div>
+            <!-- v1.61.0 (UX onda 3, D12) — adicionar é a última linha do card -->
+            <button type="button" class="rz-add" data-rz-codigo="contratos.criar" onclick="if (window.rzMostrarBloqueio &amp;&amp; window.rzMostrarBloqueio('contratos.criar')) return; window.__rzAdicionarModeloAtivo &amp;&amp; window.__rzAdicionarModeloAtivo()"><i data-lucide="plus"></i>Adicionar uso</button>
         </div>
         <div class="rz-card hidden" id="fa-card-ocupacao"></div>
         <div class="rz-card" id="fa-card-contratos">
-            <div class="rz-card-h"><h3>Contratos</h3><span class="rz-sub" id="fa-contratos-sub"></span><button data-action="fa-acoes-contratos" class="rz-more" aria-label="Mais ações"><i data-lucide="ellipsis-vertical"></i></button></div>
+            <div class="rz-card-h"><h3>Contratos</h3><span class="rz-sub" id="fa-contratos-sub"></span></div>
             <div id="fa-contratos-lista"></div>
         </div>
     </div>
@@ -460,8 +464,9 @@ export const ATIVOS_MARKUP = `<style>
     <!-- ===== Painel: Controles ===== -->
     <div id="fa-painel-controles" class="fa-painel hidden">
         <div class="rz-card">
-            <div class="rz-card-h"><h3>Itens de controle</h3><span id="fa-controles-status"></span><button data-action="abrir-acoes-controles" class="rz-more" aria-label="Mais ações"><i data-lucide="ellipsis-vertical"></i></button></div>
+            <div class="rz-card-h"><h3>Itens de controle</h3><span id="fa-controles-status"></span></div>
             <div id="fa-tab-controles"></div>
+            <button type="button" class="rz-add" data-action="abrir-acoes-controles"><i data-lucide="plus"></i>Adicionar item de controle</button>
         </div>
     </div>
 
@@ -504,7 +509,7 @@ export const ATIVOS_MARKUP = `<style>
         <div class="rz-chips" id="fa-anexos-chips"></div>
 
         <div class="rz-card" id="fa-arq-documentos">
-            <div class="rz-card-h"><h3 id="fa-anexos-titulo">Anexos</h3><span class="rz-sub" id="fa-anexos-sub"></span><button data-action="fa-acoes-anexos" class="rz-more" aria-label="Mais ações"><i data-lucide="ellipsis-vertical"></i></button></div>
+            <div class="rz-card-h"><h3 id="fa-anexos-titulo">Anexos</h3><span class="rz-sub" id="fa-anexos-sub"></span></div>
             <div id="fa-tab-documentos"></div>
             <!-- vazio (REGRAS §9): IA é a ação primária, upload simples é
                  terciário. Alternado por montarDocumentosAtivo(). -->
@@ -513,10 +518,11 @@ export const ATIVOS_MARKUP = `<style>
                 <p id="fa-documentos-vazio-texto">Nenhum anexo neste ativo. A IA lê matrícula, IPTU e apólices e preenche os controles sozinha.</p>
             </div>
             <div id="fa-documentos-rodape" class="hidden"></div>
+            <button type="button" class="rz-add" data-action="fa-acoes-anexos"><i data-lucide="plus"></i>Adicionar documento</button>
         </div>
 
         <div class="rz-card hidden" id="fa-arq-fotos">
-            <div class="rz-card-h"><h3>Fotos</h3><span class="rz-sub" id="fa-fotos-sub"></span><button data-action="fa-acoes-anexos" class="rz-more" aria-label="Mais ações"><i data-lucide="ellipsis-vertical"></i></button></div>
+            <div class="rz-card-h"><h3>Fotos</h3><span class="rz-sub" id="fa-fotos-sub"></span></div>
             <div id="fa-box-fotos" class="hidden">
                 <div id="fa-fotos-grid" class="flex flex-wrap gap-2"></div>
             </div>
@@ -524,6 +530,7 @@ export const ATIVOS_MARKUP = `<style>
                 <div class="rz-ic"><i data-lucide="image"></i></div>
                 <p>Nenhuma foto ainda. Fotos alimentam a vitrine e a vistoria.</p>
             </div>
+            <button type="button" class="rz-add" data-rz-codigo="cofre.editar" onclick="if (window.rzMostrarBloqueio &amp;&amp; window.rzMostrarBloqueio('cofre.editar')) return; document.getElementById('fa-foto-input')?.click()"><i data-lucide="plus"></i>Adicionar fotos</button>
             <div id="fa-fotos-rodape" class="hidden"></div>
         </div>
     </div>

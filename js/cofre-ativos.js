@@ -1,6 +1,14 @@
 // ============================================================================
 // cofre-ativos.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.93.0 · 11/10/2026
+// Versão: 1.94.0 · 12/10/2026
+//
+// v1.94.0 (12/10/2026, sessão 20261012-0215-ux-onda3b, demanda a05ad2ee; UX onda 3, estudo PROTOTIPO_UX_DENSIDADE_RAMOS_RAIZ
+// v1.2.0 D11/D12, "pode avançar" do Nicola 12/10 01:53) — ficha do ativo com um jeito só de agir: o ⋮ do topo (ao lado da
+// situação) reúne todas as ações em grupos (Ativo · Usos e contratos · Controles · Financeiro · Propriedade · Anexos ·
+// Situação, com Excluir por último em vermelho). O ⋮ do card Balanço pendente sai; o "Quitar" de cada linha continua.
+// As funções abrirAcoesPropriedade/Contratos/Controles/Financeiro/Anexos continuam exportadas (atalhos "+ Adicionar").
+//
+// Versão anterior: 1.93.0 · 11/10/2026
 //
 // v1.93.0 (11/10/2026, sessão 20261008-1231-pessoas-ativos, demanda 0aa64e93; F13.8, ficha v1.4.0 e protótipo v1.3.0; de acordo do Nicola 11/10 22:55) — ativo pessoa: o card
 // Retiradas extraordinárias ganha "Ver relatório", que abre o relatório já no recorte da pessoa (chip com o nome; tocar
@@ -33,18 +41,11 @@
 //
 // v1.90.0 (sessão 20261003-1707-ux-base, demanda 28aa5ce1 — teste do Nicola 10/10 21:43) — sem o ícone de filtros:
 // os chips já filtram por tipo; o topo fica só com a barra digitável. abrirBuscaAtivos continua exportada.
-//
-// Versão anterior: 1.89.0 · 10/10/2026
-//
-// v1.89.0 (demanda 28aa5ce1, sessão 20261003-1707-ux-base; de acordo do Nicola 10/10 21:26) — a busca de Ativos é
-// digitável: o texto filtra enquanto digita (window.rzBuscaInline do index; × limpa só o texto) e o ícone de filtros
-// abre o Sheet só com Tipo, Situação e Alerta (rzAbrirBuscaTela com semTexto; Limpar zera só os filtros). O número
-// no ícone diz quantos filtros estão ligados. O campo guardador continua #filtro-ativo-busca.
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.88.0 … v1.88.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.89.0 … v1.89.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '1.93.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.94.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 import { estado } from './cofre-estado.js';
 import * as api from './cofre-api.js';
 import { mostrarToast, erroInline, refrescarIcones, alternarToggle, abrirModal, fecharModal, modalGenerico, perguntar, avisarComDesfazer } from './cofre-ui.js';
@@ -1235,7 +1236,8 @@ export async function abrirFichaAtivo(id, chipInicial = 'resumo') {
             <span>${escapeHtml(rotuloTipoAtivo(a.tipo_ativo))}</span>
         </div>
         ${statusAtivoHtml(a)}
-    `;
+        <button type="button" data-action="abrir-acoes-ativo" class="rz-more rz-more-topo" aria-label="Ações do ativo"><i data-lucide="ellipsis-vertical"></i></button>
+    `; // v1.94.0 (UX onda 3, D11) — o ⋮ do topo reúne todas as ações do ativo, em grupos
     document.getElementById('fa-editar-wrapper').classList.add('hidden');
 
     fotosAtivoCache = [];
@@ -1408,7 +1410,37 @@ export function abrirAcoesAtivo() {
     if (a.status !== 'vendido') acoes.push({ icone: 'calendar-clock', titulo: 'Iniciar revisão anual', codigo: 'cofre.controles.criar', sub: 'Começa o ciclo de revisão de valor deste ativo', aoTocar: () => abrirIniciarRevisaoAnual(a) });
     if (a.status !== 'vendido') acoes.push({ icone: 'tag', titulo: 'Marcar como vendido', codigo: 'cofre.editar', sub: 'Desliga alertas e sai dos links compartilhados', aoTocar: () => marcarAtivoVendidoAtual() });
     acoes.push({ icone: 'trash-2', titulo: 'Excluir ativo', codigo: 'cofre.excluir', tipo: 'bad', aoTocar: () => excluirAtivoAtual() });
-    sheetOuAviso({ titulo: a.nome_exibicao, sub: rotuloTipoAtivo(a.tipo_ativo), acoes });
+    // v1.94.0 (UX onda 3, D11) — é o ⋮ do topo da ficha: todas as ações do ativo em grupos curtos (os ⋮ dos cabeçalhos
+    // dos cards saíram). Situação (vender, excluir) por último.
+    const situacao = acoes.filter(x => x.titulo === 'Marcar como vendido' || x.titulo === 'Excluir ativo');
+    const fora = a.registro_contabil === 'fora';
+    const grupos = [
+        { titulo: 'Ativo', acoes: acoes.filter(x => !situacao.includes(x)) },
+        { titulo: 'Usos e contratos', acoes: [
+            { icone: 'plus', titulo: 'Adicionar uso', codigo: 'contratos.criar', sub: 'Escolha o modelo: aluguel, temporada…', aoTocar: () => abrirAdicionarModeloAtivo() },
+            { icone: 'list', titulo: 'Ver todos na aba Contratos', codigo: 'contratos.ver', aoTocar: () => { if (typeof window.switchTab === 'function') window.switchTab('tab-contratos'); } },
+        ] },
+        { titulo: 'Controles', acoes: [
+            { icone: 'sparkles', tipo: 'ia', titulo: 'Carregar documento', codigo: 'cofre.analisar_ia', sub: 'A IA lê e preenche os itens sozinha', aoTocar: () => window.__rzUploadAtivo?.(true) },
+            { icone: 'plus', titulo: 'Novo item de controle', codigo: 'cofre.controles.criar', sub: 'Seguro, tributo, vistoria, manutenção', aoTocar: () => window.__rzAbrirFormControle?.() },
+        ] },
+        { titulo: 'Financeiro', acoes: [
+            { icone: 'plus', titulo: 'Novo lançamento', codigo: 'saidas.registrar', sub: 'Saída ligada a este ativo', aoTocar: () => abrirNovoLancamentoDoAtivo() },
+            { icone: 'wallet', titulo: 'Ver no Financeiro', codigo: 'mensal.ver', sub: 'Todas as saídas deste ativo', aoTocar: () => abrirSaidasDoAtivo() },
+            { icone: 'scale', titulo: 'Ver o balanço completo', codigo: 'repasses.ver', sub: 'Todas as pessoas e o histórico de quitações', aoTocar: () => movAbrirBalanco() },
+        ] },
+        { titulo: 'Propriedade', acoes: [
+            { icone: 'pie-chart', titulo: 'Editar divisão', codigo: 'imoveis.divisao', sub: 'Sócios e percentuais', aoTocar: () => abrirEditarPropriedadeAtivo() },
+            { icone: fora ? 'plus-circle' : 'ban', titulo: fora ? 'Incluir na contabilidade da empresa' : 'Tirar da contabilidade da empresa', codigo: 'imoveis.divisao',
+              sub: fora ? 'Volta a entrar no pacote do contador nos próximos fechamentos' : 'Patrimônio fora da empresa: continua no Raiz, mas não vai ao contador', aoTocar: () => alternarRegistroContabilAtivo() },
+        ] },
+        { titulo: 'Anexos', acoes: [
+            { icone: 'sparkles', titulo: 'Adicionar documento com IA', codigo: 'cofre.analisar_ia', sub: 'Lê matrícula, IPTU, apólice e preenche os controles', tipo: 'ia', aoTocar: () => window.__rzUploadAtivo?.(true) },
+            { icone: 'upload', titulo: 'Upload simples', codigo: 'cofre.upload', sub: 'Só guarda o arquivo', aoTocar: () => window.__rzUploadAtivo?.(false) },
+        ] },
+        { titulo: 'Situação', acoes: situacao },
+    ].filter(g => g.acoes.length);
+    sheetOuAviso({ titulo: a.nome_exibicao, sub: rotuloTipoAtivo(a.tipo_ativo), grupos });
 }
 
 // Fase R / Entrega R.3 (20/09/2026) — "Iniciar revisão anual" (esqueleto
@@ -2091,7 +2123,7 @@ function movDesenharTopo(a, pessoaId, bal, ex, contas) {
             <div class="rz-tx"><b>${movEsc(frase)}</b><span>${movEsc(MOV_NATUREZA[l.natureza] || l.natureza)}</span></div>
             <div class="rz-rt"><b>${fmt(Math.abs(v))}</b><small style="display:block;text-align:right;color:var(--pine)">Quitar ›</small></div></div>`;
     };
-    const cardBal = `<div class="rz-card rz-list"><div class="rz-card-h" style="padding-top:10px;margin-bottom:0"><h3>Balanço pendente</h3><span class="rz-sub">${bal.length ? fmt(total) + ' em aberto' : 'nada em aberto'}</span><button type="button" class="rz-more" data-mov-menu aria-label="Mais ações"><i data-lucide="ellipsis-vertical"></i></button></div>` +
+    const cardBal = `<div class="rz-card rz-list"><div class="rz-card-h" style="padding-top:10px;margin-bottom:0"><h3>Balanço pendente</h3><span class="rz-sub">${bal.length ? fmt(total) + ' em aberto' : 'nada em aberto'}</span></div>` +
         (bal.length ? bal.map(linha).join('') : `<p class="rz-desc" style="margin:4px 14px 10px">${pessoaId ? 'Nada em aberto com ' + movEsc(nomeAtivo) : 'Nada em aberto ligado a este ativo'}.</p>`) + '</div>';
     const cardContas = contas.length ? `<div class="rz-card rz-list"><div class="rz-card-h" style="padding-top:10px;margin-bottom:0"><h3>Contas e cartões</h3><span class="rz-sub">${contas.length}</span></div>` +
         contas.map(c => { const cartao = c.tipo === 'cartao_credito';
@@ -2102,7 +2134,6 @@ function movDesenharTopo(a, pessoaId, bal, ex, contas) {
         <div class="rz-list" style="margin-top:8px"><div class="rz-row rz-link" role="button" tabindex="0" data-mov-relret><div class="rz-ic"><i data-lucide="file-text"></i></div><div class="rz-tx"><b>Ver relatório</b><span>Retiradas extraordinárias de ${movEsc(nomeAtivo)}</span></div><i data-lucide="chevron-right" class="rz-chev"></i></div></div></div>` : ''; // v1.93.0 — F13.8
     t.innerHTML = cardBal + cardContas + cardExtra;
     t.querySelectorAll('[data-mov-bal]').forEach(b => b.addEventListener('click', (ev) => { ev.stopPropagation(); movQuitar(a, bal[Number(b.dataset.movBal)]); }));
-    t.querySelector('[data-mov-menu]')?.addEventListener('click', (ev) => { ev.stopPropagation(); abrirAcoesFinanceiroAtivo(); });
     t.querySelector('[data-mov-relret]')?.addEventListener('click', () => { if (typeof window.abrirRelatorioExecutivo === 'function') window.abrirRelatorioExecutivo('retiradas', { pessoaId, pessoaNome: nomeAtivo }); });
     refrescarIcones();
 }

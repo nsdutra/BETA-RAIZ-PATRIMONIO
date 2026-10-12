@@ -4,6 +4,17 @@ Histórico completo de versões do `index.html`, movido automaticamente pelo `ge
 
 ---
 
+NOVIDADES (Beta v1.379.0) — F13.8: relatório "Retiradas extraordinárias" na lista de Relatórios (só fatos e dados;
+partes por pessoa quando o controle está ligado em Minha empresa › Rotinas). Import map: relatorios-executivos.js 1.3.0,
+comum-minha-empresa.js 1.15.0, comum-pessoas.js 1.210.0, financeiro.js 1.54.0, cofre-ativos.js 1.93.0.
+Versão anterior (Beta v1.378.0):
+------------------------------------------------------------------
+Versões anteriores (v1.378.0 … v1.378.0): CHANGELOG_APP.md, na raiz do
+repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
+das 5 versões mais recentes deste cabeçalho.
+
+---
+
 NOVIDADES (Beta v1.378.0) — Continuidade splash → empresas → app (Nicola 11/10 22:51: "Gostei. vamos fazer";
 PROTOTIPO_CONTINUIDADE_SPLASH_APP_RAIZ v1.0.0, C1–C5). C1: na escolha de empresa a árvore do splash fica, menor, no
 céu (rzSplashChaoAnimar acompanha a altura); saudação pela hora; cartões creme com o logo (sem logo, só o nome — sem
