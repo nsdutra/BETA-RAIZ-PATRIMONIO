@@ -4,6 +4,21 @@ Histórico completo de versões do `index.html`, movido automaticamente pelo `ge
 
 ---
 
+NOVIDADES (Beta v1.390.0) — Busca pela lupa do topo e Financeiro das fichas num card só (Nicola 12/10 03:18). A lupa
+do cabeçalho é a busca da tela aberta: abre em leque para a esquerda por cima do nome da empresa, digita e recolhe;
+com filtro, o ícone fica claro com um ponto dourado; tocar de novo limpa e abre. Tela com busca por sheet (Agenda,
+Vitrine) abre o sheet; tela sem busca abre a busca em tudo. As barras de busca das telas ficam escondidas (o topo
+escreve nelas — rzHdrBusca/rzBuscaDaTela/rzHdrBuscaSync); o "+" vai para a direita e, em Ativos e Contratos, sobe
+para a linha das abas. Financeiro das fichas: card "Financeiro" com ‹ ano › à frente do título, como Usos
+(financeiro.js 1.59.0, contratos.js 1.55.0). Nenhum objeto de banco.
+Versão anterior (Beta v1.389.0):
+------------------------------------------------------------------
+Versões anteriores (v1.389.0 … v1.389.0): CHANGELOG_APP.md, na raiz do
+repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
+das 5 versões mais recentes deste cabeçalho.
+
+---
+
 NOVIDADES (Beta v1.389.0) — UX onda 5: voltar por plataforma (estudo PROTOTIPO_UX_DENSIDADE_RAMOS_RAIZ v1.2.0, D4;
 "Vamos adiante" 12/10 02:46) e ajustes pedidos às 02:50. <html> recebe rz-plat-android/ios/web. Android: o "‹ Tela"
 some (o voltar do celular faz, e agora fecha também as subtelas do Cofre em Ativos); iPhone e computador: só a seta.

@@ -6,9 +6,15 @@
    (base derivada do RUMO v7.4.2 — histórico de versões anteriores
    preservado abaixo para referência técnica)
 
-   VERSÃO: Beta v1.394.0
-   LINHAS: 16536
-   DATA: 13/10/2026 (sessão 20261013-2218-raiz-ia-app, demanda f4efd8a3)
+   VERSÃO: Beta v1.395.0
+   LINHAS: 16555
+   DATA: 13/10/2026 (sessão 20261013-2203-usos-fatia0, demandas 3022603b e 0579b844)
+   NOVIDADES (Beta v1.395.0) — Usos fatia 0, uso universal (FICHA_FATIA0_USO_UNIVERSAL_RAIZ v1.0.0, "De acordo." do Nicola
+   13/10). rzCarregarUsosRamo lê o status de hoje de toda a carteira numa chamada só (fn_entidade_status: ativo_usos,
+   contratos espelhados e repouso) em vez de ler contratos; rzRamoDoAtivo dá prioridade ao ramo guardado no ativo
+   (cofre_ativos.ramo); window.rzStatusDoAtivo devolve o selo classe · modelo usado pela ficha e pela lista
+   (cofre-ativos.js 1.97.0: usos sem contrato, Concluir uso, repouso esmaecido). RZ_STATUS ganha as classes de status.
+   Versão anterior (Beta v1.394.0):
    NOVIDADES (Beta v1.394.0) — Raiz IA, ajustes do teste do Nicola (13/10 22:04; demanda f4efd8a3, mãe a05ad2ee).
    Busca em tudo: frase longa ("onde está o locatário do apto 81") cai para as palavras-chave quando a frase inteira
    não acha nada (rzBuscaPalavras); editar e tocar de novo refaz a busca; reabrir começa limpo. Nova ocorrência pela
@@ -32,16 +38,8 @@
    (rzNovaOcorrencia: no contrato vigente do bem ou no item "Manutenção", D6.2 a) ou pergunta (busca em tudo com o
    termo). Nada grava sem o toque em Salvar. Nenhuma tabela, coluna ou policy nova.
    Versão anterior (Beta v1.390.0):
-   NOVIDADES (Beta v1.390.0) — Busca pela lupa do topo e Financeiro das fichas num card só (Nicola 12/10 03:18). A lupa
-   do cabeçalho é a busca da tela aberta: abre em leque para a esquerda por cima do nome da empresa, digita e recolhe;
-   com filtro, o ícone fica claro com um ponto dourado; tocar de novo limpa e abre. Tela com busca por sheet (Agenda,
-   Vitrine) abre o sheet; tela sem busca abre a busca em tudo. As barras de busca das telas ficam escondidas (o topo
-   escreve nelas — rzHdrBusca/rzBuscaDaTela/rzHdrBuscaSync); o "+" vai para a direita e, em Ativos e Contratos, sobe
-   para a linha das abas. Financeiro das fichas: card "Financeiro" com ‹ ano › à frente do título, como Usos
-   (financeiro.js 1.59.0, contratos.js 1.55.0). Nenhum objeto de banco.
-   Versão anterior (Beta v1.389.0):
    ------------------------------------------------------------------
-   Versões anteriores (v1.389.0 … v1.389.0): CHANGELOG_APP.md, na raiz do
+   Versões anteriores (v1.390.0 … v1.390.0): CHANGELOG_APP.md, na raiz do
    repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
    das 5 versões mais recentes deste cabeçalho.
 
@@ -69,7 +67,7 @@
          O navegador aplica o mapa também aos imports estáticos dentro dos
          módulos (cofre-app.js → ./cofre-api.js etc.). -->
     <!-- RZ-IMPORTMAP:INICIO -->
-    <script type="importmap">{"imports":{"./js/cadastros.js":"./js/cadastros.js?v=1.2.0","./js/financeiro.js":"./js/financeiro.js?v=1.60.0","./js/fechamento.js":"./js/fechamento.js?v=1.13.0","./js/contratos.js":"./js/contratos.js?v=1.55.0","./js/minutas.js":"./js/minutas.js?v=1.4.0","./js/vitrine.js":"./js/vitrine.js?v=1.5.2","./js/imoveis.js":"./js/imoveis.js?v=1.7.2","./js/cofre-api.js":"./js/cofre-api.js?v=1.50.0","./js/cofre-app.js":"./js/cofre-app.js?v=1.47.0","./js/cofre-ativos.js":"./js/cofre-ativos.js?v=1.96.0","./js/cofre-controles.js":"./js/cofre-controles.js?v=1.52.0","./js/cofre-documentos.js":"./js/cofre-documentos.js?v=2.35.0","./js/cofre-imagem.js":"./js/cofre-imagem.js?v=1.1.0","./js/cofre-estado.js":"./js/cofre-estado.js?v=1.5.2","./js/cofre-navegacao.js":"./js/cofre-navegacao.js?v=1.9.3","./js/cofre-ui.js":"./js/cofre-ui.js?v=1.7.2","./js/cofre-validacoes.js":"./js/cofre-validacoes.js?v=2.5.0","./js/comum-licenca.js":"./js/comum-licenca.js?v=1.8.0","./js/comum-renovacao.js":"./js/comum-renovacao.js?v=1.3.5","./js/comum-minha-empresa.js":"./js/comum-minha-empresa.js?v=1.15.0","./js/comum-pessoas.js":"./js/comum-pessoas.js?v=1.210.0","./js/comum-sobre.js":"./js/comum-sobre.js?v=1.5.0","./js/comum-endereco.js":"./js/comum-endereco.js?v=1.2.0","./js/comum-partes.js":"./js/comum-partes.js?v=1.0.0","./js/resultados.js":"./js/resultados.js?v=2.9.0","./js/indicadores.js":"./js/indicadores.js?v=1.1.0","./js/configuracao-inicial.js":"./js/configuracao-inicial.js?v=1.0.1","./js/relatorios-executivos.js":"./js/relatorios-executivos.js?v=1.3.0","./js/raiz-eventos.js":"./js/raiz-eventos.js?v=1.0.0","./js/raiz-device.js":"./js/raiz-device.js?v=1.1.0","./js/raiz-ui.js":"./js/raiz-ui.js?v=1.4.0","./js/fiscal.js":"./js/fiscal.js?v=1.5.2","./js/ativos/ativos-boot.js":"./js/ativos/ativos-boot.js?v=1.4.0","./js/ativos/ativos-markup.js":"./js/ativos/ativos-markup.js?v=1.61.0","./js/nucleo/porta.js":"./js/nucleo/porta.js?v=1.4.0","./js/partes.js":"./js/partes.js?v=1.0.2","./js/conta.js":"./js/conta.js?v=1.0.1"}}</script>
+    <script type="importmap">{"imports":{"./js/cadastros.js":"./js/cadastros.js?v=1.2.0","./js/financeiro.js":"./js/financeiro.js?v=1.60.0","./js/fechamento.js":"./js/fechamento.js?v=1.13.0","./js/contratos.js":"./js/contratos.js?v=1.55.0","./js/minutas.js":"./js/minutas.js?v=1.4.0","./js/vitrine.js":"./js/vitrine.js?v=1.5.2","./js/imoveis.js":"./js/imoveis.js?v=1.7.2","./js/cofre-api.js":"./js/cofre-api.js?v=1.50.0","./js/cofre-app.js":"./js/cofre-app.js?v=1.47.0","./js/cofre-ativos.js":"./js/cofre-ativos.js?v=1.97.0","./js/cofre-controles.js":"./js/cofre-controles.js?v=1.52.0","./js/cofre-documentos.js":"./js/cofre-documentos.js?v=2.35.0","./js/cofre-imagem.js":"./js/cofre-imagem.js?v=1.1.0","./js/cofre-estado.js":"./js/cofre-estado.js?v=1.5.2","./js/cofre-navegacao.js":"./js/cofre-navegacao.js?v=1.9.3","./js/cofre-ui.js":"./js/cofre-ui.js?v=1.7.2","./js/cofre-validacoes.js":"./js/cofre-validacoes.js?v=2.5.0","./js/comum-licenca.js":"./js/comum-licenca.js?v=1.8.0","./js/comum-renovacao.js":"./js/comum-renovacao.js?v=1.3.5","./js/comum-minha-empresa.js":"./js/comum-minha-empresa.js?v=1.15.0","./js/comum-pessoas.js":"./js/comum-pessoas.js?v=1.210.0","./js/comum-sobre.js":"./js/comum-sobre.js?v=1.5.0","./js/comum-endereco.js":"./js/comum-endereco.js?v=1.2.0","./js/comum-partes.js":"./js/comum-partes.js?v=1.0.0","./js/resultados.js":"./js/resultados.js?v=2.9.0","./js/indicadores.js":"./js/indicadores.js?v=1.1.0","./js/configuracao-inicial.js":"./js/configuracao-inicial.js?v=1.0.1","./js/relatorios-executivos.js":"./js/relatorios-executivos.js?v=1.3.0","./js/raiz-eventos.js":"./js/raiz-eventos.js?v=1.0.0","./js/raiz-device.js":"./js/raiz-device.js?v=1.1.0","./js/raiz-ui.js":"./js/raiz-ui.js?v=1.4.0","./js/fiscal.js":"./js/fiscal.js?v=1.5.2","./js/ativos/ativos-boot.js":"./js/ativos/ativos-boot.js?v=1.4.0","./js/ativos/ativos-markup.js":"./js/ativos/ativos-markup.js?v=1.61.0","./js/nucleo/porta.js":"./js/nucleo/porta.js?v=1.4.0","./js/partes.js":"./js/partes.js?v=1.0.2","./js/conta.js":"./js/conta.js?v=1.0.1","./js/grupo-visao.js":"./js/grupo-visao.js?v=1.0.0"}}</script>
     <!-- RZ-IMPORTMAP:FIM -->
 
     <!-- ===== PWA: permite "instalar" o app no celular (Android e iPhone) ===== -->
@@ -4177,7 +4175,7 @@
         // texto certo toda vez (esqueci 5 versões seguidas, de v1.37.1 até
         // v1.38.3). Agora só precisa mudar UMA linha aqui a cada release;
         // window.onload aplica nos dois lugares automaticamente.
-        const APP_VERSAO = "Beta v1.394.0"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
+        const APP_VERSAO = "Beta v1.395.0"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
 
         // ====================================================================
         // v1.105.0 — HELPERS DE SUPERFÍCIE DA GRAMÁTICA ÚNICA
@@ -4704,6 +4702,9 @@
             vencendo: 'warn', renovar: 'warn', 'a renovar': 'warn', pendente: 'warn', 'pendente de confirmacao': 'warn', atencao: 'warn',
             inadimplente: 'bad', atrasado: 'bad', atrasada: 'bad', 'em atraso': 'bad', vencido: 'bad', vencida: 'bad', critico: 'bad', 'sem seguro': 'bad',
             assinando: 'run', 'a vencer': 'run', 'a receber': 'run', 'a pagar': 'run', automatico: 'run', 'em andamento': 'run', 'em processamento': 'run', aguardando: 'run',
+            // v1.395.0 (usos fatia 0) — classes de status dos modelos de uso (operacao_modelos.classe_status)
+            ocupado: 'ok', locado: 'ok', 'em uso': 'ok', 'em producao': 'ok', 'em engorda': 'ok', operacao: 'ok', vida: 'ok',
+            disponivel: 'neu', 'uso proprio': 'neu', guardado: 'neu', 'em venda': 'run', 'sem uso': 'warn',
             vago: 'neu', encerrado: 'neu', cancelado: 'neu', suspenso: 'neu', rascunho: 'neu', finalizado: 'neu'
         };
         function rzSemantica(codigo) {
@@ -11638,6 +11639,9 @@ async function criarLinkVitrineSupabase(token, idsSelecionados) {
         // v1.353.0 (F25) — ramo vem do modelo vigente: modelo → ramo, e o modelo de hoje de cada ativo (uso; senão repouso)
         let RZ_RAMO_MODELO = {};
         let RZ_MODELO_HOJE = {};
+        // v1.395.0 (usos fatia 0) — ramo guardado de cada ativo (cofre_ativos.ramo) e o status de hoje (fn_entidade_status)
+        let RZ_RAMO_ATIVO = {};
+        let RZ_STATUS_ATIVO = {};
         let RZ_RAMOS_LICENCIADOS = null; // null = ainda não lido (mostra o catálogo inteiro)
         function rzRamoInfo(c) { return RZ_RAMOS.find(r => r.codigo === c) || null; }
         function rzRamoLiberado(c) { return rzRamoInfo(c)?.status === 'ativo' && (!RZ_RAMOS_LICENCIADOS || RZ_RAMOS_LICENCIADOS.includes(c)); }
@@ -11645,6 +11649,10 @@ async function criarLinkVitrineSupabase(token, idsSelecionados) {
         function rzNomeRamo(c) { return c === 'tudo' ? 'Todo o patrimônio' : (rzRamoInfo(c)?.nome || c); }
         // ramo de um ativo: o do tipo (ativo_tipos.ramo); sem detalhe, pelo tipo_ativo (mesma regra da fn_alertas_listar)
         function rzRamoDoAtivo(a) {
+            // v1.395.0 (usos fatia 0) — o ramo guardado no ativo vence; o modelo vigente só decide ativo sem ramo
+            // (os modelos universais Disponível e Uso próprio servem a qualquer ramo e não dizem o ramo do ativo)
+            if (a?.ramo) return a.ramo;
+            if (a?.id && RZ_RAMO_ATIVO[a.id]) return RZ_RAMO_ATIVO[a.id];
             const mh = a?.id ? (RZ_MODELO_HOJE[a.id] || a.modelo_repouso) : a?.modelo_repouso; // F25: modelo vigente decide
             if (mh && RZ_RAMO_MODELO[mh]) return RZ_RAMO_MODELO[mh];
             if (a?.tipo_detalhe?.ramo) return a.tipo_detalhe.ramo;
@@ -11701,22 +11709,33 @@ async function criarLinkVitrineSupabase(token, idsSelecionados) {
             if (mudouModelo) rzRepintarPorRamo();
         }
         // F25 — modelo de hoje de cada ativo: uso vigente; senão repouso. Devolve true se algum ativo tem modelo.
+        // v1.395.0 (usos fatia 0) — tudo vem de fn_entidade_status em lote (uma chamada, a mesma regra do bot):
+        // ativo_usos é a linha do tempo única (contratos espelhados + repouso), o ramo é o guardado no ativo e o
+        // status é classe · modelo. Antes lia contratos vigentes direto da tabela (v1.354.0).
         async function rzCarregarUsosRamo() {
             if (!CLIENTE_ID_SUPABASE) return false;
             try {
-                const hoje = new Date().toISOString().slice(0, 10);
-                // v1.354.0 (F25c) — o modelo de hoje vem do contrato vigente (o mais recente, se houver dois)
-                const [mod, cons] = await Promise.all([
+                const [mod, st] = await Promise.all([
                     dbAuth.from('operacao_modelos').select('codigo, ramo'),
-                    dbAuth.from('contratos').select('ativo_id, modelo, inicio').eq('cliente_id', CLIENTE_ID_SUPABASE).not('ativo_id', 'is', null)
-                        .lte('inicio', hoje).or(`fim.is.null,fim.gte.${hoje}`).order('inicio', { ascending: true }),
+                    dbAuth.rpc('fn_entidade_status', { p_entidade: 'ativo', p_id: null, p_cliente_id: CLIENTE_ID_SUPABASE }),
                 ]);
+                if (st.error) { console.warn('[ramos] status:', st.error.message); return false; }
                 const rm = {}; (mod.data || []).forEach(x => { rm[x.codigo] = x.ramo; });
-                const mh = {}; (cons.data || []).forEach(x => { mh[x.ativo_id] = x.modelo; });
-                RZ_RAMO_MODELO = rm; RZ_MODELO_HOJE = mh;
-                return Object.keys(mh).length > 0;
+                const mapa = st.data || {}, mh = {}, ra = {};
+                Object.entries(mapa).forEach(([id, v]) => { if (v?.modelo) mh[id] = v.modelo; if (v?.ramo) ra[id] = v.ramo; });
+                RZ_RAMO_MODELO = rm; RZ_MODELO_HOJE = mh; RZ_RAMO_ATIVO = ra; RZ_STATUS_ATIVO = mapa;
+                return Object.keys(ra).length > 0 || Object.keys(mh).length > 0;
             } catch (e) { console.warn('[ramos] usos:', e.message); return false; }
         }
+        // v1.395.0 — status de hoje de um ativo para as telas: { classe, nome, rotulo, sem, ... } ou null
+        function rzStatusDoAtivo(id) {
+            const v = RZ_STATUS_ATIVO[id]; if (!v) return null;
+            const classe = v.classe || 'Sem uso', nome = v.nome || classe;
+            const assinando = v.contrato_status === 'assinando' || v.contrato_status === 'aguardando_assinatura';
+            const rotulo = assinando ? 'Assinando · ' + nome : (classe === nome ? classe : classe + ' · ' + nome);
+            return Object.assign({}, v, { classe, nome, rotulo, sem: assinando ? 'run' : rzSemantica(classe) });
+        }
+        window.rzStatusDoAtivo = rzStatusDoAtivo;
         function rzRepintarPorRamo() {
             if (CLIENTE_ID_SUPABASE) {
                 carregarDadosAssincronosVisaoGeral(); rzRenderResultadosHoje();
