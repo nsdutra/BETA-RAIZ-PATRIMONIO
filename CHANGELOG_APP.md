@@ -4,6 +4,22 @@ Histórico completo de versões do `index.html`, movido automaticamente pelo `ge
 
 ---
 
+NOVIDADES (Beta v1.405.0) — Upload de documento mais curto (demanda 7b0d407b, "De acordo" do Nicola 14/10 08:24). A tela
+"Confira o documento" ganha a confirmação rápida: documento de pessoa (passaporte, visto, CNH, RG) lido com confiança vira
+um cartão com titular, número, emissão → validade e aviso, e o botão "Confirmar e controlar"; "Editar detalhes" abre o
+formulário completo, e qualquer dúvida da leitura cai nele. Cada data aparece uma vez: emissão e validade deixam de se
+repetir nos dados do tipo, e o Início do controle some quando o controle é de documento. Catálogo (sem tela): visto avisa
+180 dias antes, visto e passaporte reforçam a cada 30 dias. Só muda o import map: cofre-documentos.js 2.36.0,
+cofre-app.js 1.48.0 e ativos/ativos-markup.js 1.62.0; o import map passa a listar também js/agenda.js 1.0.0, que já
+estava publicado e fora do registro de versões. Nenhum objeto de banco.
+Versão anterior (Beta v1.404.0):
+------------------------------------------------------------------
+Versões anteriores (v1.404.0 … v1.404.0): CHANGELOG_APP.md, na raiz do
+repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
+das 5 versões mais recentes deste cabeçalho.
+
+---
+
 NOVIDADES (Beta v1.404.0) — Usos fatia 2, contratos por tipo (FICHA_FATIA2_CONTRATOS_POR_TIPO_RAIZ v1.0.0, "De acordo nas
 opções dadas" do Nicola 14/10 00:40) e ajustes do ⋮ do ativo. Só muda o import map: cofre-ativos.js 1.101.0 (Adicionar
 uso por tipo de contrato; venda só pelo uso Revenda; "Raiz IA" no lugar das 3 opções de documento; sem revisão anual em

@@ -1,6 +1,15 @@
 // ============================================================================
 // cofre-ativos.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.101.0 · 14/10/2026
+// Versão: 1.102.0 · 14/10/2026
+//
+// v1.102.0 (14/10/2026, sessão 20261014-1020-usos-fatia3, demanda 3022603b; FICHA_FATIA3_SUBATIVOS_RAIZ v1.1.0, de acordo do
+// Nicola 14/10) — subativos: card no Resumo do principal com o nome do ramo (Unidades, Áreas, Integrantes), o status de
+// cada um e "+ Adicionar"; ⋮ com Adicionar e "Vincular ativo existente"; no subativo, "<Unidade> de: X" no cabeçalho,
+// atalho de volta e "Tirar de X". A lista de Ativos e os contadores mostram só os principais (D3-2). Novo ativo em modo
+// subativo: cota cofre.subativos.criar, só tipos que podem ser subativo, sem valor de referência (D3-3). Vender, baixar
+// ou arquivar um principal pergunta se os subativos seguem ou ficam (D3-5).
+//
+// Versão anterior: 1.101.0 · 14/10/2026
 //
 // v1.101.0 (14/10/2026, sessão 20261014-0045-usos-fatia2, demanda 3022603b; FICHA_FATIA2_CONTRATOS_POR_TIPO_RAIZ v1.0.0 e
 // ajustes do ⋮ pedidos pelo Nicola 14/10 00:40) — "Adicionar uso" lista os contratos por TIPO (aluguel típico simples,
@@ -31,21 +40,11 @@
 // lista os usos do ano abaixo da barra: o uso sem contrato vigente tem ⋮ com "Concluir" (antes só no ⋮ do topo da
 // ficha, onde não foi achado); o de contrato abre o contrato. "Adicionar uso" deixa de oferecer o modelo em que o
 // ativo já está hoje (uso ou repouso: um veículo em Uso próprio não mostra Uso próprio).
-//
-// Versão anterior: 1.97.0 · 13/10/2026
-//
-// v1.97.0 (13/10/2026, sessão 20261013-2203-usos-fatia0, demandas 3022603b e 0579b844; FICHA_FATIA0_USO_UNIVERSAL_RAIZ
-// v1.0.0, "De acordo." do Nicola 13/10) — uso universal: ativo_usos é a linha do tempo única (contratos espelhados por
-// gatilho + repouso). A barra de Usos mostra o repouso (Disponível, Guardado…) esmaecido; a ocupação conta só os usos.
-// "Adicionar uso" lista também os usos sem contrato (Uso próprio e os do ramo do ativo) e abre período + observação,
-// gravando por fn_ativo_uso_iniciar (ativos.usos.iniciar, a mesma RPC do bot); o ⋮ da ficha ganha "Concluir <uso>"
-// (fn_ativo_uso_concluir, ativos.usos.concluir). O selo da ficha e da lista é o status de hoje, classe · modelo
-// (fn_entidade_status via window.rzStatusDoAtivo); "Vago" passa a "Disponível". "Hoje" no fuso do aparelho.
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.96.0 … v1.96.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.97.0 … v1.97.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '1.101.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.102.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 import { estado } from './cofre-estado.js';
 import * as api from './cofre-api.js';
 import { mostrarToast, erroInline, refrescarIcones, alternarToggle, abrirModal, fecharModal, modalGenerico, perguntar, avisarComDesfazer, escolher } from './cofre-ui.js';
@@ -177,7 +176,9 @@ export function popularSelectTipoAtivo() {
     if (!sel) return;
     // v1.85.0 (F21) — refeito a cada abertura: só as categorias com tipo no ramo da lente (todas em Todo o patrimônio)
     const doRamo = categoriasDoRamo(ramoDaLente());
-    const lista = doRamo ? CATEGORIAS_ATIVO.filter(c => doRamo.includes(c)) : CATEGORIAS_ATIVO;
+    let lista = doRamo ? CATEGORIAS_ATIVO.filter(c => doRamo.includes(c)) : CATEGORIAS_ATIVO;
+    // v1.102.0 (usos fatia 3) — subativo: só as categorias que têm tipo que pode ser subativo (catálogo, pode_ser_subativo)
+    if (subativoDe) lista = CATEGORIAS_ATIVO.filter(c => tiposDeSubativo(c).length);
     const atual = sel.value;
     sel.innerHTML = (lista.length ? lista : CATEGORIAS_ATIVO).map(t => `<option value="${t}">${rotuloTipoAtivo(t)}</option>`).join('');
     if (atual && lista.includes(atual)) sel.value = atual;
@@ -199,9 +200,17 @@ function atualizarSelectTipoDetalhe(categoria, prefixoId, valorAtualId = null) {
     const wrap = document.getElementById(`${prefixoId}tipo-detalhe-wrapper`);
     if (!sel || !wrap) return;
     // v1.85.0 (F21) — no novo ativo (sem valor atual), só os tipos do ramo da lente e de ramo já ativo
-    const tipos = listarTiposPorCategoria(categoria, valorAtualId ? null : { ramo: ramoDaLente() });
+    const tipos = (prefixoId === 'at-' && subativoDe) ? tiposDeSubativo(categoria)
+        : listarTiposPorCategoria(categoria, valorAtualId ? null : { ramo: ramoDaLente() });
     wrap.classList.toggle('hidden', tipos.length === 0);
     sel.innerHTML = tipos.map(t => `<option value="${t.id}"${t.id === valorAtualId ? ' selected' : ''}>${escapeHtml(t.nome)}</option>`).join('');
+}
+
+// v1.102.0 (usos fatia 3) — Unidade e Área pedem "nova/cadastrada"; Integrante e o genérico, "novo/cadastrado"
+const femSubativo = (singular) => /^(unidade|área|area)$/i.test(String(singular || '').trim());
+// v1.102.0 (usos fatia 3) — tipos da categoria que podem ser unidade, área ou integrante (catálogo ativo_tipos)
+function tiposDeSubativo(categoria) {
+    return listarTiposPorCategoria(categoria).filter(t => tipoDoCatalogo(t.id)?.pode_ser_subativo);
 }
 
 // E15.2 ("A2") — campos que a DE_PARA_IMOVEIS_ATIVOS Fase 1/2 promoveu
@@ -468,7 +477,7 @@ export function renderAtivosLista(filtroTipo = '', filtroTexto = '') {
 
     const soComAlerta = !!GRUPOS_CHIP_TIPO[chipAtivoAtual]?.alerta; // v1.75.0 (F2.2)
     const comAlerta = soComAlerta ? ativosComAlerta(ocorrenciasPorAtivo) : null;
-    const lista = estado.ativos.filter(a => {
+    const lista = principais().filter(a => {
         if (ramoLente !== 'tudo' && ramoDoAtivoLista(a) !== ramoLente) return false; // v1.85.0 (F21)
         if (segmentoChip && segmentoDoAtivo(a) !== segmentoChip) return false; // v1.85.0 (F22)
         if (tiposFiltro && tiposFiltro.length && !tiposFiltro.includes(a.tipo_ativo)) return false;
@@ -511,7 +520,7 @@ export function renderAtivosLista(filtroTipo = '', filtroTexto = '') {
         return x.localeCompare(y);
     });
     // F2.4 (UXR-15) — carteira só com imóveis: um card de convite no FIM da lista (nunca no topo).
-    const soImoveis = estado.ativos.length > 0 && estado.ativos.every(a => ehCategoriaImovel(categoriaDoAtivo(a.tipo_ativo)));
+    const soImoveis = principais().length > 0 && principais().every(a => ehCategoriaImovel(categoriaDoAtivo(a.tipo_ativo)));
     const cardConvite = soImoveis && chipAtivoAtual === 0 && !termo ? `
         <div class="rz-card rz-convite-card">
             <b>Seu patrimônio vai além dos imóveis</b>
@@ -529,9 +538,9 @@ export function renderAtivosLista(filtroTipo = '', filtroTexto = '') {
     `).join('') + cardConvite;
 
     const vazio = document.getElementById('ativos-estado-vazio');
-    vazio.classList.toggle('hidden', estado.ativos.length !== 0);
-    container.classList.toggle('hidden', estado.ativos.length === 0);
-    if (estado.ativos.length === 0) desenharVazioAtivos(vazio);
+    vazio.classList.toggle('hidden', principais().length !== 0);
+    container.classList.toggle('hidden', principais().length === 0);
+    if (principais().length === 0) desenharVazioAtivos(vazio);
     renderChipsAtivos();
     refrescarIcones();
 }
@@ -612,7 +621,10 @@ function ramoDoAtivoLista(a) {
     return det?.ramo || 'outros';
 }
 const segmentoDoAtivo = (a) => tipoDoCatalogo(a.tipo_detalhe_id)?.segmento || 'Outros';
-const ativosDoRamo = () => { const r = ramoDaLente(); return r === 'tudo' ? estado.ativos : estado.ativos.filter(a => ramoDoAtivoLista(a) === r); };
+// v1.102.0 (usos fatia 3, D3-2) — a lista e os contadores mostram só os principais; unidade, área e integrante aparecem
+// dentro do principal (card no Resumo). estado.ativos continua com todos (a ficha do subativo abre por ele; a busca acha).
+const principais = () => estado.ativos.filter(a => !a.ativo_principal_id);
+const ativosDoRamo = () => { const r = ramoDaLente(); return r === 'tudo' ? principais() : principais().filter(a => ramoDoAtivoLista(a) === r); };
 function recalcularGruposChip() {
     if (typeof rzRamoInfo !== 'function' || typeof RZ_RAMOS === 'undefined') return; // cofre.html avulso: chips de sempre
     const r = ramoDaLente();
@@ -672,7 +684,7 @@ function renderChipsAtivos() {
     const pt = piorSeveridadeAtivos();
     const chips = GRUPOS_CHIP_TIPO.map((g, i) => {
         const qtd = g.alerta ? base.filter(a => comAlerta.has(a.id)).length
-            : g.ramo ? estado.ativos.filter(a => ramoDoAtivoLista(a) === g.ramo).length // v1.85.0 (F21) — chip de ramo
+            : g.ramo ? principais().filter(a => ramoDoAtivoLista(a) === g.ramo).length // v1.85.0 (F21) — chip de ramo
             : g.segmento ? base.filter(a => segmentoDoAtivo(a) === g.segmento).length // v1.85.0 (F22) — chip de segmento
             : (g.tipos ? base.filter(a => g.tipos.includes(a.tipo_ativo)).length : base.length);
         const ativo = i === chipAtivoAtual;
@@ -682,8 +694,8 @@ function renderChipsAtivos() {
         const ponto = g.alerta && qtd ? `<span class="rz-pt ${pt}" aria-hidden="true"></span>` : '';
         return `<button type="button" data-action="filtrar-ativos-chip" data-chip-indice="${i}" class="rz-chip${ativo ? ' rz-on' : ''}">${ponto}${escapeHtml(g.rotulo)} <span class="rz-n">${qtd}</span></button>`;
     }).join('');
-    const temCategoria = new Set(estado.ativos.map(a => categoriaDoAtivo(a.tipo_ativo)));
-    const convites = estado.ativos.length && ramoDaLente() === 'tudo' ? CATEGORIAS_ATIVO.filter(c => ROTULO_CONVITE[c] && !temCategoria.has(c))
+    const temCategoria = new Set(principais().map(a => categoriaDoAtivo(a.tipo_ativo)));
+    const convites = principais().length && ramoDaLente() === 'tudo' ? CATEGORIAS_ATIVO.filter(c => ROTULO_CONVITE[c] && !temCategoria.has(c))
         .map(c => `<button type="button" class="rz-chip rz-chip-convite" onclick="window.__rzConviteAtivo && window.__rzConviteAtivo('${c}')" aria-label="Cadastrar ${escapeHtml(ROTULO_CONVITE[c])}">+ ${escapeHtml(ROTULO_CONVITE[c])} <span class="rz-n">0</span></button>`).join('') : '';
     wrap.innerHTML = chips + convites;
     // v1.9.0 (02/09/2026, pedido explícito: "os chips devem correr na
@@ -991,13 +1003,20 @@ function ativoCardHtml(a) {
 // abrirModal()/fecharModal() genéricos (mesmo par de funções usado por
 // todo popup do módulo), em vez do alternarToggle() (exclusivo de painel
 // inline, ex.: formulário de Contrato/Síndico no App).
-export async function abrirFormAtivo() {
+// v1.102.0 (usos fatia 3) — opcoes.principal = { id, nome, singular }: o formulário cadastra uma unidade, área ou
+// integrante dentro desse ativo (cota cofre.subativos.criar, só tipos que podem ser subativo, sem valor de referência).
+let subativoDe = null;
+export async function abrirFormAtivo(opcoes = {}) {
+    const principal = opcoes && opcoes.principal && opcoes.principal.id ? opcoes.principal : null;
     // v1.62.0 (8b2d37d7) — cota/plano/perfil ANTES do formulário (ACE-04).
-    if (rzMostrarBloqueio('cofre.ativos.criar')) return;
+    if (rzMostrarBloqueio(principal ? 'cofre.subativos.criar' : 'cofre.ativos.criar')) return;
+    subativoDe = principal;
     document.getElementById('at-status').textContent = '';
     await garantirCatalogoTiposAtivo();
     await garantirEmpreendimentos(); // E15.2 — pro seletor no bloco imóvel
     popularSelectTipoAtivo(); // v1.85.0 (F21) — categorias do ramo da lente
+    const tituloForm = document.querySelector('#form-ativo-wrapper h3');
+    if (tituloForm) tituloForm.textContent = subativoDe ? `${femSubativo(subativoDe.singular) ? 'Nova' : 'Novo'} ${subativoDe.singular.toLowerCase()} · ${subativoDe.nome}` : 'Novo ativo';
     abrirModal('form-ativo-wrapper');
     aoMudarTipoAtivo();
 
@@ -1021,6 +1040,7 @@ export async function abrirFormAtivo() {
 
 export function fecharFormAtivo() {
     fecharModal('form-ativo-wrapper');
+    subativoDe = null; // v1.102.0 — o próximo Novo ativo volta ao normal
 }
 
 export async function aoMudarTipoAtivo() {
@@ -1076,6 +1096,9 @@ export function atualizarCamposEstruturadosAtivo() {
     // referência valem pra QUALQUER tipo de ativo, não só imóvel.
     const wrapEmpVal = document.getElementById('at-empreendimento-valor-wrapper');
     if (wrapEmpVal) wrapEmpVal.innerHTML = renderizarBlocoEmpreendimentoValor('at-empval-', {}, _empreendimentosCache || [], { comFinalidade: !ehCategoriaImovel(tipo) });
+    // v1.102.0 (usos fatia 3, D3-3) — o subativo não tem valor de referência: o valor do principal é o total
+    const campoValor = subativoDe ? document.getElementById('at-empval-valor-referencia')?.closest('.rz-f, div') : null;
+    if (campoValor) campoValor.innerHTML = `<p class="rz-desc" style="margin:0">O valor fica no ativo principal (${escapeHtml(subativoDe.nome)}).</p>`;
 
     // v1.32.0 (E6.2) — bloco de endereço estruturado, categoria imóvel.
     const mostrarBlocosImovel = ehCategoriaImovel(tipo);
@@ -1155,8 +1178,10 @@ export async function salvarAtivo() {
     // existente" no form de CRIAR (a ficha de EDITAR de um imóvel legado
     // continua funcionando igual, isto é só o formulário de criação).
     const ehImovel = ehCategoriaImovel(tipo);
+    const principal = subativoDe; // v1.102.0 (usos fatia 3) — unidade, área ou integrante nasce dentro do principal
 
     const payload = { cliente_id: estado.clienteId, tipo_ativo: tipo, tipo_detalhe_id: tipoDetalheId, nome_exibicao: nome, status: 'ativo', dados_especificos: dadosEspecificos, criado_por: estado.pessoa.id };
+    if (principal) payload.ativo_principal_id = principal.id;
 
     // E15.2 (achado no teste real, 16/09/2026) — empreendimento/valor de
     // referência valem pra QUALQUER tipo de ativo; área/finalidade/
@@ -1184,10 +1209,12 @@ export async function salvarAtivo() {
                 status: camposImovelLido?.situacao_uso || null,
                 descricao: camposImovelLido?.observacao || null,
                 cib: camposImovelLido?.cib || null,
+                ativo_principal_id: principal?.id || null,
             };
             novoAtivo = await api.criarImovelEAtivo(estado.clienteId, nome, tipo, imovelDados, tipoDetalheId, payload.dados_especificos);
         } else {
             Object.assign(payload, empvalLido);
+            if (principal) { payload.valor_referencia = null; payload.valor_referencia_em = null; }
             novoAtivo = await api.criarAtivo(payload);
         }
         // Divisão societária gravada logo em seguida, já com o id do
@@ -1203,11 +1230,13 @@ export async function salvarAtivo() {
         }));
         await api.salvarPropriedadeAtivo(novoAtivo.ativo_id || novoAtivo.id, linhasParaApi);
 
-        mostrarToast(ehImovel ? 'Imóvel cadastrado ✅' : 'Ativo cadastrado ✅');
+        mostrarToast(principal ? `${principal.singular} cadastrad${femSubativo(principal.singular) ? 'a' : 'o'} em ${principal.nome} ✅` : ehImovel ? 'Imóvel cadastrado ✅' : 'Ativo cadastrado ✅');
         document.getElementById('at-nome').value = '';
         fecharFormAtivo();
         window.dispatchEvent(new CustomEvent('cofre:recarregar-ativos'));
         recarregarFuncionalidadesLiberadas().catch(() => {}); // v1.62.0 — cota mudou
+        // v1.102.0 — volta para a ficha do principal com o card atualizado
+        if (principal && ativoAtualId === principal.id && estado.ativoEmFoco) montarSubativosAtivo(estado.ativoEmFoco).catch(() => {});
     } catch (err) {
         // v1.62.0 — porta do banco (c3_porta_amigos_v1): texto já vem no
         // padrão do design system; mostra como aviso e atualiza a porta.
@@ -1274,6 +1303,7 @@ export async function abrirFichaAtivo(id, chipInicial = 'resumo') {
         seguro(montarFotosAtivo, 'montarFotosAtivo'),
         seguro(montarFinanceiroAtivo, 'montarFinanceiroAtivo'),
         seguro(montarPropriedadeAtivo, 'montarPropriedadeAtivo'),
+        seguro(montarSubativosAtivo, 'montarSubativosAtivo'), // v1.102.0 (usos fatia 3)
         seguro(aplicarAlertaMotorNoChipControles, 'aplicarAlertaMotorNoChipControles'),
     ]);
     if (ativoAtualId !== id) return; // outro ativo foi aberto no meio — o dele repinta
@@ -1440,6 +1470,9 @@ export async function abrirAcoesAtivo() {
     const situacaoAntiga = acoes.filter(x => x.titulo === 'Marcar como vendido' || x.titulo === 'Excluir ativo');
     const situacao = maquina ? maquina.map(m => acaoDaMaquinaAtivo(a, m)) : situacaoAntiga;
     const fora = a.registro_contabil === 'fora';
+    // v1.102.0 (usos fatia 3) — unidades, áreas, integrantes: do fn_ativo_estrutura (já lido pelo card do Resumo)
+    let grupoSub = null;
+    try { grupoSub = acoesSubativos(a, await carregarEstruturaAtivo(a)); } catch (e) { console.warn('[cofre-ativos] estrutura do ativo:', e?.message || e); }
     if (a.status && a.status !== 'ativo') { // vendido, baixado, arquivado: só a situação (desfazer, reativar)
         sheetOuAviso({ titulo: a.nome_exibicao, sub: rotuloTipoAtivo(a.tipo_ativo), grupos: [{ titulo: 'Situação', acoes: situacao }].filter(g => g.acoes.length) });
         return;
@@ -1451,6 +1484,7 @@ export async function abrirAcoesAtivo() {
             { icone: 'sparkles', tipo: 'ia', titulo: 'Raiz IA', sub: 'Pergunte ou registre algo sobre este ativo', aoTocar: () => abrirRaizIaDoAtivo(a) },
             ...acoes.filter(x => !situacaoAntiga.includes(x)),
         ] },
+        ...(grupoSub ? [grupoSub] : []),
         { titulo: 'Usos e contratos', acoes: [
             { icone: 'plus', titulo: 'Adicionar uso', codigo: 'ativos.usos.iniciar', sub: 'Escolha o modelo: aluguel, temporada, uso próprio…', aoTocar: () => abrirAdicionarModeloAtivo() },
             ...acaoConcluirUsoVigente(a),
@@ -1514,10 +1548,20 @@ function acaoDaMaquinaAtivo(a, m) {
     return { icone: ICONE[m.acao] || 'circle-dot', titulo: m.rotulo, codigo: m.codigo, sub: SUB[m.acao] || '', tipo: m.tipo === 'perigo' ? 'bad' : undefined,
         aoTocar: () => abrirTransicaoAtivo(a, m) };
 }
-function abrirTransicaoAtivo(a, m) {
+async function abrirTransicaoAtivo(a, m) {
     if (typeof window.abrirSheetForm !== 'function') { mostrarToast('Ação só disponível dentro do app principal.', 'erro'); return; }
     const hoje = hojeLocalUso();
     const comData = ['vender', 'baixar', 'arquivar'].includes(m.acao);
+    // v1.102.0 (usos fatia 3, D3-5) — principal com unidades/áreas/integrantes: elas seguem (mesma ação em cada uma)
+    // ou ficam (viram ativos soltos). O banco recusa sem a escolha.
+    let est = null;
+    if (comData) { try { est = await carregarEstruturaAtivo(a); } catch (_) { /* sem estrutura, o banco avisa */ } }
+    const subs = Array.isArray(est?.subativos) ? est.subativos : [];
+    const verbo = { vender: 'vendid', baixar: 'baixad', arquivar: 'arquivad' }[m.acao] || 'feit';
+    const fem = femSubativo(est?.singular);
+    const campoSubs = subs.length ? `<div class="rz-f"><label>${escapeHtml(est.plural)} (${subs.length})</label>
+        <label style="display:flex;gap:8px;align-items:flex-start;font-weight:normal;margin:4px 0"><input type="radio" name="fa-tr-subs" value="seguir" checked> <span>Seguem: ${fem ? 'todas são' : 'todos são'} ${verbo}${fem ? 'as' : 'os'} junto, cada ${fem ? 'uma' : 'um'} com seu histórico</span></label>
+        <label style="display:flex;gap:8px;align-items:flex-start;font-weight:normal;margin:4px 0"><input type="radio" name="fa-tr-subs" value="ficar"> <span>Ficam: viram ativos soltos na lista (contam no limite de ativos)</span></label></div>` : '';
     const campoData = comData ? `<div class="rz-f"><label for="fa-tr-data">${m.acao === 'vender' ? 'Data da venda' : m.acao === 'baixar' ? 'Data da baixa' : 'A partir de'}</label><input type="date" id="fa-tr-data" value="${hoje}" max="${hoje}"></div>` : '';
     const campoMotivo = m.acao === 'baixar'
         ? `<div class="rz-f"><label for="fa-tr-tipo">Motivo</label><select id="fa-tr-tipo">${MOTIVOS_BAIXA.map(x => `<option>${x}</option>`).join('')}</select></div>
@@ -1526,10 +1570,11 @@ function abrirTransicaoAtivo(a, m) {
     const aviso = m.acao === 'arquivar' ? '<p class="rz-desc" style="margin:0 0 8px">O ativo sai das listas e os itens de controle ficam pausados. Dá para reativar pelo ⋮.</p>'
         : (m.acao === 'vender' || m.acao === 'baixar') ? '<p class="rz-desc" style="margin:0 0 8px">O uso de hoje termina na data e os itens de controle são concluídos. Com contrato vigente, encerre o contrato antes.</p>' : '';
     window.abrirSheetForm({
-        titulo: m.rotulo, sub: a.nome_exibicao, corpo: aviso + campoData + campoMotivo, rotuloSalvar: m.rotulo,
+        titulo: m.rotulo, sub: a.nome_exibicao, corpo: aviso + campoSubs + campoData + campoMotivo, rotuloSalvar: m.rotulo,
         aoSalvar: async () => {
             const dados = {};
             if (comData) { dados.data = document.getElementById('fa-tr-data')?.value || hoje; }
+            if (subs.length) dados.subativos = document.querySelector('input[name="fa-tr-subs"]:checked')?.value || 'seguir';
             const det = (document.getElementById('fa-tr-motivo')?.value || '').trim();
             if (m.acao === 'baixar') dados.motivo = (document.getElementById('fa-tr-tipo')?.value || 'Outro') + (det ? ': ' + det : '');
             else if (det) dados.motivo = det;
@@ -1538,6 +1583,8 @@ function abrirTransicaoAtivo(a, m) {
             if (error) { mostrarToast(error.message || 'Não foi possível.', 'erro'); return false; }
             mostrarToast(data?.mensagem || 'Feito.', 'sucesso');
             a.status = data?.para || a.status;
+            estruturaAtual = null; // v1.102.0 — os subativos podem ter mudado junto
+            if (dados.subativos) window.dispatchEvent(new CustomEvent('cofre:recarregar-ativos'));
             await aposMudarUso(a);
             window.dispatchEvent(new CustomEvent('cofre:recarregar-eventos'));
             return true;
@@ -1569,6 +1616,135 @@ function abrirExcluirUsoAtivo(a, u) {
         },
     });
 }
+// ============================================================================
+// SUBATIVOS (usos fatia 3) — v1.102.0. Um ativo principal (fazenda, galpão, conjunto, terreno, família, pessoa provedora)
+// tem unidades, áreas ou integrantes: ativos de verdade, com uso, contrato, itens e status próprios, que apontam para ele
+// (cofre_ativos.ativo_principal_id). O nome na tela vem do ramo do principal (ativo_ramos.nome_subativo_*), lido por
+// fn_ativo_estrutura — a mesma leitura que o bot vai usar. Um nível só; as regras moram no banco (trg_ativo_principal).
+// ============================================================================
+let estruturaAtual = null; // { id, e } da ficha aberta — o ⋮ e a pergunta seguir/ficar leem daqui
+async function carregarEstruturaAtivo(a) {
+    if (estruturaAtual && estruturaAtual.id === a.id) return estruturaAtual.e;
+    const { data, error } = await api.dbAuth.rpc('fn_ativo_estrutura', { p_ativo_id: a.id });
+    if (error) throw error;
+    estruturaAtual = { id: a.id, e: data || {} };
+    return estruturaAtual.e;
+}
+function rotuloStatusSubativo(st) {
+    if (!st) return { sem: 'neu', rotulo: 'Sem uso' };
+    const classe = st.classe || 'Sem uso', nome = st.nome || classe;
+    const semFn = typeof window.rzSemantica === 'function' ? window.rzSemantica : (typeof rzSemantica === 'function' ? rzSemantica : null);
+    return { sem: semFn ? semFn(classe) : 'neu', rotulo: classe === nome ? classe : classe + ' · ' + nome };
+}
+async function montarSubativosAtivo(a) {
+    const painel = document.getElementById('fa-painel-resumo'); if (!painel) return;
+    let card = document.getElementById('fa-card-subativos');
+    if (!card) {
+        card = document.createElement('div'); card.className = 'rz-card hidden'; card.id = 'fa-card-subativos';
+        const primeiro = painel.querySelector('.rz-card');
+        if (primeiro) primeiro.insertAdjacentElement('afterend', card); else painel.prepend(card);
+    }
+    estruturaAtual = null;
+    let e;
+    try { e = await carregarEstruturaAtivo(a); } catch (err) { card.classList.add('hidden'); throw err; }
+    if (ativoAtualId !== a.id) return;
+    const r = typeof window.renderStatus === 'function' ? window.renderStatus : (c, t) => `<span class="rz-st rz-neu">${escapeHtml(t || c)}</span>`;
+    const sing = e.singular || 'Subativo', plur = e.plural || 'Subativos';
+    // subativo: contexto no cabeçalho e o caminho de volta ao principal
+    if (e.principal) {
+        const ctx = document.querySelector('#fa-cabecalho .rz-tx span');
+        if (ctx) ctx.textContent = `${rotuloTipoAtivo(a.tipo_ativo)} · ${sing} de ${e.principal.nome}`;
+        card.innerHTML = `<div class="rz-card-h"><h3>${escapeHtml(sing)} de</h3></div>
+            <div class="rz-row rz-link" role="button" tabindex="0" data-sub-abrir="${e.principal.id}"><div class="rz-ic"><i data-lucide="corner-left-up"></i></div>
+                <div class="rz-tx"><b>${escapeHtml(e.principal.nome)}</b><span>Ativo principal · toque para abrir</span></div></div>`;
+        card.classList.remove('hidden');
+    } else if (e.aceita) {
+        const subs = Array.isArray(e.subativos) ? e.subativos : [];
+        const emUso = subs.filter(x => x.status && x.status.repouso === false).length;
+        const linhas = subs.map(x => {
+            const st = rotuloStatusSubativo(x.status);
+            return `<div class="rz-row rz-link" role="button" tabindex="0" data-sub-abrir="${x.id}"><div class="rz-ic"><i data-lucide="${iconeAtivo(estado.ativos.find(y => y.id === x.id)?.tipo_ativo || a.tipo_ativo)}"></i></div>
+                <div class="rz-tx"><b>${escapeHtml(x.nome)}</b><span>${escapeHtml(x.tipo || '')}</span></div>${r(st.sem, st.rotulo)}</div>`;
+        }).join('');
+        const vazio = `<p class="rz-desc" style="margin:4px 0 8px">${femSubativo(sing) ? 'Nenhuma' : 'Nenhum'} ${escapeHtml(sing.toLowerCase())} ainda. Cada ${femSubativo(sing) ? 'uma' : 'um'} tem uso, contratos e itens próprios, e este ativo mostra o resumo.</p>`;
+        card.innerHTML = `<div class="rz-card-h"><h3>${escapeHtml(plur)}</h3><span class="rz-sub">${subs.length ? `${emUso} de ${subs.length} em uso` : ''}</span></div>
+            ${subs.length ? `<div class="rz-list">${linhas}</div>` : vazio}
+            ${e.pode_criar ? `<button type="button" class="rz-btn rz-btn-2 rz-sm" data-sub-novo="1" style="margin-top:8px">+ Adicionar ${escapeHtml(sing.toLowerCase())}</button>` : ''}`;
+        card.classList.remove('hidden');
+    } else {
+        card.classList.add('hidden'); card.innerHTML = '';
+    }
+    card.querySelectorAll('[data-sub-abrir]').forEach(el => {
+        const ir = () => abrirFichaAtivo(el.dataset.subAbrir);
+        el.addEventListener('click', ir);
+        el.addEventListener('keydown', ev => { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); ir(); } });
+    });
+    card.querySelector('[data-sub-novo]')?.addEventListener('click', () => abrirNovoSubativo(a, e));
+    refrescarIcones();
+}
+function abrirNovoSubativo(a, e) {
+    abrirFormAtivo({ principal: { id: a.id, nome: a.nome_exibicao, singular: e.singular || 'Subativo' } });
+}
+// Vincular um ativo já cadastrado (solto) como unidade, área ou integrante deste principal
+async function abrirVincularSubativo(a, e) {
+    if (typeof window.abrirSheetForm !== 'function') { mostrarToast('Ação só disponível dentro do app principal.', 'erro'); return; }
+    await garantirCatalogoTiposAtivo();
+    const temSubs = new Set(estado.ativos.filter(x => x.ativo_principal_id).map(x => x.ativo_principal_id));
+    const candidatos = estado.ativos.filter(x => x.id !== a.id && !x.ativo_principal_id && !temSubs.has(x.id)
+        && (x.status || 'ativo') === 'ativo' && tipoDoCatalogo(x.tipo_detalhe_id)?.pode_ser_subativo)
+        .sort((x, y) => String(x.nome_exibicao).localeCompare(String(y.nome_exibicao), 'pt-BR'));
+    const sing = (e.singular || 'subativo').toLowerCase();
+    if (!candidatos.length) { mostrarToast(`Nenhum ativo solto deste tipo pode virar ${sing}. Use "Adicionar ${sing}".`, 'erro'); return; }
+    window.abrirSheetForm({
+        titulo: 'Vincular ativo existente', sub: a.nome_exibicao, rotuloSalvar: 'Vincular',
+        corpo: `<p class="rz-desc" style="margin:0 0 8px">O ativo passa a aparecer dentro de ${escapeHtml(a.nome_exibicao)}, com uso, contratos e itens que já tem. O valor de referência dele deixa de contar: o valor do principal é o total.</p>
+            <div class="rz-f" style="margin-bottom:0"><label for="fa-sub-vinc">Ativo</label><select id="fa-sub-vinc">${candidatos.map(x => `<option value="${x.id}">${escapeHtml(x.nome_exibicao)} · ${escapeHtml(tipoDoCatalogo(x.tipo_detalhe_id)?.nome || rotuloTipoAtivo(x.tipo_ativo))}</option>`).join('')}</select></div>`,
+        aoSalvar: async () => {
+            const id = document.getElementById('fa-sub-vinc')?.value; if (!id) return false;
+            const { error } = await api.dbAuth.rpc('fn_ativo_principal_definir', { p_ativo_id: id, p_principal_id: a.id, p_canal: 'app' });
+            if (error) { mostrarToast(error.message || 'Não foi possível vincular.', 'erro'); return false; }
+            mostrarToast(`Vinculado a ${a.nome_exibicao}.`, 'sucesso');
+            const x = estado.ativos.find(y => y.id === id); if (x) { x.ativo_principal_id = a.id; x.valor_referencia = null; }
+            window.dispatchEvent(new CustomEvent('cofre:recarregar-ativos'));
+            recarregarFuncionalidadesLiberadas().catch(() => {});
+            estruturaAtual = null; await montarSubativosAtivo(a);
+            return true;
+        },
+    });
+}
+// Tirar do principal: o subativo vira ativo solto (passa a contar no limite de ativos)
+function abrirTirarDoPrincipal(a, e) {
+    if (typeof window.abrirSheetForm !== 'function') { mostrarToast('Ação só disponível dentro do app principal.', 'erro'); return; }
+    window.abrirSheetForm({
+        titulo: `Tirar de ${e.principal.nome}`, sub: a.nome_exibicao, rotuloSalvar: 'Tirar',
+        corpo: `<p class="rz-desc" style="margin:0">${escapeHtml(a.nome_exibicao)} vira um ativo solto na lista, com o uso, os contratos e os itens que já tem. Conta no limite de ativos do plano. Dá para vincular de novo pelo ⋮ de ${escapeHtml(e.principal.nome)}.</p>`,
+        aoSalvar: async () => {
+            const { error } = await api.dbAuth.rpc('fn_ativo_principal_definir', { p_ativo_id: a.id, p_principal_id: null, p_canal: 'app' });
+            if (error) { mostrarToast(error.message || 'Não foi possível.', 'erro'); return false; }
+            mostrarToast(`${a.nome_exibicao} agora é um ativo solto.`, 'sucesso');
+            a.ativo_principal_id = null;
+            window.dispatchEvent(new CustomEvent('cofre:recarregar-ativos'));
+            recarregarFuncionalidadesLiberadas().catch(() => {});
+            estruturaAtual = null; await montarSubativosAtivo(a);
+            return true;
+        },
+    });
+}
+// ⋮ da ficha: o grupo do subativo (Adicionar / Vincular no principal; Tirar no subativo)
+function acoesSubativos(a, e) {
+    if (!e) return null;
+    const sing = (e.singular || 'Subativo').toLowerCase();
+    if (e.principal) return { titulo: e.singular || 'Subativo', acoes: [
+        { icone: 'corner-left-up', titulo: `Abrir ${e.principal.nome}`, sub: 'O ativo principal', aoTocar: () => abrirFichaAtivo(e.principal.id) },
+        { icone: 'unlink', titulo: `Tirar de ${e.principal.nome}`, codigo: 'cofre.editar', sub: 'Vira um ativo solto na lista', aoTocar: () => abrirTirarDoPrincipal(a, e) },
+    ] };
+    if (!e.aceita) return null;
+    return { titulo: e.plural || 'Subativos', acoes: [
+        { icone: 'plus', titulo: `Adicionar ${sing}`, codigo: 'cofre.subativos.criar', sub: 'Cadastro novo, já dentro deste ativo', aoTocar: () => abrirNovoSubativo(a, e) },
+        { icone: 'link', titulo: 'Vincular ativo existente', codigo: 'cofre.subativos.criar', sub: `Um ativo já cadastrado passa a ser ${sing} deste`, aoTocar: () => abrirVincularSubativo(a, e) },
+    ] };
+}
+
 // Card Histórico (chip Usos e contratos): o que mudou no ativo, com Desfazer quando a mudança permite
 async function montarHistoricoStatusAtivo(a) {
     const usos = document.getElementById('fa-card-usos'); if (!usos) return;

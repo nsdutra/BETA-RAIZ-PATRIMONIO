@@ -6,9 +6,15 @@
    (base derivada do RUMO v7.4.2 — histórico de versões anteriores
    preservado abaixo para referência técnica)
 
-   VERSÃO: Beta v1.409.0
-   LINHAS: 16717
-   DATA: 14/10/2026 (sessão 20261014-1010-onda8-computador, demanda a05ad2ee)
+   VERSÃO: Beta v1.410.0
+   LINHAS: 16715
+   DATA: 14/10/2026 (sessão 20261014-1020-usos-fatia3, demanda 3022603b)
+   NOVIDADES (Beta v1.410.0) — Usos, fatia 3 (FICHA_FATIA3_SUBATIVOS_RAIZ v1.1.0, de acordo do Nicola 14/10): um ativo
+   principal tem unidades (Imóveis), áreas (Agro e Pecuária) ou integrantes (Família), cada um com uso, contrato, itens e
+   status próprios. js/cofre-ativos.js 1.102.0 (card no Resumo, ⋮ Adicionar e Vincular, "Tirar de", pergunta seguem ou
+   ficam ao vender, baixar ou arquivar o principal) e js/cofre-api.js 1.51.0. No index, o contador de ativos do
+   cabeçalho conta só os principais. Banco: usos_fatia3_estrutura v1 a v3.
+   Versão anterior (Beta v1.409.0):
    NOVIDADES (Beta v1.409.0) — ONDA 8a do estudo PROTOTIPO_UX_DENSIDADE_RAMOS_RAIZ v1.2.0 (D15, computador): a partir de
    1024 px a barra de baixo vira barra lateral à esquerda (Raiz IA no topo, Hoje · Ativos · Agenda · Financeiro), o
    conteúdo ganha 820 px de largura ao lado, os sheets abrem como painel lateral à direita na altura inteira, e Ctrl/⌘ K
@@ -30,17 +36,8 @@
    alertas de sempre (mesmo desenho e gestos) e os compromissos, sem repetir; Semana em faixa de 7 dias + dia; Mês com
    pontos por status; dia por hora pronto para o registro do dia. Regras de alerta intocadas. Sem banco.
    Versão anterior (Beta v1.405.0):
-   NOVIDADES (Beta v1.405.0) — Upload de documento mais curto (demanda 7b0d407b, "De acordo" do Nicola 14/10 08:24). A tela
-   "Confira o documento" ganha a confirmação rápida: documento de pessoa (passaporte, visto, CNH, RG) lido com confiança vira
-   um cartão com titular, número, emissão → validade e aviso, e o botão "Confirmar e controlar"; "Editar detalhes" abre o
-   formulário completo, e qualquer dúvida da leitura cai nele. Cada data aparece uma vez: emissão e validade deixam de se
-   repetir nos dados do tipo, e o Início do controle some quando o controle é de documento. Catálogo (sem tela): visto avisa
-   180 dias antes, visto e passaporte reforçam a cada 30 dias. Só muda o import map: cofre-documentos.js 2.36.0,
-   cofre-app.js 1.48.0 e ativos/ativos-markup.js 1.62.0; o import map passa a listar também js/agenda.js 1.0.0, que já
-   estava publicado e fora do registro de versões. Nenhum objeto de banco.
-   Versão anterior (Beta v1.404.0):
    ------------------------------------------------------------------
-   Versões anteriores (v1.404.0 … v1.404.0): CHANGELOG_APP.md, na raiz do
+   Versões anteriores (v1.405.0 … v1.405.0): CHANGELOG_APP.md, na raiz do
    repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
    das 5 versões mais recentes deste cabeçalho.
 
@@ -68,7 +65,7 @@
          O navegador aplica o mapa também aos imports estáticos dentro dos
          módulos (cofre-app.js → ./cofre-api.js etc.). -->
     <!-- RZ-IMPORTMAP:INICIO -->
-    <script type="importmap">{"imports":{"./js/cadastros.js":"./js/cadastros.js?v=1.2.0","./js/financeiro.js":"./js/financeiro.js?v=1.61.0","./js/fechamento.js":"./js/fechamento.js?v=1.13.0","./js/contratos.js":"./js/contratos.js?v=1.57.0","./js/minutas.js":"./js/minutas.js?v=1.4.0","./js/vitrine.js":"./js/vitrine.js?v=1.5.2","./js/imoveis.js":"./js/imoveis.js?v=1.7.2","./js/cofre-api.js":"./js/cofre-api.js?v=1.50.0","./js/cofre-app.js":"./js/cofre-app.js?v=1.48.0","./js/cofre-ativos.js":"./js/cofre-ativos.js?v=1.101.0","./js/cofre-controles.js":"./js/cofre-controles.js?v=1.57.0","./js/cofre-documentos.js":"./js/cofre-documentos.js?v=2.36.0","./js/cofre-imagem.js":"./js/cofre-imagem.js?v=1.1.0","./js/cofre-estado.js":"./js/cofre-estado.js?v=1.5.2","./js/cofre-navegacao.js":"./js/cofre-navegacao.js?v=1.9.3","./js/cofre-ui.js":"./js/cofre-ui.js?v=1.7.2","./js/cofre-validacoes.js":"./js/cofre-validacoes.js?v=2.5.0","./js/comum-licenca.js":"./js/comum-licenca.js?v=1.8.0","./js/comum-renovacao.js":"./js/comum-renovacao.js?v=1.3.5","./js/comum-minha-empresa.js":"./js/comum-minha-empresa.js?v=1.16.0","./js/comum-pessoas.js":"./js/comum-pessoas.js?v=1.212.0","./js/comum-sobre.js":"./js/comum-sobre.js?v=1.5.0","./js/comum-endereco.js":"./js/comum-endereco.js?v=1.2.0","./js/comum-partes.js":"./js/comum-partes.js?v=1.0.0","./js/resultados.js":"./js/resultados.js?v=2.9.0","./js/indicadores.js":"./js/indicadores.js?v=1.1.0","./js/configuracao-inicial.js":"./js/configuracao-inicial.js?v=1.0.1","./js/relatorios-executivos.js":"./js/relatorios-executivos.js?v=1.3.0","./js/raiz-eventos.js":"./js/raiz-eventos.js?v=1.0.0","./js/raiz-device.js":"./js/raiz-device.js?v=1.1.0","./js/raiz-ui.js":"./js/raiz-ui.js?v=1.4.0","./js/fiscal.js":"./js/fiscal.js?v=1.5.2","./js/ativos/ativos-boot.js":"./js/ativos/ativos-boot.js?v=1.4.0","./js/ativos/ativos-markup.js":"./js/ativos/ativos-markup.js?v=1.62.0","./js/nucleo/porta.js":"./js/nucleo/porta.js?v=1.5.0","./js/partes.js":"./js/partes.js?v=1.0.2","./js/conta.js":"./js/conta.js?v=1.0.1","./js/grupo-visao.js":"./js/grupo-visao.js?v=1.0.0","./js/agenda.js":"./js/agenda.js?v=1.3.0"}}</script>
+    <script type="importmap">{"imports":{"./js/cadastros.js":"./js/cadastros.js?v=1.2.0","./js/financeiro.js":"./js/financeiro.js?v=1.61.0","./js/fechamento.js":"./js/fechamento.js?v=1.13.0","./js/contratos.js":"./js/contratos.js?v=1.57.0","./js/minutas.js":"./js/minutas.js?v=1.4.0","./js/vitrine.js":"./js/vitrine.js?v=1.5.2","./js/imoveis.js":"./js/imoveis.js?v=1.7.2","./js/cofre-api.js":"./js/cofre-api.js?v=1.51.0","./js/cofre-app.js":"./js/cofre-app.js?v=1.48.0","./js/cofre-ativos.js":"./js/cofre-ativos.js?v=1.102.0","./js/cofre-controles.js":"./js/cofre-controles.js?v=1.57.0","./js/cofre-documentos.js":"./js/cofre-documentos.js?v=2.36.0","./js/cofre-imagem.js":"./js/cofre-imagem.js?v=1.1.0","./js/cofre-estado.js":"./js/cofre-estado.js?v=1.5.2","./js/cofre-navegacao.js":"./js/cofre-navegacao.js?v=1.9.3","./js/cofre-ui.js":"./js/cofre-ui.js?v=1.7.2","./js/cofre-validacoes.js":"./js/cofre-validacoes.js?v=2.5.0","./js/comum-licenca.js":"./js/comum-licenca.js?v=1.8.0","./js/comum-renovacao.js":"./js/comum-renovacao.js?v=1.3.5","./js/comum-minha-empresa.js":"./js/comum-minha-empresa.js?v=1.16.0","./js/comum-pessoas.js":"./js/comum-pessoas.js?v=1.212.0","./js/comum-sobre.js":"./js/comum-sobre.js?v=1.5.0","./js/comum-endereco.js":"./js/comum-endereco.js?v=1.2.0","./js/comum-partes.js":"./js/comum-partes.js?v=1.0.0","./js/resultados.js":"./js/resultados.js?v=2.9.0","./js/indicadores.js":"./js/indicadores.js?v=1.1.0","./js/configuracao-inicial.js":"./js/configuracao-inicial.js?v=1.0.1","./js/relatorios-executivos.js":"./js/relatorios-executivos.js?v=1.3.0","./js/raiz-eventos.js":"./js/raiz-eventos.js?v=1.0.0","./js/raiz-device.js":"./js/raiz-device.js?v=1.1.0","./js/raiz-ui.js":"./js/raiz-ui.js?v=1.4.0","./js/fiscal.js":"./js/fiscal.js?v=1.5.2","./js/ativos/ativos-boot.js":"./js/ativos/ativos-boot.js?v=1.4.0","./js/ativos/ativos-markup.js":"./js/ativos/ativos-markup.js?v=1.62.0","./js/nucleo/porta.js":"./js/nucleo/porta.js?v=1.5.0","./js/partes.js":"./js/partes.js?v=1.0.2","./js/conta.js":"./js/conta.js?v=1.0.1","./js/grupo-visao.js":"./js/grupo-visao.js?v=1.0.0"}}</script>
     <!-- RZ-IMPORTMAP:FIM -->
 
     <!-- ===== PWA: permite "instalar" o app no celular (Android e iPhone) ===== -->
@@ -4264,7 +4261,7 @@
         // texto certo toda vez (esqueci 5 versões seguidas, de v1.37.1 até
         // v1.38.3). Agora só precisa mudar UMA linha aqui a cada release;
         // window.onload aplica nos dois lugares automaticamente.
-        const APP_VERSAO = "Beta v1.409.0"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
+        const APP_VERSAO = "Beta v1.410.0"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
 
         // ====================================================================
         // v1.105.0 — HELPERS DE SUPERFÍCIE DA GRAMÁTICA ÚNICA
@@ -9956,7 +9953,8 @@ async function criarLinkVitrineSupabase(token, idsSelecionados) {
             // ainda, o cabeçalho fica sem a contagem por alguns segundos
             // (em vez de mentir) até o evento chegar e corrigir sozinho.
             if (Array.isArray(window.__cofreAtivos)) {
-                const ativos = window.__cofreAtivos.filter(a => (a.status || '').toLowerCase() !== 'arquivado');
+                // v1.410.0 (usos fatia 3, D3-2) — unidade, área e integrante ficam dentro do principal: não contam aqui
+                const ativos = window.__cofreAtivos.filter(a => (a.status || '').toLowerCase() !== 'arquivado' && !a.ativo_principal_id);
                 if (ativos.length) partes.push(ativos.length + (ativos.length === 1 ? ' ativo' : ' ativos'));
             }
             el.textContent = partes.length ? partes.join(' · ') : 'Raiz Patrimônio';

@@ -1,6 +1,11 @@
 // ============================================================================
 // cofre-api.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.50.0 · 08/10/2026
+// Versão: 1.51.0 · 14/10/2026
+//
+// v1.51.0 (usos fatia 3 · subativos, demanda 3022603b, sessão 20261014-1020-usos-fatia3; de acordo do Nicola 14/10) —
+// criarImovelEAtivo aceita imovelDados.ativo_principal_id: a unidade nasce dentro do principal.
+//
+// Versão anterior: 1.50.0 · 08/10/2026
 //
 // v1.50.0 (UX F2.8, demanda ed5accfe, sessão 20261003-1707-ux-base; "Sim. Faça 1 e 2 agora" do Nicola 08/10 20:09; dem 5a84b9aa) — foto publicada de imóvel cadastrado direto como
 // ativo vai para a pasta do próprio ativo (<cliente>/<ativo>/<foto>.<ext>); antes só imóvel do cadastro antigo
@@ -24,16 +29,11 @@
 // analisarArquivoComIA aceita opcoes.leituraId (vai como leitura_id: o cofre-extrair-documento 1.11
 // guarda o resultado em <cliente>/tmp-ia/<leituraId>.leitura.json). Novas: baixarArquivoDocumento()
 // e lerLeituraGuardada() — para retomar a leitura quando o app foi recarregado no meio.
-//
-// Versão anterior: 1.47.0 · 04/10/2026
-//
-// v1.47.0 (F0.2b do PLANO_UX, demanda 9e4aca28, sessão 20261003-1707-ux-base, "de acordo" do Nicola 04/10 00:22 e 01:03; UXR-29/30) — lerVinculo/restaurarVinculo e restaurarFotoAtivo, para o
-// "Desfazer" de desvincular documento e de remover foto (a foto já era só arquivada).
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.46.0 … v1.46.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.47.0 … v1.47.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '1.50.0'; // v-check (22/09/2026): lido por Dev › Versões — manter igual ao header
+export const VERSAO = '1.51.0'; // v-check (22/09/2026): lido por Dev › Versões — manter igual ao header
 const SUPABASE_URL = 'https://oduwpttbbemypiypjsux.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9kdXdwdHRiYmVteXBpeXBqc3V4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODUyODEyOTcsImV4cCI6MjEwMDg1NzI5N30.9-cu1CV1wPbo5UH1G2eAsWqsvS54AWNuQZOlifc9a7w';
 
@@ -1002,6 +1002,9 @@ export async function criarImovelEAtivo(clienteId, nomeExibicao, tipoAtivo, imov
         situacao_uso: imovelDados.status || null,
         observacao: imovelDados.descricao || null,
         cib: imovelDados.cib || null,
+        // v1.51.0 (usos fatia 3) — unidade de um prédio/galpão nasce já presa ao principal; o banco confere
+        // (trg_ativo_principal) e zera o valor de referência (D3-3: o valor do principal é o total).
+        ativo_principal_id: imovelDados.ativo_principal_id || null,
     };
     const { data, error } = await dbAuth.from('cofre_ativos').insert(payload).select().single();
     if (error) throw error;
