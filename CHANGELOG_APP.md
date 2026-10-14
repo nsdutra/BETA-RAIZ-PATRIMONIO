@@ -4,6 +4,18 @@ Histórico completo de versões do `index.html`, movido automaticamente pelo `ge
 
 ---
 
+NOVIDADES (Beta v1.400.0) — Usos fatia 1, máquina de status (FICHA_FATIA1_MAQUINA_STATUS_RAIZ v1.0.0; Nicola 13/10 23:45:
+"D1-1 não precisa mudar nada. Continua como alugado. Restante ok. Vamos seguir"). Import map: cofre-ativos.js 1.99.0
+(Situação do ⋮ pelo catálogo: venda, baixa, arquivar, reativar, desfazer; Excluir uso; card Histórico) e
+cofre-controles.js 1.56.0 (Pausar, Retomar, Concluir e Reabrir item). RZ_STATUS ganha baixado e pausado.
+Versão anterior (Beta v1.399.0):
+------------------------------------------------------------------
+Versões anteriores (v1.399.0 … v1.399.0): CHANGELOG_APP.md, na raiz do
+repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
+das 5 versões mais recentes deste cabeçalho.
+
+---
+
 NOVIDADES (Beta v1.399.0) — Usos fatia 0, ajuste do teste do Nicola (13/10 23:27). Só muda o import map:
 cofre-ativos.js 1.98.0 (usos do ano listados no card com ⋮ Concluir; o modelo em que o ativo já está sai das opções).
 Versão anterior (Beta v1.398.0):

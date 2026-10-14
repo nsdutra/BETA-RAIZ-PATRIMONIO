@@ -1,8 +1,8 @@
 {
   "app": "patrimonio",
-  "gerado_em": "2026-10-14T00:49:16",
+  "gerado_em": "2026-10-14T11:35:04",
   "arquivos": {
-    "index.html": "1.404.0",
+    "index.html": "1.405.0",
     "sw.js": "3.2",
     "js/cadastros.js": "1.2.0",
     "js/financeiro.js": "1.61.0",
@@ -12,10 +12,10 @@
     "js/vitrine.js": "1.5.2",
     "js/imoveis.js": "1.7.2",
     "js/cofre-api.js": "1.50.0",
-    "js/cofre-app.js": "1.47.0",
+    "js/cofre-app.js": "1.48.0",
     "js/cofre-ativos.js": "1.101.0",
     "js/cofre-controles.js": "1.57.0",
-    "js/cofre-documentos.js": "2.35.0",
+    "js/cofre-documentos.js": "2.36.0",
     "js/cofre-imagem.js": "1.1.0",
     "js/cofre-estado.js": "1.5.2",
     "js/cofre-navegacao.js": "1.9.3",
@@ -37,16 +37,17 @@
     "js/raiz-ui.js": "1.4.0",
     "js/fiscal.js": "1.5.2",
     "js/ativos/ativos-boot.js": "1.4.0",
-    "js/ativos/ativos-markup.js": "1.61.0",
+    "js/ativos/ativos-markup.js": "1.62.0",
     "js/nucleo/porta.js": "1.5.0",
     "js/partes.js": "1.0.2",
     "js/conta.js": "1.0.1",
     "grupo.html": "1.0.0",
-    "js/grupo-visao.js": "1.0.0"
+    "js/grupo-visao.js": "1.0.0",
+    "js/agenda.js": "1.0.0"
   },
   "detalhes": {
     "index.html": {
-      "linhas": 16667,
+      "linhas": 16673,
       "funcoes": 69
     },
     "sw.js": {
@@ -86,7 +87,7 @@
       "funcoes": 108
     },
     "js/cofre-app.js": {
-      "linhas": 779,
+      "linhas": 777,
       "funcoes": 13
     },
     "js/cofre-ativos.js": {
@@ -98,8 +99,8 @@
       "funcoes": 141
     },
     "js/cofre-documentos.js": {
-      "linhas": 2625,
-      "funcoes": 156
+      "linhas": 2699,
+      "funcoes": 160
     },
     "js/cofre-imagem.js": {
       "linhas": 338,
@@ -186,7 +187,7 @@
       "funcoes": 1
     },
     "js/ativos/ativos-markup.js": {
-      "linhas": 1245,
+      "linhas": 1255,
       "funcoes": 0
     },
     "js/nucleo/porta.js": {
@@ -208,6 +209,10 @@
     "js/grupo-visao.js": {
       "linhas": 244,
       "funcoes": 10
+    },
+    "js/agenda.js": {
+      "linhas": 213,
+      "funcoes": 11
     }
   }
 }

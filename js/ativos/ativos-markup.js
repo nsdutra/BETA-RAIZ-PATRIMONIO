@@ -1,6 +1,13 @@
 // ============================================================================
 // js/ativos/ativos-markup.js — Raiz Patrimônio · Módulo Único, fatia frontend 1
-// Versão: 1.61.0 · 12/10/2026
+// Versão: 1.62.0 · 14/10/2026
+//
+// v1.62.0 (14/10/2026, sessão 20261014-0830-upload-rapido, demanda 7b0d407b; "De acordo" do Nicola 14/10 08:24) —
+// tela "Confira o documento": cartão de confirmação rápida (#uc-rapido) acima do formulário, que passa a morar em
+// #uc-completo; o "Início" do controle ganha id (#uc-ctl-inicio-wrap) para sair da tela quando o controle é de
+// documento; o botão Salvar ganha id (#uc-salvar) para virar "Confirmar e controlar" no modo rápido.
+//
+// Versão anterior: 1.61.0 · 12/10/2026
 //
 // v1.61.0 (12/10/2026, sessão 20261012-0215-ux-onda3b, demanda a05ad2ee; UX onda 3, estudo PROTOTIPO_UX_DENSIDADE_RAMOS_RAIZ
 // v1.2.0 D11/D12, "pode avançar" do Nicola 12/10 01:53) — os ⋮ dos cabeçalhos dos cards da ficha do ativo saem (Dados,
@@ -24,17 +31,11 @@
 //
 // v1.58.0 (sessão 20261003-1707-ux-base, demanda 28aa5ce1 — teste do Nicola 10/10 21:43) — sai o ícone de filtros do
 // topo de Ativos; fica a barra digitável e o "+".
-//
-// Versão anterior: 1.57.0 · 10/10/2026
-//
-// v1.57.0 (demanda 28aa5ce1, sessão 20261003-1707-ux-base; de acordo do Nicola 10/10 21:26) — topo de Ativos: a
-// barra de busca é digitável (#ativos-busca-q, ligada por cofre-ativos.js) e ganha o ícone de filtros ao lado
-// (#ativos-filtros-btn, data-action abrir-busca-ativos: Sheet só com Tipo, Situação e Alerta).
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.56.0 … v1.56.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.57.0 … v1.57.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '1.61.0'; // v-check (28/09/2026): lido por Dev › Versões — manter igual ao header
+export const VERSAO = '1.62.0'; // v-check (28/09/2026): lido por Dev › Versões — manter igual ao header
 export const ATIVOS_MARKUP = `<style>
     /* v1.94.1 (31/08/2026, pedido explícito: "anexo uma barra de
        rolagem que fica feia... ao rolar os chips não mostrar a barra")
@@ -895,6 +896,14 @@ export const ATIVOS_MARKUP = `<style>
         </div>
         <p id="uc-resumo" class="hidden raiz-bloco-interno text-sm mb-3"></p>
         <div id="uc-avisos" class="hidden space-y-1 mb-3"></div>
+        <div id="uc-rapido" class="hidden mb-3">
+            <div class="rz-card">
+                <div class="rz-card-h"><b id="uc-rapido-titulo">—</b></div>
+                <div id="uc-rapido-linhas" class="rz-desc"></div>
+                <div class="rz-acts"><button type="button" class="rz-btn rz-btn-3" data-action="uc-rapido-editar">Editar detalhes</button></div>
+            </div>
+        </div>
+        <div id="uc-completo">
         <div class="mb-3">
             <label class="text-xs font-semibold block mb-1">Tipo de documento</label>
             <div class="flex gap-2 items-stretch min-w-0">
@@ -961,7 +970,7 @@ export const ATIVOS_MARKUP = `<style>
                     <div><label class="text-xs font-semibold block mb-1">Tipo</label><select id="uc-ctl-tipo" class="w-full border-2 border-slate-300 rounded-xl p-2 text-sm" data-action-change="uc-ctl-tipo-mudou"><option value="seguro">Seguro</option><option value="tributo">Tributo / taxa</option><option value="documento">Documento</option><option value="manutencao">Manutenção</option></select></div>
                     <div><label class="text-xs font-semibold block mb-1">Subtipo</label><select id="uc-ctl-subtipo" class="w-full border-2 border-slate-300 rounded-xl p-2 text-sm" data-action-change="uc-ctl-subtipo-mudou"></select></div>
                     <div class="col-span-2"><label class="text-xs font-semibold block mb-1">Título do controle</label><input type="text" id="uc-ctl-titulo" class="w-full border-2 border-slate-300 rounded-xl p-2 text-sm"></div>
-                    <div><label class="text-xs font-semibold block mb-1">Início</label><input type="date" id="uc-ctl-data-inicio" class="w-full border-2 border-slate-300 rounded-xl p-2 text-sm"></div>
+                    <div id="uc-ctl-inicio-wrap"><label class="text-xs font-semibold block mb-1">Início</label><input type="date" id="uc-ctl-data-inicio" class="w-full border-2 border-slate-300 rounded-xl p-2 text-sm"></div>
                     <div class="hidden"><input type="date" id="uc-ctl-data-fim"></div> <!-- v1.22.0: espelho do "Vence em" único -->
                     <div><label class="text-xs font-semibold block mb-1">Avisar (dias antes)</label><input type="number" min="0" id="uc-ctl-antecedencia" class="w-full border-2 border-slate-300 rounded-xl p-2 text-sm"></div>
                     <div><label class="text-xs font-semibold block mb-1">Reforço a cada (dias)</label><input type="number" min="1" id="uc-ctl-reforco" class="w-full border-2 border-slate-300 rounded-xl p-2 text-sm"></div>
@@ -979,8 +988,9 @@ export const ATIVOS_MARKUP = `<style>
                 <input type="checkbox" id="up-restrito" class="w-4 h-4"><label for="up-restrito" class="text-xs">Marcar como acesso restrito</label>
             </div>
         </div>
+        </div><!-- /uc-completo -->
         <div class="flex justify-end gap-2 mt-4">
-            <button data-action="salvar-confirmacao-upload" style="flex:1;background:var(--pine);color:#fff;font-weight:bold;font-size:13px;padding:10px;border:none;border-radius:8px;">Salvar</button>
+            <button id="uc-salvar" data-action="salvar-confirmacao-upload" style="flex:1;background:var(--pine);color:#fff;font-weight:bold;font-size:13px;padding:10px;border:none;border-radius:8px;">Salvar</button>
             <button type="button" data-action="cancelar-confirmacao-upload" style="flex:1;background:#f1f5f9;color:#475569;font-weight:bold;font-size:13px;padding:10px;border:none;border-radius:8px;">Cancelar</button>
         </div>
         <p class="raiz-indicador-inline" id="uc-status"></p>

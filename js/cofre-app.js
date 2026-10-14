@@ -1,6 +1,11 @@
 // ============================================================================
 // cofre-app.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.47.0 · 09/10/2026
+// Versão: 1.48.0 · 14/10/2026
+//
+// v1.48.0 (14/10/2026, sessão 20261014-0830-upload-rapido, demanda 7b0d407b; "De acordo" do Nicola 14/10 08:24) —
+// "uc-rapido-editar" abre o formulário completo da confirmação do upload (docs.abrirDetalhesUpload).
+//
+// Versão anterior: 1.47.0 · 09/10/2026
 //
 // v1.47.0 (UX F2.3b, demanda fcd3008d, sessão 20261003-1707-ux-base; plano F2.3 aprovado pelo Nicola 09/10 20:52 ("Estou de acordo com f2.3 e opcao a")) —
 // "abrir-busca-global" abre a busca universal do app (rzAbrirBuscaUniversal) quando ela existe; no
@@ -21,19 +26,11 @@
 // v1.44.1 (07/10/2026, sessão 20261007-1721-rolo-changelog, demanda 2507d554 — VER-06, "de acordo" do Nicola 07/10 17:21) — SÓ
 // CABEÇALHO: as versões além das 5 mais recentes rolaram para o CHANGELOG_MODULOS.md.
 // Nenhuma linha de código mudou — conferido token a token contra o publicado.
-//
-// Versão anterior: 1.44.0 · 06/10/2026
-//
-// v1.44.0 (frente D, fatia D2 — demanda 860233ca; sessão 20261006-2348-setup-d2; "Estou de acordo" do
-// Nicola 06/10 23:48) — o + de Ativos ganha "Configuração inicial" (código cofre.configuracao_inicial;
-// sem ele, aparece com cadeado e motivo). O evento cofre:abrir-configuracao-inicial (disparado pelo
-// index.html: + de Contratos e alerta "Nenhum ativo cadastrado") abre a mesma tela, que vive em
-// js/configuracao-inicial.js e só carrega quando é usada (UI-05).
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.43.0 … v1.43.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.44.0 … v1.44.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '1.47.0'; // v-check (28/09/2026): lido por Dev › Versões — manter igual ao header
+export const VERSAO = '1.48.0'; // v-check (28/09/2026): lido por Dev › Versões — manter igual ao header
 import { estado, COFRE_VERSAO } from './cofre-estado.js';
 import * as api from './cofre-api.js';
 import { mostrarToast, fecharModal, abrirModal, refrescarIcones } from './cofre-ui.js';
@@ -434,6 +431,7 @@ document.addEventListener('change', async (ev) => {
         case 'uc-categoria-mudou': docs.aplicarPadroesCategoriaUpload(); break;
         case 'uc-tipo-doc-mudou': docs.aoMudarTipoDocUpload(); break; // v1.27.0
         case 'uc-validade-mudou': docs.aoMudarValidadeUpload(); break; // v1.27.0
+        case 'uc-rapido-editar': docs.abrirDetalhesUpload(); break;
         case 'uc-controlar-mudou': docs.aoMudarControlarUpload(); break;
         case 'uc-ctl-tipo-mudou': docs.aoMudarTipoControleUpload(); break;
         case 'uc-ctl-subtipo-mudou': docs.aplicarPadraoSubtipoUpload(); break;

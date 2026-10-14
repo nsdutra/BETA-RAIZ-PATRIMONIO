@@ -1,6 +1,15 @@
 // ============================================================================
 // cofre-documentos.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 2.35.0 · 09/10/2026
+// Versão: 2.36.0 · 14/10/2026
+//
+// v2.36.0 (14/10/2026, sessão 20261014-0830-upload-rapido, demanda 7b0d407b; "De acordo" do Nicola 14/10 08:24) —
+// "Confira o documento" mais curto. (a) Confirmação rápida: documento de pessoa lido com confiança, titular forte,
+// vencimento impresso e controle permitido vira um cartão (titular, número, emissão → validade, aviso) e o botão
+// "Confirmar e controlar"; "Editar detalhes" abre o formulário completo, e qualquer dúvida da leitura cai nele.
+// (b) Cada data uma vez só: o campo do tipo que repete "Data do documento", "Vence em" ou a vigência fica escondido
+// e é regravado no salvar; o "Início" do controle some quando o controle é de documento.
+//
+// Versão anterior: 2.35.0 · 09/10/2026
 //
 // v2.35.0 (UX F2.3b, demanda fcd3008d, sessão 20261003-1707-ux-base; plano F2.3 aprovado pelo Nicola 09/10 20:52 ("Estou de acordo com f2.3 e opcao a")) —
 // busca universal do Hoje: buscarDocumentosTexto(termo) devolve os documentos com o mesmo critério do
@@ -28,17 +37,11 @@
 // categorias de ativo ligadas ao subtipo em cofre_subtipo_aplicabilidade; se houver mais de uma, vale a
 // sugestão da IA quando for uma delas; sem decisão segura, o botão não aparece. Nome e dados do ativo
 // sugeridos passam a reconhecer vida, imovel_predial e imovel_territorial.
-//
-// Versão anterior: 2.31.2 · 07/10/2026
-//
-// v2.31.1 (07/10/2026, sessão 20261007-1721-rolo-changelog, demanda 2507d554 — VER-06, "de acordo" do Nicola 07/10 17:21) — SÓ
-// CABEÇALHO: as versões além das 5 mais recentes rolaram para o CHANGELOG_MODULOS.md.
-// Nenhuma linha de código mudou — conferido token a token contra o publicado.
 // --------------------------------------------------------------------------
-// Versões anteriores (v2.31.0 … v2.31.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v2.31.1 … v2.31.1): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '2.35.0'; // v-check (22/09/2026): lido por Dev › Versões — manter igual ao header
+export const VERSAO = '2.36.0'; // v-check (22/09/2026): lido por Dev › Versões — manter igual ao header
 import { estado } from './cofre-estado.js';
 // v2.3.1 — import TOLERANTE: na v2.2.0 isto era um import estático. Quando o
 // cofre-imagem.js não subiu no deploy (faltava a linha no manifesto), o import
@@ -287,6 +290,8 @@ let gabaritoCategorias = null; // linhas globais de cofre_categorias (padrões)
 let subtiposControle = null;   // v2.1.0 — catálogo global (cofre_controle_subtipos, cliente_id null, ativo)
 let aplicabilidadeSubtipos = null; // v2.16.0 — cofre_subtipo_aplicabilidade (ativo=true) — fonte real de "este subtipo serve pra este tipo de ativo"
 const LIMIAR_CONFIRA = 0.75;
+// Data que a tela mostra uma vez só: o campo do tipo que repete o de cima fica escondido e é regravado no salvar.
+const DATAS_ESPELHADAS = { data_emissao: 'uc-data-documento', data_documento: 'uc-data-documento', validade: 'uc-validade', vigencia_inicio: 'uc-vig-inicio', vigencia_fim: 'uc-vig-fim' };
 
 function podeIA() { return window.podeUsar ? window.podeUsar('cofre.analisar_ia').ok : true; }
 function podeControlar() { return window.podeUsar ? window.podeUsar('cofre.controles.criar').ok : true; }
@@ -1181,6 +1186,7 @@ function montarConfirmacaoUpload() {
     renderizarAvisosUpload();
     atualizarOfertaCriarAtivo();
     montarBlocoConfiguracao(); // v2.26.0 (D2)
+    aplicarModoConfirmacaoUpload();
 }
 
 // v2.26.0 (D2) — contêiner único no topo do "Confira" para a configuração inicial e para a
@@ -1493,6 +1499,7 @@ export function aplicarSubtipoUpload(primeira = false) {
     g('uc-ctl-valor-previsto').value = sug ? formatarValorBR(sug.valorTotal) : '';
     g('uc-ctl-parcelas').value = sug ? sug.parcelas : 1;
     g('uc-ctl-parcela-intervalo').value = sug ? sug.intervalo : 30;
+    atualizarInicioControleUpload();
 }
 
 // v2.10.0 — lê os campos JÁ EXTRAÍDOS (m.campos, conforme o esquema do
@@ -1528,6 +1535,7 @@ function renderizarDadosCampos(s, m) {
     const campos = (s?.campos || []).filter(c => c.tipo !== 'partes');
     if (!campos.length) { bloco.classList.add('hidden'); cont.innerHTML = ''; return; }
     const ruins = new Set((m?.validacoes || []).filter(v => !v.ok).flatMap(v => v.campos || []));
+    const alertarTopo = new Set(); // 'confira' de campo escondido vai para o campo de cima
     cont.innerHTML = campos.map(c => {
         const val = m?.campos?.[c.campo] ?? '';
         const conf = m?.confianca_campos?.[c.campo];
@@ -1536,9 +1544,16 @@ function renderizarDadosCampos(s, m) {
         const tipoInput = c.tipo === 'data' ? 'date' : 'text';
         const extra = c.tipo === 'valor' ? ' inputmode="decimal" placeholder="0,00"' : (c.tipo === 'cpf' || c.tipo === 'renavam' ? ' inputmode="numeric"' : '');
         const mostrado = c.tipo === 'valor' ? formatarValorBR(val) : (val == null ? '' : String(val)); // v2.8.0
-        return `<div><label class="text-xs block mb-0.5" style="color:${confira ? 'var(--warning)' : 'var(--sage)'}">${escapeHtml(c.rotulo)}${confira ? ' · confira' : ''}${c.obrigatorio ? ' *' : ''}${c.tipo === 'valor' ? ' <span style="color:var(--sage)">(R$)</span>' : ''}</label>
-            <input type="${tipoInput}"${extra} class="uc-dado w-full border-2 ${confira ? 'border-amber-400' : 'border-slate-300'} rounded-xl p-2 text-sm" data-campo="${c.campo}" data-tipo="${c.tipo}" value="${escapeHtml(mostrado)}"${ev}${c.tipo === 'valor' ? ' onblur="this.value=window.__rzFmtValor?window.__rzFmtValor(this.value):this.value"' : ''}></div>`;
+        const alvoTopo = c.tipo === 'data' ? DATAS_ESPELHADAS[c.campo] : null;
+        const espelho = !!(alvoTopo && val && String(val) === (document.getElementById(alvoTopo)?.value || '')); // só esconde quando o de cima mostra o mesmo valor
+        if (espelho && confira) alertarTopo.add(alvoTopo);
+        return `<div${espelho ? ' class="hidden"' : ''}><label class="text-xs block mb-0.5" style="color:${confira ? 'var(--warning)' : 'var(--sage)'}">${escapeHtml(c.rotulo)}${confira ? ' · confira' : ''}${c.obrigatorio ? ' *' : ''}${c.tipo === 'valor' ? ' <span style="color:var(--sage)">(R$)</span>' : ''}</label>
+            <input type="${tipoInput}"${extra} class="uc-dado w-full border-2 ${confira ? 'border-amber-400' : 'border-slate-300'} rounded-xl p-2 text-sm" data-campo="${c.campo}" data-tipo="${c.tipo}"${espelho ? ` data-espelho="${alvoTopo}"` : ''} value="${escapeHtml(mostrado)}"${ev}${c.tipo === 'valor' ? ' onblur="this.value=window.__rzFmtValor?window.__rzFmtValor(this.value):this.value"' : ''}></div>`;
     }).join('');
+    Object.values(DATAS_ESPELHADAS).forEach(id => {
+        const el = document.getElementById(id); if (!el) return;
+        el.classList.toggle('border-amber-400', alertarTopo.has(id)); el.classList.toggle('border-slate-300', !alertarTopo.has(id));
+    });
     bloco.classList.remove('hidden');
 }
 
@@ -1561,6 +1576,8 @@ function parseValorBR(t) {
 window.__rzFmtValor = formatarValorBR;
 
 function lerDadosEstruturados() {
+    // campo escondido por repetir o de cima: vale o valor atual do de cima
+    document.querySelectorAll('.uc-dado[data-espelho]').forEach(el => { const topo = document.getElementById(el.dataset.espelho); if (topo) el.value = topo.value; });
     const out = {};
     document.querySelectorAll('.uc-dado').forEach(el => {
         let v = el.value.trim(); if (v === '') { out[el.dataset.campo] = null; return; }
@@ -1570,6 +1587,63 @@ function lerDadosEstruturados() {
         out[el.dataset.campo] = v;
     });
     return out;
+}
+
+// Confirmação rápida: documento de pessoa que a IA leu com confiança, com titular forte, vencimento impresso e
+// controle permitido vira um cartão e um toque. Qualquer dúvida da leitura cai no formulário completo.
+function elegivelConfirmacaoRapida() {
+    const m = up?.motor; const s = subtipoSelecionado();
+    if (!m || !s || up.config || up.pedirEquipe || up.novoAtivo || up.leituraFalhou) return false;
+    if (m.subtipo_codigo !== s.codigo || !s.gera_controle_padrao || !ehDocumentoDePessoa(s)) return false;
+    if (typeof m.confianca !== 'number' || m.confianca < (s.ia_estrategia?.limiar_confianca ?? LIMIAR_CONFIRA)) return false;
+    if (!m.validacoes_ok || m.titular?.divergente) return false;
+    if (m.vencimento?.origem !== 'impressa' || m.vencimento?.vencido) return false; // vencimento calculado pede conferência
+    if (!up.vinculo?.id || up.vinculo.tipo !== 'ativo') return false;
+    if (!up.contexto && m.vinculo?.sugerido?.forca !== 'forte') return false; // vínculo sugerido pela IA só entra quando é forte
+    const campos = s.campos || [];
+    if (campos.some(c => c.obrigatorio && (m.campos?.[c.campo] == null || m.campos[c.campo] === ''))) return false;
+    if (campos.some(c => { const cf = m.confianca_campos?.[c.campo]; return cf != null && cf < LIMIAR_CONFIRA; })) return false;
+    const chk = document.getElementById('uc-controlar');
+    return !!chk && chk.checked && !chk.disabled;
+}
+
+function aplicarModoConfirmacaoUpload() {
+    if (!up) return;
+    const g = id => document.getElementById(id);
+    const rapido = elegivelConfirmacaoRapida();
+    up.modoRapido = rapido;
+    g('uc-rapido').classList.toggle('hidden', !rapido);
+    g('uc-completo').classList.toggle('hidden', rapido);
+    g('uc-salvar').textContent = rapido ? 'Confirmar e controlar' : 'Salvar';
+    if (!rapido) return;
+    const m = up.motor; const s = subtipoSelecionado();
+    const emis = g('uc-data-documento').value; const venc = g('uc-validade').value;
+    const ant = parseInt(g('uc-ctl-antecedencia').value, 10); const ref = parseInt(g('uc-ctl-reforco').value, 10);
+    const numero = m.campos?.numero || m.campos?.numero_documento || '';
+    const linhas = [
+        numero ? ['Número', numero] : null,
+        ['Emissão → validade', `${emis ? formatarDataBR(emis) : '—'} → ${formatarDataBR(venc)}`],
+        Number.isFinite(ant) ? ['Aviso', `${ant} dias antes${Number.isFinite(ref) && ref > 0 ? ` · reforço a cada ${ref} dias` : ''}`] : null,
+        ['Arquivo', `${g('uc-manter-arquivo').checked ? 'guardado no Cofre' : 'só os dados são guardados'}${g('up-restrito').checked ? ' · acesso restrito' : ''}`],
+    ].filter(Boolean);
+    g('uc-rapido-titulo').textContent = `${s.nome} · ${up.vinculo.nome}`;
+    g('uc-rapido-linhas').innerHTML = linhas.map(([k, v]) => `<div><b>${escapeHtml(k)}:</b> ${escapeHtml(String(v))}</div>`).join('');
+}
+
+// "Editar detalhes": abre o formulário completo no lugar do cartão.
+export function abrirDetalhesUpload() {
+    if (!up) return;
+    const g = id => document.getElementById(id);
+    up.modoRapido = false;
+    g('uc-rapido').classList.add('hidden');
+    g('uc-completo').classList.remove('hidden');
+    g('uc-salvar').textContent = 'Salvar';
+}
+
+// O "Início" do controle de documento é a própria emissão: não precisa aparecer.
+function atualizarInicioControleUpload() {
+    const w = document.getElementById('uc-ctl-inicio-wrap');
+    if (w) w.classList.toggle('hidden', document.getElementById('uc-ctl-tipo').value === 'documento');
 }
 
 // Avisos do motor: vencido (D10), titular divergente, validações, orçamento≠apólice.
@@ -1679,7 +1753,7 @@ export function aoMudarControlarUpload() {
     if (chk.checked && !document.getElementById('uc-ctl-titulo').value) document.getElementById('uc-ctl-titulo').value = document.getElementById('uc-nome').value;
 }
 
-export function aoMudarTipoControleUpload() { preencherSubtiposControleUpload(null); aplicarPadraoSubtipoUpload(); }
+export function aoMudarTipoControleUpload() { preencherSubtiposControleUpload(null); aplicarPadraoSubtipoUpload(); atualizarInicioControleUpload(); }
 
 function preencherSubtiposControleUpload(subtipoIdPreferido) {
     const tipo = document.getElementById('uc-ctl-tipo').value;
