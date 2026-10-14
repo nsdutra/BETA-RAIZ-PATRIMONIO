@@ -1,6 +1,12 @@
 // ============================================================================
 // cofre-controles.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.57.0 · 14/10/2026
+// Versão: 1.58.0 · 14/10/2026
+//
+// v1.58.0 (14/10/2026, sessão 20261014-1445-onda9a-textos, demanda a05ad2ee; onda 9 do estudo PROTOTIPO_UX_DENSIDADE_RAMOS_RAIZ v1.2.0,
+// D6 seção 10) — textos no limite: ação até 24 caracteres, descrição até 28 (só quando muda a decisão), aviso até 40 e
+// com o resultado (sem processo nem emoji). Fora do app principal, um aviso só: "Abra pelo app principal.". A explicação
+// longa fica na confirmação, que já existia. Nada de comportamento mudou.
+// Versão anterior: 1.57.0 · 14/10/2026
 //
 // v1.57.0 (14/10/2026, sessão 20261014-0010-ativo-pessoa, demanda d6a6f577; de acordo do Nicola 14/10 00:08) — "Conta ou
 // cartão" num ativo vida sem pessoa ligada: em vez do aviso, pergunta "Ligar agora" e abre a escolha da pessoa
@@ -29,20 +35,11 @@
 //     virava o dia seguinte depois das 21h em São Paulo.
 //   · Item de conta ou cartão (conta_id, F18): "Editar" não abre mais o formulário do item — oferece "Editar a conta ou o
 //     cartão", que abre a ficha da conta (comum-minha-empresa.js), dona do nome, tipo, titular e vencimento.
-// Versão anterior: 1.53.0 · 13/10/2026
-//
-// v1.53.0 (13/10/2026, sessão 20261013-2245-raiz-ia-ajustes2, demanda a2f4980a; Nicola 13/10 22:44: "não vi opções de
-// cancelar e excluir a ocorrência. Importante ter") — sheet da ocorrência ganha:
-//   · Cancelar (em aberto) — status 'cancelado' com motivo opcional; o espelho do banco apaga o lançamento previsto;
-//   · Reabrir (cancelada) — volta para "Em aberto";
-//   · Excluir (não concluída e criada à mão, pela IA ou por documento) — apaga de vez; as geradas pela frequência,
-//     parcela, fatura ou histórico do contrato só se cancelam (a regra as recriaria). Fica no histórico do item.
-// Sem banco: fn_ocorrencia_espelha_despesa já trata cancelado e exclusão; o histórico perde o vínculo (ON DELETE SET NULL).
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.52.0 … v1.52.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.53.0 … v1.53.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '1.57.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.58.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 import { estado } from './cofre-estado.js';
 import * as api from './cofre-api.js';
 import { mostrarToast, refrescarIcones, abrirModal, fecharModal, modalGenerico, perguntar, escolher, avisarComDesfazer } from './cofre-ui.js';
@@ -432,13 +429,13 @@ function itemResumoHtml(item) {
 // do rodapé ("Novo item"). Ficam as configurações que antes só eram
 // alcançáveis pelo menu da conta.
 export function abrirAcoesControles() { // v1.13.0 — era alternarMaisAcoesControles
-    if (typeof window.abrirSheetAcoes !== 'function') { mostrarToast('Ações disponíveis só dentro do app principal.', 'erro'); return; }
+    if (typeof window.abrirSheetAcoes !== 'function') { mostrarToast('Abra pelo app principal.', 'erro'); return; }
     window.abrirSheetAcoes({
         titulo: 'Itens de controle',
         sub: estado.ativoEmFoco?.nome_exibicao || '',
         acoes: [
-            { icone: 'layers', titulo: 'Modelos de item', codigo: 'cofre.controles.editar', sub: 'Modelos prontos pra criar mais rápido', aoTocar: () => abrirModelosControle() },
-            { icone: 'tags', titulo: 'Tipos de controle', codigo: 'cofre.controles.editar', sub: 'Subtipos de seguro, tributo e manutenção', aoTocar: () => abrirSubtiposControle() },
+            { icone: 'layers', titulo: 'Modelos de item', codigo: 'cofre.controles.editar', sub: 'Modelos prontos', aoTocar: () => abrirModelosControle() },
+            { icone: 'tags', titulo: 'Tipos de controle', codigo: 'cofre.controles.editar', sub: 'Seguro, tributo, manutenção', aoTocar: () => abrirSubtiposControle() },
         ],
     });
 }
@@ -534,8 +531,8 @@ function anexarEncerradosItem(mount, item, encerrados) {
         const v = encerrados.find(x => x.id === btn.dataset.encItem); if (!v) return;
         const nome = v.partes?.nome || 'Parte';
         sheetAcoes({ titulo: `${rotuloPapelParteItem(v.papel)} · ${nome}`, sub: 'Vínculo encerrado', acoes: [
-            { icone: 'rotate-ccw', titulo: 'Reativar', codigo: 'cofre.controles.editar', sub: 'Volta a responder por este item', aoTocar: () => acaoEncerradoItem(item, v, 'fn_vinculo_reativar') },
-            { icone: 'trash-2', tipo: 'bad', titulo: 'Excluir', codigo: 'cofre.controles.editar', sub: 'Cadastro errado. Sai também do histórico da parte', aoTocar: () => acaoEncerradoItem(item, v, 'fn_vinculo_excluir') },
+            { icone: 'rotate-ccw', titulo: 'Reativar', codigo: 'cofre.controles.editar', sub: 'Volta a responder pelo item', aoTocar: () => acaoEncerradoItem(item, v, 'fn_vinculo_reativar') },
+            { icone: 'trash-2', tipo: 'bad', titulo: 'Excluir', codigo: 'cofre.controles.editar', sub: 'Sai também do histórico', aoTocar: () => acaoEncerradoItem(item, v, 'fn_vinculo_excluir') },
         ] });
     }));
 }
@@ -648,7 +645,7 @@ export async function salvarPartesItemAtual() {
 
     for (const l of partesItemLinhasEmEdicao) {
         if (!l.parte_id || (l.parte_id === '__nova__' && !l.nomeNovo.trim())) {
-            mostrarToast('Preencha a parte de todas as linhas (ou remova as vazias).', 'erro');
+            mostrarToast('Preencha a parte em todas as linhas.', 'erro');
             return;
         }
     }
@@ -714,7 +711,7 @@ export async function abrirNovoLancamentoDoItem() {
     const item = itemEmFoco;
     if (!item) return;
     if (typeof window.switchTab !== 'function' || typeof window.abrirNovaDespesa !== 'function') {
-        mostrarToast('Lançamento de despesa só disponível dentro do app principal.', 'erro');
+        mostrarToast('Abra pelo app principal.', 'erro');
         return;
     }
     const partes = await api.buscarPartesDoItemControle(item.id);
@@ -966,10 +963,10 @@ function abrirAcoesGrupo(item) {
     if (!grupoDados) return;
     const aberto = grupoDados.status === 'aberto';
     sheetAcoes({ titulo: 'Rateio em grupo', sub: `${(grupoDados.participantes || []).length} pessoas · ${moedaBR(grupoDados.total || 0)}`, acoes: aberto ? [
-        { icone: 'link', titulo: 'Participantes e links', sub: 'Enviar o link de cada um, incluir ou tirar alguém', aoTocar: () => abrirParticipantesGrupo(item) },
-        { icone: 'check-check', titulo: 'Fechar o rateio', codigo: 'grupos.gerenciar', sub: 'Com os saldos zerados, leva a parte de cada pessoa do Raiz ao financeiro', aoTocar: () => abrirFecharRateio(item) },
+        { icone: 'link', titulo: 'Participantes e links', sub: 'Links, incluir ou tirar', aoTocar: () => abrirParticipantesGrupo(item) },
+        { icone: 'check-check', titulo: 'Fechar o rateio', codigo: 'grupos.gerenciar', sub: 'Leva as partes ao Financeiro', aoTocar: () => abrirFecharRateio(item) },
     ] : [
-        { icone: 'rotate-ccw', titulo: 'Reabrir o rateio', codigo: 'grupos.gerenciar', sub: 'Tira do financeiro o que o fechamento levou', aoTocar: () => reabrirRateio(item) },
+        { icone: 'rotate-ccw', titulo: 'Reabrir o rateio', codigo: 'grupos.gerenciar', sub: 'Tira do Financeiro', aoTocar: () => reabrirRateio(item) },
     ] });
 }
 function enviarLinkGrupo(item, p, link) {
@@ -984,17 +981,17 @@ async function copiarLinkGrupo(link) {
 function abrirParticipantesGrupo(item) {
     const d = grupoDados; if (!d) return;
     const links = Object.fromEntries((d.links || []).map(l => [l.participante_id, l]));
-    sheetAcoes({ titulo: 'Participantes e links', sub: `${(d.participantes || []).length} de 10 · cada um entra pelo próprio link e celular`, acoes: [
+    sheetAcoes({ titulo: 'Participantes e links', sub: `${(d.participantes || []).length} de 10 · cada um pelo link`, acoes: [
         ...(d.participantes || []).map(p => ({ icone: p.do_raiz ? 'user' : 'user-round', titulo: p.nome, sub: links[p.id]?.telefone ? `+${links[p.id].telefone}${p.do_raiz ? ' · do Raiz' : ''}` : 'sem celular: não abre o link',
             aoTocar: () => sheetAcoes({ titulo: p.nome, sub: 'Link pessoal do rateio', acoes: [
-                ...(links[p.id]?.telefone ? [{ icone: 'send', titulo: 'Enviar pelo WhatsApp', sub: 'Abre o seu WhatsApp com a mensagem e o link', aoTocar: () => enviarLinkGrupo(item, p, links[p.id]) }] : []),
+                ...(links[p.id]?.telefone ? [{ icone: 'send', titulo: 'Enviar pelo WhatsApp', sub: 'Pelo WhatsApp', aoTocar: () => enviarLinkGrupo(item, p, links[p.id]) }] : []),
                 { icone: 'copy', titulo: 'Copiar link', aoTocar: () => copiarLinkGrupo(links[p.id]) },
-                { icone: 'user-minus', titulo: 'Tirar do rateio', codigo: 'grupos.gerenciar', tipo: 'bad', sub: 'Só quem não tem lançamento. O link dele para de abrir', aoTocar: async () => {
+                { icone: 'user-minus', titulo: 'Tirar do rateio', codigo: 'grupos.gerenciar', tipo: 'bad', sub: 'Só quem não tem lançamento', aoTocar: async () => {
                     const r = await rpcGrupo('fn_grupo_participante_remover', { p_item_id: item.id, p_participante_id: p.id });
                     mostrarToast(r.mensagem || '', r.ok ? 'sucesso' : 'erro'); if (r.ok) montarCardGrupo(item);
                 } },
             ] }) })),
-        ...((d.participantes || []).length < 10 ? [{ icone: 'user-plus', titulo: 'Incluir participante', codigo: 'grupos.gerenciar', sub: 'Pessoa do Raiz ou de fora (nome e celular)', aoTocar: () => incluirParticipanteGrupo(item) }] : []),
+        ...((d.participantes || []).length < 10 ? [{ icone: 'user-plus', titulo: 'Incluir participante', codigo: 'grupos.gerenciar', sub: 'Do Raiz ou de fora', aoTocar: () => incluirParticipanteGrupo(item) }] : []),
     ] });
 }
 async function pessoasDaEmpresaGrupo() {
@@ -1007,14 +1004,14 @@ function linhaExternoGrupo(k) {
 }
 async function incluirParticipanteGrupo(item) {
     const v = await escolher({ titulo: 'Incluir participante', opcoes: [
-        { valor: 'raiz', titulo: 'Pessoa do Raiz', sub: 'Da lista de pessoas da empresa', icone: 'user' },
+        { valor: 'raiz', titulo: 'Pessoa do Raiz', sub: 'Pessoas da empresa', icone: 'user' },
         { valor: 'fora', titulo: 'Pessoa de fora', sub: 'Só nome e celular', icone: 'user-round' }] });
     if (!v) return;
     let part = null;
     if (v === 'raiz') {
         const ja = new Set((grupoDados?.links || []).map(l => l.pessoa_id).filter(Boolean));
         const pes = (await pessoasDaEmpresaGrupo()).filter(p => !ja.has(p.id));
-        if (!pes.length) { mostrarToast('Todas as pessoas da empresa já estão no rateio.', 'info'); return; }
+        if (!pes.length) { mostrarToast('Todos já estão no rateio.', 'info'); return; }
         const id = await escolher({ titulo: 'Pessoa do Raiz', opcoes: pes.map(p => ({ valor: p.id, titulo: p.nome, sub: p.whatsapp || 'sem celular no cadastro', icone: 'user' })) });
         if (!id) return; part = { pessoa_id: id };
         await gravarParticipanteGrupo(item, part);
@@ -1083,7 +1080,7 @@ async function contasParaGrupo() {
 export async function abrirFecharRateio(item) {
     item = item || itemEmFoco; const d = grupoDados; if (!item || !d || typeof window.abrirSheet !== 'function') return;
     const comSaldo = (d.participantes || []).filter(p => Math.abs(Number(p.saldo) || 0) > 0.009);
-    if (comSaldo.length) { mostrarToast(`Ainda há saldo entre os participantes (${comSaldo.length}). Registre os pagamentos em "Agrupar as contas" antes de fechar.`, 'erro'); return; }
+    if (comSaldo.length) { mostrarToast(`Há saldo com ${comSaldo.length}. Acerte antes de fechar.`, 'erro'); return; }
     const [cats, contas] = await Promise.all([categoriasSaidaGrupo(), contasParaGrupo()]);
     const pessoaDe = Object.fromEntries((d.links || []).map(l => [l.participante_id, l.pessoa_id]));
     const raiz = (d.participantes || []).filter(p => p.do_raiz);
@@ -1126,7 +1123,7 @@ export async function abrirFecharRateio(item) {
     sheet.querySelector('[data-fr-cancelar]').addEventListener('click', () => window.fecharSheet());
     sheet.querySelector('[data-fr-ok]').addEventListener('click', async (ev) => {
         const errado = porPessoa.find(x => x.levar && (Math.abs(soma(x) - Number(x.p.parte)) >= 0.01 || !x.conta || x.itens.some(i => Number(i.valor) > 0 && !i.cat)));
-        if (errado) { mostrarToast(`Confira ${errado.p.nome}: a soma precisa dar a parte no rateio, com conta e categoria em cada valor.`, 'erro'); return; }
+        if (errado) { mostrarToast(`Confira ${errado.p.nome}: soma, conta e categoria.`, 'erro'); return; }
         ev.currentTarget.disabled = true;
         const registros = porPessoa.filter(x => x.levar && Number(x.p.parte) > 0).map(x => ({ pessoa_id: x.pid, conta_id: x.conta, itens: x.itens.filter(i => Number(i.valor) > 0).map(i => ({ categoria: i.cat, valor: Number(i.valor) })) }));
         const r = await rpcGrupo('fn_grupo_fechar', { p_item_id: item.id, p_registros: registros, p_data: corpo.querySelector('[data-fr-data]').value || null });
@@ -1159,7 +1156,7 @@ async function reabrirRateio(item) {
 // (Editar partes); Documentos/Contatos passaram a ter a ação nomeada
 // direto no rodapé (sem "Mais ações"). Nomes antigos mantidos como alias.
 function sheetAcoes(config) {
-    if (typeof window.abrirSheetAcoes !== 'function') { mostrarToast('Ações disponíveis só dentro do app principal.', 'erro'); return; }
+    if (typeof window.abrirSheetAcoes !== 'function') { mostrarToast('Abra pelo app principal.', 'erro'); return; }
     window.abrirSheetAcoes(config);
 }
 // v1.56.0 (fatia 1, máquina de status — FICHA_FATIA1_MAQUINA_STATUS_RAIZ v1.0.0) — o ⋮ do item mostra os verbos que a máquina
@@ -1179,15 +1176,15 @@ export async function abrirAcoesDadosItem() {
         codigo: m.codigo, sub: SUB[m.acao] || '', aoTocar: () => transicionarItemAtual(item, m) }));
     const ativoItem = (item.situacao || (item.ativo === false ? 'concluido' : 'ativo')) === 'ativo';
     sheetAcoes({ titulo: item.titulo, sub: rotuloTipoControle(item.tipo), acoes: [
-        ...(ativoItem && !item.grupo_status ? [{ icone: 'users-round', titulo: 'Abrir rateio', codigo: 'grupos.gerenciar', sub: 'Dividir as despesas deste item com outras pessoas, cada uma pelo seu link', aoTocar: () => abrirNovoRateio(item) }] : []), // v1.52.0
-        ...(item.grupo_status === 'fechado' ? [{ icone: 'rotate-ccw', titulo: 'Reabrir o rateio', codigo: 'grupos.gerenciar', sub: 'Tira do financeiro o que o fechamento levou', aoTocar: () => reabrirRateio(item) }] : []),
+        ...(ativoItem && !item.grupo_status ? [{ icone: 'users-round', titulo: 'Abrir rateio', codigo: 'grupos.gerenciar', sub: 'Dividir despesas por link', aoTocar: () => abrirNovoRateio(item) }] : []), // v1.52.0
+        ...(item.grupo_status === 'fechado' ? [{ icone: 'rotate-ccw', titulo: 'Reabrir o rateio', codigo: 'grupos.gerenciar', sub: 'Tira do Financeiro', aoTocar: () => reabrirRateio(item) }] : []),
         ...(ativoItem ? [{ icone: 'pencil', titulo: 'Editar item', codigo: 'cofre.controles.editar', aoTocar: () => abrirEditarItem() }] : []),
         ...(maquina ? doCatalogo : (item.ativo === false ? [ // sem a máquina (falha de rede): o caminho de antes
-            { icone: 'rotate-ccw', titulo: 'Reabrir item', codigo: 'cofre.controles.editar', sub: 'Volta a gerar ocorrências e alertas', aoTocar: () => reabrirItemControleAtual() },
+            { icone: 'rotate-ccw', titulo: 'Reabrir item', codigo: 'cofre.controles.editar', sub: 'Volta a gerar alertas', aoTocar: () => reabrirItemControleAtual() },
         ] : [
-            { icone: 'archive', titulo: 'Encerrar item', codigo: 'cofre.controles.desativar', sub: 'Para de gerar alertas; histórico fica visível em "Encerrados"', aoTocar: () => encerrarItemControleAtual() },
+            { icone: 'archive', titulo: 'Encerrar item', codigo: 'cofre.controles.desativar', aoTocar: () => encerrarItemControleAtual() },
         ])),
-        { icone: 'trash-2', titulo: 'Excluir item de vez', codigo: 'cofre.controles.desativar', sub: 'Some do banco. Bloqueado se houver ocorrência já tratada', tipo: 'bad', aoTocar: () => excluirItemControleAtual() },
+        { icone: 'trash-2', titulo: 'Excluir item de vez', codigo: 'cofre.controles.desativar', sub: 'Só sem ocorrência tratada', tipo: 'bad', aoTocar: () => excluirItemControleAtual() },
     ] });
 }
 
@@ -1205,7 +1202,7 @@ async function transicionarItemAtual(item, m) {
         return true;
     };
     if (!m.exige_motivo) { await executar(null); return; }
-    if (typeof window.abrirSheetForm !== 'function') { mostrarToast('Ação só disponível dentro do app principal.', 'erro'); return; }
+    if (typeof window.abrirSheetForm !== 'function') { mostrarToast('Abra pelo app principal.', 'erro'); return; }
     window.abrirSheetForm({
         titulo: m.rotulo + ' ' + item.titulo, sub: rotuloTipoControle(item.tipo), rotuloSalvar: m.rotulo,
         corpo: `<div class="rz-f" style="margin-bottom:0"><label for="ic-trans-motivo">Motivo</label><input type="text" id="ic-trans-motivo" maxlength="200" placeholder="${m.acao === 'concluir' ? 'Ex.: apólice não renovada, vendido' : 'Ex.: lançado por engano'}"></div>`,
@@ -1233,11 +1230,11 @@ export async function abrirAcoesPartesItem() {
     const atuais = await api.buscarPartesDoItemControle(item.id);
     const acoes = [
         { icone: 'user-plus', titulo: 'Adicionar parte', codigo: 'cofre.controles.editar', sub: 'Quem responde por este item', aoTocar: () => abrirAdicionarParteItem() },
-        { icone: 'receipt', titulo: 'Gerar despesa', codigo: 'saidas.registrar', sub: 'Lançamento com a parte como fornecedor', aoTocar: () => abrirNovoLancamentoDoItem() },
+        { icone: 'receipt', titulo: 'Gerar despesa', codigo: 'saidas.registrar', sub: 'A parte como fornecedor', aoTocar: () => abrirNovoLancamentoDoItem() },
     ];
     if (atuais.length) {
-        acoes.push({ icone: 'archive', titulo: 'Encerrar vínculo', codigo: 'cofre.controles.editar', sub: 'Troca real. Sai do item e fica no histórico da parte', aoTocar: () => abrirEncerrarParteItem(atuais) });
-        acoes.push({ icone: 'user-minus', titulo: 'Excluir vínculo', codigo: 'cofre.controles.editar', tipo: 'bad', sub: 'Cadastro errado. O cadastro da parte continua', aoTocar: () => abrirRemoverParteItem(atuais) });
+        acoes.push({ icone: 'archive', titulo: 'Encerrar vínculo', codigo: 'cofre.controles.editar', sub: 'Fica no histórico da parte', aoTocar: () => abrirEncerrarParteItem(atuais) });
+        acoes.push({ icone: 'user-minus', titulo: 'Excluir vínculo', codigo: 'cofre.controles.editar', tipo: 'bad', sub: 'O cadastro da parte fica', aoTocar: () => abrirRemoverParteItem(atuais) });
     };
     sheetAcoes({ titulo: 'Partes do item', sub: item.titulo, acoes });
 }
@@ -1288,7 +1285,7 @@ export async function abrirAdicionarParteItem() {
                     partesClienteCache = null;
                 }
                 const linhas = atuais.map(l => ({ parte_id: l.parte_id, papel: l.papel }));
-                if (linhas.some(l => l.parte_id === parteId && l.papel === papel)) { mostrarToast('Essa parte já está no item com esse papel.', 'erro'); return false; }
+                if (linhas.some(l => l.parte_id === parteId && l.papel === papel)) { mostrarToast('Essa parte já tem esse papel no item.', 'erro'); return false; }
                 linhas.push({ parte_id: parteId, papel });
                 await api.salvarPartesItemControle(item.id, linhas);
                 mostrarToast('Parte adicionada.');
@@ -1345,7 +1342,7 @@ export function abrirEncerrarParteItem(atuais) {
 }
 export function abrirAcoesDocsItem() {
     sheetAcoes({ titulo: 'Documentos do item', sub: itemEmFoco?.titulo || '', acoes: [
-        { icone: 'upload', titulo: 'Carregar documento', codigo: 'cofre.upload', sub: 'Apólice, guia, laudo — com leitura por IA', tipo: 'ia', aoTocar: () => carregarNovoDocumentoItem() },
+        { icone: 'upload', titulo: 'Carregar documento', codigo: 'cofre.upload', sub: 'Apólice, guia ou laudo', tipo: 'ia', aoTocar: () => carregarNovoDocumentoItem() },
     ] });
 }
 // E14.4 — abrirAcoesContatosItem/alternarMaisAcoesContatosItem
@@ -1448,13 +1445,13 @@ export async function abrirAcoesOcorrencia(ocorrenciaId) {
     // v1.50.0 (F18) — ocorrência do cartão ligada à fatura: abre a fatura. A baixa e o estorno dela vêm do pagamento
     // da fatura (fn_fatura_pagar_interna / estorno da conciliação), então "Dar baixa" e "Estornar" não aparecem aqui.
     if (oc.origem === 'fatura' && oc.origem_id) {
-        acoes.push({ icone: 'credit-card', titulo: 'Abrir fatura', sub: `${(oc.valor_real ?? oc.valor_previsto) ? moedaBR(oc.valor_real ?? oc.valor_previsto) + ' · ' : ''}compras, classificação e pagamento, no Financeiro`,
+        acoes.push({ icone: 'credit-card', titulo: 'Abrir fatura', sub: `${(oc.valor_real ?? oc.valor_previsto) ? moedaBR(oc.valor_real ?? oc.valor_previsto) + ' · ' : ''}no Financeiro`,
             aoTocar: () => abrirFaturaDaOcorrencia(oc.origem_id) });
         abrirSheetOcorrencia(oc, null, acoes, `Fatura · vence ${formatarDataBR(oc.data_prevista_atual)}`);
         return;
     }
     if (oc.status_execucao === 'aberto' && ehItemCartao(item)) {
-        acoes.push({ icone: 'file-up', tipo: 'ia', titulo: 'Importar fatura', codigo: 'cartao.importar', sub: 'PDF ou foto · a fatura entra nesta ocorrência', aoTocar: () => importarFaturaDoItem(item) });
+        acoes.push({ icone: 'file-up', tipo: 'ia', titulo: 'Importar fatura', codigo: 'cartao.importar', sub: 'PDF ou foto', aoTocar: () => importarFaturaDoItem(item) });
     }
     // v1.50.0 — atalho para o lançamento que a ocorrência gerou no Financeiro (quando existe)
     if (lanc) {
@@ -1462,19 +1459,19 @@ export async function abrirAcoesOcorrencia(ocorrenciaId) {
             aoTocar: () => abrirLancamentoNoFinanceiro(lanc) });
     }
     if (oc.status_execucao === 'aberto') {
-        acoes.push({ icone: 'check', titulo: 'Dar baixa', codigo: 'cofre.ocorrencias.tratar', sub: 'Marca como tratada, com descrição opcional', aoTocar: () => alternarAcaoOcorrencia(ocorrenciaId, 'tratar') });
-        acoes.push({ icone: 'calendar', titulo: 'Reagendar', codigo: 'cofre.ocorrencias.reagendar', sub: 'Muda a data prevista desta ocorrência', aoTocar: () => alternarAcaoOcorrencia(ocorrenciaId, 'reagendar') });
+        acoes.push({ icone: 'check', titulo: 'Dar baixa', codigo: 'cofre.ocorrencias.tratar', sub: 'Marca como tratada', aoTocar: () => alternarAcaoOcorrencia(ocorrenciaId, 'tratar') });
+        acoes.push({ icone: 'calendar', titulo: 'Reagendar', codigo: 'cofre.ocorrencias.reagendar', sub: 'Muda a data prevista', aoTocar: () => alternarAcaoOcorrencia(ocorrenciaId, 'reagendar') });
     } else if (oc.status_execucao === 'concluido') {
-        acoes.push({ icone: 'undo-2', titulo: 'Estornar', codigo: 'cofre.ocorrencias.estornar', sub: 'Volta pra "Em aberto", fica no histórico', tipo: 'bad', aoTocar: () => alternarAcaoOcorrencia(ocorrenciaId, 'estornar') });
+        acoes.push({ icone: 'undo-2', titulo: 'Estornar', codigo: 'cofre.ocorrencias.estornar', sub: 'Volta para "Em aberto"', tipo: 'bad', aoTocar: () => alternarAcaoOcorrencia(ocorrenciaId, 'estornar') });
     }
     // v1.53.0 — cancelar, reabrir e excluir (Nicola 13/10 22:44)
     if (oc.status_execucao === 'aberto') {
-        acoes.push({ icone: 'x-circle', titulo: 'Cancelar', codigo: 'cofre.ocorrencias.tratar', sub: 'Não vai acontecer · fica no histórico como cancelada', aoTocar: () => alternarAcaoOcorrencia(ocorrenciaId, 'cancelar') });
+        acoes.push({ icone: 'x-circle', titulo: 'Cancelar', codigo: 'cofre.ocorrencias.tratar', sub: 'Não vai acontecer', aoTocar: () => alternarAcaoOcorrencia(ocorrenciaId, 'cancelar') });
     } else if (oc.status_execucao === 'cancelado') {
         acoes.push({ icone: 'rotate-ccw', titulo: 'Reabrir', codigo: 'cofre.ocorrencias.tratar', sub: 'Volta para "Em aberto"', aoTocar: () => alternarAcaoOcorrencia(ocorrenciaId, 'reabrir') });
     }
     if (ocorrenciaPodeExcluir(oc)) {
-        acoes.push({ icone: 'trash-2', titulo: 'Excluir', codigo: 'cofre.ocorrencias.tratar', tipo: 'bad', sub: 'Apaga de vez · o lançamento previsto some junto', aoTocar: () => alternarAcaoOcorrencia(ocorrenciaId, 'excluir') });
+        acoes.push({ icone: 'trash-2', titulo: 'Excluir', codigo: 'cofre.ocorrencias.tratar', tipo: 'bad', sub: 'Apaga de vez, com o previsto', aoTocar: () => alternarAcaoOcorrencia(ocorrenciaId, 'excluir') });
     }
     abrirSheetOcorrencia(oc, lanc, acoes, `Ocorrência · ${formatarDataBR(oc.data_prevista_atual)}`); // v1.50.0 — detalhes + ações (a cancelada também abre)
 }
@@ -1508,12 +1505,12 @@ function abrirSheetOcorrencia(oc, lanc, acoes, titulo) {
 // chegam pelo window (index.html as expõe); fora do app principal, avisa.
 function abrirFaturaDaOcorrencia(faturaId) {
     if (typeof window.fecharSheet === 'function') window.fecharSheet();
-    if (typeof window.financeiroAbrirFatura !== 'function') { mostrarToast('A fatura abre só dentro do app principal.', 'erro'); return; }
+    if (typeof window.financeiroAbrirFatura !== 'function') { mostrarToast('Abra pelo app principal.', 'erro'); return; }
     setTimeout(() => window.financeiroAbrirFatura(faturaId), 30);
 }
 function importarFaturaDoItem(item) {
     if (typeof window.fecharSheet === 'function') window.fecharSheet();
-    if (typeof window.financeiroImportarFatura !== 'function') { mostrarToast('A importação abre só dentro do app principal.', 'erro'); return; }
+    if (typeof window.financeiroImportarFatura !== 'function') { mostrarToast('Abra pelo app principal.', 'erro'); return; }
     setTimeout(() => window.financeiroImportarFatura({ cartaoId: item?.conta_id || null }), 30);
 }
 async function lancamentoDaOcorrencia(ocorrenciaId) {
@@ -1524,7 +1521,7 @@ async function lancamentoDaOcorrencia(ocorrenciaId) {
     } catch (e) { console.warn('[cofre-controles] lançamento da ocorrência:', e?.message || e); return null; }
 }
 function abrirLancamentoNoFinanceiro(lanc) {
-    if (typeof window.switchTab !== 'function') { mostrarToast('O Financeiro abre só dentro do app principal.', 'erro'); return; }
+    if (typeof window.switchTab !== 'function') { mostrarToast('Abra pelo app principal.', 'erro'); return; }
     if (typeof window.fecharSheet === 'function') window.fecharSheet();
     window.switchTab('tab-saidas');
     // vai para o mês do lançamento pelo ‹ › do próprio Financeiro (único que muda a competência)
@@ -1537,7 +1534,7 @@ function abrirLancamentoNoFinanceiro(lanc) {
 export function alternarAcaoOcorrencia(ocorrenciaId, modo) {
     const oc = ocorrenciaPorId(ocorrenciaId);
     if (!oc) return;
-    if (typeof window.abrirSheetForm !== 'function') { mostrarToast('Ações disponíveis só dentro do app principal.', 'erro'); return; }
+    if (typeof window.abrirSheetForm !== 'function') { mostrarToast('Abra pelo app principal.', 'erro'); return; }
     ocorrenciaEmAcao = { ocorrenciaId, modo };
     const sub = `${itemEmFoco?.titulo || ''} · vence ${formatarDataBR(oc.data_prevista_atual)}`;
     if (modo === 'tratar') {
@@ -1668,7 +1665,7 @@ export async function confirmarReabrirOcorrencia(ocorrenciaId) {
 }
 export async function confirmarExcluirOcorrencia(ocorrenciaId) {
     const oc = ocorrenciaPorId(ocorrenciaId);
-    if (!ocorrenciaPodeExcluir(oc)) { mostrarToast('Esta ocorrência não pode ser excluída — use Cancelar.', 'erro'); return; }
+    if (!ocorrenciaPodeExcluir(oc)) { mostrarToast('Não dá para excluir. Use Cancelar.', 'erro'); return; }
     try {
         // o histórico vem antes: a linha fica no histórico do item (o vínculo com a ocorrência vira nulo na exclusão)
         await registrarHistoricoOcorrenciaLocal(ocorrenciaId, 'excluir', { status_execucao: oc.status_execucao, data_prevista_atual: oc.data_prevista_atual, descricao: oc.descricao || null }, null, null);
@@ -1717,8 +1714,8 @@ export async function abrirEditarItem() {
     if (item?.conta_id) {
         const escolha = await escolher({
             titulo: 'Este item é de uma conta do Financeiro',
-            sub: 'Nome, tipo, dia de vencimento e titular se editam na conta ou no cartão — o item acompanha.',
-            opcoes: [{ valor: 'conta', titulo: 'Editar a conta ou o cartão', sub: 'Abre o cadastro no Financeiro', icone: 'credit-card' }],
+            sub: 'Edite pela conta ou cartão',
+            opcoes: [{ valor: 'conta', titulo: 'Editar a conta ou o cartão', sub: 'No Financeiro', icone: 'credit-card' }],
         });
         if (escolha !== 'conta') return;
         try {
@@ -1798,8 +1795,8 @@ export async function salvarEdicaoItem() {
     if (!tipo) { mostrarToast('Escolha o tipo do item.', 'erro'); return; } // v1.39.0
     if (!titulo) { mostrarToast('Informe um título.', 'erro'); return; }
     if (!dataInicio) { mostrarToast('Informe a data início.', 'erro'); return; }
-    if (direcaoAlerta === 'fim' && !dataFim) { mostrarToast('Pra gerar a partir do fim, informe a data fim.', 'erro'); return; }
-    if (dataFim && dataFim < dataInicio) { mostrarToast('A data fim não pode ser antes da data início.', 'erro'); return; }
+    if (direcaoAlerta === 'fim' && !dataFim) { mostrarToast('Informe a data fim.', 'erro'); return; }
+    if (dataFim && dataFim < dataInicio) { mostrarToast('A data fim vem antes do início.', 'erro'); return; }
 
     const item = itemEmFoco;
     // Campos que, se mudarem, afetam quais ocorrências futuras fazem
@@ -1818,13 +1815,13 @@ export async function salvarEdicaoItem() {
     if (mudouGeracaoAlertas) {
         const escolha = await escolher({
             titulo: 'Esta mudança afeta os alertas',
-            sub: 'Início, fim, frequência ou direção mudaram',
+            sub: 'Início, fim ou frequência',
             opcoes: [
-                { valor: 'regerar', titulo: 'Salvar e regerar', sub: 'Refaz as ocorrências futuras em aberto com a regra nova; as vencidas ficam', icone: 'refresh-cw' },
-                { valor: 'manter', titulo: 'Salvar e manter as atuais', sub: 'As ocorrências que já existem continuam como estão', icone: 'check' },
+                { valor: 'regerar', titulo: 'Salvar e regerar', sub: 'Só as próximas', icone: 'refresh-cw' },
+                { valor: 'manter', titulo: 'Salvar e manter as atuais', sub: 'As atuais ficam como estão', icone: 'check' },
             ],
         });
-        if (escolha === null) { mostrarToast('Nada foi salvo. Ajuste ou feche o formulário.', 'aviso'); return; }
+        if (escolha === null) { mostrarToast('Nada foi salvo.', 'aviso'); return; }
         regenerar = escolha === 'regerar';
     }
 
@@ -1857,9 +1854,9 @@ export async function salvarEdicaoItem() {
                     : gerarOcorrenciasHorizonte(itemAtualizado, dataInicio || hojeISO, freqIntervalo, freqUnidade); // v1.54.0 — o ciclo segue o dia do início (avança até hoje), não recomeça no dia da edição
                 await api.criarOcorrenciasControleBatch(payloads);
                 await api.registrarLogAcessos(estado.clienteId, estado.pessoa.id, 'cofre.controles.editar', { itemId: item.id, ocorrenciasGeradas: payloads.length });
-                mostrarToast(`Item atualizado — ${payloads.length} ocorrência(s) regerada(s) ✅`);
+                mostrarToast(`Item atualizado · ${payloads.length} refeitas`);
             } else {
-                mostrarToast('Item atualizado — ocorrências existentes mantidas ✅');
+                mostrarToast('Item atualizado');
             }
         } else {
             mostrarToast('Item atualizado ✅');
@@ -1894,7 +1891,7 @@ export async function reabrirItemControleAtual() {
         await api.reabrirItemControle(item.id);
         await api.registrarHistoricoItemControle({ item_id: item.id, acao: 'reabrir', antes: item, depois: { ...item, ativo: true }, pessoa_id: estado.pessoa.id, origem: 'app' });
         await api.registrarLogAcessos(estado.clienteId, estado.pessoa.id, 'cofre.controles.editar', { itemId: item.id, modo: 'reabrir' });
-        mostrarToast('Item reaberto — as próximas ocorrências voltam a ser geradas pela regra.');
+        mostrarToast('Item reaberto');
         await recarregarFichaItemControle();
         window.dispatchEvent(new CustomEvent('cofre:recarregar-eventos'));
     } catch (err) { mostrarToast('Erro: ' + err.message, 'erro'); }
@@ -1902,11 +1899,11 @@ export async function reabrirItemControleAtual() {
 
 export async function excluirItemControleAtual() {
     const item = itemEmFoco;
-    if (itemEmFoco?.grupo_status) { mostrarToast('Este item tem um rateio em grupo. Ele não pode ser excluído.', 'erro'); return; } // v1.52.0
+    if (itemEmFoco?.grupo_status) { mostrarToast('Item com rateio não pode ser excluído.', 'erro'); return; } // v1.52.0
     // v1.20.0 — exclusão DE VERDADE (v2.2). Guarda no banco: com ocorrência
     // tratada, o DELETE falha com a mensagem do trigger (mostrada abaixo).
     if ((item.cofre_ocorrencias_controle || []).some(o => o.status_execucao === 'concluido')) {
-        mostrarToast('Este item tem ocorrências já tratadas. Estorne-as antes de excluir — ou use "Encerrar item" pra manter o histórico.', 'erro'); return;
+        mostrarToast('Tem ocorrência tratada. Use Encerrar.', 'erro'); return;
     }
     if (!await perguntar({ titulo: `Excluir ${item.titulo} de vez?`, impacto: 'Ele some com as ocorrências em aberto e as despesas previstas delas. Não dá para desfazer. Para só parar os alertas e manter o histórico, use "Encerrar item".', destrutivo: true, rotuloConfirmar: 'Excluir item de vez' })) return;
 
@@ -2018,7 +2015,7 @@ export async function abrirFichaParte(parteId) {
             titulo: p.nome || 'Parte',
             sub: linhasInfo.length ? linhasInfo.join(' · ') : 'Sem dados de contato cadastrados ainda',
             acoes: [
-                { icone: 'pencil', titulo: 'Editar dados', codigo: 'cofre.controles.editar', sub: 'Nome, documento, telefone, e-mail, endereço', aoTocar: () => abrirEditarParte(parteId) },
+                { icone: 'pencil', titulo: 'Editar dados', codigo: 'cofre.controles.editar', sub: 'Nome, documento e contato', aoTocar: () => abrirEditarParte(parteId) },
                 ...(p.whatsapp ? [{ icone: 'message-circle', titulo: 'Acionar por WhatsApp', aoTocar: () => acionarParteWhatsAppDireto(p.whatsapp) }] : []),
                 ...(p.email ? [{ icone: 'mail', titulo: 'Acionar por e-mail', aoTocar: () => acionarParteEmailDireto(p.email) }] : []),
             ]
@@ -2316,7 +2313,7 @@ export function aplicarModeloAoForm(modeloId) {
     document.getElementById('ic-freq-intervalo').value = m.frequencia_intervalo || '';
     if (m.frequencia_unidade) document.getElementById('ic-freq-unidade').value = m.frequencia_unidade;
     document.getElementById('ic-antecedencia').value = m.antecedencia_alerta_dias;
-    mostrarToast(`Modelo "${m.titulo_sugerido}" aplicado — só falta a data início.`);
+    mostrarToast('Modelo aplicado. Falta a data início.');
 }
 
 export function fecharFormControle() {
@@ -2395,12 +2392,12 @@ export async function salvarItemControle() {
 
     if (!empresa && !a) { mostrarToast('Abra o item a partir de um ativo.', 'erro'); return; } // v1.49.0
     if (!tipo) { mostrarToast('Escolha o tipo do item.', 'erro'); return; } // v1.39.0
-    if (!titulo) { mostrarToast('Informe um título para o item de controle.', 'erro'); return; }
+    if (!titulo) { mostrarToast('Informe o título do item.', 'erro'); return; }
     if (!dataBase) { mostrarToast('Informe a data início.', 'erro'); return; }
     // Pedido explícito (25/08/2026): gerar retroativo exige saber a partir
     // de onde contar pra trás — sem data fim não tem como.
-    if (direcaoAlerta === 'fim' && !dataFim) { mostrarToast('Pra gerar a partir do fim, informe a data fim.', 'erro'); return; }
-    if (dataFim && dataFim < dataBase) { mostrarToast('A data fim não pode ser antes da data início.', 'erro'); return; }
+    if (direcaoAlerta === 'fim' && !dataFim) { mostrarToast('Informe a data fim.', 'erro'); return; }
+    if (dataFim && dataFim < dataBase) { mostrarToast('A data fim vem antes do início.', 'erro'); return; }
 
     try {
         const item = await api.criarItemControle({
@@ -2432,7 +2429,7 @@ export async function salvarItemControle() {
         await api.criarOcorrenciasControleBatch(payloads);
 
         await api.registrarLogAcessos(estado.clienteId, estado.pessoa.id, 'cofre.controles.criar', { ativoId: a?.id || null, empresa, itemId: item.id, ocorrenciasGeradas: payloads.length });
-        mostrarToast(`Item de controle criado — ${payloads.length} ocorrência(s) gerada(s) ✅`);
+        mostrarToast(`Item criado · ${payloads.length} ocorrências`);
         fecharFormControle(); // v1.49.0 — no caso da empresa, já volta para Minha empresa (remonta o card)
         if (!empresa) {
             itensDoAtivoAtual = await api.listarItensControleAtivo(a.id);

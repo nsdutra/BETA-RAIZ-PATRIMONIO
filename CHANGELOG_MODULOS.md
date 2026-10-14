@@ -721,6 +721,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/cofre-api.js`
 
 //
@@ -1159,6 +1161,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 // supabase-js diretamente (Diretriz Arquitetural — Passo 2: responsabilidade
 // única por módulo).
 // ============================================================================
+
+---
 
 ---
 
@@ -1888,7 +1892,23 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/cofre-ativos.js`
+
+// Versão anterior: 1.99.0 · 14/10/2026
+//
+// v1.99.0 (14/10/2026, sessão 20261013-2350-usos-fatia1, demandas 3022603b e 0579b844; FICHA_FATIA1_MAQUINA_STATUS_RAIZ
+// v1.0.0, "D1-1 não precisa mudar nada. Continua como alugado. Restante ok. Vamos seguir" do Nicola 13/10 23:45) — máquina
+// de status. O grupo Situação do ⋮ da ficha vem do catálogo (fn_entidade_status → acoes): Registrar venda, Registrar baixa
+// (motivo: perda, sinistro, doação, óbito…), Arquivar (antes "Excluir ativo"; pausa os itens), Reativar e Desfazer
+// venda/baixa; ativo fora de Ativo mostra só a Situação. O ⋮ de cada uso traz Concluir e Excluir (uso lançado por engano,
+// com motivo). Card novo "Histórico" no chip Usos e contratos, com Desfazer (fn_status_desfazer). Tudo pela porta única
+// fn_status_transicionar, a mesma do bot. Selo "Baixado".
+// --------------------------------------------------------------------------
+// Versões anteriores (v1.98.0 … v1.98.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
+// mais recentes deste cabeçalho (VER-06).
 
 //
 // Versão anterior: 1.97.0 · 13/10/2026
@@ -3267,7 +3287,23 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/cofre-controles.js`
+
+// Versão anterior: 1.53.0 · 13/10/2026
+//
+// v1.53.0 (13/10/2026, sessão 20261013-2245-raiz-ia-ajustes2, demanda a2f4980a; Nicola 13/10 22:44: "não vi opções de
+// cancelar e excluir a ocorrência. Importante ter") — sheet da ocorrência ganha:
+//   · Cancelar (em aberto) — status 'cancelado' com motivo opcional; o espelho do banco apaga o lançamento previsto;
+//   · Reabrir (cancelada) — volta para "Em aberto";
+//   · Excluir (não concluída e criada à mão, pela IA ou por documento) — apaga de vez; as geradas pela frequência,
+//     parcela, fatura ou histórico do contrato só se cancelam (a regra as recriaria). Fica no histórico do item.
+// Sem banco: fn_ocorrencia_espelha_despesa já trata cancelado e exclusão; o histórico perde o vínculo (ON DELETE SET NULL).
+// --------------------------------------------------------------------------
+// Versões anteriores (v1.52.0 … v1.52.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
+// mais recentes deste cabeçalho (VER-06).
 
 //
 // Versão anterior: 1.52.0 · 12/10/2026
@@ -3956,6 +3992,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 // não está implementado (geração automática de ocorrências recorrentes,
 // Central de Alertas consolidada).
 // ============================================================================
+
+---
 
 ---
 
@@ -4892,6 +4930,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/cofre-estado.js`
 
 //
@@ -5037,6 +5077,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 // v1.21.6 (Arquivar/RLS, sessão paralela) nem esta entrega — fechado
 // agora. Ver changelog completo em cofre.html v1.22.0 (merge das 2
 // sessões paralelas + badge fix + form fix + função Vendido).
+
+---
 
 ---
 
@@ -5479,6 +5521,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/cofre-ui.js`
 
 //
@@ -5510,6 +5554,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 // genérica, template de card, indicador de "liga/desliga" (Design System
 // v1.43.0 §2). Não importa cofre-api.js — não sabe nada de Supabase.
 // ============================================================================
+
+---
 
 ---
 
@@ -5774,6 +5820,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 // pilha; os demais (cofre-ui, cofre-documentos, cofre-ativos) importam
 // daqui, nunca o contrário.
 // ============================================================================
+
+---
 
 ---
 
@@ -6231,6 +6279,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/comum-minha-empresa.js`
 
 //
@@ -6391,6 +6441,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 // `dbAuth` já autenticado do host, por parâmetro (ver nota completa em
 // comum-licenca.js).
 // ============================================================================
+
+---
 
 ---
 
@@ -7031,6 +7083,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/comum-renovacao.js`
 
 //
@@ -7073,6 +7127,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 // jsdelivr (mesma origem já usada pelo app); se não carregar, o "copia e cola"
 // continua funcionando sozinho.
 // ============================================================================
+
+---
 
 ---
 
@@ -7304,6 +7360,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 // dados de conta — recebe `dbAuth` já autenticado do host, por
 // parâmetro (ver nota completa em comum-licenca.js).
 // ============================================================================
+
+---
 
 ---
 
@@ -8477,6 +8535,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/fechamento.js`
 
 //
@@ -8778,6 +8838,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 // window.jspdf, CONFIG_CLIENTE (todos já globais no index.html clássico —
 // mesmo acesso que financeiro.js já faz).
 // ============================================================================
+
+---
 
 ---
 
@@ -10416,6 +10478,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/fiscal.js`
 
 //
@@ -10475,6 +10539,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 // abrirSheet, abrirSheetAcoes, abrirSheetForm, rzSheetCabecalho, fecharSheet,
 // mostrarToast, switchTab, rzIcones, podeUsar, window.fechamentoAbrirChecklistFiscalAtualizado.
 // ============================================================================
+
+---
 
 ---
 
@@ -10888,6 +10954,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/relatorios-executivos.js`
 
 //
@@ -10913,6 +10981,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 // que o bot usa); aqui só se monta o texto e o desenho — nunca se recalcula
 // (REL-02). Protótipo: raiz\docs\PROTOTIPO_RELATORIOS_FLUXO_GERENCIAL v1.1.0.
 // ============================================================================
+
+---
 
 ---
 
@@ -11404,6 +11474,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/vitrine.js`
 
 //
@@ -11513,6 +11585,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 // CLIENTE_ID_SUPABASE, dbAuth. Exclusivo (4) virou nível de módulo.
 // Indentação de origem mantida. Strict verificado.
 // ============================================================================
+
+---
 
 ---
 

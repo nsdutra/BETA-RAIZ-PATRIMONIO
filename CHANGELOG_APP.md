@@ -4,6 +4,18 @@ Histórico completo de versões do `index.html`, movido automaticamente pelo `ge
 
 ---
 
+NOVIDADES (Beta v1.409.0) — ONDA 8a do estudo PROTOTIPO_UX_DENSIDADE_RAMOS_RAIZ v1.2.0 (D15, computador): a partir de
+1024 px a barra de baixo vira barra lateral à esquerda (Raiz IA no topo, Hoje · Ativos · Agenda · Financeiro), o
+conteúdo ganha 820 px de largura ao lado, os sheets abrem como painel lateral à direita na altura inteira, e Ctrl/⌘ K
+abre a busca. No celular nada muda. Sem banco.
+Versão anterior (Beta v1.408.0):
+------------------------------------------------------------------
+Versões anteriores (v1.408.0 … v1.408.0): CHANGELOG_APP.md, na raiz do
+repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
+das 5 versões mais recentes deste cabeçalho.
+
+---
+
 NOVIDADES (Beta v1.408.0) — Agenda, Nicola 14/10 09:50: js/agenda.js 1.3.0 põe alerta e compromisso pendentes no dia do
 FATO GERADOR (não em hoje), nas três vistas, com o selo "Há Nd"; a Lista do mês de hoje mostra o mês inteiro por dia e,
 antes dele, o que segue pendente de meses anteriores. Só o módulo muda; o index ganha versão e import map.

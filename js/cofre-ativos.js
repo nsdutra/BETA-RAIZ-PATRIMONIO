@@ -1,6 +1,12 @@
 // ============================================================================
 // cofre-ativos.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.103.0 · 14/10/2026
+// Versão: 1.104.0 · 14/10/2026
+//
+// v1.104.0 (14/10/2026, sessão 20261014-1445-onda9a-textos, demanda a05ad2ee; onda 9 do estudo PROTOTIPO_UX_DENSIDADE_RAMOS_RAIZ v1.2.0,
+// D6 seção 10) — textos no limite: ação até 24 caracteres, descrição até 28 (só quando muda a decisão), aviso até 40 e
+// com o resultado (sem processo nem emoji). Fora do app principal, um aviso só: "Abra pelo app principal.". A explicação
+// longa fica na confirmação, que já existia. Nada de comportamento mudou.
+// Versão anterior: 1.103.0 · 14/10/2026
 //
 // v1.103.0 (14/10/2026, sessão 20261014-1355-cartao-adicional, demanda c63d7f9f; FICHA_CARTAO_ADICIONAL_F10_F11 v1.1.0, de
 // acordo do Nicola 14/10 13:52) — Movimento do ativo vida: o card "Contas e cartões" mostra o cartão adicional como
@@ -29,20 +35,11 @@
 // vida › Resumo ganha a linha "Pessoa do cadastro": ligar (pessoas de Pessoas sem outro ativo), trocar e desligar, pela
 // fn_ativo_pessoa_vincular (F16, que não tinha tela). ligarPessoaAoAtivo() é exportada para o "Conta ou cartão" do item
 // (cofre-controles.js 1.57.0). Nenhuma pessoa é criada sozinha.
-// Versão anterior: 1.99.0 · 14/10/2026
-//
-// v1.99.0 (14/10/2026, sessão 20261013-2350-usos-fatia1, demandas 3022603b e 0579b844; FICHA_FATIA1_MAQUINA_STATUS_RAIZ
-// v1.0.0, "D1-1 não precisa mudar nada. Continua como alugado. Restante ok. Vamos seguir" do Nicola 13/10 23:45) — máquina
-// de status. O grupo Situação do ⋮ da ficha vem do catálogo (fn_entidade_status → acoes): Registrar venda, Registrar baixa
-// (motivo: perda, sinistro, doação, óbito…), Arquivar (antes "Excluir ativo"; pausa os itens), Reativar e Desfazer
-// venda/baixa; ativo fora de Ativo mostra só a Situação. O ⋮ de cada uso traz Concluir e Excluir (uso lançado por engano,
-// com motivo). Card novo "Histórico" no chip Usos e contratos, com Desfazer (fn_status_desfazer). Tudo pela porta única
-// fn_status_transicionar, a mesma do bot. Selo "Baixado".
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.98.0 … v1.98.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.99.0 … v1.99.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '1.103.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.104.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 import { estado } from './cofre-estado.js';
 import * as api from './cofre-api.js';
 import { mostrarToast, erroInline, refrescarIcones, alternarToggle, abrirModal, fecharModal, modalGenerico, perguntar, avisarComDesfazer, escolher } from './cofre-ui.js';
@@ -152,7 +149,7 @@ function abrirConviteCategoria(cat) {
     const rot = ROTULO_CONVITE[cat] || 'bem';
     if (typeof window.abrirSheetAcoes !== 'function') { abrirFormAtivoComCategoria(cat); return; }
     window.abrirSheetAcoes({ titulo: `Cadastrar ${rot.toLowerCase()}`, sub: 'Como você quer cadastrar?', acoes: [
-        { icone: 'sparkles', tipo: 'ia', titulo: 'Enviar documento', codigo: 'cofre.analisar_ia', sub: 'Foto ou arquivo — a Raiz IA lê e preenche por você', aoTocar: () => window.dispatchEvent(new CustomEvent('cofre:abrir-upload-home')) },
+        { icone: 'sparkles', tipo: 'ia', titulo: 'Enviar documento', codigo: 'cofre.analisar_ia', sub: 'Foto ou arquivo', aoTocar: () => window.dispatchEvent(new CustomEvent('cofre:abrir-upload-home')) },
         { icone: 'plus', titulo: 'Preencher na mão', codigo: 'cofre.ativos.criar', sub: `Formulário já em ${rot}`, aoTocar: () => abrirFormAtivoComCategoria(cat) },
     ]});
 }
@@ -1417,7 +1414,7 @@ function statusAtivoHtml(a) {
 // destrutiva vai por último em vermelho sozinha (abrirSheetAcoes ordena).
 function sheetOuAviso(config) {
     if (typeof window.abrirSheetAcoes === 'function') { window.abrirSheetAcoes(config); return true; }
-    mostrarToast('Ações disponíveis só dentro do app principal.', 'erro');
+    mostrarToast('Abra pelo app principal.', 'erro');
     return false;
 }
 
@@ -1453,15 +1450,15 @@ export async function abrirAcoesAtivo() {
     acoes.push({ icone: 'pencil', titulo: 'Editar', codigo: 'cofre.editar', sub: ehCategoriaImovelAtivo ? 'Endereço, valores, uso e campos específicos' : 'Campos específicos deste tipo', aoTocar: () => { faTrocarAba('resumo'); alternarEditarAtivo(); } });
     acoes.push({ icone: 'image-plus', titulo: 'Adicionar fotos', codigo: 'cofre.editar', aoTocar: () => { faTrocarAba('arquivos'); faTrocarSegArquivos('fotos'); document.getElementById('fa-foto-input')?.click(); } });
     // Compartilhar: WhatsApp já com os dados e o link deste imóvel (o link guarda o id do ativo). (dem ed5accfe)
-    if (ehCategoriaImovelAtivo && a.status !== 'vendido' && typeof window.compartilharImovelDoAtivo === 'function') acoes.push({ icone: 'share-2', titulo: 'Compartilhar', codigo: 'vitrine.gerar', sub: 'Abre o WhatsApp com os dados e o link', aoTocar: () => window.compartilharImovelDoAtivo(a.id) });
+    if (ehCategoriaImovelAtivo && a.status !== 'vendido' && typeof window.compartilharImovelDoAtivo === 'function') acoes.push({ icone: 'share-2', titulo: 'Compartilhar', codigo: 'vitrine.gerar', sub: 'Pelo WhatsApp', aoTocar: () => window.compartilharImovelDoAtivo(a.id) });
     // Fase R / Entrega R.3 (20/09/2026) — esqueleto sem IA. O botão aparece
     // sempre (nenhuma consulta nova só pra decidir se esconde); duplicidade
     // é recusada no banco por fn_revisao_valor_ativo_iniciar, com toast de
     // erro claro — evita uma 2ª chamada de rede só pra pré-checar aqui.
     // v1.101.0 (Nicola 14/10 00:40) — revisão anual de valor não é de pessoa; vira programa + item na fatia 4 (demanda)
     const ehVida = a.tipo_ativo === 'vida' || ramoDoAtivoLista(a) === 'familia';
-    if (a.status !== 'vendido' && !ehVida) acoes.push({ icone: 'calendar-clock', titulo: 'Iniciar revisão anual', codigo: 'cofre.controles.criar', sub: 'Começa o ciclo de revisão de valor deste ativo', aoTocar: () => abrirIniciarRevisaoAnual(a) });
-    if (!maquina && a.status !== 'vendido') acoes.push({ icone: 'tag', titulo: 'Marcar como vendido', codigo: 'cofre.editar', sub: 'Desliga alertas e sai dos links compartilhados', aoTocar: () => marcarAtivoVendidoAtual() });
+    if (a.status !== 'vendido' && !ehVida) acoes.push({ icone: 'calendar-clock', titulo: 'Iniciar revisão anual', codigo: 'cofre.controles.criar', sub: 'Do valor do ativo', aoTocar: () => abrirIniciarRevisaoAnual(a) });
+    if (!maquina && a.status !== 'vendido') acoes.push({ icone: 'tag', titulo: 'Marcar como vendido', codigo: 'cofre.editar', sub: 'Desliga os alertas', aoTocar: () => marcarAtivoVendidoAtual() });
     if (!maquina) acoes.push({ icone: 'trash-2', titulo: 'Excluir ativo', codigo: 'cofre.excluir', tipo: 'bad', aoTocar: () => excluirAtivoAtual() });
     // v1.94.0 (UX onda 3, D11) — é o ⋮ do topo da ficha: todas as ações do ativo em grupos curtos (os ⋮ dos cabeçalhos
     // dos cards saíram). Situação (vender, excluir) por último.
@@ -1479,22 +1476,22 @@ export async function abrirAcoesAtivo() {
         { titulo: 'Ativo', acoes: [
             // v1.101.0 (Nicola 14/10 00:40: "Carregar documento e adicionar via IA duplicado… Deixe uma como Raiz IA apenas.
             // Retire também upload documento") — um item só, que abre a Raiz IA já falando deste ativo
-            { icone: 'sparkles', tipo: 'ia', titulo: 'Raiz IA', sub: 'Pergunte ou registre algo sobre este ativo', aoTocar: () => abrirRaizIaDoAtivo(a) },
+            { icone: 'sparkles', tipo: 'ia', titulo: 'Raiz IA', sub: 'Pergunte ou registre', aoTocar: () => abrirRaizIaDoAtivo(a) },
             ...acoes.filter(x => !situacaoAntiga.includes(x)),
         ] },
         ...(grupoSub ? [grupoSub] : []),
         { titulo: 'Usos e contratos', acoes: [
-            { icone: 'plus', titulo: 'Adicionar uso', codigo: 'ativos.usos.iniciar', sub: 'Escolha o modelo: aluguel, temporada, uso próprio…', aoTocar: () => abrirAdicionarModeloAtivo() },
+            { icone: 'plus', titulo: 'Adicionar uso', codigo: 'ativos.usos.iniciar', sub: 'Aluguel, temporada…', aoTocar: () => abrirAdicionarModeloAtivo() },
             ...acaoConcluirUsoVigente(a),
-            { icone: 'list', titulo: 'Ver todos na aba Contratos', codigo: 'contratos.ver', aoTocar: () => { if (typeof window.switchTab === 'function') window.switchTab('tab-contratos'); } },
+            { icone: 'list', titulo: 'Ver todos os contratos', codigo: 'contratos.ver', aoTocar: () => { if (typeof window.switchTab === 'function') window.switchTab('tab-contratos'); } },
         ] },
         { titulo: 'Controles', acoes: [
-            { icone: 'plus', titulo: 'Novo item de controle', codigo: 'cofre.controles.criar', sub: 'Seguro, tributo, vistoria, manutenção', aoTocar: () => window.__rzAbrirFormControle?.() },
+            { icone: 'plus', titulo: 'Novo item de controle', codigo: 'cofre.controles.criar', sub: 'Seguro, tributo, vistoria', aoTocar: () => window.__rzAbrirFormControle?.() },
         ] },
         { titulo: 'Financeiro', acoes: [
             { icone: 'plus', titulo: 'Novo lançamento', codigo: 'saidas.registrar', sub: 'Saída ligada a este ativo', aoTocar: () => abrirNovoLancamentoDoAtivo() },
             { icone: 'wallet', titulo: 'Ver no Financeiro', codigo: 'mensal.ver', sub: 'Todas as saídas deste ativo', aoTocar: () => abrirSaidasDoAtivo() },
-            { icone: 'scale', titulo: 'Ver o balanço completo', codigo: 'repasses.ver', sub: 'Todas as pessoas e o histórico de quitações', aoTocar: () => movAbrirBalanco() },
+            { icone: 'scale', titulo: 'Ver o balanço completo', codigo: 'repasses.ver', sub: 'Pessoas e quitações', aoTocar: () => movAbrirBalanco() },
         ] },
         { titulo: 'Propriedade', acoes: [
             { icone: 'pie-chart', titulo: 'Editar divisão', codigo: 'imoveis.divisao', sub: 'Sócios e percentuais', aoTocar: () => abrirEditarPropriedadeAtivo() },
@@ -1513,13 +1510,13 @@ export async function abrirAcoesAtivo() {
 // ============================================================================
 // v1.101.0 — Raiz IA a partir do ativo: abre a mesma Raiz IA do botão em destaque, com o nome do ativo no campo
 function abrirRaizIaDoAtivo(a) {
-    if (typeof window.abrirSheetRaizIA !== 'function') { mostrarToast('A Raiz IA abre só dentro do app principal.', 'erro'); return; }
+    if (typeof window.abrirSheetRaizIA !== 'function') { mostrarToast('Abra pelo app principal.', 'erro'); return; }
     window.abrirSheetRaizIA();
     setTimeout(() => { const q = document.getElementById('rz-ia-q'); if (q && !q.value) { q.value = a.nome_exibicao + ': '; q.focus(); q.dispatchEvent(new Event('input')); } }, 80);
 }
 // v1.101.0 (Nicola 14/10 00:40: "Venda só pelo uso Revenda") — Registrar venda no ⋮ do uso Revenda, pela porta única
 function abrirVendaPelaRevenda(a, u) {
-    if (typeof window.abrirSheetForm !== 'function') { mostrarToast('Ação só disponível dentro do app principal.', 'erro'); return; }
+    if (typeof window.abrirSheetForm !== 'function') { mostrarToast('Abra pelo app principal.', 'erro'); return; }
     const hoje = hojeLocalUso();
     window.abrirSheetForm({
         titulo: 'Registrar venda', sub: a.nome_exibicao, rotuloSalvar: 'Registrar venda',
@@ -1547,7 +1544,7 @@ function acaoDaMaquinaAtivo(a, m) {
         aoTocar: () => abrirTransicaoAtivo(a, m) };
 }
 async function abrirTransicaoAtivo(a, m) {
-    if (typeof window.abrirSheetForm !== 'function') { mostrarToast('Ação só disponível dentro do app principal.', 'erro'); return; }
+    if (typeof window.abrirSheetForm !== 'function') { mostrarToast('Abra pelo app principal.', 'erro'); return; }
     const hoje = hojeLocalUso();
     const comData = ['vender', 'baixar', 'arquivar'].includes(m.acao);
     // v1.102.0 (usos fatia 3, D3-5) — principal com unidades/áreas/integrantes: elas seguem (mesma ação em cada uma)
@@ -1592,13 +1589,13 @@ async function abrirTransicaoAtivo(a, m) {
 // ⋮ de um uso: Concluir e Excluir, como a máquina deixa (fn_ativo_usos → acoes)
 function acoesDoUso(a, u) {
     return (u.acoes || []).map(m => m.acao === 'vender'
-        ? { icone: 'tag', titulo: 'Registrar venda', codigo: m.codigo, sub: 'Encerra a Revenda, conclui os itens e sai das listas', aoTocar: () => abrirVendaPelaRevenda(a, u) }
+        ? { icone: 'tag', titulo: 'Registrar venda', codigo: m.codigo, sub: 'Encerra a revenda', aoTocar: () => abrirVendaPelaRevenda(a, u) }
         : m.acao === 'concluir'
-        ? { icone: 'flag', titulo: 'Concluir ' + u.nome.toLowerCase(), codigo: m.codigo, sub: 'Escolha o último dia; depois o ativo volta ao repouso', aoTocar: () => abrirConcluirUsoAtivo(a, u) }
-        : { icone: 'trash-2', titulo: 'Excluir ' + u.nome.toLowerCase(), codigo: m.codigo, tipo: 'bad', sub: 'Lançado por engano: some da linha do tempo e o repouso volta', aoTocar: () => abrirExcluirUsoAtivo(a, u) });
+        ? { icone: 'flag', titulo: 'Concluir ' + u.nome.toLowerCase(), codigo: m.codigo, sub: 'O ativo volta ao repouso', aoTocar: () => abrirConcluirUsoAtivo(a, u) }
+        : { icone: 'trash-2', titulo: 'Excluir ' + u.nome.toLowerCase(), codigo: m.codigo, tipo: 'bad', sub: 'Lançado por engano', aoTocar: () => abrirExcluirUsoAtivo(a, u) });
 }
 function abrirExcluirUsoAtivo(a, u) {
-    if (typeof window.abrirSheetForm !== 'function') { mostrarToast('Ação só disponível dentro do app principal.', 'erro'); return; }
+    if (typeof window.abrirSheetForm !== 'function') { mostrarToast('Abra pelo app principal.', 'erro'); return; }
     window.abrirSheetForm({
         titulo: 'Excluir ' + u.nome.toLowerCase(), sub: `${a.nome_exibicao} · ${formatarDataBR(u.inicio)} → ${u.fim ? formatarDataBR(u.fim) : 'sem fim'}`, rotuloSalvar: 'Excluir',
         corpo: `<p class="rz-desc" style="margin:0 0 8px">O uso some da linha do tempo e o repouso cobre o período. O histórico guarda o que era, e dá para desfazer.</p>
@@ -1685,14 +1682,14 @@ function abrirNovoSubativo(a, e) {
 }
 // Vincular um ativo já cadastrado (solto) como unidade, área ou integrante deste principal
 async function abrirVincularSubativo(a, e) {
-    if (typeof window.abrirSheetForm !== 'function') { mostrarToast('Ação só disponível dentro do app principal.', 'erro'); return; }
+    if (typeof window.abrirSheetForm !== 'function') { mostrarToast('Abra pelo app principal.', 'erro'); return; }
     await garantirCatalogoTiposAtivo();
     const temSubs = new Set(estado.ativos.filter(x => x.ativo_principal_id).map(x => x.ativo_principal_id));
     const candidatos = estado.ativos.filter(x => x.id !== a.id && !x.ativo_principal_id && !temSubs.has(x.id)
         && (x.status || 'ativo') === 'ativo' && tipoDoCatalogo(x.tipo_detalhe_id)?.pode_ser_subativo)
         .sort((x, y) => String(x.nome_exibicao).localeCompare(String(y.nome_exibicao), 'pt-BR'));
     const sing = (e.singular || 'subativo').toLowerCase();
-    if (!candidatos.length) { mostrarToast(`Nenhum ativo solto deste tipo pode virar ${sing}. Use "Adicionar ${sing}".`, 'erro'); return; }
+    if (!candidatos.length) { mostrarToast(`Nenhum ativo livre. Use "Adicionar ${sing}".`, 'erro'); return; }
     window.abrirSheetForm({
         titulo: 'Vincular ativo existente', sub: a.nome_exibicao, rotuloSalvar: 'Vincular',
         corpo: `<p class="rz-desc" style="margin:0 0 8px">O ativo passa a aparecer dentro de ${escapeHtml(a.nome_exibicao)}, com uso, contratos e itens que já tem. O valor de referência dele deixa de contar: o valor do principal é o total.</p>
@@ -1712,7 +1709,7 @@ async function abrirVincularSubativo(a, e) {
 }
 // Tirar do principal: o subativo vira ativo solto (passa a contar no limite de ativos)
 function abrirTirarDoPrincipal(a, e) {
-    if (typeof window.abrirSheetForm !== 'function') { mostrarToast('Ação só disponível dentro do app principal.', 'erro'); return; }
+    if (typeof window.abrirSheetForm !== 'function') { mostrarToast('Abra pelo app principal.', 'erro'); return; }
     window.abrirSheetForm({
         titulo: `Tirar de ${e.principal.nome}`, sub: a.nome_exibicao, rotuloSalvar: 'Tirar',
         corpo: `<p class="rz-desc" style="margin:0">${escapeHtml(a.nome_exibicao)} vira um ativo solto na lista, com o uso, os contratos e os itens que já tem. Conta no limite de ativos do plano. Dá para vincular de novo pelo ⋮ de ${escapeHtml(e.principal.nome)}.</p>`,
@@ -1738,8 +1735,8 @@ function acoesSubativos(a, e) {
     ] };
     if (!e.aceita) return null;
     return { titulo: e.plural || 'Subativos', acoes: [
-        { icone: 'plus', titulo: `Adicionar ${sing}`, codigo: 'cofre.subativos.criar', sub: 'Cadastro novo, já dentro deste ativo', aoTocar: () => abrirNovoSubativo(a, e) },
-        { icone: 'link', titulo: 'Vincular ativo existente', codigo: 'cofre.subativos.criar', sub: `Um ativo já cadastrado passa a ser ${sing} deste`, aoTocar: () => abrirVincularSubativo(a, e) },
+        { icone: 'plus', titulo: `Adicionar ${sing}`, codigo: 'cofre.subativos.criar', sub: 'Cadastro novo', aoTocar: () => abrirNovoSubativo(a, e) },
+        { icone: 'link', titulo: 'Vincular ativo existente', codigo: 'cofre.subativos.criar', sub: 'Um ativo já cadastrado', aoTocar: () => abrirVincularSubativo(a, e) },
     ] };
 }
 
@@ -1780,14 +1777,14 @@ async function montarHistoricoStatusAtivo(a) {
         lista.querySelectorAll('[data-hist-i]').forEach(b => b.addEventListener('click', (ev) => {
             ev.stopPropagation(); const h = linhas[Number(b.dataset.histI)];
             sheetOuAviso({ titulo: `${h.de} → ${h.para}`, sub: quando(h.criado_em), acoes: [
-                { icone: 'undo-2', titulo: 'Desfazer', codigo: 'status.desfazer', sub: 'Volta como estava, com o motivo no histórico', aoTocar: () => abrirDesfazerHistorico(a, h) },
+                { icone: 'undo-2', titulo: 'Desfazer', codigo: 'status.desfazer', sub: 'O motivo fica no histórico', aoTocar: () => abrirDesfazerHistorico(a, h) },
             ] });
         }));
         refrescarIcones();
     } catch (e) { console.warn('[cofre-ativos] histórico:', e?.message || e); }
 }
 function abrirDesfazerHistorico(a, h) {
-    if (typeof window.abrirSheetForm !== 'function') { mostrarToast('Ação só disponível dentro do app principal.', 'erro'); return; }
+    if (typeof window.abrirSheetForm !== 'function') { mostrarToast('Abra pelo app principal.', 'erro'); return; }
     window.abrirSheetForm({
         titulo: 'Desfazer', sub: `${h.de} → ${h.para}`, rotuloSalvar: 'Desfazer',
         corpo: `<div class="rz-f" style="margin-bottom:0"><label for="fa-desf-mot">Motivo</label><input type="text" id="fa-desf-mot" maxlength="200" placeholder="Ex.: registrado no ativo errado"></div>`,
@@ -1812,7 +1809,7 @@ function abrirDesfazerHistorico(a, h) {
 // A sugestão da IA com memória de cálculo (REGRAS §10, card "Performance")
 // só chega em R.4, depois de indicador_valores nascer na Fase B1.1.
 function abrirIniciarRevisaoAnual(a) {
-    if (typeof window.abrirSheetForm !== 'function') { mostrarToast('Ação só disponível dentro do app principal.', 'erro'); return; }
+    if (typeof window.abrirSheetForm !== 'function') { mostrarToast('Abra pelo app principal.', 'erro'); return; }
     const hoje = new Date().toISOString().slice(0, 10);
     const corpo = `<div class="rz-f" style="margin-bottom:0"><label>Data da última revisão de valor</label>
         <input type="date" id="fa-revisao-data" max="${hoje}" value="${hoje}">
@@ -2283,7 +2280,7 @@ function montarCardRevisaoValor(rev) {
 export function abrirRevisarValor() {
     const rev = revisaoValorAtual;
     if (!rev) return;
-    if (typeof window.abrirSheetForm !== 'function') { mostrarToast('Ação só disponível dentro do app principal.', 'erro'); return; }
+    if (typeof window.abrirSheetForm !== 'function') { mostrarToast('Abra pelo app principal.', 'erro'); return; }
     const valorInicial = rev.valor_sugerido ?? rev.valor_atual ?? '';
     const memoria = (rev.memoria_calculo || []).map(m => `<li>${escapeHtml(m)}</li>`).join('');
     const corpo = `
@@ -2319,7 +2316,7 @@ export function abrirRevisarValor() {
 export async function manterValorRevisao() {
     const rev = revisaoValorAtual;
     if (!rev) return;
-    if (rev.valor_atual == null) { mostrarToast('Cadastre um valor pro ativo antes de confirmar a revisão.', 'erro'); return; }
+    if (rev.valor_atual == null) { mostrarToast('Cadastre o valor do ativo antes.', 'erro'); return; }
     try {
         await api.aplicarRevisaoValor(rev.ocorrencia_id, rev.valor_atual, 'manter_valor');
         mostrarToast('Valor mantido — revisão confirmada.', 'sucesso');
@@ -2363,7 +2360,7 @@ export function abrirContratoNoApp(contratoId) {
         window.switchTab('tab-contratos');
         window.abrirFichaContrato(contratoId);
     } else {
-        mostrarToast('Contrato só abre dentro do app principal.', 'erro');
+        mostrarToast('Abra pelo app principal.', 'erro');
     }
 }
 
@@ -2373,7 +2370,7 @@ export function abrirNovoContratoDoAtivo() {
     // v1.41.0 — ehCategoriaImovel() no lugar de entidade_origem_tipo,
     // mesma correção do resto desta rodada (consistência; ver nota em
     // montarContratosAtivo acima).
-    if (!ehCategoriaImovel(a?.tipo_ativo)) { mostrarToast('Contratos de locação só existem pra imóveis.', 'erro'); return; }
+    if (!ehCategoriaImovel(a?.tipo_ativo)) { mostrarToast('Contrato de locação é só de imóvel.', 'erro'); return; }
     if (typeof window.switchTab === 'function' && typeof window.criarContratoParaImovel === 'function') {
         window.fichaContratoOrigem = { tipo: 'ativo', id: a.id };
         // v1.31.1 (E0.1 / A6) — switchTab('tab-contratos') saiu: o formulario
@@ -2387,7 +2384,7 @@ export function abrirNovoContratoDoAtivo() {
         // acontecia). A ponte em si sempre existiu (lazy-load em
         // index.html); só o parâmetro estava errado.
         window.criarContratoParaImovel(a.id);
-    } else mostrarToast('Contratação só abre dentro do app principal.', 'erro');
+    } else mostrarToast('Abra pelo app principal.', 'erro');
 }
 // v1.20.0 (Nicola: "faltaram gerar minuta, compartilhar link e as outras
 // opções que tinham pra iniciar um novo contrato") — iniciarProcessoContratacao
@@ -2396,7 +2393,7 @@ export function abrirNovoContratoDoAtivo() {
 // Tipo B antigo — vira sheet na fatia 9.
 export function iniciarContratacaoDoAtivo() {
     const a = estado.ativoEmFoco;
-    if (!ehCategoriaImovel(a?.tipo_ativo)) { mostrarToast('Contratos de locação só existem pra imóveis.', 'erro'); return; }
+    if (!ehCategoriaImovel(a?.tipo_ativo)) { mostrarToast('Contrato de locação é só de imóvel.', 'erro'); return; }
     if (typeof window.iniciarProcessoContratacao !== 'function') { abrirNovoContratoDoAtivo(); return; }
     window.fichaContratoOrigem = { tipo: 'ativo', id: a.id };
     // v1.41.0 — mesma correção acima: a.id, não a.entidade_origem_id.
@@ -2406,12 +2403,12 @@ export function iniciarContratacaoDoAtivo() {
 // os 3 caminhos lado a lado, um passo antes de qualquer formulário.
 export function abrirEscolhaNovoContratoDoAtivo() {
     const a = estado.ativoEmFoco;
-    if (!ehCategoriaImovel(a?.tipo_ativo)) { mostrarToast('Contratos de locação só existem pra imóveis.', 'erro'); return; }
+    if (!ehCategoriaImovel(a?.tipo_ativo)) { mostrarToast('Contrato de locação é só de imóvel.', 'erro'); return; }
     const escM = window.rzContratoModeloNovo && window.rzContratoModeloNovo.ativo_id === a.id ? window.rzContratoModeloNovo.nome : ''; // F25c
     sheetOuAviso({ titulo: escM ? 'Contrato de ' + escM.toLowerCase() : 'Novo contrato', sub: a.nome_exibicao, acoes: [
-        { icone: 'sparkles', tipo: 'ia', titulo: 'Carregar documento', codigo: 'cofre.analisar_ia', sub: 'A IA lê o contrato e já liga a este imóvel', aoTocar: () => window.__rzUploadAtivo?.(true) },
-        { icone: 'plus', titulo: 'Novo contrato', codigo: 'contratos.criar', sub: 'Formulário já com este imóvel', aoTocar: () => abrirNovoContratoDoAtivo() },
-        { icone: 'link', titulo: 'Coletar dados do locatário', codigo: 'contratos.criar', sub: 'Link, WhatsApp e minuta', aoTocar: () => iniciarContratacaoDoAtivo() },
+        { icone: 'sparkles', tipo: 'ia', titulo: 'Carregar documento', codigo: 'cofre.analisar_ia', sub: 'A IA lê o contrato', aoTocar: () => window.__rzUploadAtivo?.(true) },
+        { icone: 'plus', titulo: 'Novo contrato', codigo: 'contratos.criar', sub: 'Já com este imóvel', aoTocar: () => abrirNovoContratoDoAtivo() },
+        { icone: 'link', titulo: 'Pedir dados do locatário', codigo: 'contratos.criar', sub: 'Link, WhatsApp e minuta', aoTocar: () => iniciarContratacaoDoAtivo() },
     ] });
 }
 if (typeof window !== 'undefined') window.__rzNovoContratoAtivo = abrirEscolhaNovoContratoDoAtivo;
@@ -2501,7 +2498,7 @@ export async function abrirAdicionarModeloAtivo() {
 // banco (fn_ativo_uso_iniciar, a mesma do bot): recusa modelo de contrato, cruzamento com outro uso, e faz o repouso
 // ceder; grava status_historico e log_acessos ativos.usos.iniciar.
 function abrirIniciarUsoAtivo(a, m) {
-    if (typeof window.abrirSheetForm !== 'function') { mostrarToast('Ação só disponível dentro do app principal.', 'erro'); return; }
+    if (typeof window.abrirSheetForm !== 'function') { mostrarToast('Abra pelo app principal.', 'erro'); return; }
     const hoje = hojeLocalUso();
     const corpo = `<div class="rz-f"><label for="fa-uso-ini">Começa em</label><input type="date" id="fa-uso-ini" value="${hoje}"></div>
         <div class="rz-f"><label for="fa-uso-fim">Termina em <small>(opcional)</small></label><input type="date" id="fa-uso-fim" min="${hoje}">
@@ -2530,7 +2527,7 @@ function acaoConcluirUsoVigente(a) {
     return [{ icone: 'flag', titulo: 'Concluir ' + u.nome.toLowerCase(), codigo: 'ativos.usos.concluir', sub: 'Desde ' + formatarDataBR(u.inicio) + ' · depois volta ao repouso', aoTocar: () => abrirConcluirUsoAtivo(a, u) }];
 }
 function abrirConcluirUsoAtivo(a, u) {
-    if (typeof window.abrirSheetForm !== 'function') { mostrarToast('Ação só disponível dentro do app principal.', 'erro'); return; }
+    if (typeof window.abrirSheetForm !== 'function') { mostrarToast('Abra pelo app principal.', 'erro'); return; }
     const hoje = hojeLocalUso();
     const corpo = `<div class="rz-f"><label for="fa-uso-fim2">Último dia do uso</label><input type="date" id="fa-uso-fim2" min="${u.inicio}" value="${hoje < u.inicio ? u.inicio : hoje}">
         <span class="rz-hint">No dia seguinte o ativo volta ao repouso (Disponível, Guardado…).</span></div>
@@ -2611,8 +2608,8 @@ if (typeof window !== 'undefined') window.__rzAcoesPropriedade = () => abrirAcoe
 export function abrirAcoesControlesAtivo() {
     const a = estado.ativoEmFoco; if (!a) return;
     sheetOuAviso({ titulo: 'Itens de controle', sub: a.nome_exibicao, acoes: [
-        { icone: 'sparkles', tipo: 'ia', titulo: 'Carregar documento', codigo: 'cofre.analisar_ia', sub: 'A IA lê e preenche os itens sozinha', aoTocar: () => window.__rzUploadAtivo?.(true) },
-        { icone: 'plus', titulo: 'Novo item de controle', codigo: 'cofre.controles.criar', sub: 'Seguro, tributo, vistoria, manutenção', aoTocar: () => window.__rzAbrirFormControle?.() },
+        { icone: 'sparkles', tipo: 'ia', titulo: 'Carregar documento', codigo: 'cofre.analisar_ia', sub: 'A IA preenche os itens', aoTocar: () => window.__rzUploadAtivo?.(true) },
+        { icone: 'plus', titulo: 'Novo item de controle', codigo: 'cofre.controles.criar', sub: 'Seguro, tributo, vistoria', aoTocar: () => window.__rzAbrirFormControle?.() },
     ] });
 }
 
@@ -2696,12 +2693,12 @@ function movDesenharTopo(a, pessoaId, bal, ex, contas, resumoAd = {}) {
 
 function movQuitar(a, l) {
     if (!l) return;
-    if (typeof window.balancoQuitar !== 'function') { mostrarToast('O Quitar abre só dentro do app principal.', 'erro'); return; }
+    if (typeof window.balancoQuitar !== 'function') { mostrarToast('Abra pelo app principal.', 'erro'); return; }
     window.balancoQuitar({ pessoaId: l.pessoa_id, nome: l.nome || a.nome_exibicao, chave: l.pessoa_id },
         { contraparteTipo: l.contraparte_tipo, contraparteId: l.contraparte_id || null, contraparteNome: l.contraparte_nome || 'Empresa', natureza: l.natureza, valor: Number(l.valor || 0), ultimo: l.ultimo_movimento });
 }
 function movAbrirBalanco() {
-    if (typeof window.switchTab !== 'function') { mostrarToast('O Balanço abre só dentro do app principal.', 'erro'); return; }
+    if (typeof window.switchTab !== 'function') { mostrarToast('Abra pelo app principal.', 'erro'); return; }
     window.switchTab('tab-socios');
     if (typeof window.balancoVista === 'function') setTimeout(() => window.balancoVista('pessoas'), 60);
 }
@@ -2715,7 +2712,7 @@ async function montarOcupacaoAtivo(a) { // v1.95.0 — a ocupação foi para o c
 export function abrirAcoesFinanceiroAtivo() {
     const a = estado.ativoEmFoco; if (!a) return;
     sheetOuAviso({ titulo: 'Financeiro', sub: a.nome_exibicao, acoes: [
-        { icone: 'scale', titulo: 'Ver o balanço completo', codigo: 'repasses.ver', sub: 'Todas as pessoas e o histórico de quitações', aoTocar: () => movAbrirBalanco() }, // v1.92.0
+        { icone: 'scale', titulo: 'Ver o balanço completo', codigo: 'repasses.ver', sub: 'Pessoas e quitações', aoTocar: () => movAbrirBalanco() }, // v1.92.0
         { icone: 'plus', titulo: 'Novo lançamento', codigo: 'saidas.registrar', sub: 'Saída ligada a este ativo', aoTocar: () => abrirNovoLancamentoDoAtivo() },
         { icone: 'wallet', titulo: 'Ver no Financeiro', codigo: 'mensal.ver', sub: 'Todas as saídas deste ativo', aoTocar: () => abrirSaidasDoAtivo() },
     ] });
@@ -2723,7 +2720,7 @@ export function abrirAcoesFinanceiroAtivo() {
 export function abrirAcoesAnexos() {
     const a = estado.ativoEmFoco; if (!a) return;
     sheetOuAviso({ titulo: 'Anexos', sub: a.nome_exibicao, acoes: [
-        { icone: 'sparkles', titulo: 'Adicionar documento com IA', codigo: 'cofre.analisar_ia', sub: 'Lê matrícula, IPTU, apólice e preenche os controles', tipo: 'ia', aoTocar: () => window.__rzUploadAtivo?.(true) },
+        { icone: 'sparkles', titulo: 'Documento com IA', codigo: 'cofre.analisar_ia', sub: 'Matrícula, IPTU, apólice', tipo: 'ia', aoTocar: () => window.__rzUploadAtivo?.(true) },
         { icone: 'upload', titulo: 'Upload simples', codigo: 'cofre.upload', sub: 'Só guarda o arquivo', aoTocar: () => window.__rzUploadAtivo?.(false) },
         { icone: 'camera', titulo: 'Adicionar fotos', codigo: 'cofre.editar', aoTocar: () => { faTrocarSegArquivos('fotos'); document.getElementById('fa-foto-input')?.click(); } },
     ] });
@@ -2731,8 +2728,8 @@ export function abrirAcoesAnexos() {
 export function abrirAcoesContratosAtivo() {
     const a = estado.ativoEmFoco; if (!a) return;
     sheetOuAviso({ titulo: 'Contratos', sub: a.nome_exibicao, acoes: [
-        { icone: 'plus', titulo: 'Adicionar uso', codigo: 'ativos.usos.iniciar', sub: 'Escolha o modelo: aluguel, temporada, uso próprio…', aoTocar: () => abrirAdicionarModeloAtivo() }, // v1.88.0 (F25c); v1.97.0 usos sem contrato
-        { icone: 'list', titulo: 'Ver todos na aba Contratos', codigo: 'contratos.ver', aoTocar: () => { if (typeof window.switchTab === 'function') window.switchTab('tab-contratos'); } },
+        { icone: 'plus', titulo: 'Adicionar uso', codigo: 'ativos.usos.iniciar', sub: 'Aluguel, temporada…', aoTocar: () => abrirAdicionarModeloAtivo() }, // v1.88.0 (F25c); v1.97.0 usos sem contrato
+        { icone: 'list', titulo: 'Ver todos os contratos', codigo: 'contratos.ver', aoTocar: () => { if (typeof window.switchTab === 'function') window.switchTab('tab-contratos'); } },
     ] });
 }
 
@@ -2743,7 +2740,7 @@ export function abrirNovoLancamentoDoAtivo() {
         window.switchTab('tab-saidas');
         window.abrirNovaDespesa(a.id);
     } else {
-        mostrarToast('Lançamento de despesa só disponível dentro do app principal.', 'erro');
+        mostrarToast('Abra pelo app principal.', 'erro');
     }
 }
 
@@ -2754,7 +2751,7 @@ export function abrirSaidasDoAtivo() {
         window.switchTab('tab-saidas');
         window.abrirSaidasFiltradasPorAtivo(a.id, a.nome_exibicao);
     } else {
-        mostrarToast('Tela de Saídas só disponível dentro do app principal.', 'erro');
+        mostrarToast('Abra pelo app principal.', 'erro');
     }
 }
 
@@ -2945,12 +2942,12 @@ export async function salvarPropriedadeAtivoAtual() {
 
     const soma = propriedadeSomaAtual();
     if (Math.round(soma * 100) / 100 !== 100) {
-        mostrarToast(`A soma precisa ser exatamente 100% (está em ${soma}%).`, 'erro');
+        mostrarToast(`A soma precisa dar 100% (está em ${soma}%).`, 'erro');
         return;
     }
     for (const l of propriedadeLinhasEmEdicao) {
         const temNome = l.tipo_proprietario === 'socio_interno' ? !!l.pessoa_id : !!(l.nome_externo && l.nome_externo.trim());
-        if (!temNome) { mostrarToast('Preencha o sócio/nome de todas as linhas.', 'erro'); return; }
+        if (!temNome) { mostrarToast('Preencha o nome em todas as linhas.', 'erro'); return; }
     }
 
     const linhasParaApi = propriedadeLinhasEmEdicao.map(l => ({
@@ -3139,9 +3136,9 @@ function desenharPessoaDoAtivo(a) {
 async function acoesPessoaDoAtivo(a) {
     const ligada = a.entidade_origem_tipo === 'pessoa' && a.entidade_origem_id;
     if (!ligada) { await ligarPessoaAoAtivo(a); return; }
-    const v = await escolher({ titulo: 'Pessoa do cadastro', sub: 'Titular das contas e cartões deste ativo e lado dele no Balanço', opcoes: [
-        { valor: 'trocar', titulo: 'Trocar a pessoa', sub: 'Escolher outra pessoa de Pessoas', icone: 'repeat' },
-        { valor: 'desligar', titulo: 'Desligar', sub: 'O ativo fica sem pessoa; contas já criadas continuam com o titular', icone: 'unlink' },
+    const v = await escolher({ titulo: 'Pessoa do cadastro', sub: 'Titular das contas do ativo', opcoes: [
+        { valor: 'trocar', titulo: 'Trocar a pessoa', sub: 'Outra pessoa de Pessoas', icone: 'repeat' },
+        { valor: 'desligar', titulo: 'Desligar', sub: 'As contas mantêm o titular', icone: 'unlink' },
     ] });
     if (v === 'trocar') await ligarPessoaAoAtivo(a);
     else if (v === 'desligar') {
@@ -3161,10 +3158,10 @@ export async function ligarPessoaAoAtivo(a) {
     const ocupadas = new Set((rA.data || []).filter(x => x.id !== a.id).map(x => x.entidade_origem_id));
     const livres = (rP.data || []).filter(p => !ocupadas.has(p.id));
     if (!livres.length) {
-        mostrarToast('Nenhuma pessoa livre em Pessoas. Cadastre a pessoa em Pessoas › + e volte para ligar.', 'aviso');
+        mostrarToast('Cadastre a pessoa em Pessoas antes.', 'aviso');
         return null;
     }
-    const id = await escolher({ titulo: `Ligar ${a.nome_exibicao || 'este ativo'} a`, sub: 'Pessoas cadastradas que ainda não têm ativo. Não dá acesso ao app.', opcoes:
+    const id = await escolher({ titulo: `Ligar ${a.nome_exibicao || 'este ativo'} a`, sub: 'Não dá acesso ao app', opcoes:
         livres.map(p => ({ valor: p.id, titulo: p.nome, sub: p.user_id ? 'Tem acesso ao app' : 'Sem acesso ao app', icone: 'user' })) });
     if (!id) return null;
     return await gravarPessoaDoAtivo(a, id) ? id : null;
@@ -3214,7 +3211,7 @@ export async function marcarAtivoVendidoAtual() {
     try {
         await api.marcarAtivoVendido(a.id);
         await api.registrarLogAcessos(estado.clienteId, estado.pessoa.id, 'cofre.editar', { ativoId: a.id, nome: a.nome_exibicao, acao: 'marcar_vendido' });
-        mostrarToast('Ativo marcado como vendido — alertas desativados.');
+        mostrarToast('Ativo vendido. Alertas desligados.');
         fecharFichaAtivo();
         window.dispatchEvent(new CustomEvent('cofre:recarregar-eventos')); // mesmo motivo do excluirAtivoAtual — itens desativados não devem continuar nos alertas da Visão Geral
     } catch (err) { mostrarToast('Erro: ' + err.message, 'erro'); }
@@ -3445,7 +3442,7 @@ window.rzAbrirAtivoDoImovel = function (imovelId) {
 export function abrirGestaoImovel() {
     const a = estado.ativoEmFoco;
     if (a?.entidade_origem_tipo !== 'imovel' || !a.entidade_origem_id) return;
-    if (typeof window.editarImovel !== 'function') { mostrarToast('Edição do imóvel só disponível dentro do app principal.', 'erro'); return; }
+    if (typeof window.editarImovel !== 'function') { mostrarToast('Abra pelo app principal.', 'erro'); return; }
     // v1.18.0 — SEM switchTab('tab-imoveis'): o modal (#form-imovel-wrapper)
     // agora vive no <body> (index.html v1.108.0, rzMoverFormImovelParaBody)
     // e abre de qualquer aba. A ficha do ativo fica atrás do modal; ao
