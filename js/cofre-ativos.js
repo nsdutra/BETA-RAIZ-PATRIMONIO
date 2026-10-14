@@ -1,6 +1,12 @@
 // ============================================================================
 // cofre-ativos.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.99.0 · 14/10/2026
+// Versão: 1.100.0 · 14/10/2026
+//
+// v1.100.0 (14/10/2026, sessão 20261014-0010-ativo-pessoa, demanda d6a6f577; de acordo do Nicola 14/10 00:08) — ativo
+// vida › Resumo ganha a linha "Pessoa do cadastro": ligar (pessoas de Pessoas sem outro ativo), trocar e desligar, pela
+// fn_ativo_pessoa_vincular (F16, que não tinha tela). ligarPessoaAoAtivo() é exportada para o "Conta ou cartão" do item
+// (cofre-controles.js 1.57.0). Nenhuma pessoa é criada sozinha.
+// Versão anterior: 1.99.0 · 14/10/2026
 //
 // v1.99.0 (14/10/2026, sessão 20261013-2350-usos-fatia1, demandas 3022603b e 0579b844; FICHA_FATIA1_MAQUINA_STATUS_RAIZ
 // v1.0.0, "D1-1 não precisa mudar nada. Continua como alugado. Restante ok. Vamos seguir" do Nicola 13/10 23:45) — máquina
@@ -32,22 +38,14 @@
 // v1.96.0 (12/10/2026, sessão 20261012-0250-ux-onda4d, demanda a05ad2ee; UX onda 4, estudo PROTOTIPO_UX_DENSIDADE_RAMOS_RAIZ
 // v1.2.0 D9; "Vamos adiante" do Nicola 12/10 02:46) — a lista de Ativos ganha o total no agrupador: "Capital · 8" à
 // esquerda e a soma do valor de referência do grupo à direita (compacto: R$ 7,2 mi).
-//
-// Versão anterior: 1.95.0 · 12/10/2026
-//
-// v1.95.0 (12/10/2026, sessão 20261012-0240-ux-onda4c, demanda a05ad2ee; Nicola 12/10 02:31: "juntar os dois cards ocupação
-// e uso … a própria barra deveria ser filtrada por ano … letras iniciais dos meses … apenas o % ocupação basta") — Usos e
-// Ocupação viram um card só: ‹ ano › no cabeçalho, barra de 1/jan a 31/dez com os usos na cor do ramo e a marca de hoje,
-// iniciais dos meses embaixo, e no pé só a ocupação do ano em % (fn_performance_ativo; sem dado, a conta pelos usos).
-// O card aparece mesmo sem uso, com convite e "+ Adicionar uso".
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.94.0 … v1.94.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.95.0 … v1.95.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '1.99.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.100.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 import { estado } from './cofre-estado.js';
 import * as api from './cofre-api.js';
-import { mostrarToast, erroInline, refrescarIcones, alternarToggle, abrirModal, fecharModal, modalGenerico, perguntar, avisarComDesfazer } from './cofre-ui.js';
+import { mostrarToast, erroInline, refrescarIcones, alternarToggle, abrirModal, fecharModal, modalGenerico, perguntar, avisarComDesfazer, escolher } from './cofre-ui.js';
 import { mudarTela } from './cofre-navegacao.js';
 import {
     escapeHtml, formatarDataBR, diasAte, chipVencimento, mascarar,
@@ -2868,8 +2866,77 @@ async function montarDadosAtivo(a) {
         const kv = camposPreenchidos.map(c => `<div><small>${escapeHtml(c.label)}</small><b>${c.mascarar ? mascarar(dados[c.chave]) : escapeHtml(dados[c.chave])}</b></div>`).join('');
         resumo.innerHTML = `<div class="rz-kv${ehImovelVinculado ? ' mt-2' : ''}">${kv}</div>`;
     }
+    if (a.tipo_ativo === 'vida') { resumo.insertAdjacentHTML('beforeend', '<div id="fa-pessoa-cad" class="mt-2"></div>'); desenharPessoaDoAtivo(a); } // v1.100.0 (d6a6f577)
 
     refrescarIcones();
+}
+
+// ============================================================================
+// v1.100.0 (14/10/2026, demanda d6a6f577; de acordo do Nicola 14/10 00:08: "opção 1, 2 e 3 (...) não quero que crie
+// pessoa automaticamente") — vínculo do ativo vida com a pessoa do cadastro (cofre_ativos.entidade_origem_tipo/_id,
+// F16). Ligar, trocar e desligar pela fn_ativo_pessoa_vincular, que recusa pessoa já ligada a outro ativo. A pessoa do
+// cadastro não dá acesso ao app (acesso é login + perfil, em Pessoas); ela é o titular das contas e o lado do Balanço.
+// Nenhuma pessoa nasce sozinha: só se liga quem já está em Pessoas.
+// ============================================================================
+function desenharPessoaDoAtivo(a) {
+    const alvo = document.getElementById('fa-pessoa-cad');
+    if (!alvo) return;
+    const ligada = a.entidade_origem_tipo === 'pessoa' && a.entidade_origem_id;
+    alvo.innerHTML = `<div class="rz-card rz-list"><div class="rz-row rz-link" role="button" tabindex="0" data-acao="pessoa-cad">
+        <div class="rz-ic${ligada ? '' : ' rz-neu'}"><i data-lucide="${ligada ? 'user-check' : 'user-plus'}"></i></div>
+        <div class="rz-tx"><b>Pessoa do cadastro</b><span id="fa-pessoa-cad-nome">${ligada ? 'carregando…' : 'Não ligada — toque para ligar (titular de contas e cartões)'}</span></div>
+        <i data-lucide="chevron-right" class="rz-chev"></i></div></div>`;
+    refrescarIcones();
+    if (ligada) {
+        api.dbAuth.from('pessoas').select('nome').eq('id', a.entidade_origem_id).maybeSingle().then(({ data }) => {
+            const el = document.getElementById('fa-pessoa-cad-nome'); if (el) el.textContent = data?.nome || 'Pessoa ligada';
+        });
+    }
+    alvo.querySelector('[data-acao="pessoa-cad"]')?.addEventListener('click', () => acoesPessoaDoAtivo(a));
+}
+async function acoesPessoaDoAtivo(a) {
+    const ligada = a.entidade_origem_tipo === 'pessoa' && a.entidade_origem_id;
+    if (!ligada) { await ligarPessoaAoAtivo(a); return; }
+    const v = await escolher({ titulo: 'Pessoa do cadastro', sub: 'Titular das contas e cartões deste ativo e lado dele no Balanço', opcoes: [
+        { valor: 'trocar', titulo: 'Trocar a pessoa', sub: 'Escolher outra pessoa de Pessoas', icone: 'repeat' },
+        { valor: 'desligar', titulo: 'Desligar', sub: 'O ativo fica sem pessoa; contas já criadas continuam com o titular', icone: 'unlink' },
+    ] });
+    if (v === 'trocar') await ligarPessoaAoAtivo(a);
+    else if (v === 'desligar') {
+        if (!await perguntar({ titulo: 'Desligar a pessoa deste ativo?', impacto: 'Contas e cartões novos não poderão nascer aqui até ligar de novo. Os já criados não mudam.', rotuloConfirmar: 'Desligar' })) return;
+        await gravarPessoaDoAtivo(a, null);
+    }
+}
+/** Escolhe uma pessoa de Pessoas (sem outro ativo ligado) e liga ao ativo vida. Devolve o id da pessoa ou null. */
+export async function ligarPessoaAoAtivo(a) {
+    if (!a?.id) return null;
+    const db = api.dbAuth, cli = estado.clienteId;
+    const [rP, rA] = await Promise.all([
+        db.from('pessoas').select('id, nome, user_id').eq('cliente_id', cli).order('nome'),
+        db.from('cofre_ativos').select('id, entidade_origem_id').eq('cliente_id', cli).eq('entidade_origem_tipo', 'pessoa').neq('status', 'arquivado'),
+    ]);
+    if (rP.error) { mostrarToast('Erro: ' + rP.error.message, 'erro'); return null; }
+    const ocupadas = new Set((rA.data || []).filter(x => x.id !== a.id).map(x => x.entidade_origem_id));
+    const livres = (rP.data || []).filter(p => !ocupadas.has(p.id));
+    if (!livres.length) {
+        mostrarToast('Nenhuma pessoa livre em Pessoas. Cadastre a pessoa em Pessoas › + e volte para ligar.', 'aviso');
+        return null;
+    }
+    const id = await escolher({ titulo: `Ligar ${a.nome_exibicao || 'este ativo'} a`, sub: 'Pessoas cadastradas que ainda não têm ativo. Não dá acesso ao app.', opcoes:
+        livres.map(p => ({ valor: p.id, titulo: p.nome, sub: p.user_id ? 'Tem acesso ao app' : 'Sem acesso ao app', icone: 'user' })) });
+    if (!id) return null;
+    return await gravarPessoaDoAtivo(a, id) ? id : null;
+}
+async function gravarPessoaDoAtivo(a, pessoaId) {
+    const { data, error } = await api.dbAuth.rpc('fn_ativo_pessoa_vincular', { p_cliente_id: estado.clienteId, p_ativo_id: a.id, p_titular_pessoa_id: pessoaId });
+    if (error || !data?.ok) { mostrarToast(error?.message || data?.mensagem || 'Não foi possível ligar.', 'erro'); return false; }
+    a.entidade_origem_tipo = pessoaId ? 'pessoa' : null;
+    a.entidade_origem_id = pessoaId;
+    if (estado.ativoEmFoco?.id === a.id) { estado.ativoEmFoco.entidade_origem_tipo = a.entidade_origem_tipo; estado.ativoEmFoco.entidade_origem_id = pessoaId; }
+    mostrarToast(pessoaId ? 'Pessoa ligada ao ativo.' : 'Pessoa desligada do ativo.');
+    desenharPessoaDoAtivo(a);
+    emitirEscrita('ativo', { id: a.id, acao: pessoaId ? 'pessoa_ligar' : 'pessoa_desligar' });
+    return true;
 }
 
 function documentosDoAtivo(ativoId) {

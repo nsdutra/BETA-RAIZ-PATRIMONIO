@@ -698,6 +698,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/cofre-api.js`
 
 //
@@ -1126,6 +1128,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 // supabase-js diretamente (Diretriz Arquitetural — Passo 2: responsabilidade
 // única por módulo).
 // ============================================================================
+
+---
 
 ---
 
@@ -1818,7 +1822,22 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/cofre-ativos.js`
+
+//
+// Versão anterior: 1.95.0 · 12/10/2026
+//
+// v1.95.0 (12/10/2026, sessão 20261012-0240-ux-onda4c, demanda a05ad2ee; Nicola 12/10 02:31: "juntar os dois cards ocupação
+// e uso … a própria barra deveria ser filtrada por ano … letras iniciais dos meses … apenas o % ocupação basta") — Usos e
+// Ocupação viram um card só: ‹ ano › no cabeçalho, barra de 1/jan a 31/dez com os usos na cor do ramo e a marca de hoje,
+// iniciais dos meses embaixo, e no pé só a ocupação do ano em % (fn_performance_ativo; sem dado, a conta pelos usos).
+// O card aparece mesmo sem uso, com convite e "+ Adicionar uso".
+// --------------------------------------------------------------------------
+// Versões anteriores (v1.94.0 … v1.94.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
+// mais recentes deste cabeçalho (VER-06).
 
 //
 // Versão anterior: 1.93.0 · 11/10/2026
@@ -3146,7 +3165,27 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/cofre-controles.js`
+
+//
+// Versão anterior: 1.52.0 · 12/10/2026
+//
+// v1.52.0 (12/10/2026, sessão 20261008-1231-pessoas-ativos, demanda 41d771c8; F13.10, ficha v3.1.0; de acordo do Nicola 12/10 03:27) — rateio em grupo
+// no item de controle:
+//   · ⋮ do item: "Abrir rateio" (pessoas do Raiz da lista + pessoas de fora com nome e telefone; até 10 pessoas e
+//     3 rateios abertos por empresa) e, depois de fechado, "Reabrir o rateio" (com motivo);
+//   · card "Rateio em grupo" acima das Ocorrências, com o MESMO componente da página do link (grupo-visao.js):
+//     balanço, agrupar as contas, lançamentos provisórios, lançar e cancelar;
+//   · ⋮ do card: Participantes e links (enviar pelo WhatsApp, copiar, incluir, remover) e "Fechar o rateio", que leva
+//     a parte de cada pessoa do Raiz ao financeiro por categoria e conta (fn_grupo_fechar);
+//   · a ocorrência do rateio abre o card em vez de Dar baixa/Estornar (o espelho com o financeiro não pode rodar nela);
+//   · "Excluir item de vez" recusa item com rateio.
+// --------------------------------------------------------------------------
+// Versões anteriores (v1.51.0 … v1.51.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
+// mais recentes deste cabeçalho (VER-06).
 
 //
 // Versão anterior: 1.51.0 · 11/10/2026
@@ -3817,6 +3856,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 // não está implementado (geração automática de ocorrências recorrentes,
 // Central de Alertas consolidada).
 // ============================================================================
+
+---
 
 ---
 
@@ -4718,6 +4759,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/cofre-estado.js`
 
 //
@@ -4863,6 +4906,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 // v1.21.6 (Arquivar/RLS, sessão paralela) nem esta entrega — fechado
 // agora. Ver changelog completo em cofre.html v1.22.0 (merge das 2
 // sessões paralelas + badge fix + form fix + função Vendido).
+
+---
 
 ---
 
@@ -5281,6 +5326,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/cofre-ui.js`
 
 //
@@ -5312,6 +5359,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 // genérica, template de card, indicador de "liga/desliga" (Design System
 // v1.43.0 §2). Não importa cofre-api.js — não sabe nada de Supabase.
 // ============================================================================
+
+---
 
 ---
 
@@ -5715,6 +5764,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/comum-licenca.js`
 
 //
@@ -5846,6 +5897,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 // hospeda (index.html, cofre.html, ou um módulo futuro) é quem decide
 // COMO obtém esse client; este arquivo só usa o que recebe.
 // ============================================================================
+
+---
 
 ---
 
@@ -6308,7 +6361,27 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/comum-pessoas.js`
+
+//
+// Versão anterior: 1.207.0 · 10/10/2026
+//
+// v1.207.0 (UX etapa 6 · E, demanda b4b047fd, sessão 20261003-1707-ux-base; protótipo PROTOTIPO_FINANCEIRO_PESSOAS_ETAPA6
+// aprovado pelo Nicola 10/10 22:43, "Pode corrigir e avançar" 23:32) — Pessoas e acessos no padrão de Partes:
+//   · topo com a barra digitável (nome, e-mail, WhatsApp ou função; rzBuscaInline do index) e o "+";
+//   · chips por perfil, só os que existem, com o número, e "Sem acesso" (quem não entra no app);
+//   · linha: "perfil · função" e o status à direita (Acessa / Sem acesso); o toque abre a ficha, a pressão longa
+//     abre o ⋮ de sempre (abrirAcoesPessoa, intocado);
+//   · ficha com chips Dados · Acesso · Comunicação · Atividade — as ações do ⋮ distribuídas por assunto, com a mesma
+//     checagem de acesso (codigo) e as mesmas travas de master/admin. Novo no Acesso: "Convidar pelo WhatsApp" (só
+//     para quem tem login e WhatsApp; abre o WhatsApp com o convite, nada é gravado).
+//   Fora do app (cofre.html sem a barra/sheet do index), a lista cai no comportamento de antes.
+// --------------------------------------------------------------------------
+// Versões anteriores (v1.206.0 … v1.206.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
+// mais recentes deste cabeçalho (VER-06).
 
 //
 // Versão anterior: 1.206.0 · 08/10/2026
@@ -6755,6 +6828,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/comum-renovacao.js`
 
 //
@@ -6797,6 +6872,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 // jsdelivr (mesma origem já usada pelo app); se não carregar, o "copia e cola"
 // continua funcionando sozinho.
 // ============================================================================
+
+---
 
 ---
 
@@ -7016,6 +7093,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 // dados de conta — recebe `dbAuth` já autenticado do host, por
 // parâmetro (ver nota completa em comum-licenca.js).
 // ============================================================================
+
+---
 
 ---
 
@@ -8151,6 +8230,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/fechamento.js`
 
 //
@@ -8452,6 +8533,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 // window.jspdf, CONFIG_CLIENTE (todos já globais no index.html clássico —
 // mesmo acesso que financeiro.js já faz).
 // ============================================================================
+
+---
 
 ---
 
@@ -10055,6 +10138,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/fiscal.js`
 
 //
@@ -10114,6 +10199,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 // abrirSheet, abrirSheetAcoes, abrirSheetForm, rzSheetCabecalho, fecharSheet,
 // mostrarToast, switchTab, rzIcones, podeUsar, window.fechamentoAbrirChecklistFiscalAtualizado.
 // ============================================================================
+
+---
 
 ---
 
@@ -10503,6 +10590,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/relatorios-executivos.js`
 
 //
@@ -10528,6 +10617,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 // que o bot usa); aqui só se monta o texto e o desenho — nunca se recalcula
 // (REL-02). Protótipo: raiz\docs\PROTOTIPO_RELATORIOS_FLUXO_GERENCIAL v1.1.0.
 // ============================================================================
+
+---
 
 ---
 
@@ -10995,6 +11086,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/vitrine.js`
 
 //
@@ -11104,6 +11197,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 // CLIENTE_ID_SUPABASE, dbAuth. Exclusivo (4) virou nível de módulo.
 // Indentação de origem mantida. Strict verificado.
 // ============================================================================
+
+---
 
 ---
 

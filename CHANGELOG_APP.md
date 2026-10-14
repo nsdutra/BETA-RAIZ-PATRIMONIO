@@ -4,6 +4,18 @@ Histórico completo de versões do `index.html`, movido automaticamente pelo `ge
 
 ---
 
+NOVIDADES (Beta v1.397.0) — Item de controle (Nicola 13/10 23:03, "Demais ajustes pode aplicar"): "Salvar e regerar"
+mantém o dia do início (início 11/09 mensal → 11/10, 11/11…) e usa a data local, não UTC; item de conta ou cartão
+(F18) não abre mais o formulário do item — "Editar" leva à ficha da conta, dona do nome, titular e vencimento. Aqui
+só muda o import map (cofre-controles.js 1.54.0). Nenhum objeto de banco.
+Versão anterior (Beta v1.396.0):
+------------------------------------------------------------------
+Versões anteriores (v1.396.0 … v1.396.0): CHANGELOG_APP.md, na raiz do
+repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
+das 5 versões mais recentes deste cabeçalho.
+
+---
+
 NOVIDADES (Beta v1.396.0) — Ocorrência e Raiz IA, teste do Nicola 13/10 22:44 (demanda a2f4980a). Ocorrência do item
 de controle (cofre-controles 1.53.0) e do contrato (contratos 1.56.0) ganha Cancelar, Reabrir e Excluir (excluir só
 a criada à mão/IA e não concluída; a gerada pela regra só se cancela). Raiz IA mostra que está lendo (campo pulsando,

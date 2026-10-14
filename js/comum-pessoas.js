@@ -1,6 +1,11 @@
 // ============================================================================
 // comum-pessoas.js — Raiz Patrimônio · Administração compartilhada
-// Versão: 1.211.0 · 13/10/2026
+// Versão: 1.212.0 · 14/10/2026
+//
+// v1.212.0 (14/10/2026, sessão 20261014-0010-ativo-pessoa, demanda d6a6f577; de acordo do Nicola 14/10 00:08) — ações da
+// pessoa ganham "Ativo da pessoa": abre o ativo vida ligado a ela; sem ativo, oferece ligar a um ativo vida que ainda
+// não tem pessoa (fn_ativo_pessoa_vincular) ou criar o ativo dela já ligado (fn_ativo_pessoa_garantir). Não cria pessoa.
+// Versão anterior: 1.211.0 · 13/10/2026
 //
 // v1.211.0 (13/10/2026, sessão 20261013-2320-conta-via-item, demanda 47eed96b; de acordo do Nicola 13/10 23:17) —
 // Pessoas › Contas perde o "+": conta e cartão da pessoa nascem no ativo dela › Controles › + › "Conta ou cartão"
@@ -26,24 +31,11 @@
 //     Atividade ("prefiro como estava: ao clicar abrir uma lista com as opções"); a ficha com chips sai e "Ver dados"
 //     abre a ficha de leitura de antes; a pressão longa sai ("eliminar o segurar pra abrir o menu"). A linha volta a
 //     ter o ⋮ à direita (o toque abre ações), junto do status Acessa / Sem acesso.
-//
-// Versão anterior: 1.207.0 · 10/10/2026
-//
-// v1.207.0 (UX etapa 6 · E, demanda b4b047fd, sessão 20261003-1707-ux-base; protótipo PROTOTIPO_FINANCEIRO_PESSOAS_ETAPA6
-// aprovado pelo Nicola 10/10 22:43, "Pode corrigir e avançar" 23:32) — Pessoas e acessos no padrão de Partes:
-//   · topo com a barra digitável (nome, e-mail, WhatsApp ou função; rzBuscaInline do index) e o "+";
-//   · chips por perfil, só os que existem, com o número, e "Sem acesso" (quem não entra no app);
-//   · linha: "perfil · função" e o status à direita (Acessa / Sem acesso); o toque abre a ficha, a pressão longa
-//     abre o ⋮ de sempre (abrirAcoesPessoa, intocado);
-//   · ficha com chips Dados · Acesso · Comunicação · Atividade — as ações do ⋮ distribuídas por assunto, com a mesma
-//     checagem de acesso (codigo) e as mesmas travas de master/admin. Novo no Acesso: "Convidar pelo WhatsApp" (só
-//     para quem tem login e WhatsApp; abre o WhatsApp com o convite, nada é gravado).
-//   Fora do app (cofre.html sem a barra/sheet do index), a lista cai no comportamento de antes.
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.206.0 … v1.206.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.207.0 … v1.207.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '1.211.0'; // v-check (18/09/2026): lido por Dev › Versões — manter igual ao header
+export const VERSAO = '1.212.0'; // v-check (18/09/2026): lido por Dev › Versões — manter igual ao header
 import { perguntar, avisarComDesfazer } from './cofre-ui.js'; // v1.203.0 (F0.2b) — sem diálogo nativo
 import { buscarContas, contasListaHtml, abrirFichaConta, abrirAcoesConta } from './comum-minha-empresa.js'; // v1.204.0 — contas da pessoa (P4a)
 import { rzMostrarBloqueio as rzBloqueio } from './comum-licenca.js'; // v1.204.0
@@ -408,6 +400,7 @@ export async function montarAbaPessoas(mountEl, ctx) {
         if (temLogin && (p.id === pessoaId || ['admin', 'master', 'master_plataforma'].includes(perfilLogado)) && ramosDaEmpresa().length > 1) {
             acesso.push({ icone: 'layers', titulo: 'Abrir o app em', sub: p.ramoPadrao ? (window.rzNomeRamo?.(p.ramoPadrao) || p.ramoPadrao) : 'Todo o patrimônio', codigo: 'pessoas.editar', aoTocar: () => escolherRamoPadrao(p) });
         }
+        dados.push({ icone: 'heart-pulse', titulo: 'Ativo da pessoa', sub: 'Abre a ficha dela em Ativos — liga a um ativo existente ou cria', codigo: 'cofre.ativos.criar', aoTocar: () => abrirAtivoDaPessoa(p) }); // v1.212.0 (d6a6f577)
         acesso.push({ icone: 'wallet', titulo: 'Contas que vê', sub: ehMaster ? 'Vê todas as contas' : (ESCOPO_CONTAS_ROTULO[p.escopoContas] || 'Contas dela e quais contas ela vê'), codigo: 'financeiro.contas.ver', aoTocar: () => abrirContasPessoaSheet(p.id) });
         if (!perfilTravado) {
             if (temLogin) {
@@ -556,6 +549,26 @@ export async function montarAbaPessoas(mountEl, ctx) {
     // ---------------------------------------------------------------
     // CONTAS DA PESSOA (v1.204.0, P4a) — regra toda no banco.
     // ---------------------------------------------------------------
+    // v1.212.0 (14/10/2026, demanda d6a6f577) — ativo vida da pessoa: abre se já existe; senão oferece ligar a um ativo
+    // vida sem pessoa (fn_ativo_pessoa_vincular) ou criar o ativo dela (fn_ativo_pessoa_garantir). Não cria pessoa.
+    async function abrirAtivoDaPessoa(p) {
+        const abrir = (id) => { window.fecharSheet?.(); if (typeof window.switchTab === 'function') window.switchTab('tab-ativos'); setTimeout(() => window.abrirFichaAtivoNoChip?.(id, 'resumo'), 120); };
+        const { data: ja, error: e1 } = await dbAuth.from('cofre_ativos').select('id').eq('cliente_id', clienteId).eq('entidade_origem_tipo', 'pessoa').eq('entidade_origem_id', p.id).neq('status', 'arquivado').maybeSingle();
+        if (e1) { onToast?.(e1.message, 'danger'); return; }
+        if (ja?.id) { abrir(ja.id); return; }
+        const { data: soltos } = await dbAuth.from('cofre_ativos').select('id, nome_exibicao').eq('cliente_id', clienteId).eq('tipo_ativo', 'vida').eq('status', 'ativo').is('entidade_origem_tipo', null).order('nome_exibicao');
+        const opcoes = (soltos || []).map(a => ({ valor: a.id, titulo: `Ligar a ${a.nome_exibicao}`, sub: 'Ativo que já existe, sem pessoa', icone: 'link' }))
+            .concat([{ valor: '__criar', titulo: `Criar o ativo de ${p.nome}`, sub: 'Novo ativo do tipo pessoa, já ligado', icone: 'plus' }]);
+        const v = typeof window.rzEscolher === 'function' ? await window.rzEscolher({ titulo: `${p.nome} ainda não tem ativo`, opcoes }) : '__criar';
+        if (!v) return;
+        const r = v === '__criar'
+            ? await dbAuth.rpc('fn_ativo_pessoa_garantir', { p_cliente_id: clienteId, p_titular_pessoa_id: p.id })
+            : await dbAuth.rpc('fn_ativo_pessoa_vincular', { p_cliente_id: clienteId, p_ativo_id: v, p_titular_pessoa_id: p.id });
+        if (r.error || !r.data?.ok) { onToast?.(r.error?.message || r.data?.mensagem || 'Não foi possível.', 'danger'); return; }
+        onToast?.(v === '__criar' ? 'Ativo criado e ligado.' : 'Pessoa ligada ao ativo.', 'success');
+        abrir(r.data.id || v);
+    }
+
     async function abrirContasPessoaSheet(id) {
         const p = pessoas.find(x => x.id === id);
         if (!p || typeof window.abrirSheet !== 'function') { onToast?.(AVISO_SO_APP, 'info'); return; }

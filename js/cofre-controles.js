@@ -1,6 +1,11 @@
 // ============================================================================
 // cofre-controles.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.56.0 · 13/10/2026
+// Versão: 1.57.0 · 14/10/2026
+//
+// v1.57.0 (14/10/2026, sessão 20261014-0010-ativo-pessoa, demanda d6a6f577; de acordo do Nicola 14/10 00:08) — "Conta ou
+// cartão" num ativo vida sem pessoa ligada: em vez do aviso, pergunta "Ligar agora" e abre a escolha da pessoa
+// (cofre-ativos.js 1.100.0, ligarPessoaAoAtivo); ligada, segue direto para o cadastro da conta. Nenhuma pessoa é criada.
+// Versão anterior: 1.56.0 · 13/10/2026
 //
 // v1.56.0 (13/10/2026, sessão 20261013-2350-usos-fatia1, demanda 3022603b; FICHA_FATIA1_MAQUINA_STATUS_RAIZ v1.0.0, "Restante
 // ok. Vamos seguir" do Nicola 13/10 23:45) — máquina de status no item de controle: o ⋮ mostra Pausar, Retomar, Concluir
@@ -33,24 +38,11 @@
 //   · Excluir (não concluída e criada à mão, pela IA ou por documento) — apaga de vez; as geradas pela frequência,
 //     parcela, fatura ou histórico do contrato só se cancelam (a regra as recriaria). Fica no histórico do item.
 // Sem banco: fn_ocorrencia_espelha_despesa já trata cancelado e exclusão; o histórico perde o vínculo (ON DELETE SET NULL).
-//
-// Versão anterior: 1.52.0 · 12/10/2026
-//
-// v1.52.0 (12/10/2026, sessão 20261008-1231-pessoas-ativos, demanda 41d771c8; F13.10, ficha v3.1.0; de acordo do Nicola 12/10 03:27) — rateio em grupo
-// no item de controle:
-//   · ⋮ do item: "Abrir rateio" (pessoas do Raiz da lista + pessoas de fora com nome e telefone; até 10 pessoas e
-//     3 rateios abertos por empresa) e, depois de fechado, "Reabrir o rateio" (com motivo);
-//   · card "Rateio em grupo" acima das Ocorrências, com o MESMO componente da página do link (grupo-visao.js):
-//     balanço, agrupar as contas, lançamentos provisórios, lançar e cancelar;
-//   · ⋮ do card: Participantes e links (enviar pelo WhatsApp, copiar, incluir, remover) e "Fechar o rateio", que leva
-//     a parte de cada pessoa do Raiz ao financeiro por categoria e conta (fn_grupo_fechar);
-//   · a ocorrência do rateio abre o card em vez de Dar baixa/Estornar (o espelho com o financeiro não pode rodar nela);
-//   · "Excluir item de vez" recusa item com rateio.
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.51.0 … v1.51.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.52.0 … v1.52.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '1.56.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.57.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 import { estado } from './cofre-estado.js';
 import * as api from './cofre-api.js';
 import { mostrarToast, refrescarIcones, abrirModal, fecharModal, modalGenerico, perguntar, escolher, avisarComDesfazer } from './cofre-ui.js';
@@ -2221,12 +2213,14 @@ async function abrirNovaContaPeloItem() {
     if (!empresa) {
         const { data, error } = await api.dbAuth.from('cofre_ativos').select('entidade_origem_tipo, entidade_origem_id').eq('id', ativo?.id).maybeSingle();
         if (error || data?.entidade_origem_tipo !== 'pessoa' || !data?.entidade_origem_id) {
-            mostrarToast('Este ativo ainda não está ligado a uma pessoa do cadastro — a conta precisa de um titular.', 'erro');
-            const sel = document.getElementById('ic-tipo');
-            if (sel) { sel.value = sel.options[0]?.value || ''; popularSelectSubtipo(sel.value); atualizarCaminhoNovoItem(); }
-            return;
-        }
-        pessoaId = data.entidade_origem_id;
+            // v1.57.0 (d6a6f577) — sem pessoa ligada: oferece ligar agora (só pessoas que já existem em Pessoas)
+            const voltarTipo = () => { const sel = document.getElementById('ic-tipo'); if (sel) { sel.value = sel.options[0]?.value || ''; popularSelectSubtipo(sel.value); atualizarCaminhoNovoItem(); } };
+            const ligar = await perguntar({ titulo: 'Este ativo ainda não tem pessoa do cadastro', impacto: 'A conta ou o cartão precisa de um titular: a pessoa de Pessoas que este ativo representa. Ligar não dá acesso ao app.', rotuloConfirmar: 'Ligar agora' });
+            if (!ligar) { voltarTipo(); return; }
+            const ca = await import('./cofre-ativos.js');
+            pessoaId = await ca.ligarPessoaAoAtivo(ativo);
+            if (!pessoaId) { voltarTipo(); return; }
+        } else pessoaId = data.entidade_origem_id;
     }
     fecharFormControle();
     try {
