@@ -1,7 +1,16 @@
 // ============================================================================
 // financeiro.js — Raiz Patrimônio · Financeiro (Recebimentos · Atrasados · Saídas
 //                  · conciliação de extrato · recibo · detalhe do recebimento)
-// Versão: 1.62.0 · 14/10/2026
+// Versão: 1.63.0 · 14/10/2026
+//
+// v1.63.0 (14/10/2026, sessão 20261014-1430-onda8c-financeiro, demanda a05ad2ee; FICHA_ONDA_8C_FINANCEIRO_COMPUTADOR v1.0.0, de acordo do
+// Nicola 14/10 13:54: "Pode ser em recebimento e saidas e seguir em frente") — ONDA 8c, computador (≥ 1024 px):
+// Recebimentos e Saídas viram TABELA (☐ · nome · imóvel/ativo · data · valor · situação · ⋮), com ordenação pelo
+// cabeçalho e seleção. Com linhas marcadas aparece a barra de lote: Recebimentos › "Dar baixa em lote" (uma data e uma
+// forma para todos, valor de cada um editável; grava um por um com a mesma sincronização da baixa individual e oferece
+// Desfazer); Saídas › "Marcar como pagas" (idem, só lançamentos sem fatura); e "Exportar" (CSV das linhas marcadas).
+// Pagos/faturas são ignorados no lote, com aviso. Abaixo de 1024 px e no celular a lista de sempre. Sem banco.
+// Versão anterior: 1.62.0 · 14/10/2026
 //
 // v1.62.0 (14/10/2026, sessão 20261014-1355-cartao-adicional, demanda c63d7f9f; FICHA_CARTAO_ADICIONAL_F10_F11 v1.1.0, de
 // acordo do Nicola 14/10 13:52) — CARTÃO ADICIONAL: a importação lista só cartões principais (a fatura do adicional é a do
@@ -25,17 +34,11 @@
 // dentro de um card Usos com o seletor à frente deste título. Ajuste isto nos 2 financeiros") — a visão por competência
 // (ficha do contrato e do ativo) é um card só, "Financeiro", com ‹ ano › à frente do título; o resumo, os atalhos e os
 // meses ficam dentro dele (fcEnvolver).
-//
-// Versão anterior: 1.58.0 · 12/10/2026
-//
-// v1.58.0 (12/10/2026, sessão 20261012-0300-ux-onda5, demanda a05ad2ee; Nicola 12/10 02:50: "padronize os seletores de ano
-// para o padrão das setinhas. No financeiro pode deixar sem a opção todos") — na visão por competência (ficha do contrato
-// e do ativo) os chips 2026 · 2025 · Todos viram ‹ 2026 ›, de 10 anos atrás até o ano atual; "Todos" sai.
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.57.0 … v1.57.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.58.0 … v1.58.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '1.62.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.63.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 
 // v1.17.0 (Fase 1 do wrapper de escrita, rollout Financeiro) — emitirEscrita
 // é o evento padrão pra "algo mudou que módulos DE FORA deste arquivo podem
@@ -1180,6 +1183,7 @@ function financeiroRenderCabecalho(aba) {
                 if (!porFatura.has(d.faturaId)) { const g = { faturaId: d.faturaId, itens: [] }; porFatura.set(d.faturaId, g); linhasLista.push({ g }); }
                 porFatura.get(d.faturaId).itens.push(d);
             });
+            if (finMesa()) { finDesenharTabela('sai', container, linhasLista.map(({ d, g }) => g ? finLinhaFatura(g) : finLinhaSaida(d))); return; } // v1.63.0 — ONDA 8c
             const cards = linhasLista.map(({ d, g }) => {
                 if (g) return financeiroLinhaFaturaHtml(g, rsS, filtroDeItem);
                 const atrasada = estaAtrasadaDespesa(d);
@@ -4757,6 +4761,7 @@ function financeiroRenderCabecalho(aba) {
                 const empB = imoB ? imoB.empreendimento : '';
                 return empA.localeCompare(empB) || (conA?.locatario || '').localeCompare(conB?.locatario || '');
             });
+            if (finMesa()) { finDesenharTabela('rec', container, itens.map(men => finLinhaRec(men, dataVencMensal))); return; } // v1.63.0 — ONDA 8c
             const linhas = itens.map(men => {
                 const con = contratos.find(c => c.id === men.contratoId) || {};
                 if (men.status === 'Pago') {
@@ -4801,6 +4806,268 @@ function financeiroRenderCabecalho(aba) {
                 rzSwipe(row, { dir, esq });
             });
         }
+        // =====================================================================
+        // v1.63.0 — ONDA 8c (FICHA_ONDA_8C_FINANCEIRO_COMPUTADOR v1.0.0, D8.1–D8.4): no computador (≥ 1024 px)
+        // Recebimentos e Saídas são uma TABELA com seleção e ações em lote. As gravações são as mesmas da linha
+        // (sincronizarMensalidadeSupabase / update de lancamentos), uma a uma, com Desfazer no fim. No celular nada muda.
+        // =====================================================================
+        const FIN_MESA_MQ = (typeof window !== 'undefined' && window.matchMedia) ? window.matchMedia('(min-width:1024px)') : null;
+        function finMesa() { return !!(FIN_MESA_MQ && FIN_MESA_MQ.matches); }
+        if (FIN_MESA_MQ) {
+            const aoTrocar = () => { finSel.rec.clear(); finSel.sai.clear(); try { if (document.getElementById('lista-mensalidades')) renderMensalidades(); if (document.getElementById('lista-saidas')) renderSaidas(); } catch (_) { /* aba ainda não montada */ } };
+            try { FIN_MESA_MQ.addEventListener('change', aoTrocar); } catch (_) { FIN_MESA_MQ.addListener(aoTrocar); }
+        }
+        const finSel = { rec: new Set(), sai: new Set() };
+        const finOrd = { rec: { col: 'data', dir: 1 }, sai: { col: 'data', dir: 1 } };
+        const finTab = { rec: { linhas: [], abrir: new Map() }, sai: { linhas: [], abrir: new Map() } };
+        const FIN_COLS = {
+            rec: [['nome', 'Locatário'], ['local', 'Imóvel'], ['data', 'Data'], ['valor', 'Valor'], ['situ', 'Situação']],
+            sai: [['nome', 'Descrição'], ['local', 'Ativo'], ['data', 'Data'], ['valor', 'Valor'], ['situ', 'Situação']],
+        };
+        const finEsc = (s) => escapeHtmlSaidas(String(s ?? ''));
+        const finIso = (br) => { const p = String(br || '').split('/'); return p.length === 3 ? `${p[2]}-${p[1]}-${p[0]}` : String(br || ''); };
+        const finRotuloImovel = (imo) => !imo ? '—' : ([imo.enderecoRua, imo.enderecoNum].filter(Boolean).join(', ') + (imo.enderecoComp ? ' - ' + imo.enderecoComp : '')) || imo.empreendimento || '—';
+        function finLinhaRec(men, dataVencMensal) {
+            const con = contratos.find(c => c.id === men.contratoId) || {};
+            const pago = men.status === 'Pago'; const atr = !pago && mensalidadeEmAtraso(men);
+            const dataTxt = dataVencMensal(men, con);
+            return { id: men.id, sel: true, aberto: !pago, nome: con.locatario || 'Locatário', local: finRotuloImovel(imoveis.find(i => i.id === con.imovelId)),
+                data: finIso(dataTxt), dataTxt, valor: Number(men.valorConfirmado || 0), sem: pago ? 'ok' : atr ? 'bad' : 'run', situ: pago ? 'Pago' : atr ? 'Em atraso' : 'A vencer',
+                abrir: () => rzAcoesMensalidade(men.id) };
+        }
+        function finLinhaSaida(d) {
+            const pago = d.status === 'realizado'; const atr = !pago && estaAtrasadaDespesa(d);
+            const data = (pago && d.dataPagamento) ? d.dataPagamento : (d.vencimento || '');
+            return { id: d.id, sel: true, aberto: !pago, nome: limparRotuloConciliacao(d.descricao) || 'Despesa', local: d.ativoNome || 'Empresa',
+                data, dataTxt: data ? formatarDataBR(data) : '', valor: -Math.abs(Number(d.valor || 0)), sem: pago ? 'ok' : atr ? 'bad' : 'run', situ: pago ? 'Pago' : atr ? 'Em atraso' : 'A pagar',
+                abrir: () => rzAcoesDespesa(d.id) };
+        }
+        function finLinhaFatura(g) {
+            const total = g.itens.reduce((s, i) => s + Number(i.valor || 0), 0);
+            const data = g.itens.map(i => i.vencimento || '').sort().pop() || '';
+            const todasPagas = g.itens.every(i => i.status === 'realizado');
+            return { id: 'fat:' + g.faturaId, sel: false, aberto: false, nome: `Fatura do cartão · ${g.itens.length} ${g.itens.length === 1 ? 'compra' : 'compras'}`, local: 'Cartão',
+                data, dataTxt: data ? formatarDataBR(data) : '', valor: -Math.abs(total), sem: todasPagas ? 'ok' : 'neu', situ: todasPagas ? 'Paga' : 'Fatura',
+                abrir: () => financeiroAbrirFatura(g.faturaId) };
+        }
+        function finOrdenar(aba, linhas) {
+            const { col, dir } = finOrd[aba];
+            const chave = (l) => col === 'valor' ? Math.abs(l.valor) : col === 'situ' ? ({ bad: 0, run: 1, neu: 2, ok: 3 }[l.sem] ?? 4) : String(l[col] || '').toLowerCase();
+            return linhas.slice().sort((a, b) => { const x = chave(a), y = chave(b); return (x < y ? -1 : x > y ? 1 : 0) * dir || String(a.nome).localeCompare(String(b.nome)); });
+        }
+        function finDesenharTabela(aba, container, linhas) {
+            const ordenadas = finOrdenar(aba, linhas);
+            const tab = finTab[aba]; tab.linhas = ordenadas; tab.abrir = new Map(ordenadas.map(l => [l.id, l.abrir]));
+            const ids = new Set(ordenadas.filter(l => l.sel).map(l => l.id));
+            [...finSel[aba]].forEach(id => { if (!ids.has(id)) finSel[aba].delete(id); }); // a seleção vale só para o que está à vista
+            const rs = (sem, t) => (typeof renderStatus === 'function') ? renderStatus(sem, t) : `<span class="rz-st rz-${sem}">${t}</span>`;
+            const o = finOrd[aba];
+            const cab = FIN_COLS[aba].map(([c, rot]) => `<button type="button" class="rz-ft-c rz-ft-${c}${o.col === c ? ' rz-on' : ''}" data-ft-ord="${c}">${rot}${o.col === c ? (o.dir > 0 ? ' ↑' : ' ↓') : ''}</button>`).join('');
+            const todas = ids.size > 0 && [...ids].every(id => finSel[aba].has(id));
+            const lin = ordenadas.map(l => {
+                const on = finSel[aba].has(l.id);
+                return `<div class="rz-ft-lin${on ? ' rz-on' : ''}" role="row" tabindex="0" data-ft-id="${finEsc(l.id)}">
+                    <span class="rz-ft-chk">${l.sel ? `<input type="checkbox" data-ft-sel="${finEsc(l.id)}"${on ? ' checked' : ''} aria-label="Selecionar">` : ''}</span>
+                    <span class="rz-ft-nome">${finEsc(l.nome)}</span><span class="rz-ft-local">${finEsc(l.local)}</span><span class="rz-ft-data">${finEsc(l.dataTxt)}</span>
+                    <span class="rz-ft-valor${l.valor < 0 ? ' rz-out' : ''}">${l.valor < 0 ? '− ' : ''}${formatarMoedaBR(Math.abs(l.valor))}</span>
+                    <span class="rz-ft-situ">${rs(l.sem, l.situ)}</span>
+                    <button type="button" class="rz-ft-more" data-ft-abrir="${finEsc(l.id)}" aria-label="Ações"><svg data-lucide="ellipsis-vertical"></svg></button>
+                </div>`;
+            }).join('');
+            container.innerHTML = `<div class="rz-ft" data-ft-aba="${aba}" role="table">
+                <div class="rz-ft-cab" role="row"><span class="rz-ft-chk">${ids.size ? `<input type="checkbox" data-ft-tudo${todas ? ' checked' : ''} aria-label="Selecionar tudo">` : ''}</span>${cab}<span></span></div>
+                ${lin}<div class="rz-ft-lote" hidden></div></div>`;
+            finLigarTabela(aba, container);
+            finAtualizarLote(aba, container);
+            if (typeof lucide !== 'undefined') lucide.createIcons();
+        }
+        function finLigarTabela(aba, container) {
+            const raiz = container.querySelector('.rz-ft'); if (!raiz) return;
+            const redesenha = () => (aba === 'rec' ? renderMensalidades() : renderSaidas());
+            raiz.addEventListener('click', (ev) => {
+                const ord = ev.target.closest('[data-ft-ord]');
+                if (ord) { const c = ord.dataset.ftOrd; finOrd[aba] = { col: c, dir: finOrd[aba].col === c ? -finOrd[aba].dir : 1 }; redesenha(); return; }
+                if (ev.target.closest('.rz-ft-chk, .rz-ft-lote')) return;
+                const lin = ev.target.closest('[data-ft-id]');
+                if (lin) { const f = finTab[aba].abrir.get(lin.dataset.ftId); if (f) f(); }
+            });
+            raiz.addEventListener('keydown', (ev) => {
+                if ((ev.key === 'Enter' || ev.key === ' ') && ev.target.matches('[data-ft-id]')) { ev.preventDefault(); const f = finTab[aba].abrir.get(ev.target.dataset.ftId); if (f) f(); }
+            });
+            raiz.addEventListener('change', (ev) => {
+                const cb = ev.target;
+                if (cb.matches('[data-ft-tudo]')) {
+                    finTab[aba].linhas.filter(l => l.sel).forEach(l => cb.checked ? finSel[aba].add(l.id) : finSel[aba].delete(l.id));
+                    raiz.querySelectorAll('[data-ft-sel]').forEach(x => { x.checked = cb.checked; x.closest('.rz-ft-lin')?.classList.toggle('rz-on', cb.checked); });
+                } else if (cb.matches('[data-ft-sel]')) {
+                    cb.checked ? finSel[aba].add(cb.dataset.ftSel) : finSel[aba].delete(cb.dataset.ftSel);
+                    cb.closest('.rz-ft-lin')?.classList.toggle('rz-on', cb.checked);
+                    const tudo = raiz.querySelector('[data-ft-tudo]');
+                    if (tudo) tudo.checked = finTab[aba].linhas.filter(l => l.sel).every(l => finSel[aba].has(l.id));
+                } else return;
+                finAtualizarLote(aba, container);
+            });
+        }
+        function finAtualizarLote(aba, container) {
+            const barra = container.querySelector('.rz-ft-lote'); if (!barra) return;
+            const marcadas = finTab[aba].linhas.filter(l => finSel[aba].has(l.id));
+            if (!marcadas.length) { barra.hidden = true; barra.innerHTML = ''; return; }
+            const total = marcadas.reduce((s, l) => s + Math.abs(l.valor), 0);
+            barra.hidden = false;
+            barra.innerHTML = `<span class="rz-ft-lote-tx"><b>${marcadas.length} ${marcadas.length === 1 ? 'selecionado' : 'selecionados'}</b> · ${formatarMoedaBR(total)}</span>
+                <button type="button" class="rz-btn rz-btn-1 rz-sm" data-ft-lote="baixar"><svg data-lucide="check"></svg> ${aba === 'rec' ? 'Dar baixa em lote' : 'Marcar como pagas'}</button>
+                <button type="button" class="rz-btn rz-btn-2 rz-sm" data-ft-lote="csv"><svg data-lucide="download"></svg> Exportar</button>
+                <button type="button" class="rz-btn rz-btn-3 rz-sm" data-ft-lote="limpar">Limpar</button>`;
+            barra.querySelector('[data-ft-lote="baixar"]').onclick = () => (aba === 'rec' ? finBaixaLoteRec() : finPagarLoteSai());
+            barra.querySelector('[data-ft-lote="csv"]').onclick = () => finExportarCsv(aba);
+            barra.querySelector('[data-ft-lote="limpar"]').onclick = () => { finSel[aba].clear(); aba === 'rec' ? renderMensalidades() : renderSaidas(); };
+            if (typeof lucide !== 'undefined') lucide.createIcons();
+        }
+        function finExportarCsv(aba) {
+            const marcadas = finTab[aba].linhas.filter(l => finSel[aba].has(l.id)); if (!marcadas.length) return;
+            const cel = (v) => { const s = String(v ?? ''); return /[";\r\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s; };
+            const num = (v) => (Math.round(Number(v) * 100) / 100).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2, useGrouping: false });
+            const cab = FIN_COLS[aba].map(c => c[1]);
+            const linhas = [cab, ...marcadas.map(l => [l.nome, l.local, l.dataTxt, num(Math.abs(l.valor)), l.situ])];
+            const texto = '﻿' + linhas.map(l => l.map(cel).join(';')).join('\r\n');
+            const comp = String(financeiroCompetenciaAtual || financeiroCompetenciaHojeISO()).slice(0, 7);
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(new Blob([texto], { type: 'text/csv;charset=utf-8' }));
+            a.download = `${aba === 'rec' ? 'recebimentos' : 'saidas'}-${comp}.csv`;
+            document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1500);
+            rzToast(`${marcadas.length} ${marcadas.length === 1 ? 'linha exportada' : 'linhas exportadas'}`);
+        }
+        function finCorpoLote(itens, formas, rotuloItem) {
+            const hoje = new Date(); const iso = `${hoje.getFullYear()}-${String(hoje.getMonth() + 1).padStart(2, '0')}-${String(hoje.getDate()).padStart(2, '0')}`;
+            return `<div class="rz-f2 rz-f2-curto"><div class="rz-f"><label>Data <i>*</i></label><input type="date" id="ft-lote-data" value="${iso}"></div>
+                <div class="rz-f"><label>Forma</label><select id="ft-lote-forma">${formas.map(([v, r]) => `<option value="${v}">${r}</option>`).join('')}</select></div></div>
+                <p class="rz-ft-lote-ajuda">Confira o valor de cada um. Multa, energia, taxa e divisão continuam na baixa individual.</p>
+                <div class="rz-card rz-list">${itens.map(x => `<div class="rz-row"><div class="rz-tx"><b>${finEsc(rotuloItem(x).titulo)}</b><span>${finEsc(rotuloItem(x).sub)}</span></div>
+                    <div class="rz-rt" style="width:132px"><input type="number" step="0.01" min="0" class="rz-ft-lote-v" data-ft-v="${finEsc(x.id)}" value="${Math.round(Math.abs(Number(rotuloItem(x).valor || 0)) * 100) / 100}" aria-label="Valor"></div></div>`).join('')}</div>`;
+        }
+        function finLerLote(corpoEl) {
+            const data = corpoEl.querySelector('#ft-lote-data')?.value; const forma = corpoEl.querySelector('#ft-lote-forma')?.value || null;
+            const valores = new Map([...corpoEl.querySelectorAll('[data-ft-v]')].map(i => [i.dataset.ftV, parseFloat(i.value)]));
+            if (!data) { rzToast('Informe a data.', { tipo: 'danger' }); return null; }
+            if ([...valores.values()].some(v => isNaN(v) || v < 0)) { rzToast('Confira os valores.', { tipo: 'danger' }); return null; }
+            return { data, forma, valores };
+        }
+        function finAvisoLote(ignorados, rotulo) { return ignorados ? `<p class="rz-ft-lote-ajuda"><b>${ignorados}</b> ${ignorados === 1 ? rotulo[0] : rotulo[1]} fora do lote.</p>` : ''; }
+        function finMesFechado() { if (window.RZ_FIN_COMPETENCIA_FECHADA === true) { rzToast('Este mês está fechado. Reabra o mês para dar baixa.', { tipo: 'danger' }); return true; } return false; }
+
+        function finBaixaLoteRec() {
+            if (typeof rzMostrarBloqueio === 'function' && rzMostrarBloqueio('mensal.baixar')) return;
+            if (finMesFechado()) return;
+            const marc = [...finSel.rec].map(id => mensalidades.find(m => m.id === id)).filter(Boolean);
+            const abertos = marc.filter(m => m.status !== 'Pago');
+            if (!abertos.length) { rzToast('Os selecionados já estão pagos.', { tipo: 'info' }); return; }
+            const rot = (m) => { const con = contratos.find(c => c.id === m.contratoId) || {}; return { titulo: con.locatario || 'Locatário', sub: m.referencia, valor: m.valorConfirmado }; };
+            const formas = [['PIX', 'PIX'], ['Boleto', 'Boleto'], ['Transferência', 'Transferência'], ['Dinheiro', 'Dinheiro'], ['Cheque', 'Cheque']];
+            abrirSheetForm({ titulo: 'Dar baixa em lote', sub: `${abertos.length} ${abertos.length === 1 ? 'recebimento' : 'recebimentos'}`,
+                corpo: finAvisoLote(marc.length - abertos.length, ['já pago ficou', 'já pagos ficaram']) + finCorpoLote(abertos, formas, rot),
+                rotuloSalvar: `Confirmar ${abertos.length} ${abertos.length === 1 ? 'recebimento' : 'recebimentos'}`,
+                aoSalvar: async (corpoEl) => {
+                    const l = finLerLote(corpoEl); if (!l) return false;
+                    const feitos = []; let falhas = 0;
+                    const dataBR = l.data.split('-').reverse().join('/');
+                    for (let i = 0; i < abertos.length; i++) {
+                        const m = abertos[i];
+                        mostrarCarregamentoGlobal(`Dando baixa ${i + 1} de ${abertos.length}...`);
+                        const antes = { status: m.status, banco: m.banco, dataPgto: m.dataPgto, valorConfirmado: m.valorConfirmado };
+                        m.status = 'Pago'; m.banco = l.forma; m.dataPgto = dataBR;
+                        const v = l.valores.get(m.id); if (!isNaN(v)) m.valorConfirmado = v;
+                        try {
+                            await sincronizarMensalidadeSupabase(m);
+                            registrarLog('mensal.baixar', { mensalidadeId: m.id, referencia: m.referencia, valor: m.valorConfirmado, banco: l.forma, via: 'lote' });
+                            emitirEscrita('mensalidade', { id: m.id, acao: 'baixar' });
+                            feitos.push({ m, antes });
+                        } catch (err) {
+                            Object.assign(m, antes); falhas++;
+                            logScreen('Erro na baixa em lote (mensalidade ' + m.id + '): ' + err.message, true);
+                        }
+                    }
+                    esconderCarregamentoGlobal();
+                    try { localStorage.setItem(chaveLocal('mensalidades'), JSON.stringify(mensalidades)); } catch (_) { /* cache é conveniência */ }
+                    finSel.rec.clear();
+                    finDepoisDaBaixaRec();
+                    const desfazer = feitos.length ? async () => {
+                        mostrarCarregamentoGlobal('Desfazendo...');
+                        for (const { m, antes } of feitos) {
+                            Object.assign(m, antes);
+                            try { await sincronizarMensalidadeSupabase(m); registrarLog('mensal.estornar', { mensalidadeId: m.id, referencia: m.referencia, via: 'lote_desfazer' }); emitirEscrita('mensalidade', { id: m.id, acao: 'estornar' }); }
+                            catch (err) { logScreen('Erro ao desfazer baixa em lote (mensalidade ' + m.id + '): ' + err.message, true); }
+                        }
+                        esconderCarregamentoGlobal();
+                        try { localStorage.setItem(chaveLocal('mensalidades'), JSON.stringify(mensalidades)); } catch (_) { /* idem */ }
+                        await atualizarConciliacaoSeAberta();
+                        finDepoisDaBaixaRec();
+                        rzToast('Baixas desfeitas');
+                    } : null;
+                    rzToast(`${feitos.length} ${feitos.length === 1 ? 'recebimento baixado' : 'recebimentos baixados'}${falhas ? ` · ${falhas} não salvo${falhas === 1 ? '' : 's'}` : ''}`, desfazer ? { desfazer } : { tipo: falhas ? 'danger' : 'success' });
+                    return true;
+                } });
+        }
+        function finDepoisDaBaixaRec() {
+            renderMensalidades();
+            [typeof renderInadimplencia === 'function' && renderInadimplencia, typeof renderSociosDistribricao === 'function' && renderSociosDistribricao,
+             typeof renderRelatorios === 'function' && renderRelatorios].forEach(f => { if (f) try { f(); } catch (_) { /* tela fechada */ } });
+            if (typeof financeiroAtualizarKpis === 'function') try { financeiroAtualizarKpis('mensal'); } catch (_) { /* idem */ }
+        }
+        function finPagarLoteSai() {
+            if (finMesFechado()) return;
+            const marc = [...finSel.sai].map(id => lancamentos.find(d => d.id === id)).filter(Boolean);
+            const abertas = marc.filter(d => d.status !== 'realizado' && !d.faturaId);
+            if (!abertas.length) { rzToast('As selecionadas já estão pagas.', { tipo: 'info' }); return; }
+            const rot = (d) => ({ titulo: limparRotuloConciliacao(d.descricao) || 'Despesa', sub: d.vencimento ? formatarDataBR(d.vencimento) : '', valor: d.valor });
+            const formas = [['pix', 'Pix'], ['boleto', 'Boleto'], ['transferencia', 'Transferência'], ['dinheiro', 'Dinheiro'], ['outro', 'Outro']];
+            abrirSheetForm({ titulo: 'Marcar como pagas', sub: `${abertas.length} ${abertas.length === 1 ? 'despesa' : 'despesas'}`,
+                corpo: finAvisoLote(marc.length - abertas.length, ['já paga ficou', 'já pagas ficaram']) + finCorpoLote(abertas, formas, rot),
+                rotuloSalvar: `Confirmar ${abertas.length} ${abertas.length === 1 ? 'pagamento' : 'pagamentos'}`,
+                aoSalvar: async (corpoEl) => {
+                    const l = finLerLote(corpoEl); if (!l) return false;
+                    const feitos = []; let falhas = 0;
+                    for (let i = 0; i < abertas.length; i++) {
+                        const d = abertas[i];
+                        mostrarCarregamentoGlobal(`Salvando ${i + 1} de ${abertas.length}...`);
+                        const antes = { status: d.status || 'previsto', data_pagamento: d.dataPagamento || null, forma_pagamento: d.formaPagamento || null, valor: Number(d.valor) };
+                        const novo = { status: 'realizado', data_pagamento: l.data, forma_pagamento: l.forma };
+                        const v = l.valores.get(d.id); if (!isNaN(v) && Math.abs(v - Math.abs(Number(d.valor))) > 0.004) novo.valor = v;
+                        try {
+                            const { error } = await dbAuth.from('lancamentos').update(novo).eq('cliente_id', CLIENTE_ID_SUPABASE).eq('id', d.id);
+                            if (error) throw error;
+                            emitirEscrita('despesa', { id: d.id, acao: 'confirmar_pagamento' });
+                            feitos.push({ id: d.id, antes, mudouValor: 'valor' in novo });
+                        } catch (err) { falhas++; logScreen('Erro ao pagar em lote (lançamento ' + d.id + '): ' + err.message, true); }
+                    }
+                    try { lancamentos = await carregarLancamentosSupabase(); } catch (_) { /* a lista recarrega na próxima entrada */ }
+                    esconderCarregamentoGlobal();
+                    finSel.sai.clear();
+                    finDepoisDoPagamentoSai();
+                    const desfazer = feitos.length ? async () => {
+                        mostrarCarregamentoGlobal('Desfazendo...');
+                        for (const { id, antes, mudouValor } of feitos) {
+                            const volta = { status: antes.status, data_pagamento: antes.data_pagamento, forma_pagamento: antes.forma_pagamento };
+                            if (mudouValor) volta.valor = antes.valor;
+                            const { error } = await dbAuth.from('lancamentos').update(volta).eq('cliente_id', CLIENTE_ID_SUPABASE).eq('id', id);
+                            if (error) logScreen('Erro ao desfazer pagamento em lote (lançamento ' + id + '): ' + error.message, true);
+                            else emitirEscrita('despesa', { id, acao: 'estornar_pagamento' });
+                        }
+                        try { lancamentos = await carregarLancamentosSupabase(); } catch (_) { /* idem */ }
+                        esconderCarregamentoGlobal();
+                        await atualizarConciliacaoSeAberta();
+                        finDepoisDoPagamentoSai();
+                        rzToast('Pagamentos desfeitos');
+                    } : null;
+                    rzToast(`${feitos.length} ${feitos.length === 1 ? 'despesa paga' : 'despesas pagas'}${falhas ? ` · ${falhas} não salva${falhas === 1 ? '' : 's'}` : ''}`, desfazer ? { desfazer } : { tipo: falhas ? 'danger' : 'success' });
+                    return true;
+                } });
+        }
+        function finDepoisDoPagamentoSai() {
+            renderSaidas();
+            if (typeof renderSociosDistribricao === 'function') try { renderSociosDistribricao(); } catch (_) { /* tela fechada */ }
+            if (typeof financeiroAtualizarKpis === 'function') try { financeiroAtualizarKpis('saidas'); } catch (_) { /* idem */ }
+        }
+
         // Cobrança de 1 mensalidade — a mesma do ⋮ ("Cobrar pelo WhatsApp").
         function financeiroCobrarMensalidade(menId) {
             const men = mensalidades.find(m => m.id === menId); if (!men) return;

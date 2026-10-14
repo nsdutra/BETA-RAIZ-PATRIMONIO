@@ -6,9 +6,14 @@
    (base derivada do RUMO v7.4.2 — histórico de versões anteriores
    preservado abaixo para referência técnica)
 
-   VERSÃO: Beta v1.412.0
-   LINHAS: 16776
-   DATA: 14/10/2026 (sessão 20261014-1355-cartao-adicional, demanda c63d7f9f)
+   VERSÃO: Beta v1.413.0
+   LINHAS: 16805
+   DATA: 14/10/2026 (sessão 20261014-1430-onda8c-financeiro, demanda a05ad2ee)
+   NOVIDADES (Beta v1.413.0) — ONDA 8c do estudo PROTOTIPO_UX_DENSIDADE_RAMOS_RAIZ v1.2.0 (D15, computador;
+   FICHA_ONDA_8C_FINANCEIRO_COMPUTADOR v1.0.0, de acordo do Nicola 14/10 13:54): estilo da tabela do Financeiro (.rz-ft)
+   montada por js/financeiro.js a partir de 1024 px — Recebimentos e Saídas em colunas, seleção, barra de lote (Dar baixa
+   em lote · Marcar como pagas · Exportar CSV). No celular nada muda. Sem banco.
+   Versão anterior (Beta v1.412.0):
    NOVIDADES (Beta v1.412.0) — CARTÃO ADICIONAL (FICHA_CARTAO_ADICIONAL_F10_F11_RAIZ v1.1.0, de acordo do Nicola 14/10
    13:52): cadastro "Cartão adicional" na ficha da conta (cartão principal, final e a conta em que ele cai — padrão a
    conta de quem usa) em js/comum-minha-empresa.js 1.17.0; fatura com o card "Por cartão", final em cada compra e
@@ -31,12 +36,8 @@
    conteúdo ganha 820 px de largura ao lado, os sheets abrem como painel lateral à direita na altura inteira, e Ctrl/⌘ K
    abre a busca. No celular nada muda. Sem banco.
    Versão anterior (Beta v1.408.0):
-   NOVIDADES (Beta v1.408.0) — Agenda, Nicola 14/10 09:50: js/agenda.js 1.3.0 põe alerta e compromisso pendentes no dia do
-   FATO GERADOR (não em hoje), nas três vistas, com o selo "Há Nd"; a Lista do mês de hoje mostra o mês inteiro por dia e,
-   antes dele, o que segue pendente de meses anteriores. Só o módulo muda; o index ganha versão e import map.
-   Versão anterior (Beta v1.407.0):
    ------------------------------------------------------------------
-   Versões anteriores (v1.407.0 … v1.407.0): CHANGELOG_APP.md, na raiz do
+   Versões anteriores (v1.408.0 … v1.408.0): CHANGELOG_APP.md, na raiz do
    repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
    das 5 versões mais recentes deste cabeçalho.
 
@@ -64,7 +65,7 @@
          O navegador aplica o mapa também aos imports estáticos dentro dos
          módulos (cofre-app.js → ./cofre-api.js etc.). -->
     <!-- RZ-IMPORTMAP:INICIO -->
-    <script type="importmap">{"imports":{"./js/cadastros.js":"./js/cadastros.js?v=1.2.0","./js/financeiro.js":"./js/financeiro.js?v=1.62.0","./js/fechamento.js":"./js/fechamento.js?v=1.13.0","./js/contratos.js":"./js/contratos.js?v=1.57.0","./js/minutas.js":"./js/minutas.js?v=1.4.0","./js/vitrine.js":"./js/vitrine.js?v=1.5.2","./js/imoveis.js":"./js/imoveis.js?v=1.7.2","./js/cofre-api.js":"./js/cofre-api.js?v=1.51.0","./js/cofre-app.js":"./js/cofre-app.js?v=1.48.0","./js/cofre-ativos.js":"./js/cofre-ativos.js?v=1.103.0","./js/cofre-controles.js":"./js/cofre-controles.js?v=1.57.0","./js/cofre-documentos.js":"./js/cofre-documentos.js?v=2.36.0","./js/cofre-imagem.js":"./js/cofre-imagem.js?v=1.1.0","./js/cofre-estado.js":"./js/cofre-estado.js?v=1.5.2","./js/cofre-navegacao.js":"./js/cofre-navegacao.js?v=1.9.3","./js/cofre-ui.js":"./js/cofre-ui.js?v=1.7.2","./js/cofre-validacoes.js":"./js/cofre-validacoes.js?v=2.5.0","./js/comum-licenca.js":"./js/comum-licenca.js?v=1.8.0","./js/comum-renovacao.js":"./js/comum-renovacao.js?v=1.3.5","./js/comum-minha-empresa.js":"./js/comum-minha-empresa.js?v=1.17.0","./js/comum-pessoas.js":"./js/comum-pessoas.js?v=1.212.0","./js/comum-sobre.js":"./js/comum-sobre.js?v=1.5.0","./js/comum-endereco.js":"./js/comum-endereco.js?v=1.2.0","./js/comum-partes.js":"./js/comum-partes.js?v=1.0.0","./js/resultados.js":"./js/resultados.js?v=2.9.0","./js/indicadores.js":"./js/indicadores.js?v=1.1.0","./js/configuracao-inicial.js":"./js/configuracao-inicial.js?v=1.0.1","./js/relatorios-executivos.js":"./js/relatorios-executivos.js?v=1.3.0","./js/raiz-eventos.js":"./js/raiz-eventos.js?v=1.0.0","./js/raiz-device.js":"./js/raiz-device.js?v=1.1.0","./js/raiz-ui.js":"./js/raiz-ui.js?v=1.4.0","./js/fiscal.js":"./js/fiscal.js?v=1.5.2","./js/ativos/ativos-boot.js":"./js/ativos/ativos-boot.js?v=1.4.0","./js/ativos/ativos-markup.js":"./js/ativos/ativos-markup.js?v=1.62.0","./js/nucleo/porta.js":"./js/nucleo/porta.js?v=1.5.0","./js/partes.js":"./js/partes.js?v=1.0.2","./js/conta.js":"./js/conta.js?v=1.0.1","./js/grupo-visao.js":"./js/grupo-visao.js?v=1.0.0","./js/agenda.js":"./js/agenda.js?v=1.3.0"}}</script>
+    <script type="importmap">{"imports":{"./js/cadastros.js":"./js/cadastros.js?v=1.2.0","./js/financeiro.js":"./js/financeiro.js?v=1.63.0","./js/fechamento.js":"./js/fechamento.js?v=1.13.0","./js/contratos.js":"./js/contratos.js?v=1.57.0","./js/minutas.js":"./js/minutas.js?v=1.4.0","./js/vitrine.js":"./js/vitrine.js?v=1.5.2","./js/imoveis.js":"./js/imoveis.js?v=1.7.2","./js/cofre-api.js":"./js/cofre-api.js?v=1.51.0","./js/cofre-app.js":"./js/cofre-app.js?v=1.48.0","./js/cofre-ativos.js":"./js/cofre-ativos.js?v=1.103.0","./js/cofre-controles.js":"./js/cofre-controles.js?v=1.57.0","./js/cofre-documentos.js":"./js/cofre-documentos.js?v=2.36.0","./js/cofre-imagem.js":"./js/cofre-imagem.js?v=1.1.0","./js/cofre-estado.js":"./js/cofre-estado.js?v=1.5.2","./js/cofre-navegacao.js":"./js/cofre-navegacao.js?v=1.9.3","./js/cofre-ui.js":"./js/cofre-ui.js?v=1.7.2","./js/cofre-validacoes.js":"./js/cofre-validacoes.js?v=2.5.0","./js/comum-licenca.js":"./js/comum-licenca.js?v=1.8.0","./js/comum-renovacao.js":"./js/comum-renovacao.js?v=1.3.5","./js/comum-minha-empresa.js":"./js/comum-minha-empresa.js?v=1.17.0","./js/comum-pessoas.js":"./js/comum-pessoas.js?v=1.212.0","./js/comum-sobre.js":"./js/comum-sobre.js?v=1.5.0","./js/comum-endereco.js":"./js/comum-endereco.js?v=1.2.0","./js/comum-partes.js":"./js/comum-partes.js?v=1.0.0","./js/resultados.js":"./js/resultados.js?v=2.9.0","./js/indicadores.js":"./js/indicadores.js?v=1.1.0","./js/configuracao-inicial.js":"./js/configuracao-inicial.js?v=1.0.1","./js/relatorios-executivos.js":"./js/relatorios-executivos.js?v=1.3.0","./js/raiz-eventos.js":"./js/raiz-eventos.js?v=1.0.0","./js/raiz-device.js":"./js/raiz-device.js?v=1.1.0","./js/raiz-ui.js":"./js/raiz-ui.js?v=1.4.0","./js/fiscal.js":"./js/fiscal.js?v=1.5.2","./js/ativos/ativos-boot.js":"./js/ativos/ativos-boot.js?v=1.4.0","./js/ativos/ativos-markup.js":"./js/ativos/ativos-markup.js?v=1.62.0","./js/nucleo/porta.js":"./js/nucleo/porta.js?v=1.5.0","./js/partes.js":"./js/partes.js?v=1.0.2","./js/conta.js":"./js/conta.js?v=1.0.1","./js/grupo-visao.js":"./js/grupo-visao.js?v=1.0.0","./js/agenda.js":"./js/agenda.js?v=1.3.0"}}</script>
     <!-- RZ-IMPORTMAP:FIM -->
 
     <!-- ===== PWA: permite "instalar" o app no celular (Android e iPhone) ===== -->
@@ -1543,6 +1544,34 @@
             body.rz-split-at [data-screen="ficha-ativo"] > [data-action="voltar-ficha-ativo"]{display:none!important}
             body.rz-split .rz-row.rz-split-sel{background:var(--tile);box-shadow:inset 3px 0 0 var(--ramo-acc,var(--sprout));border-radius:10px}
         }
+        /* v1.413.0 — ONDA 8c (FICHA_ONDA_8C v1.0.0): Financeiro em tabela no computador (js/financeiro.js monta .rz-ft só
+           a partir de 1024 px). Colunas alinhadas, cabeçalho que ordena, caixa de seleção e a barra de lote presa ao pé da
+           lista (some com a aba, porque mora dentro dela). */
+        .rz-ft{background:var(--card);border:1px solid var(--line);border-radius:14px;overflow:clip}
+        .rz-ft-cab,.rz-ft-lin{display:grid;grid-template-columns:40px minmax(0,1.5fr) minmax(0,1.2fr) 96px 124px 112px 40px;align-items:center;column-gap:10px;padding:0 8px 0 4px}
+        .rz-ft-cab{position:sticky;top:var(--rz-hdr-h,72px);z-index:2;background:var(--tile);border-bottom:1px solid var(--line);min-height:40px}
+        .rz-ft-c{background:none;border:0;padding:0;text-align:left;font:600 12.5px var(--font-body);color:var(--muted);cursor:pointer;min-height:40px}
+        .rz-ft-c.rz-on{color:var(--ink)}
+        .rz-ft-valor.rz-ft-c,.rz-ft-cab .rz-ft-valor{text-align:right}
+        .rz-ft-lin{min-height:48px;border-bottom:1px solid var(--line);font-size:14px;color:var(--ink);cursor:pointer}
+        .rz-ft-lin:hover{background:var(--tile)}
+        .rz-ft-lin.rz-on{background:color-mix(in srgb, var(--ramo-acc, var(--sprout)) 9%, var(--card))}
+        .rz-ft-lin:focus-visible{outline:2px solid var(--sprout);outline-offset:-2px}
+        .rz-ft-nome{font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+        .rz-ft-local,.rz-ft-data{color:var(--muted);font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+        .rz-ft-valor{text-align:right;font-weight:600;font-variant-numeric:tabular-nums}
+        .rz-ft-chk{display:flex;align-items:center;justify-content:center;min-height:44px}
+        .rz-ft-chk input{width:18px;height:18px;accent-color:var(--ramo-acc, var(--sprout));cursor:pointer}
+        .rz-ft-more{width:36px;height:36px;border:0;background:none;border-radius:10px;color:var(--muted);display:flex;align-items:center;justify-content:center;cursor:pointer}
+        .rz-ft-more:hover{background:var(--tile)}.rz-ft-more svg{width:18px;height:18px}
+        .rz-ft-lote{position:sticky;bottom:12px;display:flex;align-items:center;gap:8px;margin:8px;padding:8px 8px 8px 16px;border-radius:14px;
+            background:var(--pine);color:#fff;box-shadow:0 8px 24px rgba(0,0,0,.18);z-index:3}
+        .rz-ft-lote[hidden]{display:none}
+        .rz-ft-lote-tx{flex:1;font-size:14px}
+        .rz-ft-lote .rz-btn-1{background:#fff;color:var(--pine);border-color:#fff}
+        .rz-ft-lote .rz-btn-2,.rz-ft-lote .rz-btn-3{background:rgba(255,255,255,.12);color:#fff;border-color:transparent}
+        .rz-ft-lote-ajuda{font-size:12.5px;color:var(--muted);margin:4px 2px 10px}
+        .rz-ft-lote-v{width:100%;height:40px;border:1px solid var(--line);border-radius:10px;padding:0 10px;text-align:right;font:500 16px var(--font-body);background:var(--card);color:var(--ink)}
         /* v1.391.0 — ONDA 6a: campo único da Raiz IA (texto + voz) e atalhos */
         .rz-ia-campo{display:flex;align-items:flex-end;gap:6px;border:1.5px solid var(--brass);border-radius:22px;padding:6px 6px 6px 14px;background:var(--card);margin:2px 0 6px}
         .rz-ia-campo textarea{flex:1;min-width:0;border:0;outline:none;resize:none;background:none;font:400 16px/1.35 var(--font-body);color:var(--ink);padding:7px 0;max-height:120px}
@@ -4279,7 +4308,7 @@
         // texto certo toda vez (esqueci 5 versões seguidas, de v1.37.1 até
         // v1.38.3). Agora só precisa mudar UMA linha aqui a cada release;
         // window.onload aplica nos dois lugares automaticamente.
-        const APP_VERSAO = "Beta v1.412.0"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
+        const APP_VERSAO = "Beta v1.413.0"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
 
         // ====================================================================
         // v1.105.0 — HELPERS DE SUPERFÍCIE DA GRAMÁTICA ÚNICA

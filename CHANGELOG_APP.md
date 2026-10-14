@@ -4,6 +4,17 @@ Histórico completo de versões do `index.html`, movido automaticamente pelo `ge
 
 ---
 
+NOVIDADES (Beta v1.408.0) — Agenda, Nicola 14/10 09:50: js/agenda.js 1.3.0 põe alerta e compromisso pendentes no dia do
+FATO GERADOR (não em hoje), nas três vistas, com o selo "Há Nd"; a Lista do mês de hoje mostra o mês inteiro por dia e,
+antes dele, o que segue pendente de meses anteriores. Só o módulo muda; o index ganha versão e import map.
+Versão anterior (Beta v1.407.0):
+------------------------------------------------------------------
+Versões anteriores (v1.407.0 … v1.407.0): CHANGELOG_APP.md, na raiz do
+repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
+das 5 versões mais recentes deste cabeçalho.
+
+---
+
 NOVIDADES (Beta v1.407.0) — Agenda, teste do Nicola 14/10 08:58: js/agenda.js 1.2.0 conta e mostra a partir de UM
 universo só (números dos chips, pontos, resumo e linhas batem); alertas também na Semana e no Mês, no dia em que
 vencem; status do alerta no filtro = o que a linha mostra (vencido = crítico), sem mudar regra de alerta; Assunto
