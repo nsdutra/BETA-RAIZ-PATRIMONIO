@@ -1,6 +1,13 @@
 // ============================================================================
 // cofre-ativos.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.97.0 · 13/10/2026
+// Versão: 1.98.0 · 13/10/2026
+//
+// v1.98.0 (13/10/2026, sessão 20261013-2330-usos-fatia0b, demanda 0579b844; teste do Nicola 13/10 23:27) — o card Usos
+// lista os usos do ano abaixo da barra: o uso sem contrato vigente tem ⋮ com "Concluir" (antes só no ⋮ do topo da
+// ficha, onde não foi achado); o de contrato abre o contrato. "Adicionar uso" deixa de oferecer o modelo em que o
+// ativo já está hoje (uso ou repouso: um veículo em Uso próprio não mostra Uso próprio).
+//
+// Versão anterior: 1.97.0 · 13/10/2026
 //
 // v1.97.0 (13/10/2026, sessão 20261013-2203-usos-fatia0, demandas 3022603b e 0579b844; FICHA_FATIA0_USO_UNIVERSAL_RAIZ
 // v1.0.0, "De acordo." do Nicola 13/10) — uso universal: ativo_usos é a linha do tempo única (contratos espelhados por
@@ -31,17 +38,11 @@
 // situação) reúne todas as ações em grupos (Ativo · Usos e contratos · Controles · Financeiro · Propriedade · Anexos ·
 // Situação, com Excluir por último em vermelho). O ⋮ do card Balanço pendente sai; o "Quitar" de cada linha continua.
 // As funções abrirAcoesPropriedade/Contratos/Controles/Financeiro/Anexos continuam exportadas (atalhos "+ Adicionar").
-//
-// Versão anterior: 1.93.0 · 11/10/2026
-//
-// v1.93.0 (11/10/2026, sessão 20261008-1231-pessoas-ativos, demanda 0aa64e93; F13.8, ficha v1.4.0 e protótipo v1.3.0; de acordo do Nicola 11/10 22:55) — ativo pessoa: o card
-// Retiradas extraordinárias ganha "Ver relatório", que abre o relatório já no recorte da pessoa (chip com o nome; tocar
-// volta a todas). O subtítulo deixa de dizer "fora do fluxo dos imóveis".
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.92.0 … v1.92.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.93.0 … v1.93.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '1.97.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.98.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 import { estado } from './cofre-estado.js';
 import * as api from './cofre-api.js';
 import { mostrarToast, erroInline, refrescarIcones, alternarToggle, abrirModal, fecharModal, modalGenerico, perguntar, avisarComDesfazer } from './cofre-ui.js';
@@ -1585,6 +1586,7 @@ const nomeRamoUso = (c) => (typeof window.rzNomeRamo === 'function' ? window.rzN
 // iniciais dos meses embaixo (o mês atual em destaque); no pé, só a ocupação do ano em %. O card de Ocupação some.
 // O card aparece mesmo sem uso (convite + "+ Adicionar uso").
 let usosAtivoId = null, usosAno = null, usosLinhas = [];
+let usosLinhasTodas = []; // v1.98.0 — usos com registro, inclusive repouso (para tirar o modelo de hoje das opções)
 let usoVigenteFicha = null; // v1.97.0 — uso de hoje (não repouso) da ficha aberta, para o "Concluir" do ⋮
 // v1.97.0 — "hoje" no fuso do aparelho (o toISOString é UTC e virava o dia depois das 21h em Brasília)
 const hojeLocalUso = () => new Date().toLocaleDateString('sv-SE');
@@ -1598,7 +1600,7 @@ export async function montarUsosAtivo(a) {
         const { data, error } = await api.dbAuth.rpc('fn_ativo_usos', { p_ativo_id: a.id });
         if (error) throw error;
         if (ativoAtualId && ativoAtualId !== a.id) return;
-        usosLinhas = (data || []).filter(u => u.uso_id); // v1.97.0 — trechos sem registro (buracos) ficam de fora; o repouso entra
+        usosLinhas = (data || []).filter(u => u.uso_id); usosLinhasTodas = usosLinhas; // v1.97.0 — trechos sem registro (buracos) ficam de fora; o repouso entra
         const usos = usosLinhas.filter(u => !u.repouso);
         if (usosAtivoId !== a.id) { usosAtivoId = a.id; usosAno = new Date().getFullYear(); }
         card?.classList.remove('hidden');
@@ -1639,6 +1641,32 @@ async function desenharUsosAno(a, vig) {
     const meses = USOS_MESES.map((m, i) => `<span${Y === anoHoje && i === hojeD.getMonth() ? ' class="rz-on"' : ''}>${m}</span>`).join('');
     painel.innerHTML = `<div class="rz-uso-barra">${segs}${marcaHoje}</div><div class="rz-uso-meses">${meses}</div>
         <div class="rz-uso-pe"><span>${vig && Y === anoHoje ? `Hoje: ${escapeHtml(vig.nome)}${vig.repouso ? '' : ' · ' + escapeHtml(nomeRamoUso(vig.ramo))}` : `${usos.length} uso${usos.length === 1 ? '' : 's'} no total`}</span><span>Ocupação <b id="fa-uso-ocup">…</b></span></div>`;
+    // v1.98.0 (teste do Nicola 13/10 23:27: "cadastrei uso próprio mas não aparece pra eu excluir nem encerrar") — os usos
+    // do ano viram linhas abaixo da barra; o uso sem contrato vigente tem ⋮ com "Concluir" (UXR-49); o de contrato abre o
+    // contrato. O repouso não vira linha (é o que sobra entre os usos).
+    const doAno = usos.filter(u => u.inicio < `${Y + 1}-01-01` && (!u.fim || u.fim >= `${Y}-01-01`)).sort((x, y) => y.inicio.localeCompare(x.inicio));
+    if (doAno.length) {
+        const vigenteHoje = (u) => u.inicio <= hoje && (!u.fim || u.fim >= hoje);
+        const linhas = doAno.map((u, i) => {
+            const acao = !u.contrato_id && vigenteHoje(u);
+            const per = `${formatarDataBR(u.inicio)} → ${fimTxt(u)}${vigenteHoje(u) ? ' · hoje' : (u.inicio > hoje ? ' · a começar' : '')}`;
+            return `<div class="rz-row${u.contrato_id ? ' rz-link' : ''}" data-uso-i="${i}"${u.contrato_id ? ' role="button" tabindex="0"' : ''}>
+                <div class="rz-ic"><i data-lucide="${u.contrato_id ? 'file-text' : 'user-check'}"></i></div>
+                <div class="rz-tx"><b>${escapeHtml(u.nome)}</b><span>${escapeHtml(per)}</span>${u.observacao && !u.contrato_id ? `<span>${escapeHtml(u.observacao)}</span>` : ''}</div>
+                ${acao ? `<button type="button" class="rz-more" data-uso-mais="${i}" aria-label="Ações do uso"><i data-lucide="ellipsis-vertical"></i></button>` : (u.contrato_id ? '<i data-lucide="chevron-right" class="rz-chev"></i>' : '')}
+            </div>`; }).join('');
+        painel.insertAdjacentHTML('beforeend', `<div class="rz-list" style="margin-top:8px">${linhas}</div>`);
+        painel.querySelectorAll('[data-uso-i]').forEach(el => {
+            const u = doAno[Number(el.dataset.usoI)];
+            if (u.contrato_id) el.addEventListener('click', () => abrirContratoNoApp(u.contrato_id));
+        });
+        painel.querySelectorAll('[data-uso-mais]').forEach(b => b.addEventListener('click', (ev) => {
+            ev.stopPropagation(); const u = doAno[Number(b.dataset.usoMais)];
+            sheetOuAviso({ titulo: u.nome, sub: `${formatarDataBR(u.inicio)} → ${fimTxt(u)}`, acoes: [
+                { icone: 'flag', titulo: 'Concluir ' + u.nome.toLowerCase(), codigo: 'ativos.usos.concluir', sub: 'Escolha o último dia; depois o ativo volta ao repouso', aoTocar: () => abrirConcluirUsoAtivo(a, u) },
+            ] });
+        }));
+    }
     painel.closest('.rz-card')?.querySelectorAll('[data-uso-ano]').forEach(b => b.addEventListener('click', (ev) => {
         ev.stopPropagation(); usosAno = Y + Number(b.dataset.usoAno); desenharUsosAno(a, vig); }));
     refrescarIcones();
@@ -2057,8 +2085,16 @@ export async function abrirAdicionarModeloAtivo() {
         ]);
         const permite = new Set((mt.data || []).map(x => x.modelo));
         const licenciados = (lic.data || []).map(x => typeof x === 'string' ? x : Object.values(x)[0]);
+        // v1.98.0 (Nicola 13/10 23:27: "um item em uso próprio não pode trazer uso próprio como opção") — o modelo em que
+        // o ativo está hoje (uso ou repouso) sai da lista dos usos sem contrato
+        const hoje = hojeLocalUso();
+        const modelosHoje = new Set((usosAtivoId === a.id ? usosLinhasTodas : [])
+            .filter(u => u.inicio <= hoje && (!u.fim || u.fim >= hoje)).map(u => u.modelo));
+        const stHoje = typeof window.rzStatusDoAtivo === 'function' ? window.rzStatusDoAtivo(a.id) : null;
+        if (stHoje?.modelo) modelosHoje.add(stHoje.modelo);
         lista = (mods.data || []).filter(m => {
             if (m.codigo === 'vago') return false;
+            if (m.acordo === 'nenhum' && modelosHoje.has(m.codigo)) return false;
             if (m.acordo === 'nenhum') return m.universal || (m.ramo === ramoAtivo && (permite.has(m.codigo) || !tipo));
             return permite.has(m.codigo) || (!tipo && m.codigo === 'aluguel');
         });
@@ -2098,7 +2134,7 @@ function abrirIniciarUsoAtivo(a, m) {
     const hoje = hojeLocalUso();
     const corpo = `<div class="rz-f"><label for="fa-uso-ini">Começa em</label><input type="date" id="fa-uso-ini" value="${hoje}"></div>
         <div class="rz-f"><label for="fa-uso-fim">Termina em <small>(opcional)</small></label><input type="date" id="fa-uso-fim" min="${hoje}">
-        <span class="rz-hint">Sem data, o uso fica aberto até você concluir pelo ⋮ da ficha. Ao terminar, o ativo volta a ficar disponível.</span></div>
+        <span class="rz-hint">Sem data, o uso fica aberto até você concluir pelo ⋮ do uso. Ao terminar, o ativo volta ao repouso (Disponível, Guardado…).</span></div>
         <div class="rz-f" style="margin-bottom:0"><label for="fa-uso-obs">Observação <small>(opcional)</small></label><input type="text" id="fa-uso-obs" maxlength="200" placeholder="Ex.: férias da família"></div>`;
     window.abrirSheetForm({
         titulo: m.nome, sub: a.nome_exibicao, corpo, rotuloSalvar: 'Iniciar uso',
@@ -2120,13 +2156,13 @@ function abrirIniciarUsoAtivo(a, m) {
 function acaoConcluirUsoVigente(a) {
     const u = usoVigenteFicha;
     if (!u || u.contrato_id || u.repouso || usosAtivoId !== a.id) return [];
-    return [{ icone: 'flag', titulo: 'Concluir ' + u.nome.toLowerCase(), codigo: 'ativos.usos.concluir', sub: 'Desde ' + formatarDataBR(u.inicio) + ' · o ativo volta a ficar disponível', aoTocar: () => abrirConcluirUsoAtivo(a, u) }];
+    return [{ icone: 'flag', titulo: 'Concluir ' + u.nome.toLowerCase(), codigo: 'ativos.usos.concluir', sub: 'Desde ' + formatarDataBR(u.inicio) + ' · depois volta ao repouso', aoTocar: () => abrirConcluirUsoAtivo(a, u) }];
 }
 function abrirConcluirUsoAtivo(a, u) {
     if (typeof window.abrirSheetForm !== 'function') { mostrarToast('Ação só disponível dentro do app principal.', 'erro'); return; }
     const hoje = hojeLocalUso();
     const corpo = `<div class="rz-f"><label for="fa-uso-fim2">Último dia do uso</label><input type="date" id="fa-uso-fim2" min="${u.inicio}" value="${hoje < u.inicio ? u.inicio : hoje}">
-        <span class="rz-hint">No dia seguinte o ativo volta a ficar disponível.</span></div>
+        <span class="rz-hint">No dia seguinte o ativo volta ao repouso (Disponível, Guardado…).</span></div>
         <div class="rz-f" style="margin-bottom:0"><label for="fa-uso-mot">Motivo <small>(opcional)</small></label><input type="text" id="fa-uso-mot" maxlength="200"></div>`;
     window.abrirSheetForm({
         titulo: 'Concluir ' + u.nome.toLowerCase(), sub: a.nome_exibicao, corpo, rotuloSalvar: 'Concluir',

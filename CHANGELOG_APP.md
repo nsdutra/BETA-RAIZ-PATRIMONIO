@@ -4,6 +4,18 @@ Histórico completo de versões do `index.html`, movido automaticamente pelo `ge
 
 ---
 
+NOVIDADES (Beta v1.394.0) — Raiz IA, ajustes do teste do Nicola (13/10 22:04; demanda f4efd8a3, mãe a05ad2ee).
+Busca em tudo: frase longa ("onde está o locatário do apto 81") cai para as palavras-chave quando a frase inteira
+não acha nada (rzBuscaPalavras); editar e tocar de novo refaz a busca; reabrir começa limpo. Nova ocorrência pela
+Raiz IA ganha "Onde registrar": contrato vigente, um item de controle do ativo ou Controles › Manutenção. Sem banco.
+Versão anterior (Beta v1.393.0):
+------------------------------------------------------------------
+Versões anteriores (v1.393.0 … v1.393.0): CHANGELOG_APP.md, na raiz do
+repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
+das 5 versões mais recentes deste cabeçalho.
+
+---
+
 NOVIDADES (Beta v1.393.0) — B-8, alertas do cartão pelo Motor (plano e ficha com de acordo do Nicola 13/10 22:03):
 rzAbrirDestinoAlerta ganha os destinos financeiro/importar-fatura (abre "Importar fatura do cartão") e
 financeiro/fatura (abre a fatura do alerta). Os 3 alertas novos (fatura a importar, vencendo, compras a classificar)
