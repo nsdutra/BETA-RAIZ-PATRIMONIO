@@ -1,6 +1,16 @@
 // ============================================================================
 // cofre-controles.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.52.0 · 12/10/2026
+// Versão: 1.53.0 · 13/10/2026
+//
+// v1.53.0 (13/10/2026, sessão 20261013-2245-raiz-ia-ajustes2, demanda a2f4980a; Nicola 13/10 22:44: "não vi opções de
+// cancelar e excluir a ocorrência. Importante ter") — sheet da ocorrência ganha:
+//   · Cancelar (em aberto) — status 'cancelado' com motivo opcional; o espelho do banco apaga o lançamento previsto;
+//   · Reabrir (cancelada) — volta para "Em aberto";
+//   · Excluir (não concluída e criada à mão, pela IA ou por documento) — apaga de vez; as geradas pela frequência,
+//     parcela, fatura ou histórico do contrato só se cancelam (a regra as recriaria). Fica no histórico do item.
+// Sem banco: fn_ocorrencia_espelha_despesa já trata cancelado e exclusão; o histórico perde o vínculo (ON DELETE SET NULL).
+//
+// Versão anterior: 1.52.0 · 12/10/2026
 //
 // v1.52.0 (12/10/2026, sessão 20261008-1231-pessoas-ativos, demanda 41d771c8; F13.10, ficha v3.1.0; de acordo do Nicola 12/10 03:27) — rateio em grupo
 // no item de controle:
@@ -43,17 +53,11 @@
 // da empresa (sem ativo), chip Encerrados, abre a MESMA ficha do item (Voltar devolve a Minha
 // empresa). "Novo item" pelo card nasce com vínculo empresa e só oferece subtipos com a regra
 // de aplicabilidade vínculo:empresa; o fluxo a partir do ativo segue igual.
-//
-// Versão anterior: 1.48.2 · 07/10/2026
-//
-// v1.48.1 (07/10/2026, sessão 20261007-1721-rolo-changelog, demanda 2507d554 — VER-06, "de acordo" do Nicola 07/10 17:21) — SÓ
-// CABEÇALHO: as versões além das 5 mais recentes rolaram para o CHANGELOG_MODULOS.md.
-// Nenhuma linha de código mudou — conferido token a token contra o publicado.
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.48.0 … v1.48.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.48.1 … v1.48.1): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '1.52.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.53.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 import { estado } from './cofre-estado.js';
 import * as api from './cofre-api.js';
 import { mostrarToast, refrescarIcones, abrirModal, fecharModal, modalGenerico, perguntar, escolher, avisarComDesfazer } from './cofre-ui.js';
@@ -1396,6 +1400,12 @@ export async function excluirDocumentoDoItem(vinculoId) {
 // cada ação abre um SHEET DE FORMULÁRIO (abrirSheetForm) com os MESMOS
 // ids de campo de antes (#oc-tratar-descricao, #oc-reagendar-data), então
 // confirmarTratar/Reagendar/EstornarOcorrencia continuam iguais.
+// v1.53.0 — só se exclui o que foi criado à mão (app, Gestão, Claude, IA, documento) e ainda não foi concluído;
+// o que a frequência/parcela/fatura/histórico do contrato gera se cancela (a regra recriaria a excluída).
+const OC_ORIGENS_GERADAS = ['regra', 'parcelamento', 'fatura', 'historico_contrato'];
+export function ocorrenciaPodeExcluir(oc) {
+    return !!oc && oc.status_execucao !== 'concluido' && oc.tipo !== 'grupo_rateio' && !OC_ORIGENS_GERADAS.includes(oc.origem);
+}
 function ocorrenciaPorId(id) {
     return (itemEmFoco?.cofre_ocorrencias_controle || []).find(o => o.id === id);
 }
@@ -1431,6 +1441,15 @@ export async function abrirAcoesOcorrencia(ocorrenciaId) {
         acoes.push({ icone: 'calendar', titulo: 'Reagendar', codigo: 'cofre.ocorrencias.reagendar', sub: 'Muda a data prevista desta ocorrência', aoTocar: () => alternarAcaoOcorrencia(ocorrenciaId, 'reagendar') });
     } else if (oc.status_execucao === 'concluido') {
         acoes.push({ icone: 'undo-2', titulo: 'Estornar', codigo: 'cofre.ocorrencias.estornar', sub: 'Volta pra "Em aberto", fica no histórico', tipo: 'bad', aoTocar: () => alternarAcaoOcorrencia(ocorrenciaId, 'estornar') });
+    }
+    // v1.53.0 — cancelar, reabrir e excluir (Nicola 13/10 22:44)
+    if (oc.status_execucao === 'aberto') {
+        acoes.push({ icone: 'x-circle', titulo: 'Cancelar', codigo: 'cofre.ocorrencias.tratar', sub: 'Não vai acontecer · fica no histórico como cancelada', aoTocar: () => alternarAcaoOcorrencia(ocorrenciaId, 'cancelar') });
+    } else if (oc.status_execucao === 'cancelado') {
+        acoes.push({ icone: 'rotate-ccw', titulo: 'Reabrir', codigo: 'cofre.ocorrencias.tratar', sub: 'Volta para "Em aberto"', aoTocar: () => alternarAcaoOcorrencia(ocorrenciaId, 'reabrir') });
+    }
+    if (ocorrenciaPodeExcluir(oc)) {
+        acoes.push({ icone: 'trash-2', titulo: 'Excluir', codigo: 'cofre.ocorrencias.tratar', tipo: 'bad', sub: 'Apaga de vez · o lançamento previsto some junto', aoTocar: () => alternarAcaoOcorrencia(ocorrenciaId, 'excluir') });
     }
     abrirSheetOcorrencia(oc, lanc, acoes, `Ocorrência · ${formatarDataBR(oc.data_prevista_atual)}`); // v1.50.0 — detalhes + ações (a cancelada também abre)
 }
@@ -1508,6 +1527,19 @@ export function alternarAcaoOcorrencia(ocorrenciaId, modo) {
         window.abrirSheetForm({ titulo: 'Estornar ocorrência', sub, rotuloSalvar: 'Confirmar estorno',
             corpo: `<p class="rz-desc">A ocorrência volta para "Em aberto". Isso fica registrado no histórico.</p>`,
             aoSalvar: async () => { await confirmarEstornarOcorrencia(ocorrenciaId); } });
+    } else if (modo === 'cancelar') { // v1.53.0
+        window.abrirSheetForm({ titulo: 'Cancelar ocorrência', sub, rotuloSalvar: 'Confirmar cancelamento',
+            corpo: `<div class="rz-f"><label>Motivo</label><textarea id="oc-cancelar-motivo" rows="3" placeholder="Opcional — por que não vai acontecer"></textarea></div>
+                <p class="rz-desc">Fica no histórico como cancelada${oc.valor_previsto ? '; o lançamento previsto sai do Financeiro' : ''}. Dá para reabrir depois.</p>`,
+            aoSalvar: async () => { await confirmarCancelarOcorrencia(ocorrenciaId); } });
+    } else if (modo === 'reabrir') {
+        window.abrirSheetForm({ titulo: 'Reabrir ocorrência', sub, rotuloSalvar: 'Reabrir',
+            corpo: `<p class="rz-desc">A ocorrência volta para "Em aberto". Isso fica registrado no histórico.</p>`,
+            aoSalvar: async () => { await confirmarReabrirOcorrencia(ocorrenciaId); } });
+    } else if (modo === 'excluir') {
+        window.abrirSheetForm({ titulo: 'Excluir ocorrência', sub, rotuloSalvar: 'Excluir de vez',
+            corpo: `<p class="rz-desc">A ocorrência some do item${oc.valor_previsto ? ' e o lançamento previsto sai do Financeiro' : ''}. Não dá para desfazer — se só não vai acontecer, prefira Cancelar.</p>`,
+            aoSalvar: async () => { await confirmarExcluirOcorrencia(ocorrenciaId); } });
     }
 }
 
@@ -1574,6 +1606,54 @@ export async function confirmarEstornarOcorrencia(ocorrenciaId) {
         window.dispatchEvent(new CustomEvent('cofre:recarregar-eventos')); // BUG FIX 25/08/2026 — ver nota em confirmarTratarOcorrencia
         emitirEscrita('controle', { id: itemId, ocorrenciaId, acao: 'estornar-ocorrencia' }); // v1.32.0
     } catch (err) { mostrarToast('Erro: ' + err.message, 'erro'); }
+}
+
+// v1.53.0 — cancelar · reabrir · excluir ocorrência (Nicola 13/10 22:44). Escrita direta como as vizinhas; o espelho
+// do banco (fn_ocorrencia_espelha_despesa) cuida do lançamento previsto.
+async function depoisDeMudarOcorrencia(ocorrenciaId, acao, msg) {
+    mostrarToast(msg);
+    ocorrenciaEmAcao = null;
+    const itemId = itemEmFoco?.id;
+    await recarregarFichaItemControle();
+    window.dispatchEvent(new CustomEvent('cofre:recarregar-eventos'));
+    emitirEscrita('controle', { id: itemId, ocorrenciaId, acao });
+}
+export async function confirmarCancelarOcorrencia(ocorrenciaId) {
+    const motivo = document.getElementById('oc-cancelar-motivo')?.value.trim() || null;
+    try {
+        const { error } = await api.dbAuth.from('cofre_ocorrencias_controle').update({
+            status_execucao: 'cancelado', tratado_em: new Date().toISOString(), tratado_por: estado.pessoa.id, tratamento_descricao: motivo,
+        }).eq('id', ocorrenciaId);
+        if (error) throw error;
+        await registrarHistoricoOcorrenciaLocal(ocorrenciaId, 'cancelar', { status_execucao: 'aberto' }, { status_execucao: 'cancelado' }, motivo);
+        await api.registrarLogAcessos(estado.clienteId, estado.pessoa.id, 'cofre.ocorrencias.tratar', { ativoId: estado.ativoEmFoco?.id, ocorrenciaId, acao: 'cancelar' });
+        await depoisDeMudarOcorrencia(ocorrenciaId, 'cancelar-ocorrencia', 'Ocorrência cancelada');
+    } catch (err) { mostrarToast('Erro: ' + err.message, 'erro'); }
+}
+export async function confirmarReabrirOcorrencia(ocorrenciaId) {
+    try {
+        const { error } = await api.dbAuth.from('cofre_ocorrencias_controle').update({
+            status_execucao: 'aberto', tratado_em: null, tratado_por: null, tratamento_descricao: null,
+        }).eq('id', ocorrenciaId);
+        if (error) throw error;
+        await registrarHistoricoOcorrenciaLocal(ocorrenciaId, 'reabrir', { status_execucao: 'cancelado' }, { status_execucao: 'aberto' }, null);
+        await api.registrarLogAcessos(estado.clienteId, estado.pessoa.id, 'cofre.ocorrencias.tratar', { ativoId: estado.ativoEmFoco?.id, ocorrenciaId, acao: 'reabrir' });
+        await depoisDeMudarOcorrencia(ocorrenciaId, 'reabrir-ocorrencia', 'Ocorrência reaberta');
+    } catch (err) { mostrarToast('Erro: ' + err.message, 'erro'); }
+}
+export async function confirmarExcluirOcorrencia(ocorrenciaId) {
+    const oc = ocorrenciaPorId(ocorrenciaId);
+    if (!ocorrenciaPodeExcluir(oc)) { mostrarToast('Esta ocorrência não pode ser excluída — use Cancelar.', 'erro'); return; }
+    try {
+        // o histórico vem antes: a linha fica no histórico do item (o vínculo com a ocorrência vira nulo na exclusão)
+        await registrarHistoricoOcorrenciaLocal(ocorrenciaId, 'excluir', { status_execucao: oc.status_execucao, data_prevista_atual: oc.data_prevista_atual, descricao: oc.descricao || null }, null, null);
+        const { error } = await api.dbAuth.from('cofre_ocorrencias_controle').delete().eq('id', ocorrenciaId);
+        if (error) throw error;
+        await api.registrarLogAcessos(estado.clienteId, estado.pessoa.id, 'cofre.ocorrencias.tratar', { ativoId: estado.ativoEmFoco?.id, ocorrenciaId, acao: 'excluir' });
+        await depoisDeMudarOcorrencia(ocorrenciaId, 'excluir-ocorrencia', 'Ocorrência excluída');
+    } catch (err) {
+        mostrarToast(/foreign key|violates/i.test(err.message || '') ? 'Esta ocorrência já entrou num fechamento — use Cancelar.' : 'Erro: ' + err.message, 'erro');
+    }
 }
 
 // ---- Editar / Excluir item

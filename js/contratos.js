@@ -1,7 +1,13 @@
 // ============================================================================
 // contratos.js — Raiz Patrimônio · Contratos (lista · ficha · formulário ·
 //                 status/reajuste/detalhes · fiadores · documentos · histórico)
-// Versão: 1.55.0 · 12/10/2026
+// Versão: 1.56.0 · 13/10/2026
+//
+// v1.56.0 (13/10/2026, sessão 20261013-2245-raiz-ia-ajustes2, demanda a2f4980a; Nicola 13/10 22:44) — ocorrência do
+// contrato ganha Cancelar (em aberto), Reabrir (cancelada, no rodapé do detalhe) e Excluir (só as criadas à mão ou pela
+// Raiz IA e não concluídas; as do histórico do contrato só se cancelam). Sem banco.
+//
+// Versão anterior: 1.55.0 · 12/10/2026
 //
 // v1.55.0 (12/10/2026, sessão 20261012-0320-ux-busca, demanda a05ad2ee; Nicola 12/10 03:18) — o card Financeiro da ficha
 // deixa de ter título próprio: "Financeiro ‹ ano ›" vem do rzFinCompetencias, como no card Usos do ativo.
@@ -27,16 +33,8 @@
 // Excluir por último em vermelho); os ⋮ dos cabeçalhos dos cards (Condições, Ocorrências, Distribuição, Financeiro,
 // Partes, Anexos) saem. Adicionar vira a última linha do card: "+ Adicionar recebimento", "+ Adicionar parte",
 // "+ Adicionar documento". O ⋮ de cada linha (locatário, fiador, recebimento, anexo) e o botão do aviso continuam.
-//
-// Versão anterior: 1.51.0 · 11/10/2026
-//
-// v1.51.0 (11/10/2026, sessão 20261008-1231-pessoas-ativos, demanda f3e6cd27; F13 4c etapa 4; Nicola 11/10 17:42, teste da etapa 3: "pode organizar melhor pro chip de performance desaparecer e deixar tudo no financeiro" e "Tente
-// unificar a experiência financeira pro ativo + contrato") — o chip Financeiro do contrato passa a usar a mesma visão
-// por competência do ativo (rzFinCompetencias, js/financeiro.js): mês a mês com recebido, despesas e situação; tocar
-// abre as categorias (o aluguel e as despesas do contrato) e daí os lançamentos — o recebimento abre o mesmo sheet de
-// sempre (Dar baixa, Recibo, Estornar). O cabeçalho do card (em atraso / em dia e o ⋮) continua igual.
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.50.0 … v1.50.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.51.0 … v1.51.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
 import { avaliarProntidaoContratoParaMinuta } from './minutas.js'; // v1.0.1
@@ -48,7 +46,7 @@ import { emitirEscrita, aoEscrever } from './raiz-eventos.js'; // v1.18.0 — Fa
 import { renderizarBlocoEndereco, lerBlocoEndereco } from './comum-endereco.js';
 import { formatarEnderecoParte } from './comum-partes.js';
 
-export const VERSAO = '1.55.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.56.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 
 /** Ponto de entrada do switchTab('tab-contratos'). */
 export function montarAbaContratos() {
@@ -2180,7 +2178,51 @@ if (!window.__rzListenerEscritaParteContratoLigado) {
                 oc.tratamento_descricao ? ['Descrição', oc.tratamento_descricao, true] : null,
             ].filter(Boolean);
             const corpo = `<div class="rz-kv">${linhas.map(([r, v, cheio]) => `<div${cheio ? ' class="rz-full"' : ''}><small>${rzEsc(r)}</small><b>${rzEsc(String(v))}</b></div>`).join('')}</div>`;
+            // v1.56.0 — cancelada ganha "Reabrir" no rodapé; a criada à mão pode ser excluída
+            if (oc.status_execucao === 'cancelado') {
+                const extra = ocContratoPodeExcluir(oc) ? `<button type="button" class="rz-row rz-link" id="occ-excluir-cancelada" style="margin-top:10px;color:var(--danger)"><svg data-lucide="trash-2"></svg> Excluir de vez</button>` : '';
+                const sh = abrirSheetForm({ titulo: rot, sub: con?.locatario || '', corpo: corpo + extra, rotuloSalvar: 'Reabrir ocorrência',
+                    aoSalvar: () => { mudarStatusOcorrenciaContrato(oc.id, 'reabrir'); return false; } });
+                const bx = (sh && sh.querySelector) ? sh.querySelector('#occ-excluir-cancelada') : document.getElementById('occ-excluir-cancelada');
+                if (bx) bx.addEventListener('click', () => mudarStatusOcorrenciaContrato(oc.id, 'excluir'));
+                if (typeof lucide !== 'undefined') lucide.createIcons();
+                return;
+            }
             abrirSheetForm({ titulo: rot, sub: con?.locatario || '', corpo, semRodape: true });
+        }
+
+        // v1.56.0 — cancelar · reabrir · excluir ocorrência do contrato. Escrita direta como a baixa; o histórico registra.
+        const OCC_ORIGENS_GERADAS = ['regra', 'parcelamento', 'fatura', 'historico_contrato'];
+        function ocContratoPodeExcluir(oc) { return !!oc && oc.status_execucao !== 'concluido' && !OCC_ORIGENS_GERADAS.includes(oc.origem); }
+        export async function mudarStatusOcorrenciaContrato(ocorrenciaId, acao) {
+            const oc = ocorrenciasContratoAtual.find(o => o.id === ocorrenciaId);
+            if (!oc) return;
+            if (acao === 'excluir' && !ocContratoPodeExcluir(oc)) { mostrarToast('Esta ocorrência não pode ser excluída — use Cancelar.', 'danger'); return; }
+            const motivo = acao === 'cancelar' ? (document.getElementById('occ-cancelar-motivo')?.value.trim() || null) : null;
+            mostrarCarregamentoGlobal(acao === 'excluir' ? 'Excluindo...' : acao === 'cancelar' ? 'Cancelando...' : 'Reabrindo...');
+            try {
+                const hist = (antes, depois) => dbAuth.from('cofre_ocorrencias_historico').insert({ ocorrencia_id: ocorrenciaId, acao, antes, depois, motivo, pessoa_id: pessoaIdLogada || null, origem: 'app' });
+                let r;
+                if (acao === 'excluir') {
+                    await hist({ status_execucao: oc.status_execucao, data_prevista_atual: oc.data_prevista_atual }, null);
+                    r = await dbAuth.from('cofre_ocorrencias_controle').delete().eq('id', ocorrenciaId);
+                } else if (acao === 'cancelar') {
+                    r = await dbAuth.from('cofre_ocorrencias_controle').update({ status_execucao: 'cancelado', tratado_em: new Date().toISOString(), tratado_por: pessoaIdLogada || null, tratamento_descricao: motivo }).eq('id', ocorrenciaId);
+                    if (!r.error) await hist({ status_execucao: 'aberto' }, { status_execucao: 'cancelado' });
+                } else {
+                    r = await dbAuth.from('cofre_ocorrencias_controle').update({ status_execucao: 'aberto', tratado_em: null, tratado_por: null, tratamento_descricao: null }).eq('id', ocorrenciaId);
+                    if (!r.error) await hist({ status_execucao: 'cancelado' }, { status_execucao: 'aberto' });
+                }
+                if (r.error) throw r.error;
+                emitirEscrita('contrato', { id: fichaContratoAtualId, ocorrenciaId, acao: acao + '-ocorrencia' });
+                esconderCarregamentoGlobal(); fecharSheet();
+                mostrarToast(acao === 'excluir' ? 'Ocorrência excluída' : acao === 'cancelar' ? 'Ocorrência cancelada' : 'Ocorrência reaberta', 'success');
+                registrarLog('cofre.ocorrencias.tratar', { ocorrenciaId, contratoId: fichaContratoAtualId, acao });
+                montarOcorrenciasContrato(fichaContratoAtualId);
+            } catch (err) {
+                esconderCarregamentoGlobal();
+                mostrarToast(/foreign key|violates/i.test(err.message || '') ? 'Esta ocorrência já entrou num fechamento — use Cancelar.' : 'Não consegui: ' + (err.message || String(err)), 'danger');
+            }
         }
 
         export function abrirAcoesOcorrenciaContrato(ocorrenciaId) {
@@ -2198,6 +2240,13 @@ if (!window.__rzListenerEscritaParteContratoLigado) {
                     aoSalvar: () => { salvarReagendarOcorrenciaContrato(oc.id); return false; } }) },
             ];
             if (oc.tipo === 'renovacao' || oc.tipo === 'revisional') acoes.unshift({ icone: 'refresh-cw', titulo: 'Renovar contrato', codigo: 'contratos.estender', sub: 'Novo fim, valor e documento — baixa esta ocorrência', aoTocar: () => renovarContrato(fichaContratoAtualId, oc.id) });
+            // v1.56.0 — cancelar e excluir (Nicola 13/10 22:44)
+            acoes.push({ icone: 'x-circle', titulo: 'Cancelar', codigo: 'cofre.ocorrencias.tratar', sub: 'Não vai acontecer · fica no histórico como cancelada', aoTocar: () => abrirSheetForm({ titulo: 'Cancelar ocorrência', sub, rotuloSalvar: 'Confirmar cancelamento',
+                corpo: `<div class="rz-f"><label>Motivo</label><textarea id="occ-cancelar-motivo" rows="3" placeholder="Opcional — por que não vai acontecer"></textarea></div><p class="rz-desc">Dá para reabrir depois.</p>`,
+                aoSalvar: () => { mudarStatusOcorrenciaContrato(oc.id, 'cancelar'); return false; } }) });
+            if (ocContratoPodeExcluir(oc)) acoes.push({ icone: 'trash-2', titulo: 'Excluir', codigo: 'cofre.ocorrencias.tratar', tipo: 'bad', sub: 'Apaga de vez', aoTocar: () => abrirSheetForm({ titulo: 'Excluir ocorrência', sub, rotuloSalvar: 'Excluir de vez',
+                corpo: `<p class="rz-desc">A ocorrência some do contrato. Não dá para desfazer — se só não vai acontecer, prefira Cancelar.</p>`,
+                aoSalvar: () => { mudarStatusOcorrenciaContrato(oc.id, 'excluir'); return false; } }) });
             abrirSheetAcoes({ titulo: `${rot} · ${formatarDataBR(oc.data_prevista_atual)}`, sub: con?.locatario || 'Contrato', acoes });
         }
 

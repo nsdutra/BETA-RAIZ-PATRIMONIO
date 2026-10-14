@@ -4,6 +4,22 @@ Histórico completo de versões do `index.html`, movido automaticamente pelo `ge
 
 ---
 
+NOVIDADES (Beta v1.391.0) — Onda 6a, Raiz IA registra (FICHA_ONDA_6_RAIZ_IA_REGISTRA v1.0.0, aprovada pelo Nicola
+12/10 03:30: "de acordo, apenas crie de forma a reaproveitar as funções do bot e as que criar aqui, que possam ser
+usadas por eles"). O sol da barra abre a Raiz IA com o campo único — pergunta ou registro, por texto ou voz (voz do
+aparelho, RaizDevice.voz.ouvir) — e os atalhos Ocorrência · Lançamento · Documento. A frase vai à Edge nova
+raiz-ia-registrar 1.0.0 (gates e log pelo _shared_core, leitura pelo _shared_ia — mesmo modelo e vocabulário do
+robô) e volta como despesa (abre Nova saída preenchida: valor, descrição, data, categoria, bem), receita, ocorrência
+(rzNovaOcorrencia: no contrato vigente do bem ou no item "Manutenção", D6.2 a) ou pergunta (busca em tudo com o
+termo). Nada grava sem o toque em Salvar. Nenhuma tabela, coluna ou policy nova.
+Versão anterior (Beta v1.390.0):
+------------------------------------------------------------------
+Versões anteriores (v1.390.0 … v1.390.0): CHANGELOG_APP.md, na raiz do
+repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
+das 5 versões mais recentes deste cabeçalho.
+
+---
+
 NOVIDADES (Beta v1.390.0) — Busca pela lupa do topo e Financeiro das fichas num card só (Nicola 12/10 03:18). A lupa
 do cabeçalho é a busca da tela aberta: abre em leque para a esquerda por cima do nome da empresa, digita e recolhe;
 com filtro, o ícone fica claro com um ponto dourado; tocar de novo limpa e abre. Tela com busca por sheet (Agenda,
