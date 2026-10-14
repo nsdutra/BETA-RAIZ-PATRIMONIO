@@ -4,6 +4,19 @@ Histórico completo de versões do `index.html`, movido automaticamente pelo `ge
 
 ---
 
+NOVIDADES (Beta v1.404.0) — Usos fatia 2, contratos por tipo (FICHA_FATIA2_CONTRATOS_POR_TIPO_RAIZ v1.0.0, "De acordo nas
+opções dadas" do Nicola 14/10 00:40) e ajustes do ⋮ do ativo. Só muda o import map: cofre-ativos.js 1.101.0 (Adicionar
+uso por tipo de contrato; venda só pelo uso Revenda; "Raiz IA" no lugar das 3 opções de documento; sem revisão anual em
+pessoa), contratos.js 1.57.0 (Tipo de contrato no formulário, revisional pelo tipo, itens sugeridos com caixas) e
+nucleo/porta.js 1.5.0 (grava o tipo).
+Versão anterior (Beta v1.403.0):
+------------------------------------------------------------------
+Versões anteriores (v1.403.0 … v1.403.0): CHANGELOG_APP.md, na raiz do
+repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
+das 5 versões mais recentes deste cabeçalho.
+
+---
+
 NOVIDADES (Beta v1.403.0) — ONDA 7a/7b, Agenda (FICHA_ONDA_7_AGENDA_RAIZ v1.0.0, de acordo do Nicola 14/10 00:09,
 D7.1 a D7.6). A Agenda ganha as abas Lista · Semana · Mês (abre na Lista, D7.4). Semana e Mês vêm do módulo novo
 js/agenda.js 1.0.0, que lê a função nova fn_agenda_periodo (só leitura; ocorrências, recebimentos, pagamentos, fim de
