@@ -1,7 +1,15 @@
 // ============================================================================
 // contratos.js — Raiz Patrimônio · Contratos (lista · ficha · formulário ·
 //                 status/reajuste/detalhes · fiadores · documentos · histórico)
-// Versão: 1.56.0 · 13/10/2026
+// Versão: 1.57.0 · 14/10/2026
+//
+// v1.57.0 (14/10/2026, sessão 20261014-0045-usos-fatia2, demanda 3022603b; FICHA_FATIA2_CONTRATOS_POR_TIPO_RAIZ v1.0.0, "De
+// acordo nas opções dadas" do Nicola 14/10 00:40) — contratos por tipo: campo "Tipo de contrato" no formulário (só tipos do
+// modelo; vem do "Adicionar uso"); o tipo preenche a revisional (típico longo: 36 meses), esconde no atípico e avisa
+// quando o prazo não combina (não bloqueia); depois de salvar um contrato novo abre "Itens sugeridos" com caixas
+// (fn_catalogo_sugestoes → fn_contrato_itens_sugeridos_criar, só os marcados); o tipo aparece no cabeçalho e nos Dados.
+//
+// Versão anterior: 1.56.0 · 13/10/2026
 //
 // v1.56.0 (13/10/2026, sessão 20261013-2245-raiz-ia-ajustes2, demanda a2f4980a; Nicola 13/10 22:44) — ocorrência do
 // contrato ganha Cancelar (em aberto), Reabrir (cancelada, no rodapé do detalhe) e Excluir (só as criadas à mão ou pela
@@ -24,17 +32,8 @@
 // perde a borda vermelha de crítico e o selo do cabeçalho (o atraso aparece uma vez só, no resumo, que leva aos
 // atrasados); o miolo (rzFinCompetencias,
 // financeiro.js 1.56.0) fica sem moldura dentro de moldura.
-//
-// Versão anterior: 1.52.0 · 12/10/2026
-//
-// v1.52.0 (12/10/2026, sessão 20261012-0155-ux-onda3a, demanda a05ad2ee; UX onda 3, estudo PROTOTIPO_UX_DENSIDADE_RAMOS_RAIZ
-// v1.2.0 D11/D12 aprovado pelo Nicola 11/10 e "pode avançar" 12/10 01:53) — ficha do contrato com um jeito só de agir: o ⋮
-// no topo (ao lado da situação) reúne todas as ações em grupos (Contrato · Financeiro · Partes e anexos · Situação, com
-// Excluir por último em vermelho); os ⋮ dos cabeçalhos dos cards (Condições, Ocorrências, Distribuição, Financeiro,
-// Partes, Anexos) saem. Adicionar vira a última linha do card: "+ Adicionar recebimento", "+ Adicionar parte",
-// "+ Adicionar documento". O ⋮ de cada linha (locatário, fiador, recebimento, anexo) e o botão do aviso continuam.
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.51.0 … v1.51.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.52.0 … v1.52.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
 import { avaliarProntidaoContratoParaMinuta } from './minutas.js'; // v1.0.1
@@ -46,7 +45,7 @@ import { emitirEscrita, aoEscrever } from './raiz-eventos.js'; // v1.18.0 — Fa
 import { renderizarBlocoEndereco, lerBlocoEndereco } from './comum-endereco.js';
 import { formatarEnderecoParte } from './comum-partes.js';
 
-export const VERSAO = '1.56.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.57.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 
 /** Ponto de entrada do switchTab('tab-contratos'). */
 export function montarAbaContratos() {
@@ -1504,6 +1503,7 @@ if (!window.__rzListenerEscritaParteContratoLigado) {
         export async function abrirFichaContrato(id) {
 
             fichaContratoAtualId = id;
+            await carregarContratoTipos(); // v1.57.0 (fatia 2) — nome do tipo no cabeçalho
             const con = contratos.find(c => c.id === id);
             if (!con) { rzAvisar('Contrato não encontrado.', 'danger'); return; }
 
@@ -1642,7 +1642,7 @@ if (!window.__rzListenerEscritaParteContratoLigado) {
             document.getElementById('ficha-contrato-conteudo').innerHTML = `
                 <div class="rz-entity">
                     <div class="rz-ic"><svg data-lucide="${con.status === 'Assinando' ? 'file-signature' : 'file-text'}"></svg></div>
-                    <div class="rz-tx"><b>${escapeHtmlSaidas(con.locatario || 'Locatário não informado')}</b><span>${escapeHtmlSaidas(enderecoCurto)} · ${formatarMoedaBR(con.valor)}/mês</span></div>
+                    <div class="rz-tx"><b>${escapeHtmlSaidas(con.locatario || 'Locatário não informado')}</b><span>${con.tipoContrato && nomeTipoContrato(con.tipoContrato) ? escapeHtmlSaidas(nomeTipoContrato(con.tipoContrato)) + ' · ' : ''}${escapeHtmlSaidas(enderecoCurto)} · ${formatarMoedaBR(con.valor)}/mês</span></div>
                     ${statusFicha}
                     <!-- v1.52.0 (UX onda 3, D11) — o ⋮ do topo é o lugar de todas as ações do contrato, em grupos -->
                     <button type="button" onclick="abrirAcoesFichaContrato('${con.id}')" class="rz-more rz-more-topo" id="fc-mais" aria-label="Ações do contrato"><svg data-lucide="ellipsis-vertical"></svg></button>
@@ -2831,6 +2831,7 @@ if (!window.__rzListenerEscritaParteContratoLigado) {
                 card('Contrato', [
                     linha('Imóvel', imo ? v(`${imo.enderecoRua || ''}, ${imo.enderecoNum || ''}${imo.enderecoComp ? ' - ' + imo.enderecoComp : ''}`) : vazio, true),
                     linha('Status', v(con.status)),
+                    linha('Tipo de contrato', con.tipoContrato ? v(nomeTipoContrato(con.tipoContrato) || con.tipoContrato) : vazio), // v1.57.0
                     linha('Aluguel', moeda(con.valor)),
                     linha('Início', data(con.inicio)),
                     linha('Fim', data(con.fim)),
@@ -3611,6 +3612,7 @@ if (!window.__rzListenerEscritaParteContratoLigado) {
                     const v = document.getElementById('con-revisional-periodicidade').value.trim();
                     return v === '' ? null : parseInt(v, 10);
                 })(),
+                tipoContrato: document.getElementById('con-tipo-contrato')?.value || '', // v1.57.0 (fatia 2)
 
                 condominioLocatario: document.getElementById('con-condominio-locatario').value,
                 locatarioPagaIptu: document.getElementById('con-iptu-locatario').value,
@@ -3891,6 +3893,8 @@ if (!window.__rzListenerEscritaParteContratoLigado) {
                 // v1.33.0 (demanda 854f6343) — imóvel sem item de IPTU/condomínio:
                 // oferece criar (não bloqueia o salvar; erro aqui só vira aviso).
                 setTimeout(() => { oferecerItensEncargoContrato(contratoDados).catch(err => console.warn('[contratos] encargos:', err.message)); }, 400);
+                // v1.57.0 (fatia 2) — contrato novo: itens sugeridos do tipo, com caixas (empilha sobre o de encargos)
+                if (!id) setTimeout(() => { oferecerItensSugeridosContrato(contratoDados).catch(err => console.warn('[contratos] sugeridos:', err.message)); }, 900);
             }
 
             } catch (err) {
@@ -3960,6 +3964,98 @@ if (!window.__rzListenerEscritaParteContratoLigado) {
                 out.push({ m, d, dm, valor: Math.round(valorMensal * d / dm * 100) / 100 });
             }
             return out;
+        }
+
+        // ====================================================================
+        // v1.57.0 (fatia 2, FICHA_FATIA2_CONTRATOS_POR_TIPO_RAIZ v1.0.0) — TIPO DE CONTRATO (contrato_tipos): o modelo diz o
+        // uso (Aluguel), o tipo diz o acordo (típico simples, típico longo, atípico…). O tipo ajusta a revisional do formulário,
+        // avisa quando o prazo não combina (não bloqueia, D2-2) e, depois de salvar, oferece os itens sugeridos com caixas
+        // (D-P4, D2-5). O banco confere tudo de novo (trg_contrato_tipo).
+        // ====================================================================
+        let contratoTiposCache = null;
+        export async function carregarContratoTipos() {
+            if (contratoTiposCache) return contratoTiposCache;
+            try {
+                const { data, error } = await dbAuth.from('contrato_tipos')
+                    .select('codigo, nome, descricao, modelo, status, revisional_meses_padrao, revisional_permitida, prazo_meses_min, prazo_meses_max, ordem').order('ordem');
+                if (error) throw error;
+                contratoTiposCache = data || [];
+            } catch (e) { console.warn('[contratos] tipos de contrato:', e.message); return []; }
+            return contratoTiposCache;
+        }
+        export function nomeTipoContrato(codigo) { return (contratoTiposCache || []).find(t => t.codigo === codigo)?.nome || ''; }
+        async function prepararCampoTipoContrato(modelo, tipoAtual, aplicarPadrao) {
+            const form = document.getElementById('form-contrato'); if (!form) return;
+            const tipos = (await carregarContratoTipos()).filter(t => t.modelo === (modelo || 'aluguel') && (t.status === 'ativo' || t.codigo === tipoAtual));
+            let bloco = document.getElementById('con-tipo-bloco');
+            if (!bloco) {
+                const grupo = form.querySelector('p.rz-group');
+                (grupo || form.firstElementChild).insertAdjacentHTML('afterend', `<div class="rz-f" id="con-tipo-bloco"><label for="con-tipo-contrato">Tipo de contrato</label>
+                    <select id="con-tipo-contrato"></select><span class="rz-hint" id="con-tipo-hint"></span></div>`);
+                bloco = document.getElementById('con-tipo-bloco');
+                document.getElementById('con-tipo-contrato').addEventListener('change', () => aplicarTipoNoFormContrato(true));
+                ['con-inicio', 'con-fim'].forEach(id => document.getElementById(id)?.addEventListener('change', () => aplicarTipoNoFormContrato(false)));
+            }
+            bloco.classList.toggle('hidden', !tipos.length);
+            const sel = document.getElementById('con-tipo-contrato');
+            sel.innerHTML = tipos.map(t => `<option value="${t.codigo}">${escapeHtmlSaidas(t.nome)}</option>`).join('');
+            sel.dataset.modelo = modelo || 'aluguel';
+            if (tipoAtual && tipos.some(t => t.codigo === tipoAtual)) sel.value = tipoAtual;
+            aplicarTipoNoFormContrato(!!aplicarPadrao);
+        }
+        function aplicarTipoNoFormContrato(aplicarPadrao) {
+            const sel = document.getElementById('con-tipo-contrato'); if (!sel) return;
+            const t = (contratoTiposCache || []).find(x => x.codigo === sel.value);
+            const hint = document.getElementById('con-tipo-hint');
+            const rev = document.getElementById('con-revisional-periodicidade');
+            const blocoRev = rev ? rev.closest('.rz-f') : null;
+            if (!t) { if (hint) hint.textContent = ''; blocoRev?.classList.remove('hidden'); return; }
+            if (rev) {
+                if (!t.revisional_permitida) { rev.value = ''; delete rev.dataset.rzAuto; blocoRev?.classList.add('hidden'); }
+                else {
+                    blocoRev?.classList.remove('hidden');
+                    if (aplicarPadrao && t.revisional_meses_padrao && !rev.value) { rev.value = t.revisional_meses_padrao; rev.dataset.rzAuto = '1'; }
+                    else if (aplicarPadrao && !t.revisional_meses_padrao && rev.dataset.rzAuto === '1') { rev.value = ''; delete rev.dataset.rzAuto; }
+                }
+            }
+            let msg = t.descricao || '';
+            const ini = document.getElementById('con-inicio')?.value, fim = document.getElementById('con-fim')?.value;
+            if (ini && fim && fim > ini) {
+                const a = new Date(ini + 'T00:00:00'), b = new Date(fim + 'T00:00:00');
+                const meses = (b.getFullYear() - a.getFullYear()) * 12 + (b.getMonth() - a.getMonth()) + (b.getDate() >= a.getDate() ? 0 : -1);
+                const outro = (cod) => nomeTipoContrato(cod) || cod;
+                if (t.prazo_meses_max && meses > t.prazo_meses_max) msg = `Prazo de ${meses} meses passa de ${t.prazo_meses_max}: o ${outro('aluguel_tipico_longo')} combina melhor.`;
+                else if (t.prazo_meses_min && meses < t.prazo_meses_min) msg = `Prazo de ${meses} meses fica abaixo de ${t.prazo_meses_min}: o ${outro('aluguel_tipico_simples')} combina melhor.`;
+            }
+            if (hint) hint.textContent = msg;
+        }
+        // depois de salvar um contrato NOVO: itens sugeridos do tipo, com caixas; só nasce o que for marcado
+        export async function oferecerItensSugeridosContrato(con) {
+            if (!con || !idEhUuidValido(con.id) || typeof abrirSheetForm !== 'function') return;
+            const { data: row } = await dbAuth.from('contratos').select('tipo_contrato').eq('id', con.id).maybeSingle();
+            const tipo = row?.tipo_contrato; if (!tipo) return;
+            const { data: sug, error } = await dbAuth.rpc('fn_catalogo_sugestoes', { p_escopo_tipo: 'contrato_tipo', p_escopo_valor: tipo, p_contrato_id: con.id });
+            if (error) throw error;
+            const lista = (sug || []).filter(x => !x.ja_existe);
+            if (!lista.length) return;
+            await carregarContratoTipos();
+            const linhas = lista.map(x => `<label class="rz-row" style="cursor:pointer;min-height:48px">
+                    <input type="checkbox" data-sug="${x.modelo_id}" ${x.marcado ? 'checked' : ''} style="width:22px;height:22px;flex:none;accent-color:var(--pine)">
+                    <div class="rz-tx"><b>${escapeHtmlSaidas(x.titulo)}</b><span>${x.recorrente ? 'Todo ano' : 'Uma vez'}</span></div></label>`).join('');
+            abrirSheetForm({
+                titulo: 'Itens sugeridos', sub: `${nomeTipoContrato(tipo) || 'Contrato'} · ${con.locatario || ''}`, rotuloSalvar: 'Criar os marcados', empilhar: true,
+                corpo: `<p class="rz-desc" style="margin:0 0 6px">Marque o que você quer acompanhar neste contrato. IPTU e condomínio seguem pelo que você escolheu no formulário.</p><div class="rz-list">${linhas}</div>`,
+                aoSalvar: async (el) => {
+                    const ids = [...el.querySelectorAll('[data-sug]:checked')].map(i => i.dataset.sug);
+                    if (!ids.length) return true;
+                    const { data: r, error: e2 } = await dbAuth.rpc('fn_contrato_itens_sugeridos_criar', { p_contrato_id: con.id, p_modelos: ids, p_canal: 'app' });
+                    if (e2) { mostrarToast(e2.message || 'Não consegui criar os itens.', 'danger'); return false; }
+                    mostrarToast(`${r?.criados || ids.length} item(ns) de controle criado(s).`, 'success');
+                    emitirEscrita('controle', { contrato: con.id, acao: 'criar_sugeridos' });
+                    window.dispatchEvent(new CustomEvent('cofre:recarregar-eventos'));
+                    return true;
+                },
+            });
         }
 
         export async function oferecerItensEncargoContrato(con) {
@@ -4252,6 +4348,7 @@ if (!window.__rzListenerEscritaParteContratoLigado) {
             document.getElementById('con-historico-bloco')?.classList.remove('hidden');
 
             document.getElementById('form-contrato-titulo').innerText = "Editar contrato";
+            prepararCampoTipoContrato(con.modelo || 'aluguel', con.tipoContrato || '', false).catch(err => console.warn('[contratos] tipo:', err.message)); // v1.57.0
 
             // v1.28.0 (demanda 11afd25f) — fiadores na mesma tela e endereço
             // separado do locatário, os dois lidos do banco. Enquanto carrega,
@@ -4435,6 +4532,9 @@ if (!window.__rzListenerEscritaParteContratoLigado) {
 
             sugerirDescontoEnergia();
             exibirDivisaoImovelNoContrato(imovelId);
+            // v1.57.0 (fatia 2) — tipo escolhido em "Adicionar uso" (ou o primeiro do modelo) e revisional pelo tipo
+            const escTipo = window.rzContratoModeloNovo && window.rzContratoModeloNovo.ativo_id === imovelId ? window.rzContratoModeloNovo : null;
+            prepararCampoTipoContrato(escTipo?.modelo || 'aluguel', escTipo?.tipo_contrato || '', true).catch(err => console.warn('[contratos] tipo:', err.message));
 
             // v1.28.0 (demanda 11afd25f) — mesmos padrões que o antigo popup
             // "Dados Novo Contrato" usava: aluguel do imóvel e vencimento dia 5

@@ -4,7 +4,12 @@
 //                   o estado do app (ativos, contratos, mensalidades, repasses,
 //                   lançamentos, prestadores, pessoas, empreendimentos, tipos,
 //                   minutas, links da vitrine, logs e a vitrine pública)
-// Versão: 1.4.0 · 11/10/2026
+// Versão: 1.5.0 · 14/10/2026
+//
+// v1.5.0 (14/10/2026, sessão 20261014-0045-usos-fatia2, demanda 3022603b; FICHA_FATIA2_CONTRATOS_POR_TIPO_RAIZ v1.0.0) — o
+// contrato carrega e grava o tipo (contratos.tipo_contrato): o leitor traz modelo e tipoContrato; a escrita manda o tipo
+// do formulário ou, no contrato novo, o escolhido em "Adicionar uso" (window.rzContratoModeloNovo.tipo_contrato).
+// Versão anterior: 1.4.0.
 //
 // v1.4.0 (11/10/2026, sessão 20261008-1231-pessoas-ativos, demanda f3e6cd27 — F13.7, Nicola 11/10 12:29) — o leitor de
 // repasses do boot (lista que alimenta Resultados, o extrato e o PDF por sócio) passa a trazer só a retirada do FLUXO:
@@ -63,7 +68,7 @@
 // duplicar seria violação da CAN-03. Entram aqui por injeção.
 // ============================================================================
 
-export const VERSAO = '1.4.0';  // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.5.0';  // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 
 // ----------------------------------------------------------------------------
 // Injeção do host (index.html ou cofre.html). Os leitores abaixo usam estes
@@ -358,6 +363,9 @@ export async function carregarContratosSupabase() {
             reajusteTetoPct: row.reajuste_teto_pct ?? '',
             reajustePisoPct: row.reajuste_piso_pct ?? '',
             revisionalPeriodicidadeMeses: row.revisional_periodicidade_meses ?? '',
+            // v1.5.0 (fatia 2) — modelo de uso e tipo de contrato (contrato_tipos)
+            modelo: row.modelo || 'aluguel',
+            tipoContrato: row.tipo_contrato || '',
             iptuValor: row.iptu || 0,
             condominioValor: row.condominio || 0,
             locatarioEnderecoAtual: row.locatario_endereco_atual || '',
@@ -915,6 +923,8 @@ export async function sincronizarContratoSupabase(con) {
         administradora_id: /^[0-9a-f]{8}-/i.test(con.administradoraId || '') ? con.administradoraId : null,
         descricao: con.descricao || null
     };
+    // v1.5.0 (fatia 2) — tipo de contrato escolhido no formulário; vazio = o banco põe o padrão do modelo (trg_contrato_tipo)
+    if (con.tipoContrato) linha.tipo_contrato = con.tipoContrato;
 
     const idEhUuidValido = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(con.id || '');
 
@@ -926,7 +936,10 @@ export async function sincronizarContratoSupabase(con) {
     } else {
         // v1.3.0 (F25c) — modelo escolhido no "Adicionar" do ativo (só para o mesmo ativo, por 30 min)
         const esc = (typeof window !== 'undefined') ? window.rzContratoModeloNovo : null;
-        if (esc && esc.modelo && esc.ativo_id === linha.ativo_id && Date.now() < (esc.ate || 0)) linha.modelo = esc.modelo;
+        if (esc && esc.modelo && esc.ativo_id === linha.ativo_id && Date.now() < (esc.ate || 0)) {
+            linha.modelo = esc.modelo;
+            if (esc.tipo_contrato && !linha.tipo_contrato) linha.tipo_contrato = esc.tipo_contrato; // v1.5.0 (fatia 2)
+        }
         if (typeof window !== 'undefined') window.rzContratoModeloNovo = null;
         const { data: inserido, error } = await dbAuth.from('contratos').insert(linha).select('id').single();
         if (error) throw error;

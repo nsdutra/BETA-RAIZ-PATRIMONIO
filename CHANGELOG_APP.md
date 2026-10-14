@@ -4,6 +4,16 @@ Histórico completo de versões do `index.html`, movido automaticamente pelo `ge
 
 ---
 
+NOVIDADES (Beta v1.399.0) — Usos fatia 0, ajuste do teste do Nicola (13/10 23:27). Só muda o import map:
+cofre-ativos.js 1.98.0 (usos do ano listados no card com ⋮ Concluir; o modelo em que o ativo já está sai das opções).
+Versão anterior (Beta v1.398.0):
+------------------------------------------------------------------
+Versões anteriores (v1.398.0 … v1.398.0): CHANGELOG_APP.md, na raiz do
+repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
+das 5 versões mais recentes deste cabeçalho.
+
+---
+
 NOVIDADES (Beta v1.398.0) — Conta e cartão nascem pelo item de controle (de acordo do Nicola 13/10 23:17): no "Novo
 item" do ativo vida (pessoa) e dos Controles da empresa, o tipo ganha "Conta ou cartão", que abre o cadastro da conta
 com o titular preso (a pessoa ligada ao ativo, ou a Empresa); o banco cria o item junto. Saem os "+" de Minha empresa ›

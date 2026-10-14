@@ -1,6 +1,15 @@
 // ============================================================================
 // cofre-ativos.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.100.0 · 14/10/2026
+// Versão: 1.101.0 · 14/10/2026
+//
+// v1.101.0 (14/10/2026, sessão 20261014-0045-usos-fatia2, demanda 3022603b; FICHA_FATIA2_CONTRATOS_POR_TIPO_RAIZ v1.0.0 e
+// ajustes do ⋮ pedidos pelo Nicola 14/10 00:40) — "Adicionar uso" lista os contratos por TIPO (aluguel típico simples,
+// típico longo, atípico, arrendamento rural, locação de bem; os demais "em breve"), e o tipo vai para o formulário.
+// Venda só pelo uso Revenda: "Registrar venda" sai da Situação e aparece no ⋮ do uso Revenda (fn_status_transicionar
+// 'uso'/'vender'). ⋮ da ficha: um item só de IA, "Raiz IA", que abre a Raiz IA já com o nome do ativo; saem "Carregar
+// documento", "Adicionar documento com IA" e "Upload simples"; "Iniciar revisão anual" não aparece em pessoa (vida).
+//
+// Versão anterior: 1.100.0 · 14/10/2026
 //
 // v1.100.0 (14/10/2026, sessão 20261014-0010-ativo-pessoa, demanda d6a6f577; de acordo do Nicola 14/10 00:08) — ativo
 // vida › Resumo ganha a linha "Pessoa do cadastro": ligar (pessoas de Pessoas sem outro ativo), trocar e desligar, pela
@@ -32,17 +41,11 @@
 // gravando por fn_ativo_uso_iniciar (ativos.usos.iniciar, a mesma RPC do bot); o ⋮ da ficha ganha "Concluir <uso>"
 // (fn_ativo_uso_concluir, ativos.usos.concluir). O selo da ficha e da lista é o status de hoje, classe · modelo
 // (fn_entidade_status via window.rzStatusDoAtivo); "Vago" passa a "Disponível". "Hoje" no fuso do aparelho.
-//
-// Versão anterior: 1.96.0 · 12/10/2026
-//
-// v1.96.0 (12/10/2026, sessão 20261012-0250-ux-onda4d, demanda a05ad2ee; UX onda 4, estudo PROTOTIPO_UX_DENSIDADE_RAMOS_RAIZ
-// v1.2.0 D9; "Vamos adiante" do Nicola 12/10 02:46) — a lista de Ativos ganha o total no agrupador: "Capital · 8" à
-// esquerda e a soma do valor de referência do grupo à direita (compacto: R$ 7,2 mi).
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.95.0 … v1.95.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.96.0 … v1.96.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '1.100.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.101.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 import { estado } from './cofre-estado.js';
 import * as api from './cofre-api.js';
 import { mostrarToast, erroInline, refrescarIcones, alternarToggle, abrirModal, fecharModal, modalGenerico, perguntar, avisarComDesfazer, escolher } from './cofre-ui.js';
@@ -1427,7 +1430,9 @@ export async function abrirAcoesAtivo() {
     // sempre (nenhuma consulta nova só pra decidir se esconde); duplicidade
     // é recusada no banco por fn_revisao_valor_ativo_iniciar, com toast de
     // erro claro — evita uma 2ª chamada de rede só pra pré-checar aqui.
-    if (a.status !== 'vendido') acoes.push({ icone: 'calendar-clock', titulo: 'Iniciar revisão anual', codigo: 'cofre.controles.criar', sub: 'Começa o ciclo de revisão de valor deste ativo', aoTocar: () => abrirIniciarRevisaoAnual(a) });
+    // v1.101.0 (Nicola 14/10 00:40) — revisão anual de valor não é de pessoa; vira programa + item na fatia 4 (demanda)
+    const ehVida = a.tipo_ativo === 'vida' || ramoDoAtivoLista(a) === 'familia';
+    if (a.status !== 'vendido' && !ehVida) acoes.push({ icone: 'calendar-clock', titulo: 'Iniciar revisão anual', codigo: 'cofre.controles.criar', sub: 'Começa o ciclo de revisão de valor deste ativo', aoTocar: () => abrirIniciarRevisaoAnual(a) });
     if (!maquina && a.status !== 'vendido') acoes.push({ icone: 'tag', titulo: 'Marcar como vendido', codigo: 'cofre.editar', sub: 'Desliga alertas e sai dos links compartilhados', aoTocar: () => marcarAtivoVendidoAtual() });
     if (!maquina) acoes.push({ icone: 'trash-2', titulo: 'Excluir ativo', codigo: 'cofre.excluir', tipo: 'bad', aoTocar: () => excluirAtivoAtual() });
     // v1.94.0 (UX onda 3, D11) — é o ⋮ do topo da ficha: todas as ações do ativo em grupos curtos (os ⋮ dos cabeçalhos
@@ -1440,14 +1445,18 @@ export async function abrirAcoesAtivo() {
         return;
     }
     const grupos = [
-        { titulo: 'Ativo', acoes: acoes.filter(x => !situacaoAntiga.includes(x)) },
+        { titulo: 'Ativo', acoes: [
+            // v1.101.0 (Nicola 14/10 00:40: "Carregar documento e adicionar via IA duplicado… Deixe uma como Raiz IA apenas.
+            // Retire também upload documento") — um item só, que abre a Raiz IA já falando deste ativo
+            { icone: 'sparkles', tipo: 'ia', titulo: 'Raiz IA', sub: 'Pergunte ou registre algo sobre este ativo', aoTocar: () => abrirRaizIaDoAtivo(a) },
+            ...acoes.filter(x => !situacaoAntiga.includes(x)),
+        ] },
         { titulo: 'Usos e contratos', acoes: [
             { icone: 'plus', titulo: 'Adicionar uso', codigo: 'ativos.usos.iniciar', sub: 'Escolha o modelo: aluguel, temporada, uso próprio…', aoTocar: () => abrirAdicionarModeloAtivo() },
             ...acaoConcluirUsoVigente(a),
             { icone: 'list', titulo: 'Ver todos na aba Contratos', codigo: 'contratos.ver', aoTocar: () => { if (typeof window.switchTab === 'function') window.switchTab('tab-contratos'); } },
         ] },
         { titulo: 'Controles', acoes: [
-            { icone: 'sparkles', tipo: 'ia', titulo: 'Carregar documento', codigo: 'cofre.analisar_ia', sub: 'A IA lê e preenche os itens sozinha', aoTocar: () => window.__rzUploadAtivo?.(true) },
             { icone: 'plus', titulo: 'Novo item de controle', codigo: 'cofre.controles.criar', sub: 'Seguro, tributo, vistoria, manutenção', aoTocar: () => window.__rzAbrirFormControle?.() },
         ] },
         { titulo: 'Financeiro', acoes: [
@@ -1460,10 +1469,6 @@ export async function abrirAcoesAtivo() {
             { icone: fora ? 'plus-circle' : 'ban', titulo: fora ? 'Incluir na contabilidade da empresa' : 'Tirar da contabilidade da empresa', codigo: 'imoveis.divisao',
               sub: fora ? 'Volta a entrar no pacote do contador nos próximos fechamentos' : 'Patrimônio fora da empresa: continua no Raiz, mas não vai ao contador', aoTocar: () => alternarRegistroContabilAtivo() },
         ] },
-        { titulo: 'Anexos', acoes: [
-            { icone: 'sparkles', titulo: 'Adicionar documento com IA', codigo: 'cofre.analisar_ia', sub: 'Lê matrícula, IPTU, apólice e preenche os controles', tipo: 'ia', aoTocar: () => window.__rzUploadAtivo?.(true) },
-            { icone: 'upload', titulo: 'Upload simples', codigo: 'cofre.upload', sub: 'Só guarda o arquivo', aoTocar: () => window.__rzUploadAtivo?.(false) },
-        ] },
         { titulo: 'Situação', acoes: situacao },
     ].filter(g => g.acoes.length);
     sheetOuAviso({ titulo: a.nome_exibicao, sub: rotuloTipoAtivo(a.tipo_ativo), grupos });
@@ -1474,6 +1479,32 @@ export async function abrirAcoesAtivo() {
 // fn_status_transicionar (a mesma do bot), que confere o catálogo status_transicoes, o código da ação e o motivo, e grava
 // status_historico + log_acessos. Desfazer é transição nova (fn_status_desfazer), nunca apaga.
 // ============================================================================
+// v1.101.0 — Raiz IA a partir do ativo: abre a mesma Raiz IA do botão em destaque, com o nome do ativo no campo
+function abrirRaizIaDoAtivo(a) {
+    if (typeof window.abrirSheetRaizIA !== 'function') { mostrarToast('A Raiz IA abre só dentro do app principal.', 'erro'); return; }
+    window.abrirSheetRaizIA();
+    setTimeout(() => { const q = document.getElementById('rz-ia-q'); if (q && !q.value) { q.value = a.nome_exibicao + ': '; q.focus(); q.dispatchEvent(new Event('input')); } }, 80);
+}
+// v1.101.0 (Nicola 14/10 00:40: "Venda só pelo uso Revenda") — Registrar venda no ⋮ do uso Revenda, pela porta única
+function abrirVendaPelaRevenda(a, u) {
+    if (typeof window.abrirSheetForm !== 'function') { mostrarToast('Ação só disponível dentro do app principal.', 'erro'); return; }
+    const hoje = hojeLocalUso();
+    window.abrirSheetForm({
+        titulo: 'Registrar venda', sub: a.nome_exibicao, rotuloSalvar: 'Registrar venda',
+        corpo: `<p class="rz-desc" style="margin:0 0 8px">A Revenda termina na data, os itens de controle são concluídos e o ativo sai das listas. Dá para desfazer pelo Histórico.</p>
+            <div class="rz-f" style="margin-bottom:0"><label for="fa-venda-data">Data da venda</label><input type="date" id="fa-venda-data" value="${hoje}" min="${u.inicio}" max="${hoje}"></div>`,
+        aoSalvar: async () => {
+            const data = document.getElementById('fa-venda-data')?.value || hoje;
+            const { data: r, error } = await api.dbAuth.rpc('fn_status_transicionar', { p_entidade: 'uso', p_id: u.uso_id, p_acao: 'vender', p_dados: { data }, p_canal: 'app' });
+            if (error) { mostrarToast(error.message || 'Não foi possível registrar a venda.', 'erro'); return false; }
+            mostrarToast(r?.mensagem || 'Venda registrada.', 'sucesso');
+            a.status = r?.para || 'vendido';
+            await aposMudarUso(a);
+            window.dispatchEvent(new CustomEvent('cofre:recarregar-eventos'));
+            return true;
+        },
+    });
+}
 const MOTIVOS_BAIXA = ['Perda total', 'Sinistro', 'Doação', 'Óbito', 'Descarte', 'Outro'];
 function acaoDaMaquinaAtivo(a, m) {
     const ICONE = { vender: 'tag', baixar: 'file-minus', arquivar: 'archive', reativar: 'rotate-ccw', desfazer_venda: 'undo-2', desfazer_baixa: 'undo-2' };
@@ -1515,7 +1546,9 @@ function abrirTransicaoAtivo(a, m) {
 }
 // ⋮ de um uso: Concluir e Excluir, como a máquina deixa (fn_ativo_usos → acoes)
 function acoesDoUso(a, u) {
-    return (u.acoes || []).map(m => m.acao === 'concluir'
+    return (u.acoes || []).map(m => m.acao === 'vender'
+        ? { icone: 'tag', titulo: 'Registrar venda', codigo: m.codigo, sub: 'Encerra a Revenda, conclui os itens e sai das listas', aoTocar: () => abrirVendaPelaRevenda(a, u) }
+        : m.acao === 'concluir'
         ? { icone: 'flag', titulo: 'Concluir ' + u.nome.toLowerCase(), codigo: m.codigo, sub: 'Escolha o último dia; depois o ativo volta ao repouso', aoTocar: () => abrirConcluirUsoAtivo(a, u) }
         : { icone: 'trash-2', titulo: 'Excluir ' + u.nome.toLowerCase(), codigo: m.codigo, tipo: 'bad', sub: 'Lançado por engano: some da linha do tempo e o repouso volta', aoTocar: () => abrirExcluirUsoAtivo(a, u) });
 }
@@ -2215,17 +2248,19 @@ export async function abrirAdicionarModeloAtivo() {
     const a = estado.ativoEmFoco; if (!a) return;
     const tipo = tipoDoCatalogo(a.tipo_detalhe_id)?.codigo;
     const ramoAtivo = ramoDoAtivoLista(a);
-    let lista = [];
+    let lista = [], tiposContrato = [];
     try {
         const db = api.dbAuth;
         // v1.97.0 (usos fatia 0) — além dos acordos (contrato, reserva), os usos sem acordo: Uso próprio (universal) e os do
         // ramo do ativo permitidos pelo tipo (Uso férias, Moradia, Guardado…). D-P10: só modelos do ramo do ativo — vínculo
         // e cadastro, não acesso. "Disponível" é o repouso e não se escolhe: ele volta sozinho quando o uso termina.
-        const [mt, mods, lic] = await Promise.all([
+        const [mt, mods, lic, tps] = await Promise.all([
             tipo ? db.from('operacao_modelo_tipos').select('modelo').eq('tipo', tipo).eq('permite_uso', true) : Promise.resolve({ data: [] }),
             db.from('operacao_modelos').select('codigo, ramo, nome, descricao, acordo, status, ordem, universal').in('acordo', ['contrato', 'reserva', 'nenhum']).order('ordem'),
             db.rpc('fn_cliente_ramos', { p_cliente_id: estado.clienteId }),
+            db.from('contrato_tipos').select('codigo, nome, descricao, modelo, status, ordem').order('ordem'), // v1.101.0 (fatia 2)
         ]);
+        tiposContrato = tps.data || [];
         const permite = new Set((mt.data || []).map(x => x.modelo));
         const licenciados = (lic.data || []).map(x => typeof x === 'string' ? x : Object.values(x)[0]);
         // v1.98.0 (Nicola 13/10 23:27: "um item em uso próprio não pode trazer uso próprio como opção") — o modelo em que
@@ -2246,8 +2281,27 @@ export async function abrirAdicionarModeloAtivo() {
     if (!lista.length) { abrirEscolhaNovoContratoDoAtivo(); return; } // sem catálogo: o caminho de sempre (aluguel)
     const nomeRamo = (c) => (typeof window.rzNomeRamo === 'function' ? window.rzNomeRamo(c) : c);
     const acordos = lista.filter(m => m.acordo !== 'nenhum'), livres = lista.filter(m => m.acordo === 'nenhum');
+    // v1.101.0 (fatia 2, D-P30) — um contrato por TIPO (contrato_tipos): o modelo diz o uso, o tipo diz o acordo
+    // (típico simples, típico longo, atípico…). Modelo sem tipo no catálogo segue como antes.
+    const porTipo = [];
+    acordos.forEach(m => {
+        const tps = tiposContrato.filter(t => t.modelo === m.codigo);
+        if (!tps.length) { porTipo.push({ m, t: null }); return; }
+        tps.forEach(t => porTipo.push({ m, t }));
+    });
     sheetOuAviso({ titulo: 'Adicionar uso', sub: a.nome_exibicao, acoes: [
-        ...acordos.map(m => ({
+        ...porTipo.filter(x => x.t).map(({ m, t }) => {
+            const livre = m.livre && t.status === 'ativo';
+            return { icone: m.acordo === 'reserva' ? 'calendar-days' : 'file-text', codigo: 'contratos.criar',
+                titulo: t.nome + (livre ? '' : ' · em breve'),
+                sub: livre ? (t.descricao || m.nome) : (t.status !== 'ativo' || m.status !== 'ativo' ? 'Chega em breve' : `Ramo ${nomeRamo(m.ramo)} não contratado`),
+                aoTocar: () => {
+                    if (!livre) { mostrarToast(t.status !== 'ativo' || m.status !== 'ativo' ? 'Este tipo de contrato chega em breve.' : `O ramo ${nomeRamo(m.ramo)} não está contratado.`, 'aviso'); return; }
+                    window.rzContratoModeloNovo = { ativo_id: a.id, modelo: m.codigo, nome: t.nome, tipo_contrato: t.codigo, ate: Date.now() + 30 * 60 * 1000 };
+                    abrirEscolhaNovoContratoDoAtivo();
+                } };
+        }),
+        ...porTipo.filter(x => !x.t).map(({ m }) => m).map(m => ({
             icone: m.acordo === 'reserva' ? 'calendar-days' : 'file-text', codigo: 'contratos.criar',
             titulo: 'Contrato de ' + m.nome.toLowerCase() + (m.livre ? '' : ' · em breve'),
             sub: m.livre ? (m.descricao || nomeRamo(m.ramo)) : (m.status !== 'ativo' ? 'Chega em breve' : `Ramo ${nomeRamo(m.ramo)} não contratado`),
@@ -2258,7 +2312,7 @@ export async function abrirAdicionarModeloAtivo() {
             },
         })),
         ...livres.map(m => ({
-            icone: 'user-check', codigo: 'ativos.usos.iniciar',
+            icone: m.codigo === 'revenda' ? 'tag' : 'user-check', codigo: 'ativos.usos.iniciar',
             titulo: m.nome + (m.livre ? '' : ' · em breve'),
             sub: m.livre ? (m.descricao || 'Sem contrato: só o período de uso') : 'Chega em breve',
             aoTocar: () => {
