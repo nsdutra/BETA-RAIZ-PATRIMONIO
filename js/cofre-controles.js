@@ -1,6 +1,15 @@
 // ============================================================================
 // cofre-controles.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.53.0 · 13/10/2026
+// Versão: 1.54.0 · 13/10/2026
+//
+// v1.54.0 (13/10/2026, sessão 20261013-2310-item-conta, demandas 5b4934d5 e 1f9a8d04; "Demais ajustes pode aplicar" do
+// Nicola 13/10 23:03) —
+//   · Salvar e regerar: as ocorrências seguem o dia da data de início (ex.: início 11/09 mensal → 11/10, 11/11…), avançando
+//     até hoje; antes recomeçavam no dia da edição. "Hoje" passa a ser a data local (hojeLocalISO): toISOString() em UTC
+//     virava o dia seguinte depois das 21h em São Paulo.
+//   · Item de conta ou cartão (conta_id, F18): "Editar" não abre mais o formulário do item — oferece "Editar a conta ou o
+//     cartão", que abre a ficha da conta (comum-minha-empresa.js), dona do nome, tipo, titular e vencimento.
+// Versão anterior: 1.53.0 · 13/10/2026
 //
 // v1.53.0 (13/10/2026, sessão 20261013-2245-raiz-ia-ajustes2, demanda a2f4980a; Nicola 13/10 22:44: "não vi opções de
 // cancelar e excluir a ocorrência. Importante ter") — sheet da ocorrência ganha:
@@ -45,19 +54,11 @@
 //   · toque na ocorrência abre o sheet com os DETALHES dela no topo (situação, datas, competência, valores, baixa,
 //     origem, descrição e lançamento) e as ações embaixo — inclusive a cancelada, que antes só dava um aviso
 //     (Nicola 10/10 23:25: "ao clicar na ocorrência permita ver seus detalhes").
-//
-// Versão anterior: 1.49.0 · 07/10/2026
-//
-// v1.49.0 (demanda a30da78b, item 2, sessão 20261007-2025-controles-empresa; plano aprovado pelo Nicola 07/10 20:14) —
-// card "Controles da empresa" em ⚙️ › Minha empresa (montarBoxControlesEmpresa): lista os itens
-// da empresa (sem ativo), chip Encerrados, abre a MESMA ficha do item (Voltar devolve a Minha
-// empresa). "Novo item" pelo card nasce com vínculo empresa e só oferece subtipos com a regra
-// de aplicabilidade vínculo:empresa; o fluxo a partir do ativo segue igual.
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.48.1 … v1.48.1): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.49.0 … v1.49.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '1.53.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.54.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 import { estado } from './cofre-estado.js';
 import * as api from './cofre-api.js';
 import { mostrarToast, refrescarIcones, abrirModal, fecharModal, modalGenerico, perguntar, escolher, avisarComDesfazer } from './cofre-ui.js';
@@ -1687,6 +1688,28 @@ function memoriaRateioHtml(item, kv) {
 
 export async function abrirEditarItem() {
     const item = itemEmFoco;
+    // v1.54.0 (demanda 1f9a8d04) — item de conta ou cartão (F18, conta_id): nome, tipo, início e vencimento são da conta;
+    // o item acompanha (fn_conta_item_sincronizar, mão única). Editar aqui desfazia o vínculo — vai para a ficha da conta.
+    if (item?.conta_id) {
+        const escolha = await escolher({
+            titulo: 'Este item é de uma conta do Financeiro',
+            sub: 'Nome, tipo, dia de vencimento e titular se editam na conta ou no cartão — o item acompanha.',
+            opcoes: [{ valor: 'conta', titulo: 'Editar a conta ou o cartão', sub: 'Abre o cadastro no Financeiro', icone: 'credit-card' }],
+        });
+        if (escolha !== 'conta') return;
+        try {
+            const me = await import('./comum-minha-empresa.js');
+            const res = await me.buscarContas(api.dbAuth, estado.clienteId, true);
+            const conta = (res?.dados || []).find(c => c.id === item.conta_id);
+            if (!conta) { mostrarToast('Você não tem acesso a esta conta.', 'erro'); return; }
+            await me.abrirFichaConta({
+                dbAuth: api.dbAuth, clienteId: estado.clienteId, conta,
+                onToast: (m, t) => mostrarToast(m, t === 'danger' ? 'erro' : undefined),
+                aoSalvar: () => recarregarFichaItemControle(),
+            });
+        } catch (err) { mostrarToast('Erro: ' + err.message, 'erro'); }
+        return;
+    }
     // v1.37.0 — o catálogo de subtipos precisa estar carregado antes de montar
     // o seletor; sem ele o subtipo aparecia vazio e o salvar gravava null.
     if (!subtiposCache) {
@@ -1798,7 +1821,7 @@ export async function salvarEdicaoItem() {
             // decisões simples de sim/não.
             // v1.44.0 — a escolha (regerar ou manter) já foi feita antes de gravar
             if (regenerar) {
-                const hojeISO = new Date().toISOString().slice(0, 10);
+                const hojeISO = hojeLocalISO(); // v1.54.0 (5b4934d5) — data local; toISOString() virava o dia depois das 21h
                 await api.excluirOcorrenciasAbertasFuturasDoItem(item.id, hojeISO);
                 const itemAtualizado = { ...item, ...depois };
                 // Revisão 25/08/2026 — regenerar respeita a direção
@@ -1807,7 +1830,7 @@ export async function salvarEdicaoItem() {
                 // (pra frente a partir de hoje).
                 const payloads = direcaoAlerta === 'fim'
                     ? gerarOcorrenciasHorizonteRetroativo(itemAtualizado, dataFim, freqIntervalo, freqUnidade)
-                    : gerarOcorrenciasHorizonte(itemAtualizado, hojeISO, freqIntervalo, freqUnidade);
+                    : gerarOcorrenciasHorizonte(itemAtualizado, dataInicio || hojeISO, freqIntervalo, freqUnidade); // v1.54.0 — o ciclo segue o dia do início (avança até hoje), não recomeça no dia da edição
                 await api.criarOcorrenciasControleBatch(payloads);
                 await api.registrarLogAcessos(estado.clienteId, estado.pessoa.id, 'cofre.controles.editar', { itemId: item.id, ocorrenciasGeradas: payloads.length });
                 mostrarToast(`Item atualizado — ${payloads.length} ocorrência(s) regerada(s) ✅`);
@@ -2429,6 +2452,12 @@ function gerarOcorrenciasHorizonte(item, dataBase, freqIntervalo, freqUnidade, g
         payloads.push({ ...camposComuns, competencia: primeiroDiaDoMes(dataInicioGeracao), data_prevista_original: dataInicioGeracao, data_prevista_atual: dataInicioGeracao });
     }
     return payloads;
+}
+
+// v1.54.0 (5b4934d5) — "hoje" no fuso do aparelho (AAAA-MM-DD), sem passar por UTC.
+function hojeLocalISO() {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
 
 function proximaData(dataISO, unidade, intervalo) {

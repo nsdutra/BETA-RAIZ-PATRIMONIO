@@ -4,6 +4,17 @@ Histórico completo de versões do `index.html`, movido automaticamente pelo `ge
 
 ---
 
+NOVIDADES (Beta v1.392.0) — F13.10: rateio em grupo a partir de um item de controle (card no item, link por participante em
+grupo.html, fechamento que leva a parte de cada pessoa do Raiz ao financeiro; Balanço › Grupos lista os rateios). Aqui só
+muda o import map (cofre-controles.js 1.52.0, financeiro.js 1.60.0 e o novo js/grupo-visao.js 1.0.0).
+Versão anterior (Beta v1.391.0):
+------------------------------------------------------------------
+Versões anteriores (v1.391.0 … v1.391.0): CHANGELOG_APP.md, na raiz do
+repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
+das 5 versões mais recentes deste cabeçalho.
+
+---
+
 NOVIDADES (Beta v1.391.0) — Onda 6a, Raiz IA registra (FICHA_ONDA_6_RAIZ_IA_REGISTRA v1.0.0, aprovada pelo Nicola
 12/10 03:30: "de acordo, apenas crie de forma a reaproveitar as funções do bot e as que criar aqui, que possam ser
 usadas por eles"). O sol da barra abre a Raiz IA com o campo único — pergunta ou registro, por texto ou voz (voz do
