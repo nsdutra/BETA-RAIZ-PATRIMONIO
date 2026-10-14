@@ -4,6 +4,19 @@ Histórico completo de versões do `index.html`, movido automaticamente pelo `ge
 
 ---
 
+NOVIDADES (Beta v1.403.0) — ONDA 7a/7b, Agenda (FICHA_ONDA_7_AGENDA_RAIZ v1.0.0, de acordo do Nicola 14/10 00:09,
+D7.1 a D7.6). A Agenda ganha as abas Lista · Semana · Mês (abre na Lista, D7.4). Semana e Mês vêm do módulo novo
+js/agenda.js 1.0.0, que lê a função nova fn_agenda_periodo (só leitura; ocorrências, recebimentos, pagamentos, fim de
+contrato, reajuste e validade de documento; pago não entra, atrasado vem marcado). Chips por tipo; toque abre o lugar
+do compromisso; ⋮ "Enviar a semana por WhatsApp" (compartilhar com uma pessoa, D7.5/D7.6). Ramo do cabeçalho vale.
+Versão anterior (Beta v1.402.0):
+------------------------------------------------------------------
+Versões anteriores (v1.402.0 … v1.402.0): CHANGELOG_APP.md, na raiz do
+repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
+das 5 versões mais recentes deste cabeçalho.
+
+---
+
 NOVIDADES (Beta v1.402.0) — Ativo vida ↔ pessoa do cadastro (de acordo do Nicola 14/10 00:08: opções 1, 2 e 3, sem criar
 pessoa sozinha): ativo vida › Resumo ganha "Pessoa do cadastro" (ligar, trocar, desligar); Pessoas › ações ganha "Ativo
 da pessoa" (abre, liga a um ativo sem pessoa ou cria o ativo); "Conta ou cartão" num ativo sem pessoa oferece "Ligar

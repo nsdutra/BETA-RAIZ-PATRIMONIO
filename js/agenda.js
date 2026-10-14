@@ -1,8 +1,13 @@
 // =====================================================================
 // RAIZ PATRIMÔNIO — js/agenda.js
-// VERSÃO: Beta v1.2.0 (14/10/2026 — demanda a05ad2ee)
+// VERSÃO: Beta v1.3.0 (14/10/2026 — demanda a05ad2ee)
 // LINHAS: (ver versoes.json)
 // -----------------------------------------------------------------
+// NOVIDADES (Beta v1.3.0) — Nicola 14/10 09:50: as datas se vinculam ao FATO GERADOR, não a hoje. O alerta e o
+//   compromisso pendentes ficam no dia de origem (ex.: o fechamento de 01/10 aparece em 01/10 com "Há 13d"), nas três
+//   vistas. A Lista do mês de hoje mostra o mês inteiro por dia e, antes dele, o que ainda está pendente de meses
+//   anteriores. O compromisso atrasado ganha o mesmo selo "Há Nd" das linhas de alerta. Sessão 20261014-0955-agenda-datas.
+// Versão anterior (Beta v1.2.0):
 // NOVIDADES (Beta v1.2.0) — teste do Nicola 14/10 08:58 ("as quantidades parecem estranhas (...) no grid da semana não
 //   aparece nenhum compromisso, mas no grid do dia aparece. No mês também não está batendo (...) no filtro por tipo o
 //   ideal seria abrir todo marcado"). Sessão 20261014-0900-agenda-contas.
@@ -43,7 +48,7 @@
 // formatarMoedaBR, abrirSheet, abrirSheetAcoes, rzSheetCabecalho, fecharSheet, abrirAlertaItemControle,
 // abrirFichaContrato, switchTab, mostrarToast, rzDev.
 
-export const VERSAO = '1.2.0';
+export const VERSAO = '1.3.0';
 
 const TIPOS = {
     ocorrencia:   { rotulo: 'Ocorrência',  icone: 'wrench',          dominio: 'ocorrencias' },
@@ -87,11 +92,12 @@ function assuntoAlerta(a) { // alerta do Motor → assunto do filtro (só leitur
     if (a.dominio === 'cadastro') return 'ativos';
     return 'itens';
 }
-// v1.2.0 — alerta tem data e status na Agenda pela MESMA leitura da linha do alerta (sem mudar regra nenhuma):
-// rotina pronta e extrato desatualizado ficam em hoje; os demais vencem em hoje + dias; vencido aparece vermelho na
-// linha, então conta como crítico; os outros usam a severidade do alerta.
+// v1.3.0 — o alerta fica na data do FATO GERADOR (Nicola 14/10 09:50: "um alerta há 14 dias pendente que foi originado
+// de algo no dia 01.10 tem que aparecer no 01.10 com a tag de alerta há 14 dias"), pela mesma leitura da linha do alerta:
+// prazo (dias até vencer; negativo = já venceu) → hoje + dias; extrato desatualizado e rotina pronta contam dias DESDE o
+// fato → hoje − |dias|; sem dias → hoje. Vencido aparece vermelho na linha e conta como crítico; os outros pela severidade.
 const ehRotina = (a) => (typeof ROTINA_PRONTA_ALERTA !== 'undefined' && ROTINA_PRONTA_ALERTA.includes(a.tipo_alerta)) || a.tipo_alerta === 'extrato_desatualizado';
-const dataAlerta = (a) => (a.dias == null || ehRotina(a)) ? iso(hoje()) : iso(somaDias(hoje(), a.dias));
+const dataAlerta = (a) => a.dias == null ? iso(hoje()) : iso(somaDias(hoje(), ehRotina(a) ? -Math.abs(a.dias) : a.dias));
 function statusAlerta(a) {
     if (a.severidade === 'critico') return 'critico';
     if (!ehRotina(a) && a.dias != null && a.dias < 0) return 'critico';
@@ -118,22 +124,19 @@ const alertasMotor = () => (typeof alertasVisiveisTodos !== 'undefined' && Array
 
 // v1.2.0 — UM universo para tudo (linhas, números dos chips, pontos, resumo): o mesmo conjunto em todas as contas.
 // Cada item: { tipo: 'c'|'a', dia, status, assunto, r (compromisso) | a (alerta), i (índice em st.dados) }.
-// Lista: no mês de hoje, o que já venceu entra em hoje (lista corrente). Semana/Mês: cada um no seu dia.
+// v1.3.0 — tudo no dia do fato gerador, nas três vistas (o que está pendente leva a tag "há N dias").
 function universo(de, ate) {
-    const hj = iso(hoje()), lista = st.vista === 'lista' && mesTemHoje();
     const alertas = alertasMotor();
     const entAlerta = new Set(alertas.map(a => a.entidade_id).filter(Boolean));
     const limiteDup = iso(somaDias(hoje(), JANELA_ATENCAO));
     const itens = [];
     alertas.forEach(a => {
-        let dia = dataAlerta(a);
-        if (lista && dia < hj) dia = hj;
+        const dia = dataAlerta(a);
         if (dia >= de && dia <= ate) itens.push({ tipo: 'a', dia, status: statusAlerta(a), assunto: assuntoAlerta(a), a });
     });
     st.dados.forEach((r, i) => {
         if (entAlerta.has(r.entidade_id) && r.data <= limiteDup) return; // o alerta já mostra (não repete)
-        let dia = r.data;
-        if (lista && dia < hj) dia = hj;
+        const dia = r.data;
         if (dia >= de && dia <= ate) itens.push({ tipo: 'c', dia, status: statusCompromisso(r), assunto: assuntoCompromisso(r), r, i });
     });
     return itens;
@@ -142,7 +145,10 @@ const visivel = (it) => passaStatus(it.status) && passaAssunto(it.assunto);
 function intervaloContado() { // o que os números contam (sem as bordas da grade)
     if (st.vista === 'semana') return [iso(st.semana), iso(somaDias(st.semana, 6))];
     const ini = iso(new Date(st.mes.getFullYear(), st.mes.getMonth(), 1)), fim = iso(new Date(st.mes.getFullYear(), st.mes.getMonth() + 1, 0));
-    return [st.vista === 'lista' && mesTemHoje() ? iso(hoje()) : ini, fim];
+    if (st.vista !== 'lista' || !mesTemHoje()) return [ini, fim];
+    // Lista do mês de hoje: o mês inteiro e, antes dele, o que ainda está pendente de meses anteriores (no dia de origem)
+    const maisAntigo = alertasMotor().map(dataAlerta).sort()[0];
+    return [maisAntigo && maisAntigo < ini ? maisAntigo : ini, fim];
 }
 
 // ---- entrada (chamada pelo index: rzAgendaVista)
@@ -216,11 +222,13 @@ function desenhar(carregando) {
 function linhaHtml(r, i) {
     const t = TIPOS[r.tipo] || { icone: 'circle', rotulo: '' };
     const s = statusCompromisso(r);
-    const sub = [r.sub, r.atrasado ? 'atrasado' : '', r.situacao === 'realizado' ? 'realizado' : ''].filter(Boolean).join(' · ') || t.rotulo;
+    const sub = [r.sub, r.situacao === 'realizado' ? 'realizado' : ''].filter(Boolean).join(' · ') || t.rotulo;
+    const diasAtraso = r.atrasado ? Math.round((hoje() - deIso(r.data)) / 86400000) : 0;
+    const selo = diasAtraso > 0 ? ((typeof renderStatus === 'function') ? renderStatus('bad', `Há ${diasAtraso}d`) : `<span class="rz-st rz-bad">Há ${diasAtraso}d</span>`) : '';
     return `<button type="button" class="rz-row rz-link rz-ag-linha rz-ag-${s}" data-ag-i="${i}">
         <div class="rz-ic"><svg data-lucide="${r.situacao === 'realizado' ? 'check' : t.icone}"></svg></div>
         <div class="rz-tx"><b>${rzEsc(r.titulo || t.rotulo)}</b><span>${rzEsc(sub)}</span></div>
-        ${r.valor != null ? `<span class="rz-ag-valor">${moeda(r.valor)}</span>` : ''}</button>`;
+        ${selo}${r.valor != null ? `<span class="rz-ag-valor">${moeda(r.valor)}</span>` : ''}</button>`;
 }
 // D7.13 — dia por hora: "Dia todo" primeiro; depois um bloco por horário (quando o registro do dia trouxer hora)
 function blocoComps(its) {
