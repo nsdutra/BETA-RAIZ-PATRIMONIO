@@ -4,6 +4,20 @@ Histórico completo de versões do `index.html`, movido automaticamente pelo `ge
 
 ---
 
+NOVIDADES (Beta v1.389.0) — UX onda 5: voltar por plataforma (estudo PROTOTIPO_UX_DENSIDADE_RAMOS_RAIZ v1.2.0, D4;
+"Vamos adiante" 12/10 02:46) e ajustes pedidos às 02:50. <html> recebe rz-plat-android/ios/web. Android: o "‹ Tela"
+some (o voltar do celular faz, e agora fecha também as subtelas do Cofre em Ativos); iPhone e computador: só a seta.
+iPhone: arrastar da borda esquerda volta. Sheet de formulário sem "Cancelar" (fecha pelo ✕, arrastando ou tocando
+fora), salvar na largura toda. Seletor de ano único ‹ ano › (.rz-ano): Financeiro da ficha sem "Todos"
+(financeiro.js 1.58.0) e Indicadores (indicadores.js 1.1.0). Minha gestão sem a linha da data. Nenhum objeto de banco.
+Versão anterior (Beta v1.388.0):
+------------------------------------------------------------------
+Versões anteriores (v1.388.0 … v1.388.0): CHANGELOG_APP.md, na raiz do
+repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
+das 5 versões mais recentes deste cabeçalho.
+
+---
+
 NOVIDADES (Beta v1.388.0) — UX onda 4d (estudo PROTOTIPO_UX_DENSIDADE_RAMOS_RAIZ v1.2.0, D9; "Vamos adiante" do
 Nicola 12/10 02:46): agrupadores com total — em Ativos, a soma do valor de referência do empreendimento; em
 Contratos, o aluguel/mês dos contratos ativos (cofre-ativos.js 1.96.0, contratos.js 1.54.0). O Balanço ganha o

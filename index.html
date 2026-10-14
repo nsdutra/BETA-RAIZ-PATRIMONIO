@@ -6,9 +6,14 @@
    (base derivada do RUMO v7.4.2 — histórico de versões anteriores
    preservado abaixo para referência técnica)
 
-   VERSÃO: Beta v1.393.0
-   LINHAS: 16491
-   DATA: 13/10/2026 (sessão 20261013-2205-alertas-cartao, demanda 8f7d2734)
+   VERSÃO: Beta v1.394.0
+   LINHAS: 16536
+   DATA: 13/10/2026 (sessão 20261013-2218-raiz-ia-app, demanda f4efd8a3)
+   NOVIDADES (Beta v1.394.0) — Raiz IA, ajustes do teste do Nicola (13/10 22:04; demanda f4efd8a3, mãe a05ad2ee).
+   Busca em tudo: frase longa ("onde está o locatário do apto 81") cai para as palavras-chave quando a frase inteira
+   não acha nada (rzBuscaPalavras); editar e tocar de novo refaz a busca; reabrir começa limpo. Nova ocorrência pela
+   Raiz IA ganha "Onde registrar": contrato vigente, um item de controle do ativo ou Controles › Manutenção. Sem banco.
+   Versão anterior (Beta v1.393.0):
    NOVIDADES (Beta v1.393.0) — B-8, alertas do cartão pelo Motor (plano e ficha com de acordo do Nicola 13/10 22:03):
    rzAbrirDestinoAlerta ganha os destinos financeiro/importar-fatura (abre "Importar fatura do cartão") e
    financeiro/fatura (abre a fatura do alerta). Os 3 alertas novos (fatura a importar, vencendo, compras a classificar)
@@ -35,15 +40,8 @@
    para a linha das abas. Financeiro das fichas: card "Financeiro" com ‹ ano › à frente do título, como Usos
    (financeiro.js 1.59.0, contratos.js 1.55.0). Nenhum objeto de banco.
    Versão anterior (Beta v1.389.0):
-   NOVIDADES (Beta v1.389.0) — UX onda 5: voltar por plataforma (estudo PROTOTIPO_UX_DENSIDADE_RAMOS_RAIZ v1.2.0, D4;
-   "Vamos adiante" 12/10 02:46) e ajustes pedidos às 02:50. <html> recebe rz-plat-android/ios/web. Android: o "‹ Tela"
-   some (o voltar do celular faz, e agora fecha também as subtelas do Cofre em Ativos); iPhone e computador: só a seta.
-   iPhone: arrastar da borda esquerda volta. Sheet de formulário sem "Cancelar" (fecha pelo ✕, arrastando ou tocando
-   fora), salvar na largura toda. Seletor de ano único ‹ ano › (.rz-ano): Financeiro da ficha sem "Todos"
-   (financeiro.js 1.58.0) e Indicadores (indicadores.js 1.1.0). Minha gestão sem a linha da data. Nenhum objeto de banco.
-   Versão anterior (Beta v1.388.0):
    ------------------------------------------------------------------
-   Versões anteriores (v1.388.0 … v1.388.0): CHANGELOG_APP.md, na raiz do
+   Versões anteriores (v1.389.0 … v1.389.0): CHANGELOG_APP.md, na raiz do
    repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
    das 5 versões mais recentes deste cabeçalho.
 
@@ -71,7 +69,7 @@
          O navegador aplica o mapa também aos imports estáticos dentro dos
          módulos (cofre-app.js → ./cofre-api.js etc.). -->
     <!-- RZ-IMPORTMAP:INICIO -->
-    <script type="importmap">{"imports":{"./js/cadastros.js":"./js/cadastros.js?v=1.2.0","./js/financeiro.js":"./js/financeiro.js?v=1.60.0","./js/fechamento.js":"./js/fechamento.js?v=1.13.0","./js/contratos.js":"./js/contratos.js?v=1.55.0","./js/minutas.js":"./js/minutas.js?v=1.4.0","./js/vitrine.js":"./js/vitrine.js?v=1.5.2","./js/imoveis.js":"./js/imoveis.js?v=1.7.2","./js/cofre-api.js":"./js/cofre-api.js?v=1.50.0","./js/cofre-app.js":"./js/cofre-app.js?v=1.47.0","./js/cofre-ativos.js":"./js/cofre-ativos.js?v=1.96.0","./js/cofre-controles.js":"./js/cofre-controles.js?v=1.52.0","./js/cofre-documentos.js":"./js/cofre-documentos.js?v=2.35.0","./js/cofre-imagem.js":"./js/cofre-imagem.js?v=1.1.0","./js/cofre-estado.js":"./js/cofre-estado.js?v=1.5.2","./js/cofre-navegacao.js":"./js/cofre-navegacao.js?v=1.9.3","./js/cofre-ui.js":"./js/cofre-ui.js?v=1.7.2","./js/cofre-validacoes.js":"./js/cofre-validacoes.js?v=2.5.0","./js/comum-licenca.js":"./js/comum-licenca.js?v=1.8.0","./js/comum-renovacao.js":"./js/comum-renovacao.js?v=1.3.5","./js/comum-minha-empresa.js":"./js/comum-minha-empresa.js?v=1.15.0","./js/comum-pessoas.js":"./js/comum-pessoas.js?v=1.210.0","./js/comum-sobre.js":"./js/comum-sobre.js?v=1.5.0","./js/comum-endereco.js":"./js/comum-endereco.js?v=1.2.0","./js/comum-partes.js":"./js/comum-partes.js?v=1.0.0","./js/resultados.js":"./js/resultados.js?v=2.9.0","./js/indicadores.js":"./js/indicadores.js?v=1.1.0","./js/configuracao-inicial.js":"./js/configuracao-inicial.js?v=1.0.1","./js/relatorios-executivos.js":"./js/relatorios-executivos.js?v=1.3.0","./js/raiz-eventos.js":"./js/raiz-eventos.js?v=1.0.0","./js/raiz-device.js":"./js/raiz-device.js?v=1.1.0","./js/raiz-ui.js":"./js/raiz-ui.js?v=1.4.0","./js/fiscal.js":"./js/fiscal.js?v=1.5.2","./js/ativos/ativos-boot.js":"./js/ativos/ativos-boot.js?v=1.4.0","./js/ativos/ativos-markup.js":"./js/ativos/ativos-markup.js?v=1.61.0","./js/nucleo/porta.js":"./js/nucleo/porta.js?v=1.4.0","./js/partes.js":"./js/partes.js?v=1.0.2","./js/conta.js":"./js/conta.js?v=1.0.1","./js/grupo-visao.js":"./js/grupo-visao.js?v=1.0.0"}}</script>
+    <script type="importmap">{"imports":{"./js/cadastros.js":"./js/cadastros.js?v=1.2.0","./js/financeiro.js":"./js/financeiro.js?v=1.60.0","./js/fechamento.js":"./js/fechamento.js?v=1.13.0","./js/contratos.js":"./js/contratos.js?v=1.55.0","./js/minutas.js":"./js/minutas.js?v=1.4.0","./js/vitrine.js":"./js/vitrine.js?v=1.5.2","./js/imoveis.js":"./js/imoveis.js?v=1.7.2","./js/cofre-api.js":"./js/cofre-api.js?v=1.50.0","./js/cofre-app.js":"./js/cofre-app.js?v=1.47.0","./js/cofre-ativos.js":"./js/cofre-ativos.js?v=1.96.0","./js/cofre-controles.js":"./js/cofre-controles.js?v=1.52.0","./js/cofre-documentos.js":"./js/cofre-documentos.js?v=2.35.0","./js/cofre-imagem.js":"./js/cofre-imagem.js?v=1.1.0","./js/cofre-estado.js":"./js/cofre-estado.js?v=1.5.2","./js/cofre-navegacao.js":"./js/cofre-navegacao.js?v=1.9.3","./js/cofre-ui.js":"./js/cofre-ui.js?v=1.7.2","./js/cofre-validacoes.js":"./js/cofre-validacoes.js?v=2.5.0","./js/comum-licenca.js":"./js/comum-licenca.js?v=1.8.0","./js/comum-renovacao.js":"./js/comum-renovacao.js?v=1.3.5","./js/comum-minha-empresa.js":"./js/comum-minha-empresa.js?v=1.15.0","./js/comum-pessoas.js":"./js/comum-pessoas.js?v=1.210.0","./js/comum-sobre.js":"./js/comum-sobre.js?v=1.5.0","./js/comum-endereco.js":"./js/comum-endereco.js?v=1.2.0","./js/comum-partes.js":"./js/comum-partes.js?v=1.0.0","./js/resultados.js":"./js/resultados.js?v=2.9.0","./js/indicadores.js":"./js/indicadores.js?v=1.1.0","./js/configuracao-inicial.js":"./js/configuracao-inicial.js?v=1.0.1","./js/relatorios-executivos.js":"./js/relatorios-executivos.js?v=1.3.0","./js/raiz-eventos.js":"./js/raiz-eventos.js?v=1.0.0","./js/raiz-device.js":"./js/raiz-device.js?v=1.1.0","./js/raiz-ui.js":"./js/raiz-ui.js?v=1.4.0","./js/fiscal.js":"./js/fiscal.js?v=1.5.2","./js/ativos/ativos-boot.js":"./js/ativos/ativos-boot.js?v=1.4.0","./js/ativos/ativos-markup.js":"./js/ativos/ativos-markup.js?v=1.61.0","./js/nucleo/porta.js":"./js/nucleo/porta.js?v=1.4.0","./js/partes.js":"./js/partes.js?v=1.0.2","./js/conta.js":"./js/conta.js?v=1.0.1"}}</script>
     <!-- RZ-IMPORTMAP:FIM -->
 
     <!-- ===== PWA: permite "instalar" o app no celular (Android e iPhone) ===== -->
@@ -4179,7 +4177,7 @@
         // texto certo toda vez (esqueci 5 versões seguidas, de v1.37.1 até
         // v1.38.3). Agora só precisa mudar UMA linha aqui a cada release;
         // window.onload aplica nos dois lugares automaticamente.
-        const APP_VERSAO = "Beta v1.393.0"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
+        const APP_VERSAO = "Beta v1.394.0"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
 
         // ====================================================================
         // v1.105.0 — HELPERS DE SUPERFÍCIE DA GRAMÁTICA ÚNICA
@@ -9658,8 +9656,8 @@ async function criarLinkVitrineSupabase(token, idsSelecionados) {
             if (r.intencao === 'receita') { if (typeof window.abrirNovoRecebimento === 'function') window.abrirNovoRecebimento(); if (p.valor) rzAvisar(`Confira o valor: ${formatarMoedaBR(p.valor)}`, 'info'); return; }
             if (r.intencao === 'ocorrencia') return comAtivo((ativoId) => rzNovaOcorrencia({ ativoId, descricao: p.descricao || texto, data: p.data }));
             if (r.intencao === 'pergunta') {
-                rzAbrirBuscaUniversal();
-                setTimeout(() => { const i = document.getElementById('rz-bu-q'); if (i) { i.value = p.termo_busca || texto; i.dispatchEvent(new Event('input', { bubbles: true })); } }, 120);
+                const sh = rzAbrirBuscaUniversal();
+                setTimeout(() => { const i = sh && sh.querySelector('#rz-bu-q'); if (i) { i.value = p.termo_busca || texto; i.dispatchEvent(new Event('input', { bubbles: true })); } }, 120);
                 return;
             }
             abrirSheetAcoes({ titulo: 'Não entendi', sub: `“${texto.slice(0, 80)}”`, acoes: [
@@ -9690,17 +9688,34 @@ async function criarLinkVitrineSupabase(token, idsSelecionados) {
                 .sort((a, b) => String(a.nome_exibicao || '').localeCompare(String(b.nome_exibicao || '')));
             const hoje = new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 10);
             const opcoes = '<option value="">Escolha o bem</option>' + ativos.map(a => `<option value="${a.id}"${a.id === ativoId ? ' selected' : ''}>${rzEsc(a.nome_exibicao || 'Ativo')}</option>`).join('');
-            abrirSheetForm({ titulo: 'Nova ocorrência', sub: 'Fica em aberto até você tratar', rotuloSalvar: 'Registrar ocorrência',
+            // carrega as opções de "Onde registrar" do bem escolhido: contrato vigente, itens de controle e Manutenção
+            const carregarOnde = async (sheet, aId) => {
+                const sel = sheet.querySelector('#oc-ia-onde'); if (!sel) return;
+                if (!aId) { sel.innerHTML = '<option value="">Escolha o bem primeiro</option>'; return; }
+                sel.innerHTML = '<option value="m">Carregando…</option>';
+                const cli = CLIENTE_ID_SUPABASE;
+                const [{ data: cons }, { data: itens }] = await Promise.all([
+                    dbAuth.from('contratos').select('id, locatario').eq('cliente_id', cli).eq('ativo_id', aId).eq('status', 'Ativo').limit(3),
+                    dbAuth.from('cofre_itens_controle').select('id, titulo, tipo').eq('cliente_id', cli).eq('ativo_id', aId).eq('ativo', true).order('titulo').limit(50),
+                ]);
+                const ops = [...(cons || []).map(c => `<option value="c:${c.id}">Contrato · ${rzEsc(c.locatario || 'vigente')}</option>`),
+                    ...(itens || []).filter(i => !(i.tipo === 'manutencao' && i.titulo === 'Manutenção')).map(i => `<option value="i:${i.id}">${rzEsc(i.titulo)}</option>`),
+                    `<option value="m">Manutenção do bem</option>`];
+                sel.innerHTML = ops.join('');
+            };
+            const sheetOc = abrirSheetForm({ titulo: 'Nova ocorrência', sub: 'Fica em aberto até você tratar', rotuloSalvar: 'Registrar ocorrência',
                 corpo: `<div class="rz-f"><label for="oc-ia-ativo">Bem</label><select id="oc-ia-ativo">${opcoes}</select></div>
+                        <div class="rz-f"><label for="oc-ia-onde">Onde registrar</label><select id="oc-ia-onde"><option value="">Escolha o bem primeiro</option></select></div>
                         <div class="rz-f"><label for="oc-ia-desc">O que aconteceu</label><textarea id="oc-ia-desc" rows="3" maxlength="500">${rzEsc(descricao || '')}</textarea></div>
                         <div class="rz-f"><label for="oc-ia-data">Quando</label><input type="date" id="oc-ia-data" value="${data || hoje}"></div>`,
                 aoSalvar: async (el) => {
+                    const onde = el.querySelector('#oc-ia-onde').value;
                     const aId = el.querySelector('#oc-ia-ativo').value, desc = el.querySelector('#oc-ia-desc').value.trim(), dt = el.querySelector('#oc-ia-data').value || hoje;
                     if (!aId) { rzAvisar('Escolha o bem.', 'aviso'); return false; }
                     if (!desc) { rzAvisar('Conte o que aconteceu.', 'aviso'); return false; }
                     const cli = CLIENTE_ID_SUPABASE;
-                    const { data: cons } = await dbAuth.from('contratos').select('id').eq('cliente_id', cli).eq('ativo_id', aId).eq('status', 'Ativo').limit(1);
-                    let dono = cons && cons[0] ? { contrato_id: cons[0].id } : null;
+                    // v1.39x — onde a pessoa escolheu: "c:<contrato>", "i:<item de controle>" ou "m" (Manutenção do bem)
+                    let dono = onde.startsWith('c:') ? { contrato_id: onde.slice(2) } : onde.startsWith('i:') ? { item_controle_id: onde.slice(2) } : null;
                     if (!dono) {
                         const { data: itens } = await dbAuth.from('cofre_itens_controle').select('id').eq('cliente_id', cli).eq('ativo_id', aId).eq('tipo', 'manutencao').eq('titulo', 'Manutenção').eq('ativo', true).limit(1);
                         let itemId = itens && itens[0] ? itens[0].id : null;
@@ -9724,6 +9739,11 @@ async function criarLinkVitrineSupabase(token, idsSelecionados) {
                     window.dispatchEvent(new CustomEvent('cofre:recarregar-ativos'));
                     return true;
                 } });
+            if (sheetOc) {
+                const selAtivo = sheetOc.querySelector('#oc-ia-ativo');
+                selAtivo.addEventListener('change', () => carregarOnde(sheetOc, selAtivo.value));
+                carregarOnde(sheetOc, selAtivo.value);
+            }
         }
         // Envio de documento para a Raiz IA, por cima da tela em que a pessoa está. O envio é um
         // sheet e seus modais vivem no <body>, então não depende da aba Ativos aberta: cancelar
@@ -15594,7 +15614,32 @@ async function criarLinkVitrineSupabase(token, idsSelecionados) {
             try { localStorage.removeItem(rzBuscaRecentesChave()); } catch (_) { /* sem acesso */ }
         }
 
+        // v1.39x (teste do Nicola 13/10 22:04: "quem é o locatário da rua Outono" não achava nada) — a busca tira as palavras
+        // que não distinguem (quem, qual, é, o, locatário, rua…) e, se a frase limpa não achar nada, procura cada palavra
+        // e fica com o que aparece em todas (ou, se nada aparecer em todas, com a palavra mais longa).
+        const RZ_BUSCA_VAZIAS = new Set(['quem', 'qual', 'quais', 'onde', 'como', 'quando', 'quanto', 'e', 'é', 'o', 'a', 'os', 'as', 'um', 'uma', 'de', 'do', 'da', 'dos', 'das',
+            'no', 'na', 'nos', 'nas', 'em', 'pra', 'para', 'por', 'meu', 'minha', 'me', 'mostra', 'mostre', 'ver', 'buscar', 'procura', 'procurar',
+            'locatario', 'locatário', 'locataria', 'locatária', 'inquilino', 'inquilina', 'proprietario', 'proprietário', 'dono', 'rua', 'r', 'av', 'avenida',
+            'alameda', 'al', 'imovel', 'imóvel', 'contrato', 'contratos', 'ativo', 'ativos', 'apartamento', 'casa', 'está', 'esta', 'estão', 'estao', 'fica', 'tem', 'são', 'sao', 'foi', 'que']);
+        function rzBuscaPalavras(termo) {
+            return String(termo || '').toLowerCase().replace(/[?!.,;:"“”]/g, ' ').split(/\s+/).filter(p => p.length > 1 && !RZ_BUSCA_VAZIAS.has(p));
+        }
         async function rzBuscaUniversalGrupos(termo) {
+            const palavras = rzBuscaPalavras(termo);
+            const limpo = palavras.join(' ') || String(termo || '').trim();
+            let grupos = await rzBuscaUniversalGruposTexto(limpo);
+            if (grupos.some(g => g.itens.length) || palavras.length < 2) return grupos;
+            const porPalavra = [];
+            for (const p of palavras) porPalavra.push(await rzBuscaUniversalGruposTexto(p));
+            return porPalavra[0].map((g, gi) => {
+                const listas = porPalavra.map(gs => gs[gi]?.itens || []);
+                const ids = listas.map(l => new Set(l.map(it => it.id)));
+                let itens = listas[0].filter(it => ids.every(s => s.has(it.id)));
+                if (!itens.length) { const iMaior = palavras.reduce((m, p, i) => p.length > palavras[m].length ? i : m, 0); itens = listas[iMaior]; }
+                return { ...g, itens };
+            });
+        }
+        async function rzBuscaUniversalGruposTexto(termo) {
             const t = String(termo || '').trim(), tl = t.toLowerCase();
             const cofre = window.rzBuscaCofre;
             const pode = (c) => { try { return podeUsar(c).ok; } catch (_) { return true; } };
