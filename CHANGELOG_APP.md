@@ -4,6 +4,19 @@ Histórico completo de versões do `index.html`, movido automaticamente pelo `ge
 
 ---
 
+NOVIDADES (Beta v1.402.0) — Ativo vida ↔ pessoa do cadastro (de acordo do Nicola 14/10 00:08: opções 1, 2 e 3, sem criar
+pessoa sozinha): ativo vida › Resumo ganha "Pessoa do cadastro" (ligar, trocar, desligar); Pessoas › ações ganha "Ativo
+da pessoa" (abre, liga a um ativo sem pessoa ou cria o ativo); "Conta ou cartão" num ativo sem pessoa oferece "Ligar
+agora". Usa fn_ativo_pessoa_vincular e fn_ativo_pessoa_garantir (F16), que não tinham tela. Aqui só muda o import map
+(cofre-ativos.js 1.100.0, cofre-controles.js 1.57.0, comum-pessoas.js 1.212.0). Nenhum objeto de banco.
+Versão anterior (Beta v1.401.0):
+------------------------------------------------------------------
+Versões anteriores (v1.401.0 … v1.401.0): CHANGELOG_APP.md, na raiz do
+repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
+das 5 versões mais recentes deste cabeçalho.
+
+---
+
 NOVIDADES (Beta v1.401.0) — Raiz IA "no fundo" (Nicola 14/10 00:00, demanda a2f4980a): o que a IA abre — Nova saída,
 ocorrência, busca, "Qual destes?", atalhos — volta para a Raiz IA quando fecha, salvando ou não (rzIaVoltarAoFechar).
 Escolher um resultado da busca leva à ficha e encerra a volta. Sem banco.

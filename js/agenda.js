@@ -1,8 +1,20 @@
 // =====================================================================
 // RAIZ PATRIMÔNIO — js/agenda.js
-// VERSÃO: Beta v1.1.0 (14/10/2026 — demanda a05ad2ee)
+// VERSÃO: Beta v1.2.0 (14/10/2026 — demanda a05ad2ee)
 // LINHAS: (ver versoes.json)
 // -----------------------------------------------------------------
+// NOVIDADES (Beta v1.2.0) — teste do Nicola 14/10 08:58 ("as quantidades parecem estranhas (...) no grid da semana não
+//   aparece nenhum compromisso, mas no grid do dia aparece. No mês também não está batendo (...) no filtro por tipo o
+//   ideal seria abrir todo marcado"). Sessão 20261014-0900-agenda-contas.
+//   — UM universo só (universo()) para linhas, números dos chips, pontos da grade e resumo da semana: o que se conta é
+//     exatamente o que se vê. Antes os chips contavam compromissos escondidos pela regra de não repetir e as bordas da
+//     grade, e a Semana/Mês não tinham os alertas.
+//   — Alertas também na Semana e no Mês, no dia em que vencem (hoje + dias; rotina pronta e extrato ficam em hoje). Na
+//     Lista, o que já venceu entra em hoje. Linha, gestos e regras do alerta continuam os de sempre.
+//   — Status do alerta no filtro = o que a linha mostra: vencido (vermelho) conta como crítico; os demais pela
+//     severidade dele. Nenhuma regra de alerta muda.
+//   — Assunto abre com todos marcados; desmarca o que não quer ver ("Marcar todos" / "Desmarcar todos").
+// Versão anterior (Beta v1.1.0):
 // NOVIDADES (Beta v1.1.0) — revisão das três vistas, FICHA_ONDA_7_AGENDA_RAIZ v1.2.0 §7–§8 (D7.7 a D7.13; Nicola 14/10
 //   00:51: "Gostei. Faria só 2 ajustes (...) Restante ok. Não mexer nas regras de alerta atuais"). Sessão
 //   20261014-0055-agenda-vistas. O módulo passa a desenhar a Agenda inteira:
@@ -31,7 +43,7 @@
 // formatarMoedaBR, abrirSheet, abrirSheetAcoes, rzSheetCabecalho, fecharSheet, abrirAlertaItemControle,
 // abrirFichaContrato, switchTab, mostrarToast, rzDev.
 
-export const VERSAO = '1.1.0';
+export const VERSAO = '1.2.0';
 
 const TIPOS = {
     ocorrencia:   { rotulo: 'Ocorrência',  icone: 'wrench',          dominio: 'ocorrencias' },
@@ -48,7 +60,7 @@ const MES_CURTO = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set'
 const DIA_SEM = ['dom', 'seg', 'ter', 'qua', 'qui', 'sex', 'sáb'];
 const JANELA_ATENCAO = 7; // D7.10
 
-const st = { vista: 'lista', semana: null, mes: null, dia: null, status: new Set(), assuntos: new Set(), dados: [], seq: 0, el: null };
+const st = { vista: 'lista', semana: null, mes: null, dia: null, status: new Set(), assuntos: null, dados: [], seq: 0, el: null };
 
 // ---- datas (data local, ISO yyyy-mm-dd)
 const iso = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
@@ -59,7 +71,7 @@ const hoje = () => { const d = new Date(); d.setHours(0, 0, 0, 0); return d; };
 const moeda = (v) => (v == null ? '' : (typeof formatarMoedaBR === 'function' ? formatarMoedaBR(v) : Number(v).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })));
 
 // ---- status e assunto
-function statusCompromisso(r) { // D7.10 — só para o compromisso da Agenda; alerta mantém a severidade dele
+function statusCompromisso(r) { // D7.10 — só para o compromisso da Agenda
     if (r.severidade) return r.severidade;
     if (r.atrasado) return 'critico';
     return deIso(r.data) <= somaDias(hoje(), JANELA_ATENCAO) ? 'atencao' : 'informativo';
@@ -75,16 +87,25 @@ function assuntoAlerta(a) { // alerta do Motor → assunto do filtro (só leitur
     if (a.dominio === 'cadastro') return 'ativos';
     return 'itens';
 }
+// v1.2.0 — alerta tem data e status na Agenda pela MESMA leitura da linha do alerta (sem mudar regra nenhuma):
+// rotina pronta e extrato desatualizado ficam em hoje; os demais vencem em hoje + dias; vencido aparece vermelho na
+// linha, então conta como crítico; os outros usam a severidade do alerta.
+const ehRotina = (a) => (typeof ROTINA_PRONTA_ALERTA !== 'undefined' && ROTINA_PRONTA_ALERTA.includes(a.tipo_alerta)) || a.tipo_alerta === 'extrato_desatualizado';
+const dataAlerta = (a) => (a.dias == null || ehRotina(a)) ? iso(hoje()) : iso(somaDias(hoje(), a.dias));
+function statusAlerta(a) {
+    if (a.severidade === 'critico') return 'critico';
+    if (!ehRotina(a) && a.dias != null && a.dias < 0) return 'critico';
+    return a.severidade === 'atencao' ? 'atencao' : 'informativo';
+}
+const TODOS_ASSUNTOS = () => new Set(ASSUNTOS.map(a => a[0]));
 const passaStatus = (s) => !st.status.size || st.status.has(s);
-const passaAssunto = (a) => !st.assuntos.size || st.assuntos.has(a);
-const compVisivel = (r) => passaStatus(statusCompromisso(r)) && passaAssunto(assuntoCompromisso(r));
-const alertaVisivel = (a) => passaStatus(a.severidade) && passaAssunto(assuntoAlerta(a));
+const passaAssunto = (a) => st.assuntos.has(a); // v1.2.0 — começa com todos marcados; desmarcar tira
 
-function periodo() {
+function periodo() { // o que se busca no banco: a grade inteira (Mês/Lista) ou a semana
     if (st.vista === 'semana') return [st.semana, somaDias(st.semana, 6)];
     const ini = new Date(st.mes.getFullYear(), st.mes.getMonth(), 1);
     const fim = new Date(st.mes.getFullYear(), st.mes.getMonth() + 1, 0);
-    return [inicioSemana(ini), somaDias(inicioSemana(fim), 6)]; // grade inteira (bordas), até 42 dias
+    return [inicioSemana(ini), somaDias(inicioSemana(fim), 6)];
 }
 function tituloPeriodo() {
     if (st.vista !== 'semana') return `${MESES[st.mes.getMonth()]} ${st.mes.getFullYear()}`;
@@ -92,9 +113,37 @@ function tituloPeriodo() {
     return a.getMonth() === b.getMonth() ? `${a.getDate()}–${b.getDate()} ${MES_CURTO[a.getMonth()]}` : `${a.getDate()} ${MES_CURTO[a.getMonth()]} – ${b.getDate()} ${MES_CURTO[b.getMonth()]}`;
 }
 const mesTemHoje = () => st.mes.getFullYear() === hoje().getFullYear() && st.mes.getMonth() === hoje().getMonth();
-// alertas do Motor que entram na Lista (só no mês de hoje, no grupo de hoje)
 // (alertasVisiveisTodos é um `let` do index: lido pelo nome, não por window)
-const alertasDaLista = () => (st.vista === 'lista' && mesTemHoje() && typeof alertasVisiveisTodos !== 'undefined' && Array.isArray(alertasVisiveisTodos)) ? alertasVisiveisTodos : [];
+const alertasMotor = () => (typeof alertasVisiveisTodos !== 'undefined' && Array.isArray(alertasVisiveisTodos)) ? alertasVisiveisTodos : [];
+
+// v1.2.0 — UM universo para tudo (linhas, números dos chips, pontos, resumo): o mesmo conjunto em todas as contas.
+// Cada item: { tipo: 'c'|'a', dia, status, assunto, r (compromisso) | a (alerta), i (índice em st.dados) }.
+// Lista: no mês de hoje, o que já venceu entra em hoje (lista corrente). Semana/Mês: cada um no seu dia.
+function universo(de, ate) {
+    const hj = iso(hoje()), lista = st.vista === 'lista' && mesTemHoje();
+    const alertas = alertasMotor();
+    const entAlerta = new Set(alertas.map(a => a.entidade_id).filter(Boolean));
+    const limiteDup = iso(somaDias(hoje(), JANELA_ATENCAO));
+    const itens = [];
+    alertas.forEach(a => {
+        let dia = dataAlerta(a);
+        if (lista && dia < hj) dia = hj;
+        if (dia >= de && dia <= ate) itens.push({ tipo: 'a', dia, status: statusAlerta(a), assunto: assuntoAlerta(a), a });
+    });
+    st.dados.forEach((r, i) => {
+        if (entAlerta.has(r.entidade_id) && r.data <= limiteDup) return; // o alerta já mostra (não repete)
+        let dia = r.data;
+        if (lista && dia < hj) dia = hj;
+        if (dia >= de && dia <= ate) itens.push({ tipo: 'c', dia, status: statusCompromisso(r), assunto: assuntoCompromisso(r), r, i });
+    });
+    return itens;
+}
+const visivel = (it) => passaStatus(it.status) && passaAssunto(it.assunto);
+function intervaloContado() { // o que os números contam (sem as bordas da grade)
+    if (st.vista === 'semana') return [iso(st.semana), iso(somaDias(st.semana, 6))];
+    const ini = iso(new Date(st.mes.getFullYear(), st.mes.getMonth(), 1)), fim = iso(new Date(st.mes.getFullYear(), st.mes.getMonth() + 1, 0));
+    return [st.vista === 'lista' && mesTemHoje() ? iso(hoje()) : ini, fim];
+}
 
 // ---- entrada (chamada pelo index: rzAgendaVista)
 export async function montarAgenda(vista, el) {
@@ -104,6 +153,7 @@ export async function montarAgenda(vista, el) {
     if (!st.mes) st.mes = new Date(hoje().getFullYear(), hoje().getMonth(), 1);
     if (!st.dia) st.dia = iso(hoje());
     if (!st.semana) st.semana = inicioSemana(hoje());
+    if (!st.assuntos) st.assuntos = TODOS_ASSUNTOS();
     window.rzAgendaRedesenhar = () => { if (st.el && st.el.isConnected) desenhar(false); };
     await carregar();
 }
@@ -132,10 +182,11 @@ async function carregar() {
 
 // ---- moldura: título (linha 1), vistas (linha 2), filtros (linha 3), corpo
 function desenhar(carregando) {
-    const alertas = alertasDaLista().filter(a => passaAssunto(assuntoAlerta(a)));
-    const comps = st.dados.filter(r => passaAssunto(assuntoCompromisso(r)));
-    const conta = (s) => comps.filter(r => statusCompromisso(r) === s).length + alertas.filter(a => a.severidade === s).length;
-    const rotAss = !st.assuntos.size ? 'Assunto' : st.assuntos.size === 1 ? ASSUNTOS.find(a => st.assuntos.has(a[0]))[1] : `Assunto · ${st.assuntos.size}`;
+    const [de, ate] = intervaloContado();
+    const base = carregando ? [] : universo(de, ate).filter(it => passaAssunto(it.assunto));
+    const conta = (s) => base.filter(it => it.status === s).length;
+    const todos = st.assuntos.size === ASSUNTOS.length;
+    const rotAss = todos ? 'Assunto' : !st.assuntos.size ? 'Nenhum assunto' : st.assuntos.size === 1 ? ASSUNTOS.find(a => st.assuntos.has(a[0]))[1] : `Assunto · ${st.assuntos.size} de ${ASSUNTOS.length}`;
     st.el.innerHTML = `
         <div class="rz-fin-topo">
             <div class="rz-mes-bar rz-mes-titulo">
@@ -150,13 +201,13 @@ function desenhar(carregando) {
         </div>
         <div class="rz-chips rz-ag-chips">
             ${STATUS.map(([k, n]) => `<button type="button" class="rz-chip${st.status.has(k) ? ' rz-on' : ''}" data-ag-st="${k}"><span class="rz-ag-pt rz-ag-${k}"></span>${n}${carregando ? '' : ` <span class="rz-n">${conta(k)}</span>`}</button>`).join('')}
-            <button type="button" class="rz-chip rz-ag-ass${st.assuntos.size ? ' rz-on' : ''}" data-ag-ass>${rzEsc(rotAss)} <svg data-lucide="chevron-down"></svg></button>
+            <button type="button" class="rz-chip rz-ag-ass${todos ? '' : ' rz-on'}" data-ag-ass>${rzEsc(rotAss)} <svg data-lucide="chevron-down"></svg></button>
         </div>
         <div id="ag-corpo">${carregando ? (typeof rzSkeleton === 'function' ? rzSkeleton('lista', 4) : '') : (st.vista === 'lista' ? listaHtml() : st.vista === 'semana' ? semanaHtml() : mesHtml())}</div>`;
     ligar();
-    if (!carregando && st.vista === 'lista' && typeof rzLigarGestosAlertas === 'function') {
+    if (!carregando && typeof rzLigarGestosAlertas === 'function') {
         const m = st.el.querySelector('#ag-corpo');
-        if (m && alertasDaLista().length) rzLigarGestosAlertas(m); // gestos de sempre nas linhas de alerta
+        if (m && m.querySelector('[data-rz-alerta],[data-rz-grupo]')) rzLigarGestosAlertas(m); // gestos de sempre
     }
     rzIcones();
 }
@@ -172,86 +223,90 @@ function linhaHtml(r, i) {
         ${r.valor != null ? `<span class="rz-ag-valor">${moeda(r.valor)}</span>` : ''}</button>`;
 }
 // D7.13 — dia por hora: "Dia todo" primeiro; depois um bloco por horário (quando o registro do dia trouxer hora)
-function blocoDoDia(pares) {
-    const semHora = pares.filter(([r]) => !r.hora), comHora = pares.filter(([r]) => r.hora).sort((a, b) => String(a[0].hora).localeCompare(String(b[0].hora)));
-    if (!comHora.length) return pares.map(([r, i]) => linhaHtml(r, i)).join('');
-    let h = semHora.length ? `<div class="rz-ag-hora">Dia todo</div>${semHora.map(([r, i]) => linhaHtml(r, i)).join('')}` : '';
+function blocoComps(its) {
+    const semHora = its.filter(it => !it.r.hora), comHora = its.filter(it => it.r.hora).sort((a, b) => String(a.r.hora).localeCompare(String(b.r.hora)));
+    if (!comHora.length) return its.map(it => linhaHtml(it.r, it.i)).join('');
+    let h = semHora.length ? `<div class="rz-ag-hora">Dia todo</div>${semHora.map(it => linhaHtml(it.r, it.i)).join('')}` : '';
     let ultima = '';
-    comHora.forEach(([r, i]) => { const hh = String(r.hora).slice(0, 5); if (hh !== ultima) { h += `<div class="rz-ag-hora">${hh}</div>`; ultima = hh; } h += linhaHtml(r, i); });
+    comHora.forEach(it => { const hh = String(it.r.hora).slice(0, 5); if (hh !== ultima) { h += `<div class="rz-ag-hora">${hh}</div>`; ultima = hh; } h += linhaHtml(it.r, it.i); });
     return h;
 }
-const rotDia = (di) => { const d = deIso(di); return `${DIA_SEM[d.getDay()]} ${d.getDate()}${di === iso(hoje()) ? ' · hoje' : ''}`; };
-
-// ---- Lista (D7.8): corrente, por dia; no mês de hoje começa em hoje com os alertas de sempre
-function listaHtml() {
-    const hj = iso(hoje()), ini = iso(new Date(st.mes.getFullYear(), st.mes.getMonth(), 1)), fim = iso(new Date(st.mes.getFullYear(), st.mes.getMonth() + 1, 0));
-    const alertas = alertasDaLista().filter(alertaVisivel);
-    // o compromisso que um alerta já mostra (mesma entidade, até 7 dias) não se repete
-    const entAlerta = new Set(alertasDaLista().map(a => a.entidade_id).filter(Boolean));
-    const limiteDup = iso(somaDias(hoje(), JANELA_ATENCAO));
-    const pares = st.dados.map((r, i) => [r, i]).filter(([r]) => r.data >= ini && r.data <= fim && compVisivel(r))
-        .filter(([r]) => !(entAlerta.has(r.entidade_id) && r.data <= limiteDup && mesTemHoje()));
-    let html = '';
-    const comecaHoje = mesTemHoje();
-    // hoje: alertas + compromissos de hoje (e os atrasados do mês, que já passaram)
-    if (comecaHoje) {
-        const deHoje = pares.filter(([r]) => r.data <= hj);
-        let itensAlerta = '';
-        if (alertas.length && typeof agruparEMapearAlertas === 'function' && typeof linhaAlertaHtml === 'function') {
-            const mapeados = agruparEMapearAlertas(alertas);
-            if (typeof rzOrdemAlertas === 'function') mapeados.sort(rzOrdemAlertas);
-            itensAlerta = mapeados.map(linhaAlertaHtml).join('');
-        }
-        const n = deHoje.length + (itensAlerta ? alertas.length : 0);
-        if (n) html += `<div class="rz-group rz-ag-dia rz-ag-hoje">${rotDia(hj)}<span>${n}</span></div><div class="rz-card rz-list">${itensAlerta}${blocoDoDia(deHoje)}</div>`;
-    }
-    const dias = [...new Set(pares.map(([r]) => r.data).filter(d => !comecaHoje || d > hj))].sort();
-    dias.forEach(di => {
-        const doDia = pares.filter(([r]) => r.data === di);
-        html += `<div class="rz-group rz-ag-dia">${rotDia(di)}<span>${doDia.length}</span></div><div class="rz-card rz-list">${blocoDoDia(doDia)}</div>`;
+// alertas: agrupados e desenhados pela função de sempre (linhaAlertaHtml), UMA chamada por tela; cada grupo vai para
+// o dia mais cedo dos seus alertas
+function alertasPorDia(itensAlerta) {
+    const porDia = new Map();
+    if (!itensAlerta.length || typeof agruparEMapearAlertas !== 'function' || typeof linhaAlertaHtml !== 'function') return porDia;
+    const diaDaChave = new Map(itensAlerta.map(it => [it.a.alerta_chave, it.dia]));
+    const mapeados = agruparEMapearAlertas(itensAlerta.map(it => it.a));
+    if (typeof rzOrdemAlertas === 'function') mapeados.sort(rzOrdemAlertas);
+    mapeados.forEach(m => {
+        const chaves = m.alertaChave ? [m.alertaChave] : (m.grupoChaves || []);
+        const dia = chaves.map(c => diaDaChave.get(c)).filter(Boolean).sort()[0] || iso(hoje());
+        if (!porDia.has(dia)) porDia.set(dia, []);
+        porDia.get(dia).push(linhaAlertaHtml(m));
     });
-    return html || `<p class="rz-desc rz-ag-nada">${st.status.size || st.assuntos.size ? 'Nada com este filtro.' : 'Nada marcado neste mês.'}</p>`;
+    return porDia;
+}
+const rotDia = (di) => { const d = deIso(di); return `${DIA_SEM[d.getDay()]} ${d.getDate()}${di === iso(hoje()) ? ' · hoje' : ''}`; };
+function cardDoDia(di, its, alertaHtml) {
+    const comps = its.filter(it => it.tipo === 'c');
+    return `<div class="rz-card rz-list">${(alertaHtml || []).join('')}${blocoComps(comps)}</div>`;
 }
 
-// ---- pontos por status (D7.10/Mês)
-function pontos(di) {
-    const ss = new Set(st.dados.filter(r => r.data === di && compVisivel(r)).map(statusCompromisso));
+// ---- Lista (D7.8): corrente, por dia; no mês de hoje começa em hoje
+function listaHtml() {
+    const [de, ate] = intervaloContado();
+    const its = universo(de, ate).filter(visivel);
+    const alertas = alertasPorDia(its.filter(it => it.tipo === 'a'));
+    const dias = [...new Set(its.map(it => it.dia))].sort();
+    const html = dias.map(di => {
+        const doDia = its.filter(it => it.dia === di);
+        return `<div class="rz-group rz-ag-dia${di === iso(hoje()) ? ' rz-ag-hoje' : ''}">${rotDia(di)}<span>${doDia.length}</span></div>${cardDoDia(di, doDia, alertas.get(di))}`;
+    }).join('');
+    return html || `<p class="rz-desc rz-ag-nada">${st.status.size || st.assuntos.size < ASSUNTOS.length ? 'Nada com este filtro.' : 'Nada marcado neste mês.'}</p>`;
+}
+
+// ---- pontos por status, do mesmo universo
+function pontosDe(its, di) {
+    const ss = new Set(its.filter(it => it.dia === di).map(it => it.status));
     return `<span class="rz-ag-pts">${['critico', 'atencao', 'informativo'].filter(s => ss.has(s)).map(s => `<i class="rz-ag-${s}"></i>`).join('')}</span>`;
 }
-function listaDoDia() {
+function listaDoDia(its) {
     const d = deIso(st.dia);
-    const pares = st.dados.map((r, i) => [r, i]).filter(([r]) => r.data === st.dia && compVisivel(r));
-    return `<div class="rz-group rz-ag-dia${st.dia === iso(hoje()) ? ' rz-ag-hoje' : ''}">${DIA_SEM[d.getDay()]} ${d.getDate()} de ${MESES[d.getMonth()]}<span>${pares.length || '—'}</span></div>
-        ${pares.length ? `<div class="rz-card rz-list">${blocoDoDia(pares)}</div>` : '<p class="rz-desc rz-ag-nada">Nada neste dia.</p>'}`;
+    const doDia = its.filter(it => it.dia === st.dia);
+    const alertas = alertasPorDia(doDia.filter(it => it.tipo === 'a'));
+    return `<div class="rz-group rz-ag-dia${st.dia === iso(hoje()) ? ' rz-ag-hoje' : ''}">${DIA_SEM[d.getDay()]} ${d.getDate()} de ${MESES[d.getMonth()]}<span>${doDia.length || '—'}</span></div>
+        ${doDia.length ? cardDoDia(st.dia, doDia, alertas.get(st.dia)) : '<p class="rz-desc rz-ag-nada">Nada neste dia.</p>'}`;
 }
 
 // ---- Semana (D7.9): faixa de 7 dias + resumo + dia
 function semanaHtml() {
+    const a = iso(st.semana), b = iso(somaDias(st.semana, 6));
+    const its = universo(a, b).filter(visivel);
     let faixa = '';
     for (let k = 0; k < 7; k++) {
         const d = somaDias(st.semana, k), di = iso(d);
         faixa += `<button type="button" class="rz-ag-cel${di === st.dia ? ' rz-on' : ''}${di === iso(hoje()) ? ' rz-ag-cel-hoje' : ''}" data-ag-dia="${di}">
-            <small>${DIA_SEM[d.getDay()]}</small><b>${d.getDate()}</b>${pontos(di)}</button>`;
+            <small>${DIA_SEM[d.getDay()]}</small><b>${d.getDate()}</b>${pontosDe(its, di)}</button>`;
     }
-    const a = iso(st.semana), b = iso(somaDias(st.semana, 6));
-    const daSemana = st.dados.filter(r => r.data >= a && r.data <= b && compVisivel(r));
-    const crit = daSemana.filter(r => statusCompromisso(r) === 'critico').length;
+    const crit = its.filter(it => it.status === 'critico').length;
     return `<div class="rz-ag-grade">${faixa}</div>
-        <p class="rz-ag-resumo"><b>${daSemana.length}</b> na semana${crit ? ` · <span class="rz-ag-txt-critico"><b>${crit}</b> crítico${crit > 1 ? 's' : ''}</span>` : ''}</p>${listaDoDia()}`;
+        <p class="rz-ag-resumo"><b>${its.length}</b> na semana${crit ? ` · <span class="rz-ag-txt-critico"><b>${crit}</b> crítico${crit > 1 ? 's' : ''}</span>` : ''}</p>${listaDoDia(its)}`;
 }
 
 // ---- Mês
 function mesHtml() {
-    const [de] = periodo();
+    const [de, ate] = periodo();
+    const its = universo(iso(de), iso(ate)).filter(visivel);
     const mesAtual = st.mes.getMonth();
     let grade = ['S', 'T', 'Q', 'Q', 'S', 'S', 'D'].map(s => `<div class="rz-ag-sem">${s}</div>`).join('');
     for (let k = 0; k < 42; k++) {
         const d = somaDias(de, k), di = iso(d);
         if (k >= 35 && d.getMonth() !== mesAtual) break; // 5 semanas bastam
         grade += `<button type="button" class="rz-ag-cel${d.getMonth() !== mesAtual ? ' rz-ag-fora' : ''}${di === st.dia ? ' rz-on' : ''}${di === iso(hoje()) ? ' rz-ag-cel-hoje' : ''}" data-ag-dia="${di}">
-            <b>${d.getDate()}</b>${pontos(di)}</button>`;
+            <b>${d.getDate()}</b>${pontosDe(its, di)}</button>`;
     }
-    return `<div class="rz-ag-grade">${grade}</div>${listaDoDia()}`;
+    return `<div class="rz-ag-grade">${grade}</div>${listaDoDia(its)}`;
 }
 
 // ---- eventos
@@ -288,25 +343,28 @@ function ligar() {
     ] }));
 }
 
-// Assunto (D7.11): escolha múltipla num sheet, com o número de cada um
+// Assunto (D7.11; v1.2.0 lógica do Nicola 14/10: abre com TODOS marcados, desmarca o que não quer ver)
 function abrirAssunto() {
     const marcados = new Set(st.assuntos);
-    const base = st.dados.filter(r => passaStatus(statusCompromisso(r))).map(assuntoCompromisso)
-        .concat(alertasDaLista().filter(a => passaStatus(a.severidade)).map(assuntoAlerta));
+    const [de, ate] = intervaloContado();
+    const base = universo(de, ate).filter(it => passaStatus(it.status)).map(it => it.assunto);
     const corpo = () => ASSUNTOS.map(([k, n]) => `<button type="button" class="rz-row rz-link rz-ag-op${marcados.has(k) ? ' rz-on' : ''}" data-ag-op="${k}">
             <span class="rz-ag-ck">${marcados.has(k) ? '<svg data-lucide="check"></svg>' : ''}</span>
             <div class="rz-tx"><b>${n}</b></div><span class="rz-ag-valor">${base.filter(x => x === k).length}</span></button>`).join('')
-        + `<button type="button" class="rz-btn rz-btn-1 rz-ag-bt" data-ag-aplicar>Mostrar</button>
-           <button type="button" class="rz-btn rz-ag-bt" data-ag-limpar>Limpar assunto</button>`;
-    const sh = abrirSheet(rzSheetCabecalho('Assunto', 'Escolha um ou mais') + `<div class="rz-sh-b" id="ag-ass-corpo">${corpo()}</div>`);
+        + `<button type="button" class="rz-btn rz-btn-1 rz-ag-bt" data-ag-aplicar${marcados.size ? '' : ' disabled'}>${marcados.size ? 'Mostrar' : 'Marque ao menos um'}</button>
+           <button type="button" class="rz-btn rz-ag-bt" data-ag-todos>${marcados.size === ASSUNTOS.length ? 'Desmarcar todos' : 'Marcar todos'}</button>`;
+    const sh = abrirSheet(rzSheetCabecalho('Assunto', 'Desmarque o que não quer ver') + `<div class="rz-sh-b" id="ag-ass-corpo">${corpo()}</div>`);
     const ligarOps = () => {
         const c = sh.querySelector('#ag-ass-corpo');
+        const redesenhar = () => { c.innerHTML = corpo(); ligarOps(); rzIcones(); };
         c.querySelectorAll('[data-ag-op]').forEach(o => o.addEventListener('click', () => {
-            const k = o.dataset.agOp; marcados.has(k) ? marcados.delete(k) : marcados.add(k);
-            c.innerHTML = corpo(); ligarOps(); rzIcones();
+            const k = o.dataset.agOp; marcados.has(k) ? marcados.delete(k) : marcados.add(k); redesenhar();
         }));
-        c.querySelector('[data-ag-aplicar]').addEventListener('click', () => { st.assuntos = marcados; fecharSheet(); desenhar(false); });
-        c.querySelector('[data-ag-limpar]').addEventListener('click', () => { st.assuntos = new Set(); fecharSheet(); desenhar(false); });
+        c.querySelector('[data-ag-aplicar]').addEventListener('click', () => { if (!marcados.size) return; st.assuntos = marcados; fecharSheet(); desenhar(false); });
+        c.querySelector('[data-ag-todos]').addEventListener('click', () => {
+            if (marcados.size === ASSUNTOS.length) marcados.clear(); else ASSUNTOS.forEach(a => marcados.add(a[0]));
+            redesenhar();
+        });
     };
     ligarOps(); rzIcones();
 }
@@ -340,7 +398,7 @@ async function enviarSemana() {
     const linhas = [];
     for (let k = 0; k < 7; k++) {
         const d = somaDias(ini, k), di = iso(d);
-        const doDia = dados.filter(r => r.data === di && compVisivel(r));
+        const doDia = dados.filter(r => r.data === di && passaStatus(statusCompromisso(r)) && passaAssunto(assuntoCompromisso(r)));
         if (!doDia.length) continue;
         linhas.push(`*${DIA_SEM[d.getDay()]} ${d.getDate()}/${String(d.getMonth() + 1).padStart(2, '0')}*`);
         doDia.forEach(r => linhas.push(`• ${r.hora ? String(r.hora).slice(0, 5) + ' ' : ''}${r.titulo}${r.valor != null ? ' · ' + moeda(r.valor) : ''}${r.atrasado ? ' (atrasado)' : ''}`));
