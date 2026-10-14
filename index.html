@@ -6,9 +6,16 @@
    (base derivada do RUMO v7.4.2 — histórico de versões anteriores
    preservado abaixo para referência técnica)
 
-   VERSÃO: Beta v1.405.0
-   LINHAS: 16668
-   DATA: 14/10/2026 (sessão 20261014-0830-upload-rapido, demanda 7b0d407b)
+   VERSÃO: Beta v1.406.0
+   LINHAS: 16690
+   DATA: 14/10/2026 (sessão 20261014-0055-agenda-vistas, demanda a05ad2ee)
+   NOVIDADES (Beta v1.406.0) — Agenda: revisão das três vistas (FICHA_ONDA_7_AGENDA_RAIZ v1.2.0 §7–§8, de acordo do
+   Nicola 14/10 00:51). A Agenda inteira vem de js/agenda.js 1.1.0: topo no padrão do Financeiro (período como título e
+   ⋮; depois Lista · Semana · Mês); filtros de status (Crítico · Atenção · Informativo) e Assunto (Ativos, Itens de
+   controle, Contratos e usos, Ocorrências, Financeiro, Documentos); Lista corrente por dia começando em hoje, com os
+   alertas de sempre (mesmo desenho e gestos) e os compromissos, sem repetir; Semana em faixa de 7 dias + dia; Mês com
+   pontos por status; dia por hora pronto para o registro do dia. Regras de alerta intocadas. Sem banco.
+   Versão anterior (Beta v1.405.0):
    NOVIDADES (Beta v1.405.0) — Upload de documento mais curto (demanda 7b0d407b, "De acordo" do Nicola 14/10 08:24). A tela
    "Confira o documento" ganha a confirmação rápida: documento de pessoa (passaporte, visto, CNH, RG) lido com confiança vira
    um cartão com titular, número, emissão → validade e aviso, e o botão "Confirmar e controlar"; "Editar detalhes" abre o
@@ -36,12 +43,8 @@
    agora". Usa fn_ativo_pessoa_vincular e fn_ativo_pessoa_garantir (F16), que não tinham tela. Aqui só muda o import map
    (cofre-ativos.js 1.100.0, cofre-controles.js 1.57.0, comum-pessoas.js 1.212.0). Nenhum objeto de banco.
    Versão anterior (Beta v1.401.0):
-   NOVIDADES (Beta v1.401.0) — Raiz IA "no fundo" (Nicola 14/10 00:00, demanda a2f4980a): o que a IA abre — Nova saída,
-   ocorrência, busca, "Qual destes?", atalhos — volta para a Raiz IA quando fecha, salvando ou não (rzIaVoltarAoFechar).
-   Escolher um resultado da busca leva à ficha e encerra a volta. Sem banco.
-   Versão anterior (Beta v1.400.0):
    ------------------------------------------------------------------
-   Versões anteriores (v1.400.0 … v1.400.0): CHANGELOG_APP.md, na raiz do
+   Versões anteriores (v1.401.0 … v1.401.0): CHANGELOG_APP.md, na raiz do
    repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
    das 5 versões mais recentes deste cabeçalho.
 
@@ -69,7 +72,7 @@
          O navegador aplica o mapa também aos imports estáticos dentro dos
          módulos (cofre-app.js → ./cofre-api.js etc.). -->
     <!-- RZ-IMPORTMAP:INICIO -->
-    <script type="importmap">{"imports":{"./js/cadastros.js":"./js/cadastros.js?v=1.2.0","./js/financeiro.js":"./js/financeiro.js?v=1.61.0","./js/fechamento.js":"./js/fechamento.js?v=1.13.0","./js/contratos.js":"./js/contratos.js?v=1.57.0","./js/minutas.js":"./js/minutas.js?v=1.4.0","./js/vitrine.js":"./js/vitrine.js?v=1.5.2","./js/imoveis.js":"./js/imoveis.js?v=1.7.2","./js/cofre-api.js":"./js/cofre-api.js?v=1.50.0","./js/cofre-app.js":"./js/cofre-app.js?v=1.48.0","./js/cofre-ativos.js":"./js/cofre-ativos.js?v=1.101.0","./js/cofre-controles.js":"./js/cofre-controles.js?v=1.57.0","./js/cofre-documentos.js":"./js/cofre-documentos.js?v=2.36.0","./js/cofre-imagem.js":"./js/cofre-imagem.js?v=1.1.0","./js/cofre-estado.js":"./js/cofre-estado.js?v=1.5.2","./js/cofre-navegacao.js":"./js/cofre-navegacao.js?v=1.9.3","./js/cofre-ui.js":"./js/cofre-ui.js?v=1.7.2","./js/cofre-validacoes.js":"./js/cofre-validacoes.js?v=2.5.0","./js/comum-licenca.js":"./js/comum-licenca.js?v=1.8.0","./js/comum-renovacao.js":"./js/comum-renovacao.js?v=1.3.5","./js/comum-minha-empresa.js":"./js/comum-minha-empresa.js?v=1.16.0","./js/comum-pessoas.js":"./js/comum-pessoas.js?v=1.212.0","./js/comum-sobre.js":"./js/comum-sobre.js?v=1.5.0","./js/comum-endereco.js":"./js/comum-endereco.js?v=1.2.0","./js/comum-partes.js":"./js/comum-partes.js?v=1.0.0","./js/resultados.js":"./js/resultados.js?v=2.9.0","./js/indicadores.js":"./js/indicadores.js?v=1.1.0","./js/configuracao-inicial.js":"./js/configuracao-inicial.js?v=1.0.1","./js/relatorios-executivos.js":"./js/relatorios-executivos.js?v=1.3.0","./js/raiz-eventos.js":"./js/raiz-eventos.js?v=1.0.0","./js/raiz-device.js":"./js/raiz-device.js?v=1.1.0","./js/raiz-ui.js":"./js/raiz-ui.js?v=1.4.0","./js/fiscal.js":"./js/fiscal.js?v=1.5.2","./js/ativos/ativos-boot.js":"./js/ativos/ativos-boot.js?v=1.4.0","./js/ativos/ativos-markup.js":"./js/ativos/ativos-markup.js?v=1.62.0","./js/nucleo/porta.js":"./js/nucleo/porta.js?v=1.5.0","./js/partes.js":"./js/partes.js?v=1.0.2","./js/conta.js":"./js/conta.js?v=1.0.1","./js/grupo-visao.js":"./js/grupo-visao.js?v=1.0.0","./js/agenda.js":"./js/agenda.js?v=1.0.0"}}</script>
+    <script type="importmap">{"imports":{"./js/cadastros.js":"./js/cadastros.js?v=1.2.0","./js/financeiro.js":"./js/financeiro.js?v=1.61.0","./js/fechamento.js":"./js/fechamento.js?v=1.13.0","./js/contratos.js":"./js/contratos.js?v=1.57.0","./js/minutas.js":"./js/minutas.js?v=1.4.0","./js/vitrine.js":"./js/vitrine.js?v=1.5.2","./js/imoveis.js":"./js/imoveis.js?v=1.7.2","./js/cofre-api.js":"./js/cofre-api.js?v=1.50.0","./js/cofre-app.js":"./js/cofre-app.js?v=1.48.0","./js/cofre-ativos.js":"./js/cofre-ativos.js?v=1.101.0","./js/cofre-controles.js":"./js/cofre-controles.js?v=1.57.0","./js/cofre-documentos.js":"./js/cofre-documentos.js?v=2.36.0","./js/cofre-imagem.js":"./js/cofre-imagem.js?v=1.1.0","./js/cofre-estado.js":"./js/cofre-estado.js?v=1.5.2","./js/cofre-navegacao.js":"./js/cofre-navegacao.js?v=1.9.3","./js/cofre-ui.js":"./js/cofre-ui.js?v=1.7.2","./js/cofre-validacoes.js":"./js/cofre-validacoes.js?v=2.5.0","./js/comum-licenca.js":"./js/comum-licenca.js?v=1.8.0","./js/comum-renovacao.js":"./js/comum-renovacao.js?v=1.3.5","./js/comum-minha-empresa.js":"./js/comum-minha-empresa.js?v=1.16.0","./js/comum-pessoas.js":"./js/comum-pessoas.js?v=1.212.0","./js/comum-sobre.js":"./js/comum-sobre.js?v=1.5.0","./js/comum-endereco.js":"./js/comum-endereco.js?v=1.2.0","./js/comum-partes.js":"./js/comum-partes.js?v=1.0.0","./js/resultados.js":"./js/resultados.js?v=2.9.0","./js/indicadores.js":"./js/indicadores.js?v=1.1.0","./js/configuracao-inicial.js":"./js/configuracao-inicial.js?v=1.0.1","./js/relatorios-executivos.js":"./js/relatorios-executivos.js?v=1.3.0","./js/raiz-eventos.js":"./js/raiz-eventos.js?v=1.0.0","./js/raiz-device.js":"./js/raiz-device.js?v=1.1.0","./js/raiz-ui.js":"./js/raiz-ui.js?v=1.4.0","./js/fiscal.js":"./js/fiscal.js?v=1.5.2","./js/ativos/ativos-boot.js":"./js/ativos/ativos-boot.js?v=1.4.0","./js/ativos/ativos-markup.js":"./js/ativos/ativos-markup.js?v=1.62.0","./js/nucleo/porta.js":"./js/nucleo/porta.js?v=1.5.0","./js/partes.js":"./js/partes.js?v=1.0.2","./js/conta.js":"./js/conta.js?v=1.0.1","./js/grupo-visao.js":"./js/grupo-visao.js?v=1.0.0","./js/agenda.js":"./js/agenda.js?v=1.1.0"}}</script>
     <!-- RZ-IMPORTMAP:FIM -->
 
     <!-- ===== PWA: permite "instalar" o app no celular (Android e iPhone) ===== -->
@@ -1476,8 +1479,31 @@
         .rz-ag-cel{display:flex;flex-direction:column;align-items:center;justify-content:flex-start;gap:4px;min-height:48px;padding:6px 0 4px;border:0;border-radius:10px;background:var(--card);font:inherit;color:var(--ink);cursor:pointer}
         .rz-ag-cel b{font-size:14px;font-weight:600;line-height:1}
         .rz-ag-cel.rz-ag-fora{opacity:.4}
-        .rz-ag-cel.rz-ag-hoje b{color:var(--ramo-acc)}
-        .rz-ag-cel.rz-ag-atraso b{color:var(--danger)}
+        .rz-ag-cel.rz-ag-cel-hoje b{color:var(--ramo-acc)}
+        .rz-ag-cel small{font-size:10.5px;font-weight:600;color:var(--muted)}
+        .rz-ag-cel.rz-on small{color:#fff}
+        .rz-ag-cel.rz-on .rz-ag-pts i{box-shadow:0 0 0 1.5px #fff}
+        /* v1.406.0 — status da Agenda (D7.10): crítico = --danger, atenção = --warning, informativo = --info */
+        .rz-ag-pt{width:8px;height:8px;border-radius:50%;flex:none}
+        .rz-ag-pt.rz-ag-critico,.rz-ag-pts i.rz-ag-critico{background:var(--danger)}
+        .rz-ag-pt.rz-ag-atencao,.rz-ag-pts i.rz-ag-atencao{background:var(--warning)}
+        .rz-ag-pt.rz-ag-informativo,.rz-ag-pts i.rz-ag-informativo{background:var(--info)}
+        .rz-chip.rz-on .rz-ag-pt{box-shadow:0 0 0 2px #fff}
+        .rz-ag-chips .rz-ag-ass{border-style:dashed}.rz-ag-chips .rz-ag-ass.rz-on{border-style:solid}
+        .rz-ag-chips .rz-ag-ass svg{width:14px;height:14px}
+        .rz-ag-linha.rz-ag-critico .rz-ic{background:var(--danger-bg);color:var(--danger)}
+        .rz-ag-linha.rz-ag-critico .rz-tx span{color:var(--danger)}
+        .rz-ag-linha.rz-ag-atencao .rz-ic{background:var(--warning-bg);color:var(--warning)}
+        .rz-ag-linha.rz-ag-informativo .rz-ic{background:var(--info-bg);color:var(--info)}
+        .rz-ag-resumo{font-size:12.5px;color:var(--muted);margin:2px 2px 0}.rz-ag-resumo b{color:var(--ink)}
+        .rz-ag-txt-critico,.rz-ag-txt-critico b{color:var(--danger)!important}
+        .rz-ag-hora{font-size:11.5px;font-weight:700;color:var(--sage);padding:10px 0 2px;border-top:1px solid var(--line)}
+        .rz-ag-hora:first-child{border-top:0}
+        .rz-ag-op{width:100%;background:none;border-left:0;border-right:0;border-bottom:0;text-align:left;font:inherit;color:inherit}
+        .rz-ag-ck{width:22px;height:22px;border-radius:6px;border:1.5px solid var(--line);display:flex;align-items:center;justify-content:center;flex:none;color:#fff}
+        .rz-ag-op.rz-on .rz-ag-ck{background:var(--ramo-hdr);border-color:var(--ramo-hdr)}
+        .rz-ag-ck svg{width:15px;height:15px}
+        .rz-ag-bt{width:100%;margin-top:10px}
         .rz-ag-cel.rz-on{background:var(--ramo-hdr);color:#fff}
         .rz-ag-cel.rz-on b{color:#fff}
         .rz-ag-pts{display:flex;gap:3px;height:6px}
@@ -3811,19 +3837,17 @@
                  viraram chips dentro do Sheet de busca (rzAbrirBuscaAlertas). (dem fcd3008d) -->
             <!-- v1.403.0 — ONDA 7a (FICHA_ONDA_7_AGENDA_RAIZ v1.0.0): Lista · Semana · Mês. A Lista é a de sempre (alertas);
                  Semana e Mês desenham em #agenda-cal pelo módulo js/agenda.js (fn_agenda_periodo). -->
-            <div class="rz-vista" role="tablist" aria-label="Vista da agenda" id="agenda-vistas">
-                <button type="button" class="rz-on" data-agv="lista" onclick="rzAgendaVista('lista')">Lista</button>
-                <button type="button" data-agv="semana" onclick="rzAgendaVista('semana')">Semana</button>
-                <button type="button" data-agv="mes" onclick="rzAgendaVista('mes')">Mês</button>
-            </div>
-            <div id="agenda-lista">
+            <!-- v1.406.0 — FICHA_ONDA_7_AGENDA v1.2.0: a Agenda inteira (período, vistas, filtros, Lista/Semana/Mês) vem de
+                 js/agenda.js em #agenda-cal. O bloco antigo de alertas fica escondido: montarAlertasPatrimonio continua
+                 carregando os alertas (a Lista os mostra com o mesmo desenho e gestos) e o número da aba. -->
+            <div id="agenda-lista" hidden>
             <div class="rz-topo">
                 <button type="button" class="rz-search" id="alertas-busca-btn" onclick="rzAbrirBuscaAlertas()" aria-label="Buscar alerta"><svg data-lucide="search"></svg><span>Buscar alerta por bem, contrato ou assunto</span></button>
             </div>
             <div id="alertas-seg-severidade" class="rz-seg"></div>
             <div id="alertas-patrimonio-mount"></div>
             </div>
-            <div id="agenda-cal" hidden></div>
+            <div id="agenda-cal"></div>
 
         </section>
 
@@ -4221,7 +4245,7 @@
         // texto certo toda vez (esqueci 5 versões seguidas, de v1.37.1 até
         // v1.38.3). Agora só precisa mudar UMA linha aqui a cada release;
         // window.onload aplica nos dois lugares automaticamente.
-        const APP_VERSAO = "Beta v1.405.0"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
+        const APP_VERSAO = "Beta v1.406.0"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
 
         // ====================================================================
         // v1.105.0 — HELPERS DE SUPERFÍCIE DA GRAMÁTICA ÚNICA
@@ -9060,7 +9084,7 @@ async function criarLinkVitrineSupabase(token, idsSelecionados) {
                 await new Promise(r => setTimeout(r, 700));
             },
             'tab-relatorios': async () => { const m = await carregarResultados(); await m.renderResultados(); },
-            'tab-alertas': async () => { await montarAlertasPatrimonio(); if (rzAgendaVistaAtual !== 'lista') rzAgendaVista(rzAgendaVistaAtual); }, // v1.403.0
+            'tab-alertas': async () => { await montarAlertasPatrimonio(); rzAgendaVista(); }, // v1.406.0 — a Agenda é do módulo
             'tab-partes': async () => { await carregarPartes(); },
         };
         function rzPtrPodeNaAba() {
@@ -9295,6 +9319,7 @@ async function criarLinkVitrineSupabase(token, idsSelecionados) {
             // v1.96.3 (pedido explícito) — Alertas: mesmo padrão.
             if (tabId === 'tab-alertas' && typeof montarAlertasPatrimonio === 'function') {
                 montarAlertasPatrimonio();
+                rzAgendaVista(); // v1.406.0 — a Agenda (período, vistas, filtros) vem de js/agenda.js
             }
             // v1.103.0 (02/09/2026) — BUG REAL corrigido, achado pelo
             // Nicola: "há despesas lançadas que, ao atualizar a tela não
@@ -12510,15 +12535,11 @@ async function criarLinkVitrineSupabase(token, idsSelecionados) {
         }
 
         // v1.403.0 — ONDA 7a: vista da Agenda. Lista = alertas (como sempre); Semana e Mês = js/agenda.js (lazy, UI-05).
-        let rzAgendaVistaAtual = 'lista';
+        // v1.406.0 — a vista (Lista · Semana · Mês) é guardada pelo módulo; sem argumento, mantém a atual.
         async function rzAgendaVista(v) {
-            rzAgendaVistaAtual = ['semana', 'mes'].includes(v) ? v : 'lista';
-            document.querySelectorAll('#agenda-vistas [data-agv]').forEach(b => b.classList.toggle('rz-on', b.dataset.agv === rzAgendaVistaAtual));
-            const lista = document.getElementById('agenda-lista'), cal = document.getElementById('agenda-cal');
-            if (lista) lista.hidden = rzAgendaVistaAtual !== 'lista';
-            if (cal) cal.hidden = rzAgendaVistaAtual === 'lista';
-            if (rzAgendaVistaAtual === 'lista' || !cal) return;
-            try { const m = await import('./js/agenda.js'); await m.montarAgenda(rzAgendaVistaAtual, cal); }
+            const cal = document.getElementById('agenda-cal');
+            if (!cal) return;
+            try { const m = await import('./js/agenda.js'); await m.montarAgenda(v || null, cal); }
             catch (e) { console.error('[agenda]', e); cal.innerHTML = '<p class="rz-desc" style="text-align:center;padding:24px 0">Não consegui abrir a agenda agora.</p>'; }
         }
         async function montarAlertasPatrimonio() {
@@ -12580,6 +12601,7 @@ async function criarLinkVitrineSupabase(token, idsSelecionados) {
             const totalAbertos = Array.from(alertasContagemPorCategoria.values()).reduce((a, b) => a + b, 0);
             const elContagem = document.getElementById('alertas-contagem-header');
             if (elContagem) elContagem.textContent = totalAbertos ? ` · ${totalAbertos} aberto${totalAbertos > 1 ? 's' : ''}` : '';
+            if (typeof window.rzAgendaRedesenhar === 'function') window.rzAgendaRedesenhar(); // v1.406.0 — a Lista da Agenda acompanha (visto, adiar, dispensar)
         }
 
         function filtrarAlertasPorSeveridade(severidade) {
