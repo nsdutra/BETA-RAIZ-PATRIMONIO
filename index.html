@@ -6,9 +6,14 @@
    (base derivada do RUMO v7.4.2 — histórico de versões anteriores
    preservado abaixo para referência técnica)
 
-   VERSÃO: Beta v1.410.0
-   LINHAS: 16715
-   DATA: 14/10/2026 (sessão 20261014-1020-usos-fatia3, demanda 3022603b)
+   VERSÃO: Beta v1.411.0
+   LINHAS: 16775
+   DATA: 14/10/2026 (sessão 20261014-1320-onda8b-lista-ficha, demanda a05ad2ee)
+   NOVIDADES (Beta v1.411.0) — ONDA 8b do estudo PROTOTIPO_UX_DENSIDADE_RAMOS_RAIZ v1.2.0 (D15, computador): em Ativos e
+   Contratos, a partir de 1024 px, a ficha abre ao lado da lista (lista à esquerda, 360 px, rolando sozinha e com o item
+   aberto marcado; ficha à direita). O "‹ Ativos/Contratos" da ficha some porque a lista está à vista. No celular nada
+   muda. Sem banco e sem mexer nos módulos.
+   Versão anterior (Beta v1.410.0):
    NOVIDADES (Beta v1.410.0) — Usos, fatia 3 (FICHA_FATIA3_SUBATIVOS_RAIZ v1.1.0, de acordo do Nicola 14/10): um ativo
    principal tem unidades (Imóveis), áreas (Agro e Pecuária) ou integrantes (Família), cada um com uso, contrato, itens e
    status próprios. js/cofre-ativos.js 1.102.0 (card no Resumo, ⋮ Adicionar e Vincular, "Tirar de", pergunta seguem ou
@@ -29,15 +34,8 @@
    vencem; status do alerta no filtro = o que a linha mostra (vencido = crítico), sem mudar regra de alerta; Assunto
    abre com todos marcados (desmarca o que não quer). Só o módulo muda; o index ganha a versão e o import map.
    Versão anterior (Beta v1.406.0):
-   NOVIDADES (Beta v1.406.0) — Agenda: revisão das três vistas (FICHA_ONDA_7_AGENDA_RAIZ v1.2.0 §7–§8, de acordo do
-   Nicola 14/10 00:51). A Agenda inteira vem de js/agenda.js 1.1.0: topo no padrão do Financeiro (período como título e
-   ⋮; depois Lista · Semana · Mês); filtros de status (Crítico · Atenção · Informativo) e Assunto (Ativos, Itens de
-   controle, Contratos e usos, Ocorrências, Financeiro, Documentos); Lista corrente por dia começando em hoje, com os
-   alertas de sempre (mesmo desenho e gestos) e os compromissos, sem repetir; Semana em faixa de 7 dias + dia; Mês com
-   pontos por status; dia por hora pronto para o registro do dia. Regras de alerta intocadas. Sem banco.
-   Versão anterior (Beta v1.405.0):
    ------------------------------------------------------------------
-   Versões anteriores (v1.405.0 … v1.405.0): CHANGELOG_APP.md, na raiz do
+   Versões anteriores (v1.406.0 … v1.406.0): CHANGELOG_APP.md, na raiz do
    repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
    das 5 versões mais recentes deste cabeçalho.
 
@@ -65,7 +63,7 @@
          O navegador aplica o mapa também aos imports estáticos dentro dos
          módulos (cofre-app.js → ./cofre-api.js etc.). -->
     <!-- RZ-IMPORTMAP:INICIO -->
-    <script type="importmap">{"imports":{"./js/cadastros.js":"./js/cadastros.js?v=1.2.0","./js/financeiro.js":"./js/financeiro.js?v=1.61.0","./js/fechamento.js":"./js/fechamento.js?v=1.13.0","./js/contratos.js":"./js/contratos.js?v=1.57.0","./js/minutas.js":"./js/minutas.js?v=1.4.0","./js/vitrine.js":"./js/vitrine.js?v=1.5.2","./js/imoveis.js":"./js/imoveis.js?v=1.7.2","./js/cofre-api.js":"./js/cofre-api.js?v=1.51.0","./js/cofre-app.js":"./js/cofre-app.js?v=1.48.0","./js/cofre-ativos.js":"./js/cofre-ativos.js?v=1.102.0","./js/cofre-controles.js":"./js/cofre-controles.js?v=1.57.0","./js/cofre-documentos.js":"./js/cofre-documentos.js?v=2.36.0","./js/cofre-imagem.js":"./js/cofre-imagem.js?v=1.1.0","./js/cofre-estado.js":"./js/cofre-estado.js?v=1.5.2","./js/cofre-navegacao.js":"./js/cofre-navegacao.js?v=1.9.3","./js/cofre-ui.js":"./js/cofre-ui.js?v=1.7.2","./js/cofre-validacoes.js":"./js/cofre-validacoes.js?v=2.5.0","./js/comum-licenca.js":"./js/comum-licenca.js?v=1.8.0","./js/comum-renovacao.js":"./js/comum-renovacao.js?v=1.3.5","./js/comum-minha-empresa.js":"./js/comum-minha-empresa.js?v=1.16.0","./js/comum-pessoas.js":"./js/comum-pessoas.js?v=1.212.0","./js/comum-sobre.js":"./js/comum-sobre.js?v=1.5.0","./js/comum-endereco.js":"./js/comum-endereco.js?v=1.2.0","./js/comum-partes.js":"./js/comum-partes.js?v=1.0.0","./js/resultados.js":"./js/resultados.js?v=2.9.0","./js/indicadores.js":"./js/indicadores.js?v=1.1.0","./js/configuracao-inicial.js":"./js/configuracao-inicial.js?v=1.0.1","./js/relatorios-executivos.js":"./js/relatorios-executivos.js?v=1.3.0","./js/raiz-eventos.js":"./js/raiz-eventos.js?v=1.0.0","./js/raiz-device.js":"./js/raiz-device.js?v=1.1.0","./js/raiz-ui.js":"./js/raiz-ui.js?v=1.4.0","./js/fiscal.js":"./js/fiscal.js?v=1.5.2","./js/ativos/ativos-boot.js":"./js/ativos/ativos-boot.js?v=1.4.0","./js/ativos/ativos-markup.js":"./js/ativos/ativos-markup.js?v=1.62.0","./js/nucleo/porta.js":"./js/nucleo/porta.js?v=1.5.0","./js/partes.js":"./js/partes.js?v=1.0.2","./js/conta.js":"./js/conta.js?v=1.0.1","./js/grupo-visao.js":"./js/grupo-visao.js?v=1.0.0"}}</script>
+    <script type="importmap">{"imports":{"./js/cadastros.js":"./js/cadastros.js?v=1.2.0","./js/financeiro.js":"./js/financeiro.js?v=1.61.0","./js/fechamento.js":"./js/fechamento.js?v=1.13.0","./js/contratos.js":"./js/contratos.js?v=1.57.0","./js/minutas.js":"./js/minutas.js?v=1.4.0","./js/vitrine.js":"./js/vitrine.js?v=1.5.2","./js/imoveis.js":"./js/imoveis.js?v=1.7.2","./js/cofre-api.js":"./js/cofre-api.js?v=1.51.0","./js/cofre-app.js":"./js/cofre-app.js?v=1.48.0","./js/cofre-ativos.js":"./js/cofre-ativos.js?v=1.102.0","./js/cofre-controles.js":"./js/cofre-controles.js?v=1.57.0","./js/cofre-documentos.js":"./js/cofre-documentos.js?v=2.36.0","./js/cofre-imagem.js":"./js/cofre-imagem.js?v=1.1.0","./js/cofre-estado.js":"./js/cofre-estado.js?v=1.5.2","./js/cofre-navegacao.js":"./js/cofre-navegacao.js?v=1.9.3","./js/cofre-ui.js":"./js/cofre-ui.js?v=1.7.2","./js/cofre-validacoes.js":"./js/cofre-validacoes.js?v=2.5.0","./js/comum-licenca.js":"./js/comum-licenca.js?v=1.8.0","./js/comum-renovacao.js":"./js/comum-renovacao.js?v=1.3.5","./js/comum-minha-empresa.js":"./js/comum-minha-empresa.js?v=1.16.0","./js/comum-pessoas.js":"./js/comum-pessoas.js?v=1.212.0","./js/comum-sobre.js":"./js/comum-sobre.js?v=1.5.0","./js/comum-endereco.js":"./js/comum-endereco.js?v=1.2.0","./js/comum-partes.js":"./js/comum-partes.js?v=1.0.0","./js/resultados.js":"./js/resultados.js?v=2.9.0","./js/indicadores.js":"./js/indicadores.js?v=1.1.0","./js/configuracao-inicial.js":"./js/configuracao-inicial.js?v=1.0.1","./js/relatorios-executivos.js":"./js/relatorios-executivos.js?v=1.3.0","./js/raiz-eventos.js":"./js/raiz-eventos.js?v=1.0.0","./js/raiz-device.js":"./js/raiz-device.js?v=1.1.0","./js/raiz-ui.js":"./js/raiz-ui.js?v=1.4.0","./js/fiscal.js":"./js/fiscal.js?v=1.5.2","./js/ativos/ativos-boot.js":"./js/ativos/ativos-boot.js?v=1.4.0","./js/ativos/ativos-markup.js":"./js/ativos/ativos-markup.js?v=1.62.0","./js/nucleo/porta.js":"./js/nucleo/porta.js?v=1.5.0","./js/partes.js":"./js/partes.js?v=1.0.2","./js/conta.js":"./js/conta.js?v=1.0.1","./js/grupo-visao.js":"./js/grupo-visao.js?v=1.0.0","./js/agenda.js":"./js/agenda.js?v=1.3.0"}}</script>
     <!-- RZ-IMPORTMAP:FIM -->
 
     <!-- ===== PWA: permite "instalar" o app no celular (Android e iPhone) ===== -->
@@ -1524,6 +1522,25 @@
             .rz-sheet{max-width:460px;height:100vh;height:100dvh;max-height:none;border-radius:20px 0 0 20px;transform:translateX(32px)}
             .rz-veil.rz-on .rz-sheet{transform:none}
             .rz-sheet .rz-grab{display:none}
+        }
+        /* v1.411.0 — ONDA 8b (estudo D15, computador): em Ativos e Contratos a ficha abre AO LADO da lista. A lista fica
+           numa coluna à esquerda (360 px, rola sozinha e marca o item aberto) e a ficha à direita; o "‹ Ativos/Contratos"
+           da ficha some porque a lista está à vista. As classes rz-split-* só são postas por rzSplitAtualizar() a partir de
+           1024 px; no celular nada muda. */
+        @media (min-width:1024px){
+            body.rz-split #main-content{max-width:1180px!important;margin-left:calc(232px + max(24px, (100vw - 232px - 1180px) / 2))!important}
+            body.rz-split-con #main-content,
+            body.rz-split-at #app-cofre > main{display:grid;grid-template-columns:minmax(300px,360px) minmax(0,1fr);column-gap:24px;align-items:start}
+            body.rz-split-con #main-content > *,
+            body.rz-split-at #app-cofre > main > *{grid-column:1 / -1}
+            body.rz-split-con #tab-contratos,
+            body.rz-split-at #app-cofre > main > [data-screen="ativos"]{display:block!important;grid-column:1;grid-row:1;position:sticky;top:calc(var(--rz-hdr-h,72px) + 12px);
+                max-height:calc(100dvh - var(--rz-hdr-h,72px) - 24px);overflow-y:auto;overscroll-behavior:contain;padding:6px 4px 12px 2px;scrollbar-width:thin}
+            body.rz-split-con #tab-contrato-ficha,
+            body.rz-split-at #app-cofre > main > [data-screen="ficha-ativo"]{grid-column:2;grid-row:1;min-width:0}
+            body.rz-split-con #fc-voltar,
+            body.rz-split-at [data-screen="ficha-ativo"] > [data-action="voltar-ficha-ativo"]{display:none!important}
+            body.rz-split .rz-row.rz-split-sel{background:var(--tile);box-shadow:inset 3px 0 0 var(--ramo-acc,var(--sprout));border-radius:10px}
         }
         /* v1.391.0 — ONDA 6a: campo único da Raiz IA (texto + voz) e atalhos */
         .rz-ia-campo{display:flex;align-items:flex-end;gap:6px;border:1.5px solid var(--brass);border-radius:22px;padding:6px 6px 6px 14px;background:var(--card);margin:2px 0 6px}
@@ -4261,7 +4278,7 @@
         // texto certo toda vez (esqueci 5 versões seguidas, de v1.37.1 até
         // v1.38.3). Agora só precisa mudar UMA linha aqui a cada release;
         // window.onload aplica nos dois lugares automaticamente.
-        const APP_VERSAO = "Beta v1.410.0"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
+        const APP_VERSAO = "Beta v1.411.0"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
 
         // ====================================================================
         // v1.105.0 — HELPERS DE SUPERFÍCIE DA GRAMÁTICA ÚNICA
@@ -12552,6 +12569,49 @@ async function criarLinkVitrineSupabase(token, idsSelecionados) {
         }
 
         // v1.403.0 — ONDA 7a: vista da Agenda. Lista = alertas (como sempre); Semana e Mês = js/agenda.js (lazy, UI-05).
+        // v1.411.0 — ONDA 8b: lista + ficha lado a lado no computador (Ativos e Contratos). Liga as classes rz-split-* no
+        // body quando a ficha está aberta e a janela tem 1024 px ou mais; marca na lista o item aberto. Não muda os módulos:
+        // observa a troca de tela (classes) e lembra o id aberto pelo toque na lista ou pelas funções globais de abrir ficha.
+        (function rzSplitIniciar(){
+            const mq = window.matchMedia('(min-width:1024px)');
+            const sel = { con: null, at: null };
+            let agendado = false;
+            const por = (el, c, v) => { if (el && el.classList.contains(c) !== !!v) el.classList.toggle(c, !!v); };
+            function embrulhar(){
+                const f = window.abrirFichaContrato;
+                if (typeof f === 'function' && !f.__rzSplit) { const g = function(id){ sel.con = id; return f.apply(this, arguments); }; g.__rzSplit = true; window.abrirFichaContrato = g; }
+                const a = window.abrirFichaAtivoNoChip;
+                if (typeof a === 'function' && !a.__rzSplit) { const h = function(id){ sel.at = id; return a.apply(this, arguments); }; h.__rzSplit = true; window.abrirFichaAtivoNoChip = h; }
+            }
+            function marcar(lista, ehSel){ if (!lista) return; lista.querySelectorAll('.rz-row.rz-link').forEach(r => por(r, 'rz-split-sel', ehSel(r))); }
+            function rzSplitAtualizar(){
+                agendado = false; embrulhar();
+                const desk = mq.matches;
+                const con = desk && !!document.getElementById('tab-contrato-ficha')?.classList.contains('active');
+                const fa = document.querySelector('[data-screen="ficha-ativo"]');
+                const at = desk && !!document.getElementById('tab-ativos')?.classList.contains('active') && !!fa && !fa.classList.contains('hidden');
+                const b = document.body;
+                por(b, 'rz-split-con', con); por(b, 'rz-split-at', at); por(b, 'rz-split', con || at);
+                if (!(con || at)) return;
+                const h = document.getElementById('main-header')?.offsetHeight || 72;
+                if (document.documentElement.style.getPropertyValue('--rz-hdr-h') !== h + 'px') document.documentElement.style.setProperty('--rz-hdr-h', h + 'px');
+                if (con) {
+                    const l = document.getElementById('lista-contratos');
+                    if (l && !l.children.length && typeof window.renderContratos === 'function') { try { window.renderContratos(); } catch (e) { console.warn('[split] lista de contratos:', e?.message || e); } }
+                    marcar(l, r => !!sel.con && (r.getAttribute('onclick') || '').includes("'" + sel.con + "'"));
+                }
+                if (at) marcar(document.querySelector('[data-screen="ativos"]'), r => !!sel.at && r.dataset.id === sel.at);
+            }
+            const agendar = () => { if (!agendado) { agendado = true; requestAnimationFrame(rzSplitAtualizar); } };
+            document.addEventListener('click', ev => {
+                const r = ev.target.closest && ev.target.closest('[data-action="abrir-ativo"][data-id]');
+                if (r) { sel.at = r.dataset.id; agendar(); }
+            }, true);
+            try { mq.addEventListener('change', agendar); } catch (_) { mq.addListener(agendar); }
+            const raiz = document.getElementById('main-content');
+            if (raiz) new MutationObserver(agendar).observe(raiz, { subtree: true, childList: true, attributes: true, attributeFilter: ['class'] });
+            window.rzSplitAtualizar = agendar;
+        })();
         // v1.409.0 — ONDA 8a: Ctrl/⌘ K abre a busca no computador (registrado uma vez, no carregamento)
         document.addEventListener('keydown', ev => {
             if ((ev.ctrlKey || ev.metaKey) && !ev.altKey && String(ev.key).toLowerCase() === 'k') {

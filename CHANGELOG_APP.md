@@ -4,6 +4,20 @@ Histórico completo de versões do `index.html`, movido automaticamente pelo `ge
 
 ---
 
+NOVIDADES (Beta v1.406.0) — Agenda: revisão das três vistas (FICHA_ONDA_7_AGENDA_RAIZ v1.2.0 §7–§8, de acordo do
+Nicola 14/10 00:51). A Agenda inteira vem de js/agenda.js 1.1.0: topo no padrão do Financeiro (período como título e
+⋮; depois Lista · Semana · Mês); filtros de status (Crítico · Atenção · Informativo) e Assunto (Ativos, Itens de
+controle, Contratos e usos, Ocorrências, Financeiro, Documentos); Lista corrente por dia começando em hoje, com os
+alertas de sempre (mesmo desenho e gestos) e os compromissos, sem repetir; Semana em faixa de 7 dias + dia; Mês com
+pontos por status; dia por hora pronto para o registro do dia. Regras de alerta intocadas. Sem banco.
+Versão anterior (Beta v1.405.0):
+------------------------------------------------------------------
+Versões anteriores (v1.405.0 … v1.405.0): CHANGELOG_APP.md, na raiz do
+repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
+das 5 versões mais recentes deste cabeçalho.
+
+---
+
 NOVIDADES (Beta v1.405.0) — Upload de documento mais curto (demanda 7b0d407b, "De acordo" do Nicola 14/10 08:24). A tela
 "Confira o documento" ganha a confirmação rápida: documento de pessoa (passaporte, visto, CNH, RG) lido com confiança vira
 um cartão com titular, número, emissão → validade e aviso, e o botão "Confirmar e controlar"; "Editar detalhes" abre o
