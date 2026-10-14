@@ -1,6 +1,13 @@
 // ============================================================================
 // comum-minha-empresa.js — Raiz Patrimônio · Administração compartilhada
-// Versão: 1.16.0 · 13/10/2026
+// Versão: 1.17.0 · 14/10/2026
+//
+// v1.17.0 (14/10/2026, sessão 20261014-1355-cartao-adicional, demanda c63d7f9f; FICHA_CARTAO_ADICIONAL_F10_F11 v1.1.0, de
+// acordo do Nicola 14/10 13:52) — a ficha da conta ganha o tipo "Cartão adicional" (só com titular pessoa): escolhe o cartão
+// principal (fechamento e vencimento são os dele) e a conta em que o adicional cai — o padrão é a conta de quem usa
+// (R4: dívida dela no Balanço; trocando para a conta do titular do principal, vira despesa dela sem cobrança). Na lista,
+// o adicional mostra "adicional do <principal>".
+// Versão anterior: 1.16.0 · 13/10/2026
 //
 // v1.16.0 (13/10/2026, sessão 20261013-2320-conta-via-item, demanda 47eed96b; de acordo do Nicola 13/10 23:17: "retirar.
 // deixar apenas pelos ativos") — Minha empresa › Contas perde o "+": conta e cartão novos nascem pelo item de controle
@@ -39,21 +46,11 @@
 //     só mostra/esconde; quem monta continua sendo o index (cofre-documentos/cofre-controles).
 //   · O chip com algo faltando leva o ponto --warning; "Salvar dados da empresa" aparece em Dados e Fiscal e Pix.
 //   Todos os ids de campo e os handlers continuam iguais.
-//
-// Versão anterior: 1.12.0 · 08/10/2026
-//
-// v1.12.0 (UX F2.7c-2, demanda b8602a3a, sessão 20261003-1707-ux-base; plano F2.7c-2 aprovado pelo Nicola 08/10 14:04) — tela no padrão:
-//   · carregamento com esqueleto e mensagens de vazio/erro em .rz-desc (sem cor Tailwind);
-//   · logo e assinatura viram linhas tocáveis ("Enviar/Trocar logo", "Enviar/Trocar assinatura")
-//     com ⋮ que abre Trocar e Remover (vermelho, por último) — antes eram botões de nível 2 fora de
-//     sheet e uma lixeira solta; a remoção continua pedindo confirmação;
-//   · fundo quadriculado da prévia da assinatura com tokens; atributo style duplicado do Salvar.
-// O card de Contas (Financeiro, etapa 6) não foi tocado.
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.11.1 … v1.11.1): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.12.0 … v1.12.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '1.16.0'; // v-check (20/09/2026): lido por Dev › Versões — manter igual ao header
+export const VERSAO = '1.17.0'; // v-check (20/09/2026): lido por Dev › Versões — manter igual ao header
 import { perguntar } from './cofre-ui.js'; // v1.9.0 (F0.2b) — sem diálogo nativo
 import { rzMostrarBloqueio as rzBloqueio, podeUsar as podeUsarMod } from './comum-licenca.js'; // v1.10.0 — porta de licença (contas)
 export const COMUM_MINHA_EMPRESA_VERSAO = '1.0.0';
@@ -701,7 +698,8 @@ export function contaLinhaSub(c) {
     const partes = [c.titular_tipo === 'empresa' ? 'Empresa' : (c.titular_nome || 'Pessoa')];
     if (c.instituicao) partes.push(c.instituicao + (c.final_identificador ? ' ••' + c.final_identificador : ''));
     else if (c.final_identificador) partes.push('••' + c.final_identificador);
-    if (c.tipo === 'cartao_credito') partes.push(`fecha dia ${c.dia_fechamento} · vence dia ${c.dia_vencimento}`); // v1.11.0
+    if (c.tipo === 'cartao_credito' && c.cartao_principal_id) partes.push(`adicional do ${c.cartao_principal_nome || 'cartão principal'}`); // v1.17.0
+    else if (c.tipo === 'cartao_credito') partes.push(`fecha dia ${c.dia_fechamento} · vence dia ${c.dia_vencimento}`); // v1.11.0
     if (c.tipo === 'caixa') partes.push('Caixa');
     if (c.titular_tipo === 'pessoa' && !c.incorpora_contabil) partes.push('fora da contabilidade');
     return partes.join(' · ');
@@ -735,22 +733,26 @@ export async function abrirFichaConta({ dbAuth, clienteId, conta = null, fixarPe
     if (rzBloqueio('financeiro.contas.editar')) return;
     const [pessoas, contasRes] = await Promise.all([pessoasDaEmpresa(dbAuth, clienteId), buscarContas(dbAuth, clienteId).catch(() => ({ dados: [] }))]);
     // v1.11.0 — tipo (conta · cartão · caixa) e contas que podem pagar a fatura do cartão
-    const tipoAtual = conta?.tipo || 'conta';
+    const tipoAtual = conta?.cartao_principal_id ? 'cartao_adicional' : (conta?.tipo || 'conta'); // v1.17.0
     const pagadoras = (contasRes.dados || []).filter(c => c.tipo === 'conta' && c.situacao === 'ativa');
+    // v1.17.0 — cartão adicional: principais = cartões ativos que não são adicionais
+    const principais = (contasRes.dados || []).filter(c => c.tipo === 'cartao_credito' && c.situacao === 'ativa' && !c.cartao_principal_id);
+    const optsPrinc = principais.map(c => `<option value="${escC(c.id)}" ${conta?.cartao_principal_id === c.id ? 'selected' : ''}>${escC(c.nome)}${c.final_identificador ? ' ·· ' + escC(c.final_identificador) : ''} (${escC(c.titular_tipo === 'empresa' ? 'Empresa' : (c.titular_nome || ''))})</option>`).join('')
+        || (conta?.cartao_principal_id ? `<option value="${escC(conta.cartao_principal_id)}" selected>${escC(conta.cartao_principal_nome || 'Cartão principal')}</option>` : '');
     const optsPag = pagadoras.map(c => `<option value="${escC(c.id)}" ${(conta?.conta_pagadora_id ? conta.conta_pagadora_id === c.id : (c.padrao && c.titular_tipo === 'empresa')) ? 'selected' : ''}>${escC(c.nome)}</option>`).join('');
     const titularAtual = conta ? (conta.titular_tipo === 'empresa' ? 'empresa' : conta.pessoa_id) : (fixarPessoaId || 'empresa');
     const travarTitular = !!conta || !!fixarPessoaId || !!fixarEmpresa; // v1.16.0 — fixarEmpresa: criada pelos Controles da empresa
     const optsTit = [`<option value="empresa" ${titularAtual === 'empresa' ? 'selected' : ''}>Empresa</option>`]
         .concat(pessoas.map(p => `<option value="${escC(p.id)}" ${titularAtual === p.id ? 'selected' : ''}>${escC(p.nome)}</option>`)).join('');
     window.abrirSheetForm({
-        titulo: conta ? (tipoAtual === 'cartao_credito' ? 'Editar cartão' : 'Editar conta') : 'Nova conta',
+        titulo: conta ? (tipoAtual === 'cartao_adicional' ? 'Editar cartão adicional' : tipoAtual === 'cartao_credito' ? 'Editar cartão' : 'Editar conta') : 'Nova conta',
         sub: conta ? conta.nome : 'Conta, cartão de crédito ou caixa',
         rotuloSalvar: conta ? 'Salvar' : 'Criar',
         corpo: `
             <div class="rz-f"><label>Tipo</label>
                 <input type="hidden" id="cc-tipo" value="${tipoAtual}">
                 <div class="rz-seg" id="cc-seg-tipo">
-                    ${[['conta', 'Conta'], ['cartao_credito', 'Cartão de crédito'], ['caixa', 'Caixa']].map(([v, t]) => `<button type="button" data-v="${v}" class="${v === tipoAtual ? 'rz-on' : ''}" ${conta && v !== tipoAtual ? 'disabled' : ''}>${t}</button>`).join('')}
+                    ${[['conta', 'Conta'], ['cartao_credito', 'Cartão de crédito'], ['cartao_adicional', 'Cartão adicional'], ['caixa', 'Caixa']].filter(([v]) => v !== 'cartao_adicional' || !fixarEmpresa).map(([v, t]) => `<button type="button" data-v="${v}" class="${v === tipoAtual ? 'rz-on' : ''}" ${conta && v !== tipoAtual ? 'disabled' : ''}>${t}</button>`).join('')}
                 </div>
                 ${conta ? '<span class="rz-hint">O tipo não muda depois de criado.</span>' : ''}</div>
             <div class="rz-f"><label>Nome</label><input type="text" id="cc-nome" maxlength="60" placeholder="Ex.: Conta Itaú da empresa" value="${escC(conta?.nome)}"></div>
@@ -761,20 +763,28 @@ export async function abrirFichaConta({ dbAuth, clienteId, conta = null, fixarPe
                 <div class="rz-f"><label id="cc-final-lb">4 últimos números</label><input type="text" id="cc-final" inputmode="numeric" maxlength="4" placeholder="Opcional" value="${escC(conta?.final_identificador)}"></div>
             </div>
             <div id="cc-cartao" style="display:none">
-                <div class="rz-f2">
+                <div id="cc-adic" style="display:none">
+                    <div class="rz-f"><label>Cartão principal</label><select id="cc-principal" ${conta ? 'disabled' : ''}>${optsPrinc || '<option value="">Cadastre antes o cartão principal</option>'}</select>
+                        <span class="rz-hint">A fatura é a do principal: fechamento e vencimento são os dele. As compras com o final deste adicional ficam separadas nela.</span></div>
+                </div>
+                <div class="rz-f2" id="cc-dias">
                     <div class="rz-f"><label>Dia do fechamento</label><input type="number" id="cc-fech" inputmode="numeric" min="1" max="31" value="${escC(conta?.dia_fechamento)}"></div>
                     <div class="rz-f"><label>Dia do vencimento</label><input type="number" id="cc-venc" inputmode="numeric" min="1" max="31" value="${escC(conta?.dia_vencimento)}"></div>
                 </div>
-                <div class="rz-f"><label>Conta que paga a fatura</label><select id="cc-pagadora">${optsPag || '<option value="">Cadastre antes uma conta</option>'}</select>
-                    <span class="rz-hint">As compras entram no caixa desta conta no dia em que a fatura é paga.</span></div>
+                <div class="rz-f"><label id="cc-pagadora-lb">Conta que paga a fatura</label><select id="cc-pagadora">${optsPag || '<option value="">Cadastre antes uma conta</option>'}</select>
+                    <span class="rz-hint" id="cc-pagadora-hint">As compras entram no caixa desta conta no dia em que a fatura é paga.</span></div>
             </div>
             <label class="text-sm" id="cc-contabil-wrap" style="display:flex;gap:10px;align-items:flex-start;margin-bottom:10px"><input type="checkbox" id="cc-contabil" ${conta ? (conta.incorpora_contabil ? 'checked' : '') : 'checked'} style="margin-top:3px"><span><b>Entra na contabilidade da empresa</b><br><span class="text-xs" style="color:var(--muted)">Desmarque para conta pessoal que não vai para o contador.</span></span></label>
             <label class="text-sm" id="cc-conciliar-wrap" style="display:flex;gap:10px;align-items:flex-start"><input type="checkbox" id="cc-conciliar" ${conta ? (conta.conciliar ? 'checked' : '') : 'checked'} style="margin-top:3px"><span><b>Conciliar extrato desta conta</b></span></label>
             <span class="rz-hint" style="display:block;margin-top:10px">Guardamos só os 4 últimos números, nunca a conta inteira.</span>`,
         aoSalvar: async (el) => {
             const tit = el.querySelector('#cc-titular').value;
-            const tipo = el.querySelector('#cc-tipo').value; // v1.11.0
+            const tipoSel = el.querySelector('#cc-tipo').value; // v1.11.0
+            const adicional = tipoSel === 'cartao_adicional'; // v1.17.0
+            const tipo = adicional ? 'cartao_credito' : tipoSel;
             const cartao = tipo === 'cartao_credito';
+            if (adicional && tit === 'empresa') { onToast?.('O cartão adicional é de uma pessoa: escolha quem usa.', 'danger'); return false; }
+            if (adicional && !conta && !el.querySelector('#cc-principal').value) { onToast?.('Escolha o cartão principal.', 'danger'); return false; }
             const { data, error } = await dbAuth.rpc('fn_conta_salvar', {
                 p_cliente_id: clienteId, p_conta_id: conta?.id || null,
                 p_nome: el.querySelector('#cc-nome').value,
@@ -785,9 +795,10 @@ export async function abrirFichaConta({ dbAuth, clienteId, conta = null, fixarPe
                 p_incorpora_contabil: tit === 'empresa' ? true : el.querySelector('#cc-contabil').checked,
                 p_conciliar: cartao ? false : el.querySelector('#cc-conciliar').checked,
                 p_tipo: tipo,
-                p_dia_fechamento: cartao ? (parseInt(el.querySelector('#cc-fech').value, 10) || null) : null,
-                p_dia_vencimento: cartao ? (parseInt(el.querySelector('#cc-venc').value, 10) || null) : null,
+                p_dia_fechamento: cartao && !adicional ? (parseInt(el.querySelector('#cc-fech').value, 10) || null) : null,
+                p_dia_vencimento: cartao && !adicional ? (parseInt(el.querySelector('#cc-venc').value, 10) || null) : null,
                 p_conta_pagadora_id: cartao ? (el.querySelector('#cc-pagadora').value || null) : null,
+                p_cartao_principal_id: adicional && !conta ? (el.querySelector('#cc-principal').value || null) : null, // v1.17.0
             });
             if (error) { onToast?.(error.message, 'danger'); return false; }
             if (!data?.ok) { onToast?.(data?.mensagem || 'Não foi possível salvar.', 'danger'); return false; }
@@ -799,16 +810,42 @@ export async function abrirFichaConta({ dbAuth, clienteId, conta = null, fixarPe
     const wrap = document.getElementById('cc-contabil-wrap');
     const ajustar = () => { if (wrap) wrap.style.display = sel.value === 'empresa' ? 'none' : 'flex'; };
     sel?.addEventListener('change', ajustar); ajustar();
+    // v1.17.0 — adicional: a conta em que ele cai vem com a conta de quem usa (a padrão dela; senão a primeira)
+    const pagSel = document.getElementById('cc-pagadora');
+    const pagadoraDoTitular = () => {
+        if (conta || !pagSel || sel.value === 'empresa') return;
+        const doTit = pagadoras.filter(c => c.titular_tipo === 'pessoa' && c.pessoa_id === sel.value).sort((a, b) => (b.padrao ? 1 : 0) - (a.padrao ? 1 : 0));
+        if (doTit.length) pagSel.value = doTit[0].id;
+        const hint = document.getElementById('cc-pagadora-hint');
+        if (hint) hint.textContent = doTit.length
+            ? 'Padrão: a conta de quem usa — as compras do adicional viram dívida dela no Balanço. Trocando para a conta do titular do principal, viram despesa dela sem cobrança.'
+            : 'Quem usa ainda não tem conta cadastrada: cadastre a conta dela antes, ou escolha a do titular do principal (as compras viram despesa dela sem cobrança).';
+    };
+    sel?.addEventListener('change', () => { if (document.getElementById('cc-tipo').value === 'cartao_adicional') pagadoraDoTitular(); });
     // v1.11.0 — tipo: mostra os campos de cartão e esconde "Conciliar extrato" no cartão
     const seg = document.getElementById('cc-seg-tipo');
     const ajustarTipo = (v) => {
         document.getElementById('cc-tipo').value = v;
         seg?.querySelectorAll('button').forEach(b => b.classList.toggle('rz-on', b.dataset.v === v));
-        const cartao = v === 'cartao_credito';
+        const adicional = v === 'cartao_adicional'; // v1.17.0
+        const cartao = v === 'cartao_credito' || adicional;
         document.getElementById('cc-cartao').style.display = cartao ? 'block' : 'none';
+        document.getElementById('cc-adic').style.display = adicional ? 'block' : 'none';
+        document.getElementById('cc-dias').style.display = adicional ? 'none' : '';
         document.getElementById('cc-conciliar-wrap').style.display = cartao ? 'none' : 'flex';
-        document.getElementById('cc-final-lb').textContent = cartao ? '4 últimos números do cartão' : '4 últimos números';
-        const nome = document.getElementById('cc-nome'); if (nome) nome.placeholder = cartao ? 'Ex.: Itaú Black' : v === 'caixa' ? 'Ex.: Caixa do escritório' : 'Ex.: Conta Itaú da empresa';
+        document.getElementById('cc-final-lb').textContent = adicional ? '4 últimos números do adicional' : cartao ? '4 últimos números do cartão' : '4 últimos números';
+        const fin = document.getElementById('cc-final'); if (fin) fin.placeholder = adicional ? 'Obrigatório' : 'Opcional';
+        document.getElementById('cc-pagadora-lb').textContent = adicional ? 'Conta em que o adicional cai' : 'Conta que paga a fatura';
+        if (adicional) {
+            // titular Empresa não tem adicional: sai da lista enquanto este tipo está escolhido
+            const opEmp = sel?.querySelector('option[value="empresa"]'); if (opEmp) opEmp.disabled = true;
+            if (sel && sel.value === 'empresa' && !sel.disabled) { const p1 = sel.querySelector('option:not([value="empresa"])'); if (p1) sel.value = p1.value; ajustar(); }
+            pagadoraDoTitular();
+        } else {
+            const opEmp = sel?.querySelector('option[value="empresa"]'); if (opEmp) opEmp.disabled = false;
+            const hint = document.getElementById('cc-pagadora-hint'); if (hint) hint.textContent = 'As compras entram no caixa desta conta no dia em que a fatura é paga.';
+        }
+        const nome = document.getElementById('cc-nome'); if (nome) nome.placeholder = adicional ? 'Ex.: Azul da Maria' : cartao ? 'Ex.: Itaú Black' : v === 'caixa' ? 'Ex.: Caixa do escritório' : 'Ex.: Conta Itaú da empresa';
     };
     seg?.querySelectorAll('button').forEach(b => b.addEventListener('click', () => { if (!b.disabled) ajustarTipo(b.dataset.v); }));
     ajustarTipo(tipoAtual);

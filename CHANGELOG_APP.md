@@ -4,6 +4,18 @@ Histórico completo de versões do `index.html`, movido automaticamente pelo `ge
 
 ---
 
+NOVIDADES (Beta v1.407.0) — Agenda, teste do Nicola 14/10 08:58: js/agenda.js 1.2.0 conta e mostra a partir de UM
+universo só (números dos chips, pontos, resumo e linhas batem); alertas também na Semana e no Mês, no dia em que
+vencem; status do alerta no filtro = o que a linha mostra (vencido = crítico), sem mudar regra de alerta; Assunto
+abre com todos marcados (desmarca o que não quer). Só o módulo muda; o index ganha a versão e o import map.
+Versão anterior (Beta v1.406.0):
+------------------------------------------------------------------
+Versões anteriores (v1.406.0 … v1.406.0): CHANGELOG_APP.md, na raiz do
+repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
+das 5 versões mais recentes deste cabeçalho.
+
+---
+
 NOVIDADES (Beta v1.406.0) — Agenda: revisão das três vistas (FICHA_ONDA_7_AGENDA_RAIZ v1.2.0 §7–§8, de acordo do
 Nicola 14/10 00:51). A Agenda inteira vem de js/agenda.js 1.1.0: topo no padrão do Financeiro (período como título e
 ⋮; depois Lista · Semana · Mês); filtros de status (Crítico · Atenção · Informativo) e Assunto (Ativos, Itens de

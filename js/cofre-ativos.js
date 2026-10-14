@@ -1,6 +1,11 @@
 // ============================================================================
 // cofre-ativos.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.102.0 · 14/10/2026
+// Versão: 1.103.0 · 14/10/2026
+//
+// v1.103.0 (14/10/2026, sessão 20261014-1355-cartao-adicional, demanda c63d7f9f; FICHA_CARTAO_ADICIONAL_F10_F11 v1.1.0, de
+// acordo do Nicola 14/10 13:52) — Movimento do ativo vida: o card "Contas e cartões" mostra o cartão adicional como
+// "Adicional do <principal>" com o total das compras dele na última fatura importada (fn_fatura_listar).
+// Versão anterior: 1.102.0 · 14/10/2026
 //
 // v1.102.0 (14/10/2026, sessão 20261014-1020-usos-fatia3, demanda 3022603b; FICHA_FATIA3_SUBATIVOS_RAIZ v1.1.0, de acordo do
 // Nicola 14/10) — subativos: card no Resumo do principal com o nome do ramo (Unidades, Áreas, Integrantes), o status de
@@ -33,18 +38,11 @@
 // venda/baixa; ativo fora de Ativo mostra só a Situação. O ⋮ de cada uso traz Concluir e Excluir (uso lançado por engano,
 // com motivo). Card novo "Histórico" no chip Usos e contratos, com Desfazer (fn_status_desfazer). Tudo pela porta única
 // fn_status_transicionar, a mesma do bot. Selo "Baixado".
-//
-// Versão anterior: 1.98.0 · 13/10/2026
-//
-// v1.98.0 (13/10/2026, sessão 20261013-2330-usos-fatia0b, demanda 0579b844; teste do Nicola 13/10 23:27) — o card Usos
-// lista os usos do ano abaixo da barra: o uso sem contrato vigente tem ⋮ com "Concluir" (antes só no ⋮ do topo da
-// ficha, onde não foi achado); o de contrato abre o contrato. "Adicionar uso" deixa de oferecer o modelo em que o
-// ativo já está hoje (uso ou repouso: um veículo em Uso próprio não mostra Uso próprio).
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.97.0 … v1.97.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.98.0 … v1.98.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '1.102.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.103.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 import { estado } from './cofre-estado.js';
 import * as api from './cofre-api.js';
 import { mostrarToast, erroInline, refrescarIcones, alternarToggle, abrirModal, fecharModal, modalGenerico, perguntar, avisarComDesfazer, escolher } from './cofre-ui.js';
@@ -2642,11 +2640,22 @@ export async function montarMovimentoAtivo(a) {
         const [rB, rX, rC] = await Promise.all([
             db.rpc('fn_balanco_pessoas', { p_cliente_id: cli, p_ate: hoje, p_ativo_id: pessoaId ? null : a.id }),
             pessoaId ? db.rpc('fn_retiradas_extraordinarias', { p_cliente_id: cli, p_pessoa_id: pessoaId, p_de: `${hoje.slice(0, 4)}-01-01`, p_ate: hoje }) : Promise.resolve({ data: [] }),
-            pessoaId ? db.from('conta_controle').select('id, nome, tipo, final_identificador, situacao, dia_vencimento').eq('cliente_id', cli).eq('titular_tipo', 'pessoa').eq('pessoa_id', pessoaId) : Promise.resolve({ data: [] }),
+            pessoaId ? db.from('conta_controle').select('id, nome, tipo, final_identificador, situacao, dia_vencimento, cartao_principal_id').eq('cliente_id', cli).eq('titular_tipo', 'pessoa').eq('pessoa_id', pessoaId) : Promise.resolve({ data: [] }),
         ]);
         if (movAtivoId !== a.id) return;
         const bal = ok(rB, 'balanço').filter(l => Math.abs(Number(l.valor || 0)) > 0.004 && (!pessoaId || l.pessoa_id === pessoaId));
-        movDesenharTopo(a, pessoaId, bal, ok(rX, 'extraordinárias'), ok(rC, 'contas'));
+        const contas = ok(rC, 'contas');
+        // v1.103.0 — cartão adicional: total das compras dele na última fatura do principal
+        const resumoAd = {};
+        if (contas.some(c => c.cartao_principal_id)) {
+            try {
+                const { data } = await db.rpc('fn_fatura_listar', { p_cliente_id: cli });
+                for (const f of (data?.dados || [])) for (const ad of (f.adicionais || []))
+                    if (!resumoAd[ad.id]) resumoAd[ad.id] = { principal: f.cartao_nome, competencia: f.competencia, soma: Number(ad.soma || 0), qtd: Number(ad.qtd || 0) };
+            } catch (e) { console.warn('[cofre-ativos] faturas do adicional:', e?.message || e); }
+            if (movAtivoId !== a.id) return;
+        }
+        movDesenharTopo(a, pessoaId, bal, ok(rX, 'extraordinárias'), contas, resumoAd);
     } catch (err) {
         console.warn('[cofre-ativos] financeiro do ativo falhou:', err?.message || err);
         const t = document.getElementById('fa-mov-topo');
@@ -2654,7 +2663,7 @@ export async function montarMovimentoAtivo(a) {
     }
 }
 
-function movDesenharTopo(a, pessoaId, bal, ex, contas) {
+function movDesenharTopo(a, pessoaId, bal, ex, contas, resumoAd = {}) {
     const t = document.getElementById('fa-mov-topo'); if (!t) return;
     const fmt = fmtMoedaAtivo, nomeAtivo = a.nome_exibicao || 'Pessoa';
     const pn = (x) => String(x || '').split(' ')[0]; // primeiro nome: a frase cabe na linha
@@ -2670,9 +2679,12 @@ function movDesenharTopo(a, pessoaId, bal, ex, contas) {
     const cardBal = `<div class="rz-card rz-list"><div class="rz-card-h" style="padding-top:10px;margin-bottom:0"><h3>Balanço pendente</h3><span class="rz-sub">${bal.length ? fmt(total) + ' em aberto' : 'nada em aberto'}</span></div>` +
         (bal.length ? bal.map(linha).join('') : `<p class="rz-desc" style="margin:4px 14px 10px">${pessoaId ? 'Nada em aberto com ' + movEsc(nomeAtivo) : 'Nada em aberto ligado a este ativo'}.</p>`) + '</div>';
     const cardContas = contas.length ? `<div class="rz-card rz-list"><div class="rz-card-h" style="padding-top:10px;margin-bottom:0"><h3>Contas e cartões</h3><span class="rz-sub">${contas.length}</span></div>` +
-        contas.map(c => { const cartao = c.tipo === 'cartao_credito';
+        contas.map(c => { const cartao = c.tipo === 'cartao_credito'; const r = c.cartao_principal_id ? resumoAd[c.id] : null;
+            const mes = r?.competencia ? new Date(r.competencia + 'T00:00:00').toLocaleDateString('pt-BR', { month: 'short', year: 'numeric' }).replace('.', '') : '';
+            const sub = c.cartao_principal_id ? `Adicional${r?.principal ? ' do ' + r.principal : ''}${c.dia_vencimento ? ' · vence dia ' + c.dia_vencimento : ''}` // v1.103.0
+                : cartao ? `Cartão de crédito${c.dia_vencimento ? ' · vence dia ' + c.dia_vencimento : ''}` : 'Conta';
             return `<div class="rz-row"><div class="rz-ic"><i data-lucide="${cartao ? 'credit-card' : 'landmark'}"></i></div>
-                <div class="rz-tx"><b>${movEsc(c.nome)}${c.final_identificador ? ' ··' + movEsc(c.final_identificador) : ''}</b><span>${cartao ? `Cartão de crédito${c.dia_vencimento ? ' · vence dia ' + c.dia_vencimento : ''}` : 'Conta'}${c.situacao !== 'ativa' ? ' · encerrada' : ''}</span></div></div>`; }).join('') + '</div>' : '';
+                <div class="rz-tx"><b>${movEsc(c.nome)}${c.final_identificador ? ' ··' + movEsc(c.final_identificador) : ''}</b><span>${movEsc(sub)}${c.situacao !== 'ativa' ? ' · encerrada' : ''}</span></div>${r ? `<div class="rz-rt"><b>${fmt(r.soma)}</b><small style="display:block;text-align:right;color:var(--muted)">fatura ${movEsc(mes)}</small></div>` : ''}</div>`; }).join('') + '</div>' : '';
     const cardExtra = ex.length ? `<div class="rz-card"><div class="rz-card-h"><h3>Retiradas extraordinárias</h3><span class="rz-sub">não abatem o saldo a retirar</span></div>
         <div class="rz-kv"><div><small>No ano</small><b>${fmt(ex[0].total_ano)}</b></div><div><small>Acumulado</small><b>${fmt(ex[0].total_acumulado)}</b></div><div><small>Retiradas no ano</small><b>${ex.length}</b></div></div>
         <div class="rz-list" style="margin-top:8px"><div class="rz-row rz-link" role="button" tabindex="0" data-mov-relret><div class="rz-ic"><i data-lucide="file-text"></i></div><div class="rz-tx"><b>Ver relatório</b><span>Retiradas extraordinárias de ${movEsc(nomeAtivo)}</span></div><i data-lucide="chevron-right" class="rz-chev"></i></div></div></div>` : ''; // v1.93.0 — F13.8

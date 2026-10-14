@@ -6,9 +6,15 @@
    (base derivada do RUMO v7.4.2 — histórico de versões anteriores
    preservado abaixo para referência técnica)
 
-   VERSÃO: Beta v1.411.0
-   LINHAS: 16775
-   DATA: 14/10/2026 (sessão 20261014-1320-onda8b-lista-ficha, demanda a05ad2ee)
+   VERSÃO: Beta v1.412.0
+   LINHAS: 16776
+   DATA: 14/10/2026 (sessão 20261014-1355-cartao-adicional, demanda c63d7f9f)
+   NOVIDADES (Beta v1.412.0) — CARTÃO ADICIONAL (FICHA_CARTAO_ADICIONAL_F10_F11_RAIZ v1.1.0, de acordo do Nicola 14/10
+   13:52): cadastro "Cartão adicional" na ficha da conta (cartão principal, final e a conta em que ele cai — padrão a
+   conta de quem usa) em js/comum-minha-empresa.js 1.17.0; fatura com o card "Por cartão", final em cada compra e
+   "Mover para o adicional" em js/financeiro.js 1.62.0; total do adicional no Movimento do ativo em js/cofre-ativos.js
+   1.103.0. Banco: cartao_adicional_f10_f11_v1. Edge: extrato-extrair-transacoes 1.8 e whatsapp-webhook 2.88.
+   Versão anterior (Beta v1.411.0):
    NOVIDADES (Beta v1.411.0) — ONDA 8b do estudo PROTOTIPO_UX_DENSIDADE_RAMOS_RAIZ v1.2.0 (D15, computador): em Ativos e
    Contratos, a partir de 1024 px, a ficha abre ao lado da lista (lista à esquerda, 360 px, rolando sozinha e com o item
    aberto marcado; ficha à direita). O "‹ Ativos/Contratos" da ficha some porque a lista está à vista. No celular nada
@@ -29,13 +35,8 @@
    FATO GERADOR (não em hoje), nas três vistas, com o selo "Há Nd"; a Lista do mês de hoje mostra o mês inteiro por dia e,
    antes dele, o que segue pendente de meses anteriores. Só o módulo muda; o index ganha versão e import map.
    Versão anterior (Beta v1.407.0):
-   NOVIDADES (Beta v1.407.0) — Agenda, teste do Nicola 14/10 08:58: js/agenda.js 1.2.0 conta e mostra a partir de UM
-   universo só (números dos chips, pontos, resumo e linhas batem); alertas também na Semana e no Mês, no dia em que
-   vencem; status do alerta no filtro = o que a linha mostra (vencido = crítico), sem mudar regra de alerta; Assunto
-   abre com todos marcados (desmarca o que não quer). Só o módulo muda; o index ganha a versão e o import map.
-   Versão anterior (Beta v1.406.0):
    ------------------------------------------------------------------
-   Versões anteriores (v1.406.0 … v1.406.0): CHANGELOG_APP.md, na raiz do
+   Versões anteriores (v1.407.0 … v1.407.0): CHANGELOG_APP.md, na raiz do
    repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
    das 5 versões mais recentes deste cabeçalho.
 
@@ -63,7 +64,7 @@
          O navegador aplica o mapa também aos imports estáticos dentro dos
          módulos (cofre-app.js → ./cofre-api.js etc.). -->
     <!-- RZ-IMPORTMAP:INICIO -->
-    <script type="importmap">{"imports":{"./js/cadastros.js":"./js/cadastros.js?v=1.2.0","./js/financeiro.js":"./js/financeiro.js?v=1.61.0","./js/fechamento.js":"./js/fechamento.js?v=1.13.0","./js/contratos.js":"./js/contratos.js?v=1.57.0","./js/minutas.js":"./js/minutas.js?v=1.4.0","./js/vitrine.js":"./js/vitrine.js?v=1.5.2","./js/imoveis.js":"./js/imoveis.js?v=1.7.2","./js/cofre-api.js":"./js/cofre-api.js?v=1.51.0","./js/cofre-app.js":"./js/cofre-app.js?v=1.48.0","./js/cofre-ativos.js":"./js/cofre-ativos.js?v=1.102.0","./js/cofre-controles.js":"./js/cofre-controles.js?v=1.57.0","./js/cofre-documentos.js":"./js/cofre-documentos.js?v=2.36.0","./js/cofre-imagem.js":"./js/cofre-imagem.js?v=1.1.0","./js/cofre-estado.js":"./js/cofre-estado.js?v=1.5.2","./js/cofre-navegacao.js":"./js/cofre-navegacao.js?v=1.9.3","./js/cofre-ui.js":"./js/cofre-ui.js?v=1.7.2","./js/cofre-validacoes.js":"./js/cofre-validacoes.js?v=2.5.0","./js/comum-licenca.js":"./js/comum-licenca.js?v=1.8.0","./js/comum-renovacao.js":"./js/comum-renovacao.js?v=1.3.5","./js/comum-minha-empresa.js":"./js/comum-minha-empresa.js?v=1.16.0","./js/comum-pessoas.js":"./js/comum-pessoas.js?v=1.212.0","./js/comum-sobre.js":"./js/comum-sobre.js?v=1.5.0","./js/comum-endereco.js":"./js/comum-endereco.js?v=1.2.0","./js/comum-partes.js":"./js/comum-partes.js?v=1.0.0","./js/resultados.js":"./js/resultados.js?v=2.9.0","./js/indicadores.js":"./js/indicadores.js?v=1.1.0","./js/configuracao-inicial.js":"./js/configuracao-inicial.js?v=1.0.1","./js/relatorios-executivos.js":"./js/relatorios-executivos.js?v=1.3.0","./js/raiz-eventos.js":"./js/raiz-eventos.js?v=1.0.0","./js/raiz-device.js":"./js/raiz-device.js?v=1.1.0","./js/raiz-ui.js":"./js/raiz-ui.js?v=1.4.0","./js/fiscal.js":"./js/fiscal.js?v=1.5.2","./js/ativos/ativos-boot.js":"./js/ativos/ativos-boot.js?v=1.4.0","./js/ativos/ativos-markup.js":"./js/ativos/ativos-markup.js?v=1.62.0","./js/nucleo/porta.js":"./js/nucleo/porta.js?v=1.5.0","./js/partes.js":"./js/partes.js?v=1.0.2","./js/conta.js":"./js/conta.js?v=1.0.1","./js/grupo-visao.js":"./js/grupo-visao.js?v=1.0.0","./js/agenda.js":"./js/agenda.js?v=1.3.0"}}</script>
+    <script type="importmap">{"imports":{"./js/cadastros.js":"./js/cadastros.js?v=1.2.0","./js/financeiro.js":"./js/financeiro.js?v=1.62.0","./js/fechamento.js":"./js/fechamento.js?v=1.13.0","./js/contratos.js":"./js/contratos.js?v=1.57.0","./js/minutas.js":"./js/minutas.js?v=1.4.0","./js/vitrine.js":"./js/vitrine.js?v=1.5.2","./js/imoveis.js":"./js/imoveis.js?v=1.7.2","./js/cofre-api.js":"./js/cofre-api.js?v=1.51.0","./js/cofre-app.js":"./js/cofre-app.js?v=1.48.0","./js/cofre-ativos.js":"./js/cofre-ativos.js?v=1.103.0","./js/cofre-controles.js":"./js/cofre-controles.js?v=1.57.0","./js/cofre-documentos.js":"./js/cofre-documentos.js?v=2.36.0","./js/cofre-imagem.js":"./js/cofre-imagem.js?v=1.1.0","./js/cofre-estado.js":"./js/cofre-estado.js?v=1.5.2","./js/cofre-navegacao.js":"./js/cofre-navegacao.js?v=1.9.3","./js/cofre-ui.js":"./js/cofre-ui.js?v=1.7.2","./js/cofre-validacoes.js":"./js/cofre-validacoes.js?v=2.5.0","./js/comum-licenca.js":"./js/comum-licenca.js?v=1.8.0","./js/comum-renovacao.js":"./js/comum-renovacao.js?v=1.3.5","./js/comum-minha-empresa.js":"./js/comum-minha-empresa.js?v=1.17.0","./js/comum-pessoas.js":"./js/comum-pessoas.js?v=1.212.0","./js/comum-sobre.js":"./js/comum-sobre.js?v=1.5.0","./js/comum-endereco.js":"./js/comum-endereco.js?v=1.2.0","./js/comum-partes.js":"./js/comum-partes.js?v=1.0.0","./js/resultados.js":"./js/resultados.js?v=2.9.0","./js/indicadores.js":"./js/indicadores.js?v=1.1.0","./js/configuracao-inicial.js":"./js/configuracao-inicial.js?v=1.0.1","./js/relatorios-executivos.js":"./js/relatorios-executivos.js?v=1.3.0","./js/raiz-eventos.js":"./js/raiz-eventos.js?v=1.0.0","./js/raiz-device.js":"./js/raiz-device.js?v=1.1.0","./js/raiz-ui.js":"./js/raiz-ui.js?v=1.4.0","./js/fiscal.js":"./js/fiscal.js?v=1.5.2","./js/ativos/ativos-boot.js":"./js/ativos/ativos-boot.js?v=1.4.0","./js/ativos/ativos-markup.js":"./js/ativos/ativos-markup.js?v=1.62.0","./js/nucleo/porta.js":"./js/nucleo/porta.js?v=1.5.0","./js/partes.js":"./js/partes.js?v=1.0.2","./js/conta.js":"./js/conta.js?v=1.0.1","./js/grupo-visao.js":"./js/grupo-visao.js?v=1.0.0","./js/agenda.js":"./js/agenda.js?v=1.3.0"}}</script>
     <!-- RZ-IMPORTMAP:FIM -->
 
     <!-- ===== PWA: permite "instalar" o app no celular (Android e iPhone) ===== -->
@@ -4278,7 +4279,7 @@
         // texto certo toda vez (esqueci 5 versões seguidas, de v1.37.1 até
         // v1.38.3). Agora só precisa mudar UMA linha aqui a cada release;
         // window.onload aplica nos dois lugares automaticamente.
-        const APP_VERSAO = "Beta v1.411.0"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
+        const APP_VERSAO = "Beta v1.412.0"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
 
         // ====================================================================
         // v1.105.0 — HELPERS DE SUPERFÍCIE DA GRAMÁTICA ÚNICA

@@ -1,7 +1,15 @@
 // ============================================================================
 // financeiro.js — Raiz Patrimônio · Financeiro (Recebimentos · Atrasados · Saídas
 //                  · conciliação de extrato · recibo · detalhe do recebimento)
-// Versão: 1.61.0 · 13/10/2026
+// Versão: 1.62.0 · 14/10/2026
+//
+// v1.62.0 (14/10/2026, sessão 20261014-1355-cartao-adicional, demanda c63d7f9f; FICHA_CARTAO_ADICIONAL_F10_F11 v1.1.0, de
+// acordo do Nicola 14/10 13:52) — CARTÃO ADICIONAL: a importação lista só cartões principais (a fatura do adicional é a do
+// principal) e manda o final de cada compra lida (o banco liga ao adicional); a conferência conta as compras por cartão.
+// A fatura ganha o card "Por cartão" (principal e cada adicional, com quem usa, a conta em que cai e o total; tocar filtra
+// as compras), o final do adicional em cada compra e a ação "Mover para o adicional" / "Voltar ao principal"
+// (fn_fatura_item_classificar com p_cartao_uso_id). Quem vê só o adicional vê só as compras dele, sem "Marcar como paga".
+// Versão anterior: 1.61.0 · 13/10/2026
 //
 // v1.61.0 (13/10/2026, sessão 20261013-2320-conta-via-item, demanda 47eed96b) — só texto: o aviso "Cadastre o cartão
 // primeiro" da importação de fatura aponta o novo caminho (ativo › Controles › + › "Conta ou cartão").
@@ -23,18 +31,11 @@
 // v1.58.0 (12/10/2026, sessão 20261012-0300-ux-onda5, demanda a05ad2ee; Nicola 12/10 02:50: "padronize os seletores de ano
 // para o padrão das setinhas. No financeiro pode deixar sem a opção todos") — na visão por competência (ficha do contrato
 // e do ativo) os chips 2026 · 2025 · Todos viram ‹ 2026 ›, de 10 anos atrás até o ano atual; "Todos" sai.
-//
-// Versão anterior: 1.57.0 · 12/10/2026
-//
-// v1.57.0 (12/10/2026, sessão 20261012-0240-ux-onda4c, demanda a05ad2ee; UX onda 4, estudo PROTOTIPO_UX_DENSIDADE_RAMOS_RAIZ
-// v1.2.0 D9; "Pode fazer e seguir" do Nicola 12/10 02:26) — financeiroRotinasHtml: o card "Rotinas de <mês>" (4 linhas
-// de 52 px) vira uma faixa de status com um botão curto por rotina (Mês aberto/fechado · Contador · Fiscal · Atraso),
-// mesmos estados e destinos. O resto do topo do Financeiro (mês como título, abas, lupa) é do index 1.387.0.
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.56.0 … v1.56.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.57.0 … v1.57.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '1.61.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.62.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 
 // v1.17.0 (Fase 1 do wrapper de escrita, rollout Financeiro) — emitirEscrita
 // é o evento padrão pra "algo mudou que módulos DE FORA deste arquivo podem
@@ -637,7 +638,9 @@ async function financeiroGarantirContas() {
             const { data, error } = await dbAuth.rpc('fn_contas_listar', { p_cliente_id: CLIENTE_ID_SUPABASE });
             if (error) throw error;
             const ativasP5 = (data?.dados || []).filter(c => c.situacao === 'ativa'); // v1.38.0 — cartão nunca é conta de lançamento (F8)
-            financeiroContasInfo = { clienteId: CLIENTE_ID_SUPABASE, liberado: !!data?.liberado, contas: ativasP5.filter(c => c.tipo !== 'cartao_credito'), cartoes: ativasP5.filter(c => c.tipo === 'cartao_credito') };
+            financeiroContasInfo = { clienteId: CLIENTE_ID_SUPABASE, liberado: !!data?.liberado, contas: ativasP5.filter(c => c.tipo !== 'cartao_credito'),
+                cartoes: ativasP5.filter(c => c.tipo === 'cartao_credito' && !c.cartao_principal_id), // v1.62.0 — o adicional não tem fatura própria
+                adicionais: ativasP5.filter(c => c.tipo === 'cartao_credito' && c.cartao_principal_id) };
         } catch (e) {
             console.warn('[financeiro] contas:', e.message);
             financeiroContasInfo = { clienteId: CLIENTE_ID_SUPABASE, liberado: false, contas: [] };
@@ -1252,6 +1255,22 @@ function financeiroRenderCabecalho(aba) {
         }
 
         /** Tela da fatura (Sheet): cabeçalho, "A classificar" com a sugestão do Raiz, classificadas, lote. */
+        // v1.62.0 — card "Por cartão" da fatura: principal (o que não é de adicional) e cada adicional, com quem usa, a conta em que
+        // ele cai e o total. Tocar filtra as compras; tocar de novo mostra todas. Fatura sem adicional não mostra o card.
+        function financeiroCardPorCartaoFatura(f, filtroCartao) {
+            const ads = f.adicionais || [];
+            if (!ads.length) return '';
+            const somaAd = ads.reduce((t, a) => t + Number(a.soma || 0), 0), qtdAd = ads.reduce((t, a) => t + Number(a.qtd || 0), 0);
+            const linha = (v, t, sub, soma, qtd) => `<div class="rz-row rz-link" role="button" tabindex="0" data-fat-cartao="${v}" ${filtroCartao === v ? 'style="background:var(--tile)"' : ''}>
+                <div class="rz-ic"><svg data-lucide="${filtroCartao === v ? 'filter' : 'credit-card'}"></svg></div>
+                <div class="rz-tx"><b>${escapeHtmlSaidas(t)}</b><span>${escapeHtmlSaidas(sub)}</span></div>
+                <div class="rz-rt"><b>${formatarMoedaBR(soma)}</b><small style="display:block;text-align:right;color:var(--muted)">${qtd} ${Number(qtd) === 1 ? 'compra' : 'compras'}</small></div></div>`;
+            return `<div class="rz-group">Por cartão${filtroCartao ? ' · filtrado' : ''}</div><div class="rz-card rz-list">
+                ${f.parcial ? '' : linha('principal', financeiroNomeCartao(f), `Principal · ${f.titular_tipo === 'pessoa' ? f.titular_nome : 'Empresa'}`, Number(f.soma_itens || 0) - somaAd, Number(f.qtd_itens || 0) - qtdAd)}
+                ${ads.map(a => linha(a.id, `${a.nome}${a.final ? ' ·· ' + a.final : ''}`, `Adicional · ${a.titular_nome || ''}${a.conta_pagadora_nome ? ' · cai em ' + a.conta_pagadora_nome : ''}`, a.soma, a.qtd)).join('')}
+            </div>`;
+        }
+
         export async function financeiroAbrirFatura(faturaId, opcoes = {}) {
             if (typeof abrirSheet !== 'function') return;
             // Releitura só quando algo mudou: voltar de um passo e entrar/sair da seleção usam a fatura já lida.
@@ -1268,7 +1287,9 @@ function financeiroRenderCabecalho(aba) {
             const rolagem = (financeiroFaturaAberta && financeiroFaturaAberta.id === faturaId && (opcoes.voltando || opcoes.semReler || opcoes.manterRolagem)) ? financeiroFaturaAberta.rolagem : 0;
             financeiroFaturaAberta = { id: faturaId, dados: f, rolagem, sujo: false };
             financeiroFaturasInfo.porId[f.id] = { ...f, itens: undefined };
-            const itens = f.itens || [];
+            const ads = f.adicionais || []; // v1.62.0 — cartão adicional
+            const filtroCartao = ads.length ? (opcoes.cartao || null) : null; // null = todos · 'principal' · id do adicional
+            const itens = (f.itens || []).filter(i => !filtroCartao || (filtroCartao === 'principal' ? !i.cartao_uso_id : i.cartao_uso_id === filtroCartao));
             const ac = itens.filter(i => i.categoria === 'a_classificar');
             const ok = itens.filter(i => i.categoria !== 'a_classificar');
             const rs = (sem, t) => (typeof renderStatus === 'function') ? renderStatus(sem, t) : `<span class="rz-st rz-${sem}">${t}</span>`;
@@ -1286,7 +1307,8 @@ function financeiroRenderCabecalho(aba) {
                 const textoSug = temSug ? financeiroTextoSugestaoCartao(s, nomeCat) : ''; // v1.38.0 — categoria · ativo · fornecedor
                 const confSug = Math.round(Number(s.confianca || 0));
                 const valorTxt = Number(i.valor) < 0 ? `<b class="rz-in">+ ${formatarMoedaBR(Math.abs(i.valor))}</b>` : `<b class="rz-out">− ${formatarMoedaBR(i.valor)}</b>`;
-                const extra = pend ? '' : ` · ${escapeHtmlSaidas(nomeCat(i.categoria))}${i.ativo_nome ? ' · ' + escapeHtmlSaidas(i.ativo_nome) : ''}${i.parte_nome ? ' · ' + escapeHtmlSaidas(i.parte_nome) : ''}${i.divisao_ajustada ? ' · divisão ajustada' : ''}`;
+                const doAd = i.cartao_uso_id ? ` · ··${escapeHtmlSaidas(i.cartao_uso_final || '')} ${escapeHtmlSaidas(i.cartao_uso_nome || 'adicional')}` : ''; // v1.62.0
+                const extra = (pend ? '' : ` · ${escapeHtmlSaidas(nomeCat(i.categoria))}${i.ativo_nome ? ' · ' + escapeHtmlSaidas(i.ativo_nome) : ''}${i.parte_nome ? ' · ' + escapeHtmlSaidas(i.parte_nome) : ''}${i.divisao_ajustada ? ' · divisão ajustada' : ''}`) + doAd;
                 return `<div class="rz-row rz-link" data-fat-item="${i.id}">
                     ${selecionando && pend ? `<div data-fat-chk style="flex:none;width:24px;height:24px;border-radius:7px;border:2px solid ${sel.has(i.id) ? 'var(--pine)' : 'var(--line)'};background:${sel.has(i.id) ? 'var(--pine)' : 'transparent'};display:grid;place-items:center;color:white;font-size:14px;font-weight:700">${sel.has(i.id) ? '✓' : ''}</div>` : ''}
                     <div class="rz-ic${temSug ? (confSug < 70 ? ' rz-warn' : ' rz-ia') : (pend ? ' rz-warn' : '')}"><svg data-lucide="${temSug ? 'sparkles' : icCat(i.categoria)}"></svg></div>
@@ -1307,10 +1329,12 @@ function financeiroRenderCabecalho(aba) {
                     <div style="display:flex;justify-content:space-between;gap:12px;padding:4px 0;font-size:14px"><span style="color:var(--muted)">Paga pela conta</span><b>${escapeHtmlSaidas(f.conta_pagadora_nome || '—')}</b></div>
                     <div style="height:8px;border-radius:999px;background:var(--tile);overflow:hidden;margin:10px 0 4px"><i style="display:block;height:100%;width:${pct}%;background:var(--sprout)"></i></div>
                     <span class="rz-hint">${classificadas} de ${itens.length} ${itens.length === 1 ? 'compra classificada' : 'compras classificadas'}</span>
+                    ${f.parcial ? '<span class="rz-hint" style="display:block;margin-top:6px">Você vê só as compras do seu cartão adicional. A fatura inteira é de quem tem o cartão principal.</span>' : ''}
                 </div>
+                ${financeiroCardPorCartaoFatura(f, filtroCartao)}
                 <div style="display:flex;gap:8px;margin:0 0 12px">
                     ${ac.length && podeClassificar ? `<button type="button" class="rz-btn rz-btn-2" style="flex:1" data-fat-selecionar>${selecionando ? 'Cancelar seleção' : 'Selecionar'}</button>` : ''}
-                    ${f.status !== 'paga' ? `<button type="button" class="rz-btn rz-btn-2" style="flex:1" data-fat-baixar>Marcar como paga</button>` : ''}
+                    ${f.status !== 'paga' && !f.parcial ? `<button type="button" class="rz-btn rz-btn-2" style="flex:1" data-fat-baixar>Marcar como paga</button>` : ''}
                 </div>
                 ${ac.length ? `<div class="rz-group">A classificar · ${ac.length}</div><div class="rz-card rz-list">${ac.map(i => linha(i, true)).join('')}</div>` : ''}
                 ${ok.length ? `<div class="rz-group">Classificadas · ${ok.length}</div><div class="rz-card rz-list">${ok.map(i => linha(i, false)).join('')}</div>` : ''}
@@ -1328,7 +1352,11 @@ function financeiroRenderCabecalho(aba) {
                 if (chk) { chk.style.borderColor = on ? 'var(--pine)' : 'var(--line)'; chk.style.background = on ? 'var(--pine)' : 'transparent'; chk.textContent = on ? '✓' : ''; }
                 if (btnLote) { btnLote.disabled = !sel.size; btnLote.textContent = `Classificar ${sel.size || ''}`.trim(); }
             };
-            sheet.querySelectorAll('[data-fat-selecionar]').forEach(b => b.addEventListener('click', () => financeiroAbrirFatura(faturaId, { selecionando: !selecionando, selecionados: [], semReler: true })));
+            sheet.querySelectorAll('[data-fat-selecionar]').forEach(b => b.addEventListener('click', () => financeiroAbrirFatura(faturaId, { selecionando: !selecionando, selecionados: [], semReler: true, cartao: filtroCartao })));
+            sheet.querySelectorAll('[data-fat-cartao]').forEach(b => b.addEventListener('click', () => { // v1.62.0 — filtra as compras pelo cartão
+                const v = b.dataset.fatCartao || null;
+                financeiroAbrirFatura(faturaId, { semReler: true, cartao: v === filtroCartao ? null : v });
+            }));
             sheet.querySelector('[data-fat-baixar]')?.addEventListener('click', () => financeiroBaixarFatura(f));
             sheet.querySelector('[data-fat-lote]')?.addEventListener('click', () => financeiroClassificarItens(itens.filter(i => sel.has(i.id)), faturaId));
             sheet.querySelectorAll('[data-fat-item]').forEach(row => row.addEventListener('click', () => {
@@ -1384,6 +1412,18 @@ function financeiroRenderCabecalho(aba) {
                     aoTocar: () => financeiroGravarClassificacao([i.id], { categoria: 'a_classificar', ativo_id: null, parte_id: null, divisao: null, sempre_assim: false }, f.id) });
                 acoes.push({ icone: 'info', titulo: 'Resumo da conciliação', sub: 'Data, origem, modo e canal', aoTocar: () => financeiroResumoCompraCartao(i, f) });
             }
+            // v1.62.0 — cartão adicional: mover a compra entre o principal e os adicionais (a divisão segue a conta em que o adicional cai)
+            const adsAtivos = (f.adicionais || []).filter(a => a.situacao === 'ativa' && a.id !== i.cartao_uso_id);
+            if (!f.parcial && i.cartao_uso_id) acoes.push({ icone: 'undo-2', titulo: 'Voltar ao principal', sub: `A compra sai do ${i.cartao_uso_nome || 'adicional'} e volta para ${financeiroNomeCartao(f)}`, codigo: 'cartao.classificar',
+                aoTocar: () => financeiroMoverCompraCartao([i.id], f.cartao_id, f.id) });
+            if (!f.parcial && adsAtivos.length) acoes.push({ icone: 'credit-card', titulo: adsAtivos.length === 1 ? `Mover para o adicional ${adsAtivos[0].nome}` : 'Mover para um adicional',
+                sub: adsAtivos.length === 1 ? `${adsAtivos[0].titular_nome || ''}${adsAtivos[0].final ? ' · final ' + adsAtivos[0].final : ''}` : adsAtivos.map(a => a.nome).join(', '), codigo: 'cartao.classificar', manterAberto: adsAtivos.length > 1,
+                aoTocar: () => {
+                    if (adsAtivos.length === 1) return financeiroMoverCompraCartao([i.id], adsAtivos[0].id, f.id);
+                    abrirSheetAcoes({ titulo: 'Mover para qual adicional?', sub: escapeHtmlSaidas(i.descricao), empilhar: true,
+                        acoes: adsAtivos.map(a => ({ icone: 'credit-card', titulo: a.nome, sub: `${a.titular_nome || ''}${a.final ? ' · final ' + a.final : ''}`, codigo: 'cartao.classificar',
+                            aoTocar: () => financeiroMoverCompraCartao([i.id], a.id, f.id) })) });
+                } });
             acoes.push(...financeiroAcaoDivisao('lancamento', i.id, Math.abs(Number(i.valor)), i.divisao_ajustada, () => financeiroDepoisDeMudarFatura(f.id), true));
             acoes.push({ icone: 'trash-2', titulo: 'Excluir compra', sub: 'Só volta importando a fatura de novo', tipo: 'bad', codigo: 'cartao.importar',
                 aoTocar: async () => {
@@ -1396,6 +1436,15 @@ function financeiroRenderCabecalho(aba) {
                 } });
             // nível 2 por cima da fatura: Cancelar volta para a fatura, não para a lista de Saídas
             abrirSheetAcoes({ titulo: escapeHtmlSaidas(i.descricao), sub: `${i.compra ? 'Compra ' + formatarDataBR(i.compra) + ' · ' : ''}${formatarMoedaBR(Math.abs(i.valor))}`, acoes, empilhar: true });
+        }
+
+        /** v1.62.0 — move compras da fatura para um adicional (ou de volta ao principal, passando o id do principal). */
+        async function financeiroMoverCompraCartao(ids, cartaoUsoId, faturaId) {
+            const { data, error } = await dbAuth.rpc('fn_fatura_item_classificar', { p_lancamento_ids: ids, p_categoria: null, p_cartao_uso_id: cartaoUsoId });
+            if (error || !data?.ok) { rzToast(error?.message || data?.mensagem || 'Não consegui mover a compra.', { tipo: 'danger' }); return; }
+            rzToast(data.mensagem, { tipo: 'success' });
+            emitirEscrita('despesa', { id: faturaId, acao: 'mover_cartao_uso' });
+            financeiroDepoisDeMudarFatura(faturaId);
         }
 
         /** Resumo da conciliação da compra de cartão — mesmo formato do extrato (data e hora, origem, modo, canal). */
@@ -1580,11 +1629,39 @@ function financeiroRenderCabecalho(aba) {
         }
 
         /** Lançar › Importar fatura do cartão: escolhe o cartão, lê o PDF/foto com IA, confere e importa. */
+        // v1.62.0 — conferência da importação: compras novas por cartão, pelo final lido em cada uma. Final de adicional
+        // cadastrado vai para ele; final que não é do principal nem de adicional fica no principal (aviso para cadastrar).
+        function financeiroComprasPorCartaoLidas(novos, cartaoId) {
+            const cart = (financeiroContasInfo.cartoes || []).find(c => c.id === cartaoId);
+            if (!cart || !novos.some(i => i.final)) return '';
+            const ads = (financeiroContasInfo.adicionais || []).filter(a => a.cartao_principal_id === cartaoId);
+            const u4 = (v) => String(v || '').replace(/\D/g, '').slice(-4);
+            const grupos = new Map(); const soltos = new Map();
+            for (const i of novos) {
+                const f = u4(i.final); const ad = f ? ads.find(a => u4(a.final_identificador) === f) : null;
+                if (ad) { const g = grupos.get(ad.id) || { n: 0, v: 0, ad }; g.n++; g.v += Number(i.valor || 0); grupos.set(ad.id, g); }
+                else if (f && f !== u4(cart.final_identificador)) { const g = soltos.get(f) || { n: 0, v: 0 }; g.n++; g.v += Number(i.valor || 0); soltos.set(f, g); }
+            }
+            if (!grupos.size && !soltos.size) return '';
+            const nAd = [...grupos.values()].reduce((t, g) => t + g.n, 0) + [...soltos.values()].reduce((t, g) => t + g.n, 0);
+            const vAd = [...grupos.values()].reduce((t, g) => t + g.v, 0) + [...soltos.values()].reduce((t, g) => t + g.v, 0);
+            const linha = (ic, t, sub, n, v) => `<div class="rz-row"><div class="rz-ic"><svg data-lucide="${ic}"></svg></div><div class="rz-tx"><b>${escapeHtmlSaidas(t)}</b><span>${escapeHtmlSaidas(sub)}</span></div><div class="rz-rt"><b>${formatarMoedaBR(v)}</b><small style="display:block;text-align:right;color:var(--muted)">${n} ${n === 1 ? 'compra' : 'compras'}</small></div></div>`;
+            return `<div class="rz-group">Por cartão</div><div class="rz-card rz-list">
+                ${linha('credit-card', `${cart.nome}${cart.final_identificador ? ' ·· ' + cart.final_identificador : ''}`, 'Principal', novos.length - nAd, novos.reduce((t, i) => t + Number(i.valor || 0), 0) - vAd)}
+                ${[...grupos.values()].map(g => linha('credit-card', `${g.ad.nome} ·· ${g.ad.final_identificador}`, `Adicional · ${g.ad.titular_nome || ''}`, g.n, g.v)).join('')}
+                ${[...soltos.entries()].map(([f, g]) => linha('circle-help', `Final ${f}`, 'Não é adicional cadastrado: fica no principal', g.n, g.v)).join('')}
+            </div>${soltos.size ? '<span class="rz-hint">Para separar o final que não é adicional cadastrado, cadastre o adicional no ativo de quem usa (Controles › + › "Conta ou cartão" › Cartão adicional) e mova as compras na fatura.</span>' : ''}`;
+        }
+
         export async function financeiroImportarFatura(opcoes = {}) {
             if (typeof abrirSheetForm !== 'function') return;
             financeiroContasInfo.clienteId = null; // v1.38.1 — relê as contas: cartão cadastrado depois de abrir o Financeiro aparece
             await financeiroGarantirContas();
             const cartoes = financeiroContasInfo.cartoes || []; // v1.38.0
+            if (!cartoes.length && (financeiroContasInfo.adicionais || []).length) {
+                rzAviso({ titulo: 'A fatura é importada no cartão principal', linhas: ['Você tem acesso só ao cartão adicional. Quem tem o cartão principal importa a fatura; as compras feitas no seu adicional aparecem para você.'] }); // v1.62.0
+                return;
+            }
             if (!cartoes.length) {
                 rzAviso({ titulo: 'Cadastre o cartão primeiro', linhas: ['No ativo do titular (ou em Controles da empresa), abra Controles › + › "Conta ou cartão" e escolha "Cartão de crédito", com o dia do fechamento, o dia do vencimento e a conta que paga a fatura.'] }); // v1.61.0 (47eed96b)
                 return;
@@ -1619,19 +1696,21 @@ function financeiroRenderCabecalho(aba) {
                 box.innerHTML = '<p class="rz-hint">Comparando com o que já está na fatura…</p>';
                 const { data, error } = await dbAuth.rpc('fn_fatura_importar', {
                     p_cliente_id: CLIENTE_ID_SUPABASE, p_cartao_id: el.querySelector('#fi-cartao').value, p_competencia: el.querySelector('#fi-comp').value,
-                    p_cabecalho: { simular: true }, p_itens: lido.itens.map(i => ({ data: i.data, descricao: i.descricao, valor: i.valor, parcela: i.parcela })),
+                    p_cabecalho: { simular: true }, p_itens: lido.itens.map(i => ({ data: i.data, descricao: i.descricao, valor: i.valor, parcela: i.parcela, final: i.final ?? null })), // v1.62.0 — final do cartão de cada compra
                 });
                 if (error || !data?.ok) { box.innerHTML = `<p class="rz-hint" style="color:var(--danger)">${escapeHtmlSaidas(error?.message || data?.mensagem || 'Não consegui comparar.')}</p>`; sim = null; return; }
                 sim = data.dados;
-                const linhaLida = (i) => `<div class="rz-row"><div class="rz-tx"><b>${escapeHtmlSaidas(i.descricao)}</b><span>${formatarDataBR(i.data)}${i.parcela ? ' · parcela ' + escapeHtmlSaidas(i.parcela) : ''}</span></div><div class="rz-rt">${Number(i.valor) < 0 ? `<b class="rz-in">+ ${formatarMoedaBR(Math.abs(i.valor))}</b>` : `<b class="rz-out">− ${formatarMoedaBR(i.valor)}</b>`}</div></div>`;
+                const linhaLida = (i) => `<div class="rz-row"><div class="rz-tx"><b>${escapeHtmlSaidas(i.descricao)}</b><span>${formatarDataBR(i.data)}${i.parcela ? ' · parcela ' + escapeHtmlSaidas(i.parcela) : ''}${i.final ? ' · final ' + escapeHtmlSaidas(i.final) : ''}</span></div><div class="rz-rt">${Number(i.valor) < 0 ? `<b class="rz-in">+ ${formatarMoedaBR(Math.abs(i.valor))}</b>` : `<b class="rz-out">− ${formatarMoedaBR(i.valor)}</b>`}</div></div>`;
                 const novos = (sim.novos || []).map(k => lido.itens[k]).filter(Boolean);
                 const nRep = (sim.repetidos || []).length;
                 const falt = sim.faltando || [];
+                const porCartao = financeiroComprasPorCartaoLidas(novos, el.querySelector('#fi-cartao').value); // v1.62.0
                 box.innerHTML = `
                     ${sim.fatura_status === 'paga' && novos.length ? `<label class="rz-row rz-chk"><input type="checkbox" id="fi-conf-paga"><div class="rz-tx"><b>A fatura já está paga</b><span>Marque para acrescentar ${novos.length} ${novos.length === 1 ? 'compra nova' : 'compras novas'}; ela volta para "paga em parte" se o total mudar</span></div></label>` : ''}
                     ${sim.fatura_status !== 'paga' && novos.length ? `<div class="rz-f"><label>Esta fatura já foi paga? <i>*</i></label><select id="fi-paga"><option value="">— escolha —</option><option value="nao">Ainda não — fica em aberto</option><option value="sim">Sim, já paguei</option></select>
                         <span class="rz-hint">Se já foi paga, a fatura e todas as compras entram como pagas. Se não, ficam em aberto (vencidas ou a vencer pelo vencimento) até você marcar a fatura como paga.</span></div>
                         <div class="rz-f hidden" id="fi-paga-data-box"><label>Data do pagamento</label><input type="date" id="fi-paga-data" value="${(() => { const h = new Date().toISOString().slice(0, 10); const v = lido.dataVencimento || ''; return v && v <= h ? v : h; })()}"></div>` : ''}
+                    ${porCartao}
                     <div class="rz-group">Novas · ${novos.length}</div>
                     ${novos.length ? `<div class="rz-card rz-list">${novos.map(linhaLida).join('')}</div>` : '<p class="rz-hint">Nenhuma compra nova neste arquivo.</p>'}
                     ${nRep ? `<div class="rz-group">Já estão na fatura · ${nRep}</div><p class="rz-hint">Não entram de novo.</p>` : ''}
@@ -1683,7 +1762,7 @@ function financeiroRenderCabecalho(aba) {
                         p_cliente_id: CLIENTE_ID_SUPABASE, p_cartao_id: cartaoId, p_competencia: el.querySelector('#fi-comp').value,
                         p_cabecalho: { data_vencimento: lido.dataVencimento, data_fechamento: lido.dataFechamento, valor_total: lido.valorTotal, confirmar_paga: confirmarPaga,
                             ja_paga: jaPaga, data_pagamento: jaPaga ? (el.querySelector('#fi-paga-data')?.value || null) : null },
-                        p_itens: lido.itens.map(i => ({ data: i.data, descricao: i.descricao, valor: i.valor, parcela: i.parcela })),
+                        p_itens: lido.itens.map(i => ({ data: i.data, descricao: i.descricao, valor: i.valor, parcela: i.parcela, final: i.final ?? null })), // v1.62.0 — final do cartão de cada compra
                     });
                     if (error || !data?.ok) { rzToast(error?.message || data?.mensagem || 'Não consegui importar.', { tipo: 'danger' }); return false; }
                     for (const id of excluir) {
