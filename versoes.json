@@ -1,8 +1,8 @@
 {
   "app": "patrimonio",
-  "gerado_em": "2026-10-13T23:59:27",
+  "gerado_em": "2026-10-14T00:03:05",
   "arquivos": {
-    "index.html": "1.400.0",
+    "index.html": "1.401.0",
     "sw.js": "3.2",
     "js/cadastros.js": "1.2.0",
     "js/financeiro.js": "1.61.0",
@@ -40,13 +40,11 @@
     "js/ativos/ativos-markup.js": "1.61.0",
     "js/nucleo/porta.js": "1.4.0",
     "js/partes.js": "1.0.2",
-    "js/conta.js": "1.0.1",
-    "grupo.html": "1.0.0",
-    "js/grupo-visao.js": "1.0.0"
+    "js/conta.js": "1.0.1"
   },
   "detalhes": {
     "index.html": {
-      "linhas": 16597,
+      "linhas": 16621,
       "funcoes": 68
     },
     "sw.js": {
@@ -200,14 +198,6 @@
     "js/conta.js": {
       "linhas": 480,
       "funcoes": 13
-    },
-    "grupo.html": {
-      "linhas": 115,
-      "funcoes": 0
-    },
-    "js/grupo-visao.js": {
-      "linhas": 244,
-      "funcoes": 10
     }
   }
 }

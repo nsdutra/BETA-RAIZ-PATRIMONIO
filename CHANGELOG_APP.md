@@ -4,6 +4,20 @@ Histórico completo de versões do `index.html`, movido automaticamente pelo `ge
 
 ---
 
+NOVIDADES (Beta v1.396.0) — Ocorrência e Raiz IA, teste do Nicola 13/10 22:44 (demanda a2f4980a). Ocorrência do item
+de controle (cofre-controles 1.53.0) e do contrato (contratos 1.56.0) ganha Cancelar, Reabrir e Excluir (excluir só
+a criada à mão/IA e não concluída; a gerada pela regra só se cancela). Raiz IA mostra que está lendo (campo pulsando,
+roda no botão e "Raiz IA está lendo a sua frase…"); a busca mostra "Procurando…". Pergunta por voz vai para a busca
+com a FRASE ("quando vence o visto da Claudia"), palavras que nada acham saem da conta, e a busca em tudo ganha o
+grupo Itens de controle. Sem banco.
+Versão anterior (Beta v1.395.0):
+------------------------------------------------------------------
+Versões anteriores (v1.395.0 … v1.395.0): CHANGELOG_APP.md, na raiz do
+repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
+das 5 versões mais recentes deste cabeçalho.
+
+---
+
 NOVIDADES (Beta v1.395.0) — Usos fatia 0, uso universal (FICHA_FATIA0_USO_UNIVERSAL_RAIZ v1.0.0, "De acordo." do Nicola
 13/10). rzCarregarUsosRamo lê o status de hoje de toda a carteira numa chamada só (fn_entidade_status: ativo_usos,
 contratos espelhados e repouso) em vez de ler contratos; rzRamoDoAtivo dá prioridade ao ramo guardado no ativo

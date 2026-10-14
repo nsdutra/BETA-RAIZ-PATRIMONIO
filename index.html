@@ -6,9 +6,13 @@
    (base derivada do RUMO v7.4.2 — histórico de versões anteriores
    preservado abaixo para referência técnica)
 
-   VERSÃO: Beta v1.400.0
-   LINHAS: 16591
-   DATA: 14/10/2026 (sessão 20261013-2350-usos-fatia1, demandas 3022603b e 0579b844)
+   VERSÃO: Beta v1.401.0
+   LINHAS: 16614
+   DATA: 14/10/2026 (sessão 20261014-0005-raiz-ia-fundo, demanda a2f4980a)
+   NOVIDADES (Beta v1.401.0) — Raiz IA "no fundo" (Nicola 14/10 00:00, demanda a2f4980a): o que a IA abre — Nova saída,
+   ocorrência, busca, "Qual destes?", atalhos — volta para a Raiz IA quando fecha, salvando ou não (rzIaVoltarAoFechar).
+   Escolher um resultado da busca leva à ficha e encerra a volta. Sem banco.
+   Versão anterior (Beta v1.400.0):
    NOVIDADES (Beta v1.400.0) — Usos fatia 1, máquina de status (FICHA_FATIA1_MAQUINA_STATUS_RAIZ v1.0.0; Nicola 13/10 23:45:
    "D1-1 não precisa mudar nada. Continua como alugado. Restante ok. Vamos seguir"). Import map: cofre-ativos.js 1.99.0
    (Situação do ⋮ pelo catálogo: venda, baixa, arquivar, reativar, desfazer; Excluir uso; card Histórico) e
@@ -28,15 +32,8 @@
    (F18) não abre mais o formulário do item — "Editar" leva à ficha da conta, dona do nome, titular e vencimento. Aqui
    só muda o import map (cofre-controles.js 1.54.0). Nenhum objeto de banco.
    Versão anterior (Beta v1.396.0):
-   NOVIDADES (Beta v1.396.0) — Ocorrência e Raiz IA, teste do Nicola 13/10 22:44 (demanda a2f4980a). Ocorrência do item
-   de controle (cofre-controles 1.53.0) e do contrato (contratos 1.56.0) ganha Cancelar, Reabrir e Excluir (excluir só
-   a criada à mão/IA e não concluída; a gerada pela regra só se cancela). Raiz IA mostra que está lendo (campo pulsando,
-   roda no botão e "Raiz IA está lendo a sua frase…"); a busca mostra "Procurando…". Pergunta por voz vai para a busca
-   com a FRASE ("quando vence o visto da Claudia"), palavras que nada acham saem da conta, e a busca em tudo ganha o
-   grupo Itens de controle. Sem banco.
-   Versão anterior (Beta v1.395.0):
    ------------------------------------------------------------------
-   Versões anteriores (v1.395.0 … v1.395.0): CHANGELOG_APP.md, na raiz do
+   Versões anteriores (v1.396.0 … v1.396.0): CHANGELOG_APP.md, na raiz do
    repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
    das 5 versões mais recentes deste cabeçalho.
 
@@ -64,7 +61,7 @@
          O navegador aplica o mapa também aos imports estáticos dentro dos
          módulos (cofre-app.js → ./cofre-api.js etc.). -->
     <!-- RZ-IMPORTMAP:INICIO -->
-    <script type="importmap">{"imports":{"./js/cadastros.js":"./js/cadastros.js?v=1.2.0","./js/financeiro.js":"./js/financeiro.js?v=1.61.0","./js/fechamento.js":"./js/fechamento.js?v=1.13.0","./js/contratos.js":"./js/contratos.js?v=1.56.0","./js/minutas.js":"./js/minutas.js?v=1.4.0","./js/vitrine.js":"./js/vitrine.js?v=1.5.2","./js/imoveis.js":"./js/imoveis.js?v=1.7.2","./js/cofre-api.js":"./js/cofre-api.js?v=1.50.0","./js/cofre-app.js":"./js/cofre-app.js?v=1.47.0","./js/cofre-ativos.js":"./js/cofre-ativos.js?v=1.99.0","./js/cofre-controles.js":"./js/cofre-controles.js?v=1.56.0","./js/cofre-documentos.js":"./js/cofre-documentos.js?v=2.35.0","./js/cofre-imagem.js":"./js/cofre-imagem.js?v=1.1.0","./js/cofre-estado.js":"./js/cofre-estado.js?v=1.5.2","./js/cofre-navegacao.js":"./js/cofre-navegacao.js?v=1.9.3","./js/cofre-ui.js":"./js/cofre-ui.js?v=1.7.2","./js/cofre-validacoes.js":"./js/cofre-validacoes.js?v=2.5.0","./js/comum-licenca.js":"./js/comum-licenca.js?v=1.8.0","./js/comum-renovacao.js":"./js/comum-renovacao.js?v=1.3.5","./js/comum-minha-empresa.js":"./js/comum-minha-empresa.js?v=1.16.0","./js/comum-pessoas.js":"./js/comum-pessoas.js?v=1.211.0","./js/comum-sobre.js":"./js/comum-sobre.js?v=1.5.0","./js/comum-endereco.js":"./js/comum-endereco.js?v=1.2.0","./js/comum-partes.js":"./js/comum-partes.js?v=1.0.0","./js/resultados.js":"./js/resultados.js?v=2.9.0","./js/indicadores.js":"./js/indicadores.js?v=1.1.0","./js/configuracao-inicial.js":"./js/configuracao-inicial.js?v=1.0.1","./js/relatorios-executivos.js":"./js/relatorios-executivos.js?v=1.3.0","./js/raiz-eventos.js":"./js/raiz-eventos.js?v=1.0.0","./js/raiz-device.js":"./js/raiz-device.js?v=1.1.0","./js/raiz-ui.js":"./js/raiz-ui.js?v=1.4.0","./js/fiscal.js":"./js/fiscal.js?v=1.5.2","./js/ativos/ativos-boot.js":"./js/ativos/ativos-boot.js?v=1.4.0","./js/ativos/ativos-markup.js":"./js/ativos/ativos-markup.js?v=1.61.0","./js/nucleo/porta.js":"./js/nucleo/porta.js?v=1.4.0","./js/partes.js":"./js/partes.js?v=1.0.2","./js/conta.js":"./js/conta.js?v=1.0.1","./js/grupo-visao.js":"./js/grupo-visao.js?v=1.0.0"}}</script>
+    <script type="importmap">{"imports":{"./js/cadastros.js":"./js/cadastros.js?v=1.2.0","./js/financeiro.js":"./js/financeiro.js?v=1.61.0","./js/fechamento.js":"./js/fechamento.js?v=1.13.0","./js/contratos.js":"./js/contratos.js?v=1.56.0","./js/minutas.js":"./js/minutas.js?v=1.4.0","./js/vitrine.js":"./js/vitrine.js?v=1.5.2","./js/imoveis.js":"./js/imoveis.js?v=1.7.2","./js/cofre-api.js":"./js/cofre-api.js?v=1.50.0","./js/cofre-app.js":"./js/cofre-app.js?v=1.47.0","./js/cofre-ativos.js":"./js/cofre-ativos.js?v=1.99.0","./js/cofre-controles.js":"./js/cofre-controles.js?v=1.56.0","./js/cofre-documentos.js":"./js/cofre-documentos.js?v=2.35.0","./js/cofre-imagem.js":"./js/cofre-imagem.js?v=1.1.0","./js/cofre-estado.js":"./js/cofre-estado.js?v=1.5.2","./js/cofre-navegacao.js":"./js/cofre-navegacao.js?v=1.9.3","./js/cofre-ui.js":"./js/cofre-ui.js?v=1.7.2","./js/cofre-validacoes.js":"./js/cofre-validacoes.js?v=2.5.0","./js/comum-licenca.js":"./js/comum-licenca.js?v=1.8.0","./js/comum-renovacao.js":"./js/comum-renovacao.js?v=1.3.5","./js/comum-minha-empresa.js":"./js/comum-minha-empresa.js?v=1.16.0","./js/comum-pessoas.js":"./js/comum-pessoas.js?v=1.211.0","./js/comum-sobre.js":"./js/comum-sobre.js?v=1.5.0","./js/comum-endereco.js":"./js/comum-endereco.js?v=1.2.0","./js/comum-partes.js":"./js/comum-partes.js?v=1.0.0","./js/resultados.js":"./js/resultados.js?v=2.9.0","./js/indicadores.js":"./js/indicadores.js?v=1.1.0","./js/configuracao-inicial.js":"./js/configuracao-inicial.js?v=1.0.1","./js/relatorios-executivos.js":"./js/relatorios-executivos.js?v=1.3.0","./js/raiz-eventos.js":"./js/raiz-eventos.js?v=1.0.0","./js/raiz-device.js":"./js/raiz-device.js?v=1.1.0","./js/raiz-ui.js":"./js/raiz-ui.js?v=1.4.0","./js/fiscal.js":"./js/fiscal.js?v=1.5.2","./js/ativos/ativos-boot.js":"./js/ativos/ativos-boot.js?v=1.4.0","./js/ativos/ativos-markup.js":"./js/ativos/ativos-markup.js?v=1.61.0","./js/nucleo/porta.js":"./js/nucleo/porta.js?v=1.4.0","./js/partes.js":"./js/partes.js?v=1.0.2","./js/conta.js":"./js/conta.js?v=1.0.1"}}</script>
     <!-- RZ-IMPORTMAP:FIM -->
 
     <!-- ===== PWA: permite "instalar" o app no celular (Android e iPhone) ===== -->
@@ -4182,7 +4179,7 @@
         // texto certo toda vez (esqueci 5 versões seguidas, de v1.37.1 até
         // v1.38.3). Agora só precisa mudar UMA linha aqui a cada release;
         // window.onload aplica nos dois lugares automaticamente.
-        const APP_VERSAO = "Beta v1.400.0"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
+        const APP_VERSAO = "Beta v1.401.0"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
 
         // ====================================================================
         // v1.105.0 — HELPERS DE SUPERFÍCIE DA GRAMÁTICA ÚNICA
@@ -9587,7 +9584,31 @@ async function criarLinkVitrineSupabase(token, idsSelecionados) {
         // campo único: pergunta ou registro, por texto ou voz. A frase vai à Edge raiz-ia-registrar (mesmo modelo e
         // vocabulário do robô, _shared_ia) e volta como despesa · receita · ocorrência · pergunta; o app abre SEMPRE o
         // formulário preenchido — nada grava sem o toque em Salvar (UXR-37). Atalhos: Ocorrência · Lançamento · Documento.
+        // v1.401.0 — a Raiz IA fica "no fundo": o que ela abrir (formulário, busca, "Qual destes?") volta para ela quando
+        // fecha — salvando ou não. Vale para sheet e para os formulários em modal (Nova saída). Escolher um resultado da
+        // busca leva à ficha e encerra a volta. Nada abriu em 10 s (ex.: escolher arquivo) também encerra.
+        let rzIaFundoTimer = null;
+        function rzIaFundoParar() { if (rzIaFundoTimer) { clearInterval(rzIaFundoTimer); rzIaFundoTimer = null; } }
+        function rzIaAlgoAberto() {
+            if (document.getElementById('rz-veil')?.classList.contains('rz-on')) return true;
+            const vis = (el) => !!el && el.getClientRects().length > 0 && getComputedStyle(el).visibility !== 'hidden';
+            if (vis(document.getElementById('overlay-carregamento-global'))) return true;
+            return Array.from(document.querySelectorAll('body > [id^="modal-"]')).some(vis);
+        }
+        function rzIaVoltarAoFechar() {
+            rzIaFundoParar();
+            let visto = false, vazios = 0, voltas = 0;
+            rzIaFundoTimer = setInterval(() => {
+                voltas++;
+                if (rzIaAlgoAberto()) { visto = true; vazios = 0; return; }
+                if (!visto) { if (voltas > 25) rzIaFundoParar(); return; }
+                if (++vazios < 2) return;
+                rzIaFundoParar();
+                abrirSheetRaizIA();
+            }, 400);
+        }
         function abrirSheetRaizIA() {
+            rzIaFundoParar();
             const vozOk = !!(window.RaizDevice && RaizDevice.voz && RaizDevice.voz.disponivel());
             const campo = '<div class="rz-ia-campo"><textarea id="rz-ia-q" class="rz-raw" rows="1" maxlength="500" enterkeyhint="send" placeholder="Pergunte ou registre…" aria-label="Pergunte ou registre"></textarea>' +
                 (vozOk ? '<button type="button" class="rz-ia-mic" id="rz-ia-mic" aria-label="Falar"><svg data-lucide="mic"></svg></button>' : '') +
@@ -9620,7 +9641,7 @@ async function criarLinkVitrineSupabase(token, idsSelecionados) {
                 if (!escuta.ok) { mic.classList.remove('rz-ouvindo'); escuta = null; rzAvisar('Este aparelho não reconhece voz aqui. Escreva a frase.', 'aviso'); }
             });
             sheet.querySelectorAll('[data-ia-atalho]').forEach(b => b.addEventListener('click', () => {
-                const k = b.dataset.iaAtalho; fecharSheet();
+                const k = b.dataset.iaAtalho; fecharSheet(); rzIaVoltarAoFechar(); // v1.401.0
                 if (k === 'ocorrencia') rzNovaOcorrencia({});
                 else if (k === 'lancamento') rzEscolherLancamento({});
                 else abrirUploadDocumentoNoApp();
@@ -9659,6 +9680,7 @@ async function criarLinkVitrineSupabase(token, idsSelecionados) {
                 return;
             }
             fecharSheet();
+            rzIaVoltarAoFechar(); // v1.401.0 — fecha o que abrir e volta para a Raiz IA
             if (r.aviso_limite) rzAvisar(r.aviso_limite, 'aviso');
             const p = r.parametros || {};
             const comAtivo = (fazer) => {
@@ -15789,11 +15811,12 @@ async function criarLinkVitrineSupabase(token, idsSelecionados) {
                 const mais = ev.target.closest('[data-mais]');
                 if (mais) { abertos[mais.dataset.mais] = true; desenhar(); return; }
                 const ver = ev.target.closest('[data-ver]');
-                if (ver) { const g = grupos.find(x => x.chave === ver.dataset.ver); rzBuscaGuardarTermo(q.value); sair(); if (g) g.verTodos(); return; }
+                if (ver) { const g = grupos.find(x => x.chave === ver.dataset.ver); rzBuscaGuardarTermo(q.value); rzIaFundoParar(); sair(); if (g) g.verTodos(); return; }
                 const item = ev.target.closest('[data-g]');
                 if (item) {
                     const g = grupos.find(x => x.chave === item.dataset.g);
                     rzBuscaGuardarTermo(q.value);
+                    rzIaFundoParar(); // v1.401.0 — escolheu um resultado: vai para a ficha, sem voltar à Raiz IA
                     sair();
                     if (g) g.abrir(item.dataset.id);
                 }
