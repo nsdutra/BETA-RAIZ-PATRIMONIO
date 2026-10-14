@@ -6,9 +6,14 @@
    (base derivada do RUMO v7.4.2 — histórico de versões anteriores
    preservado abaixo para referência técnica)
 
-   VERSÃO: Beta v1.392.0
-   LINHAS: 16482
-   DATA: 12/10/2026 (sessão 20261008-1231-pessoas-ativos, demanda 41d771c8)
+   VERSÃO: Beta v1.393.0
+   LINHAS: 16491
+   DATA: 13/10/2026 (sessão 20261013-2205-alertas-cartao, demanda 8f7d2734)
+   NOVIDADES (Beta v1.393.0) — B-8, alertas do cartão pelo Motor (plano e ficha com de acordo do Nicola 13/10 22:03):
+   rzAbrirDestinoAlerta ganha os destinos financeiro/importar-fatura (abre "Importar fatura do cartão") e
+   financeiro/fatura (abre a fatura do alerta). Os 3 alertas novos (fatura a importar, vencendo, compras a classificar)
+   vêm de fn_alertas_listar (migration motor_alertas_cartao_b8_v1); nenhuma regra nova no app.
+   Versão anterior (Beta v1.392.0):
    NOVIDADES (Beta v1.392.0) — F13.10: rateio em grupo a partir de um item de controle (card no item, link por participante em
    grupo.html, fechamento que leva a parte de cada pessoa do Raiz ao financeiro; Balanço › Grupos lista os rateios). Aqui só
    muda o import map (cofre-controles.js 1.52.0, financeiro.js 1.60.0 e o novo js/grupo-visao.js 1.0.0).
@@ -37,14 +42,8 @@
    fora), salvar na largura toda. Seletor de ano único ‹ ano › (.rz-ano): Financeiro da ficha sem "Todos"
    (financeiro.js 1.58.0) e Indicadores (indicadores.js 1.1.0). Minha gestão sem a linha da data. Nenhum objeto de banco.
    Versão anterior (Beta v1.388.0):
-   NOVIDADES (Beta v1.388.0) — UX onda 4d (estudo PROTOTIPO_UX_DENSIDADE_RAMOS_RAIZ v1.2.0, D9; "Vamos adiante" do
-   Nicola 12/10 02:46): agrupadores com total — em Ativos, a soma do valor de referência do empreendimento; em
-   Contratos, o aluguel/mês dos contratos ativos (cofre-ativos.js 1.96.0, contratos.js 1.54.0). O Balanço ganha o
-   mesmo topo de 2 linhas do Financeiro (período como título, lupa e +; abas sublinhadas); rzFinAlternarBusca acha o
-   campo dentro da barra. Nenhum objeto de banco.
-   Versão anterior (Beta v1.387.0):
    ------------------------------------------------------------------
-   Versões anteriores (v1.387.0 … v1.387.0): CHANGELOG_APP.md, na raiz do
+   Versões anteriores (v1.388.0 … v1.388.0): CHANGELOG_APP.md, na raiz do
    repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
    das 5 versões mais recentes deste cabeçalho.
 
@@ -4180,7 +4179,7 @@
         // texto certo toda vez (esqueci 5 versões seguidas, de v1.37.1 até
         // v1.38.3). Agora só precisa mudar UMA linha aqui a cada release;
         // window.onload aplica nos dois lugares automaticamente.
-        const APP_VERSAO = "Beta v1.392.0"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
+        const APP_VERSAO = "Beta v1.393.0"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
 
         // ====================================================================
         // v1.105.0 — HELPERS DE SUPERFÍCIE DA GRAMÁTICA ÚNICA
@@ -12022,6 +12021,16 @@ async function criarLinkVitrineSupabase(token, idsSelecionados) {
                 // console.warn, mesmo sintoma do financeiro/atrasados em 12/09.
                 case 'financeiro/conciliacao':
                     switchTab('tab-conciliacao');
+                    return;
+                // v1.393.0 (B-8, demanda 8f7d2734) — alertas do cartão: "a importar" abre a importação da
+                // fatura; "vencendo" e "a classificar" abrem a fatura (entidade_id = id da fatura).
+                case 'financeiro/importar-fatura':
+                    switchTab('tab-mensal');
+                    setTimeout(() => { if (typeof window.financeiroImportarFatura === 'function') window.financeiroImportarFatura(); }, 300);
+                    return;
+                case 'financeiro/fatura':
+                    switchTab('tab-mensal');
+                    setTimeout(() => { if (typeof window.financeiroAbrirFatura === 'function') window.financeiroAbrirFatura(row.entidade_id); }, 300);
                     return;
                 case 'relatorios/resultados':
                     switchTab('tab-relatorios');

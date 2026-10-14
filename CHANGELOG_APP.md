@@ -4,6 +4,19 @@ Histórico completo de versões do `index.html`, movido automaticamente pelo `ge
 
 ---
 
+NOVIDADES (Beta v1.388.0) — UX onda 4d (estudo PROTOTIPO_UX_DENSIDADE_RAMOS_RAIZ v1.2.0, D9; "Vamos adiante" do
+Nicola 12/10 02:46): agrupadores com total — em Ativos, a soma do valor de referência do empreendimento; em
+Contratos, o aluguel/mês dos contratos ativos (cofre-ativos.js 1.96.0, contratos.js 1.54.0). O Balanço ganha o
+mesmo topo de 2 linhas do Financeiro (período como título, lupa e +; abas sublinhadas); rzFinAlternarBusca acha o
+campo dentro da barra. Nenhum objeto de banco.
+Versão anterior (Beta v1.387.0):
+------------------------------------------------------------------
+Versões anteriores (v1.387.0 … v1.387.0): CHANGELOG_APP.md, na raiz do
+repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
+das 5 versões mais recentes deste cabeçalho.
+
+---
+
 NOVIDADES (Beta v1.387.0) — UX onda 4c: Financeiro em 2 linhas e Usos com o ano (estudo PROTOTIPO_UX_DENSIDADE_
 RAMOS_RAIZ v1.2.0, D9; "Pode fazer e seguir" 12/10 02:26 e, 02:31, "juntar os dois cards ocupação e uso … filtrada
 por ano … letras iniciais dos meses … apenas o % ocupação basta"). Financeiro (Recebimentos, Saídas, Conciliação):
