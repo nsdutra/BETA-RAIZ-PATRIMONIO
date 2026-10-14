@@ -6,9 +6,15 @@
    (base derivada do RUMO v7.4.2 — histórico de versões anteriores
    preservado abaixo para referência técnica)
 
-   VERSÃO: Beta v1.402.0
-   LINHAS: 16615
-   DATA: 14/10/2026 (sessão 20261014-0010-ativo-pessoa, demanda d6a6f577)
+   VERSÃO: Beta v1.403.0
+   LINHAS: 16661
+   DATA: 14/10/2026 (sessão 20261014-0010-agenda, demanda a05ad2ee)
+   NOVIDADES (Beta v1.403.0) — ONDA 7a/7b, Agenda (FICHA_ONDA_7_AGENDA_RAIZ v1.0.0, de acordo do Nicola 14/10 00:09,
+   D7.1 a D7.6). A Agenda ganha as abas Lista · Semana · Mês (abre na Lista, D7.4). Semana e Mês vêm do módulo novo
+   js/agenda.js 1.0.0, que lê a função nova fn_agenda_periodo (só leitura; ocorrências, recebimentos, pagamentos, fim de
+   contrato, reajuste e validade de documento; pago não entra, atrasado vem marcado). Chips por tipo; toque abre o lugar
+   do compromisso; ⋮ "Enviar a semana por WhatsApp" (compartilhar com uma pessoa, D7.5/D7.6). Ramo do cabeçalho vale.
+   Versão anterior (Beta v1.402.0):
    NOVIDADES (Beta v1.402.0) — Ativo vida ↔ pessoa do cadastro (de acordo do Nicola 14/10 00:08: opções 1, 2 e 3, sem criar
    pessoa sozinha): ativo vida › Resumo ganha "Pessoa do cadastro" (ligar, trocar, desligar); Pessoas › ações ganha "Ativo
    da pessoa" (abre, liga a um ativo sem pessoa ou cria o ativo); "Conta ou cartão" num ativo sem pessoa oferece "Ligar
@@ -27,14 +33,8 @@
    NOVIDADES (Beta v1.399.0) — Usos fatia 0, ajuste do teste do Nicola (13/10 23:27). Só muda o import map:
    cofre-ativos.js 1.98.0 (usos do ano listados no card com ⋮ Concluir; o modelo em que o ativo já está sai das opções).
    Versão anterior (Beta v1.398.0):
-   NOVIDADES (Beta v1.398.0) — Conta e cartão nascem pelo item de controle (de acordo do Nicola 13/10 23:17): no "Novo
-   item" do ativo vida (pessoa) e dos Controles da empresa, o tipo ganha "Conta ou cartão", que abre o cadastro da conta
-   com o titular preso (a pessoa ligada ao ativo, ou a Empresa); o banco cria o item junto. Saem os "+" de Minha empresa ›
-   Contas e de Pessoas › Contas (as listas ficam). Aqui só muda o import map (cofre-controles.js 1.55.0,
-   comum-minha-empresa.js 1.16.0, comum-pessoas.js 1.211.0, financeiro.js 1.61.0). Nenhum objeto de banco.
-   Versão anterior (Beta v1.397.0):
    ------------------------------------------------------------------
-   Versões anteriores (v1.397.0 … v1.397.0): CHANGELOG_APP.md, na raiz do
+   Versões anteriores (v1.398.0 … v1.398.0): CHANGELOG_APP.md, na raiz do
    repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
    das 5 versões mais recentes deste cabeçalho.
 
@@ -62,7 +62,7 @@
          O navegador aplica o mapa também aos imports estáticos dentro dos
          módulos (cofre-app.js → ./cofre-api.js etc.). -->
     <!-- RZ-IMPORTMAP:INICIO -->
-    <script type="importmap">{"imports":{"./js/cadastros.js":"./js/cadastros.js?v=1.2.0","./js/financeiro.js":"./js/financeiro.js?v=1.61.0","./js/fechamento.js":"./js/fechamento.js?v=1.13.0","./js/contratos.js":"./js/contratos.js?v=1.56.0","./js/minutas.js":"./js/minutas.js?v=1.4.0","./js/vitrine.js":"./js/vitrine.js?v=1.5.2","./js/imoveis.js":"./js/imoveis.js?v=1.7.2","./js/cofre-api.js":"./js/cofre-api.js?v=1.50.0","./js/cofre-app.js":"./js/cofre-app.js?v=1.47.0","./js/cofre-ativos.js":"./js/cofre-ativos.js?v=1.100.0","./js/cofre-controles.js":"./js/cofre-controles.js?v=1.57.0","./js/cofre-documentos.js":"./js/cofre-documentos.js?v=2.35.0","./js/cofre-imagem.js":"./js/cofre-imagem.js?v=1.1.0","./js/cofre-estado.js":"./js/cofre-estado.js?v=1.5.2","./js/cofre-navegacao.js":"./js/cofre-navegacao.js?v=1.9.3","./js/cofre-ui.js":"./js/cofre-ui.js?v=1.7.2","./js/cofre-validacoes.js":"./js/cofre-validacoes.js?v=2.5.0","./js/comum-licenca.js":"./js/comum-licenca.js?v=1.8.0","./js/comum-renovacao.js":"./js/comum-renovacao.js?v=1.3.5","./js/comum-minha-empresa.js":"./js/comum-minha-empresa.js?v=1.16.0","./js/comum-pessoas.js":"./js/comum-pessoas.js?v=1.212.0","./js/comum-sobre.js":"./js/comum-sobre.js?v=1.5.0","./js/comum-endereco.js":"./js/comum-endereco.js?v=1.2.0","./js/comum-partes.js":"./js/comum-partes.js?v=1.0.0","./js/resultados.js":"./js/resultados.js?v=2.9.0","./js/indicadores.js":"./js/indicadores.js?v=1.1.0","./js/configuracao-inicial.js":"./js/configuracao-inicial.js?v=1.0.1","./js/relatorios-executivos.js":"./js/relatorios-executivos.js?v=1.3.0","./js/raiz-eventos.js":"./js/raiz-eventos.js?v=1.0.0","./js/raiz-device.js":"./js/raiz-device.js?v=1.1.0","./js/raiz-ui.js":"./js/raiz-ui.js?v=1.4.0","./js/fiscal.js":"./js/fiscal.js?v=1.5.2","./js/ativos/ativos-boot.js":"./js/ativos/ativos-boot.js?v=1.4.0","./js/ativos/ativos-markup.js":"./js/ativos/ativos-markup.js?v=1.61.0","./js/nucleo/porta.js":"./js/nucleo/porta.js?v=1.4.0","./js/partes.js":"./js/partes.js?v=1.0.2","./js/conta.js":"./js/conta.js?v=1.0.1","./js/grupo-visao.js":"./js/grupo-visao.js?v=1.0.0"}}</script>
+    <script type="importmap">{"imports":{"./js/cadastros.js":"./js/cadastros.js?v=1.2.0","./js/financeiro.js":"./js/financeiro.js?v=1.61.0","./js/fechamento.js":"./js/fechamento.js?v=1.13.0","./js/contratos.js":"./js/contratos.js?v=1.56.0","./js/minutas.js":"./js/minutas.js?v=1.4.0","./js/vitrine.js":"./js/vitrine.js?v=1.5.2","./js/imoveis.js":"./js/imoveis.js?v=1.7.2","./js/cofre-api.js":"./js/cofre-api.js?v=1.50.0","./js/cofre-app.js":"./js/cofre-app.js?v=1.47.0","./js/cofre-ativos.js":"./js/cofre-ativos.js?v=1.100.0","./js/cofre-controles.js":"./js/cofre-controles.js?v=1.57.0","./js/cofre-documentos.js":"./js/cofre-documentos.js?v=2.35.0","./js/cofre-imagem.js":"./js/cofre-imagem.js?v=1.1.0","./js/cofre-estado.js":"./js/cofre-estado.js?v=1.5.2","./js/cofre-navegacao.js":"./js/cofre-navegacao.js?v=1.9.3","./js/cofre-ui.js":"./js/cofre-ui.js?v=1.7.2","./js/cofre-validacoes.js":"./js/cofre-validacoes.js?v=2.5.0","./js/comum-licenca.js":"./js/comum-licenca.js?v=1.8.0","./js/comum-renovacao.js":"./js/comum-renovacao.js?v=1.3.5","./js/comum-minha-empresa.js":"./js/comum-minha-empresa.js?v=1.16.0","./js/comum-pessoas.js":"./js/comum-pessoas.js?v=1.212.0","./js/comum-sobre.js":"./js/comum-sobre.js?v=1.5.0","./js/comum-endereco.js":"./js/comum-endereco.js?v=1.2.0","./js/comum-partes.js":"./js/comum-partes.js?v=1.0.0","./js/resultados.js":"./js/resultados.js?v=2.9.0","./js/indicadores.js":"./js/indicadores.js?v=1.1.0","./js/configuracao-inicial.js":"./js/configuracao-inicial.js?v=1.0.1","./js/relatorios-executivos.js":"./js/relatorios-executivos.js?v=1.3.0","./js/raiz-eventos.js":"./js/raiz-eventos.js?v=1.0.0","./js/raiz-device.js":"./js/raiz-device.js?v=1.1.0","./js/raiz-ui.js":"./js/raiz-ui.js?v=1.4.0","./js/fiscal.js":"./js/fiscal.js?v=1.5.2","./js/ativos/ativos-boot.js":"./js/ativos/ativos-boot.js?v=1.4.0","./js/ativos/ativos-markup.js":"./js/ativos/ativos-markup.js?v=1.61.0","./js/nucleo/porta.js":"./js/nucleo/porta.js?v=1.4.0","./js/partes.js":"./js/partes.js?v=1.0.2","./js/conta.js":"./js/conta.js?v=1.0.1","./js/grupo-visao.js":"./js/grupo-visao.js?v=1.0.0","./js/agenda.js":"./js/agenda.js?v=1.0.0"}}</script>
     <!-- RZ-IMPORTMAP:FIM -->
 
     <!-- ===== PWA: permite "instalar" o app no celular (Android e iPhone) ===== -->
@@ -1452,6 +1452,30 @@
         #main-content .rz-vista{padding-right:56px}
         #tab-contratos > .rz-vista + * + .rz-topo,#tab-contratos > .rz-vista + .rz-topo,#tab-ativos [data-screen="ativos"] > .rz-topo{margin-top:-58px;position:relative;z-index:1;pointer-events:none}
         #tab-contratos .rz-topo .rz-primary,#tab-ativos [data-screen="ativos"] > .rz-topo .rz-primary{pointer-events:auto}
+        /* v1.403.0 — ONDA 7a: Agenda Lista · Semana · Mês (js/agenda.js) */
+        .rz-ag-topo{display:flex;align-items:center;gap:4px;margin-bottom:6px}
+        .rz-ag-dia{display:flex;justify-content:space-between;align-items:baseline;text-transform:none}
+        .rz-ag-dia span{font-weight:600;color:var(--muted)}
+        .rz-ag-dia.rz-ag-hoje{color:var(--ink)}
+        .rz-ag-vazio{color:var(--muted);margin:8px 2px}
+        .rz-ag-linha{width:100%;background:none;border-left:0;border-right:0;border-bottom:0;text-align:left;font:inherit;color:inherit}
+        .rz-ag-linha .rz-ic{width:36px;height:36px;border-radius:10px}
+        .rz-ag-linha .rz-ic svg{width:18px;height:18px}
+        .rz-ag-valor{flex:none;font-size:14px;font-weight:600;color:var(--ink);font-variant-numeric:tabular-nums}
+        .rz-ag-linha.rz-ag-atraso .rz-ic{background:var(--danger-bg);color:var(--danger)}
+        .rz-ag-linha.rz-ag-atraso .rz-tx span{color:var(--danger)}
+        .rz-ag-grade{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin:4px 0 8px}
+        .rz-ag-sem{text-align:center;font-size:11px;font-weight:600;color:var(--muted);padding:2px 0}
+        .rz-ag-cel{display:flex;flex-direction:column;align-items:center;justify-content:flex-start;gap:4px;min-height:48px;padding:6px 0 4px;border:0;border-radius:10px;background:var(--card);font:inherit;color:var(--ink);cursor:pointer}
+        .rz-ag-cel b{font-size:14px;font-weight:600;line-height:1}
+        .rz-ag-cel.rz-ag-fora{opacity:.4}
+        .rz-ag-cel.rz-ag-hoje b{color:var(--ramo-acc)}
+        .rz-ag-cel.rz-ag-atraso b{color:var(--danger)}
+        .rz-ag-cel.rz-on{background:var(--ramo-hdr);color:#fff}
+        .rz-ag-cel.rz-on b{color:#fff}
+        .rz-ag-pts{display:flex;gap:3px;height:6px}
+        .rz-ag-pts i{display:block;width:6px;height:6px;border-radius:50%}
+        .rz-ag-nada{text-align:center;padding:12px 0}
         /* v1.391.0 — ONDA 6a: campo único da Raiz IA (texto + voz) e atalhos */
         .rz-ia-campo{display:flex;align-items:flex-end;gap:6px;border:1.5px solid var(--brass);border-radius:22px;padding:6px 6px 6px 14px;background:var(--card);margin:2px 0 6px}
         .rz-ia-campo textarea{flex:1;min-width:0;border:0;outline:none;resize:none;background:none;font:400 16px/1.35 var(--font-body);color:var(--ink);padding:7px 0;max-height:120px}
@@ -3778,11 +3802,21 @@
                  reconstruir o cabeçalho inteiro. -->
             <!-- Topo (F2.3, opção a do Nicola 09/10): barra de busca e segmento de severidade. As categorias
                  viraram chips dentro do Sheet de busca (rzAbrirBuscaAlertas). (dem fcd3008d) -->
+            <!-- v1.403.0 — ONDA 7a (FICHA_ONDA_7_AGENDA_RAIZ v1.0.0): Lista · Semana · Mês. A Lista é a de sempre (alertas);
+                 Semana e Mês desenham em #agenda-cal pelo módulo js/agenda.js (fn_agenda_periodo). -->
+            <div class="rz-vista" role="tablist" aria-label="Vista da agenda" id="agenda-vistas">
+                <button type="button" class="rz-on" data-agv="lista" onclick="rzAgendaVista('lista')">Lista</button>
+                <button type="button" data-agv="semana" onclick="rzAgendaVista('semana')">Semana</button>
+                <button type="button" data-agv="mes" onclick="rzAgendaVista('mes')">Mês</button>
+            </div>
+            <div id="agenda-lista">
             <div class="rz-topo">
                 <button type="button" class="rz-search" id="alertas-busca-btn" onclick="rzAbrirBuscaAlertas()" aria-label="Buscar alerta"><svg data-lucide="search"></svg><span>Buscar alerta por bem, contrato ou assunto</span></button>
             </div>
             <div id="alertas-seg-severidade" class="rz-seg"></div>
             <div id="alertas-patrimonio-mount"></div>
+            </div>
+            <div id="agenda-cal" hidden></div>
 
         </section>
 
@@ -4180,7 +4214,7 @@
         // texto certo toda vez (esqueci 5 versões seguidas, de v1.37.1 até
         // v1.38.3). Agora só precisa mudar UMA linha aqui a cada release;
         // window.onload aplica nos dois lugares automaticamente.
-        const APP_VERSAO = "Beta v1.402.0"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
+        const APP_VERSAO = "Beta v1.403.0"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
 
         // ====================================================================
         // v1.105.0 — HELPERS DE SUPERFÍCIE DA GRAMÁTICA ÚNICA
@@ -4807,7 +4841,7 @@
         // apaga tudo, o Sair apaga tudo (LGPD). O cache é conveniência, nunca fonte de verdade.
         // Lista de funções: STABLE no banco, ou VOLATILE conferidas sem escrita (04/10).
         // =====================================================================
-        var RZ_RPC_LEITURA = new Set(['fn_alertas_listar', 'fn_alertas_do_ativo', 'fn_funcionalidades_liberadas',
+        var RZ_RPC_LEITURA = new Set(['fn_agenda_periodo', 'fn_alertas_listar', 'fn_alertas_do_ativo', 'fn_funcionalidades_liberadas',
             'fn_contrato_itens_controle_listar', 'fn_vinculos_da_parte', 'fn_resumo_resultados', 'fn_resultado_mensal',
             'fn_rotinas_empresa_listar', 'fn_contas_listar', 'fn_contadores_empresa', 'fn_propriedade_do_ativo',
             'fn_partes_do_item_controle', 'fn_performance_empreendimento', 'fn_performance_carteira', 'fn_performance_ativo',
@@ -9019,7 +9053,7 @@ async function criarLinkVitrineSupabase(token, idsSelecionados) {
                 await new Promise(r => setTimeout(r, 700));
             },
             'tab-relatorios': async () => { const m = await carregarResultados(); await m.renderResultados(); },
-            'tab-alertas': async () => { await montarAlertasPatrimonio(); },
+            'tab-alertas': async () => { await montarAlertasPatrimonio(); if (rzAgendaVistaAtual !== 'lista') rzAgendaVista(rzAgendaVistaAtual); }, // v1.403.0
             'tab-partes': async () => { await carregarPartes(); },
         };
         function rzPtrPodeNaAba() {
@@ -12468,6 +12502,18 @@ async function criarLinkVitrineSupabase(token, idsSelecionados) {
             return itens;
         }
 
+        // v1.403.0 — ONDA 7a: vista da Agenda. Lista = alertas (como sempre); Semana e Mês = js/agenda.js (lazy, UI-05).
+        let rzAgendaVistaAtual = 'lista';
+        async function rzAgendaVista(v) {
+            rzAgendaVistaAtual = ['semana', 'mes'].includes(v) ? v : 'lista';
+            document.querySelectorAll('#agenda-vistas [data-agv]').forEach(b => b.classList.toggle('rz-on', b.dataset.agv === rzAgendaVistaAtual));
+            const lista = document.getElementById('agenda-lista'), cal = document.getElementById('agenda-cal');
+            if (lista) lista.hidden = rzAgendaVistaAtual !== 'lista';
+            if (cal) cal.hidden = rzAgendaVistaAtual === 'lista';
+            if (rzAgendaVistaAtual === 'lista' || !cal) return;
+            try { const m = await import('./js/agenda.js'); await m.montarAgenda(rzAgendaVistaAtual, cal); }
+            catch (e) { console.error('[agenda]', e); cal.innerHTML = '<p class="rz-desc" style="text-align:center;padding:24px 0">Não consegui abrir a agenda agora.</p>'; }
+        }
         async function montarAlertasPatrimonio() {
             const mount = document.getElementById('alertas-patrimonio-mount');
             if (!mount || !CLIENTE_ID_SUPABASE || !pessoaIdLogada) return;

@@ -4,6 +4,19 @@ Histórico completo de versões do `index.html`, movido automaticamente pelo `ge
 
 ---
 
+NOVIDADES (Beta v1.398.0) — Conta e cartão nascem pelo item de controle (de acordo do Nicola 13/10 23:17): no "Novo
+item" do ativo vida (pessoa) e dos Controles da empresa, o tipo ganha "Conta ou cartão", que abre o cadastro da conta
+com o titular preso (a pessoa ligada ao ativo, ou a Empresa); o banco cria o item junto. Saem os "+" de Minha empresa ›
+Contas e de Pessoas › Contas (as listas ficam). Aqui só muda o import map (cofre-controles.js 1.55.0,
+comum-minha-empresa.js 1.16.0, comum-pessoas.js 1.211.0, financeiro.js 1.61.0). Nenhum objeto de banco.
+Versão anterior (Beta v1.397.0):
+------------------------------------------------------------------
+Versões anteriores (v1.397.0 … v1.397.0): CHANGELOG_APP.md, na raiz do
+repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
+das 5 versões mais recentes deste cabeçalho.
+
+---
+
 NOVIDADES (Beta v1.397.0) — Item de controle (Nicola 13/10 23:03, "Demais ajustes pode aplicar"): "Salvar e regerar"
 mantém o dia do início (início 11/09 mensal → 11/10, 11/11…) e usa a data local, não UTC; item de conta ou cartão
 (F18) não abre mais o formulário do item — "Editar" leva à ficha da conta, dona do nome, titular e vencimento. Aqui
