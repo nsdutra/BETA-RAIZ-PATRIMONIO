@@ -4,6 +4,18 @@ Histórico completo de versões do `index.html`, movido automaticamente pelo `ge
 
 ---
 
+NOVIDADES (Beta v1.393.0) — B-8, alertas do cartão pelo Motor (plano e ficha com de acordo do Nicola 13/10 22:03):
+rzAbrirDestinoAlerta ganha os destinos financeiro/importar-fatura (abre "Importar fatura do cartão") e
+financeiro/fatura (abre a fatura do alerta). Os 3 alertas novos (fatura a importar, vencendo, compras a classificar)
+vêm de fn_alertas_listar (migration motor_alertas_cartao_b8_v1); nenhuma regra nova no app.
+Versão anterior (Beta v1.392.0):
+------------------------------------------------------------------
+Versões anteriores (v1.392.0 … v1.392.0): CHANGELOG_APP.md, na raiz do
+repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
+das 5 versões mais recentes deste cabeçalho.
+
+---
+
 NOVIDADES (Beta v1.392.0) — F13.10: rateio em grupo a partir de um item de controle (card no item, link por participante em
 grupo.html, fechamento que leva a parte de cada pessoa do Raiz ao financeiro; Balanço › Grupos lista os rateios). Aqui só
 muda o import map (cofre-controles.js 1.52.0, financeiro.js 1.60.0 e o novo js/grupo-visao.js 1.0.0).

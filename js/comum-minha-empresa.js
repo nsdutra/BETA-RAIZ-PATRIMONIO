@@ -1,6 +1,12 @@
 // ============================================================================
 // comum-minha-empresa.js — Raiz Patrimônio · Administração compartilhada
-// Versão: 1.15.0 · 11/10/2026
+// Versão: 1.16.0 · 13/10/2026
+//
+// v1.16.0 (13/10/2026, sessão 20261013-2320-conta-via-item, demanda 47eed96b; de acordo do Nicola 13/10 23:17: "retirar.
+// deixar apenas pelos ativos") — Minha empresa › Contas perde o "+": conta e cartão novos nascem pelo item de controle
+// (cofre-controles.js 1.55.0). A lista continua (editar, encerrar, excluir). abrirFichaConta ganha fixarEmpresa (titular
+// Empresa preso, usado pelos Controles da empresa).
+// Versão anterior: 1.15.0 · 11/10/2026
 //
 // v1.15.0 (11/10/2026, sessão 20261008-1231-pessoas-ativos, demanda 7c5c4c65; F13.8, ficha v1.4.0 e protótipo v1.3.0; de acordo do Nicola 11/10 22:55) — chip Rotinas ganha a
 // linha fixa "Controlar retiradas extraordinárias por partes" com Ligado/Desligado. O ⋮ abre "Pessoas e partes" (o editor
@@ -43,17 +49,11 @@
 //     sheet e uma lixeira solta; a remoção continua pedindo confirmação;
 //   · fundo quadriculado da prévia da assinatura com tokens; atributo style duplicado do Salvar.
 // O card de Contas (Financeiro, etapa 6) não foi tocado.
-//
-// Versão anterior: 1.11.2 · 07/10/2026
-//
-// v1.11.1 (07/10/2026, sessão 20261007-1721-rolo-changelog, demanda 2507d554 — VER-06, "de acordo" do Nicola 07/10 17:21) — SÓ
-// CABEÇALHO: as versões além das 5 mais recentes rolaram para o CHANGELOG_MODULOS.md.
-// Nenhuma linha de código mudou — conferido token a token contra o publicado.
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.11.0 … v1.11.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.11.1 … v1.11.1): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '1.15.0'; // v-check (20/09/2026): lido por Dev › Versões — manter igual ao header
+export const VERSAO = '1.16.0'; // v-check (20/09/2026): lido por Dev › Versões — manter igual ao header
 import { perguntar } from './cofre-ui.js'; // v1.9.0 (F0.2b) — sem diálogo nativo
 import { rzMostrarBloqueio as rzBloqueio, podeUsar as podeUsarMod } from './comum-licenca.js'; // v1.10.0 — porta de licença (contas)
 export const COMUM_MINHA_EMPRESA_VERSAO = '1.0.0';
@@ -730,7 +730,7 @@ async function pessoasDaEmpresa(dbAuth, clienteId) {
 }
 
 /** Ficha da conta (criar ou editar) em Sheet. `fixarPessoaId` prende o titular (ficha da pessoa). */
-export async function abrirFichaConta({ dbAuth, clienteId, conta = null, fixarPessoaId = null, onToast, aoSalvar }) {
+export async function abrirFichaConta({ dbAuth, clienteId, conta = null, fixarPessoaId = null, fixarEmpresa = false, onToast, aoSalvar }) {
     if (typeof window.abrirSheetForm !== 'function') return;
     if (rzBloqueio('financeiro.contas.editar')) return;
     const [pessoas, contasRes] = await Promise.all([pessoasDaEmpresa(dbAuth, clienteId), buscarContas(dbAuth, clienteId).catch(() => ({ dados: [] }))]);
@@ -739,7 +739,7 @@ export async function abrirFichaConta({ dbAuth, clienteId, conta = null, fixarPe
     const pagadoras = (contasRes.dados || []).filter(c => c.tipo === 'conta' && c.situacao === 'ativa');
     const optsPag = pagadoras.map(c => `<option value="${escC(c.id)}" ${(conta?.conta_pagadora_id ? conta.conta_pagadora_id === c.id : (c.padrao && c.titular_tipo === 'empresa')) ? 'selected' : ''}>${escC(c.nome)}</option>`).join('');
     const titularAtual = conta ? (conta.titular_tipo === 'empresa' ? 'empresa' : conta.pessoa_id) : (fixarPessoaId || 'empresa');
-    const travarTitular = !!conta || !!fixarPessoaId;
+    const travarTitular = !!conta || !!fixarPessoaId || !!fixarEmpresa; // v1.16.0 — fixarEmpresa: criada pelos Controles da empresa
     const optsTit = [`<option value="empresa" ${titularAtual === 'empresa' ? 'selected' : ''}>Empresa</option>`]
         .concat(pessoas.map(p => `<option value="${escC(p.id)}" ${titularAtual === p.id ? 'selected' : ''}>${escC(p.nome)}</option>`)).join('');
     window.abrirSheetForm({
@@ -860,16 +860,12 @@ async function renderContasCard(alvo, { dbAuth, clienteId, onToast }) {
     const liberado = !!res.liberado;
     alvo.innerHTML = `
         <div class="rz-card" style="padding-bottom:6px"><div class="rz-card-h"><h3>Contas</h3>
-            <button type="button" class="rz-more" id="cme-conta-nova" aria-label="Nova conta"><svg data-lucide="${liberado ? 'plus' : 'lock'}"></svg></button></div>
-            <span class="rz-hint" style="display:block;margin-bottom:8px">De onde sai e para onde entra cada valor. Sem escolher, tudo vai para a conta padrão.</span>
+            </div>
+            <span class="rz-hint" style="display:block;margin-bottom:8px">De onde sai e para onde entra cada valor. Sem escolher, tudo vai para a conta padrão. Conta ou cartão novo: no ativo da pessoa (ou em Controles da empresa) › Controles › + › "Conta ou cartão".</span>
         </div>
         ${contasListaHtml(contas, { linhaBloqueio: !liberado })}`;
     if (window.lucide) window.lucide.createIcons();
     const recarregar = () => renderContasCard(alvo, { dbAuth, clienteId, onToast });
-    alvo.querySelector('#cme-conta-nova')?.addEventListener('click', () => {
-        if (!liberado) { rzBloqueio('financeiro.contas.ver'); return; }
-        abrirFichaConta({ dbAuth, clienteId, onToast, aoSalvar: recarregar });
-    });
     alvo.querySelector('[data-conta-bloqueio]')?.addEventListener('click', () => rzBloqueio('financeiro.contas.ver'));
     alvo.querySelectorAll('[data-conta-id]').forEach(row => row.addEventListener('click', () => {
         const c = contas.find(x => x.id === row.dataset.contaId);

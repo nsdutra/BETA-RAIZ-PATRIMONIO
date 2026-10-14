@@ -1,6 +1,11 @@
 // ============================================================================
 // comum-pessoas.js — Raiz Patrimônio · Administração compartilhada
-// Versão: 1.210.0 · 11/10/2026
+// Versão: 1.211.0 · 13/10/2026
+//
+// v1.211.0 (13/10/2026, sessão 20261013-2320-conta-via-item, demanda 47eed96b; de acordo do Nicola 13/10 23:17) —
+// Pessoas › Contas perde o "+": conta e cartão da pessoa nascem no ativo dela › Controles › + › "Conta ou cartão"
+// (cofre-controles.js 1.55.0). Ficam a lista (editar/encerrar) e o "Quem ela vê".
+// Versão anterior: 1.210.0 · 11/10/2026
 //
 // v1.210.0 (11/10/2026, sessão 20261008-1231-pessoas-ativos, demanda 7c5c4c65; F13.8, ficha v1.4.0 e protótipo v1.3.0; de acordo do Nicola 11/10 22:55) — com o controle de
 // partes nas retiradas extraordinárias ligado na empresa, a ficha da pessoa mostra "Parte nas retiradas extraordinárias".
@@ -34,19 +39,11 @@
 //     checagem de acesso (codigo) e as mesmas travas de master/admin. Novo no Acesso: "Convidar pelo WhatsApp" (só
 //     para quem tem login e WhatsApp; abre o WhatsApp com o convite, nada é gravado).
 //   Fora do app (cofre.html sem a barra/sheet do index), a lista cai no comportamento de antes.
-//
-// Versão anterior: 1.206.0 · 08/10/2026
-//
-// v1.206.0 (UX F2.7c-2, demanda b8602a3a, sessão 20261003-1707-ux-base; plano F2.7c-2 aprovado pelo Nicola 08/10 14:04) — Pessoas e acessos no
-// padrão: esqueleto no lugar de "Carregando…" (lista e acessos recentes); formulário da pessoa com o
-// campo único (.rz-f, rótulo acima) e E-mail/WhatsApp em .rz-f2 (uma coluna no celular); sheet de
-// Comunicações da pessoa com as linhas de Minhas notificações (.rz-pref-2l) e o interruptor
-// .rz-switch (estado em aria-checked, sem cor em style).
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.205.0 … v1.205.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.206.0 … v1.206.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '1.210.0'; // v-check (18/09/2026): lido por Dev › Versões — manter igual ao header
+export const VERSAO = '1.211.0'; // v-check (18/09/2026): lido por Dev › Versões — manter igual ao header
 import { perguntar, avisarComDesfazer } from './cofre-ui.js'; // v1.203.0 (F0.2b) — sem diálogo nativo
 import { buscarContas, contasListaHtml, abrirFichaConta, abrirAcoesConta } from './comum-minha-empresa.js'; // v1.204.0 — contas da pessoa (P4a)
 import { rzMostrarBloqueio as rzBloqueio } from './comum-licenca.js'; // v1.204.0
@@ -569,7 +566,7 @@ export async function montarAbaPessoas(mountEl, ctx) {
         const minhas = (res.dados || []).filter(c => c.titular_tipo === 'pessoa' && c.pessoa_id === p.id);
         const ehMaster = p.perfil === 'master';
         const cab = typeof window.rzSheetCabecalho === 'function' ? window.rzSheetCabecalho('Contas', p.nome || '') : `<div class="rz-sh-h"><h3>Contas</h3></div>`;
-        const vazio = `<div class="rz-card"><div class="rz-empty"><div class="rz-ic"><svg data-lucide="wallet"></svg></div><p>${esc(p.nome || 'Esta pessoa')} ainda não tem conta própria. Toque no "+" para criar.</p></div></div>`;
+        const vazio = `<div class="rz-card"><div class="rz-empty"><div class="rz-ic"><svg data-lucide="wallet"></svg></div><p>${esc(p.nome || 'Esta pessoa')} ainda não tem conta própria. Crie no ativo dela › Controles › + › "Conta ou cartão".</p></div></div>`;
         const sheet = window.abrirSheet(cab + `
             <div class="rz-sh-b">
                 <div class="rz-card rz-list"><div class="rz-row rz-link" role="button" tabindex="0" data-acao="contas-escopo">
@@ -577,13 +574,11 @@ export async function montarAbaPessoas(mountEl, ctx) {
                     <div class="rz-tx"><b>Quem ela vê</b><span>${esc(ehMaster ? 'Todas as contas (master sempre vê todas)' : ESCOPO_CONTAS_ROTULO[p.escopoContas])}</span></div>
                     ${ehMaster ? '' : '<svg data-lucide="chevron-right" class="rz-chev"></svg>'}
                 </div></div>
-                <div class="rz-card-h" style="margin-top:6px"><h3>Contas dela</h3><button type="button" data-acao="contas-nova" class="rz-more" aria-label="Nova conta"><svg data-lucide="plus"></svg></button></div>
+                <div class="rz-card-h" style="margin-top:6px"><h3>Contas dela</h3></div>
                 ${minhas.length ? contasListaHtml(minhas) : vazio}
             </div>`, { empilhar: true });
         icones();
         const recarregar = () => { window.fecharSheet?.(); abrirContasPessoaSheet(p.id); };
-        sheet.querySelector('[data-acao="contas-nova"]')?.addEventListener('click', () =>
-            abrirFichaConta({ dbAuth, clienteId, fixarPessoaId: p.id, onToast, aoSalvar: recarregar }));
         sheet.querySelectorAll('[data-conta-id]').forEach(row => row.addEventListener('click', () => {
             const c = minhas.find(x => x.id === row.dataset.contaId);
             if (c) abrirAcoesConta({ dbAuth, clienteId, conta: c, fixarPessoaId: p.id, onToast, aoMudar: recarregar });

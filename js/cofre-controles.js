@@ -1,6 +1,13 @@
 // ============================================================================
 // cofre-controles.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.54.0 · 13/10/2026
+// Versão: 1.55.0 · 13/10/2026
+//
+// v1.55.0 (13/10/2026, sessão 20261013-2320-conta-via-item, demanda 47eed96b; de acordo do Nicola 13/10 23:17: "1 ok, 2 ok,
+// 3 ok (...) 4 retirar. deixar apenas pelos ativos") — conta e cartão nascem pelo item de controle: no "Novo item" do
+// ativo vida (pessoa) e dos Controles da empresa, o tipo ganha "Conta ou cartão", que abre o cadastro da conta
+// (comum-minha-empresa.js) com o titular preso — a pessoa ligada ao ativo (entidade_origem_id) ou a Empresa. O banco cria
+// o item junto (fn_conta_salvar). Ativo vida sem pessoa ligada recebe aviso.
+// Versão anterior: 1.54.0 · 13/10/2026
 //
 // v1.54.0 (13/10/2026, sessão 20261013-2310-item-conta, demandas 5b4934d5 e 1f9a8d04; "Demais ajustes pode aplicar" do
 // Nicola 13/10 23:03) —
@@ -39,26 +46,11 @@
 // item carrega o catálogo controle_tipos ANTES de desenhar (o rótulo do tipo só vinha depois de abrir o Editar; sem ele
 // aparecia o código cru "conta"). Os subtipos Conta e Cartão de crédito nasceram no banco (migration
 // contas_subtipos_f18b_v1); o item de cartão passa a ser reconhecido também pelo subtipo.
-//
-// Versão anterior: 1.50.0 · 10/10/2026
-//
-// v1.50.0 (10/10/2026, sessão 20261008-1231-pessoas-ativos, demanda f3e6cd27; F18 — conta e cartão viram item de controle.
-// Nicola 10/10 23:16: "não vejo valores nas ocorrências (...) atalho pro lançamento financeiro quando existir e o valor
-// da fatura se já tiver (...) ícone de cartão ou conta (...) pode avançar") —
-//   · ocorrência: o valor sai do título (cortava no celular) e abre a linha de baixo ("R$ 30.826,11 · Fatura paga");
-//   · item de cartão: a ocorrência ligada à fatura abre a fatura no Financeiro (a baixa e o estorno vêm do pagamento
-//     dela); a ocorrência em aberto sem fatura oferece "Importar fatura" com o cartão já escolhido;
-//   · qualquer item: a ocorrência que tem lançamento no Financeiro ganha "Ver no Financeiro" (Saídas, no mês dele);
-//   · ícone do item de conta: cartão (credit-card) ou conta (landmark); conta corrente sem aviso mostra "Sem aviso"
-//     no lugar de "Alertas desligados" (o aviso de extrato por conta vem no lote 1 de alertas);
-//   · toque na ocorrência abre o sheet com os DETALHES dela no topo (situação, datas, competência, valores, baixa,
-//     origem, descrição e lançamento) e as ações embaixo — inclusive a cancelada, que antes só dava um aviso
-//     (Nicola 10/10 23:25: "ao clicar na ocorrência permita ver seus detalhes").
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.49.0 … v1.49.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.50.0 … v1.50.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '1.54.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.55.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 import { estado } from './cofre-estado.js';
 import * as api from './cofre-api.js';
 import { mostrarToast, refrescarIcones, abrirModal, fecharModal, modalGenerico, perguntar, escolher, avisarComDesfazer } from './cofre-ui.js';
@@ -2143,6 +2135,9 @@ export async function abrirFormControle(opcoes) {
     }
     // v1.45.0 — tipos limitados aos que têm subtipo válido para o ativo; abre no primeiro
     if (subtiposDoAtivoCache.lista) popularComboTipoControle('ic-tipo', null, new Set(subtiposDoAtivoCache.lista.map(s => s.tipo)));
+    // v1.55.0 (47eed96b) — conta e cartão nascem pelo item: no ativo vida (pessoa) e nos Controles da empresa, a opção
+    // "Conta ou cartão" fecha este formulário e abre o cadastro da conta com o titular preso (o banco cria o item junto).
+    oferecerContaNoNovoItem();
     const tipoInicialIc = document.getElementById('ic-tipo').options[0]?.value || 'seguro';
     document.getElementById('ic-tipo').value = tipoInicialIc;
     popularSelectSubtipo(tipoInicialIc);
@@ -2157,6 +2152,56 @@ export async function abrirFormControle(opcoes) {
     renderizarModelosSugeridosForm();
     ligarCaminhoNovoItem(); // v1.45.0
     abrirModal('modal-criar-item-controle');
+}
+
+// v1.55.0 (47eed96b) — opção "Conta ou cartão" no tipo do novo item (só ativo vida e Controles da empresa).
+// O vínculo com a pessoa vem do próprio ativo: cofre_ativos.entidade_origem_tipo = 'pessoa' e entidade_origem_id = a
+// pessoa do cadastro (F16). Ela vira o titular da conta; fn_conta_salvar → fn_conta_item_sincronizar acha o mesmo ativo
+// por esse vínculo e cria o item nele. Ativo vida sem pessoa ligada não cria conta (aviso).
+const OPCAO_CONTA_NOVO_ITEM = '__conta';
+function oferecerContaNoNovoItem() {
+    const sel = document.getElementById('ic-tipo');
+    if (!sel) return;
+    sel.querySelector(`option[value="${OPCAO_CONTA_NOVO_ITEM}"]`)?.remove();
+    const empresa = novoItemVinculo === 'empresa';
+    if (!empresa && estado.ativoEmFoco?.tipo_ativo !== 'vida') return;
+    const op = document.createElement('option');
+    op.value = OPCAO_CONTA_NOVO_ITEM;
+    op.textContent = 'Conta ou cartão';
+    sel.appendChild(op);
+    if (!sel.dataset.rzConta) {
+        sel.dataset.rzConta = '1';
+        sel.addEventListener('change', () => { if (sel.value === OPCAO_CONTA_NOVO_ITEM) abrirNovaContaPeloItem(); });
+    }
+}
+async function abrirNovaContaPeloItem() {
+    const empresa = novoItemVinculo === 'empresa';
+    const ativo = empresa ? null : estado.ativoEmFoco;
+    let pessoaId = null;
+    if (!empresa) {
+        const { data, error } = await api.dbAuth.from('cofre_ativos').select('entidade_origem_tipo, entidade_origem_id').eq('id', ativo?.id).maybeSingle();
+        if (error || data?.entidade_origem_tipo !== 'pessoa' || !data?.entidade_origem_id) {
+            mostrarToast('Este ativo ainda não está ligado a uma pessoa do cadastro — a conta precisa de um titular.', 'erro');
+            const sel = document.getElementById('ic-tipo');
+            if (sel) { sel.value = sel.options[0]?.value || ''; popularSelectSubtipo(sel.value); atualizarCaminhoNovoItem(); }
+            return;
+        }
+        pessoaId = data.entidade_origem_id;
+    }
+    fecharFormControle();
+    try {
+        const me = await import('./comum-minha-empresa.js');
+        await me.abrirFichaConta({
+            dbAuth: api.dbAuth, clienteId: estado.clienteId,
+            fixarPessoaId: pessoaId, fixarEmpresa: empresa,
+            onToast: (m, t) => mostrarToast(m, t === 'danger' ? 'erro' : undefined),
+            aoSalvar: async () => {
+                if (!empresa && ativo?.id) { itensDoAtivoAtual = await api.listarItensControleAtivo(ativo.id); renderizarListaControles(); }
+                window.dispatchEvent(new CustomEvent('cofre:recarregar-eventos'));
+                emitirEscrita('controle', { acao: 'criar_conta' });
+            },
+        });
+    } catch (err) { mostrarToast('Erro: ' + err.message, 'erro'); }
 }
 
 // v1.45.0 — linha de chips com o caminho do novo item: ativo · tipo de ativo · tipo · subtipo.

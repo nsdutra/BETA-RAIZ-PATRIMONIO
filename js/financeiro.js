@@ -1,7 +1,11 @@
 // ============================================================================
 // financeiro.js — Raiz Patrimônio · Financeiro (Recebimentos · Atrasados · Saídas
 //                  · conciliação de extrato · recibo · detalhe do recebimento)
-// Versão: 1.60.0 · 12/10/2026
+// Versão: 1.61.0 · 13/10/2026
+//
+// v1.61.0 (13/10/2026, sessão 20261013-2320-conta-via-item, demanda 47eed96b) — só texto: o aviso "Cadastre o cartão
+// primeiro" da importação de fatura aponta o novo caminho (ativo › Controles › + › "Conta ou cartão").
+// Versão anterior: 1.60.0 · 12/10/2026
 //
 // v1.60.0 (12/10/2026, sessão 20261008-1231-pessoas-ativos, demanda 41d771c8; F13.10, ficha v3.1.0; de acordo do Nicola 12/10 03:27) — Balanço › Grupos ganha o
 // quadro "Rateios em grupo": os itens de controle com rateio aberto ou fechado, com o total e quantas pessoas; tocar abre a
@@ -26,21 +30,11 @@
 // v1.2.0 D9; "Pode fazer e seguir" do Nicola 12/10 02:26) — financeiroRotinasHtml: o card "Rotinas de <mês>" (4 linhas
 // de 52 px) vira uma faixa de status com um botão curto por rotina (Mês aberto/fechado · Contador · Fiscal · Atraso),
 // mesmos estados e destinos. O resto do topo do Financeiro (mês como título, abas, lupa) é do index 1.387.0.
-//
-// Versão anterior: 1.56.0 · 12/10/2026
-//
-// v1.56.0 (12/10/2026, sessão 20261012-0220-ux-onda4a, demanda a05ad2ee; UX onda 4, estudo PROTOTIPO_UX_DENSIDADE_RAMOS_RAIZ
-// v1.2.0 D9; Nicola 12/10 02:15 "muita moldura estreitando as informações. Pendências são alertas? … Vamos avançar") — a
-// visão por competência (rzFinCompetencias, ficha do contrato e do ativo) fica sem moldura dentro de moldura: o card
-// "Pendências" sai (o atraso vira o 3º número do resumo, que leva aos atrasados; "a classificar" e "sem conciliação" viram
-// uma linha curta de atalhos), os dois KPIs em caixas viram uma faixa Recebido · Despesas · Em atraso, e a lista dos meses
-// entra direto no card que já existe (na ficha do ativo, um card só). A linha do mês mostra o que falta receber
-// (antes "R$ 0,00 · Em atraso") e perde a placa de calendário.
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.55.0 … v1.55.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.56.0 … v1.56.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '1.60.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.61.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 
 // v1.17.0 (Fase 1 do wrapper de escrita, rollout Financeiro) — emitirEscrita
 // é o evento padrão pra "algo mudou que módulos DE FORA deste arquivo podem
@@ -1592,7 +1586,7 @@ function financeiroRenderCabecalho(aba) {
             await financeiroGarantirContas();
             const cartoes = financeiroContasInfo.cartoes || []; // v1.38.0
             if (!cartoes.length) {
-                rzAviso({ titulo: 'Cadastre o cartão primeiro', linhas: ['Em Configurações › Empresa › Contas, toque em "+" e escolha o tipo "Cartão de crédito", com o dia do fechamento, o dia do vencimento e a conta que paga a fatura.'] });
+                rzAviso({ titulo: 'Cadastre o cartão primeiro', linhas: ['No ativo do titular (ou em Controles da empresa), abra Controles › + › "Conta ou cartão" e escolha "Cartão de crédito", com o dia do fechamento, o dia do vencimento e a conta que paga a fatura.'] }); // v1.61.0 (47eed96b)
                 return;
             }
             let lido = null;

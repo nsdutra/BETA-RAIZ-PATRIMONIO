@@ -692,6 +692,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/cofre-api.js`
 
 //
@@ -1265,6 +1267,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/cofre-app.js`
 
 //
@@ -1655,6 +1659,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 // cofre-ativos.js). Prefere addEventListener a onclick inline em todo
 // código novo (Diretriz Arquitetural — Passo 2).
 // ============================================================================
+
+---
 
 ---
 
@@ -3111,7 +3117,29 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/cofre-controles.js`
+
+//
+// Versão anterior: 1.50.0 · 10/10/2026
+//
+// v1.50.0 (10/10/2026, sessão 20261008-1231-pessoas-ativos, demanda f3e6cd27; F18 — conta e cartão viram item de controle.
+// Nicola 10/10 23:16: "não vejo valores nas ocorrências (...) atalho pro lançamento financeiro quando existir e o valor
+// da fatura se já tiver (...) ícone de cartão ou conta (...) pode avançar") —
+//   · ocorrência: o valor sai do título (cortava no celular) e abre a linha de baixo ("R$ 30.826,11 · Fatura paga");
+//   · item de cartão: a ocorrência ligada à fatura abre a fatura no Financeiro (a baixa e o estorno vêm do pagamento
+//     dela); a ocorrência em aberto sem fatura oferece "Importar fatura" com o cartão já escolhido;
+//   · qualquer item: a ocorrência que tem lançamento no Financeiro ganha "Ver no Financeiro" (Saídas, no mês dele);
+//   · ícone do item de conta: cartão (credit-card) ou conta (landmark); conta corrente sem aviso mostra "Sem aviso"
+//     no lugar de "Alertas desligados" (o aviso de extrato por conta vem no lote 1 de alertas);
+//   · toque na ocorrência abre o sheet com os DETALHES dela no topo (situação, datas, competência, valores, baixa,
+//     origem, descrição e lançamento) e as ações embaixo — inclusive a cancelada, que antes só dava um aviso
+//     (Nicola 10/10 23:25: "ao clicar na ocorrência permita ver seus detalhes").
+// --------------------------------------------------------------------------
+// Versões anteriores (v1.49.0 … v1.49.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
+// mais recentes deste cabeçalho (VER-06).
 
 //
 // Versão anterior: 1.49.0 · 07/10/2026
@@ -3749,6 +3777,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 // não está implementado (geração automática de ocorrências recorrentes,
 // Central de Alertas consolidada).
 // ============================================================================
+
+---
 
 ---
 
@@ -4638,6 +4668,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/cofre-estado.js`
 
 //
@@ -4783,6 +4815,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 // v1.21.6 (Arquivar/RLS, sessão paralela) nem esta entrega — fechado
 // agora. Ver changelog completo em cofre.html v1.22.0 (merge das 2
 // sessões paralelas + badge fix + form fix + função Vendido).
+
+---
 
 ---
 
@@ -5189,6 +5223,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/cofre-ui.js`
 
 //
@@ -5220,6 +5256,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 // genérica, template de card, indicador de "liga/desliga" (Design System
 // v1.43.0 §2). Não importa cofre-api.js — não sabe nada de Supabase.
 // ============================================================================
+
+---
 
 ---
 
@@ -5466,6 +5504,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 // pilha; os demais (cofre-ui, cofre-documentos, cofre-ativos) importam
 // daqui, nunca o contrário.
 // ============================================================================
+
+---
 
 ---
 
@@ -5887,7 +5927,20 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/comum-minha-empresa.js`
+
+//
+// Versão anterior: 1.11.2 · 07/10/2026
+//
+// v1.11.1 (07/10/2026, sessão 20261007-1721-rolo-changelog, demanda 2507d554 — VER-06, "de acordo" do Nicola 07/10 17:21) — SÓ
+// CABEÇALHO: as versões além das 5 mais recentes rolaram para o CHANGELOG_MODULOS.md.
+// Nenhuma linha de código mudou — conferido token a token contra o publicado.
+// --------------------------------------------------------------------------
+// Versões anteriores (v1.11.0 … v1.11.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
+// mais recentes deste cabeçalho (VER-06).
 
 //
 // Versão anterior: 1.11.0 · 07/10/2026
@@ -6181,7 +6234,22 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/comum-pessoas.js`
+
+//
+// Versão anterior: 1.206.0 · 08/10/2026
+//
+// v1.206.0 (UX F2.7c-2, demanda b8602a3a, sessão 20261003-1707-ux-base; plano F2.7c-2 aprovado pelo Nicola 08/10 14:04) — Pessoas e acessos no
+// padrão: esqueleto no lugar de "Carregando…" (lista e acessos recentes); formulário da pessoa com o
+// campo único (.rz-f, rótulo acima) e E-mail/WhatsApp em .rz-f2 (uma coluna no celular); sheet de
+// Comunicações da pessoa com as linhas de Minhas notificações (.rz-pref-2l) e o interruptor
+// .rz-switch (estado em aria-checked, sem cor em style).
+// --------------------------------------------------------------------------
+// Versões anteriores (v1.205.0 … v1.205.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
+// mais recentes deste cabeçalho (VER-06).
 
 //
 // Versão anterior: 1.205.0 · 08/10/2026
@@ -6609,6 +6677,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/comum-renovacao.js`
 
 //
@@ -6651,6 +6721,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 // jsdelivr (mesma origem já usada pelo app); se não carregar, o "copia e cola"
 // continua funcionando sozinho.
 // ============================================================================
+
+---
 
 ---
 
@@ -6864,6 +6936,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 // dados de conta — recebe `dbAuth` já autenticado do host, por
 // parâmetro (ver nota completa em comum-licenca.js).
 // ============================================================================
+
+---
 
 ---
 
@@ -7987,6 +8061,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/fechamento.js`
 
 //
@@ -8433,7 +8509,24 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/financeiro.js`
+
+//
+// Versão anterior: 1.56.0 · 12/10/2026
+//
+// v1.56.0 (12/10/2026, sessão 20261012-0220-ux-onda4a, demanda a05ad2ee; UX onda 4, estudo PROTOTIPO_UX_DENSIDADE_RAMOS_RAIZ
+// v1.2.0 D9; Nicola 12/10 02:15 "muita moldura estreitando as informações. Pendências são alertas? … Vamos avançar") — a
+// visão por competência (rzFinCompetencias, ficha do contrato e do ativo) fica sem moldura dentro de moldura: o card
+// "Pendências" sai (o atraso vira o 3º número do resumo, que leva aos atrasados; "a classificar" e "sem conciliação" viram
+// uma linha curta de atalhos), os dois KPIs em caixas viram uma faixa Recebido · Despesas · Em atraso, e a lista dos meses
+// entra direto no card que já existe (na ficha do ativo, um card só). A linha do mês mostra o que falta receber
+// (antes "R$ 0,00 · Em atraso") e perde a placa de calendário.
+// --------------------------------------------------------------------------
+// Versões anteriores (v1.55.0 … v1.55.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
+// mais recentes deste cabeçalho (VER-06).
 
 //
 // Versão anterior: 1.55.0 · 11/10/2026
@@ -9864,6 +9957,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/fiscal.js`
 
 //
@@ -9923,6 +10018,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 // abrirSheet, abrirSheetAcoes, abrirSheetForm, rzSheetCabecalho, fecharSheet,
 // mostrarToast, switchTab, rzIcones, podeUsar, window.fechamentoAbrirChecklistFiscalAtualizado.
 // ============================================================================
+
+---
 
 ---
 
@@ -10300,6 +10397,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/relatorios-executivos.js`
 
 //
@@ -10325,6 +10424,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 // que o bot usa); aqui só se monta o texto e o desenho — nunca se recalcula
 // (REL-02). Protótipo: raiz\docs\PROTOTIPO_RELATORIOS_FLUXO_GERENCIAL v1.1.0.
 // ============================================================================
+
+---
 
 ---
 
@@ -10780,6 +10881,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/vitrine.js`
 
 //
@@ -10889,6 +10992,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 // CLIENTE_ID_SUPABASE, dbAuth. Exclusivo (4) virou nível de módulo.
 // Indentação de origem mantida. Strict verificado.
 // ============================================================================
+
+---
 
 ---
 
