@@ -1,6 +1,14 @@
 // ============================================================================
 // cofre-controles.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.55.0 · 13/10/2026
+// Versão: 1.56.0 · 13/10/2026
+//
+// v1.56.0 (13/10/2026, sessão 20261013-2350-usos-fatia1, demanda 3022603b; FICHA_FATIA1_MAQUINA_STATUS_RAIZ v1.0.0, "Restante
+// ok. Vamos seguir" do Nicola 13/10 23:45) — máquina de status no item de controle: o ⋮ mostra Pausar, Retomar, Concluir
+// e Reabrir conforme a situação (fn_entidade_status), e a ação passa pela porta única fn_status_transicionar (motivo
+// quando o catálogo pede; status_historico e log no banco). "Encerrar item" virou Concluir; a lista e a ficha mostram
+// Pausado ou Concluído no lugar de Encerrado.
+//
+// Versão anterior: 1.55.0 · 13/10/2026
 //
 // v1.55.0 (13/10/2026, sessão 20261013-2320-conta-via-item, demanda 47eed96b; de acordo do Nicola 13/10 23:17: "1 ok, 2 ok,
 // 3 ok (...) 4 retirar. deixar apenas pelos ativos") — conta e cartão nascem pelo item de controle: no "Novo item" do
@@ -38,19 +46,11 @@
 //     a parte de cada pessoa do Raiz ao financeiro por categoria e conta (fn_grupo_fechar);
 //   · a ocorrência do rateio abre o card em vez de Dar baixa/Estornar (o espelho com o financeiro não pode rodar nela);
 //   · "Excluir item de vez" recusa item com rateio.
-//
-// Versão anterior: 1.51.0 · 11/10/2026
-//
-// v1.51.0 (11/10/2026, sessão 20261008-1231-pessoas-ativos, demanda f3e6cd27; Nicola 11/10 00:08: "no item aparece tipo
-// conta minúscula (...) subtipos em branco. Pode ser subtipos conta e o outro cartão crédito. Pode seguir") — a ficha do
-// item carrega o catálogo controle_tipos ANTES de desenhar (o rótulo do tipo só vinha depois de abrir o Editar; sem ele
-// aparecia o código cru "conta"). Os subtipos Conta e Cartão de crédito nasceram no banco (migration
-// contas_subtipos_f18b_v1); o item de cartão passa a ser reconhecido também pelo subtipo.
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.50.0 … v1.50.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.51.0 … v1.51.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '1.55.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.56.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 import { estado } from './cofre-estado.js';
 import * as api from './cofre-api.js';
 import { mostrarToast, refrescarIcones, abrirModal, fecharModal, modalGenerico, perguntar, escolher, avisarComDesfazer } from './cofre-ui.js';
@@ -401,9 +401,9 @@ function itemResumoHtml(item) {
         : ({ seguro: 'shield', tributo: 'landmark', manutencao: 'wrench' }[item.tipo] || 'clipboard-check');
     if (item.ativo === false) { // v1.20.0 — encerrado: histórico visível, sem urgência
         return `<div class="rz-row rz-link" data-action="abrir-item-controle" data-id="${item.id}">
-            <div class="rz-ic rz-neu"><i data-lucide="archive"></i></div>
+            <div class="rz-ic rz-neu"><i data-lucide="${item.situacao === 'pausado' ? 'pause' : 'archive'}"></i></div>
             <div class="rz-tx"><b>${escapeHtml(item.titulo)}</b><span>${escapeHtml(subtitulo)}</span></div>
-            <div class="rz-rt">${statusHtml('neu', 'Encerrado')}</div>
+            <div class="rz-rt">${item.situacao === 'pausado' ? statusHtml('warn', 'Pausado') : statusHtml('neu', 'Concluído')}</div>
             <i data-lucide="chevron-right" class="rz-chev"></i>
         </div>`;
     }
@@ -840,7 +840,7 @@ function renderizarFichaItemControle() {
     const ocorrencias = (item.cofre_ocorrencias_controle || []).slice().sort((x, y) => (x.data_prevista_atual > y.data_prevista_atual ? 1 : -1));
     const proxima = ocorrencias.find(o => o.status_execucao === 'aberto');
     const diasProx = item.alerta_ativo === false ? null : (proxima ? diasAte(proxima.data_prevista_atual) : null);
-    const statusItem = item.ativo === false ? statusHtml('neu', 'Encerrado') // v1.20.0
+    const statusItem = item.ativo === false ? (item.situacao === 'pausado' ? statusHtml('warn', 'Pausado') : statusHtml('neu', 'Concluído')) // v1.20.0; v1.56.0 situação
         : item.alerta_ativo === false ? statusHtml('neu', 'Alertas desligados')
         : diasProx === null ? statusHtml('ok', 'Sem pendência')
         : diasProx < 0 ? statusHtml('bad', `há ${Math.abs(diasProx)}d`)
@@ -1170,19 +1170,59 @@ function sheetAcoes(config) {
     if (typeof window.abrirSheetAcoes !== 'function') { mostrarToast('Ações disponíveis só dentro do app principal.', 'erro'); return; }
     window.abrirSheetAcoes(config);
 }
-export function abrirAcoesDadosItem() {
+// v1.56.0 (fatia 1, máquina de status — FICHA_FATIA1_MAQUINA_STATUS_RAIZ v1.0.0) — o ⋮ do item mostra os verbos que a máquina
+// permite a partir da situação (Ativo · Pausado · Concluído): Pausar, Retomar, Concluir e Reabrir passam pela porta única
+// fn_status_transicionar (a mesma do bot), que grava status_historico e log. "Encerrar item" virou Concluir, com motivo.
+export async function abrirAcoesDadosItem() {
     const item = itemEmFoco; if (!item) return;
+    let maquina = null;
+    try {
+        const { data, error } = await api.dbAuth.rpc('fn_entidade_status', { p_entidade: 'item_controle', p_id: item.id, p_cliente_id: null });
+        if (!error && Array.isArray(data?.acoes)) maquina = data.acoes;
+    } catch (e) { console.warn('[cofre-controles] ações do item:', e?.message || e); }
+    const ICONE = { pausar: 'pause', retomar: 'play', concluir: 'check', reabrir: 'rotate-ccw' };
+    const SUB = { pausar: 'Para de gerar ocorrências e alertas; as vencidas ficam para tratar', retomar: 'Volta a gerar ocorrências a partir de hoje',
+        concluir: 'Encerra o item com o motivo; o histórico fica em "Encerrados"', reabrir: 'Volta a gerar ocorrências e alertas' };
+    const doCatalogo = (maquina || []).map(m => ({ icone: ICONE[m.acao] || 'circle-dot', titulo: m.rotulo + (m.acao === 'concluir' || m.acao === 'reabrir' ? ' item' : ''),
+        codigo: m.codigo, sub: SUB[m.acao] || '', aoTocar: () => transicionarItemAtual(item, m) }));
+    const ativoItem = (item.situacao || (item.ativo === false ? 'concluido' : 'ativo')) === 'ativo';
     sheetAcoes({ titulo: item.titulo, sub: rotuloTipoControle(item.tipo), acoes: [
-        ...(item.ativo !== false && !item.grupo_status ? [{ icone: 'users-round', titulo: 'Abrir rateio', codigo: 'grupos.gerenciar', sub: 'Dividir as despesas deste item com outras pessoas, cada uma pelo seu link', aoTocar: () => abrirNovoRateio(item) }] : []), // v1.52.0
+        ...(ativoItem && !item.grupo_status ? [{ icone: 'users-round', titulo: 'Abrir rateio', codigo: 'grupos.gerenciar', sub: 'Dividir as despesas deste item com outras pessoas, cada uma pelo seu link', aoTocar: () => abrirNovoRateio(item) }] : []), // v1.52.0
         ...(item.grupo_status === 'fechado' ? [{ icone: 'rotate-ccw', titulo: 'Reabrir o rateio', codigo: 'grupos.gerenciar', sub: 'Tira do financeiro o que o fechamento levou', aoTocar: () => reabrirRateio(item) }] : []),
-        ...(item.ativo === false ? [ // v1.20.0 — encerrado
+        ...(ativoItem ? [{ icone: 'pencil', titulo: 'Editar item', codigo: 'cofre.controles.editar', aoTocar: () => abrirEditarItem() }] : []),
+        ...(maquina ? doCatalogo : (item.ativo === false ? [ // sem a máquina (falha de rede): o caminho de antes
             { icone: 'rotate-ccw', titulo: 'Reabrir item', codigo: 'cofre.controles.editar', sub: 'Volta a gerar ocorrências e alertas', aoTocar: () => reabrirItemControleAtual() },
         ] : [
-            { icone: 'pencil', titulo: 'Editar item', codigo: 'cofre.controles.editar', aoTocar: () => abrirEditarItem() },
             { icone: 'archive', titulo: 'Encerrar item', codigo: 'cofre.controles.desativar', sub: 'Para de gerar alertas; histórico fica visível em "Encerrados"', aoTocar: () => encerrarItemControleAtual() },
-        ]),
+        ])),
         { icone: 'trash-2', titulo: 'Excluir item de vez', codigo: 'cofre.controles.desativar', sub: 'Some do banco. Bloqueado se houver ocorrência já tratada', tipo: 'bad', aoTocar: () => excluirItemControleAtual() },
     ] });
+}
+
+// v1.56.0 — uma transição do item pela porta única; pede o motivo quando o catálogo exige
+async function transicionarItemAtual(item, m) {
+    const executar = async (motivo) => {
+        const { data, error } = await api.dbAuth.rpc('fn_status_transicionar', { p_entidade: 'item_controle', p_id: item.id, p_acao: m.acao,
+            p_dados: motivo ? { motivo } : {}, p_canal: 'app' });
+        if (error) { mostrarToast(error.message || 'Não foi possível.', 'erro'); return false; }
+        mostrarToast(m.acao === 'pausar' ? 'Item pausado.' : m.acao === 'retomar' ? 'Item retomado — as próximas ocorrências voltam a ser geradas.'
+            : m.acao === 'concluir' ? 'Item concluído.' : 'Item reaberto.', 'sucesso');
+        emitirEscrita('controle', { id: item.id, acao: m.acao });
+        window.dispatchEvent(new CustomEvent('cofre:recarregar-eventos'));
+        if (m.para === 'ativo') await recarregarFichaItemControle(); else voltarFichaItemControle();
+        return true;
+    };
+    if (!m.exige_motivo) { await executar(null); return; }
+    if (typeof window.abrirSheetForm !== 'function') { mostrarToast('Ação só disponível dentro do app principal.', 'erro'); return; }
+    window.abrirSheetForm({
+        titulo: m.rotulo + ' ' + item.titulo, sub: rotuloTipoControle(item.tipo), rotuloSalvar: m.rotulo,
+        corpo: `<div class="rz-f" style="margin-bottom:0"><label for="ic-trans-motivo">Motivo</label><input type="text" id="ic-trans-motivo" maxlength="200" placeholder="${m.acao === 'concluir' ? 'Ex.: apólice não renovada, vendido' : 'Ex.: lançado por engano'}"></div>`,
+        aoSalvar: async () => {
+            const motivo = (document.getElementById('ic-trans-motivo')?.value || '').trim();
+            if (!motivo) { mostrarToast('Diga o motivo.', 'erro'); return false; }
+            return executar(motivo);
+        },
+    });
 }
 // v1.33.0 (demanda 3cc64651, pedido explícito do Nicola 23/09/2026: "Ao
 // clicar no menu 3 pontinhos da parte, nao aparece opcao adicionar parte.

@@ -1,6 +1,16 @@
 // ============================================================================
 // cofre-ativos.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.98.0 · 13/10/2026
+// Versão: 1.99.0 · 14/10/2026
+//
+// v1.99.0 (14/10/2026, sessão 20261013-2350-usos-fatia1, demandas 3022603b e 0579b844; FICHA_FATIA1_MAQUINA_STATUS_RAIZ
+// v1.0.0, "D1-1 não precisa mudar nada. Continua como alugado. Restante ok. Vamos seguir" do Nicola 13/10 23:45) — máquina
+// de status. O grupo Situação do ⋮ da ficha vem do catálogo (fn_entidade_status → acoes): Registrar venda, Registrar baixa
+// (motivo: perda, sinistro, doação, óbito…), Arquivar (antes "Excluir ativo"; pausa os itens), Reativar e Desfazer
+// venda/baixa; ativo fora de Ativo mostra só a Situação. O ⋮ de cada uso traz Concluir e Excluir (uso lançado por engano,
+// com motivo). Card novo "Histórico" no chip Usos e contratos, com Desfazer (fn_status_desfazer). Tudo pela porta única
+// fn_status_transicionar, a mesma do bot. Selo "Baixado".
+//
+// Versão anterior: 1.98.0 · 13/10/2026
 //
 // v1.98.0 (13/10/2026, sessão 20261013-2330-usos-fatia0b, demanda 0579b844; teste do Nicola 13/10 23:27) — o card Usos
 // lista os usos do ano abaixo da barra: o uso sem contrato vigente tem ⋮ com "Concluir" (antes só no ⋮ do topo da
@@ -30,19 +40,11 @@
 // Ocupação viram um card só: ‹ ano › no cabeçalho, barra de 1/jan a 31/dez com os usos na cor do ramo e a marca de hoje,
 // iniciais dos meses embaixo, e no pé só a ocupação do ano em % (fn_performance_ativo; sem dado, a conta pelos usos).
 // O card aparece mesmo sem uso, com convite e "+ Adicionar uso".
-//
-// Versão anterior: 1.94.0 · 12/10/2026
-//
-// v1.94.0 (12/10/2026, sessão 20261012-0215-ux-onda3b, demanda a05ad2ee; UX onda 3, estudo PROTOTIPO_UX_DENSIDADE_RAMOS_RAIZ
-// v1.2.0 D11/D12, "pode avançar" do Nicola 12/10 01:53) — ficha do ativo com um jeito só de agir: o ⋮ do topo (ao lado da
-// situação) reúne todas as ações em grupos (Ativo · Usos e contratos · Controles · Financeiro · Propriedade · Anexos ·
-// Situação, com Excluir por último em vermelho). O ⋮ do card Balanço pendente sai; o "Quitar" de cada linha continua.
-// As funções abrirAcoesPropriedade/Contratos/Controles/Financeiro/Anexos continuam exportadas (atalhos "+ Adicionar").
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.93.0 … v1.93.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.94.0 … v1.94.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '1.98.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.99.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 import { estado } from './cofre-estado.js';
 import * as api from './cofre-api.js';
 import { mostrarToast, erroInline, refrescarIcones, alternarToggle, abrirModal, fecharModal, modalGenerico, perguntar, avisarComDesfazer } from './cofre-ui.js';
@@ -1375,6 +1377,7 @@ function statusAtivoHtml(a) {
     const r = typeof window.renderStatus === 'function' ? window.renderStatus : (c, t) => `<span class="rz-st rz-neu">${escapeHtml(t || c)}</span>`;
     if (a.status === 'arquivado') return r('bad', 'Arquivado');
     if (a.status === 'vendido') return r('neu', 'Vendido');
+    if (a.status === 'baixado') return r('neu', 'Baixado'); // v1.99.0 (fatia 1, D-P19)
     // v1.97.0 (usos fatia 0, D-P18/D-P26) — o selo é o status de hoje: classe · modelo do uso vigente (fn_entidade_status)
     const st = typeof window.rzStatusDoAtivo === 'function' ? window.rzStatusDoAtivo(a.id) : null;
     if (st) return r(st.sem, st.rotulo);
@@ -1394,9 +1397,17 @@ export function fecharFichaAtivo() {
     window.dispatchEvent(new CustomEvent('cofre:recarregar-ativos'));
 }
 
-export function abrirAcoesAtivo() {
+export async function abrirAcoesAtivo() {
     const a = estado.ativoEmFoco;
     if (!a) return;
+    // v1.99.0 (fatia 1, máquina de status) — o grupo Situação vem do catálogo de transições (fn_entidade_status → acoes):
+    // Registrar venda, Registrar baixa, Arquivar (antes "Excluir ativo"), Reativar e Desfazer venda/baixa, conforme o
+    // status do ativo. Sem a máquina (falha de rede), fica o caminho de antes.
+    let maquina = null;
+    try {
+        const { data, error } = await api.dbAuth.rpc('fn_entidade_status', { p_entidade: 'ativo', p_id: a.id, p_cliente_id: null });
+        if (!error && Array.isArray(data?.[a.id]?.acoes)) maquina = data[a.id].acoes;
+    } catch (e) { console.warn('[cofre-ativos] ações do ativo:', e?.message || e); }
     // Imóvel (do cadastro antigo ou criado direto como ativo): "Editar" cobre endereço e valores, e
     // "Compartilhar" manda o link — o link guarda o id do ativo.
     const ehCategoriaImovelAtivo = ehCategoriaImovel(a.tipo_ativo);
@@ -1419,14 +1430,19 @@ export function abrirAcoesAtivo() {
     // é recusada no banco por fn_revisao_valor_ativo_iniciar, com toast de
     // erro claro — evita uma 2ª chamada de rede só pra pré-checar aqui.
     if (a.status !== 'vendido') acoes.push({ icone: 'calendar-clock', titulo: 'Iniciar revisão anual', codigo: 'cofre.controles.criar', sub: 'Começa o ciclo de revisão de valor deste ativo', aoTocar: () => abrirIniciarRevisaoAnual(a) });
-    if (a.status !== 'vendido') acoes.push({ icone: 'tag', titulo: 'Marcar como vendido', codigo: 'cofre.editar', sub: 'Desliga alertas e sai dos links compartilhados', aoTocar: () => marcarAtivoVendidoAtual() });
-    acoes.push({ icone: 'trash-2', titulo: 'Excluir ativo', codigo: 'cofre.excluir', tipo: 'bad', aoTocar: () => excluirAtivoAtual() });
+    if (!maquina && a.status !== 'vendido') acoes.push({ icone: 'tag', titulo: 'Marcar como vendido', codigo: 'cofre.editar', sub: 'Desliga alertas e sai dos links compartilhados', aoTocar: () => marcarAtivoVendidoAtual() });
+    if (!maquina) acoes.push({ icone: 'trash-2', titulo: 'Excluir ativo', codigo: 'cofre.excluir', tipo: 'bad', aoTocar: () => excluirAtivoAtual() });
     // v1.94.0 (UX onda 3, D11) — é o ⋮ do topo da ficha: todas as ações do ativo em grupos curtos (os ⋮ dos cabeçalhos
     // dos cards saíram). Situação (vender, excluir) por último.
-    const situacao = acoes.filter(x => x.titulo === 'Marcar como vendido' || x.titulo === 'Excluir ativo');
+    const situacaoAntiga = acoes.filter(x => x.titulo === 'Marcar como vendido' || x.titulo === 'Excluir ativo');
+    const situacao = maquina ? maquina.map(m => acaoDaMaquinaAtivo(a, m)) : situacaoAntiga;
     const fora = a.registro_contabil === 'fora';
+    if (a.status && a.status !== 'ativo') { // vendido, baixado, arquivado: só a situação (desfazer, reativar)
+        sheetOuAviso({ titulo: a.nome_exibicao, sub: rotuloTipoAtivo(a.tipo_ativo), grupos: [{ titulo: 'Situação', acoes: situacao }].filter(g => g.acoes.length) });
+        return;
+    }
     const grupos = [
-        { titulo: 'Ativo', acoes: acoes.filter(x => !situacao.includes(x)) },
+        { titulo: 'Ativo', acoes: acoes.filter(x => !situacaoAntiga.includes(x)) },
         { titulo: 'Usos e contratos', acoes: [
             { icone: 'plus', titulo: 'Adicionar uso', codigo: 'ativos.usos.iniciar', sub: 'Escolha o modelo: aluguel, temporada, uso próprio…', aoTocar: () => abrirAdicionarModeloAtivo() },
             ...acaoConcluirUsoVigente(a),
@@ -1453,6 +1469,135 @@ export function abrirAcoesAtivo() {
         { titulo: 'Situação', acoes: situacao },
     ].filter(g => g.acoes.length);
     sheetOuAviso({ titulo: a.nome_exibicao, sub: rotuloTipoAtivo(a.tipo_ativo), grupos });
+}
+
+// ============================================================================
+// MÁQUINA DE STATUS (fatia 1) — v1.99.0. Toda mudança de situação do ativo, do uso e do item passa pela porta única
+// fn_status_transicionar (a mesma do bot), que confere o catálogo status_transicoes, o código da ação e o motivo, e grava
+// status_historico + log_acessos. Desfazer é transição nova (fn_status_desfazer), nunca apaga.
+// ============================================================================
+const MOTIVOS_BAIXA = ['Perda total', 'Sinistro', 'Doação', 'Óbito', 'Descarte', 'Outro'];
+function acaoDaMaquinaAtivo(a, m) {
+    const ICONE = { vender: 'tag', baixar: 'file-minus', arquivar: 'archive', reativar: 'rotate-ccw', desfazer_venda: 'undo-2', desfazer_baixa: 'undo-2' };
+    const SUB = { vender: 'Encerra o uso, conclui os itens e sai das listas', baixar: 'Perda, sinistro, doação: sai do patrimônio sem venda',
+        arquivar: 'Sai das listas; os itens ficam pausados até reativar', reativar: 'Volta às listas, ao repouso e retoma os itens pausados',
+        desfazer_venda: 'Volta a Ativo com os usos de antes', desfazer_baixa: 'Volta a Ativo com os usos de antes' };
+    return { icone: ICONE[m.acao] || 'circle-dot', titulo: m.rotulo, codigo: m.codigo, sub: SUB[m.acao] || '', tipo: m.tipo === 'perigo' ? 'bad' : undefined,
+        aoTocar: () => abrirTransicaoAtivo(a, m) };
+}
+function abrirTransicaoAtivo(a, m) {
+    if (typeof window.abrirSheetForm !== 'function') { mostrarToast('Ação só disponível dentro do app principal.', 'erro'); return; }
+    const hoje = hojeLocalUso();
+    const comData = ['vender', 'baixar', 'arquivar'].includes(m.acao);
+    const campoData = comData ? `<div class="rz-f"><label for="fa-tr-data">${m.acao === 'vender' ? 'Data da venda' : m.acao === 'baixar' ? 'Data da baixa' : 'A partir de'}</label><input type="date" id="fa-tr-data" value="${hoje}" max="${hoje}"></div>` : '';
+    const campoMotivo = m.acao === 'baixar'
+        ? `<div class="rz-f"><label for="fa-tr-tipo">Motivo</label><select id="fa-tr-tipo">${MOTIVOS_BAIXA.map(x => `<option>${x}</option>`).join('')}</select></div>
+           <div class="rz-f" style="margin-bottom:0"><label for="fa-tr-motivo">Detalhe <small>(opcional)</small></label><input type="text" id="fa-tr-motivo" maxlength="200"></div>`
+        : m.exige_motivo ? `<div class="rz-f" style="margin-bottom:0"><label for="fa-tr-motivo">Motivo</label><input type="text" id="fa-tr-motivo" maxlength="200" placeholder="Ex.: registrado por engano"></div>` : '';
+    const aviso = m.acao === 'arquivar' ? '<p class="rz-desc" style="margin:0 0 8px">O ativo sai das listas e os itens de controle ficam pausados. Dá para reativar pelo ⋮.</p>'
+        : (m.acao === 'vender' || m.acao === 'baixar') ? '<p class="rz-desc" style="margin:0 0 8px">O uso de hoje termina na data e os itens de controle são concluídos. Com contrato vigente, encerre o contrato antes.</p>' : '';
+    window.abrirSheetForm({
+        titulo: m.rotulo, sub: a.nome_exibicao, corpo: aviso + campoData + campoMotivo, rotuloSalvar: m.rotulo,
+        aoSalvar: async () => {
+            const dados = {};
+            if (comData) { dados.data = document.getElementById('fa-tr-data')?.value || hoje; }
+            const det = (document.getElementById('fa-tr-motivo')?.value || '').trim();
+            if (m.acao === 'baixar') dados.motivo = (document.getElementById('fa-tr-tipo')?.value || 'Outro') + (det ? ': ' + det : '');
+            else if (det) dados.motivo = det;
+            if (m.exige_motivo && !dados.motivo) { mostrarToast('Diga o motivo.', 'erro'); return false; }
+            const { data, error } = await api.dbAuth.rpc('fn_status_transicionar', { p_entidade: 'ativo', p_id: a.id, p_acao: m.acao, p_dados: dados, p_canal: 'app' });
+            if (error) { mostrarToast(error.message || 'Não foi possível.', 'erro'); return false; }
+            mostrarToast(data?.mensagem || 'Feito.', 'sucesso');
+            a.status = data?.para || a.status;
+            await aposMudarUso(a);
+            window.dispatchEvent(new CustomEvent('cofre:recarregar-eventos'));
+            return true;
+        },
+    });
+}
+// ⋮ de um uso: Concluir e Excluir, como a máquina deixa (fn_ativo_usos → acoes)
+function acoesDoUso(a, u) {
+    return (u.acoes || []).map(m => m.acao === 'concluir'
+        ? { icone: 'flag', titulo: 'Concluir ' + u.nome.toLowerCase(), codigo: m.codigo, sub: 'Escolha o último dia; depois o ativo volta ao repouso', aoTocar: () => abrirConcluirUsoAtivo(a, u) }
+        : { icone: 'trash-2', titulo: 'Excluir ' + u.nome.toLowerCase(), codigo: m.codigo, tipo: 'bad', sub: 'Lançado por engano: some da linha do tempo e o repouso volta', aoTocar: () => abrirExcluirUsoAtivo(a, u) });
+}
+function abrirExcluirUsoAtivo(a, u) {
+    if (typeof window.abrirSheetForm !== 'function') { mostrarToast('Ação só disponível dentro do app principal.', 'erro'); return; }
+    window.abrirSheetForm({
+        titulo: 'Excluir ' + u.nome.toLowerCase(), sub: `${a.nome_exibicao} · ${formatarDataBR(u.inicio)} → ${u.fim ? formatarDataBR(u.fim) : 'sem fim'}`, rotuloSalvar: 'Excluir',
+        corpo: `<p class="rz-desc" style="margin:0 0 8px">O uso some da linha do tempo e o repouso cobre o período. O histórico guarda o que era, e dá para desfazer.</p>
+            <div class="rz-f" style="margin-bottom:0"><label for="fa-uso-exc">Motivo</label><input type="text" id="fa-uso-exc" maxlength="200" placeholder="Ex.: lançado por engano"></div>`,
+        aoSalvar: async () => {
+            const motivo = (document.getElementById('fa-uso-exc')?.value || '').trim();
+            if (!motivo) { mostrarToast('Diga o motivo.', 'erro'); return false; }
+            const { data, error } = await api.dbAuth.rpc('fn_status_transicionar', { p_entidade: 'uso', p_id: u.uso_id, p_acao: 'excluir', p_dados: { motivo }, p_canal: 'app' });
+            if (error) { mostrarToast(error.message || 'Não foi possível excluir.', 'erro'); return false; }
+            mostrarToast(data?.mensagem || 'Uso excluído.', 'sucesso');
+            await aposMudarUso(a);
+            return true;
+        },
+    });
+}
+// Card Histórico (chip Usos e contratos): o que mudou no ativo, com Desfazer quando a mudança permite
+async function montarHistoricoStatusAtivo(a) {
+    const usos = document.getElementById('fa-card-usos'); if (!usos) return;
+    let card = document.getElementById('fa-card-historico');
+    if (!card) {
+        card = document.createElement('div'); card.className = 'rz-card'; card.id = 'fa-card-historico';
+        card.innerHTML = '<div class="rz-card-h"><h3>Histórico</h3></div><div id="fa-historico-lista"></div>';
+        usos.insertAdjacentElement('afterend', card);
+    }
+    const lista = card.querySelector('#fa-historico-lista');
+    try {
+        const { data, error } = await api.dbAuth.from('status_historico').select('id, de, para, gatilho, motivo, pessoa_id, canal, criado_em, desfaz_id, dados')
+            .eq('entidade', 'ativo').eq('entidade_id', a.id).order('criado_em', { ascending: false }).limit(20);
+        if (error) throw error;
+        if (ativoAtualId && ativoAtualId !== a.id) return;
+        const linhas = data || [];
+        card.classList.toggle('hidden', !linhas.length);
+        if (!linhas.length) { lista.innerHTML = ''; return; }
+        const desfeitas = new Set(linhas.map(h => h.desfaz_id).filter(Boolean));
+        const ids = [...new Set(linhas.map(h => h.pessoa_id).filter(Boolean))];
+        const nomes = {};
+        if (ids.length) {
+            const { data: ps } = await api.dbAuth.from('pessoas').select('id, nome').in('id', ids);
+            (ps || []).forEach(p => { nomes[p.id] = (p.nome || '').split(' ')[0]; });
+        }
+        const quando = (t) => { const d = new Date(t); return d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: '2-digit' }) + ' ' + d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }); };
+        lista.innerHTML = linhas.map((h, i) => {
+            const pode = h.dados?.desfazivel && !desfeitas.has(h.id) && !h.desfaz_id;
+            const quem = h.gatilho === 'acao' ? (nomes[h.pessoa_id] || 'você') : 'automático · rotina diária';
+            const det = [h.motivo, quem, quando(h.criado_em)].filter(Boolean).join(' · ');
+            return `<div class="rz-row"><div class="rz-ic${desfeitas.has(h.id) ? ' rz-neu' : ''}"><i data-lucide="${h.desfaz_id ? 'undo-2' : 'arrow-right-left'}"></i></div>
+                <div class="rz-tx"><b>${escapeHtml(h.de || '—')} → ${escapeHtml(h.para || '—')}${desfeitas.has(h.id) ? ' <small>(desfeito)</small>' : ''}</b><span>${escapeHtml(det)}</span></div>
+                ${pode ? `<button type="button" class="rz-more" data-hist-i="${i}" aria-label="Ações da mudança"><i data-lucide="ellipsis-vertical"></i></button>` : ''}</div>`;
+        }).join('');
+        lista.querySelectorAll('[data-hist-i]').forEach(b => b.addEventListener('click', (ev) => {
+            ev.stopPropagation(); const h = linhas[Number(b.dataset.histI)];
+            sheetOuAviso({ titulo: `${h.de} → ${h.para}`, sub: quando(h.criado_em), acoes: [
+                { icone: 'undo-2', titulo: 'Desfazer', codigo: 'status.desfazer', sub: 'Volta como estava, com o motivo no histórico', aoTocar: () => abrirDesfazerHistorico(a, h) },
+            ] });
+        }));
+        refrescarIcones();
+    } catch (e) { console.warn('[cofre-ativos] histórico:', e?.message || e); }
+}
+function abrirDesfazerHistorico(a, h) {
+    if (typeof window.abrirSheetForm !== 'function') { mostrarToast('Ação só disponível dentro do app principal.', 'erro'); return; }
+    window.abrirSheetForm({
+        titulo: 'Desfazer', sub: `${h.de} → ${h.para}`, rotuloSalvar: 'Desfazer',
+        corpo: `<div class="rz-f" style="margin-bottom:0"><label for="fa-desf-mot">Motivo</label><input type="text" id="fa-desf-mot" maxlength="200" placeholder="Ex.: registrado no ativo errado"></div>`,
+        aoSalvar: async () => {
+            const motivo = (document.getElementById('fa-desf-mot')?.value || '').trim();
+            if (!motivo) { mostrarToast('Diga o motivo.', 'erro'); return false; }
+            const { data, error } = await api.dbAuth.rpc('fn_status_desfazer', { p_historico_id: h.id, p_motivo: motivo, p_canal: 'app' });
+            if (error) { mostrarToast(error.message || 'Não foi possível desfazer.', 'erro'); return false; }
+            mostrarToast(data?.mensagem || 'Desfeito.', 'sucesso');
+            if (data?.para) a.status = data.para;
+            await aposMudarUso(a);
+            window.dispatchEvent(new CustomEvent('cofre:recarregar-eventos'));
+            return true;
+        },
+    });
 }
 
 // Fase R / Entrega R.3 (20/09/2026) — "Iniciar revisão anual" (esqueleto
@@ -1617,6 +1762,8 @@ export async function montarUsosAtivo(a) {
         await desenharUsosAno(a, vig);
     } catch (err) {
         console.warn('[cofre-ativos] montarUsosAtivo falhou:', err?.message || err);
+    } finally {
+        if (!ativoAtualId || ativoAtualId === a.id) montarHistoricoStatusAtivo(a); // v1.99.0 — card Histórico
     }
 }
 
@@ -1648,7 +1795,7 @@ async function desenharUsosAno(a, vig) {
     if (doAno.length) {
         const vigenteHoje = (u) => u.inicio <= hoje && (!u.fim || u.fim >= hoje);
         const linhas = doAno.map((u, i) => {
-            const acao = !u.contrato_id && vigenteHoje(u);
+            const acao = !u.contrato_id && (u.acoes || []).length > 0; // v1.99.0 — o que a máquina deixa (Concluir, Excluir)
             const per = `${formatarDataBR(u.inicio)} → ${fimTxt(u)}${vigenteHoje(u) ? ' · hoje' : (u.inicio > hoje ? ' · a começar' : '')}`;
             return `<div class="rz-row${u.contrato_id ? ' rz-link' : ''}" data-uso-i="${i}"${u.contrato_id ? ' role="button" tabindex="0"' : ''}>
                 <div class="rz-ic"><i data-lucide="${u.contrato_id ? 'file-text' : 'user-check'}"></i></div>
@@ -1662,9 +1809,7 @@ async function desenharUsosAno(a, vig) {
         });
         painel.querySelectorAll('[data-uso-mais]').forEach(b => b.addEventListener('click', (ev) => {
             ev.stopPropagation(); const u = doAno[Number(b.dataset.usoMais)];
-            sheetOuAviso({ titulo: u.nome, sub: `${formatarDataBR(u.inicio)} → ${fimTxt(u)}`, acoes: [
-                { icone: 'flag', titulo: 'Concluir ' + u.nome.toLowerCase(), codigo: 'ativos.usos.concluir', sub: 'Escolha o último dia; depois o ativo volta ao repouso', aoTocar: () => abrirConcluirUsoAtivo(a, u) },
-            ] });
+            sheetOuAviso({ titulo: u.nome, sub: `${formatarDataBR(u.inicio)} → ${fimTxt(u)}`, acoes: acoesDoUso(a, u) });
         }));
     }
     painel.closest('.rz-card')?.querySelectorAll('[data-uso-ano]').forEach(b => b.addEventListener('click', (ev) => {
@@ -2183,7 +2328,7 @@ async function aposMudarUso(a) {
     try { if (typeof window.rzRecarregarUsosRamo === 'function') await window.rzRecarregarUsosRamo(); } catch (e) { console.warn('[cofre-ativos] status:', e?.message || e); }
     const selo = document.getElementById('fa-status-selo');
     if (selo) selo.innerHTML = statusAtivoHtml(a);
-    await montarUsosAtivo(a);
+    await montarUsosAtivo(a); // v1.99.0 — remonta também o card Histórico
     window.dispatchEvent(new CustomEvent('cofre:recarregar-ativos'));
 }
 if (typeof window !== 'undefined') window.__rzAdicionarModeloAtivo = abrirAdicionarModeloAtivo;

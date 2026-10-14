@@ -4,6 +4,19 @@ Histórico completo de versões do `index.html`, movido automaticamente pelo `ge
 
 ---
 
+NOVIDADES (Beta v1.395.0) — Usos fatia 0, uso universal (FICHA_FATIA0_USO_UNIVERSAL_RAIZ v1.0.0, "De acordo." do Nicola
+13/10). rzCarregarUsosRamo lê o status de hoje de toda a carteira numa chamada só (fn_entidade_status: ativo_usos,
+contratos espelhados e repouso) em vez de ler contratos; rzRamoDoAtivo dá prioridade ao ramo guardado no ativo
+(cofre_ativos.ramo); window.rzStatusDoAtivo devolve o selo classe · modelo usado pela ficha e pela lista
+(cofre-ativos.js 1.97.0: usos sem contrato, Concluir uso, repouso esmaecido). RZ_STATUS ganha as classes de status.
+Versão anterior (Beta v1.394.0):
+------------------------------------------------------------------
+Versões anteriores (v1.394.0 … v1.394.0): CHANGELOG_APP.md, na raiz do
+repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
+das 5 versões mais recentes deste cabeçalho.
+
+---
+
 NOVIDADES (Beta v1.394.0) — Raiz IA, ajustes do teste do Nicola (13/10 22:04; demanda f4efd8a3, mãe a05ad2ee).
 Busca em tudo: frase longa ("onde está o locatário do apto 81") cai para as palavras-chave quando a frase inteira
 não acha nada (rzBuscaPalavras); editar e tocar de novo refaz a busca; reabrir começa limpo. Nova ocorrência pela
