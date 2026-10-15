@@ -4,6 +4,21 @@ Histórico completo de versões do `index.html`, movido automaticamente pelo `ge
 
 ---
 
+NOVIDADES (Beta v1.415.0) — teste do Nicola 14/10 21:26 + ONDA 9b. (1) Splash no notebook: em tela larga a arte
+escala pela altura (viewBox alargado, centrado na árvore, céu/morros/terra prolongados sem emenda) e, no computador,
+a arte do login tem a altura pela tela — o Entrar aparece sem rolar e a lista de empresas volta a ter altura (antes
+ficava sem espaço e "não aparecia"). (2) Cabeçalho de ficha com ⋮ (ativo, contrato): o nome ganha a linha toda;
+tipo e situação descem para a linha de baixo, alinhados ao nome. (3) Agenda só com Semana · Mês (js/agenda.js
+1.4.0). (4) Onda 9b: textos de Financeiro (js/financeiro.js 1.64.0) e Contratos (js/contratos.js 1.58.0) no
+limite. No celular, splash e listas como antes. Sem banco.
+Versão anterior (Beta v1.414.0):
+------------------------------------------------------------------
+Versões anteriores (v1.414.0 … v1.414.0): CHANGELOG_APP.md, na raiz do
+repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
+das 5 versões mais recentes deste cabeçalho.
+
+---
+
 NOVIDADES (Beta v1.414.0) — ONDA 9a do estudo PROTOTIPO_UX_DENSIDADE_RAMOS_RAIZ v1.2.0 (D6, seção 10, textos): só o
 mapa de módulos muda — js/cofre-ativos.js 1.104.0 e js/cofre-controles.js 1.58.0 com ações, descrições e avisos no
 limite (24 · 28 · 40 caracteres). O verificar_gramatica.py 1.5 passa a contar textos fora do limite. Sem banco.

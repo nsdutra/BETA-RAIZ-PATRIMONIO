@@ -6,9 +6,14 @@
    (base derivada do RUMO v7.4.2 — histórico de versões anteriores
    preservado abaixo para referência técnica)
 
-   VERSÃO: Beta v1.419.0
+   VERSÃO: Beta v1.420.0
    LINHAS: 16860
-   DATA: 14/10/2026 (sessão 20261014-2330-usos-fatia3c, demanda 3022603b)
+   DATA: 14/10/2026 (sessão 20261014-2340-usos-fatia3d, demanda 3022603b)
+   NOVIDADES (Beta v1.420.0) — Nicola 14/10 23:34. (1) Login: raízes novas, finas (pivotante, laterais e radicelas
+   afinando, desenhadas em sequência), no lugar das copiadas da arte. (2) Lista de Ativos: o principal com subativos tem o
+   ícone com borda na cor do ramo e o número no canto; o selo fica só "Disponível"; os subativos abertos ganham um traço na
+   cor do ramo. js/cofre-ativos.js 1.109.0. Sem banco.
+   Versão anterior (Beta v1.419.0):
    NOVIDADES (Beta v1.419.0) — Fatia 3c, teste do Nicola 14/10 23:22. (1) Lista de Ativos: o principal com subativos
    mostra "N integrantes" e o chevron para baixo, que abre os subativos recuados (como os meses do Financeiro).
    (2) Ficha: integrante, pessoa do cadastro e sócio na mesma linha da ficha, tocável e com ⋮ (Abrir e Tirar de;
@@ -35,16 +40,8 @@
    limite no app inteiro: descrições 97 → 0, ações 15 → 0, avisos 58 → 0, telas vazias 50 → 0. Nada de comportamento
    mudou. Sem banco.
    Versão anterior (Beta v1.415.0):
-   NOVIDADES (Beta v1.415.0) — teste do Nicola 14/10 21:26 + ONDA 9b. (1) Splash no notebook: em tela larga a arte
-   escala pela altura (viewBox alargado, centrado na árvore, céu/morros/terra prolongados sem emenda) e, no computador,
-   a arte do login tem a altura pela tela — o Entrar aparece sem rolar e a lista de empresas volta a ter altura (antes
-   ficava sem espaço e "não aparecia"). (2) Cabeçalho de ficha com ⋮ (ativo, contrato): o nome ganha a linha toda;
-   tipo e situação descem para a linha de baixo, alinhados ao nome. (3) Agenda só com Semana · Mês (js/agenda.js
-   1.4.0). (4) Onda 9b: textos de Financeiro (js/financeiro.js 1.64.0) e Contratos (js/contratos.js 1.58.0) no
-   limite. No celular, splash e listas como antes. Sem banco.
-   Versão anterior (Beta v1.414.0):
    ------------------------------------------------------------------
-   Versões anteriores (v1.414.0 … v1.414.0): CHANGELOG_APP.md, na raiz do
+   Versões anteriores (v1.415.0 … v1.415.0): CHANGELOG_APP.md, na raiz do
    repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
    das 5 versões mais recentes deste cabeçalho.
 
@@ -72,7 +69,7 @@
          O navegador aplica o mapa também aos imports estáticos dentro dos
          módulos (cofre-app.js → ./cofre-api.js etc.). -->
     <!-- RZ-IMPORTMAP:INICIO -->
-    <script type="importmap">{"imports":{"./js/cadastros.js":"./js/cadastros.js?v=1.3.0","./js/financeiro.js":"./js/financeiro.js?v=1.66.0","./js/fechamento.js":"./js/fechamento.js?v=1.15.0","./js/contratos.js":"./js/contratos.js?v=1.60.0","./js/minutas.js":"./js/minutas.js?v=1.6.0","./js/vitrine.js":"./js/vitrine.js?v=1.6.0","./js/imoveis.js":"./js/imoveis.js?v=1.8.0","./js/cofre-api.js":"./js/cofre-api.js?v=1.51.0","./js/cofre-app.js":"./js/cofre-app.js?v=1.49.0","./js/cofre-ativos.js":"./js/cofre-ativos.js?v=1.108.0","./js/cofre-controles.js":"./js/cofre-controles.js?v=1.59.0","./js/cofre-documentos.js":"./js/cofre-documentos.js?v=2.37.0","./js/cofre-imagem.js":"./js/cofre-imagem.js?v=1.1.0","./js/cofre-estado.js":"./js/cofre-estado.js?v=1.5.2","./js/cofre-navegacao.js":"./js/cofre-navegacao.js?v=1.10.0","./js/cofre-ui.js":"./js/cofre-ui.js?v=1.7.2","./js/cofre-validacoes.js":"./js/cofre-validacoes.js?v=2.6.0","./js/comum-licenca.js":"./js/comum-licenca.js?v=1.9.0","./js/comum-renovacao.js":"./js/comum-renovacao.js?v=1.3.5","./js/comum-minha-empresa.js":"./js/comum-minha-empresa.js?v=1.19.0","./js/comum-pessoas.js":"./js/comum-pessoas.js?v=1.214.0","./js/comum-sobre.js":"./js/comum-sobre.js?v=1.5.0","./js/comum-endereco.js":"./js/comum-endereco.js?v=1.2.0","./js/comum-partes.js":"./js/comum-partes.js?v=1.0.0","./js/resultados.js":"./js/resultados.js?v=2.10.0","./js/indicadores.js":"./js/indicadores.js?v=1.2.0","./js/configuracao-inicial.js":"./js/configuracao-inicial.js?v=1.1.0","./js/relatorios-executivos.js":"./js/relatorios-executivos.js?v=1.4.0","./js/raiz-eventos.js":"./js/raiz-eventos.js?v=1.0.0","./js/raiz-device.js":"./js/raiz-device.js?v=1.1.0","./js/raiz-ui.js":"./js/raiz-ui.js?v=1.5.0","./js/fiscal.js":"./js/fiscal.js?v=1.7.0","./js/ativos/ativos-boot.js":"./js/ativos/ativos-boot.js?v=1.4.0","./js/ativos/ativos-markup.js":"./js/ativos/ativos-markup.js?v=1.64.0","./js/nucleo/porta.js":"./js/nucleo/porta.js?v=1.5.0","./js/partes.js":"./js/partes.js?v=1.1.0","./js/conta.js":"./js/conta.js?v=1.2.0","./js/grupo-visao.js":"./js/grupo-visao.js?v=1.0.0","./js/agenda.js":"./js/agenda.js?v=1.4.0"}}</script>
+    <script type="importmap">{"imports":{"./js/cadastros.js":"./js/cadastros.js?v=1.3.0","./js/financeiro.js":"./js/financeiro.js?v=1.66.0","./js/fechamento.js":"./js/fechamento.js?v=1.15.0","./js/contratos.js":"./js/contratos.js?v=1.60.0","./js/minutas.js":"./js/minutas.js?v=1.6.0","./js/vitrine.js":"./js/vitrine.js?v=1.6.0","./js/imoveis.js":"./js/imoveis.js?v=1.8.0","./js/cofre-api.js":"./js/cofre-api.js?v=1.51.0","./js/cofre-app.js":"./js/cofre-app.js?v=1.49.0","./js/cofre-ativos.js":"./js/cofre-ativos.js?v=1.109.0","./js/cofre-controles.js":"./js/cofre-controles.js?v=1.59.0","./js/cofre-documentos.js":"./js/cofre-documentos.js?v=2.37.0","./js/cofre-imagem.js":"./js/cofre-imagem.js?v=1.1.0","./js/cofre-estado.js":"./js/cofre-estado.js?v=1.5.2","./js/cofre-navegacao.js":"./js/cofre-navegacao.js?v=1.10.0","./js/cofre-ui.js":"./js/cofre-ui.js?v=1.7.2","./js/cofre-validacoes.js":"./js/cofre-validacoes.js?v=2.6.0","./js/comum-licenca.js":"./js/comum-licenca.js?v=1.9.0","./js/comum-renovacao.js":"./js/comum-renovacao.js?v=1.3.5","./js/comum-minha-empresa.js":"./js/comum-minha-empresa.js?v=1.19.0","./js/comum-pessoas.js":"./js/comum-pessoas.js?v=1.214.0","./js/comum-sobre.js":"./js/comum-sobre.js?v=1.5.0","./js/comum-endereco.js":"./js/comum-endereco.js?v=1.2.0","./js/comum-partes.js":"./js/comum-partes.js?v=1.0.0","./js/resultados.js":"./js/resultados.js?v=2.10.0","./js/indicadores.js":"./js/indicadores.js?v=1.2.0","./js/configuracao-inicial.js":"./js/configuracao-inicial.js?v=1.1.0","./js/relatorios-executivos.js":"./js/relatorios-executivos.js?v=1.4.0","./js/raiz-eventos.js":"./js/raiz-eventos.js?v=1.0.0","./js/raiz-device.js":"./js/raiz-device.js?v=1.1.0","./js/raiz-ui.js":"./js/raiz-ui.js?v=1.5.0","./js/fiscal.js":"./js/fiscal.js?v=1.7.0","./js/ativos/ativos-boot.js":"./js/ativos/ativos-boot.js?v=1.4.0","./js/ativos/ativos-markup.js":"./js/ativos/ativos-markup.js?v=1.64.0","./js/nucleo/porta.js":"./js/nucleo/porta.js?v=1.5.0","./js/partes.js":"./js/partes.js?v=1.1.0","./js/conta.js":"./js/conta.js?v=1.2.0","./js/grupo-visao.js":"./js/grupo-visao.js?v=1.0.0","./js/agenda.js":"./js/agenda.js?v=1.4.0"}}</script>
     <!-- RZ-IMPORTMAP:FIM -->
 
     <!-- ===== PWA: permite "instalar" o app no celular (Android e iPhone) ===== -->
@@ -468,6 +465,11 @@
         #splash-screen.splash-lista-ativa .rz-esc-ola{font-size:22px}
         #splash-screen.splash-lista-ativa .rz-sp-raizes{opacity:.3!important;transition:opacity .6s}
         #splash-screen.rz-esc-abrindo .rz-sp-raizes{opacity:0!important;transition:opacity .4s} /* v1.419.0 — as raízes descem para o "Abrindo" */
+        /* v1.420.0 — principal com subativos na lista de Ativos: ícone com borda na cor do ramo e o número de subativos */
+        .rz-row .rz-ic.rz-ic-grupo{position:relative;overflow:visible;box-shadow:inset 0 0 0 2px var(--ramo-grupo,var(--sprout))}
+        .rz-ic-grupo .rz-ic-n{position:absolute;right:-5px;bottom:-5px;min-width:18px;height:18px;padding:0 4px;border-radius:9px;background:var(--ramo-grupo,var(--sprout));color:#fff;font:700 11px/18px var(--font-body);text-align:center;box-shadow:0 0 0 2px var(--card)}
+        .rz-ic-grupo img{border-radius:inherit}
+        .rz-sub-row{border-left:2px solid var(--ramo-grupo,var(--line))}
         .rz-esc-grupo{text-transform:none;letter-spacing:0;font-size:12.5px;color:#a9c4b6}
         #lista-selecao-empresa .rz-card{background:none;border:0;box-shadow:none;padding:0;margin:0}
         #lista-selecao-empresa .rz-row{display:flex;align-items:center;gap:12px;min-height:66px;padding:10px 12px;margin-bottom:8px;border:0!important;border-radius:16px;background:#f7f1e4;color:var(--ink);box-shadow:0 2px 0 rgba(0,0,0,.14);transition:transform .25s,box-shadow .25s}
@@ -488,15 +490,14 @@
         #rz-esc-abre .rz-esc-nome{font:700 22px/1.2 var(--font-title);letter-spacing:-.02em;color:#fff;margin:0 16px}
         #rz-esc-abre p{color:#a9c4b6;font-size:13px;margin:12px 0 0}
         #rz-esc-abre svg.rz-raizes{display:block;width:240px;height:150px;margin:18px auto 0}
-        /* v1.419.0 — raízes da arte Horizonte (preenchidas), crescendo de cima para baixo e pulsando de leve enquanto carrega */
-        #rz-esc-abre svg.rz-raizes-arte{width:min(300px,78vw);height:auto;aspect-ratio:216/132;overflow:visible}
-        .rz-raizes-arte g{animation:rzRaizCresce 1.4s cubic-bezier(.3,.8,.25,1) both,rzRaizPulsa 2.4s ease-in-out 1.4s infinite alternate}
-        @keyframes rzRaizCresce{from{clip-path:inset(0 0 100% 0);opacity:.4}to{clip-path:inset(0 0 0 0);opacity:1}}
-        @keyframes rzRaizPulsa{from{opacity:1}to{opacity:.65}}
+        /* v1.420.0 — raízes finas (pivotante → laterais → radicelas), desenhadas em sequência; largura e opacidade por traço */
+        #rz-esc-abre svg.rz-raizes-finas{width:min(280px,72vw);height:auto;aspect-ratio:240/140}
+        .rz-raizes-finas path{fill:none;stroke:#d7c49a;stroke-linecap:round;stroke-dasharray:1;stroke-dashoffset:1;animation:rzRaizFina 1.3s ease-out forwards}
+        @keyframes rzRaizFina{to{stroke-dashoffset:0}}
         .rz-raizes path{fill:none;stroke:#d7c49a;stroke-width:1.4;stroke-linecap:round;stroke-dasharray:170;stroke-dashoffset:170;animation:rzRaizDesenha 1.2s ease-out forwards}
         @keyframes rzRaizDesenha{to{stroke-dashoffset:0}}
         @keyframes rzEscAbre{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
-        @media (prefers-reduced-motion:reduce){.rz-splash-arte{transition:none}.rz-raizes path{animation:none;stroke-dashoffset:0}.rz-raizes-arte g{animation:none}#splash-screen.rz-esc-abrindo #rz-esc-abre{animation:none}}
+        @media (prefers-reduced-motion:reduce){.rz-splash-arte{transition:none}.rz-raizes path{animation:none;stroke-dashoffset:0}.rz-raizes-finas path{animation:none;stroke-dashoffset:0}#splash-screen.rz-esc-abrindo #rz-esc-abre{animation:none}}
 
 
         /* Barra inferior (v1.39.8) — indicador do item ativo: barrinha fina no
@@ -4359,7 +4360,7 @@
         // texto certo toda vez (esqueci 5 versões seguidas, de v1.37.1 até
         // v1.38.3). Agora só precisa mudar UMA linha aqui a cada release;
         // window.onload aplica nos dois lugares automaticamente.
-        const APP_VERSAO = "Beta v1.419.0"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
+        const APP_VERSAO = "Beta v1.420.0"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
 
         // ====================================================================
         // v1.105.0 — HELPERS DE SUPERFÍCIE DA GRAMÁTICA ÚNICA
@@ -7390,11 +7391,10 @@ async function criarLinkVitrineSupabase(token, idsSelecionados) {
             if (!s || !box) return;
             const c = (pessoaRow && pessoaRow.clientes) || {};
             const logo = c.logo_url, nome = c.nome_empresa || '';
-            // v1.419.0 (Nicola 14/10 23:22: "as raízes ao logar estão feias, diferente da definição no computador") — as raízes
-            // do "Abrindo" são as MESMAS da arte da splash (g.rz-sp-raizes, Horizonte), copiadas e crescendo de cima para baixo;
-            // saem os 9 traços desenhados à mão de antes.
-            const g = document.querySelector('#rz-splash-arte .rz-sp-raizes');
-            const raizes = g ? `<svg class="rz-raizes rz-raizes-arte" viewBox="58 316 216 132" aria-hidden="true"><g>${g.innerHTML}</g></svg>` : '';
+            // v1.420.0 (Nicola 14/10 23:34: "a raiz ficou horrível, fazer outra menos grosseira") — raízes finas: pivotante e
+            // laterais afinando até as radicelas (largura e opacidade caem a cada nível), desenhadas em sequência.
+            const raizes = '<svg class="rz-raizes rz-raizes-finas" viewBox="0 0 240 140" aria-hidden="true">' +
+                '<path d="M120 0 C121 22 118 44 120 66 C122 86 119 104 121 128" pathLength="1" style="stroke-width:2.0;opacity:0.9;animation-delay:0.00s"/><path d="M120 8 C108 20 92 26 76 36 C62 45 52 58 44 74" pathLength="1" style="stroke-width:1.4;opacity:0.8;animation-delay:0.06s"/><path d="M120 8 C132 20 148 26 164 36 C178 45 188 58 196 74" pathLength="1" style="stroke-width:1.4;opacity:0.8;animation-delay:0.12s"/><path d="M76 36 C66 38 54 37 40 42 C30 46 22 52 14 56" pathLength="1" style="stroke-width:0.9;opacity:0.65;animation-delay:0.18s"/><path d="M164 36 C174 38 186 37 200 42 C210 46 218 52 226 56" pathLength="1" style="stroke-width:0.9;opacity:0.65;animation-delay:0.24s"/><path d="M44 74 C40 84 38 94 34 106" pathLength="1" style="stroke-width:0.8;opacity:0.55;animation-delay:0.30s"/><path d="M196 74 C200 84 202 94 206 106" pathLength="1" style="stroke-width:0.8;opacity:0.55;animation-delay:0.36s"/><path d="M120 40 C110 52 100 62 94 78 C90 90 88 100 84 112" pathLength="1" style="stroke-width:1.1;opacity:0.7;animation-delay:0.42s"/><path d="M120 40 C130 52 140 62 146 78 C150 90 152 100 156 112" pathLength="1" style="stroke-width:1.1;opacity:0.7;animation-delay:0.48s"/><path d="M120 70 C114 82 108 92 106 106" pathLength="1" style="stroke-width:0.8;opacity:0.6;animation-delay:0.54s"/><path d="M120 70 C126 82 132 92 134 106" pathLength="1" style="stroke-width:0.8;opacity:0.6;animation-delay:0.60s"/><path d="M94 78 C86 82 78 84 70 92" pathLength="1" style="stroke-width:0.6;opacity:0.5;animation-delay:0.66s"/><path d="M146 78 C154 82 162 84 170 92" pathLength="1" style="stroke-width:0.6;opacity:0.5;animation-delay:0.72s"/><path d="M60 50 C56 58 54 64 50 70" pathLength="1" style="stroke-width:0.6;opacity:0.45;animation-delay:0.78s"/><path d="M180 50 C184 58 186 64 190 70" pathLength="1" style="stroke-width:0.6;opacity:0.45;animation-delay:0.84s"/><path d="M121 100 C116 110 112 116 110 124" pathLength="1" style="stroke-width:0.6;opacity:0.5;animation-delay:0.90s"/><path d="M121 100 C126 110 130 116 132 124" pathLength="1" style="stroke-width:0.6;opacity:0.5;animation-delay:0.96s"/><path d="M34 106 C30 110 26 112 22 116" pathLength="1" style="stroke-width:0.5;opacity:0.4;animation-delay:1.02s"/><path d="M206 106 C210 110 214 112 218 116" pathLength="1" style="stroke-width:0.5;opacity:0.4;animation-delay:1.08s"/>' + '</svg>';
             box.innerHTML = (logo ? `<span class="rz-esc-logo"><img src="${rzEsc(logo)}" alt=""></span>` : `<p class="rz-esc-nome">${rzEsc(nome)}</p>`) +
                 '<p>Abrindo o patrimônio…</p>' + raizes;
             s.classList.add('rz-esc-abrindo');

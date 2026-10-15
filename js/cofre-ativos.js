@@ -1,6 +1,12 @@
 // ============================================================================
 // cofre-ativos.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.108.0 · 14/10/2026
+// Versão: 1.109.0 · 14/10/2026
+//
+// v1.109.0 (14/10/2026, sessão 20261014-2340-usos-fatia3d, demanda 3022603b; Nicola 14/10 23:34: "o item agrupado ficou
+// ruim… borda do ícone na cor do ramo") — o principal com subativos tem o ícone com borda na cor do ramo e o número de
+// subativos no canto; o selo fica só com a classe (sem "0 de 1 integrantes") e o texto "N integrantes" sai da linha; os
+// subativos abertos ganham um traço à esquerda na cor do ramo.
+// Versão anterior: 1.108.0 · 14/10/2026
 //
 // v1.108.0 (14/10/2026, sessão 20261014-2330-usos-fatia3c, demanda 3022603b; teste do Nicola 14/10 23:22: "os ativos
 // queria que abrissem como as despesas no financeiro"; "a pessoa vinculada está diferente do integrante"; "o sócio não
@@ -24,17 +30,11 @@
 // v1.105.0 (14/10/2026, sessão 20261014-2145-onda9c-textos, demanda a05ad2ee; onda 9c do estudo PROTOTIPO_UX_DENSIDADE_RAMOS_RAIZ
 // v1.2.0, D6 seção 10) — textos no limite: ação até 24 caracteres, descrição até 28, aviso até 40 com o resultado e tela
 // vazia em 1 frase de até 40. A explicação longa fica na confirmação, quando existe. Nada de comportamento mudou.
-// Versão anterior: 1.104.0 · 14/10/2026
-//
-// v1.104.0 (14/10/2026, sessão 20261014-1445-onda9a-textos, demanda a05ad2ee; onda 9 do estudo PROTOTIPO_UX_DENSIDADE_RAMOS_RAIZ v1.2.0,
-// D6 seção 10) — textos no limite: ação até 24 caracteres, descrição até 28 (só quando muda a decisão), aviso até 40 e
-// com o resultado (sem processo nem emoji). Fora do app principal, um aviso só: "Abra pelo app principal.". A explicação
-// longa fica na confirmação, que já existia. Nada de comportamento mudou.
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.103.0 … v1.103.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.104.0 … v1.104.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '1.108.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.109.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 import { estado } from './cofre-estado.js';
 import * as api from './cofre-api.js';
 import { mostrarToast, erroInline, refrescarIcones, alternarToggle, abrirModal, fecharModal, modalGenerico, perguntar, avisarComDesfazer, escolher } from './cofre-ui.js';
@@ -877,13 +877,20 @@ function ativoComSubativosHtml(a) {
     const nomeSub = (subs.length === 1 ? info?.nome_subativo_singular : info?.nome_subativo_plural) || (subs.length === 1 ? 'subativo' : 'subativos');
     const aberto = subativosAbertos.has(a.id);
     let html = ativoCardHtml(a);
-    html = html.replace(/(<div class="rz-tx">[\s\S]*?)(<\/div>)/, `$1<span class="rz-subs-n">${subs.length} ${escapeHtml(nomeSub.toLowerCase())}</span>$2`);
+    // v1.109.0 (3c, Nicola 23:34: "o item agrupado ficou ruim… borda do ícone na cor do ramo") — o grupo aparece no ícone
+    // (borda na cor do ramo + o número de subativos); o selo fica só com a classe ("Disponível"), sem o resumo "0 de 1…"
+    const corRamo = `var(--ramo-cor-${(a.ramo || 'outros').replace(/[^a-z_]/g, '')})`;
+    html = html.replace('<div class="rz-row rz-link"', `<div class="rz-row rz-link" style="--ramo-grupo:${corRamo}"`);
+    html = html.replace(/<div class="rz-ic"([^>]*)>/, (m0, at) => `<div class="rz-ic rz-ic-grupo"${at.replace(' style="overflow:hidden"', '')} title="${subs.length} ${escapeHtml(nomeSub.toLowerCase())}">`);
+    html = html.replace(/(<div class="rz-ic rz-ic-grupo"[^>]*>[\s\S]*?)(<\/div>)/, `$1<span class="rz-ic-n">${subs.length}</span>$2`);
+    const st = typeof window.rzStatusDoAtivo === 'function' ? window.rzStatusDoAtivo(a.id) : null;
+    if (st && st.rotulo && st.classe && st.rotulo !== st.classe) html = html.replace(escapeHtml(st.rotulo), escapeHtml(st.classe)).replace(st.rotulo, st.classe);
     const k = html.lastIndexOf('<svg data-lucide="chevron-right" class="rz-chev"></svg>');
     const botao = `<button type="button" class="rz-subs-toggle" data-subs-toggle="${a.id}" aria-expanded="${aberto}" aria-label="${aberto ? 'Fechar' : 'Mostrar'} ${escapeHtml(nomeSub.toLowerCase())}"
         onclick="event.stopPropagation(); window.__rzAlternarSubativos && window.__rzAlternarSubativos('${a.id}', this)"
         style="background:none;border:0;padding:10px 4px 10px 10px;margin:-10px -4px -10px 0;color:inherit;cursor:pointer;display:flex"><svg data-lucide="${aberto ? 'chevron-up' : 'chevron-down'}" class="rz-chev"></svg></button>`;
     if (k >= 0) html = html.slice(0, k) + botao + html.slice(k + '<svg data-lucide="chevron-right" class="rz-chev"></svg>'.length);
-    const filhos = subs.map(x => ativoCardHtml(x).replace('<div class="rz-row rz-link"', '<div class="rz-row rz-link rz-sub-row" style="padding-left:28px"')).join('');
+    const filhos = subs.map(x => ativoCardHtml(x).replace('<div class="rz-row rz-link"', `<div class="rz-row rz-link rz-sub-row" style="padding-left:22px;margin-left:20px;--ramo-grupo:${corRamo}"`)).join('');
     return html + `<div class="rz-subs${aberto ? '' : ' hidden'}" data-subs-de="${a.id}">${filhos}</div>`;
 }
 window.__rzAlternarSubativos = (id, btn) => {
