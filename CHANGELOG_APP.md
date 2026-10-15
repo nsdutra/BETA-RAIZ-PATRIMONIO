@@ -4,6 +4,21 @@ Histórico completo de versões do `index.html`, movido automaticamente pelo `ge
 
 ---
 
+NOVIDADES (Beta v1.418.0) — Fatia 3b (FICHA_FATIA3B_FORMULARIO_POR_CONTEXTO_RAIZ v1.1.0, de acordo do Nicola 14/10
+22:38–22:58): o formulário do ativo passa a vir do catálogo por contexto (ativo solto ou subativo). Integrante pede
+nome, parentesco e nascimento; pet, espécie, raça e nascimento; família, só o nome; unidade de imóvel, o complemento do
+endereço e os dados do imóvel. Sem CPF/RG, sem divisão societária na vida, subativo só do ramo do principal, Finalidade
+e Situação de uso fora do cadastro (vêm do uso; demanda 091b87d4), botão "Salvar" e o principal com "▾ 3 integrantes"
+na lista de Ativos. js/cofre-ativos.js 1.107.0, js/cofre-validacoes.js 2.6.0, js/ativos/ativos-markup.js 1.64.0; o index
+lê o nome do subativo de cada ramo. Banco: usos_fatia3b_estrutura_v1 e usos_fatia3b_dados_v1.
+Versão anterior (Beta v1.417.0):
+------------------------------------------------------------------
+Versões anteriores (v1.417.0 … v1.417.0): CHANGELOG_APP.md, na raiz do
+repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
+das 5 versões mais recentes deste cabeçalho.
+
+---
+
 NOVIDADES (Beta v1.417.0) — teste do Nicola 14/10 22:12. (1) Agenda: abrir e fechar um grupo de alertas ("4
 documentos sem vínculo") redesenha a própria Agenda — antes só aparecia depois de mudar o período. (2) Voltar das
 telas antigas (Atrasados, ficha do imóvel, detalhe do recebimento, Recebimentos/Saídas filtradas) vira .rz-back:

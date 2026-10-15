@@ -1,6 +1,10 @@
 // ============================================================================
 // js/ativos/ativos-markup.js — Raiz Patrimônio · Módulo Único, fatia frontend 1
-// Versão: 1.64.0 · 14/10/2026
+// Versão: 1.65.0 · 15/10/2026
+//
+// v1.65.0 (15/10/2026, sessão 20261015-0816-convite, demanda c59f09c5) — "Controlar vencimento" do upload ganha o tipo
+// "Eventos e viagens" (convite de festa lido pela IA).
+// Versão anterior: 1.64.0 · 14/10/2026
 //
 // v1.64.0 (14/10/2026, sessão 20261014-2220-usos-fatia4, frente usos-fatia3b, demanda 3022603b; FICHA_FATIA3B v1.1.0,
 // de acordo do Nicola 14/10 22:38–22:58) — Novo ativo: a divisão societária ganha id (#naf-pe-wrapper) para o
@@ -24,17 +28,11 @@
 // Propriedade, Contratos, Itens de controle, Anexos, Fotos): as ações moram no ⋮ do topo (cofre-ativos 1.94.0). Adicionar
 // vira a última linha do card: "+ Adicionar uso", "+ Adicionar item de controle", "+ Adicionar documento",
 // "+ Adicionar fotos".
-//
-// Versão anterior: 1.60.0 · 11/10/2026
-//
-// v1.60.0 (11/10/2026, sessão 20261008-1231-pessoas-ativos, demanda f3e6cd27; F13 4c etapa 4; Nicola 11/10 17:42, teste da etapa 3: "pode organizar melhor pro chip de performance desaparecer e deixar tudo no financeiro")
-// — sai o chip Performance: os indicadores do ano (grid e revisão de valor) vão para o fim do chip Financeiro, e o card
-// novo "Ocupação" (dias alugado e vago, por ano ou todos) fica em Usos e contratos, logo abaixo de Usos.
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.59.0 … v1.59.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.60.0 … v1.60.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '1.64.0'; // v-check (28/09/2026): lido por Dev › Versões — manter igual ao header
+export const VERSAO = '1.65.0'; // v-check (28/09/2026): lido por Dev › Versões — manter igual ao header
 export const ATIVOS_MARKUP = `<style>
     /* v1.94.1 (31/08/2026, pedido explícito: "anexo uma barra de
        rolagem que fica feia... ao rolar os chips não mostrar a barra")
@@ -966,7 +964,7 @@ export const ATIVOS_MARKUP = `<style>
             <div class="sm:col-span-2 raiz-bloco-interno">
                 <label class="flex items-start gap-2 text-sm"><input type="checkbox" id="uc-controlar" class="w-4 h-4 mt-0.5" data-action-change="uc-controlar-mudou"><span><b>Controlar vencimento</b><br><span class="text-xs" style="color:var(--sage)" id="uc-controlar-hint">Cria um item de controle com alerta no WhatsApp.</span></span></label>
                 <div id="uc-controle-bloco" class="hidden grid grid-cols-2 gap-2 mt-3">
-                    <div><label class="text-xs font-semibold block mb-1">Tipo</label><select id="uc-ctl-tipo" class="w-full border-2 border-slate-300 rounded-xl p-2 text-sm" data-action-change="uc-ctl-tipo-mudou"><option value="seguro">Seguro</option><option value="tributo">Tributo / taxa</option><option value="documento">Documento</option><option value="manutencao">Manutenção</option></select></div>
+                    <div><label class="text-xs font-semibold block mb-1">Tipo</label><select id="uc-ctl-tipo" class="w-full border-2 border-slate-300 rounded-xl p-2 text-sm" data-action-change="uc-ctl-tipo-mudou"><option value="seguro">Seguro</option><option value="tributo">Tributo / taxa</option><option value="documento">Documento</option><option value="manutencao">Manutenção</option><option value="evento">Eventos e viagens</option></select></div>
                     <div><label class="text-xs font-semibold block mb-1">Subtipo</label><select id="uc-ctl-subtipo" class="w-full border-2 border-slate-300 rounded-xl p-2 text-sm" data-action-change="uc-ctl-subtipo-mudou"></select></div>
                     <div class="col-span-2"><label class="text-xs font-semibold block mb-1">Título do controle</label><input type="text" id="uc-ctl-titulo" class="w-full border-2 border-slate-300 rounded-xl p-2 text-sm"></div>
                     <div id="uc-ctl-inicio-wrap"><label class="text-xs font-semibold block mb-1">Início</label><input type="date" id="uc-ctl-data-inicio" class="w-full border-2 border-slate-300 rounded-xl p-2 text-sm"></div>

@@ -1,6 +1,11 @@
 // ============================================================================
 // cofre-documentos.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 2.37.0 · 14/10/2026
+// Versão: 2.38.0 · 15/10/2026
+//
+// v2.38.0 (15/10/2026, sessão 20261015-0816-convite, demanda c59f09c5; FICHA_CONVITE_ANIVERSARIO_RAIZ v1.3.0, de acordo do
+// Nicola 15/10 08:16) — convite de festa: cada pessoa sugerida mostra a razão ("7 anos em 06/11", "quem enviou o convite");
+// o controle do tipo "Eventos e viagens" usa a data da festa como início e fim, sem campo "Início" na tela.
+// Versão anterior: 2.37.0 · 14/10/2026
 //
 // v2.37.0 (14/10/2026, sessão 20261014-2145-onda9c-textos, demanda a05ad2ee; onda 9c do estudo PROTOTIPO_UX_DENSIDADE_RAMOS_RAIZ
 // v1.2.0, D6 seção 10) — textos no limite: ação até 24 caracteres, descrição até 28, aviso até 40 com o resultado e tela
@@ -26,16 +31,11 @@
 // v2.34.0 (UX F2.7c-3, demanda b8602a3a, sessão 20261003-1707-ux-base; "De acordo" do Nicola 08/10 14:04) —
 // Documentos arquivados no app vira Sheet por cima da tela atual: linha com ⋮ (Restaurar · Vincular ·
 // Excluir de vez, este vermelho e por último). O modal antigo fica só para o cofre.html avulso.
-//
-// Versão anterior: 2.33.0 · 08/10/2026
-//
-// v2.33.0 (UX F2.7b, demanda b8602a3a, sessão 20261003-1707-ux-base; plano F2.7 aprovado pelo Nicola 07/10 20:05; achado do teste da F2.7a em 08/10 08:12) — vazio de "Documentos
-// da empresa" diz o que se ganha e como começar (vazio dentro de card, REGRAS §0.7).
 // --------------------------------------------------------------------------
-// Versões anteriores (v2.32.0 … v2.32.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v2.33.0 … v2.33.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '2.37.0'; // v-check (22/09/2026): lido por Dev › Versões — manter igual ao header
+export const VERSAO = '2.38.0'; // v-check (22/09/2026): lido por Dev › Versões — manter igual ao header
 import { estado } from './cofre-estado.js';
 // v2.3.1 — import TOLERANTE: na v2.2.0 isto era um import estático. Quando o
 // cofre-imagem.js não subiu no deploy (faltava a linha no manifesto), o import
@@ -1157,7 +1157,7 @@ function montarConfirmacaoUpload() {
             g('up-vinculo-ia').classList.remove('hidden');
             const sug = m?.vinculo?.sugerido?.id;
             g('up-vinculo-ia').innerHTML = cands.map((c, i) => `
-                <label class="flex items-center gap-2 text-sm raiz-bloco-interno"><input type="radio" name="uc-vinculo-ia" value="${i}" data-action-change="uc-vinculo-ia-mudou" ${(sug ? c.id === sug : i === 0) ? 'checked' : ''}> ${escapeHtml(c.nome)} <span class="text-xs" style="color:var(--sage)">(${c.tipo === 'imovel' ? 'imóvel' : 'ativo'})</span></label>`).join('') + `
+                <label class="flex items-center gap-2 text-sm raiz-bloco-interno"><input type="radio" name="uc-vinculo-ia" value="${i}" data-action-change="uc-vinculo-ia-mudou" ${(sug ? c.id === sug : i === 0) ? 'checked' : ''}> ${escapeHtml(c.nome)} <span class="text-xs" style="color:var(--sage)">(${c.detalhe ? escapeHtml(c.detalhe) : (c.tipo === 'imovel' ? 'imóvel' : 'ativo')})</span></label>`).join('') + `
                 <label class="flex items-center gap-2 text-sm raiz-bloco-interno"><input type="radio" name="uc-vinculo-ia" value="outro" data-action-change="uc-vinculo-ia-mudou"> Outro — escolher abaixo</label>`;
             const escolhido = cands.find(c => c.id === sug) || cands[0];
             up.vinculo = { tipo: escolhido.tipo, id: escolhido.id, nome: escolhido.nome };
@@ -1480,6 +1480,7 @@ export function aplicarSubtipoUpload(primeira = false) {
     g('uc-ctl-titulo').value = g('uc-nome').value;
     g('uc-ctl-data-inicio').value = g('uc-vig-inicio').value || g('uc-data-documento').value || new Date().toISOString().slice(0, 10);
     g('uc-ctl-data-fim').value = g('uc-validade').value || '';
+    if (g('uc-ctl-tipo').value === 'evento' && g('uc-ctl-data-fim').value) g('uc-ctl-data-inicio').value = g('uc-ctl-data-fim').value;
     aplicarPadraoSubtipoUpload();
     if (mesmoDaIA && m.controle_sugerido) {
         if (m.controle_sugerido.antecedencia != null) g('uc-ctl-antecedencia').value = m.controle_sugerido.antecedencia;
@@ -1634,10 +1635,10 @@ export function abrirDetalhesUpload() {
     g('uc-salvar').textContent = 'Salvar';
 }
 
-// O "Início" do controle de documento é a própria emissão: não precisa aparecer.
+// O "Início" do controle de documento é a própria emissão, e o de evento é o dia da festa: não precisa aparecer.
 function atualizarInicioControleUpload() {
     const w = document.getElementById('uc-ctl-inicio-wrap');
-    if (w) w.classList.toggle('hidden', document.getElementById('uc-ctl-tipo').value === 'documento');
+    if (w) w.classList.toggle('hidden', ['documento', 'evento'].includes(document.getElementById('uc-ctl-tipo').value));
 }
 
 // Avisos do motor: vencido (D10), titular divergente, validações, orçamento≠apólice.
@@ -1772,7 +1773,7 @@ export function aplicarPadraoSubtipoUpload() {
     const g = id => document.getElementById(id);
     const s = (subtiposControle || []).find(x => x.id === g('uc-ctl-subtipo').value);
     const tipo = g('uc-ctl-tipo').value;
-    const fallback = { seguro: [60, 30, 1, 'ano'], tributo: [30, 7, 1, 'ano'], documento: [180, 60, null, null], manutencao: [15, 7, null, null] }[tipo] || [30, 7, null, null];
+    const fallback = { seguro: [60, 30, 1, 'ano'], tributo: [30, 7, 1, 'ano'], documento: [180, 60, null, null], manutencao: [15, 7, null, null], evento: [7, 3, null, null] }[tipo] || [30, 7, null, null];
     g('uc-ctl-antecedencia').value = s?.antecedencia_padrao_dias ?? fallback[0];
     g('uc-ctl-reforco').value = s?.repeticao_padrao_dias ?? fallback[1];
     g('uc-ctl-rec-intervalo').value = s?.recorrencia_padrao_intervalo ?? fallback[2] ?? '';
@@ -1969,7 +1970,8 @@ export async function salvarConfirmacaoUpload() {
                 contratoId: up.vinculo.tipo === 'contrato' ? up.vinculo.id : null,
                 tipo: g('uc-ctl-tipo').value, subtipoId: g('uc-ctl-subtipo').value || null,
                 titulo: g('uc-ctl-titulo').value.trim(),
-                dataBase: g('uc-ctl-data-inicio').value || g('uc-ctl-data-fim').value, dataFim: g('uc-ctl-data-fim').value,
+                // evento: o dia da festa é início e fim (o campo Início fica escondido e pode estar velho)
+                dataBase: (g('uc-ctl-tipo').value === 'evento' ? g('uc-ctl-data-fim').value : '') || g('uc-ctl-data-inicio').value || g('uc-ctl-data-fim').value, dataFim: g('uc-ctl-data-fim').value,
                 freqIntervalo: recInt, freqUnidade: recInt ? g('uc-ctl-rec-unidade').value : null,
                 antecedencia: parseInt(g('uc-ctl-antecedencia').value, 10) || 0,
                 repeticao: parseInt(g('uc-ctl-reforco').value, 10) || null,
