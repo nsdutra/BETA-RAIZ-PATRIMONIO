@@ -1,6 +1,11 @@
 // ============================================================================
 // js/ativos/ativos-markup.js — Raiz Patrimônio · Módulo Único, fatia frontend 1
-// Versão: 1.63.0 · 14/10/2026
+// Versão: 1.64.0 · 14/10/2026
+//
+// v1.64.0 (14/10/2026, sessão 20261014-2220-usos-fatia4, frente usos-fatia3b, demanda 3022603b; FICHA_FATIA3B v1.1.0,
+// de acordo do Nicola 14/10 22:38–22:58) — Novo ativo: a divisão societária ganha id (#naf-pe-wrapper) para o
+// cofre-ativos.js mostrá-la só quando o catálogo pede (some no subativo e na vida); o botão passa a "Salvar".
+// Versão anterior: 1.63.0 · 14/10/2026
 //
 // v1.63.0 (14/10/2026, sessão 20261014-2145-onda9c-textos, demanda a05ad2ee; onda 9c do estudo PROTOTIPO_UX_DENSIDADE_RAMOS_RAIZ
 // v1.2.0, D6 seção 10) — textos no limite: ação até 24 caracteres, descrição até 28, aviso até 40 com o resultado e tela
@@ -25,17 +30,11 @@
 // v1.60.0 (11/10/2026, sessão 20261008-1231-pessoas-ativos, demanda f3e6cd27; F13 4c etapa 4; Nicola 11/10 17:42, teste da etapa 3: "pode organizar melhor pro chip de performance desaparecer e deixar tudo no financeiro")
 // — sai o chip Performance: os indicadores do ano (grid e revisão de valor) vão para o fim do chip Financeiro, e o card
 // novo "Ocupação" (dias alugado e vago, por ano ou todos) fica em Usos e contratos, logo abaixo de Usos.
-//
-// Versão anterior: 1.59.0 · 11/10/2026
-//
-// v1.59.0 (11/10/2026, sessão 20261008-1231-pessoas-ativos, demanda f3e6cd27; F13 4c etapa 3, D81 a D84) — a ficha
-// do ativo ganha o chip "Financeiro" (data-fa-aba="movimento"), entre Controles e Performance: balanço pendente com
-// Quitar, contas e cartões, movimentações do mês. O id interno "financeiro" continua sendo a Performance.
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.58.0 … v1.58.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.59.0 … v1.59.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '1.63.0'; // v-check (28/09/2026): lido por Dev › Versões — manter igual ao header
+export const VERSAO = '1.64.0'; // v-check (28/09/2026): lido por Dev › Versões — manter igual ao header
 export const ATIVOS_MARKUP = `<style>
     /* v1.94.1 (31/08/2026, pedido explícito: "anexo uma barra de
        rolagem que fica feia... ao rolar os chips não mostrar a barra")
@@ -327,7 +326,7 @@ export const ATIVOS_MARKUP = `<style>
                          mesmo tempo (Tipo A é sempre estático). Pré-populado
                          com o sócio de maior % de cotas em 100%, mesmo
                          default que o formulário de imóvel antigo usava. -->
-                    <div class="sm:col-span-2">
+                    <div id="naf-pe-wrapper" class="sm:col-span-2">
                         <p class="text-[11px] font-bold uppercase tracking-wide" style="color:var(--brass-deep)">Divisão societária</p>
                         <div id="naf-pe-linhas" class="space-y-2 mt-2"></div>
                         <button type="button" onclick="window.__peAdicionarLinha()" class="text-xs font-bold px-2.5 py-1.5 rounded-full bg-slate-100 text-slate-600 border border-slate-300 flex items-center gap-1 mt-2">
@@ -340,7 +339,7 @@ export const ATIVOS_MARKUP = `<style>
                     </div>
                 </div>
                 <div style="display:flex;gap:8px;margin-top:14px;">
-                    <button data-action="salvar-ativo" style="flex:1;background:var(--pine);color:#fff;font-weight:bold;font-size:13px;padding:10px;border:none;border-radius:8px;">Salvar ativo</button>
+                    <button data-action="salvar-ativo" style="flex:1;background:var(--pine);color:#fff;font-weight:bold;font-size:13px;padding:10px;border:none;border-radius:8px;">Salvar</button>
                     <button type="button" data-action="fechar-form-ativo" style="flex:1;background:#f1f5f9;color:#475569;font-weight:bold;font-size:13px;padding:10px;border:none;border-radius:8px;">Fechar</button>
                 </div>
                 <p class="raiz-indicador-inline mt-2" id="at-status"></p>

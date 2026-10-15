@@ -4,6 +4,18 @@ Histórico completo de versões do `index.html`, movido automaticamente pelo `ge
 
 ---
 
+NOVIDADES (Beta v1.413.0) — ONDA 8c do estudo PROTOTIPO_UX_DENSIDADE_RAMOS_RAIZ v1.2.0 (D15, computador;
+FICHA_ONDA_8C_FINANCEIRO_COMPUTADOR v1.0.0, de acordo do Nicola 14/10 13:54): estilo da tabela do Financeiro (.rz-ft)
+montada por js/financeiro.js a partir de 1024 px — Recebimentos e Saídas em colunas, seleção, barra de lote (Dar baixa
+em lote · Marcar como pagas · Exportar CSV). No celular nada muda. Sem banco.
+Versão anterior (Beta v1.412.0):
+------------------------------------------------------------------
+Versões anteriores (v1.412.0 … v1.412.0): CHANGELOG_APP.md, na raiz do
+repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
+das 5 versões mais recentes deste cabeçalho.
+
+---
+
 NOVIDADES (Beta v1.412.0) — CARTÃO ADICIONAL (FICHA_CARTAO_ADICIONAL_F10_F11_RAIZ v1.1.0, de acordo do Nicola 14/10
 13:52): cadastro "Cartão adicional" na ficha da conta (cartão principal, final e a conta em que ele cai — padrão a
 conta de quem usa) em js/comum-minha-empresa.js 1.17.0; fatura com o card "Por cartão", final em cada compra e

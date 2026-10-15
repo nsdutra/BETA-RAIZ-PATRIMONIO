@@ -1,6 +1,14 @@
 // ============================================================================
 // cofre-ativos.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.106.0 · 14/10/2026
+// Versão: 1.107.0 · 14/10/2026
+//
+// v1.107.0 (14/10/2026, sessão 20261014-2220-usos-fatia4, frente usos-fatia3b, demanda 3022603b; FICHA_FATIA3B v1.1.0, de
+// acordo do Nicola 14/10 22:38–22:58) — Novo ativo montado pelo catálogo por contexto: campos e blocos fixos
+// (empreendimento, valor, endereço ou só o complemento, dados do imóvel, divisão societária) conforme ativo_tipos_campos;
+// campo em lista; exemplo do nome por tipo; no subativo, um seletor só com os tipos do ramo do principal e a divisão
+// copiada do principal; Finalidade e Situação de uso fora do cadastro (vêm do uso). "Vincular ativo existente" só oferece
+// tipos do ramo do principal. Lista de Ativos: o principal mostra "▾ N integrantes/unidades/áreas" e abre os subativos.
+// Versão anterior: 1.106.0 · 14/10/2026
 //
 // v1.106.0 (14/10/2026, sessão 20261014-2215-ajustes-9d, demanda a05ad2ee; teste do Nicola 14/10 22:12 — "no menu ativos achei
 // uns itens ainda grandinhos") — textos dentro de condição (sub/titulo com ? :) e dicionários de descrição também no limite
@@ -21,19 +29,11 @@
 // v1.103.0 (14/10/2026, sessão 20261014-1355-cartao-adicional, demanda c63d7f9f; FICHA_CARTAO_ADICIONAL_F10_F11 v1.1.0, de
 // acordo do Nicola 14/10 13:52) — Movimento do ativo vida: o card "Contas e cartões" mostra o cartão adicional como
 // "Adicional do <principal>" com o total das compras dele na última fatura importada (fn_fatura_listar).
-// Versão anterior: 1.102.0 · 14/10/2026
-//
-// v1.102.0 (14/10/2026, sessão 20261014-1020-usos-fatia3, demanda 3022603b; FICHA_FATIA3_SUBATIVOS_RAIZ v1.1.0, de acordo do
-// Nicola 14/10) — subativos: card no Resumo do principal com o nome do ramo (Unidades, Áreas, Integrantes), o status de
-// cada um e "+ Adicionar"; ⋮ com Adicionar e "Vincular ativo existente"; no subativo, "<Unidade> de: X" no cabeçalho,
-// atalho de volta e "Tirar de X". A lista de Ativos e os contadores mostram só os principais (D3-2). Novo ativo em modo
-// subativo: cota cofre.subativos.criar, só tipos que podem ser subativo, sem valor de referência (D3-3). Vender, baixar
-// ou arquivar um principal pergunta se os subativos seguem ou ficam (D3-5).
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.101.0 … v1.101.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.102.0 … v1.102.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '1.106.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.107.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 import { estado } from './cofre-estado.js';
 import * as api from './cofre-api.js';
 import { mostrarToast, erroInline, refrescarIcones, alternarToggle, abrirModal, fecharModal, modalGenerico, perguntar, avisarComDesfazer, escolher } from './cofre-ui.js';
@@ -41,7 +41,7 @@ import { mudarTela } from './cofre-navegacao.js';
 import {
     escapeHtml, formatarDataBR, diasAte, chipVencimento, mascarar,
     rotuloTipoAtivo, iconeAtivo, validarCamposAtivo,
-    obterCamposPorTipo, listarTiposPorCategoria, inicializarCatalogoTiposAtivo, tipoDoCatalogo, categoriasDoRamo } from './cofre-validacoes.js';
+    obterCamposPorTipo, listarTiposPorCategoria, inicializarCatalogoTiposAtivo, tipoDoCatalogo, categoriasDoRamo, blocosDoFormulario } from './cofre-validacoes.js';
 import { montarControlesAtivo, aplicarMotorNoChipControles, reiniciarChipControlesDoMotor } from './cofre-controles.js';
 // E6.2 — retorno usado de forma síncrona em salvarAtivo/salvarEdicaoAtivo
 // (lerBlocoEndereco), por isso import estático (ver nota em technical-
@@ -167,7 +167,9 @@ export function popularSelectTipoAtivo() {
     const doRamo = categoriasDoRamo(ramoDaLente());
     let lista = doRamo ? CATEGORIAS_ATIVO.filter(c => doRamo.includes(c)) : CATEGORIAS_ATIVO;
     // v1.102.0 (usos fatia 3) — subativo: só as categorias que têm tipo que pode ser subativo (catálogo, pode_ser_subativo)
-    if (subativoDe) lista = CATEGORIAS_ATIVO.filter(c => tiposDeSubativo(c).length);
+    // v1.107.0 (fatia 3b, D3b-1) — e do ramo do principal; o seletor de categoria some (um seletor só, o do tipo)
+    if (subativoDe) lista = [...new Set(tiposSubativoPermitidos().map(t => t.categoria))];
+    sel.closest('.rz-f')?.classList.toggle('hidden', !!subativoDe);
     const atual = sel.value;
     sel.innerHTML = (lista.length ? lista : CATEGORIAS_ATIVO).map(t => `<option value="${t}">${rotuloTipoAtivo(t)}</option>`).join('');
     if (atual && lista.includes(atual)) sel.value = atual;
@@ -189,17 +191,37 @@ function atualizarSelectTipoDetalhe(categoria, prefixoId, valorAtualId = null) {
     const wrap = document.getElementById(`${prefixoId}tipo-detalhe-wrapper`);
     if (!sel || !wrap) return;
     // v1.85.0 (F21) — no novo ativo (sem valor atual), só os tipos do ramo da lente e de ramo já ativo
-    const tipos = (prefixoId === 'at-' && subativoDe) ? tiposDeSubativo(categoria)
-        : listarTiposPorCategoria(categoria, valorAtualId ? null : { ramo: ramoDaLente() });
+    if (prefixoId === 'at-' && subativoDe) { // v1.107.0 (fatia 3b) — todos os tipos permitidos num seletor só
+        const atual = sel.value;
+        const tipos = tiposSubativoPermitidos();
+        wrap.classList.remove('hidden');
+        const rot = wrap.querySelector('label'); if (rot) rot.textContent = 'Tipo';
+        sel.innerHTML = tipos.map(t => `<option value="${t.id}" data-categoria="${t.categoria}">${escapeHtml(t.nome)}</option>`).join('');
+        if (atual && tipos.some(t => t.id === atual)) sel.value = atual;
+        const selCat = document.getElementById('at-tipo');
+        const cat = sel.selectedOptions[0]?.dataset.categoria;
+        if (selCat && cat && selCat.value !== cat) selCat.value = cat;
+        return;
+    }
+    const rotDet = wrap.querySelector('label'); if (rotDet && prefixoId === 'at-') rotDet.textContent = 'Tipo específico';
+    const tipos = listarTiposPorCategoria(categoria, valorAtualId ? null : { ramo: ramoDaLente() });
     wrap.classList.toggle('hidden', tipos.length === 0);
     sel.innerHTML = tipos.map(t => `<option value="${t.id}"${t.id === valorAtualId ? ' selected' : ''}>${escapeHtml(t.nome)}</option>`).join('');
 }
 
 // v1.102.0 (usos fatia 3) — Unidade e Área pedem "nova/cadastrada"; Integrante e o genérico, "novo/cadastrado"
 const femSubativo = (singular) => /^(unidade|área|area)$/i.test(String(singular || '').trim());
-// v1.102.0 (usos fatia 3) — tipos da categoria que podem ser unidade, área ou integrante (catálogo ativo_tipos)
-function tiposDeSubativo(categoria) {
-    return listarTiposPorCategoria(categoria).filter(t => tipoDoCatalogo(t.id)?.pode_ser_subativo);
+// v1.107.0 (fatia 3b, D3b-1) — tipos que podem ser unidade, área ou integrante DESTE principal: pode_ser_subativo e do
+// mesmo ramo (Agro e Pecuária juntos). O banco confere a mesma regra (fn_trg_ativo_principal).
+const grupoRamo = (r) => (r === 'agro' || r === 'pecuaria') ? 'agro' : (r || '');
+function podeSerSubativoDe(tipoId, ramoPrincipal) {
+    const t = tipoDoCatalogo(tipoId);
+    return !!(t && t.pode_ser_subativo && grupoRamo(t.ramo) === grupoRamo(ramoPrincipal));
+}
+function tiposSubativoPermitidos() {
+    const ramo = subativoDe?.ramo;
+    return CATEGORIAS_ATIVO.concat(['agro', 'pecuaria']).flatMap(c => listarTiposPorCategoria(c).map(t => ({ ...t, categoria: c })))
+        .filter(t => podeSerSubativoDe(t.id, ramo));
 }
 
 // E15.2 ("A2") — campos que a DE_PARA_IMOVEIS_ATIVOS Fase 1/2 promoveu
@@ -295,10 +317,13 @@ async function lerBlocoEmpreendimentoValor(prefixo, clienteId) {
 // dados_especificos.aluguel_desejado, NUNCA imoveis.valor_mercado/
 // cofre_ativos.valor_referencia — são conceitos diferentes: um é o que
 // se pede pra alugar, o outro é quanto o bem vale).
-function renderizarBlocoImovel(prefixo, v = {}) {
+function renderizarBlocoImovel(prefixo, v = {}, opcoes = {}) {
     const optSel = (val, campo) => val === (v[campo] || '') ? ' selected' : '';
     const finalidadeInfo = FINALIDADES_USO_ATIVO.find(f => f.v === (v.finalidade_uso || ''));
-    const aluguelVisivel = finalidadeInfo?.comercial ? '' : ' hidden';
+    // v1.107.0 (fatia 3b, F3b-5) — no cadastro, Finalidade e Situação de uso saem (vêm do uso; demanda 091b87d4) e o
+    // aluguel esperado fica sempre à vista
+    const cadastro = !!opcoes.cadastro;
+    const aluguelVisivel = cadastro || finalidadeInfo?.comercial ? '' : ' hidden';
     // v1.66.0 — editando um ativo que já tem situação de uso, destinação
     // ou CIB preenchidos, o bloco "mais campos" nasce ABERTO (nunca
     // esconde dado que a pessoa já preencheu antes). Só nasce escondido
@@ -312,14 +337,14 @@ function renderizarBlocoImovel(prefixo, v = {}) {
             <label>Área (m²)</label>
             <input type="number" step="0.01" id="${prefixo}area-m2" value="${v.area_m2 ?? ''}">
         </div>
-        ${renderizarCampoFinalidadeUso(prefixo, v)}
+        ${cadastro ? '' : renderizarCampoFinalidadeUso(prefixo, v)}
         <div id="${prefixo}aluguel-wrapper" class="rz-f${aluguelVisivel}">
             <label>Aluguel esperado (R$)</label>
             <input type="number" step="0.01" id="${prefixo}aluguel-desejado" value="${v.dados_especificos?.aluguel_desejado ?? ''}">
         </div>
         <button type="button" id="${prefixo}toggle-mais-campos" data-action="ativo-toggle-mais-campos" data-prefixo="${prefixo}" class="sm:col-span-2 text-xs font-semibold" style="color:var(--sprout);text-align:left;background:none;border:none;padding:4px 0;cursor:pointer">${maisCamposTexto}</button>
         <div id="${prefixo}mais-campos" class="${maisCamposClasse.trim()} sm:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-2">
-            <div class="rz-f">
+            <div class="rz-f${cadastro ? ' hidden' : ''}">
                 <label>Situação de uso <button type="button" data-action="fa-info-situacao-uso" class="text-slate-400" title="O que é isso?" aria-label="O que é isso?" style="line-height:0;display:inline-flex;vertical-align:middle;margin-left:4px"><svg data-lucide="info" style="width:13px;height:13px"></svg></button></label>
                 <select id="${prefixo}situacao-uso">
                     <option value=""${optSel('', 'situacao_uso')}>— não informado —</option>
@@ -523,7 +548,7 @@ export function renderAtivosLista(filtroTipo = '', filtroTexto = '') {
     const totalGrupo = (l) => { const c = l.filter(a => a.valor_referencia != null); return c.length ? compacto(c.reduce((t, a) => t + Number(a.valor_referencia || 0), 0)) : ''; };
     container.innerHTML = nomesGrupos.map(nome => `
         <div class="rz-group rz-group-t"><span>${escapeHtml(nome)} · ${grupos[nome].length}</span>${totalGrupo(grupos[nome]) ? `<b>${totalGrupo(grupos[nome])}</b>` : ''}</div>
-        <div class="rz-card rz-list">${grupos[nome].map(ativoCardHtml).join('')}</div>
+        <div class="rz-card rz-list">${grupos[nome].map(ativoComSubativosHtml).join('')}</div>
     `).join('') + cardConvite;
 
     const vazio = document.getElementById('ativos-estado-vazio');
@@ -838,6 +863,31 @@ function identificadorDocumentoAtivo(a) {
     return a.dados_especificos?.[campo] || null;
 }
 
+// v1.107.0 (fatia 3b, pedido do Nicola 14/10 22:38) — principal com unidades, áreas ou integrantes: a linha ganha
+// "▾ 3 integrantes", que abre logo abaixo, recuados, os subativos (cada um com o seu status; tocar abre a ficha).
+const subativosAbertos = new Set();
+function ativoComSubativosHtml(a) {
+    const subs = estado.ativos.filter(x => x.ativo_principal_id === a.id && (x.status || 'ativo') === 'ativo')
+        .sort((x, y) => String(x.nome_exibicao).localeCompare(String(y.nome_exibicao), 'pt-BR'));
+    if (!subs.length) return ativoCardHtml(a);
+    const info = typeof rzRamoInfo === 'function' ? rzRamoInfo(a.ramo) : null;
+    const nomeSub = (subs.length === 1 ? info?.nome_subativo_singular : info?.nome_subativo_plural) || (subs.length === 1 ? 'subativo' : 'subativos');
+    const aberto = subativosAbertos.has(a.id);
+    return ativoCardHtml(a)
+        + `<button type="button" class="rz-subs-toggle" aria-expanded="${aberto}" data-subs-toggle="${a.id}" onclick="window.__rzAlternarSubativos && window.__rzAlternarSubativos('${a.id}', this)"
+             style="display:block;width:100%;text-align:left;background:none;border:none;color:var(--sprout);font-size:12px;font-weight:600;padding:0 0 10px 64px;cursor:pointer">${aberto ? '▴' : '▾'} ${subs.length} ${escapeHtml(nomeSub.toLowerCase())}</button>`
+        + `<div class="rz-subs${aberto ? '' : ' hidden'}" data-subs-de="${a.id}" style="margin:0 0 8px 28px;padding-left:10px;border-left:2px solid var(--line)">${subs.map(ativoCardHtml).join('')}</div>`;
+}
+window.__rzAlternarSubativos = (id, btn) => {
+    const lista = document.querySelector(`[data-subs-de="${id}"]`);
+    if (!lista) return;
+    const abrir = lista.classList.contains('hidden');
+    lista.classList.toggle('hidden', !abrir);
+    if (abrir) subativosAbertos.add(id); else subativosAbertos.delete(id);
+    if (btn) { btn.setAttribute('aria-expanded', String(abrir)); btn.textContent = btn.textContent.replace(/^[▾▴]/, abrir ? '▴' : '▾'); }
+    refrescarIcones();
+};
+
 function ativoCardHtml(a) {
     const ocorrenciasDoAtivo = estado.ocorrenciasAbertas.filter(oc => oc.cofre_itens_controle?.ativo_id === a.id);
     const proximo = ocorrenciasDoAtivo.map(oc => diasAte(oc.data_prevista_atual)).filter(d => d !== null).sort((x, y) => x - y)[0];
@@ -1079,52 +1129,91 @@ export function atualizarCamposEstruturadosAtivo() {
     // antes da E5.
     const selDetalhe = document.getElementById('at-tipo-detalhe');
     const tipoDetalheId = selDetalhe && selDetalhe.value ? selDetalhe.value : null;
-    document.getElementById('at-campos-estruturados').innerHTML = renderizarCamposEstruturados(tipo, {}, 'at-campo-', tipoDetalheId);
+    const contexto = subativoDe ? 'subativo' : 'ativo';
+    document.getElementById('at-campos-estruturados').innerHTML = renderizarCamposEstruturados(tipo, {}, 'at-campo-', tipoDetalheId, contexto);
+    // v1.107.0 (fatia 3b) — exemplo do nome pelo tipo (ativo_tipos.exemplo_nome)
+    const inNome = document.getElementById('at-nome');
+    if (inNome) inNome.placeholder = tipoDoCatalogo(tipoDetalheId)?.exemplo_nome ? 'ex.: ' + tipoDoCatalogo(tipoDetalheId).exemplo_nome : '';
 
-    // E15.2 (achado no teste real, 16/09/2026) — empreendimento/valor de
-    // referência valem pra QUALQUER tipo de ativo, não só imóvel.
+    // v1.107.0 (fatia 3b, F3b-1) — os blocos fixos vêm do catálogo (ativo_tipos_campos, tipo_dado 'bloco', por contexto).
+    // Sem catálogo de blocos, o formulário de antes: empreendimento/valor para todos, endereço e dados do imóvel para imóvel.
+    const blocos = blocosDoFormulario(tipo, tipoDetalheId, contexto);
+    const tem = (b) => blocos ? blocos.has(b) : (b === 'empreendimento' || b === 'valor_referencia' || b === 'divisao_societaria'
+        || ((b === 'endereco' || b === 'dados_imovel') && ehCategoriaImovel(tipo)));
+    blocosFormAtual = { tem };
+
+    // E15.2 (achado no teste real, 16/09/2026) — empreendimento/valor de referência valem pra QUALQUER tipo de ativo.
+    // v1.107.0 (fatia 3b, F3b-5) — a finalidade sai do cadastro: vem do uso (demanda 091b87d4).
     const wrapEmpVal = document.getElementById('at-empreendimento-valor-wrapper');
-    if (wrapEmpVal) wrapEmpVal.innerHTML = renderizarBlocoEmpreendimentoValor('at-empval-', {}, _empreendimentosCache || [], { comFinalidade: !ehCategoriaImovel(tipo) });
-    // v1.102.0 (usos fatia 3, D3-3) — o subativo não tem valor de referência: o valor do principal é o total
-    const campoValor = subativoDe ? document.getElementById('at-empval-valor-referencia')?.closest('.rz-f, div') : null;
-    if (campoValor) campoValor.innerHTML = `<p class="rz-desc" style="margin:0">O valor fica no ativo principal (${escapeHtml(subativoDe.nome)}).</p>`;
+    if (wrapEmpVal) {
+        const mostraEmpVal = tem('empreendimento') || tem('valor_referencia');
+        wrapEmpVal.classList.toggle('hidden', !mostraEmpVal);
+        wrapEmpVal.innerHTML = mostraEmpVal ? renderizarBlocoEmpreendimentoValor('at-empval-', {}, _empreendimentosCache || [], { comFinalidade: false }) : '';
+        if (mostraEmpVal && !tem('empreendimento')) document.getElementById('at-empval-empreendimento-id')?.closest('.rz-f')?.classList.add('hidden');
+        if (mostraEmpVal && !tem('valor_referencia')) document.getElementById('at-empval-valor-referencia')?.closest('.rz-f')?.classList.add('hidden');
+    }
 
-    // v1.32.0 (E6.2) — bloco de endereço estruturado, categoria imóvel.
-    const mostrarBlocosImovel = ehCategoriaImovel(tipo);
+    // v1.32.0 (E6.2) — endereço estruturado. v1.107.0 — no subativo, só o complemento: o resto vem do principal.
     const wrapEndereco = document.getElementById('at-endereco-wrapper');
     if (wrapEndereco) {
-        wrapEndereco.classList.toggle('hidden', !mostrarBlocosImovel);
-        if (mostrarBlocosImovel) wrapEndereco.innerHTML = renderizarBlocoEndereco('at-endereco', {}, { mostrarBotaoCopiar: false });
+        const soComplemento = !tem('endereco') && tem('endereco_complemento');
+        const mostraEnd = tem('endereco') || soComplemento;
+        wrapEndereco.classList.toggle('hidden', !mostraEnd);
+        if (mostraEnd) {
+            const pr = soComplemento && subativoDe ? (estado.ativos.find(x => x.id === subativoDe.id) || {}) : {};
+            wrapEndereco.innerHTML = renderizarBlocoEndereco('at-endereco', soComplemento ? { ...pr, endereco_comp: '' } : {}, { mostrarBotaoCopiar: false });
+            if (soComplemento) {
+                const comp = document.getElementById('at-endereco-comp');
+                wrapEndereco.querySelectorAll('.rz-f').forEach(f => { if (!f.contains(comp)) f.classList.add('hidden'); });
+                const rotComp = comp?.closest('.rz-f')?.querySelector('label'); if (rotComp) rotComp.textContent = 'Complemento (o resto do endereço vem de ' + subativoDe.nome + ')';
+            }
+        } else wrapEndereco.innerHTML = '';
     }
 
-    // E15.2 ("A2") — bloco (área, finalidade/situação de uso, aluguel
-    // esperado, observação) — Fase 1/2 da DE_PARA_IMOVEIS_ATIVOS.
-    // _empreendimentosCache já foi carregado em abrirFormAtivo.
+    // E15.2 ("A2") — dados do imóvel (área, aluguel esperado, CIB, observação). v1.107.0 — sem Finalidade e Situação.
     const wrapImovel = document.getElementById('at-imovel-wrapper');
     if (wrapImovel) {
-        wrapImovel.classList.toggle('hidden', !mostrarBlocosImovel);
-        if (mostrarBlocosImovel) wrapImovel.innerHTML = renderizarBlocoImovel('at-imovel-', {});
+        wrapImovel.classList.toggle('hidden', !tem('dados_imovel'));
+        wrapImovel.innerHTML = tem('dados_imovel') ? renderizarBlocoImovel('at-imovel-', {}, { cadastro: true }) : '';
     }
+    // divisão societária (wrapper no markup)
+    document.getElementById('naf-pe-wrapper')?.classList.toggle('hidden', !tem('divisao_societaria'));
 }
+let blocosFormAtual = null; // v1.107.0 — o salvarAtivo lê daqui o que o formulário mostrou
 
 // E5 — chamado pelo data-action-change do #at-tipo-detalhe: só precisa
 // re-renderizar os campos (o tipo/categoria não mudou), não o resto do
 // form inteiro.
 export function aoMudarTipoDetalheAtivo() {
+    // v1.107.0 (fatia 3b) — subativo: o seletor único traz a categoria do tipo escolhido
+    if (subativoDe) {
+        const cat = document.getElementById('at-tipo-detalhe')?.selectedOptions[0]?.dataset.categoria;
+        const selCat = document.getElementById('at-tipo');
+        if (cat && selCat) selCat.value = cat;
+    }
     atualizarCamposEstruturadosAtivo();
 }
 
-function renderizarCamposEstruturados(tipo, valores, prefixoId = 'at-campo-', tipoDetalheId = null) {
-    const campos = obterCamposPorTipo(tipo, tipoDetalheId);
+function renderizarCamposEstruturados(tipo, valores, prefixoId = 'at-campo-', tipoDetalheId = null, contexto = 'ativo') {
+    const campos = obterCamposPorTipo(tipo, tipoDetalheId, contexto);
+    // v1.107.0 (fatia 3b) — campo em lista (catálogo, opcoes); valor antigo fora da lista continua aparecendo
+    const controle = (c) => {
+        const v = valores[c.chave] || '';
+        if (c.tipo === 'lista' && Array.isArray(c.opcoes)) {
+            const ops = v && !c.opcoes.includes(v) ? [...c.opcoes, v] : c.opcoes;
+            return `<select id="${prefixoId}${c.chave}"><option value="">—</option>${ops.map(o => `<option${o === v ? ' selected' : ''}>${escapeHtml(o)}</option>`).join('')}</select>`;
+        }
+        return `<input type="${c.tipo === 'number' ? 'number' : c.tipo === 'date' ? 'date' : 'text'}" id="${prefixoId}${c.chave}" value="${escapeHtml(v)}">`;
+    };
     return campos.map(c => `
         <div class="rz-f">
             <label>${escapeHtml(c.label)} ${c.obrigatorio ? '<i>*</i>' : ''}</label>
-            <input type="${c.tipo === 'number' ? 'number' : c.tipo === 'date' ? 'date' : 'text'}" id="${prefixoId}${c.chave}" value="${escapeHtml(valores[c.chave] || '')}">
-        </div>`).join('') || `<p class="text-xs sm:col-span-2" style="color:var(--sage)">Sem campos extras para este tipo.</p>`;
+            ${controle(c)}
+        </div>`).join('');
 }
 
-function lerCamposEstruturados(tipo, prefixoId = 'at-campo-', tipoDetalheId = null) {
-    const campos = obterCamposPorTipo(tipo, tipoDetalheId);
+function lerCamposEstruturados(tipo, prefixoId = 'at-campo-', tipoDetalheId = null, contexto = 'ativo') {
+    const campos = obterCamposPorTipo(tipo, tipoDetalheId, contexto);
     const dados = {};
     for (const c of campos) {
         const el = document.getElementById(`${prefixoId}${c.chave}`);
@@ -1143,20 +1232,23 @@ export async function salvarAtivo() {
     // existiam — ativo novo já nasce com o dado certo.
     const selDetalhe = document.getElementById('at-tipo-detalhe');
     const tipoDetalheId = selDetalhe && selDetalhe.value ? selDetalhe.value : null;
-    const dadosEspecificos = lerCamposEstruturados(tipo, 'at-campo-', tipoDetalheId);
+    const contextoForm = subativoDe ? 'subativo' : 'ativo'; // v1.107.0 (fatia 3b)
+    const dadosEspecificos = lerCamposEstruturados(tipo, 'at-campo-', tipoDetalheId, contextoForm);
 
-    const erros = validarCamposAtivo(tipo, nome, dadosEspecificos, tipoDetalheId);
+    const erros = validarCamposAtivo(tipo, nome, dadosEspecificos, tipoDetalheId, contextoForm);
     if (erros.length) { erroInline(statusEl, '⚠️ ' + erros[0]); return; }
 
+    // v1.107.0 (fatia 3b) — divisão societária só quando o formulário mostrou o bloco; o subativo herda a do principal
+    const comDivisao = blocosFormAtual ? blocosFormAtual.tem('divisao_societaria') : true;
     // v1.11.0 (NOVO, 02/09/2026) — mesma validação de soma=100% que o
     // chip Propriedade usa, agora também na criação (DB também valida
     // via trigger — dupla checagem, nunca confia só no cliente).
-    const somaPropriedade = propriedadeSomaAtual();
-    if (Math.round(somaPropriedade * 100) / 100 !== 100) {
+    const somaPropriedade = comDivisao ? propriedadeSomaAtual() : 100;
+    if (comDivisao && Math.round(somaPropriedade * 100) / 100 !== 100) {
         erroInline(statusEl, `⚠️ A soma da divisão societária precisa ser 100% (está em ${somaPropriedade}%).`);
         return;
     }
-    for (const l of propriedadeLinhasEmEdicao) {
+    for (const l of (comDivisao ? propriedadeLinhasEmEdicao : [])) {
         const temNome = l.tipo_proprietario === 'socio_interno' ? !!l.pessoa_id : !!(l.nome_externo && l.nome_externo.trim());
         if (!temNome) { erroInline(statusEl, '⚠️ Preencha o sócio/nome de todas as linhas da divisão societária.'); return; }
     }
@@ -1211,13 +1303,18 @@ export async function salvarAtivo() {
         // lógica duplicada. criarImovelEAtivo devolve {ativo_id,
         // imovel_id}; criarAtivo devolve a linha inteira (.id) — os dois
         // formatos coexistem aqui de propósito.
-        const linhasParaApi = propriedadeLinhasEmEdicao.map(l => ({
+        const paraApi = (ls) => ls.map(l => ({
             tipo_proprietario: l.tipo_proprietario,
             pessoa_id: l.pessoa_id || '',
             nome_externo: l.nome_externo || '',
             percentual: parseFloat(l.percentual) || 0
         }));
-        await api.salvarPropriedadeAtivo(novoAtivo.ativo_id || novoAtivo.id, linhasParaApi);
+        // v1.107.0 (fatia 3b) — sem o bloco: subativo copia a divisão do principal; vida não tem divisão
+        if (comDivisao) await api.salvarPropriedadeAtivo(novoAtivo.ativo_id || novoAtivo.id, paraApi(propriedadeLinhasEmEdicao));
+        else if (principal) {
+            const doPrincipal = await api.buscarPropriedadeDoAtivo(principal.id).catch(() => []);
+            if (doPrincipal && doPrincipal.length) await api.salvarPropriedadeAtivo(novoAtivo.ativo_id || novoAtivo.id, paraApi(doPrincipal));
+        }
 
         mostrarToast(principal ? `${principal.singular} cadastrad${femSubativo(principal.singular) ? 'a' : 'o'} em ${principal.nome} ✅` : ehImovel ? 'Imóvel cadastrado ✅' : 'Ativo cadastrado ✅');
         document.getElementById('at-nome').value = '';
@@ -1672,7 +1769,7 @@ async function montarSubativosAtivo(a) {
     refrescarIcones();
 }
 function abrirNovoSubativo(a, e) {
-    abrirFormAtivo({ principal: { id: a.id, nome: a.nome_exibicao, singular: e.singular || 'Subativo' } });
+    abrirFormAtivo({ principal: { id: a.id, nome: a.nome_exibicao, singular: e.singular || 'Subativo', ramo: a.ramo } });
 }
 // Vincular um ativo já cadastrado (solto) como unidade, área ou integrante deste principal
 async function abrirVincularSubativo(a, e) {
@@ -1680,7 +1777,7 @@ async function abrirVincularSubativo(a, e) {
     await garantirCatalogoTiposAtivo();
     const temSubs = new Set(estado.ativos.filter(x => x.ativo_principal_id).map(x => x.ativo_principal_id));
     const candidatos = estado.ativos.filter(x => x.id !== a.id && !x.ativo_principal_id && !temSubs.has(x.id)
-        && (x.status || 'ativo') === 'ativo' && tipoDoCatalogo(x.tipo_detalhe_id)?.pode_ser_subativo)
+        && (x.status || 'ativo') === 'ativo' && podeSerSubativoDe(x.tipo_detalhe_id, a.ramo)) // v1.107.0 — só do ramo do principal
         .sort((x, y) => String(x.nome_exibicao).localeCompare(String(y.nome_exibicao), 'pt-BR'));
     const sing = (e.singular || 'subativo').toLowerCase();
     if (!candidatos.length) { mostrarToast(`Nenhum ativo livre. Use "Adicionar ${sing}".`, 'erro'); return; }

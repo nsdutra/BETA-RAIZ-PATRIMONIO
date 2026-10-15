@@ -1,6 +1,13 @@
 // ============================================================================
 // cofre-validacoes.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 2.5.0 · 10/10/2026
+// Versão: 2.6.0 · 14/10/2026
+//
+// v2.6.0 (14/10/2026, sessão 20261014-2220-usos-fatia4, frente usos-fatia3b, demanda 3022603b; FICHA_FATIA3B v1.1.0, de
+// acordo do Nicola 14/10 22:38–22:58) — o formulário do ativo vem do catálogo por contexto (ativo solto ou subativo):
+// obterCamposPorTipo(categoria, tipo, contexto) ignora os blocos e entende campo em lista (opcoes); blocosDoFormulario()
+// diz quais blocos fixos aparecem (empreendimento, valor, endereço, dados do imóvel, divisão societária); categoria com
+// catálogo carregado e sem campo devolve lista vazia (Família), em vez dos campos de reserva.
+// Versão anterior: 2.5.0 · 10/10/2026
 //
 // v2.5.0 (10/10/2026, sessão 20261008-1231-pessoas-ativos, demanda f3e6cd27 — fichas F21/F22): o catálogo de tipos traz
 // ramo e segmento (ativo_tipos.ramo/segmento). tipoDoCatalogo(id) devolve o tipo; listarTiposPorCategoria aceita
@@ -19,20 +26,11 @@
 //
 // v2.3.0 (demanda d3260b23, testes reprovados pelo Nicola em 03/10/2026 23:02, sessão 20261003-2305-controles-despesa-b) — rotuloTipoControle
 // passa a conhecer taxa, documento e despesa (a ficha mostrava "despesa" cru, em minúsculas).
-//
-//
-// v2.1.0 — CORRIGIDO (mesma classe de bug do chip "Controles" da Faria
-// Lima, ver cofre-controles.js v1.29.0) — chipVencimento() (badge de
-// validade de documento, usado por abrirFichaDocumento()) pintava PENDENTE
-// (âmbar) pra qualquer prazo de 0 a 30 dias, destoando do padrão "há/em xx
-// d" já unificado no resto do app. Só diffDias===0 é PENDENTE/"Vence
-// hoje" agora; qualquer prazo positivo vira OK (verde)/"Vence em Xd" — sem
-// teto de 30 dias.
 // --------------------------------------------------------------------------
-// Versões anteriores (v2.0.0 … v2.0.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v2.1.0 … v2.1.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '2.5.0'; // v-check (18/09/2026): lido por Dev › Versões — manter igual ao header
+export const VERSAO = '2.6.0'; // v-check (18/09/2026): lido por Dev › Versões — manter igual ao header
 export function escapeHtml(s) {
     return (s ?? '').toString().replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 }
@@ -304,26 +302,37 @@ function listarTiposPorCategoriaTodas(ramo) {
 // escolhido (ex.: blindagem_empresa só aparece com tipoDetalheId = "Carro
 // blindado"). tipoDetalheId omitido = só os campos de categoria (mesmo
 // comportamento de antes de existir o 2º seletor).
-export function obterCamposPorTipo(categoria, tipoDetalheId = null) {
+// v2.6.0 (fatia 3b) — contexto 'ativo' (solto) ou 'subativo' (unidade, área, integrante); linha 'ambos' vale nos dois
+const noContexto = (c, contexto) => !c.contexto || c.contexto === 'ambos' || c.contexto === (contexto || 'ativo');
+export function obterCamposPorTipo(categoria, tipoDetalheId = null, contexto = 'ativo') {
     if (!_catalogoAtivoCampos) return CAMPOS_POR_TIPO_ATIVO_FALLBACK[categoria] || [];
-    const campos = _catalogoAtivoCampos
-        .filter(c => c.categoria === categoria && (c.tipo_detalhe_id === null || c.tipo_detalhe_id === tipoDetalheId))
+    const daCategoria = _catalogoAtivoCampos.filter(c => c.categoria === categoria);
+    const campos = daCategoria
+        .filter(c => c.tipo_dado !== 'bloco' && (c.tipo_detalhe_id === null || c.tipo_detalhe_id === tipoDetalheId) && noContexto(c, contexto))
         .sort((a, b) => (a.ordem ?? 0) - (b.ordem ?? 0))
-        .map(c => ({ chave: c.chave, label: c.label, obrigatorio: !!c.obrigatorio, ...(c.tipo_dado && c.tipo_dado !== 'text' ? { tipo: c.tipo_dado } : {}), ...(c.mascarar ? { mascarar: true } : {}) }));
-    // Categoria existe no catálogo mas não tem NENHUM campo cadastrado
-    // (não deveria acontecer — as 8 têm campo hoje) cai no fallback em
-    // vez de mostrar form vazio.
-    return campos.length ? campos : (CAMPOS_POR_TIPO_ATIVO_FALLBACK[categoria] || []);
+        .map(c => ({ chave: c.chave, label: c.label, obrigatorio: !!c.obrigatorio, ...(c.tipo_dado && c.tipo_dado !== 'text' ? { tipo: c.tipo_dado } : {}),
+                     ...(c.mascarar ? { mascarar: true } : {}), ...(Array.isArray(c.opcoes) ? { opcoes: c.opcoes } : {}) }));
+    // v2.6.0 — com o catálogo carregado, categoria sem campo para este tipo (Família) fica sem campo; o fallback de
+    // código só vale para categoria que o catálogo não conhece.
+    return daCategoria.length ? campos : (CAMPOS_POR_TIPO_ATIVO_FALLBACK[categoria] || []);
+}
+// v2.6.0 (fatia 3b) — blocos fixos do formulário (linhas tipo_dado = 'bloco'): Set de chaves, ou null sem catálogo de
+// blocos (quem chama mantém o formulário de antes).
+export function blocosDoFormulario(categoria, tipoDetalheId = null, contexto = 'ativo') {
+    if (!_catalogoAtivoCampos || !_catalogoAtivoCampos.some(c => c.tipo_dado === 'bloco')) return null;
+    return new Set(_catalogoAtivoCampos
+        .filter(c => c.tipo_dado === 'bloco' && c.categoria === categoria && (c.tipo_detalhe_id === null || c.tipo_detalhe_id === tipoDetalheId) && noContexto(c, contexto))
+        .map(c => c.chave));
 }
 
 
 // Retorna lista de mensagens de erro (vazia = válido). Não lança exceção —
 // quem chama decide como mostrar (mesmo padrão dos indicadores inline do
 // Design System).
-export function validarCamposAtivo(tipoAtivo, nomeExibicao, dadosEspecificos, tipoDetalheId = null) {
+export function validarCamposAtivo(tipoAtivo, nomeExibicao, dadosEspecificos, tipoDetalheId = null, contexto = 'ativo') {
     const erros = [];
     if (!nomeExibicao || !nomeExibicao.trim()) erros.push('Nome de exibição é obrigatório.');
-    const campos = obterCamposPorTipo(tipoAtivo, tipoDetalheId);
+    const campos = obterCamposPorTipo(tipoAtivo, tipoDetalheId, contexto);
     for (const campo of campos) {
         if (campo.obrigatorio && !(dadosEspecificos && dadosEspecificos[campo.chave])) {
             erros.push(`${campo.label} é obrigatório para este tipo de ativo.`);
