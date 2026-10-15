@@ -1,6 +1,12 @@
 // ============================================================================
 // cofre-ativos.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.109.0 · 14/10/2026
+// Versão: 1.110.0 · 15/10/2026
+//
+// v1.110.0 (15/10/2026, sessão 20261014-2345-usos-fatia4, demanda 3022603b e 305c6c2f; FICHA_FATIA4_PROGRAMAS_RAIZ v1.2.0, D4-4)
+// — sai "Iniciar revisão anual" do ⋮ do ativo: a revisão de valor passa a ser item dos programas Cuidado do imóvel, Terreno,
+// Acervo (avaliação) e Venda do imóvel, aceitos no chip Controles. O ⋮ (grupo Controles) e o "Adicionar item de controle"
+// ganham "Programas", que abre a lista dos programas do ativo (cofre-controles.js 1.60.0). Quem já tem revisão segue com ela.
+// Versão anterior: 1.109.0 · 14/10/2026
 //
 // v1.109.0 (14/10/2026, sessão 20261014-2340-usos-fatia3d, demanda 3022603b; Nicola 14/10 23:34: "o item agrupado ficou
 // ruim… borda do ícone na cor do ramo") — o principal com subativos tem o ícone com borda na cor do ramo e o número de
@@ -25,16 +31,11 @@
 // v1.106.0 (14/10/2026, sessão 20261014-2215-ajustes-9d, demanda a05ad2ee; teste do Nicola 14/10 22:12 — "no menu ativos achei
 // uns itens ainda grandinhos") — textos dentro de condição (sub/titulo com ? :) e dicionários de descrição também no limite
 // da D6 (ação 24, descrição 28). Nada de comportamento mudou.
-// Versão anterior: 1.105.0 · 14/10/2026
-//
-// v1.105.0 (14/10/2026, sessão 20261014-2145-onda9c-textos, demanda a05ad2ee; onda 9c do estudo PROTOTIPO_UX_DENSIDADE_RAMOS_RAIZ
-// v1.2.0, D6 seção 10) — textos no limite: ação até 24 caracteres, descrição até 28, aviso até 40 com o resultado e tela
-// vazia em 1 frase de até 40. A explicação longa fica na confirmação, quando existe. Nada de comportamento mudou.
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.104.0 … v1.104.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.105.0 … v1.105.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '1.109.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.110.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 import { estado } from './cofre-estado.js';
 import * as api from './cofre-api.js';
 import { mostrarToast, erroInline, refrescarIcones, alternarToggle, abrirModal, fecharModal, modalGenerico, perguntar, avisarComDesfazer, escolher } from './cofre-ui.js';
@@ -1561,9 +1562,8 @@ export async function abrirAcoesAtivo() {
     // sempre (nenhuma consulta nova só pra decidir se esconde); duplicidade
     // é recusada no banco por fn_revisao_valor_ativo_iniciar, com toast de
     // erro claro — evita uma 2ª chamada de rede só pra pré-checar aqui.
-    // v1.101.0 (Nicola 14/10 00:40) — revisão anual de valor não é de pessoa; vira programa + item na fatia 4 (demanda)
-    const ehVida = a.tipo_ativo === 'vida' || ramoDoAtivoLista(a) === 'familia';
-    if (a.status !== 'vendido' && !ehVida) acoes.push({ icone: 'calendar-clock', titulo: 'Iniciar revisão anual', codigo: 'cofre.controles.criar', sub: 'Do valor do ativo', aoTocar: () => abrirIniciarRevisaoAnual(a) });
+    // v1.110.0 (fatia 4, D4-4) — "Iniciar revisão anual" saiu daqui: a revisão de valor é item dos programas (Controles ›
+    // Programas). abrirIniciarRevisaoAnual() fica sem chamador, guardada só para rollback.
     if (!maquina && a.status !== 'vendido') acoes.push({ icone: 'tag', titulo: 'Marcar como vendido', codigo: 'cofre.editar', sub: 'Desliga os alertas', aoTocar: () => marcarAtivoVendidoAtual() });
     if (!maquina) acoes.push({ icone: 'trash-2', titulo: 'Excluir ativo', codigo: 'cofre.excluir', tipo: 'bad', aoTocar: () => excluirAtivoAtual() });
     // v1.94.0 (UX onda 3, D11) — é o ⋮ do topo da ficha: todas as ações do ativo em grupos curtos (os ⋮ dos cabeçalhos
@@ -1593,6 +1593,7 @@ export async function abrirAcoesAtivo() {
         ] },
         { titulo: 'Controles', acoes: [
             { icone: 'plus', titulo: 'Novo item de controle', codigo: 'cofre.controles.criar', sub: 'Seguro, tributo, vistoria', aoTocar: () => window.__rzAbrirFormControle?.() },
+            { icone: 'package', titulo: 'Programas', codigo: 'programas.ver', sub: 'Pacotes prontos de itens', aoTocar: () => abrirProgramasDoAtivo() }, // v1.110.0
         ] },
         { titulo: 'Financeiro', acoes: [
             { icone: 'plus', titulo: 'Novo lançamento', codigo: 'saidas.registrar', sub: 'Saída ligada a este ativo', aoTocar: () => abrirNovoLancamentoDoAtivo() },
@@ -2729,7 +2730,14 @@ export function abrirAcoesControlesAtivo() {
     sheetOuAviso({ titulo: 'Itens de controle', sub: a.nome_exibicao, acoes: [
         { icone: 'sparkles', tipo: 'ia', titulo: 'Carregar documento', codigo: 'cofre.analisar_ia', sub: 'A IA preenche os itens', aoTocar: () => window.__rzUploadAtivo?.(true) },
         { icone: 'plus', titulo: 'Novo item de controle', codigo: 'cofre.controles.criar', sub: 'Seguro, tributo, vistoria', aoTocar: () => window.__rzAbrirFormControle?.() },
+        { icone: 'package', titulo: 'Programas', codigo: 'programas.ver', sub: 'Pacotes prontos de itens', aoTocar: () => abrirProgramasDoAtivo() }, // v1.110.0
     ] });
+}
+// v1.110.0 (fatia 4) — a lista de programas mora em cofre-controles.js (window.__rzAbrirProgramas); abre no chip Controles
+function abrirProgramasDoAtivo() {
+    if (typeof window.__rzAbrirProgramas !== 'function') { mostrarToast('Abra pelo app principal.', 'erro'); return; }
+    if (typeof faTrocarAba === 'function') faTrocarAba('controles');
+    window.__rzAbrirProgramas();
 }
 
 // ============================================================================

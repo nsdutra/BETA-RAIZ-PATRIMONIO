@@ -1,6 +1,15 @@
 // ============================================================================
 // cofre-controles.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.59.0 · 14/10/2026
+// Versão: 1.60.0 · 15/10/2026
+//
+// v1.60.0 (15/10/2026, sessão 20261014-2345-usos-fatia4, demanda 3022603b; FICHA_FATIA4_PROGRAMAS_RAIZ v1.2.0, de acordo do
+// Nicola 14/10 21:42 e 23:34) — PROGRAMAS no chip Controles: "Programa sugerido" com Aceitar e Agora não (fn_ativo_programas);
+// os itens agrupados sob o programa (nome, quantos itens, o próximo e o ⋮ com Pausar, Retomar e Concluir pela porta única
+// fn_status_transicionar) e o resto em "Outros itens"; a folha "Aceitar <programa>" com caixas e a data que o item pede
+// (vence em, última vez em, 1ª data e valor de pagamento; próxima nos demais), que grava por fn_programa_aceitar (o item que
+// já existe no ativo entra no programa, sem duplicar); "Programas" lista todos os que servem ao ativo
+// (window.__rzAbrirProgramas, chamado pelo ⋮ do ativo e pelo "Adicionar item de controle").
+// Versão anterior: 1.59.0 · 14/10/2026
 //
 // v1.59.0 (14/10/2026, sessão 20261014-2145-onda9c-textos, demanda a05ad2ee; onda 9c do estudo PROTOTIPO_UX_DENSIDADE_RAMOS_RAIZ
 // v1.2.0, D6 seção 10) — textos no limite: ação até 24 caracteres, descrição até 28, aviso até 40 com o resultado e tela
@@ -23,19 +32,11 @@
 // e Reabrir conforme a situação (fn_entidade_status), e a ação passa pela porta única fn_status_transicionar (motivo
 // quando o catálogo pede; status_historico e log no banco). "Encerrar item" virou Concluir; a lista e a ficha mostram
 // Pausado ou Concluído no lugar de Encerrado.
-//
-// Versão anterior: 1.55.0 · 13/10/2026
-//
-// v1.55.0 (13/10/2026, sessão 20261013-2320-conta-via-item, demanda 47eed96b; de acordo do Nicola 13/10 23:17: "1 ok, 2 ok,
-// 3 ok (...) 4 retirar. deixar apenas pelos ativos") — conta e cartão nascem pelo item de controle: no "Novo item" do
-// ativo vida (pessoa) e dos Controles da empresa, o tipo ganha "Conta ou cartão", que abre o cadastro da conta
-// (comum-minha-empresa.js) com o titular preso — a pessoa ligada ao ativo (entidade_origem_id) ou a Empresa. O banco cria
-// o item junto (fn_conta_salvar). Ativo vida sem pessoa ligada recebe aviso.
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.54.0 … v1.54.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.55.0 … v1.55.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '1.59.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.60.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 import { estado } from './cofre-estado.js';
 import * as api from './cofre-api.js';
 import { mostrarToast, refrescarIcones, abrirModal, fecharModal, modalGenerico, perguntar, escolher, avisarComDesfazer } from './cofre-ui.js';
@@ -172,7 +173,9 @@ window.addEventListener('cofre:recarregar-eventos', () => {
 // ============================================================================
 export async function montarControlesAtivo(a) {
     try {
-        itensDoAtivoAtual = await api.listarItensControleAtivo(a.id, true); // v1.20.0 — inclui encerrados (filtro local)
+        // v1.60.0 (fatia 4) — os programas do ativo vêm junto; falha neles não derruba a lista de itens
+        const [itens] = await Promise.all([api.listarItensControleAtivo(a.id, true), carregarProgramasAtivo(a.id)]); // v1.20.0 — inclui encerrados (filtro local)
+        itensDoAtivoAtual = itens;
     } catch (err) {
         document.getElementById('fa-tab-controles').innerHTML = `<p class="text-xs" style="color:var(--danger)">Erro ao carregar controles: ${escapeHtml(err.message)}</p>`;
         return;
@@ -327,17 +330,191 @@ function renderizarListaControles() {
     if (!alvo) return;
     atualizarEstadoChipControles();
     const lista = itensFiltrados(); // v1.20.0
+    const sugeridos = filtroControles === 'ativos' ? programasSugeridosHtml() : ''; // v1.60.0 (fatia 4)
     if (!itensDoAtivoAtual.length) {
         // v1.13.0 — vazio no formato único (REGRAS §9): a ação fica no
         // rodapé do card ("Novo item"), por isso o vazio não repete botão.
-        alvo.innerHTML = `<div class="rz-empty"><div class="rz-ic"><i data-lucide="shield"></i></div><p>Nenhum item de controle ainda.</p></div>`;
+        alvo.innerHTML = sugeridos + (sugeridos && !(programasAtual?.ativos || []).length ? ''
+            : `<div class="rz-empty"><div class="rz-ic"><i data-lucide="shield"></i></div><p>Nenhum item de controle ainda.</p></div>`)
+            + programasAgrupadosHtml([]);
+        ligarAcoesProgramas(alvo);
         refrescarIcones();
         return;
     }
-    alvo.innerHTML = chipsControlesHtml() + (lista.length ? lista.map(itemResumoHtml).join('')
-        : `<div class="rz-empty"><p>Nenhum item ${filtroControles === 'encerrados' ? 'encerrado' : 'ativo'}.</p></div>`);
+    alvo.innerHTML = chipsControlesHtml() + sugeridos + (programasAgrupadosHtml(lista)
+        || `<div class="rz-empty"><p>Nenhum item ${filtroControles === 'encerrados' ? 'encerrado' : 'ativo'}.</p></div>`);
+    ligarAcoesProgramas(alvo);
     refrescarIcones();
 }
+
+// ============================================================================
+// v1.60.0 (usos fatia 4 — FICHA_FATIA4_PROGRAMAS_RAIZ v1.2.0, D4-1 a D4-7) — PROGRAMAS. O programa é um pacote de itens com
+// nome ("Veículo": IPVA, licenciamento, seguro, revisão), oferecido pelo tipo do ativo ou pelo uso de hoje. Regra e catálogo
+// no banco (CAN-02): fn_ativo_programas diz o que sugerir e o que está ativo; fn_programa_aceitar cria só os marcados (e
+// liga o item que já existe); fn_programa_recusar é o "Agora não"; Pausar, Retomar e Concluir passam pela porta única.
+// ============================================================================
+let programasAtual = null;   // resposta de fn_ativo_programas: { pode_ver, pode_aceitar, sugeridos, ativos, outros, em_breve }
+let programasAtivoId = null;
+async function carregarProgramasAtivo(ativoId) {
+    programasAtivoId = ativoId; programasAtual = null;
+    try {
+        const { data, error } = await api.dbAuth.rpc('fn_ativo_programas', { p_ativo_id: ativoId });
+        if (error) throw error;
+        if (programasAtivoId === ativoId) programasAtual = data || null;
+    } catch (e) { console.warn('[cofre-controles] programas do ativo:', e?.message || e); }
+}
+function programaPorCodigo(codigo) {
+    return [...(programasAtual?.sugeridos || []), ...(programasAtual?.outros || [])].find(p => p.codigo === codigo) || null;
+}
+function programasSugeridosHtml() {
+    const lista = programasAtual?.pode_ver ? (programasAtual.sugeridos || []) : [];
+    const pode = !!programasAtual?.pode_aceitar;
+    return lista.map(p => {
+        const marcados = (p.itens || []).filter(i => i.marcado || i.ja_existe).map(i => i.titulo);
+        const nomes = (marcados.length ? marcados : (p.itens || []).map(i => i.titulo));
+        const resumo = nomes.slice(0, 4).join(', ') + (nomes.length > 4 ? '…' : '');
+        return `<div class="rz-prog-sug"><small>Programa sugerido</small><b>${escapeHtml(p.nome)}</b><span class="rz-desc">${escapeHtml(resumo)}</span>
+            ${pode ? `<div class="rz-seq-btns"><button type="button" class="rz-btn rz-btn-1 rz-sm" data-prog-aceitar="${escapeHtml(p.codigo)}">Aceitar</button>
+            <button type="button" class="rz-btn rz-btn-3 rz-sm" data-prog-recusar="${escapeHtml(p.codigo)}">Agora não</button></div>`
+            : '<span class="rz-desc"><i data-lucide="lock"></i> Seu perfil só vê os programas.</span>'}</div>`;
+    }).join('');
+}
+// Itens agrupados: um bloco por programa ativo ou pausado (cabeçalho com o ⋮) e "Outros itens" com o resto.
+function programasAgrupadosHtml(lista) {
+    const progs = filtroControles === 'ativos' && programasAtual?.pode_ver ? (programasAtual.ativos || []) : [];
+    if (!progs.length) return lista.map(itemResumoHtml).join('');
+    const usados = new Set();
+    let html = progs.map(p => {
+        const its = lista.filter(i => i.ativo_programa_id === p.id);
+        its.forEach(i => usados.add(i.id));
+        const n = its.length;
+        const prox = p.proximo?.data ? ` · próximo: ${p.proximo.titulo} em ${formatarDataBR(p.proximo.data)}` : '';
+        const sub = p.situacao === 'pausado' ? 'Pausado · os itens não avisam' : `${n} ite${n === 1 ? 'm' : 'ns'}${prox}`;
+        return `<div class="rz-prog-h"><span class="rz-prog-pt" aria-hidden="true"></span><div class="rz-tx"><b>${escapeHtml(p.nome)}</b><span>${escapeHtml(sub)}</span></div>
+            ${(p.acoes || []).length ? `<button type="button" class="rz-more" data-prog-mais="${p.id}" aria-label="Ações do programa ${escapeHtml(p.nome)}"><i data-lucide="ellipsis-vertical"></i></button>` : ''}</div>`
+            + its.map(itemResumoHtml).join('');
+    }).join('');
+    const resto = lista.filter(i => !usados.has(i.id));
+    if (resto.length) html += `<div class="rz-group rz-group-t"><span>Outros itens · ${resto.length}</span></div>` + resto.map(itemResumoHtml).join('');
+    return html;
+}
+function ligarAcoesProgramas(alvo) {
+    alvo.querySelectorAll('[data-prog-aceitar]').forEach(b => b.addEventListener('click', () => abrirAceitarPrograma(b.dataset.progAceitar)));
+    alvo.querySelectorAll('[data-prog-recusar]').forEach(b => b.addEventListener('click', () => recusarPrograma(b.dataset.progRecusar, b)));
+    alvo.querySelectorAll('[data-prog-mais]').forEach(b => b.addEventListener('click', (ev) => { ev.stopPropagation(); abrirAcoesPrograma(b.dataset.progMais); }));
+}
+async function recarregarControlesDoAtivo() {
+    const a = estado.ativoEmFoco; if (!a) return;
+    await montarControlesAtivo(a);
+}
+// Folha "Aceitar <programa>": uma caixa por item; a data só quando o item pede (vence em, última vez em, 1ª data e valor).
+function itemAceitarHtml(it, k, hoje) {
+    const freq = it.recorrente ? rotuloFrequencia(it.frequencia_intervalo, it.frequencia_unidade) : 'Uma vez';
+    const sub = it.ja_existe ? 'Já existe neste ativo · entra no programa' : freq;
+    const campo = (rot, tipo, nome, extra = '') => `<div class="rz-f"><label for="pa-${k}-${nome}">${rot}</label><input type="${tipo}" id="pa-${k}-${nome}" data-campo="${nome}" ${extra}></div>`;
+    let campos = '';
+    if (!it.ja_existe) {
+        if (it.data_pedida === 'vencimento') campos = campo('Vence em', 'date', 'data');
+        else if (it.data_pedida === 'ultima_vez') campos = campo('Última vez em', 'date', 'data', `max="${hoje}"`);
+        else if (it.data_pedida === 'pagamento') campos = campo(it.recorrente ? '1ª data' : 'Data', 'date', 'data', `value="${hoje}"`)
+            + campo('Valor previsto', 'number', 'valor', 'step="0.01" min="0" inputmode="decimal" placeholder="Opcional"')
+            + (it.recorrente ? campo('Até', 'date', 'ate') : '');
+        else campos = campo(it.recorrente ? 'Próxima em' : 'Quando', 'date', 'data', `value="${hoje}"`);
+    }
+    return `<div class="rz-prog-it" data-k="${k}"><label class="rz-row rz-chk"><input type="checkbox" data-prog-item="${it.modelo_id}" ${it.marcado || it.ja_existe ? 'checked' : ''}>
+        <div class="rz-tx"><b>${escapeHtml(it.titulo)}</b><span>${escapeHtml(sub)}</span></div></label>${campos ? `<div class="rz-prog-campos">${campos}</div>` : ''}</div>`;
+}
+function abrirAceitarPrograma(codigo) {
+    const p = programaPorCodigo(codigo); const a = estado.ativoEmFoco;
+    if (!p || !a) { mostrarToast('Programa não encontrado.', 'erro'); return; }
+    if (typeof window.abrirSheetForm !== 'function') { mostrarToast('Abra pelo app principal.', 'erro'); return; }
+    const hoje = hojeLocalISO();
+    const itens = p.itens || [];
+    window.abrirSheetForm({
+        titulo: 'Aceitar ' + p.nome, sub: a.nome_exibicao, rotuloSalvar: 'Aceitar', empilhar: true,
+        corpo: (el) => {
+            el.innerHTML = `<p class="rz-desc">Marque o que quer acompanhar. Só os marcados viram itens.</p><div class="rz-list">${itens.map((it, k) => itemAceitarHtml(it, k, hoje)).join('')}</div>`;
+            const btn = el.closest('.rz-sheet')?.querySelector('#rz-sheet-salvar');
+            const contar = () => { const n = el.querySelectorAll('[data-prog-item]:checked').length; if (btn) btn.textContent = n ? `Aceitar ${n} ite${n === 1 ? 'm' : 'ns'}` : 'Aceitar'; };
+            el.addEventListener('change', contar); contar();
+        },
+        aoSalvar: async (el) => {
+            const marcados = [...el.querySelectorAll('.rz-prog-it')].filter(d => d.querySelector('[data-prog-item]')?.checked).map(d => {
+                const it = itens[Number(d.dataset.k)];
+                const v = (n) => (d.querySelector(`[data-campo="${n}"]`)?.value || '').trim();
+                return { it, data: v('data'), valor: v('valor'), ate: v('ate') };
+            });
+            if (!marcados.length) { mostrarToast('Marque ao menos um item.', 'erro'); return false; }
+            const falta = marcados.find(x => !x.it.ja_existe && (x.it.data_pedida === 'vencimento' || x.it.data_pedida === 'ultima_vez') && !x.data);
+            if (falta) { mostrarToast(`${falta.it.data_pedida === 'vencimento' ? 'Diga quando vence' : 'Diga a última vez'}: ${falta.it.titulo}.`, 'erro'); return false; }
+            const { data, error } = await api.dbAuth.rpc('fn_programa_aceitar', { p_ativo_id: a.id, p_programa: p.codigo, p_canal: 'app',
+                p_itens: marcados.map(x => ({ modelo_id: x.it.modelo_id, data: x.data || null, valor: x.valor || null, ate: x.ate || null })) });
+            if (error) { mostrarToast(error.message || 'Não foi possível aceitar.', 'erro'); return false; }
+            mostrarToast(data?.mensagem || 'Programa aceito.', 'sucesso');
+            emitirEscrita('controle', { ativo: a.id, acao: 'programa_aceitar', programa: p.codigo });
+            window.dispatchEvent(new CustomEvent('cofre:recarregar-eventos'));
+            await recarregarControlesDoAtivo();
+            return true;
+        },
+    });
+}
+async function recusarPrograma(codigo, botao) {
+    const a = estado.ativoEmFoco; if (!a) return;
+    if (botao) botao.disabled = true;
+    const { error } = await api.dbAuth.rpc('fn_programa_recusar', { p_ativo_id: a.id, p_programa: codigo, p_canal: 'app' });
+    if (error) { if (botao) botao.disabled = false; mostrarToast(error.message || 'Não foi possível.', 'erro'); return; }
+    mostrarToast('Sugestão guardada em Programas.', 'sucesso');
+    await recarregarControlesDoAtivo();
+}
+function abrirAcoesPrograma(id) {
+    const p = (programasAtual?.ativos || []).find(x => x.id === id); if (!p) return;
+    const ICONE = { pausar: 'pause', retomar: 'play', concluir: 'check', reabrir: 'rotate-ccw' };
+    const SUB = { pausar: 'Os itens param de avisar', retomar: 'Os itens voltam a avisar', concluir: 'Encerra o programa e os itens' };
+    sheetAcoes({ titulo: p.nome, sub: estado.ativoEmFoco?.nome_exibicao || '', acoes: (p.acoes || []).map(m => ({
+        icone: ICONE[m.acao] || 'circle-dot', titulo: m.rotulo + ' programa', codigo: m.codigo, sub: SUB[m.acao] || '', aoTocar: () => transicionarPrograma(p, m) })) });
+}
+async function transicionarPrograma(p, m) {
+    const executar = async (motivo) => {
+        const { error } = await api.dbAuth.rpc('fn_status_transicionar', { p_entidade: 'programa', p_id: p.id, p_acao: m.acao,
+            p_dados: motivo ? { motivo } : {}, p_canal: 'app' });
+        if (error) { mostrarToast(error.message || 'Não foi possível.', 'erro'); return false; }
+        mostrarToast(m.acao === 'pausar' ? 'Programa pausado.' : m.acao === 'retomar' ? 'Programa retomado.' : m.acao === 'concluir' ? 'Programa concluído.' : 'Programa reaberto.', 'sucesso');
+        emitirEscrita('controle', { ativo: estado.ativoEmFoco?.id, acao: 'programa_' + m.acao });
+        window.dispatchEvent(new CustomEvent('cofre:recarregar-eventos'));
+        await recarregarControlesDoAtivo();
+        return true;
+    };
+    if (!m.exige_motivo) { await executar(null); return; }
+    if (typeof window.abrirSheetForm !== 'function') { mostrarToast('Abra pelo app principal.', 'erro'); return; }
+    window.abrirSheetForm({
+        titulo: m.rotulo + ' ' + p.nome, sub: estado.ativoEmFoco?.nome_exibicao || '', rotuloSalvar: m.rotulo,
+        corpo: `<div class="rz-f"><label for="prog-trans-motivo">Motivo</label><input type="text" id="prog-trans-motivo" maxlength="200" placeholder="Ex.: carro vendido, obra entregue"></div>
+            <p class="rz-desc">Os itens do programa encerram junto.</p>`,
+        aoSalvar: async () => {
+            const motivo = (document.getElementById('prog-trans-motivo')?.value || '').trim();
+            if (!motivo) { mostrarToast('Diga o motivo.', 'erro'); return false; }
+            return executar(motivo);
+        },
+    });
+}
+// "Programas": todos os que servem ao ativo — ativos (abre o ⋮) e os outros (Aceitar), inclusive os de "Agora não".
+export async function abrirTodosProgramas() {
+    const a = estado.ativoEmFoco; if (!a) return;
+    if (!programasAtual || programasAtivoId !== a.id) await carregarProgramasAtivo(a.id);
+    const P = programasAtual;
+    if (!P) { mostrarToast('Não consegui ler os programas.', 'erro'); return; }
+    if (!P.pode_ver) { mostrarToast('Seu perfil não vê programas.', 'erro'); return; }
+    const ROT = { disponivel: 'Disponível', recusado: 'Você disse "Agora não"', concluido: 'Concluído antes' };
+    const acoes = [
+        ...(P.ativos || []).map(p => ({ icone: p.situacao === 'pausado' ? 'pause' : 'package-check', titulo: p.nome,
+            sub: p.situacao === 'pausado' ? 'Pausado' : 'Ativo', aoTocar: () => abrirAcoesPrograma(p.id) })),
+        ...(P.outros || []).map(p => ({ icone: 'package-plus', titulo: p.nome, codigo: 'programas.aceitar',
+            sub: (ROT[p.situacao] || 'Disponível') + ' · aceitar', aoTocar: () => abrirAceitarPrograma(p.codigo) })),
+    ];
+    if (!acoes.length) { mostrarToast('Nenhum programa para este ativo.', 'erro'); return; }
+    sheetAcoes({ titulo: 'Programas', sub: a.nome_exibicao, acoes });
+}
+window.__rzAbrirProgramas = () => abrirTodosProgramas();
 
 // Linha de item de controle — DS (revisão 25/08/2026): paralelo direto das
 // linhas de "itens a receber" do box Financeiro na Ficha do Imóvel

@@ -4,6 +4,18 @@ Histórico completo de versões do `index.html`, movido automaticamente pelo `ge
 
 ---
 
+NOVIDADES (Beta v1.416.0) — ONDA 9c do estudo PROTOTIPO_UX_DENSIDADE_RAMOS_RAIZ v1.2.0 (D6, seção 10, textos):
+ações, descrições, avisos e telas vazias do index e de 24 módulos no limite (24 · 28 · 40 · 40 caracteres). Fora do
+limite no app inteiro: descrições 97 → 0, ações 15 → 0, avisos 58 → 0, telas vazias 50 → 0. Nada de comportamento
+mudou. Sem banco.
+Versão anterior (Beta v1.415.0):
+------------------------------------------------------------------
+Versões anteriores (v1.415.0 … v1.415.0): CHANGELOG_APP.md, na raiz do
+repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
+das 5 versões mais recentes deste cabeçalho.
+
+---
+
 NOVIDADES (Beta v1.415.0) — teste do Nicola 14/10 21:26 + ONDA 9b. (1) Splash no notebook: em tela larga a arte
 escala pela altura (viewBox alargado, centrado na árvore, céu/morros/terra prolongados sem emenda) e, no computador,
 a arte do login tem a altura pela tela — o Entrar aparece sem rolar e a lista de empresas volta a ter altura (antes
