@@ -4,6 +4,19 @@ Histórico completo de versões do `index.html`, movido automaticamente pelo `ge
 
 ---
 
+NOVIDADES (Beta v1.410.0) — Usos, fatia 3 (FICHA_FATIA3_SUBATIVOS_RAIZ v1.1.0, de acordo do Nicola 14/10): um ativo
+principal tem unidades (Imóveis), áreas (Agro e Pecuária) ou integrantes (Família), cada um com uso, contrato, itens e
+status próprios. js/cofre-ativos.js 1.102.0 (card no Resumo, ⋮ Adicionar e Vincular, "Tirar de", pergunta seguem ou
+ficam ao vender, baixar ou arquivar o principal) e js/cofre-api.js 1.51.0. No index, o contador de ativos do
+cabeçalho conta só os principais. Banco: usos_fatia3_estrutura v1 a v3.
+Versão anterior (Beta v1.409.0):
+------------------------------------------------------------------
+Versões anteriores (v1.409.0 … v1.409.0): CHANGELOG_APP.md, na raiz do
+repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
+das 5 versões mais recentes deste cabeçalho.
+
+---
+
 NOVIDADES (Beta v1.409.0) — ONDA 8a do estudo PROTOTIPO_UX_DENSIDADE_RAMOS_RAIZ v1.2.0 (D15, computador): a partir de
 1024 px a barra de baixo vira barra lateral à esquerda (Raiz IA no topo, Hoje · Ativos · Agenda · Financeiro), o
 conteúdo ganha 820 px de largura ao lado, os sheets abrem como painel lateral à direita na altura inteira, e Ctrl/⌘ K

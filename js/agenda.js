@@ -1,8 +1,13 @@
 // =====================================================================
 // RAIZ PATRIMÔNIO — js/agenda.js
-// VERSÃO: Beta v1.3.0 (14/10/2026 — demanda a05ad2ee)
+// VERSÃO: Beta v1.4.0 (14/10/2026 — demanda a05ad2ee)
 // LINHAS: (ver versoes.json)
 // -----------------------------------------------------------------
+// NOVIDADES (Beta v1.4.0) — Nicola 14/10 21:26 ("a visão de lista prefiro eliminar ela. Pode retirar e deixar apenas
+//   semana e mês"): a vista Lista sai; a Agenda abre na Semana (com a lista do dia embaixo) e tem só Semana · Mês. A
+//   ação do ⋮ vira "Enviar a semana" (estudo D6, ação até 24 caracteres; a descrição continua dizendo o WhatsApp).
+//   Sessão 20261014-2130-ajustes-9b.
+// Versão anterior (Beta v1.3.0):
 // NOVIDADES (Beta v1.3.0) — Nicola 14/10 09:50: as datas se vinculam ao FATO GERADOR, não a hoje. O alerta e o
 //   compromisso pendentes ficam no dia de origem (ex.: o fechamento de 01/10 aparece em 01/10 com "Há 13d"), nas três
 //   vistas. A Lista do mês de hoje mostra o mês inteiro por dia e, antes dele, o que ainda está pendente de meses
@@ -48,7 +53,7 @@
 // formatarMoedaBR, abrirSheet, abrirSheetAcoes, rzSheetCabecalho, fecharSheet, abrirAlertaItemControle,
 // abrirFichaContrato, switchTab, mostrarToast, rzDev.
 
-export const VERSAO = '1.3.0';
+export const VERSAO = '1.4.0';
 
 const TIPOS = {
     ocorrencia:   { rotulo: 'Ocorrência',  icone: 'wrench',          dominio: 'ocorrencias' },
@@ -65,7 +70,7 @@ const MES_CURTO = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set'
 const DIA_SEM = ['dom', 'seg', 'ter', 'qua', 'qui', 'sex', 'sáb'];
 const JANELA_ATENCAO = 7; // D7.10
 
-const st = { vista: 'lista', semana: null, mes: null, dia: null, status: new Set(), assuntos: null, dados: [], seq: 0, el: null };
+const st = { vista: 'semana', semana: null, mes: null, dia: null, status: new Set(), assuntos: null, dados: [], seq: 0, el: null };
 
 // ---- datas (data local, ISO yyyy-mm-dd)
 const iso = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
@@ -145,17 +150,14 @@ const visivel = (it) => passaStatus(it.status) && passaAssunto(it.assunto);
 function intervaloContado() { // o que os números contam (sem as bordas da grade)
     if (st.vista === 'semana') return [iso(st.semana), iso(somaDias(st.semana, 6))];
     const ini = iso(new Date(st.mes.getFullYear(), st.mes.getMonth(), 1)), fim = iso(new Date(st.mes.getFullYear(), st.mes.getMonth() + 1, 0));
-    if (st.vista !== 'lista' || !mesTemHoje()) return [ini, fim];
-    // Lista do mês de hoje: o mês inteiro e, antes dele, o que ainda está pendente de meses anteriores (no dia de origem)
-    const maisAntigo = alertasMotor().map(dataAlerta).sort()[0];
-    return [maisAntigo && maisAntigo < ini ? maisAntigo : ini, fim];
+    return [ini, fim];
 }
 
 // ---- entrada (chamada pelo index: rzAgendaVista)
 export async function montarAgenda(vista, el) {
     st.el = el || st.el;
     if (!st.el) return;
-    st.vista = ['lista', 'semana', 'mes'].includes(vista) ? vista : (st.vista || 'lista'); // sem vista: mantém a atual
+    st.vista = ['semana', 'mes'].includes(vista) ? vista : (st.vista || 'semana'); // v1.4.0 — sem a Lista; sem vista: mantém a atual
     if (!st.mes) st.mes = new Date(hoje().getFullYear(), hoje().getMonth(), 1);
     if (!st.dia) st.dia = iso(hoje());
     if (!st.semana) st.semana = inicioSemana(hoje());
@@ -203,13 +205,13 @@ function desenhar(carregando) {
             <button type="button" class="rz-ico-btn rz-fin-lupa" data-ag-mais aria-label="Mais ações"><svg data-lucide="more-vertical"></svg></button>
         </div>
         <div class="rz-seg rz-fin-abas" role="tablist" aria-label="Vista da agenda">
-            ${[['lista', 'Lista'], ['semana', 'Semana'], ['mes', 'Mês']].map(([k, n]) => `<button type="button" class="${st.vista === k ? 'rz-on' : ''}" data-ag-vista="${k}">${n}</button>`).join('')}
+            ${[['semana', 'Semana'], ['mes', 'Mês']].map(([k, n]) => `<button type="button" class="${st.vista === k ? 'rz-on' : ''}" data-ag-vista="${k}">${n}</button>`).join('')}
         </div>
         <div class="rz-chips rz-ag-chips">
             ${STATUS.map(([k, n]) => `<button type="button" class="rz-chip${st.status.has(k) ? ' rz-on' : ''}" data-ag-st="${k}"><span class="rz-ag-pt rz-ag-${k}"></span>${n}${carregando ? '' : ` <span class="rz-n">${conta(k)}</span>`}</button>`).join('')}
             <button type="button" class="rz-chip rz-ag-ass${todos ? '' : ' rz-on'}" data-ag-ass>${rzEsc(rotAss)} <svg data-lucide="chevron-down"></svg></button>
         </div>
-        <div id="ag-corpo">${carregando ? (typeof rzSkeleton === 'function' ? rzSkeleton('lista', 4) : '') : (st.vista === 'lista' ? listaHtml() : st.vista === 'semana' ? semanaHtml() : mesHtml())}</div>`;
+        <div id="ag-corpo">${carregando ? (typeof rzSkeleton === 'function' ? rzSkeleton('lista', 4) : '') : (st.vista === 'semana' ? semanaHtml() : mesHtml())}</div>`;
     ligar();
     if (!carregando && typeof rzLigarGestosAlertas === 'function') {
         const m = st.el.querySelector('#ag-corpo');
@@ -259,19 +261,6 @@ const rotDia = (di) => { const d = deIso(di); return `${DIA_SEM[d.getDay()]} ${d
 function cardDoDia(di, its, alertaHtml) {
     const comps = its.filter(it => it.tipo === 'c');
     return `<div class="rz-card rz-list">${(alertaHtml || []).join('')}${blocoComps(comps)}</div>`;
-}
-
-// ---- Lista (D7.8): corrente, por dia; no mês de hoje começa em hoje
-function listaHtml() {
-    const [de, ate] = intervaloContado();
-    const its = universo(de, ate).filter(visivel);
-    const alertas = alertasPorDia(its.filter(it => it.tipo === 'a'));
-    const dias = [...new Set(its.map(it => it.dia))].sort();
-    const html = dias.map(di => {
-        const doDia = its.filter(it => it.dia === di);
-        return `<div class="rz-group rz-ag-dia${di === iso(hoje()) ? ' rz-ag-hoje' : ''}">${rotDia(di)}<span>${doDia.length}</span></div>${cardDoDia(di, doDia, alertas.get(di))}`;
-    }).join('');
-    return html || `<p class="rz-desc rz-ag-nada">${st.status.size || st.assuntos.size < ASSUNTOS.length ? 'Nada com este filtro.' : 'Nada marcado neste mês.'}</p>`;
 }
 
 // ---- pontos por status, do mesmo universo
@@ -347,7 +336,7 @@ function ligar() {
     st.el.querySelectorAll('[data-ag-i]').forEach(b => b.addEventListener('click', () => abrirCompromisso(st.dados[Number(b.dataset.agI)])));
     const mais = st.el.querySelector('[data-ag-mais]');
     if (mais) mais.addEventListener('click', () => abrirSheetAcoes({ titulo: 'Agenda', sub: tituloPeriodo(), acoes: [
-        { icone: 'send', titulo: 'Enviar a semana por WhatsApp', sub: 'Compartilhar com uma pessoa', aoTocar: enviarSemana },
+        { icone: 'send', titulo: 'Enviar a semana', sub: 'Compartilhar com uma pessoa', aoTocar: enviarSemana },
     ] }));
 }
 

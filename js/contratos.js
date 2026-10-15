@@ -1,7 +1,12 @@
 // ============================================================================
 // contratos.js — Raiz Patrimônio · Contratos (lista · ficha · formulário ·
 //                 status/reajuste/detalhes · fiadores · documentos · histórico)
-// Versão: 1.57.0 · 14/10/2026
+// Versão: 1.58.0 · 14/10/2026
+//
+// v1.58.0 (14/10/2026, sessão 20261014-2130-ajustes-9b, demanda a05ad2ee; onda 9b do estudo PROTOTIPO_UX_DENSIDADE_RAMOS_RAIZ
+// v1.2.0, D6 seção 10) — textos no limite: ação até 24 caracteres, descrição até 28 (só quando muda a decisão), aviso até
+// 40 com o resultado. A explicação longa fica na confirmação, que já existia. Nada de comportamento mudou.
+// Versão anterior: 1.57.0 · 14/10/2026
 //
 // v1.57.0 (14/10/2026, sessão 20261014-0045-usos-fatia2, demanda 3022603b; FICHA_FATIA2_CONTRATOS_POR_TIPO_RAIZ v1.0.0, "De
 // acordo nas opções dadas" do Nicola 14/10 00:40) — contratos por tipo: campo "Tipo de contrato" no formulário (só tipos do
@@ -25,15 +30,8 @@
 // v1.54.0 (12/10/2026, sessão 20261012-0250-ux-onda4d, demanda a05ad2ee; UX onda 4, D9; "Vamos adiante" 12/10 02:46) — a
 // lista de Contratos ganha o total no agrupador: "Capital · 12" à esquerda e o aluguel/mês dos contratos ativos do
 // empreendimento à direita.
-//
-// Versão anterior: 1.53.0 · 12/10/2026
-//
-// v1.53.0 (12/10/2026, sessão 20261012-0220-ux-onda4a, demanda a05ad2ee; UX onda 4) — o card Financeiro da ficha do contrato
-// perde a borda vermelha de crítico e o selo do cabeçalho (o atraso aparece uma vez só, no resumo, que leva aos
-// atrasados); o miolo (rzFinCompetencias,
-// financeiro.js 1.56.0) fica sem moldura dentro de moldura.
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.52.0 … v1.52.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.53.0 … v1.53.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
 import { avaliarProntidaoContratoParaMinuta } from './minutas.js'; // v1.0.1
@@ -45,7 +43,7 @@ import { emitirEscrita, aoEscrever } from './raiz-eventos.js'; // v1.18.0 — Fa
 import { renderizarBlocoEndereco, lerBlocoEndereco } from './comum-endereco.js';
 import { formatarEnderecoParte } from './comum-partes.js';
 
-export const VERSAO = '1.57.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.58.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 
 /** Ponto de entrada do switchTab('tab-contratos'). */
 export function montarAbaContratos() {
@@ -410,10 +408,10 @@ if (!window.__rzListenerEscritaParteContratoLigado) {
 
             // v1.39.0 (F0.2a) — prompt() numerado virou escolha em lista + Sheet de nome livre.
             const escolha = await rzEscolherUm({
-                titulo: 'Adicionar sócio ao rateio', sub: 'Sócio com cotas ou terceiro de fora',
+                titulo: 'Adicionar sócio ao rateio', sub: 'Sócio ou terceiro',
                 opcoes: [
                     ...pessoasDisponiveis.map((p, i) => ({ valor: String(i), titulo: p.nome, sub: (p.percentualCotasEmpresa || 0) + '% de cotas', icone: 'user' })),
-                    { valor: 'externo', titulo: 'Outro beneficiário', sub: 'Terceiro, não cadastrado em Pessoas', icone: 'user-plus' },
+                    { valor: 'externo', titulo: 'Outro beneficiário', sub: 'Fora de Pessoas', icone: 'user-plus' },
                 ],
             });
             if (escolha === null) return;
@@ -641,7 +639,7 @@ if (!window.__rzListenerEscritaParteContratoLigado) {
         export function lancarReajusteContrato(contratoId, ocorrenciaId, subtipoCodigo) {
             const con = contratos.find(c => c.id === contratoId);
             if (!con) return;
-            if (con.status === 'Assinando') { mostrarToast('Contrato ainda em assinatura — ative o contrato antes de reajustar.', 'danger'); return; } // v1.32.0
+            if (con.status === 'Assinando') { mostrarToast('Ative o contrato antes de reajustar.', 'danger'); return; } // v1.32.0
             if (typeof podeUsar === 'function' && rzMostrarBloqueio('contratos.reajustar')) return;
             const ehRevisional = subtipoCodigo === 'revisional_contrato';
             const hoje = new Date().toISOString().slice(0, 10);
@@ -730,7 +728,7 @@ if (!window.__rzListenerEscritaParteContratoLigado) {
                             nome: `Reajuste ${vigencia.slice(5, 7)}/${vigencia.slice(0, 4)} — ${con.locatario || ''}`.trim(),
                             descricao: `Reajuste de aluguel vigente desde ${formatarDataBR(vigencia)}.`, dataDocumento: vigencia, categoriaSugerida: 'reajuste|aditivo|contrato',
                         });
-                    } catch (errDoc) { mostrarToast('O anexo falhou, o reajuste segue sem ele: ' + (errDoc.message || errDoc), 'danger'); }
+                    } catch (errDoc) { mostrarToast('Reajuste salvo, sem o anexo: ' + (errDoc.message || errDoc), 'danger'); }
                 }
 
                 // v1.X (A.6) — CORRIGIDO: antes gravava direto em
@@ -1881,7 +1879,7 @@ if (!window.__rzListenerEscritaParteContratoLigado) {
             const con = contratos.find(c => c.id === contratoId);
             if (!con || typeof abrirSheetAcoes !== 'function') return;
             abrirSheetAcoes({ titulo: 'Distribuição', sub: con.locatario || '', acoes: [
-                { icone: 'pencil', titulo: 'Editar divisão', codigo: 'contratos.editar', sub: 'Sócios, percentuais e partes externas', aoTocar: () => {
+                { icone: 'pencil', titulo: 'Editar divisão', codigo: 'contratos.editar', sub: 'Sócios e percentuais', aoTocar: () => {
                     if (typeof abrirAlteracoesDivisaoSocietaria === 'function') abrirAlteracoesDivisaoSocietaria(con.imovelId, con.id);
                     else editarContrato(con.id); // fallback defensivo, não deveria acontecer em produção
                 } },
@@ -2064,15 +2062,15 @@ if (!window.__rzListenerEscritaParteContratoLigado) {
             const abrirManual = () => comImovel ? criarContratoParaImovel(imovelId) : abrirFormularioContrato();
             if (typeof abrirSheetAcoes !== 'function') { abrirManual(); return; }
             const acoes = [
-                { icone: 'sparkles', tipo: 'ia', titulo: 'Carregar documento', codigo: 'cofre.upload', sub: 'A IA classifica e sugere o vínculo', aoTocar: () => (typeof abrirUploadDocumentoNoApp === 'function') && abrirUploadDocumentoNoApp() },
+                { icone: 'sparkles', tipo: 'ia', titulo: 'Carregar documento', codigo: 'cofre.upload', sub: 'A IA classifica e vincula', aoTocar: () => (typeof abrirUploadDocumentoNoApp === 'function') && abrirUploadDocumentoNoApp() },
                 { icone: 'plus', titulo: 'Novo contrato', codigo: 'contratos.criar', sub: comImovel ? 'Formulário já com este imóvel' : 'Preencher os dados na tela', aoTocar: abrirManual },
             ];
             // v1.41.0 (D2) — configuração inicial também a partir de Contratos.
             if (!comImovel && typeof abrirConfiguracaoInicial === 'function') {
-                acoes.splice(1, 0, { icone: 'list-checks', tipo: 'ia', titulo: 'Configuração inicial', codigo: 'cofre.configuracao_inicial', sub: 'Mande os contratos e documentos que você já tem', aoTocar: () => abrirConfiguracaoInicial() });
+                acoes.splice(1, 0, { icone: 'list-checks', tipo: 'ia', titulo: 'Configuração inicial', codigo: 'cofre.configuracao_inicial', sub: 'Envie o que você já tem', aoTocar: () => abrirConfiguracaoInicial() });
             }
             if (comImovel && typeof iniciarProcessoContratacao === 'function') {
-                acoes.push({ icone: 'link', titulo: 'Coletar dados do locatário', codigo: 'contratos.criar', sub: 'Link, WhatsApp e minuta', aoTocar: () => iniciarProcessoContratacao(imovelId) });
+                acoes.push({ icone: 'link', titulo: 'Pedir dados do locatário', codigo: 'contratos.criar', sub: 'Link, WhatsApp e minuta', aoTocar: () => iniciarProcessoContratacao(imovelId) });
             }
             abrirSheetAcoes({ titulo: 'Novo contrato', sub: 'Como você quer cadastrar?', acoes });
         }
@@ -2197,7 +2195,7 @@ if (!window.__rzListenerEscritaParteContratoLigado) {
         export async function mudarStatusOcorrenciaContrato(ocorrenciaId, acao) {
             const oc = ocorrenciasContratoAtual.find(o => o.id === ocorrenciaId);
             if (!oc) return;
-            if (acao === 'excluir' && !ocContratoPodeExcluir(oc)) { mostrarToast('Esta ocorrência não pode ser excluída — use Cancelar.', 'danger'); return; }
+            if (acao === 'excluir' && !ocContratoPodeExcluir(oc)) { mostrarToast('Não dá para excluir. Use Cancelar.', 'danger'); return; }
             const motivo = acao === 'cancelar' ? (document.getElementById('occ-cancelar-motivo')?.value.trim() || null) : null;
             mostrarCarregamentoGlobal(acao === 'excluir' ? 'Excluindo...' : acao === 'cancelar' ? 'Cancelando...' : 'Reabrindo...');
             try {
@@ -2232,16 +2230,16 @@ if (!window.__rzListenerEscritaParteContratoLigado) {
             const rot = OC_CONTRATO_ROTULO[oc.tipo] || oc.tipo;
             const sub = `${con?.locatario || ''} · vence ${formatarDataBR(oc.data_prevista_atual)}`;
             const acoes = [
-                { icone: 'check', titulo: 'Dar baixa', codigo: 'cofre.ocorrencias.tratar', sub: 'Marca como tratada, com descrição opcional', aoTocar: () => abrirSheetForm({ titulo: 'Dar baixa', sub, rotuloSalvar: 'Confirmar baixa',
+                { icone: 'check', titulo: 'Dar baixa', codigo: 'cofre.ocorrencias.tratar', sub: 'Marca como tratada', aoTocar: () => abrirSheetForm({ titulo: 'Dar baixa', sub, rotuloSalvar: 'Confirmar baixa',
                     corpo: `<div class="rz-f"><label>Descrição da baixa</label><textarea id="occ-baixa-descricao" rows="3" placeholder="Opcional — o que foi feito, com quem, valor"></textarea></div>`,
                     aoSalvar: () => { salvarBaixaOcorrenciaContrato(oc.id); return false; } }) },
                 { icone: 'calendar', titulo: 'Reagendar', codigo: 'cofre.ocorrencias.reagendar', sub: 'Muda a data prevista', aoTocar: () => abrirSheetForm({ titulo: 'Reagendar', sub, rotuloSalvar: 'Confirmar novo prazo',
                     corpo: `<div class="rz-f"><label>Nova data prevista <i>*</i></label><input type="date" id="occ-reagendar-data" value="${oc.data_prevista_atual}"></div>`,
                     aoSalvar: () => { salvarReagendarOcorrenciaContrato(oc.id); return false; } }) },
             ];
-            if (oc.tipo === 'renovacao' || oc.tipo === 'revisional') acoes.unshift({ icone: 'refresh-cw', titulo: 'Renovar contrato', codigo: 'contratos.estender', sub: 'Novo fim, valor e documento — baixa esta ocorrência', aoTocar: () => renovarContrato(fichaContratoAtualId, oc.id) });
+            if (oc.tipo === 'renovacao' || oc.tipo === 'revisional') acoes.unshift({ icone: 'refresh-cw', titulo: 'Renovar contrato', codigo: 'contratos.estender', sub: 'Novo fim e valor', aoTocar: () => renovarContrato(fichaContratoAtualId, oc.id) });
             // v1.56.0 — cancelar e excluir (Nicola 13/10 22:44)
-            acoes.push({ icone: 'x-circle', titulo: 'Cancelar', codigo: 'cofre.ocorrencias.tratar', sub: 'Não vai acontecer · fica no histórico como cancelada', aoTocar: () => abrirSheetForm({ titulo: 'Cancelar ocorrência', sub, rotuloSalvar: 'Confirmar cancelamento',
+            acoes.push({ icone: 'x-circle', titulo: 'Cancelar', codigo: 'cofre.ocorrencias.tratar', sub: 'Não vai acontecer', aoTocar: () => abrirSheetForm({ titulo: 'Cancelar ocorrência', sub, rotuloSalvar: 'Confirmar cancelamento',
                 corpo: `<div class="rz-f"><label>Motivo</label><textarea id="occ-cancelar-motivo" rows="3" placeholder="Opcional — por que não vai acontecer"></textarea></div><p class="rz-desc">Dá para reabrir depois.</p>`,
                 aoSalvar: () => { mudarStatusOcorrenciaContrato(oc.id, 'cancelar'); return false; } }) });
             if (ocContratoPodeExcluir(oc)) acoes.push({ icone: 'trash-2', titulo: 'Excluir', codigo: 'cofre.ocorrencias.tratar', tipo: 'bad', sub: 'Apaga de vez', aoTocar: () => abrirSheetForm({ titulo: 'Excluir ocorrência', sub, rotuloSalvar: 'Excluir de vez',
@@ -2283,7 +2281,7 @@ if (!window.__rzListenerEscritaParteContratoLigado) {
         export function renovarContrato(contratoId, ocorrenciaOrigemId = null) {
             const con = contratos.find(c => c.id === contratoId);
             if (!con) return;
-            if (con.status === 'Assinando') { mostrarToast('Contrato ainda em assinatura — ative o contrato antes de renovar.', 'danger'); return; } // v1.32.0
+            if (con.status === 'Assinando') { mostrarToast('Ative o contrato antes de renovar.', 'danger'); return; } // v1.32.0
             if (typeof podeUsar === 'function' && rzMostrarBloqueio('contratos.estender')) return;
             const fimAtual = con.fim || '';
             const proximoDia = fimAtual ? new Date(fimAtual + 'T00:00:00') : new Date();
@@ -2339,7 +2337,7 @@ if (!window.__rzListenerEscritaParteContratoLigado) {
                             nome: `Renovação até ${formatarDataBR(novoFim)} — ${con.locatario || ''}`.trim(),
                             descricao: `Renovação contratual até ${formatarDataBR(novoFim)}.${obs ? ' ' + obs : ''}`, dataDocumento: vigencia || novoFim, categoriaSugerida: 'renovacao|aditivo|contrato',
                         });
-                    } catch (errDoc) { mostrarToast('O anexo falhou, a renovação segue sem ele: ' + (errDoc.message || errDoc), 'danger'); }
+                    } catch (errDoc) { mostrarToast('Renovação salva, sem o anexo: ' + (errDoc.message || errDoc), 'danger'); }
                 }
                 const { data: ocId, error } = await dbAuth.rpc('fn_contrato_renovar', {
                     p_contrato_id: contratoId, p_novo_fim: novoFim, p_novo_valor: isNaN(novoValor) ? null : novoValor,
@@ -2424,8 +2422,8 @@ if (!window.__rzListenerEscritaParteContratoLigado) {
                 // financeiro do contrato") — abrirNovoRecebimento é de
                 // financeiro.js (módulo isolado, ver window[nome] em index.html);
                 // contratoId já vai pronto, o form abre sem seletor de contrato.
-                { icone: 'plus', titulo: 'Adicionar recebimento', sub: 'Lança um recebimento avulso para este contrato', aoTocar: () => { if (typeof window.abrirNovoRecebimento === 'function') window.abrirNovoRecebimento(contratoId); } },
-                { icone: 'wallet', titulo: 'Ver no Financeiro', codigo: 'mensal.ver', sub: 'Todas as competências deste imóvel', aoTocar: () => { document.getElementById('men-filtro-imovel').value = con.imovelId; document.getElementById('men-filtro-imovel-resumo').textContent = (imo ? imo.empreendimento : '-'); switchTab('tab-mensal'); renderMensalidades(); } },
+                { icone: 'plus', titulo: 'Adicionar recebimento', sub: 'Avulso, deste contrato', aoTocar: () => { if (typeof window.abrirNovoRecebimento === 'function') window.abrirNovoRecebimento(contratoId); } },
+                { icone: 'wallet', titulo: 'Ver no Financeiro', codigo: 'mensal.ver', sub: 'Todos os meses do imóvel', aoTocar: () => { document.getElementById('men-filtro-imovel').value = con.imovelId; document.getElementById('men-filtro-imovel-resumo').textContent = (imo ? imo.empreendimento : '-'); switchTab('tab-mensal'); renderMensalidades(); } },
             ] });
         }
 
@@ -2448,7 +2446,7 @@ if (!window.__rzListenerEscritaParteContratoLigado) {
                 const { data, error } = await dbAuth.from('partes_papeis').select('parte_id').eq('entidade_tipo', 'contrato').eq('entidade_id', contratoId).eq('papel', papel).eq('ativo', true).limit(1).maybeSingle();
                 if (error) throw error;
                 if (!data?.parte_id) {
-                    mostrarToast('Esta parte ainda não tem cadastro próprio — abrindo pelo formulário do contrato.', 'aviso');
+                    mostrarToast('Abrindo pelo contrato.', 'aviso');
                     abrirEdicaoContratoContextual(contratoId, 'fichaContrato', contratoId);
                     return;
                 }
@@ -2483,7 +2481,7 @@ if (!window.__rzListenerEscritaParteContratoLigado) {
             const con = contratos.find(c => c.id === contratoId); if (!con || typeof abrirSheetAcoes !== 'function') return;
             const temLocatario = !!con.locatario;
             abrirSheetAcoes({ titulo: con.locatario || 'Locatário', sub: 'Locatário', acoes: [
-                { icone: 'pencil', titulo: temLocatario ? 'Editar locatário' : 'Adicionar locatário', codigo: 'contratos.editar', sub: 'Telefone, e-mail, endereço, documento', aoTocar: () => abrirFichaParteDoContrato(con.id, 'locatario') },
+                { icone: 'pencil', titulo: temLocatario ? 'Editar locatário' : 'Adicionar locatário', codigo: 'contratos.editar', sub: 'Contato e documento', aoTocar: () => abrirFichaParteDoContrato(con.id, 'locatario') },
                 { icone: 'user-plus', titulo: 'Adicionar parte', codigo: 'contratos.editar', sub: 'Novo fiador do contrato', aoTocar: () => adicionarParteContrato(con.id) },
             ] });
         }
@@ -2510,10 +2508,10 @@ if (!window.__rzListenerEscritaParteContratoLigado) {
             const i = Number.isInteger(index) ? index : 0;
             const f = fiadoresContratoAtual[i];
             abrirSheetAcoes({ titulo: f?.nome || 'Fiador', sub: 'Fiador', acoes: [
-                { icone: 'pencil', titulo: 'Editar fiador', codigo: 'contratos.editar', sub: 'Documento, cônjuge, contato, imóvel em garantia', aoTocar: () => abrirFormFiadorContrato(con.id, i) },
+                { icone: 'pencil', titulo: 'Editar fiador', codigo: 'contratos.editar', sub: 'Documento, contato, garantia', aoTocar: () => abrirFormFiadorContrato(con.id, i) },
                 { icone: 'user-plus', titulo: 'Adicionar parte', codigo: 'contratos.editar', sub: 'Novo fiador do contrato', aoTocar: () => abrirFormFiadorContrato(con.id, null) },
-                { icone: 'archive', titulo: 'Encerrar fiador', codigo: 'contratos.editar', sub: 'Troca real. Sai do contrato e fica no histórico da parte', aoTocar: () => encerrarFiadorDireto(con.id, i) },
-                { icone: 'trash-2', titulo: 'Excluir fiador', codigo: 'contratos.editar', tipo: 'bad', sub: 'Cadastro errado. Sai também do histórico da parte', aoTocar: () => removerFiadorDireto(con.id, i) },
+                { icone: 'archive', titulo: 'Encerrar fiador', codigo: 'contratos.editar', sub: 'Fica no histórico da parte', aoTocar: () => encerrarFiadorDireto(con.id, i) },
+                { icone: 'trash-2', titulo: 'Excluir fiador', codigo: 'contratos.editar', tipo: 'bad', sub: 'Sai também do histórico', aoTocar: () => removerFiadorDireto(con.id, i) },
             ] });
         }
 
@@ -2555,7 +2553,7 @@ if (!window.__rzListenerEscritaParteContratoLigado) {
             const nome = v.partes?.nome || 'Parte';
             abrirSheetAcoes({ titulo: `${rotulo} · ${nome}`, sub: 'Vínculo encerrado', acoes: [
                 { icone: 'rotate-ccw', titulo: 'Reativar', codigo: 'contratos.editar', sub: v.papel === 'fiador' ? 'Volta a ser fiador deste contrato, com os dados de antes' : 'Volta como cônjuge anuente do fiador', aoTocar: () => acaoEncerradoContrato(contratoId, v, 'fn_vinculo_reativar') },
-                { icone: 'trash-2', tipo: 'bad', titulo: 'Excluir', codigo: 'contratos.editar', sub: 'Cadastro errado. Sai também do histórico da parte', aoTocar: () => acaoEncerradoContrato(contratoId, v, 'fn_vinculo_excluir') },
+                { icone: 'trash-2', tipo: 'bad', titulo: 'Excluir', codigo: 'contratos.editar', sub: 'Sai também do histórico', aoTocar: () => acaoEncerradoContrato(contratoId, v, 'fn_vinculo_excluir') },
             ] });
         }
         async function acaoEncerradoContrato(contratoId, v, funcao) {
@@ -2650,7 +2648,7 @@ if (!window.__rzListenerEscritaParteContratoLigado) {
                         possui_imovel_proprio: !!el.querySelector('#ff-possui-imovel')?.checked,
                         imovel_matricula: v('ff-imovel-matricula'), imovel_cartorio_registro: v('ff-imovel-cartorio'), imovel_endereco: v('ff-imovel-endereco'),
                     };
-                    if (!dados.nome || !dados.cpf) { mostrarToast('Nome e CPF/CNPJ do fiador são obrigatórios.', 'danger'); return false; }
+                    if (!dados.nome || !dados.cpf) { mostrarToast('Informe nome e CPF/CNPJ do fiador.', 'danger'); return false; }
                     const lista = fiadoresContratoAtual.slice();
                     if (novo) lista.push(dados); else lista[index] = Object.assign({}, lista[index], dados);
                     const linhas = lista.filter(x => x.nome && x.cpf).map((x, i) => Object.assign({}, x, { ordem: i + 1 }));
@@ -2711,10 +2709,10 @@ if (!window.__rzListenerEscritaParteContratoLigado) {
             const imo = imoveis.find(i => i.id === con.imovelId);
             const pront = avaliarProntidaoContratoParaMinuta(con, imo);
             const acoes = [
-                { icone: 'sparkles', titulo: 'Adicionar documento com IA', codigo: 'cofre.analisar_ia', sub: 'Minuta, aditivo, recibo — com leitura por IA', tipo: 'ia', aoTocar: () => window.rzAbrirUploadContextualComFlag ? window.rzAbrirUploadContextualComFlag('contrato', con.id, con.locatario || 'Contrato', true) : rzCarregarDocumentoContrato(con.id) },
+                { icone: 'sparkles', titulo: 'Documento com IA', codigo: 'cofre.analisar_ia', sub: 'Minuta, aditivo, recibo', tipo: 'ia', aoTocar: () => window.rzAbrirUploadContextualComFlag ? window.rzAbrirUploadContextualComFlag('contrato', con.id, con.locatario || 'Contrato', true) : rzCarregarDocumentoContrato(con.id) },
                 { icone: 'upload', titulo: 'Upload simples', codigo: 'cofre.upload', sub: 'Só guarda o arquivo', aoTocar: () => window.rzAbrirUploadContextualComFlag?.('contrato', con.id, con.locatario || 'Contrato', false) },
             ];
-            if (con.status === 'Assinando' && pront.pronto) acoes.push({ icone: 'file-signature', titulo: 'Gerar minuta', codigo: 'minutas.gerar', sub: 'PDF a partir dos dados do contrato', aoTocar: () => gerarMinutaContrato(con.id) });
+            if (con.status === 'Assinando' && pront.pronto) acoes.push({ icone: 'file-signature', titulo: 'Gerar minuta', codigo: 'minutas.gerar', sub: 'PDF com os dados', aoTocar: () => gerarMinutaContrato(con.id) });
             abrirSheetAcoes({ titulo: 'Anexos', sub: con.locatario || '', acoes });
         }
 
@@ -2758,17 +2756,17 @@ if (!window.__rzListenerEscritaParteContratoLigado) {
             const emAssinatura = con.status === 'Assinando';
             // v1.34.0 (pedido do Nicola, 02/10/2026 01:55) — "Dados do contrato"
             // (só leitura) entra no topo, em qualquer status; "Abrir o imóvel" saiu.
-            const acaoDados = { icone: 'file-text', titulo: 'Dados do contrato', codigo: 'contratos.ver', sub: 'Ver tudo o que está cadastrado, sem editar', aoTocar: () => abrirDadosContratoLeitura(con.id) };
+            const acaoDados = { icone: 'file-text', titulo: 'Dados do contrato', codigo: 'contratos.ver', sub: 'Só leitura', aoTocar: () => abrirDadosContratoLeitura(con.id) };
             const acoes = emAssinatura ? [acaoDados] : [acaoDados,
-                { icone: 'trending-up', titulo: 'Reajustar contrato', codigo: 'contratos.reajustar', sub: 'Novo valor, vigência e documento', aoTocar: () => lancarReajusteContrato(con.id) },
-                { icone: 'refresh-cw', titulo: 'Renovar contrato', codigo: 'contratos.estender', sub: 'Novo fim de vigência, valor e documento', aoTocar: () => renovarContrato(con.id) }, // v1.1.0 — A.10
+                { icone: 'trending-up', titulo: 'Reajustar contrato', codigo: 'contratos.reajustar', sub: 'Novo valor e vigência', aoTocar: () => lancarReajusteContrato(con.id) },
+                { icone: 'refresh-cw', titulo: 'Renovar contrato', codigo: 'contratos.estender', sub: 'Novo fim e valor', aoTocar: () => renovarContrato(con.id) }, // v1.1.0 — A.10
                 // v1.6.0 (pedido explícito, 16/09) — "Histórico" saiu daqui:
                 // o card "Ocorrências" da própria ficha (Resumo) já é o
                 // histórico — cada linha agora abre (aberta = ações, fechada =
                 // resumo), o link redundante só confundia com 2 caminhos pro
                 // mesmo lugar.
             ];
-            if (con.status === 'Assinando' && pront.pronto) acoes.push({ icone: 'file-signature', titulo: 'Gerar minuta', codigo: 'minutas.gerar', sub: 'PDF a partir dos dados do contrato', aoTocar: () => gerarMinutaContrato(con.id) });
+            if (con.status === 'Assinando' && pront.pronto) acoes.push({ icone: 'file-signature', titulo: 'Gerar minuta', codigo: 'minutas.gerar', sub: 'PDF com os dados', aoTocar: () => gerarMinutaContrato(con.id) });
             // v1.116.0 — ações de status por estado do contrato (pedido
             // explícito). "As regras" continuam 100% em
             // abrirAlterarStatusContrato/salvarAlterarStatusContrato (data
@@ -2776,7 +2774,7 @@ if (!window.__rzListenerEscritaParteContratoLigado) {
             // aberto) — cada item aqui só pré-seleciona a ação nesse mesmo
             // formulário (abrirAcaoStatusContrato), não duplica a lógica.
             if (con.status === 'Assinando') {
-                acoes.push({ icone: 'check-circle-2', titulo: 'Ativar contrato', codigo: 'contratos.editar', sub: 'Conferir os dados e salvar — vira Ativo', aoTocar: () => ativarContratoPeloFormulario(con.id) }); // v1.32.0
+                acoes.push({ icone: 'check-circle-2', titulo: 'Ativar contrato', codigo: 'contratos.editar', sub: 'Confira e salve', aoTocar: () => ativarContratoPeloFormulario(con.id) }); // v1.32.0
             }
             if (con.status === 'Ativo') {
                 acoes.push({ icone: 'pause-circle', titulo: 'Suspender contrato', codigo: 'contratos.editar', aoTocar: () => abrirAcaoStatusContrato(con.id, 'Suspenso') });
@@ -2793,14 +2791,14 @@ if (!window.__rzListenerEscritaParteContratoLigado) {
             const doContrato = acoes.filter(a => !situacao.includes(a));
             const abre = (con.status === 'Ativo' || con.status === 'Assinando');
             const financeiro = emAssinatura ? [] : [
-                { icone: 'plus', titulo: 'Adicionar recebimento', codigo: 'mensal.ver', sub: 'Recebimento avulso deste contrato', aoTocar: () => { if (typeof window.abrirNovoRecebimento === 'function') window.abrirNovoRecebimento(con.id); } },
-                { icone: 'wallet', titulo: 'Ver no Financeiro', codigo: 'mensal.ver', sub: 'Todas as competências deste imóvel', aoTocar: () => { document.getElementById('men-filtro-imovel').value = con.imovelId; document.getElementById('men-filtro-imovel-resumo').textContent = (imo ? imo.empreendimento : '-'); switchTab('tab-mensal'); renderMensalidades(); } },
+                { icone: 'plus', titulo: 'Adicionar recebimento', codigo: 'mensal.ver', sub: 'Avulso, deste contrato', aoTocar: () => { if (typeof window.abrirNovoRecebimento === 'function') window.abrirNovoRecebimento(con.id); } },
+                { icone: 'wallet', titulo: 'Ver no Financeiro', codigo: 'mensal.ver', sub: 'Todos os meses do imóvel', aoTocar: () => { document.getElementById('men-filtro-imovel').value = con.imovelId; document.getElementById('men-filtro-imovel-resumo').textContent = (imo ? imo.empreendimento : '-'); switchTab('tab-mensal'); renderMensalidades(); } },
             ];
             const partesAnexos = [
                 ...(!con.locatario ? [{ icone: 'user-plus', titulo: 'Adicionar locatário', codigo: 'contratos.editar', sub: 'Quem aluga o imóvel', aoTocar: () => abrirFichaParteDoContrato(con.id, 'locatario') }] : []),
                 { icone: 'user-plus', titulo: 'Adicionar parte', codigo: 'contratos.editar', sub: 'Novo fiador do contrato', aoTocar: () => adicionarParteContrato(con.id) },
-                { icone: 'pie-chart', titulo: 'Editar distribuição', codigo: 'contratos.editar', sub: 'Rateio do aluguel entre proprietários', aoTocar: () => { if (typeof abrirAlteracoesDivisaoSocietaria === 'function') abrirAlteracoesDivisaoSocietaria(con.imovelId, con.id); else editarContrato(con.id); } },
-                ...(abre ? [{ icone: 'paperclip', titulo: 'Adicionar documento', codigo: 'cofre.upload', sub: 'Com leitura por IA ou só o arquivo', aoTocar: () => abrirAcoesAnexosContrato(con.id) }] : []),
+                { icone: 'pie-chart', titulo: 'Editar distribuição', codigo: 'contratos.editar', sub: 'Rateio entre proprietários', aoTocar: () => { if (typeof abrirAlteracoesDivisaoSocietaria === 'function') abrirAlteracoesDivisaoSocietaria(con.imovelId, con.id); else editarContrato(con.id); } },
+                ...(abre ? [{ icone: 'paperclip', titulo: 'Adicionar documento', codigo: 'cofre.upload', sub: 'Com IA ou só o arquivo', aoTocar: () => abrirAcoesAnexosContrato(con.id) }] : []),
             ];
             const grupos = [
                 { titulo: 'Contrato', acoes: doContrato },
@@ -2881,7 +2879,7 @@ if (!window.__rzListenerEscritaParteContratoLigado) {
             abrirEdicaoContratoContextual(contratoId, 'fichaContrato', contratoId);
             const sel = document.getElementById('con-status');
             if (sel) sel.value = 'Ativo';
-            mostrarToast('Confira e complete os dados. Ao salvar, o contrato fica Ativo.', 'info');
+            mostrarToast('Confira e salve para ativar.', 'info');
         }
 
         export function abrirAcaoStatusContrato(contratoId, valorAcao) {
@@ -3117,7 +3115,7 @@ if (!window.__rzListenerEscritaParteContratoLigado) {
             if (ini && fim) { const hoje = new Date().toISOString().slice(0, 10); pôr('con-status', ini <= hoje && hoje <= fim ? 'Ativo' : 'Assinando'); }
             documentoParaVincularContrato = documentoId || null;
             aoTerminarContratoDoDocumento = typeof aoTerminar === 'function' ? aoTerminar : null;
-            mostrarToast('Confira os dados lidos pela Raiz IA e salve o contrato.');
+            mostrarToast('Confira o que a Raiz IA leu e salve.');
         }
 
         export async function abrirFormularioContrato() {
@@ -4170,12 +4168,12 @@ if (!window.__rzListenerEscritaParteContratoLigado) {
                             return false;
                         }
                         if (!d) {
-                            mostrarToast('Informe o 1º vencimento de cada item que vai criar.', 'danger');
+                            mostrarToast('Informe o 1º vencimento de cada item.', 'danger');
                             el.querySelector('[data-campo="data"]').focus();
                             return false;
                         }
                         if (Number(d.slice(0, 4)) !== anoRef) {
-                            mostrarToast(`Os itens são de ${anoRef}: use um vencimento em ${anoRef}.`, 'danger');
+                            mostrarToast(`Use um vencimento em ${anoRef}.`, 'danger');
                             el.querySelector('[data-campo="data"]').focus();
                             return false;
                         }
@@ -4498,7 +4496,7 @@ if (!window.__rzListenerEscritaParteContratoLigado) {
             }
 
             if (!imo) {
-                mostrarToast('Não encontrei este imóvel — atualize a página e tente de novo.', 'danger');
+                mostrarToast('Imóvel não encontrado. Atualize.', 'danger');
                 return;
             }
 

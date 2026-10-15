@@ -1,7 +1,12 @@
 // ============================================================================
 // financeiro.js — Raiz Patrimônio · Financeiro (Recebimentos · Atrasados · Saídas
 //                  · conciliação de extrato · recibo · detalhe do recebimento)
-// Versão: 1.63.0 · 14/10/2026
+// Versão: 1.64.0 · 14/10/2026
+//
+// v1.64.0 (14/10/2026, sessão 20261014-2130-ajustes-9b, demanda a05ad2ee; onda 9b do estudo PROTOTIPO_UX_DENSIDADE_RAMOS_RAIZ
+// v1.2.0, D6 seção 10) — textos no limite: ação até 24 caracteres, descrição até 28 (só quando muda a decisão), aviso até
+// 40 com o resultado. A explicação longa fica na confirmação, que já existia. Nada de comportamento mudou.
+// Versão anterior: 1.63.0 · 14/10/2026
 //
 // v1.63.0 (14/10/2026, sessão 20261014-1430-onda8c-financeiro, demanda a05ad2ee; FICHA_ONDA_8C_FINANCEIRO_COMPUTADOR v1.0.0, de acordo do
 // Nicola 14/10 13:54: "Pode ser em recebimento e saidas e seguir em frente") — ONDA 8c, computador (≥ 1024 px):
@@ -27,18 +32,11 @@
 // v1.60.0 (12/10/2026, sessão 20261008-1231-pessoas-ativos, demanda 41d771c8; F13.10, ficha v3.1.0; de acordo do Nicola 12/10 03:27) — Balanço › Grupos ganha o
 // quadro "Rateios em grupo": os itens de controle com rateio aberto ou fechado, com o total e quantas pessoas; tocar abre a
 // ficha do item, onde fica o card do rateio. A categoria "Pagamento de grupo" já aparece no classificar (vem do catálogo).
-//
-// Versão anterior: 1.59.0 · 12/10/2026
-//
-// v1.59.0 (12/10/2026, sessão 20261012-0320-ux-busca, demanda a05ad2ee; Nicola 12/10 03:18: "o seletor no Usos aparece
-// dentro de um card Usos com o seletor à frente deste título. Ajuste isto nos 2 financeiros") — a visão por competência
-// (ficha do contrato e do ativo) é um card só, "Financeiro", com ‹ ano › à frente do título; o resumo, os atalhos e os
-// meses ficam dentro dele (fcEnvolver).
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.58.0 … v1.58.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.59.0 … v1.59.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '1.63.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.64.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 
 // v1.17.0 (Fase 1 do wrapper de escrita, rollout Financeiro) — emitirEscrita
 // é o evento padrão pra "algo mudou que módulos DE FORA deste arquivo podem
@@ -362,7 +360,7 @@ export function financeiroRedesenharQuadrantes() {
 // v1.20.0 — toque no Fiscal indisponível: leva a Empresa › Rotinas (mesmo
 // destino/padrão de rzTocarChipFechamentoDesligado).
 export function financeiroIrParaRotinas() {
-    if (typeof mostrarToast === 'function') mostrarToast('A rotina fiscal (NFS-e) está desligada. Ative em Empresa › Rotinas.', 'info');
+    if (typeof mostrarToast === 'function') mostrarToast('Ative a NFS-e em Empresa › Rotinas.', 'info');
     switchTab('tab-minha-empresa');
     setTimeout(() => document.getElementById('cme-rotinas-card')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 150);
 }
@@ -378,16 +376,16 @@ export function financeiroIrParaRotinas() {
 export function abrirLancarFinanceiro(aba) {
     if (typeof abrirSheetAcoes !== 'function') return;
     const fechada = (typeof window !== 'undefined') && window.RZ_FIN_FECHAMENTO?.status === 'concluido';
-    const avisoFechada = () => rzToast('Competência fechada. Reabra o mês em "Rotinas" para lançar algo nele.', { tipo: 'info' });
+    const avisoFechada = () => rzToast('Mês fechado. Reabra em Rotinas.', { tipo: 'info' });
     const acoes = [
-        { icone: 'file-down', tipo: 'ia', titulo: 'Importar extrato (IA)', codigo: 'conciliacao.importar', sub: 'Excel do Itaú, PDF ou foto — a Raiz IA concilia', aoTocar: () => document.getElementById('extrato-file-input')?.click() },
-        { icone: 'credit-card', tipo: 'ia', titulo: 'Importar fatura do cartão (IA)', codigo: 'cartao.importar', sub: 'PDF ou foto — compra por compra, com o que o Raiz já aprendeu', aoTocar: () => financeiroImportarFatura() }, // v1.37.0 (P5a)
-        { icone: 'file-plus', tipo: 'ia', titulo: 'Ler um documento (IA)', codigo: 'cofre.analisar_ia', sub: 'Comprovante, boleto ou nota — a Raiz IA classifica e vincula', aoTocar: () => { if (typeof abrirUploadDocumentoNoApp === 'function') abrirUploadDocumentoNoApp(); } },
+        { icone: 'file-down', tipo: 'ia', titulo: 'Importar extrato (IA)', codigo: 'conciliacao.importar', sub: 'Excel, PDF ou foto', aoTocar: () => document.getElementById('extrato-file-input')?.click() },
+        { icone: 'credit-card', tipo: 'ia', titulo: 'Importar fatura (IA)', codigo: 'cartao.importar', sub: 'PDF ou foto', aoTocar: () => financeiroImportarFatura() }, // v1.37.0 (P5a)
+        { icone: 'file-plus', tipo: 'ia', titulo: 'Ler um documento (IA)', codigo: 'cofre.analisar_ia', sub: 'Comprovante, boleto, nota', aoTocar: () => { if (typeof abrirUploadDocumentoNoApp === 'function') abrirUploadDocumentoNoApp(); } },
         { icone: 'arrow-down-left', titulo: 'Adicionar recebimento', sub: fechada ? 'Competência fechada — reabra para lançar' : 'De um contrato ou sem contrato', aoTocar: () => fechada ? avisoFechada() : abrirAdicionarRecebimento() },
         { icone: 'arrow-up-right', titulo: 'Adicionar saída', sub: fechada ? 'Competência fechada — reabra para lançar' : 'Despesa, tributo, manutenção', aoTocar: () => fechada ? avisoFechada() : abrirNovaDespesa() },
     ];
     if (aba === 'conciliacao') {
-        acoes.push({ icone: 'refresh-cw', titulo: 'Reprocessar pendências', codigo: 'conciliacao.resolver', sub: 'Refaz a comparação nas pendências, se algo mudou depois da importação', aoTocar: () => reprocessarConciliacaoPendente() });
+        acoes.push({ icone: 'refresh-cw', titulo: 'Reprocessar pendências', codigo: 'conciliacao.resolver', sub: 'Compara de novo', aoTocar: () => reprocessarConciliacaoPendente() });
     }
     abrirSheetAcoes({ titulo: 'Lançar', sub: financeiroCompetenciaLabel(financeiroCompetenciaAtual || financeiroCompetenciaHojeISO()), acoes });
 }
@@ -454,7 +452,7 @@ export async function abrirNovoRecebimento(contratoIdPreSelecionado) {
         const ativos = contratos.filter(c => c.status === 'Ativo').slice()
             .sort((a, b) => (a.locatario || '').localeCompare(b.locatario || ''));
         if (!ativos.length) {
-            mostrarToast('Nenhum contrato ativo para lançar um recebimento.', 'danger');
+            mostrarToast('Nenhum contrato ativo.', 'danger');
             return;
         }
         const optsContrato = `<option value="">— selecionar —</option>` + ativos.map(c => {
@@ -534,7 +532,7 @@ export async function salvarNovoRecebimento() {
     // replicada aqui pra avisar ANTES de gravar (client-side, mensalidades
     // já carregadas na sessão; não é constraint de banco).
     if (mensalidades.some(m => m.contratoId === contratoId && m.referencia === competencia)) {
-        mostrarToast('Este contrato já tem um recebimento lançado nessa competência.', 'danger');
+        mostrarToast('Este mês já tem recebimento.', 'danger');
         return false;
     }
 
@@ -604,7 +602,7 @@ async function financeiroVerificarRotinaFechamento() {
 }
 
 export function rzTocarChipFechamentoDesligado() {
-    if (typeof mostrarToast === 'function') mostrarToast('Fechamento mensal está desligado para esta empresa. Toque pra ativar em Empresa › Rotinas.', 'info');
+    if (typeof mostrarToast === 'function') mostrarToast('Ative o fechamento em Empresa › Rotinas.', 'info');
     switchTab('tab-minha-empresa');
     setTimeout(() => document.getElementById('cme-rotinas-card')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 150);
 }
@@ -756,7 +754,7 @@ async function financeiroEditarDivisao(origemTipo, id, valor, atuais, aoMudar) {
 /** Linha "Conta: <nome>" nos sheets de recebimento/despesa (só com mais de 1 conta). */
 function financeiroAcaoConta(origemTipo, id, contaId, aoMudar) {
     if (!financeiroContasMultiplas()) return [];
-    return [{ icone: 'wallet', titulo: `Conta: ${financeiroNomeConta(contaId) || '—'}`, sub: 'Trocar a conta deste movimento', codigo: 'financeiro.contas.escolher',
+    return [{ icone: 'wallet', titulo: `Conta: ${financeiroNomeConta(contaId) || '—'}`, sub: 'Trocar a conta', codigo: 'financeiro.contas.escolher',
         aoTocar: async () => {
             if (typeof window.rzEscolher !== 'function') return;
             const v = await window.rzEscolher({ titulo: 'Mover para a conta', opcoes: financeiroContasInfo.contas.map(c => ({ valor: c.id, titulo: c.nome, sub: c.id === contaId ? 'Conta atual' : (c.titular_tipo === 'empresa' ? 'Empresa' : (c.titular_nome || '')), icone: c.titular_tipo === 'empresa' ? 'building-2' : 'user' })) });
@@ -791,7 +789,7 @@ async function financeiroAtualizarKpis(aba) {
     } catch (e) {
         console.error('[financeiro] fn_financeiro_totalizadores', e);
         Object.values(ids).forEach(id => { const el = document.getElementById(id); if (el) el.textContent = 'R$ 0'; });
-        if (typeof mostrarToast === 'function') mostrarToast('Não consegui calcular os totais deste mês agora.', 'danger');
+        if (typeof mostrarToast === 'function') mostrarToast('Totais do mês indisponíveis agora.', 'danger');
     }
 }
 
@@ -1023,7 +1021,7 @@ function financeiroRenderCabecalho(aba) {
                     ...acaoOrigem,
                     { icone: 'eye', titulo: 'Ver detalhe', aoTocar: () => abrirEditarDespesa(id) },
                 ];
-                if (urlComprovante) acoesRealizado.push({ icone: 'file-check-2', titulo: 'Ver comprovante', sub: 'Comprovante do Pix guardado no Cofre', aoTocar: () => rzDev('abrirExterno', urlComprovante) });
+                if (urlComprovante) acoesRealizado.push({ icone: 'file-check-2', titulo: 'Ver comprovante', sub: 'Pix guardado no Cofre', aoTocar: () => rzDev('abrirExterno', urlComprovante) });
                 // CORRIGIDO v1.15.0 — mesma regra de rzAcoesMensalidade
                 // acima (REGRAS §11.1: competência fechada só permite ver
                 // detalhes, nunca alterar).
@@ -1043,7 +1041,7 @@ function financeiroRenderCabecalho(aba) {
                     acoesRealizado.push({
                         icone: d.incluirContabilidade === false ? 'plus-circle' : 'ban',
                         titulo: d.incluirContabilidade === false ? 'Incluir na contabilidade' : 'Não incluir na contabilidade',
-                        sub: 'Controla o pacote enviado ao contador no fechamento',
+                        sub: 'Pacote do contador',
                         codigo: 'financeiro.contabilidade_ajustar',
                         aoTocar: () => alternarIncluirContabilidade('lancamento', id),
                     });
@@ -1409,16 +1407,16 @@ function financeiroRenderCabecalho(aba) {
                 acoes.push({ icone: 'sparkles', tipo: 'ia', titulo: financeiroTextoSugestaoCartao(s, nomeCat), sub: `Confiança: ${Math.round(Number(s.confianca || 0))}%`, codigo: 'cartao.classificar',
                     aoTocar: () => financeiroGravarClassificacao([i.id], { categoria: s.categoria, ativo_id: s.ativo_id || null, parte_id: s.parte_id || null, divisao: null, sempre_assim: false }, f.id) });
             }
-            acoes.push({ icone: 'tags', titulo: pend ? (s.categoria ? 'Classificar de outro jeito' : 'Classificar') : 'Mudar classificação', sub: 'Categoria, ativo, fornecedor e "Sempre assim"', codigo: 'cartao.classificar', manterAberto: true,
+            acoes.push({ icone: 'tags', titulo: pend ? (s.categoria ? 'Classificar de outro jeito' : 'Classificar') : 'Mudar classificação', sub: 'Categoria, ativo, fornecedor', codigo: 'cartao.classificar', manterAberto: true,
                 aoTocar: () => financeiroClassificarItens([i], f.id) });
             if (!pend) {
-                acoes.push({ icone: 'undo-2', titulo: 'Voltar para em aberto', sub: 'Volta para "A classificar" para editar de novo', codigo: 'cartao.classificar',
+                acoes.push({ icone: 'undo-2', titulo: 'Voltar para em aberto', sub: 'Volta para "A classificar"', codigo: 'cartao.classificar',
                     aoTocar: () => financeiroGravarClassificacao([i.id], { categoria: 'a_classificar', ativo_id: null, parte_id: null, divisao: null, sempre_assim: false }, f.id) });
                 acoes.push({ icone: 'info', titulo: 'Resumo da conciliação', sub: 'Data, origem, modo e canal', aoTocar: () => financeiroResumoCompraCartao(i, f) });
             }
             // v1.62.0 — cartão adicional: mover a compra entre o principal e os adicionais (a divisão segue a conta em que o adicional cai)
             const adsAtivos = (f.adicionais || []).filter(a => a.situacao === 'ativa' && a.id !== i.cartao_uso_id);
-            if (!f.parcial && i.cartao_uso_id) acoes.push({ icone: 'undo-2', titulo: 'Voltar ao principal', sub: `A compra sai do ${i.cartao_uso_nome || 'adicional'} e volta para ${financeiroNomeCartao(f)}`, codigo: 'cartao.classificar',
+            if (!f.parcial && i.cartao_uso_id) acoes.push({ icone: 'undo-2', titulo: 'Voltar ao principal', sub: `Volta para ${financeiroNomeCartao(f)}`, codigo: 'cartao.classificar',
                 aoTocar: () => financeiroMoverCompraCartao([i.id], f.cartao_id, f.id) });
             if (!f.parcial && adsAtivos.length) acoes.push({ icone: 'credit-card', titulo: adsAtivos.length === 1 ? `Mover para o adicional ${adsAtivos[0].nome}` : 'Mover para um adicional',
                 sub: adsAtivos.length === 1 ? `${adsAtivos[0].titular_nome || ''}${adsAtivos[0].final ? ' · final ' + adsAtivos[0].final : ''}` : adsAtivos.map(a => a.nome).join(', '), codigo: 'cartao.classificar', manterAberto: adsAtivos.length > 1,
@@ -1429,13 +1427,13 @@ function financeiroRenderCabecalho(aba) {
                             aoTocar: () => financeiroMoverCompraCartao([i.id], a.id, f.id) })) });
                 } });
             acoes.push(...financeiroAcaoDivisao('lancamento', i.id, Math.abs(Number(i.valor)), i.divisao_ajustada, () => financeiroDepoisDeMudarFatura(f.id), true));
-            acoes.push({ icone: 'trash-2', titulo: 'Excluir compra', sub: 'Só volta importando a fatura de novo', tipo: 'bad', codigo: 'cartao.importar',
+            acoes.push({ icone: 'trash-2', titulo: 'Excluir compra', sub: 'Só volta reimportando', tipo: 'bad', codigo: 'cartao.importar',
                 aoTocar: async () => {
                     if (!await rzConfirmar({ titulo: 'Excluir esta compra?', impacto: `"${i.descricao}" sai da fatura de vez. Ela só volta importando a fatura de novo.`, destrutivo: true, rotuloConfirmar: 'Excluir compra' })) return;
                     const { error } = await dbAuth.from('lancamentos').delete().eq('id', i.id);
                     if (error) { rzToast(error.message, { tipo: 'danger' }); return; }
                     if (typeof registrarLog === 'function') registrarLog('cartao.excluir_compra', { lancamento_id: i.id, fatura_id: f.id, descricao: i.descricao, valor: i.valor, compra: i.compra });
-                    rzToast('Compra excluída. Ela só volta importando a fatura de novo.', { tipo: 'success' });
+                    rzToast('Compra excluída', { tipo: 'success' });
                     financeiroDepoisDeMudarFatura(f.id);
                 } });
             // nível 2 por cima da fatura: Cancelar volta para a fatura, não para a lista de Saídas
@@ -1570,7 +1568,7 @@ function financeiroRenderCabecalho(aba) {
                         sub: `Classificar igual: ${nomeCat}?`,
                         opcoes: [
                             { valor: 'igual', titulo: `Classificar as ${total}`, sub: 'Esta e as iguais', icone: 'copy-check' },
-                            { valor: 'sempre', titulo: `Classificar as ${total} e sempre assim`, sub: 'As próximas faturas já chegam classificadas', icone: 'repeat' },
+                            { valor: 'sempre', titulo: `Classificar as ${total} e sempre assim`, sub: 'As próximas já classificadas', icone: 'repeat' },
                             { valor: 'so', titulo: 'Só esta', icone: 'check' },
                         ],
                     });
@@ -1594,7 +1592,7 @@ function financeiroRenderCabecalho(aba) {
         async function financeiroGravarContab(ids, incluir) {
             for (const id of ids) {
                 const { error } = await dbAuth.rpc('fn_financeiro_incluir_contabilidade', { p_tipo: 'lancamento', p_id: id, p_incluir: !!incluir });
-                if (error) { rzToast('Classificado, mas não consegui ajustar a contabilidade: ' + error.message, { tipo: 'danger' }); return; }
+                if (error) { rzToast('Classificado; contabilidade não: ' + error.message, { tipo: 'danger' }); return; }
             }
         }
 
@@ -1755,7 +1753,7 @@ function financeiroRenderCabecalho(aba) {
                     if (!lido) { rzToast('Escolha o PDF ou a foto da fatura.', { tipo: 'danger' }); return false; }
                     if (!sim) { rzToast('Aguarde a comparação com a fatura.', { tipo: 'info' }); return false; }
                     const confirmarPaga = !!el.querySelector('#fi-conf-paga')?.checked;
-                    if (el.querySelector('#fi-conf-paga') && !confirmarPaga) { rzToast('A fatura já está paga: marque a confirmação para acrescentar as compras novas.', { tipo: 'danger' }); return false; }
+                    if (el.querySelector('#fi-conf-paga') && !confirmarPaga) { rzToast('Fatura paga: marque a confirmação.', { tipo: 'danger' }); return false; }
                     const selPaga = el.querySelector('#fi-paga');
                     if (selPaga && !selPaga.value) { rzToast('Diga se a fatura já foi paga.', { tipo: 'danger' }); selPaga.focus(); return false; }
                     const jaPaga = selPaga?.value === 'sim';
@@ -2176,11 +2174,11 @@ function financeiroRenderCabecalho(aba) {
             const novoFornecedorNome = document.getElementById('desp-fornecedor-novo-nome').value.trim();
 
             if (!descricao || !categoria || isNaN(valor) || !vencimento || !competencia) {
-                mostrarToast('Preencha descrição, categoria, valor, vencimento e competência.', 'danger');
+                mostrarToast('Preencha os campos obrigatórios.', 'danger');
                 return;
             }
             if (fornecedorSel === '__novo__' && !novoFornecedorNome) {
-                mostrarToast('Informe o nome do novo fornecedor, ou selecione um existente.', 'danger');
+                mostrarToast('Informe ou escolha o fornecedor.', 'danger');
                 return;
             }
 
@@ -2383,7 +2381,7 @@ function financeiroRenderCabecalho(aba) {
             if (!men) { rzToast('Recebimento não encontrado.', { tipo: 'danger' }); return; }
 
             const con = contratos.find(c => c.id === men.contratoId);
-            if (!con) { rzToast('Contrato deste recebimento não encontrado.', { tipo: 'danger' }); return; }
+            if (!con) { rzToast('Contrato não encontrado.', { tipo: 'danger' }); return; }
 
             const imo = imoveis.find(i => i.id === con.imovelId);
             const localImovel = imo ? `${imo.empreendimento || ''} - ${imo.enderecoRua || ''}, ${imo.enderecoNum || ''}${imo.enderecoComp ? ' - ' + imo.enderecoComp : ''}` : '';
@@ -2664,7 +2662,7 @@ function financeiroRenderCabecalho(aba) {
             // essa função simplesmente terminava aqui sem avisar nada.
             // Agora autocorrige: redesenha a lista com os ids atuais e avisa.
             if (idx === -1) {
-                mostrarToast('Essa linha estava desatualizada — lista atualizada, tenta de novo.', 'danger');
+                mostrarToast('Lista atualizada. Tente de novo.', 'danger');
                 renderMensalidades();
                 return;
             }
@@ -2868,7 +2866,7 @@ function financeiroRenderCabecalho(aba) {
                 esconderCarregamentoGlobal();
 
                 if (transacoes.length === 0) {
-                    rzToast('Nenhum lançamento válido encontrado nesse arquivo.', { tipo: 'danger' });
+                    rzToast('Nenhum lançamento no arquivo.', { tipo: 'danger' });
                     inputElement.value = '';
                     return;
                 }
@@ -2980,7 +2978,7 @@ function financeiroRenderCabecalho(aba) {
 
                 if (transacoes.length === 0) {
 
-                    rzToast('Nenhum lançamento válido encontrado nesse arquivo.', { tipo: 'danger' });
+                    rzToast('Nenhum lançamento no arquivo.', { tipo: 'danger' });
 
                     return;
 
@@ -3433,7 +3431,7 @@ function financeiroRenderCabecalho(aba) {
 
             if (!pendentesFp || pendentesFp.length === 0) {
 
-                rzToast('Não há entradas pendentes para reprocessar agora.', { tipo: 'info' });
+                rzToast('Nada pendente para reprocessar.', { tipo: 'info' });
 
                 return;
 
@@ -4017,7 +4015,7 @@ function financeiroRenderCabecalho(aba) {
                         acoesConciliado.push({ icone: 'receipt', titulo: 'Recibo', sub: 'Gerar ou reenviar', aoTocar: () => abrirModalOpcoesRecibo(menConciliada.id, menConciliada.contratoId) });
                     }
                 }
-                acoesConciliado.push({ icone: 'undo-2', titulo: 'Estornar', sub: 'Volta pra pendente — só desvincula, não apaga o recebimento/despesa', tipo: 'bad', aoTocar: () => confirmarEstornarConciliacaoSaida(fingerprintId) });
+                acoesConciliado.push({ icone: 'undo-2', titulo: 'Estornar', sub: 'Desvincular · não apaga', tipo: 'bad', aoTocar: () => confirmarEstornarConciliacaoSaida(fingerprintId) });
                 acoesConciliado.push({ icone: 'info', titulo: 'Resumo da conciliação', sub: 'Data, origem, modo e canal', aoTocar: () => abrirResumoConciliacao(fingerprintId) });
                 abrirSheetAcoes({ titulo: limparRotuloConciliacao(f.razao_social), sub: sub + (nomeRegra ? ' · Automático (regra) · ' + nomeRegra : f.canal === 'bot' ? ' · Automático (IA/WhatsApp)' : ' · Manual'), acoes: acoesConciliado });
                 return;
@@ -4065,7 +4063,7 @@ function financeiroRenderCabecalho(aba) {
                     const pct = mesmoDoMotor ? Math.round(sugCache.confianca || 0) : Math.round((c.confianca || 0) * 100);
                     acoes.push({
                         icone: i === 0 ? 'check' : 'link', titulo: `${i === 0 ? 'Confirmar' : 'Vincular'}: ${c.locatario}`,
-                        sub: `Ref ${c.referencia} · R$ ${fmtBR(c.valor)} · ${pct}% de confiança`,
+                        sub: `${c.referencia} · R$ ${fmtBR(c.valor)} · ${pct}%`,
                         aoTocar: () => confirmarVincularConciliacaoRecebimento(fingerprintId, c.mensalidade_id, f),
                     });
                 });
@@ -4076,7 +4074,7 @@ function financeiroRenderCabecalho(aba) {
                     const pct = mesmoDoMotor ? Math.round(sugCache.confianca || 0) : Math.round((c.confianca || 0) * 100);
                     acoes.push({
                         icone: i === 0 ? 'check' : 'link', titulo: `${i === 0 ? 'Confirmar' : 'Vincular'}: ${c.descricao || c.categoria || 'despesa prevista'}`,
-                        sub: `R$ ${fmtBR(c.valor)} · vence ${formatarDataBR(c.vencimento)} · ${pct}% de confiança`,
+                        sub: `R$ ${fmtBR(c.valor)} · ${formatarDataBR(c.vencimento)} · ${pct}%`,
                         aoTocar: () => confirmarVincularConciliacaoSaida(fingerprintId, c.lancamento_id),
                     });
                 });
@@ -4085,7 +4083,7 @@ function financeiroRenderCabecalho(aba) {
                 acoes.push({ icone: 'plus', titulo: 'Nova despesa', sub: categoriaSugerida ? `Sugestão: ${categoriaSugerida}` : 'Abre o formulário de despesa', aoTocar: () => { fecharSheet(); despesaOrigemFingerprintId = fingerprintId; abrirNovaDespesa(null, { descricao: f.razao_social, categoria: categoriaSugerida || undefined, valor: Math.abs(parseFloat(f.valor)), vencimento: f.data }); } });
                 acoes.push({ icone: 'arrow-left-right', titulo: 'Marcar como repasse', sub: 'Repasse de sócio ou similar', aoTocar: () => confirmarMarcarComoRepasse(fingerprintId) });
             }
-            acoes.push({ icone: 'eye-off', titulo: 'Não controlar', sub: 'A linha do banco continua guardada', aoTocar: () => abrirFormNaoControlarConciliacao(fingerprintId) });
+            acoes.push({ icone: 'eye-off', titulo: 'Não controlar', sub: 'A linha do banco fica', aoTocar: () => abrirFormNaoControlarConciliacao(fingerprintId) });
 
             abrirSheetAcoes({ titulo: limparRotuloConciliacao(f.razao_social) || (entrada ? 'Entrada' : 'Saída'), sub, acoes });
         }
@@ -4180,8 +4178,8 @@ function financeiroRenderCabecalho(aba) {
             const nomeAuto = obterSociosConhecidos().find(s => nomesIguaisSocio(s, f.razao_social));
             if (nomeAuto) { criarRepasseDireto(fingerprintId, nomeAuto); return; }
             const socios = obterSociosConhecidos();
-            if (!socios.length) { mostrarToast('Nenhum sócio cadastrado com cota em contrato — cadastre em Partes primeiro.', 'danger'); return; }
-            abrirSheetAcoes({ titulo: 'Qual sócio?', sub: 'Não identifiquei pelo nome do pagador — escolha', acoes: socios.map(s => ({
+            if (!socios.length) { mostrarToast('Cadastre os sócios em Partes antes.', 'danger'); return; }
+            abrirSheetAcoes({ titulo: 'Qual sócio?', sub: 'Pagador não identificado', acoes: socios.map(s => ({
                 icone: 'user', titulo: s, aoTocar: () => criarRepasseDireto(fingerprintId, s)
             })) });
         }
@@ -4306,7 +4304,7 @@ function financeiroRenderCabecalho(aba) {
 
         function abrirFormNaoControlarConciliacao(fingerprintId) {
             abrirSheetForm({
-                titulo: 'Não controlar', sub: 'A linha do banco continua guardada',
+                titulo: 'Não controlar', sub: 'A linha do banco fica',
                 corpo: `<div class="mb-1"><label class="block text-xs font-bold text-gray-600">Observação (opcional)</label><textarea id="nc-obs" rows="2" class="w-full p-2 border rounded text-sm mt-1"></textarea></div>`,
                 rotuloSalvar: 'Confirmar',
                 aoSalvar: () => { confirmarNaoControlarConciliacao(fingerprintId, document.getElementById('nc-obs').value); return false; },
@@ -4356,14 +4354,14 @@ function financeiroRenderCabecalho(aba) {
             // liquidarMensalidade (ver saveAll). Antes só dava "return"
             // silencioso; agora autocorrige e avisa.
             if (!men) {
-                mostrarToast('Essa linha estava desatualizada — lista atualizada, tenta de novo.', 'danger');
+                mostrarToast('Lista atualizada. Tente de novo.', 'danger');
                 renderMensalidades();
                 return;
             }
 
             if (men.status !== 'Inadimplente') {
 
-                rzToast('Só dá para excluir o que ainda não foi recebido. Para reverter uma baixa, use "Estornar".', { tipo: 'info' });
+                rzToast('Já recebido: use Estornar.', { tipo: 'info' });
 
                 return;
 
@@ -4490,7 +4488,7 @@ function financeiroRenderCabecalho(aba) {
                     // bruto/taxa/líquido, com motivo obrigatório e
                     // auditoria (fn_mensalidade_valores_ajustar); mesma
                     // trava de competência fechada das ações acima.
-                    acoesPago.push({ icone: 'sliders-horizontal', titulo: 'Ajustar valores', sub: 'Bruto, taxa e líquido — fica registrado o motivo', codigo: 'mensal.baixar', aoTocar: () => abrirAjusteValoresMensalidade(men.id) });
+                    acoesPago.push({ icone: 'sliders-horizontal', titulo: 'Ajustar valores', sub: 'Bruto, taxa e líquido', codigo: 'mensal.baixar', aoTocar: () => abrirAjusteValoresMensalidade(men.id) });
                 }
                 // v1.179.5 — pedido do Nicola: "Resumo da conciliação" em
                 // todo item conciliado, não só na aba Conciliação — só
@@ -4512,7 +4510,7 @@ function financeiroRenderCabecalho(aba) {
                     acoesPago.push({
                         icone: men.incluirContabilidade === false ? 'plus-circle' : 'ban',
                         titulo: men.incluirContabilidade === false ? 'Incluir na contabilidade' : 'Não incluir na contabilidade',
-                        sub: 'Controla o pacote enviado ao contador no fechamento',
+                        sub: 'Pacote do contador',
                         codigo: 'financeiro.contabilidade_ajustar',
                         aoTocar: () => alternarIncluirContabilidade('mensalidade', men.id),
                     });
@@ -4526,7 +4524,7 @@ function financeiroRenderCabecalho(aba) {
             const valorMen = Number(men.valorConfirmado ?? men.valor ?? 0);
             abrirSheetAcoes({ titulo: emAtraso ? 'Em atraso' : 'A receber', sub, acoes: [
                 { icone: 'check', titulo: 'Dar baixa', sub: 'Registrar o recebimento', codigo: 'mensal.baixar', aoTocar: () => rzAbrirBaixaMensalidade(men.id) },
-                ...(emAtraso ? [{ icone: 'message-circle', titulo: 'Cobrar pelo WhatsApp', sub: 'Mensagem ao locatário, com o Pix da empresa', codigo: 'cobrar.lembrete',
+                ...(emAtraso ? [{ icone: 'message-circle', titulo: 'Cobrar pelo WhatsApp', sub: 'Com o Pix da empresa', codigo: 'cobrar.lembrete',
                     aoTocar: () => financeiroCobrarMensalidade(men.id) }] : []), // v1.44.0 — mesma função do deslize
                 ...financeiroAcaoConta('mensalidade', men.id, men.contaId, (v) => { men.contaId = v; renderMensalidades(); }), // v1.33.0
                 ...financeiroAcaoDivisao('mensalidade', men.id, valorMen, men.divisaoAjustada, (aj) => { men.divisaoAjustada = aj; renderMensalidades(); }), // v1.35.0
@@ -4953,7 +4951,7 @@ function financeiroRenderCabecalho(aba) {
             return { data, forma, valores };
         }
         function finAvisoLote(ignorados, rotulo) { return ignorados ? `<p class="rz-ft-lote-ajuda"><b>${ignorados}</b> ${ignorados === 1 ? rotulo[0] : rotulo[1]} fora do lote.</p>` : ''; }
-        function finMesFechado() { if (window.RZ_FIN_COMPETENCIA_FECHADA === true) { rzToast('Este mês está fechado. Reabra o mês para dar baixa.', { tipo: 'danger' }); return true; } return false; }
+        function finMesFechado() { if (window.RZ_FIN_COMPETENCIA_FECHADA === true) { rzToast('Mês fechado. Reabra para dar baixa.', { tipo: 'danger' }); return true; } return false; }
 
         function finBaixaLoteRec() {
             if (typeof rzMostrarBloqueio === 'function' && rzMostrarBloqueio('mensal.baixar')) return;
@@ -5107,7 +5105,7 @@ function financeiroRenderCabecalho(aba) {
             // idêntica — o template oculto pdf-* não mudou.
             const sheetRecibo = abrirSheetAcoes({ titulo: 'Recibo de aluguel', sub: `${con.locatario} · ${men.referencia} (${empName})`, acoes: [
                 { icone: 'eye', titulo: 'Visualizar na tela', aoTocar: () => dispararAcaoDoMenu('visualizar') },
-                { icone: 'download', titulo: 'Gerar e baixar PDF', sub: 'Documento oficial com numeração', aoTocar: () => dispararAcaoDoMenu('pdf') },
+                { icone: 'download', titulo: 'Gerar e baixar PDF', sub: 'Com numeração', aoTocar: () => dispararAcaoDoMenu('pdf') },
                 { icone: 'message-circle', titulo: 'Enviar pelo WhatsApp', aoTocar: () => dispararAcaoDoMenu('zap') },
                 { icone: 'mail', titulo: 'Enviar por e-mail', aoTocar: () => dispararAcaoDoMenu('email') },
             ] });
@@ -5386,7 +5384,7 @@ function financeiroRenderCabecalho(aba) {
         export function rzAcoesGrupoInadimplencia(id) {
             const g = (window.__rzCobrancaGrupo || {})[id]; if (!g || typeof abrirSheetAcoes !== 'function') return;
             abrirSheetAcoes({ titulo: g.titulo, sub: `${formatarMoedaBR(g.total)} em aberto`, acoes: [
-                { icone: 'message-circle', titulo: 'Cobrar pelo WhatsApp', codigo: 'cobrar.lembrete', sub: 'Abre a conversa com a lista de competências', aoTocar: () => dispararCobrancaWhatsAppDirect(g.celular, g.titulo, g.itens, g.total, g.contratoId) },
+                { icone: 'message-circle', titulo: 'Cobrar pelo WhatsApp', codigo: 'cobrar.lembrete', sub: 'Com os meses em aberto', aoTocar: () => dispararCobrancaWhatsAppDirect(g.celular, g.titulo, g.itens, g.total, g.contratoId) },
             ] });
         }
 
@@ -5503,8 +5501,8 @@ function financeiroRenderCabecalho(aba) {
 // ============================================================================
 export async function abrirAdicionarRecebimento() {
     const v = await rzEscolher({ titulo: 'Adicionar recebimento', opcoes: [
-        { valor: 'contrato', icone: 'file-text', titulo: 'De um contrato', sub: 'Aluguel ou outro valor de um contrato ativo' },
-        { valor: 'avulso', icone: 'arrow-down-left', titulo: 'Sem contrato', sub: 'Juros, venda, reembolso, outra receita' },
+        { valor: 'contrato', icone: 'file-text', titulo: 'De um contrato', sub: 'Aluguel ou outro valor' },
+        { valor: 'avulso', icone: 'arrow-down-left', titulo: 'Sem contrato', sub: 'Juros, venda, reembolso…' },
     ] });
     if (v === 'contrato') abrirNovoRecebimento();
     else if (v === 'avulso') abrirReceitaAvulsa();
@@ -5540,7 +5538,7 @@ export async function abrirReceitaAvulsa() {
             </div>
         </div>`;
     const sheet = abrirSheetForm({
-        titulo: 'Receita sem contrato', sub: 'Entra em Recebimentos › Outras receitas',
+        titulo: 'Receita sem contrato', sub: 'Vai para Outras receitas',
         corpo, rotuloSalvar: 'Registrar receita',
         aoSalvar: () => salvarReceitaAvulsa(),
     });
@@ -6037,8 +6035,8 @@ export function distribFiltrar(texto) { distribBusca = String(texto || ''); if (
 export function abrirLancarDistribuicao() {
     if (typeof abrirSheetAcoes !== 'function') return;
     abrirSheetAcoes({ titulo: 'Balanço', sub: distribPeriodoRotulo(), acoes: [
-        { icone: 'handshake', titulo: 'Quitar ou registrar pagamento', codigo: 'repasses.registrar', sub: 'Escolha a pessoa e o saldo que foi pago', aoTocar: () => balancoEscolherPessoaQuitar() },
-        { icone: 'arrow-up-right', titulo: 'Lançar retirada', codigo: 'repasses.registrar', sub: 'Valor que um sócio retirou da empresa', aoTocar: () => abrirLancarRetirada() },
+        { icone: 'handshake', titulo: 'Quitar ou registrar', codigo: 'repasses.registrar', sub: 'Pessoa e saldo pago', aoTocar: () => balancoEscolherPessoaQuitar() },
+        { icone: 'arrow-up-right', titulo: 'Lançar retirada', codigo: 'repasses.registrar', sub: 'O que um sócio retirou', aoTocar: () => abrirLancarRetirada() },
     ] });
 }
 
@@ -6083,7 +6081,7 @@ export function abrirLancarRetirada(pessoaIdPre, valorSugerido) {
     const candidatos = new Map();
     (distribDados?.linhas || []).filter(l => l.pessoaId).forEach(l => candidatos.set(l.pessoaId, l.nome));
     if (typeof pessoas !== 'undefined' && Array.isArray(pessoas)) pessoas.filter(p => Number(p.percentualCotasEmpresa) > 0).forEach(p => { if (!candidatos.has(p.id)) candidatos.set(p.id, p.nome); });
-    if (!candidatos.size) { rzToast('Nenhum sócio cadastrado. Cadastre em Pessoas, com o percentual de cotas.', { tipo: 'info' }); return; }
+    if (!candidatos.size) { rzToast('Cadastre os sócios em Pessoas.', { tipo: 'info' }); return; }
     const optsSocio = [...candidatos.entries()].sort((a, b) => a[1].localeCompare(b[1]))
         .map(([id, nome]) => `<option value="${id}" ${id === pessoaIdPre ? 'selected' : ''}>${esc(nome)}</option>`).join('');
     const base = financeiroCompetenciaAtual || financeiroCompetenciaHojeISO();
@@ -6093,7 +6091,7 @@ export function abrirLancarRetirada(pessoaIdPre, valorSugerido) {
     const hoje = new Date().toISOString().slice(0, 10);
     const sug = Number(valorSugerido) > 0 ? String(Math.round(Number(valorSugerido) * 100) / 100) : '';
     abrirSheetForm({
-        titulo: 'Lançar retirada', sub: 'Valor que o sócio retirou da empresa',
+        titulo: 'Lançar retirada', sub: 'O que o sócio retirou',
         corpo: `
             <div class="rz-f"><label>Sócio <i>*</i></label><select id="ret-pessoa">${optsSocio}</select></div>
             <div class="rz-f"><label>Mês de referência <i>*</i></label><select id="ret-competencia">${optsComp}</select></div>
@@ -6145,8 +6143,8 @@ export function rzAcoesRetirada(id) {
     const dividida = grupo.length > 1, total = grupo.reduce((t, x) => t + Number(x.valor || 0), 0);
     abrirSheetAcoes({ titulo: `Retirada${extra ? ' extraordinária' : ''} · ${r.pessoas?.nome || 'Sócio'}`, sub: `${formatarMoedaBR(Number(r.valor || 0))} · ${formatarDataBR(r.data_real || r.competencia)}${dividida ? ` · ${retParteTxt(r).replace(' · ', '')} de ${formatarMoedaBR(total)}` : ''}`, acoes: [
         extra
-            ? { icone: 'undo-2', titulo: 'Voltar para o fluxo', codigo: 'repasses.registrar', sub: 'Passa a abater o saldo a retirar', aoTocar: () => retiradaClassificar(id, 'distribuicao') }
-            : { icone: 'sparkles', titulo: 'Marcar como extraordinária', codigo: 'repasses.registrar', sub: 'Não abate o saldo a retirar', aoTocar: () => retiradaClassificar(id, 'extraordinaria') },
+            ? { icone: 'undo-2', titulo: 'Voltar para o fluxo', codigo: 'repasses.registrar', sub: 'Abate o saldo a retirar', aoTocar: () => retiradaClassificar(id, 'distribuicao') }
+            : { icone: 'sparkles', titulo: 'Extraordinária', codigo: 'repasses.registrar', sub: 'Não abate o saldo a retirar', aoTocar: () => retiradaClassificar(id, 'extraordinaria') },
         { icone: 'split', titulo: dividida ? 'Refazer a divisão' : 'Dividir em partes', codigo: 'repasses.registrar',
           sub: dividida ? `${grupo.length} partes · ${formatarMoedaBR(total)}` : 'Parte do fluxo e parte extraordinária no mesmo valor', aoTocar: () => retiradaDividir(id) },
         ...(dividida ? [{ icone: 'merge', titulo: 'Unir partes', codigo: 'repasses.registrar', sub: `Volta a uma retirada de ${formatarMoedaBR(total)}`, aoTocar: () => retiradaUnir(id) }] : []),
