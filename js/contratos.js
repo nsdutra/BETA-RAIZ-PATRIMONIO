@@ -1,7 +1,12 @@
 // ============================================================================
 // contratos.js — Raiz Patrimônio · Contratos (lista · ficha · formulário ·
 //                 status/reajuste/detalhes · fiadores · documentos · histórico)
-// Versão: 1.59.0 · 14/10/2026
+// Versão: 1.60.0 · 14/10/2026
+//
+// v1.60.0 (14/10/2026, sessão 20261014-2215-ajustes-9d, demanda a05ad2ee; teste do Nicola 14/10 22:12 — "no menu ativos achei
+// uns itens ainda grandinhos") — textos dentro de condição (sub/titulo com ? :) e dicionários de descrição também no limite
+// da D6 (ação 24, descrição 28). Nada de comportamento mudou.
+// Versão anterior: 1.59.0 · 14/10/2026
 //
 // v1.59.0 (14/10/2026, sessão 20261014-2145-onda9c-textos, demanda a05ad2ee; onda 9c do estudo PROTOTIPO_UX_DENSIDADE_RAMOS_RAIZ
 // v1.2.0, D6 seção 10) — textos no limite: ação até 24 caracteres, descrição até 28, aviso até 40 com o resultado e tela
@@ -24,13 +29,8 @@
 // v1.56.0 (13/10/2026, sessão 20261013-2245-raiz-ia-ajustes2, demanda a2f4980a; Nicola 13/10 22:44) — ocorrência do
 // contrato ganha Cancelar (em aberto), Reabrir (cancelada, no rodapé do detalhe) e Excluir (só as criadas à mão ou pela
 // Raiz IA e não concluídas; as do histórico do contrato só se cancelam). Sem banco.
-//
-// Versão anterior: 1.55.0 · 12/10/2026
-//
-// v1.55.0 (12/10/2026, sessão 20261012-0320-ux-busca, demanda a05ad2ee; Nicola 12/10 03:18) — o card Financeiro da ficha
-// deixa de ter título próprio: "Financeiro ‹ ano ›" vem do rzFinCompetencias, como no card Usos do ativo.
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.54.0 … v1.54.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.55.0 … v1.55.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
 import { avaliarProntidaoContratoParaMinuta } from './minutas.js'; // v1.0.1
@@ -42,7 +42,7 @@ import { emitirEscrita, aoEscrever } from './raiz-eventos.js'; // v1.18.0 — Fa
 import { renderizarBlocoEndereco, lerBlocoEndereco } from './comum-endereco.js';
 import { formatarEnderecoParte } from './comum-partes.js';
 
-export const VERSAO = '1.59.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.60.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 
 /** Ponto de entrada do switchTab('tab-contratos'). */
 export function montarAbaContratos() {
@@ -652,7 +652,7 @@ if (!window.__rzListenerEscritaParteContratoLigado) {
                 <div class="mb-3"><label class="block text-xs font-bold text-gray-600">Observação</label><textarea id="rj-obs" rows="2" placeholder="${ehRevisional ? 'Ex.: revisão judicial/negociada, conforme cláusula X' : 'Ex.: IGP-M acumulado 12 meses, conforme cláusula 5'}" class="w-full p-2 border rounded text-sm mt-1"></textarea></div>
                 <div class="mb-1"><label class="block text-xs font-bold text-gray-600">Documento ${ehRevisional ? 'da revisão' : 'do reajuste'}</label><input type="file" id="rj-arquivo" accept=".pdf,.jpg,.jpeg,.png,.docx" class="w-full text-sm mt-1"><p class="text-[10.5px] text-slate-500 mt-1">Aditivo, notificação ou cálculo. Vai pro Cofre, vinculado a este contrato.</p></div>`;
             abrirSheetForm({
-                titulo: ehRevisional ? 'Registrar revisão do contrato' : 'Reajustar contrato', sub: con.locatario || '', corpo,
+                titulo: ehRevisional ? 'Registrar revisão' : 'Reajustar contrato', sub: con.locatario || '', corpo,
                 rotuloSalvar: ehRevisional ? 'Registrar revisão' : 'Registrar reajuste',
                 aoSalvar: () => { salvarReajusteContratoPopup(con.id, ocorrenciaId || null, subtipoCodigo || null); return false; },
             });
@@ -2062,7 +2062,7 @@ if (!window.__rzListenerEscritaParteContratoLigado) {
             if (typeof abrirSheetAcoes !== 'function') { abrirManual(); return; }
             const acoes = [
                 { icone: 'sparkles', tipo: 'ia', titulo: 'Carregar documento', codigo: 'cofre.upload', sub: 'A IA classifica e vincula', aoTocar: () => (typeof abrirUploadDocumentoNoApp === 'function') && abrirUploadDocumentoNoApp() },
-                { icone: 'plus', titulo: 'Novo contrato', codigo: 'contratos.criar', sub: comImovel ? 'Formulário já com este imóvel' : 'Preencher os dados na tela', aoTocar: abrirManual },
+                { icone: 'plus', titulo: 'Novo contrato', codigo: 'contratos.criar', sub: comImovel ? 'Já com este imóvel' : 'Preencher na tela', aoTocar: abrirManual },
             ];
             // v1.41.0 (D2) — configuração inicial também a partir de Contratos.
             if (!comImovel && typeof abrirConfiguracaoInicial === 'function') {

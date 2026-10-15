@@ -2,7 +2,12 @@
 // conta.js — Raiz Patrimônio · Conta e preferências: menu da conta, seção Sobre,
 //            licença, preferências de comunicação e de alerta, atalhos de
 //            configuração (Cofre, configuração inicial, cadastro do contador)
-// Versão: 1.1.0 · 14/10/2026
+// Versão: 1.2.0 · 14/10/2026
+//
+// v1.2.0 (14/10/2026, sessão 20261014-2215-ajustes-9d, demanda a05ad2ee; Nicola 14/10 22:12: "ao sair da tela do contador
+// apareceu a tela estranha") — abrirCadastroContador abre o formulário de contador como sheet por cima da tela atual, sem
+// trocar para Partes: fechar ou salvar volta para onde a pessoa estava (Financeiro, Fiscal).
+// Versão anterior: 1.1.0 · 14/10/2026
 //
 // v1.1.0 (14/10/2026, sessão 20261014-2145-onda9c-textos, demanda a05ad2ee; onda 9c do estudo PROTOTIPO_UX_DENSIDADE_RAMOS_RAIZ
 // v1.2.0, D6 seção 10) — textos no limite: ação até 24 caracteres, descrição até 28, aviso até 40 com o resultado e tela
@@ -37,7 +42,7 @@
 //    por 345 bytes — é a mesma classe de armadilha do montarBoxDivisaoSocietaria.
 // ============================================================================
 
-export const VERSAO = '1.1.0';  // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.2.0';  // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 
 // v1.71.0 — LGPD: tela de preferências de comunicação, 1 toggle por
 // mensagem que permite opt-out (permite_opt_out=true) — substitui o
@@ -478,8 +483,9 @@ export async function carregarLicencaAtual() {
 
 // v1.253.0 — atalho único "cadastrar contador": abre Partes (chip
 // Prestadores) e o formulário de parte nova já como Contador.
+// v1.2.0 (Nicola 14/10 22:12: "ao sair da tela do contador apareceu a tela de Partes") — o formulário abre como sheet
+// por cima da tela atual (Financeiro, Fiscal), sem trocar de aba: fechar ou salvar volta para onde a pessoa estava.
 export function abrirCadastroContador() {
     if (typeof partesFiltroPapel !== 'undefined') partesFiltroPapel = 'prestadores';
-    switchTab('tab-partes');
-    setTimeout(() => abrirFormParteSheet(null, { tipoPrestador: 'contador' }), 0);
+    abrirFormParteSheet(null, { tipoPrestador: 'contador' });
 }

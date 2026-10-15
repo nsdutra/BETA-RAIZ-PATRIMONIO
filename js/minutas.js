@@ -1,7 +1,12 @@
 // ============================================================================
 // minutas.js — Raiz Patrimônio · Minutas de contrato (modelos, placeholders,
 //               geração da minuta preenchida, minutização de um contrato real)
-// Versão: 1.5.0 · 14/10/2026
+// Versão: 1.6.0 · 14/10/2026
+//
+// v1.6.0 (14/10/2026, sessão 20261014-2215-ajustes-9d, demanda a05ad2ee; teste do Nicola 14/10 22:12 — "no menu ativos achei
+// uns itens ainda grandinhos") — textos dentro de condição (sub/titulo com ? :) e dicionários de descrição também no limite
+// da D6 (ação 24, descrição 28). Nada de comportamento mudou.
+// Versão anterior: 1.5.0 · 14/10/2026
 //
 // v1.5.0 (14/10/2026, sessão 20261014-2145-onda9c-textos, demanda a05ad2ee; onda 9c do estudo PROTOTIPO_UX_DENSIDADE_RAMOS_RAIZ
 // v1.2.0, D6 seção 10) — textos no limite: ação até 24 caracteres, descrição até 28, aviso até 40 com o resultado e tela
@@ -26,79 +31,14 @@
 // v1.2.0 (F0.2b do PLANO_UX, demanda 9e4aca28, sessão 20261003-1707-ux-base; UXR-29/30) — zero diálogo nativo: 20 alert() e 2 confirm() viram
 // rzAvisar/rzPerguntar/rzResumo; excluir minuta em Sheet com item vermelho; a lista do que
 // falta para gerar a minuta vira resumo de várias linhas.
-//
-// Versão anterior: 1.1.0 · 22/09/2026
-//
-// v1.1.0 (Fase 1 do wrapper de escrita, rollout Contratos+Minutas — pedido
-// do Nicola 22/09/2026) — adoção do utilitário js/raiz-eventos.js (piloto
-// único até aqui era cofre-ativos.js). Funções que persistem de verdade
-// ganham emitirEscrita():
-//   · salvarMinuta() → 'minuta' / acao 'editar' (cadastro OU edição do
-//     modelo — mesmo popup pros dois casos, id resolvido depois do upload).
-//   · excluirMinuta() → 'minuta' / acao 'excluir'.
-//   · confirmarMinutizacao() → 'minuta' / acao 'gerar-de-contrato-real'
-//     (CONFIRMADO que persiste: sobe o .docx gerado pro Storage e chama
-//     saveAll(..., ['minutasContrato']), que grava a linha nova — não é só
-//     leitura/preview como o nome sugeria à primeira vista).
-//   · gerarMinutaNoCofre() → DUAS entidades, porque são DUAS escritas
-//     diferentes na mesma operação: 'minuta' / acao 'gerar-no-cofre' (a
-//     minuta preenchida foi gerada) E 'documento' / acao 'criar-via-minuta'
-//     (cofre_documentos ganhou uma linha nova, vinculada ao contrato via
-//     cofre_documento_vinculos — é um documento novo no Cofre, entidade
-//     diferente de 'minuta').
-//   · gerarMinutaContrato() → NÃO ganhou emit próprio: ela só resolve qual
-//     minuta usar e delega 100% pra gerarMinutaNoCofre() (await), que já
-//     emite os dois eventos acima — duplicar aqui disparava o mesmo evento
-//     2x pela mesma escrita.
-//   · confirmarMinutizacao() confirmado como o único outro ponto de escrita
-//     real do wizard "Gerar de um contrato real" (os passos anteriores —
-//     processarArquivoMinutizacao, detecção de placeholders — só leem/
-//     calculam, nada é persistido até a confirmação).
-// BUG DO cofre-ativos.js (objeto local ficava velho até um recarregamento
-// assíncrono terminar) — VERIFICADO E NÃO ENCONTRADO aqui: salvarMinuta()
-// substitui o objeto inteiro no array (`minutasContrato[idx] = dados`, não
-// uma mutação parcial de referência velha) e nenhuma das funções de escrita
-// deste arquivo reabre a MESMA tela de edição logo depois de salvar (o
-// sheet fecha via cancelarEdicaoMinuta()) — o padrão que causou o bug no
-// Cofre de Ativos não se aplica aqui. Nenhuma correção foi necessária.
-// LISTENER (module boot, guarda window.__rzListenerEscritaMinutaLigado):
-// aoEscrever('minuta', ...) chama renderMinutas() — mesmo padrão já usado
-// em index.html após saveAll (rzMinSeCarregado('renderMinutas')) pros
-// saves que passam por saveAll; cobre também gerarMinutaNoCofre(), que não
-// passa por saveAll e por isso não tinha esse retorno hoje (ainda que essa
-// ação específica não mude a LISTA de modelos, o listener é genérico —
-// reage a qualquer 'minuta', de qualquer origem, presente ou futura).
-//
-// R8 — FRAGMENTAÇÃO, FATIA 3 (A.8). Terceiro corte do index.html (Beta
-// v1.142.0), mesmo método do financeiro.js/contratos.js: ES module SOB
-// DEMANDA via import() no switchTab('tab-minutas'), pontes window[nome] no
-// index pra quem chama de fora, rzMinSeCarregado() nos ganchos de recarga.
-//
-// O QUE MORA AQUI: tela tab-minutas (renderMinutas, ⋮, form em sheet, salvar/
-// excluir modelo, ajuda de placeholders); wizard "Gerar de um contrato real"
-// (minutização: extrai texto de DOCX/PDF, detecta placeholders com IA via
-// minuta-detectar-placeholders, revisão, gera DOCX); geração da minuta
-// preenchida (montarValoresPlaceholdersMinuta, preencherMinutaDocx,
-// gerarMinutaContrato, gerarMinutaNoCofre, prontidão do contrato); escolha
-// de minuta pra um imóvel (encontrarMinutaParaImovel, listarMinutasAplicaveis,
-// picker, baixar minuta padrão). Helpers exclusivos (slugArquivo,
-// dataYYYYMMDD, extensoData, mesesEntreDatas, escaparXml) vieram junto —
-// verificado por assert que ninguém fora daqui os usa.
-//
-// O QUE FICOU NO index.html: `minutasContrato` (dado) + carregar/sincronizar
-// MinutasContratoSupabase; contratação pública/vitrine (chama gerarMinutaNo
-// Cofre/baixarMinutaPadraoImovel/encontrarMinutaParaImovel pelas pontes);
-// HTML da seção (form/wizard) — sai com a gramática.
-//
-// ESTADO GLOBAL LIDO: minutasContrato, contratos, imoveis, tiposImovel/
-// empreendimentosCadastrados, dbAuth, CONFIG_CLIENTE, CLIENTE_ID_SUPABASE,
-// pessoaIdLogada. Exclusivo (`__minzEstado`) virou nível de módulo.
-// Indentação de origem mantida (template literals). Strict verificado.
-// ============================================================================
+// --------------------------------------------------------------------------
+// Versões anteriores (v1.1.0 … v1.1.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
+// mais recentes deste cabeçalho (VER-06).
 
 import { emitirEscrita, aoEscrever } from './raiz-eventos.js'; // v1.1.0 — Fase 1 do wrapper de escrita
 
-export const VERSAO = '1.5.0'; // v-check: manter igual ao header
+export const VERSAO = '1.6.0'; // v-check: manter igual ao header
 
 /** Ponto de entrada do switchTab('tab-minutas'). */
 export function montarAbaMinutas() {
@@ -487,7 +427,7 @@ if (!window.__rzListenerEscritaMinutaLigado) {
                 // só especificada. Isto NÃO é o mesmo cadastro de sempre
                 // com um limite técnico bobo — é uma função futura
                 // diferente que ainda não existe.
-                rzResumo({ titulo: ehPdf ? 'PDF ainda não é convertido aqui' : 'Formato não aceito', linhas: [ehPdf
+                rzResumo({ titulo: ehPdf ? 'PDF não convertido aqui' : 'Formato não aceito', linhas: [ehPdf
                     ? 'Gerar minuta a partir de um contrato real em PDF ainda está em desenvolvimento. Por enquanto, envie o modelo em .docx, já com os {{placeholders}}.'
                     : 'Só arquivos .docx (Word) ou .pdf são aceitos aqui. Se for outro formato, abra e use "Salvar como" .docx antes.'] });
                 return;

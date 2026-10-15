@@ -4,6 +4,19 @@ Histórico completo de versões do `index.html`, movido automaticamente pelo `ge
 
 ---
 
+NOVIDADES (Beta v1.412.0) — CARTÃO ADICIONAL (FICHA_CARTAO_ADICIONAL_F10_F11_RAIZ v1.1.0, de acordo do Nicola 14/10
+13:52): cadastro "Cartão adicional" na ficha da conta (cartão principal, final e a conta em que ele cai — padrão a
+conta de quem usa) em js/comum-minha-empresa.js 1.17.0; fatura com o card "Por cartão", final em cada compra e
+"Mover para o adicional" em js/financeiro.js 1.62.0; total do adicional no Movimento do ativo em js/cofre-ativos.js
+1.103.0. Banco: cartao_adicional_f10_f11_v1. Edge: extrato-extrair-transacoes 1.8 e whatsapp-webhook 2.88.
+Versão anterior (Beta v1.411.0):
+------------------------------------------------------------------
+Versões anteriores (v1.411.0 … v1.411.0): CHANGELOG_APP.md, na raiz do
+repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
+das 5 versões mais recentes deste cabeçalho.
+
+---
+
 NOVIDADES (Beta v1.411.0) — ONDA 8b do estudo PROTOTIPO_UX_DENSIDADE_RAMOS_RAIZ v1.2.0 (D15, computador): em Ativos e
 Contratos, a partir de 1024 px, a ficha abre ao lado da lista (lista à esquerda, 360 px, rolando sozinha e com o item
 aberto marcado; ficha à direita). O "‹ Ativos/Contratos" da ficha some porque a lista está à vista. No celular nada

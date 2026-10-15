@@ -737,6 +737,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/cofre-api.js`
 
 //
@@ -1175,6 +1177,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 // supabase-js diretamente (Diretriz Arquitetural — Passo 2: responsabilidade
 // única por módulo).
 // ============================================================================
+
+---
 
 ---
 
@@ -1927,7 +1931,23 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/cofre-ativos.js`
+
+//
+// Versão anterior: 1.101.0 · 14/10/2026
+//
+// v1.101.0 (14/10/2026, sessão 20261014-0045-usos-fatia2, demanda 3022603b; FICHA_FATIA2_CONTRATOS_POR_TIPO_RAIZ v1.0.0 e
+// ajustes do ⋮ pedidos pelo Nicola 14/10 00:40) — "Adicionar uso" lista os contratos por TIPO (aluguel típico simples,
+// típico longo, atípico, arrendamento rural, locação de bem; os demais "em breve"), e o tipo vai para o formulário.
+// Venda só pelo uso Revenda: "Registrar venda" sai da Situação e aparece no ⋮ do uso Revenda (fn_status_transicionar
+// 'uso'/'vender'). ⋮ da ficha: um item só de IA, "Raiz IA", que abre a Raiz IA já com o nome do ativo; saem "Carregar
+// documento", "Adicionar documento com IA" e "Upload simples"; "Iniciar revisão anual" não aparece em pessoa (vida).
+// --------------------------------------------------------------------------
+// Versões anteriores (v1.100.0 … v1.100.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
+// mais recentes deste cabeçalho (VER-06).
 
 //
 // Versão anterior: 1.100.0 · 14/10/2026
@@ -3338,6 +3358,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/cofre-controles.js`
 
 // Versão anterior: 1.54.0 · 13/10/2026
@@ -4055,6 +4077,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 // não está implementado (geração automática de ocorrências recorrentes,
 // Central de Alertas consolidada).
 // ============================================================================
+
+---
 
 ---
 
@@ -5019,6 +5043,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/cofre-estado.js`
 
 //
@@ -5164,6 +5190,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 // v1.21.6 (Arquivar/RLS, sessão paralela) nem esta entrega — fechado
 // agora. Ver changelog completo em cofre.html v1.22.0 (merge das 2
 // sessões paralelas + badge fix + form fix + função Vendido).
+
+---
 
 ---
 
@@ -5632,6 +5660,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/cofre-ui.js`
 
 //
@@ -5663,6 +5693,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 // genérica, template de card, indicador de "liga/desliga" (Design System
 // v1.43.0 §2). Não importa cofre-api.js — não sabe nada de Supabase.
 // ============================================================================
+
+---
 
 ---
 
@@ -5933,6 +5965,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 // pilha; os demais (cofre-ui, cofre-documentos, cofre-ativos) importam
 // daqui, nunca o contrário.
 // ============================================================================
+
+---
 
 ---
 
@@ -6413,7 +6447,27 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/comum-minha-empresa.js`
+
+//
+// Versão anterior: 1.14.0 · 10/10/2026
+//
+// v1.14.0 (UX F2.5b-2, demanda 639bbcd0, sessão 20261003-1707-ux-base; ajustes pedidos pelo Nicola no teste de
+// 10/10 01:11) — a ficha segue o padrão de chips do app:
+//   · a quantidade do que falta vai no chip (Resumo, Dados, Fiscal e Pix: "Dados 1", com o tom --warning, igual aos
+//     chips de Contratos e da Configuração inicial); o cabeçalho deixa de mostrar "n de 8" e passa a mostrar o
+//     documento e a cidade da sede;
+//   · Rotinas e Controles viram chips separados (o host passa o box Controles com pane 'controles');
+//   · "Salvar dados da empresa" fica logo depois dos campos que ele salva: no fim de Dados e, em Fiscal e Pix, antes
+//     do card Contas (que salva sozinho);
+//   · o texto "Estes dados saem nos recibos…" sai do rodapé solto e vai para dentro do card do Resumo;
+//   · atalhos que rolam até cme-rotinas-card ou cme-pix-card (Financeiro, links do bot) abrem o chip antes de rolar.
+// --------------------------------------------------------------------------
+// Versões anteriores (v1.13.0 … v1.13.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
+// mais recentes deste cabeçalho (VER-06).
 
 //
 // Versão anterior: 1.13.0 · 10/10/2026
@@ -6760,7 +6814,21 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/comum-pessoas.js`
+
+//
+// Versão anterior: 1.209.0 · 11/10/2026
+//
+// v1.209.0 (fase 5 do plano de marca e ramos, demanda 680ee9f8; Nicola 11/10 18:47 "Sobre ramo por pessoa, estou de
+// acordo"; FICHA_RAMO_PADRAO_PESSOA_RAIZ v1.0.0) — "Abrir o app em" no grupo Acesso da pessoa: escolhe o ramo em que
+// ela entra no app (Todo o patrimônio ou um ramo contratado). Aparece para quem tem login, quando a empresa tem 2+ ramos,
+// para a própria pessoa ou admin/master. Grava por fn_pessoa_ramo_padrao_definir (coluna pessoas.ramo_padrao).
+// --------------------------------------------------------------------------
+// Versões anteriores (v1.208.0 … v1.208.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
+// mais recentes deste cabeçalho (VER-06).
 
 //
 // Versão anterior: 1.208.0 · 10/10/2026
@@ -7257,6 +7325,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/comum-renovacao.js`
 
 //
@@ -7299,6 +7369,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 // jsdelivr (mesma origem já usada pelo app); se não carregar, o "copia e cola"
 // continua funcionando sozinho.
 // ============================================================================
+
+---
 
 ---
 
@@ -7705,7 +7777,19 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/contratos.js`
+
+//
+// Versão anterior: 1.55.0 · 12/10/2026
+//
+// v1.55.0 (12/10/2026, sessão 20261012-0320-ux-busca, demanda a05ad2ee; Nicola 12/10 03:18) — o card Financeiro da ficha
+// deixa de ter título próprio: "Financeiro ‹ ano ›" vem do rzFinCompetencias, como no card Usos do ativo.
+// --------------------------------------------------------------------------
+// Versões anteriores (v1.54.0 … v1.54.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
+// mais recentes deste cabeçalho (VER-06).
 
 //
 // Versão anterior: 1.54.0 · 12/10/2026
@@ -8744,7 +8828,23 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/fechamento.js`
+
+// Versão anterior: 1.12.0.
+//
+// v1.12.0 (04/10/2026, demanda cad6ec67 — P2 Ficha 4): o pacote do contador
+// ganha a seção "Outras receitas" (bloco outras_receitas de
+// fn_fechamento_calcular_contabil: entradas sem contrato — licenças,
+// juros, receitas avulsas), que antes saíam misturadas em "Saídas". Vale
+// no PDF, na planilha e no texto do compartilhamento. Pacotes antigos (sem
+// o bloco) continuam abrindo igual. Ativos marcados "fora da contabilidade"
+// (cofre_ativos.registro_contabil) já chegam excluídos pela função.
+// --------------------------------------------------------------------------
+// Versões anteriores (v1.11.0 … v1.11.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
+// mais recentes deste cabeçalho (VER-06).
 
 // Versão anterior: 1.11.0.
 //
@@ -9229,7 +9329,18 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/financeiro.js`
+
+// Versão anterior: 1.61.0 · 13/10/2026
+//
+// v1.61.0 (13/10/2026, sessão 20261013-2320-conta-via-item, demanda 47eed96b) — só texto: o aviso "Cadastre o cartão
+// primeiro" da importação de fatura aponta o novo caminho (ativo › Controles › + › "Conta ou cartão").
+// --------------------------------------------------------------------------
+// Versões anteriores (v1.60.0 … v1.60.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
+// mais recentes deste cabeçalho (VER-06).
 
 // Versão anterior: 1.60.0 · 12/10/2026
 //
@@ -10732,7 +10843,35 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/fiscal.js`
+
+//
+// v1.3.0 (achados do Nicola testando na Albuquerque, 23/09/2026, com prints):
+//   · Fiscal da competência: sem ⋮ no topo e sem o cartão de avisos
+//     ("obrigatória a partir de…", "Só consulta" — são acesso e alerta, que
+//     já têm lugar próprio). As funções viram 6 botões logo abaixo do mês,
+//     no mesmo formato dos 6 do Financeiro (.rz-fin-quad): Preparar ·
+//     Cadastro · Anexar XML · Contador · Quem emite · Check-up. Sem o plano,
+//     o botão aparece indisponível com o motivo (mesma regra de sempre).
+//     O "‹ Financeiro" saiu: o voltar agora é o do app (index.html v1.257.0 —
+//     botão de voltar do celular e atalho "‹ Voltar" no topo).
+//   · Linha "Falta dado": cada pendência vira uma ação "Completar …" que abre
+//     o campo ali mesmo (antes levava ao checklist sem dizer o quê).
+//     fiscalCompletarPendencia(p, depois) é a função única de completar no
+//     contexto — usada também pelo checklist (fechamento.js v1.9.0) e pelo
+//     alerta (index.html). Grava por fn_fiscal_pendencia_completar
+//     (migration fiscal_pendencia_completar_v1): CPF/CNPJ do locatário ou da
+//     empresa, destinação, município (pelo CEP, ViaCEP → código IBGE) e CIB.
+//   · Check-up: sem ⋮ no topo — Registrar check-up, Ver regras usadas e a
+//     troca do ano viram o cartão "Ações", no mesmo formato de Emissão; os 4
+//     textos (regra, estimativa, o que fazer, quando validar) viram linhas de
+//     lista (antes, texto grande em negrito fora do padrão).
+// --------------------------------------------------------------------------
+// Versões anteriores (v1.2.0 … v1.2.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
+// mais recentes deste cabeçalho (VER-06).
 
 //
 // v1.2.0 (frente fiscal, Fase 6 — demanda 976fcbf6): fiscalCompetenciaMontar
@@ -10802,6 +10941,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 // abrirSheet, abrirSheetAcoes, abrirSheetForm, rzSheetCabecalho, fecharSheet,
 // mostrarToast, switchTab, rzIcones, podeUsar, window.fechamentoAbrirChecklistFiscalAtualizado.
 // ============================================================================
+
+---
 
 ---
 
@@ -11238,6 +11379,82 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
+## `js/minutas.js`
+
+//
+// Versão anterior: 1.1.0 · 22/09/2026
+//
+// v1.1.0 (Fase 1 do wrapper de escrita, rollout Contratos+Minutas — pedido
+// do Nicola 22/09/2026) — adoção do utilitário js/raiz-eventos.js (piloto
+// único até aqui era cofre-ativos.js). Funções que persistem de verdade
+// ganham emitirEscrita():
+//   · salvarMinuta() → 'minuta' / acao 'editar' (cadastro OU edição do
+//     modelo — mesmo popup pros dois casos, id resolvido depois do upload).
+//   · excluirMinuta() → 'minuta' / acao 'excluir'.
+//   · confirmarMinutizacao() → 'minuta' / acao 'gerar-de-contrato-real'
+//     (CONFIRMADO que persiste: sobe o .docx gerado pro Storage e chama
+//     saveAll(..., ['minutasContrato']), que grava a linha nova — não é só
+//     leitura/preview como o nome sugeria à primeira vista).
+//   · gerarMinutaNoCofre() → DUAS entidades, porque são DUAS escritas
+//     diferentes na mesma operação: 'minuta' / acao 'gerar-no-cofre' (a
+//     minuta preenchida foi gerada) E 'documento' / acao 'criar-via-minuta'
+//     (cofre_documentos ganhou uma linha nova, vinculada ao contrato via
+//     cofre_documento_vinculos — é um documento novo no Cofre, entidade
+//     diferente de 'minuta').
+//   · gerarMinutaContrato() → NÃO ganhou emit próprio: ela só resolve qual
+//     minuta usar e delega 100% pra gerarMinutaNoCofre() (await), que já
+//     emite os dois eventos acima — duplicar aqui disparava o mesmo evento
+//     2x pela mesma escrita.
+//   · confirmarMinutizacao() confirmado como o único outro ponto de escrita
+//     real do wizard "Gerar de um contrato real" (os passos anteriores —
+//     processarArquivoMinutizacao, detecção de placeholders — só leem/
+//     calculam, nada é persistido até a confirmação).
+// BUG DO cofre-ativos.js (objeto local ficava velho até um recarregamento
+// assíncrono terminar) — VERIFICADO E NÃO ENCONTRADO aqui: salvarMinuta()
+// substitui o objeto inteiro no array (`minutasContrato[idx] = dados`, não
+// uma mutação parcial de referência velha) e nenhuma das funções de escrita
+// deste arquivo reabre a MESMA tela de edição logo depois de salvar (o
+// sheet fecha via cancelarEdicaoMinuta()) — o padrão que causou o bug no
+// Cofre de Ativos não se aplica aqui. Nenhuma correção foi necessária.
+// LISTENER (module boot, guarda window.__rzListenerEscritaMinutaLigado):
+// aoEscrever('minuta', ...) chama renderMinutas() — mesmo padrão já usado
+// em index.html após saveAll (rzMinSeCarregado('renderMinutas')) pros
+// saves que passam por saveAll; cobre também gerarMinutaNoCofre(), que não
+// passa por saveAll e por isso não tinha esse retorno hoje (ainda que essa
+// ação específica não mude a LISTA de modelos, o listener é genérico —
+// reage a qualquer 'minuta', de qualquer origem, presente ou futura).
+//
+// R8 — FRAGMENTAÇÃO, FATIA 3 (A.8). Terceiro corte do index.html (Beta
+// v1.142.0), mesmo método do financeiro.js/contratos.js: ES module SOB
+// DEMANDA via import() no switchTab('tab-minutas'), pontes window[nome] no
+// index pra quem chama de fora, rzMinSeCarregado() nos ganchos de recarga.
+//
+// O QUE MORA AQUI: tela tab-minutas (renderMinutas, ⋮, form em sheet, salvar/
+// excluir modelo, ajuda de placeholders); wizard "Gerar de um contrato real"
+// (minutização: extrai texto de DOCX/PDF, detecta placeholders com IA via
+// minuta-detectar-placeholders, revisão, gera DOCX); geração da minuta
+// preenchida (montarValoresPlaceholdersMinuta, preencherMinutaDocx,
+// gerarMinutaContrato, gerarMinutaNoCofre, prontidão do contrato); escolha
+// de minuta pra um imóvel (encontrarMinutaParaImovel, listarMinutasAplicaveis,
+// picker, baixar minuta padrão). Helpers exclusivos (slugArquivo,
+// dataYYYYMMDD, extensoData, mesesEntreDatas, escaparXml) vieram junto —
+// verificado por assert que ninguém fora daqui os usa.
+//
+// O QUE FICOU NO index.html: `minutasContrato` (dado) + carregar/sincronizar
+// MinutasContratoSupabase; contratação pública/vitrine (chama gerarMinutaNo
+// Cofre/baixarMinutaPadraoImovel/encontrarMinutaParaImovel pelas pontes);
+// HTML da seção (form/wizard) — sai com a gramática.
+//
+// ESTADO GLOBAL LIDO: minutasContrato, contratos, imoveis, tiposImovel/
+// empreendimentosCadastrados, dbAuth, CONFIG_CLIENTE, CLIENTE_ID_SUPABASE,
+// pessoaIdLogada. Exclusivo (`__minzEstado`) virou nível de módulo.
+// Indentação de origem mantida (template literals). Strict verificado.
+// ============================================================================
+
+---
+
 ## `js/raiz-ui.js`
 
 //
@@ -11264,6 +11481,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 // 'warning' (UXR-35). Também publica window.rzToast/rzConfirmar/rzEscolher/
 // rzAviso para código inline do index.html.
 // ============================================================================
+
+---
 
 ---
 
@@ -11301,6 +11520,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 // que o bot usa); aqui só se monta o texto e o desenho — nunca se recalcula
 // (REL-02). Protótipo: raiz\docs\PROTOTIPO_RELATORIOS_FLUXO_GERENCIAL v1.1.0.
 // ============================================================================
+
+---
 
 ---
 
@@ -11804,6 +12025,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/vitrine.js`
 
 //
@@ -11924,6 +12147,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 // CLIENTE_ID_SUPABASE, dbAuth. Exclusivo (4) virou nível de módulo.
 // Indentação de origem mantida. Strict verificado.
 // ============================================================================
+
+---
 
 ---
 

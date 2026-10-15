@@ -1,6 +1,11 @@
 // ============================================================================
 // cofre-ativos.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.105.0 · 14/10/2026
+// Versão: 1.106.0 · 14/10/2026
+//
+// v1.106.0 (14/10/2026, sessão 20261014-2215-ajustes-9d, demanda a05ad2ee; teste do Nicola 14/10 22:12 — "no menu ativos achei
+// uns itens ainda grandinhos") — textos dentro de condição (sub/titulo com ? :) e dicionários de descrição também no limite
+// da D6 (ação 24, descrição 28). Nada de comportamento mudou.
+// Versão anterior: 1.105.0 · 14/10/2026
 //
 // v1.105.0 (14/10/2026, sessão 20261014-2145-onda9c-textos, demanda a05ad2ee; onda 9c do estudo PROTOTIPO_UX_DENSIDADE_RAMOS_RAIZ
 // v1.2.0, D6 seção 10) — textos no limite: ação até 24 caracteres, descrição até 28, aviso até 40 com o resultado e tela
@@ -24,20 +29,11 @@
 // atalho de volta e "Tirar de X". A lista de Ativos e os contadores mostram só os principais (D3-2). Novo ativo em modo
 // subativo: cota cofre.subativos.criar, só tipos que podem ser subativo, sem valor de referência (D3-3). Vender, baixar
 // ou arquivar um principal pergunta se os subativos seguem ou ficam (D3-5).
-//
-// Versão anterior: 1.101.0 · 14/10/2026
-//
-// v1.101.0 (14/10/2026, sessão 20261014-0045-usos-fatia2, demanda 3022603b; FICHA_FATIA2_CONTRATOS_POR_TIPO_RAIZ v1.0.0 e
-// ajustes do ⋮ pedidos pelo Nicola 14/10 00:40) — "Adicionar uso" lista os contratos por TIPO (aluguel típico simples,
-// típico longo, atípico, arrendamento rural, locação de bem; os demais "em breve"), e o tipo vai para o formulário.
-// Venda só pelo uso Revenda: "Registrar venda" sai da Situação e aparece no ⋮ do uso Revenda (fn_status_transicionar
-// 'uso'/'vender'). ⋮ da ficha: um item só de IA, "Raiz IA", que abre a Raiz IA já com o nome do ativo; saem "Carregar
-// documento", "Adicionar documento com IA" e "Upload simples"; "Iniciar revisão anual" não aparece em pessoa (vida).
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.100.0 … v1.100.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.101.0 … v1.101.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '1.105.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.106.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 import { estado } from './cofre-estado.js';
 import * as api from './cofre-api.js';
 import { mostrarToast, erroInline, refrescarIcones, alternarToggle, abrirModal, fecharModal, modalGenerico, perguntar, avisarComDesfazer, escolher } from './cofre-ui.js';
@@ -1445,7 +1441,7 @@ export async function abrirAcoesAtivo() {
     // vinculado (ver salvarEdicaoAtivo). abrirGestaoImovel() continua
     // existindo (não removida) só por segurança de rollback — sem
     // chamador neste menu a partir de agora.
-    acoes.push({ icone: 'pencil', titulo: 'Editar', codigo: 'cofre.editar', sub: ehCategoriaImovelAtivo ? 'Endereço, valores, uso e campos específicos' : 'Campos específicos deste tipo', aoTocar: () => { faTrocarAba('resumo'); alternarEditarAtivo(); } });
+    acoes.push({ icone: 'pencil', titulo: 'Editar', codigo: 'cofre.editar', sub: ehCategoriaImovelAtivo ? 'Endereço, valores e uso' : 'Campos deste tipo', aoTocar: () => { faTrocarAba('resumo'); alternarEditarAtivo(); } });
     acoes.push({ icone: 'image-plus', titulo: 'Adicionar fotos', codigo: 'cofre.editar', aoTocar: () => { faTrocarAba('arquivos'); faTrocarSegArquivos('fotos'); document.getElementById('fa-foto-input')?.click(); } });
     // Compartilhar: WhatsApp já com os dados e o link deste imóvel (o link guarda o id do ativo). (dem ed5accfe)
     if (ehCategoriaImovelAtivo && a.status !== 'vendido' && typeof window.compartilharImovelDoAtivo === 'function') acoes.push({ icone: 'share-2', titulo: 'Compartilhar', codigo: 'vitrine.gerar', sub: 'Pelo WhatsApp', aoTocar: () => window.compartilharImovelDoAtivo(a.id) });
@@ -1493,8 +1489,8 @@ export async function abrirAcoesAtivo() {
         ] },
         { titulo: 'Propriedade', acoes: [
             { icone: 'pie-chart', titulo: 'Editar divisão', codigo: 'imoveis.divisao', sub: 'Sócios e percentuais', aoTocar: () => abrirEditarPropriedadeAtivo() },
-            { icone: fora ? 'plus-circle' : 'ban', titulo: fora ? 'Incluir na contabilidade da empresa' : 'Tirar da contabilidade da empresa', codigo: 'imoveis.divisao',
-              sub: fora ? 'Volta a entrar no pacote do contador nos próximos fechamentos' : 'Patrimônio fora da empresa: continua no Raiz, mas não vai ao contador', aoTocar: () => alternarRegistroContabilAtivo() },
+            { icone: fora ? 'plus-circle' : 'ban', titulo: fora ? 'Incluir na contabilidade' : 'Tirar da contabilidade', codigo: 'imoveis.divisao',
+              sub: fora ? 'Volta ao pacote do contador' : 'Não vai ao contador', aoTocar: () => alternarRegistroContabilAtivo() },
         ] },
         { titulo: 'Situação', acoes: situacao },
     ].filter(g => g.acoes.length);
@@ -1535,9 +1531,9 @@ function abrirVendaPelaRevenda(a, u) {
 const MOTIVOS_BAIXA = ['Perda total', 'Sinistro', 'Doação', 'Óbito', 'Descarte', 'Outro'];
 function acaoDaMaquinaAtivo(a, m) {
     const ICONE = { vender: 'tag', baixar: 'file-minus', arquivar: 'archive', reativar: 'rotate-ccw', desfazer_venda: 'undo-2', desfazer_baixa: 'undo-2' };
-    const SUB = { vender: 'Encerra o uso, conclui os itens e sai das listas', baixar: 'Perda, sinistro, doação: sai do patrimônio sem venda',
-        arquivar: 'Sai das listas; os itens ficam pausados até reativar', reativar: 'Volta às listas, ao repouso e retoma os itens pausados',
-        desfazer_venda: 'Volta a Ativo com os usos de antes', desfazer_baixa: 'Volta a Ativo com os usos de antes' };
+    const SUB = { vender: 'Encerra o uso e os itens', baixar: 'Perda, sinistro, doação',
+        arquivar: 'Itens pausados até reativar', reativar: 'Volta e retoma os itens',
+        desfazer_venda: 'Volta com os usos de antes', desfazer_baixa: 'Volta com os usos de antes' };
     return { icone: ICONE[m.acao] || 'circle-dot', titulo: m.rotulo, codigo: m.codigo, sub: SUB[m.acao] || '', tipo: m.tipo === 'perigo' ? 'bad' : undefined,
         aoTocar: () => abrirTransicaoAtivo(a, m) };
 }
@@ -2560,8 +2556,8 @@ export function abrirAcoesPropriedade() {
     sheetOuAviso({ titulo: 'Propriedade', sub: a.nome_exibicao, acoes: [
         { icone: 'pencil', titulo: 'Editar divisão', codigo: 'imoveis.divisao', sub: 'Sócios e percentuais', aoTocar: () => abrirEditarPropriedadeAtivo() },
         // v1.72.0 (P2 Ficha 3, demanda cad6ec67) — eixo contábil do ativo (cofre_ativos.registro_contabil)
-        { icone: fora ? 'plus-circle' : 'ban', titulo: fora ? 'Incluir na contabilidade da empresa' : 'Tirar da contabilidade da empresa', codigo: 'imoveis.divisao',
-          sub: fora ? 'Volta a entrar no pacote do contador nos próximos fechamentos' : 'Patrimônio fora da empresa: continua no Raiz, mas não vai ao contador',
+        { icone: fora ? 'plus-circle' : 'ban', titulo: fora ? 'Incluir na contabilidade' : 'Tirar da contabilidade', codigo: 'imoveis.divisao',
+          sub: fora ? 'Volta ao pacote do contador' : 'Não vai ao contador',
           aoTocar: () => alternarRegistroContabilAtivo() },
     ] });
 }

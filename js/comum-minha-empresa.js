@@ -1,6 +1,11 @@
 // ============================================================================
 // comum-minha-empresa.js — Raiz Patrimônio · Administração compartilhada
-// Versão: 1.18.0 · 14/10/2026
+// Versão: 1.19.0 · 14/10/2026
+//
+// v1.19.0 (14/10/2026, sessão 20261014-2215-ajustes-9d, demanda a05ad2ee; teste do Nicola 14/10 22:12 — "no menu ativos achei
+// uns itens ainda grandinhos") — textos dentro de condição (sub/titulo com ? :) e dicionários de descrição também no limite
+// da D6 (ação 24, descrição 28). Nada de comportamento mudou.
+// Versão anterior: 1.18.0 · 14/10/2026
 //
 // v1.18.0 (14/10/2026, sessão 20261014-2145-onda9c-textos, demanda a05ad2ee; onda 9c do estudo PROTOTIPO_UX_DENSIDADE_RAMOS_RAIZ
 // v1.2.0, D6 seção 10) — textos no limite: ação até 24 caracteres, descrição até 28, aviso até 40 com o resultado e tela
@@ -25,24 +30,11 @@
 // único de divisão, com "Dividir igual"), Ligar/Desligar controle e "Ver relatório". Grava só por
 // fn_partes_retiradas_definir (soma 100%; desligar guarda as partes). Sem retiradas.partes.editar no plano/perfil, a linha
 // aparece com cadeado e o motivo (planos Plus e acima).
-//
-// Versão anterior: 1.14.0 · 10/10/2026
-//
-// v1.14.0 (UX F2.5b-2, demanda 639bbcd0, sessão 20261003-1707-ux-base; ajustes pedidos pelo Nicola no teste de
-// 10/10 01:11) — a ficha segue o padrão de chips do app:
-//   · a quantidade do que falta vai no chip (Resumo, Dados, Fiscal e Pix: "Dados 1", com o tom --warning, igual aos
-//     chips de Contratos e da Configuração inicial); o cabeçalho deixa de mostrar "n de 8" e passa a mostrar o
-//     documento e a cidade da sede;
-//   · Rotinas e Controles viram chips separados (o host passa o box Controles com pane 'controles');
-//   · "Salvar dados da empresa" fica logo depois dos campos que ele salva: no fim de Dados e, em Fiscal e Pix, antes
-//     do card Contas (que salva sozinho);
-//   · o texto "Estes dados saem nos recibos…" sai do rodapé solto e vai para dentro do card do Resumo;
-//   · atalhos que rolam até cme-rotinas-card ou cme-pix-card (Financeiro, links do bot) abrem o chip antes de rolar.
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.13.0 … v1.13.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.14.0 … v1.14.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '1.18.0'; // v-check (20/09/2026): lido por Dev › Versões — manter igual ao header
+export const VERSAO = '1.19.0'; // v-check (20/09/2026): lido por Dev › Versões — manter igual ao header
 import { perguntar } from './cofre-ui.js'; // v1.9.0 (F0.2b) — sem diálogo nativo
 import { rzMostrarBloqueio as rzBloqueio, podeUsar as podeUsarMod } from './comum-licenca.js'; // v1.10.0 — porta de licença (contas)
 export const COMUM_MINHA_EMPRESA_VERSAO = '1.0.0';
@@ -948,7 +940,7 @@ function partesEditar({ dbAuth, clienteId, pt, ligar = false, onToast, aoMudar }
     const editor = typeof window.rzEditarDivisao === 'function' ? window.rzEditarDivisao : null;
     if (!editor) { onToast?.('Ação só disponível dentro do app principal.', 'danger'); return; }
     editor({
-        titulo: 'Partes nas retiradas extraordinárias', sub: ligar ? 'Defina as partes para ligar o controle' : 'Pessoas e partes',
+        titulo: 'Partes nas retiradas extraordinárias', sub: ligar ? 'Defina as partes antes' : 'Pessoas e partes',
         nota: 'Quem fizer retirada extraordinária e não estiver nesta lista aparece no relatório em "Pessoas sem parte definida".',
         itens: pt.comParte.map(x => ({ pessoa_id: x.id, nome: x.nome, percentual: Number(x.parte_retiradas) })),
         candidatos: pt.pessoas.map(x => ({ id: x.id, nome: x.nome })), igualar: true,
@@ -974,7 +966,7 @@ function abrirAcoesPartesRetiradas({ dbAuth, clienteId, pt, onToast, aoMudar }) 
         pt.ligado
             ? { icone: 'power-off', titulo: 'Desligar controle', sub: 'As partes ficam guardadas',
                 aoTocar: async () => { if (await partesGravar(dbAuth, clienteId, { ligado: false }, onToast)) aoMudar?.(); } }
-            : { icone: 'power', titulo: 'Ligar controle', sub: pronto ? 'Usa as partes guardadas' : 'Defina as partes somando 100%',
+            : { icone: 'power', titulo: 'Ligar controle', sub: pronto ? 'Usa as partes guardadas' : 'Partes somando 100%',
                 aoTocar: async () => { if (!pronto) { partesEditar({ ...ctx, ligar: true }); return; } if (await partesGravar(dbAuth, clienteId, { ligado: true }, onToast)) aoMudar?.(); } },
         { icone: 'file-text', titulo: 'Ver relatório', sub: 'Retiradas extraordinárias', codigo: 'relatorios.retiradas_extraordinarias',
           aoTocar: () => { if (typeof window.abrirRelatorioExecutivo === 'function') window.abrirRelatorioExecutivo('retiradas'); } },

@@ -1,6 +1,11 @@
 // ============================================================================
 // js/fechamento.js — Raiz Patrimônio · Fechamento da competência
-// Versão: 1.14.0 · 14/10/2026
+// Versão: 1.15.0 · 14/10/2026
+//
+// v1.15.0 (14/10/2026, sessão 20261014-2215-ajustes-9d, demanda a05ad2ee; teste do Nicola 14/10 22:12 — "no menu ativos achei
+// uns itens ainda grandinhos") — textos dentro de condição (sub/titulo com ? :) e dicionários de descrição também no limite
+// da D6 (ação 24, descrição 28). Nada de comportamento mudou.
+// Versão anterior: 1.14.0 · 14/10/2026
 //
 // v1.14.0 (14/10/2026, sessão 20261014-2145-onda9c-textos, demanda a05ad2ee; onda 9c do estudo PROTOTIPO_UX_DENSIDADE_RAMOS_RAIZ
 // v1.2.0, D6 seção 10) — textos no limite: ação até 24 caracteres, descrição até 28, aviso até 40 com o resultado e tela
@@ -22,20 +27,11 @@
 // ligar/desligar em Minha empresa só aparecia no Financeiro depois de
 // recarregar a página. Agora também reverifica quando o financeiro.js
 // avança window.__rzFinRotinasEpoca (a cada entrada na aba Financeiro).
-// Versão anterior: 1.12.0.
-//
-// v1.12.0 (04/10/2026, demanda cad6ec67 — P2 Ficha 4): o pacote do contador
-// ganha a seção "Outras receitas" (bloco outras_receitas de
-// fn_fechamento_calcular_contabil: entradas sem contrato — licenças,
-// juros, receitas avulsas), que antes saíam misturadas em "Saídas". Vale
-// no PDF, na planilha e no texto do compartilhamento. Pacotes antigos (sem
-// o bloco) continuam abrindo igual. Ativos marcados "fora da contabilidade"
-// (cofre_ativos.registro_contabil) já chegam excluídos pela função.
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.11.0 … v1.11.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.12.0 … v1.12.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '1.14.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.15.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 
 // v1.3.0 (Fase 1 do wrapper de escrita, rollout Financeiro) — emitirEscrita
 // é o evento padrão pra "algo mudou que módulos DE FORA deste arquivo podem
@@ -483,7 +479,7 @@ function fechamentoAbrirSheetFechar() {
     const avisoPendencia = fechamentoResumoPendencia(linha);
     abrirSheetForm({
         titulo: 'Fechar a competência',
-        sub: avisoPendencia ? `Ainda há pendência (${avisoPendencia}) — fechar mesmo assim registra o retrato com isso em aberto.` : 'O retrato desta competência fica registrado, mesmo que algo mude depois.',
+        sub: avisoPendencia ? `Pendência: ${avisoPendencia}` : 'O retrato do mês fica salvo',
         rotuloSalvar: 'Fechar a competência',
         corpo: `<label class="text-xs font-bold text-slate-600">Observação (opcional)</label>
                 <textarea id="fechamento-obs" class="w-full p-2.5 border rounded-lg text-sm mt-1" rows="3" placeholder="Ex.: fechado após conciliar o extrato do mês"></textarea>`,

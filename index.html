@@ -6,9 +6,16 @@
    (base derivada do RUMO v7.4.2 — histórico de versões anteriores
    preservado abaixo para referência técnica)
 
-   VERSÃO: Beta v1.416.0
-   LINHAS: 16844
-   DATA: 14/10/2026 (sessão 20261014-2145-onda9c-textos, demanda a05ad2ee)
+   VERSÃO: Beta v1.417.0
+   LINHAS: 16848
+   DATA: 14/10/2026 (sessão 20261014-2215-ajustes-9d, demanda a05ad2ee)
+   NOVIDADES (Beta v1.417.0) — teste do Nicola 14/10 22:12. (1) Agenda: abrir e fechar um grupo de alertas ("4
+   documentos sem vínculo") redesenha a própria Agenda — antes só aparecia depois de mudar o período. (2) Voltar das
+   telas antigas (Atrasados, ficha do imóvel, detalhe do recebimento, Recebimentos/Saídas filtradas) vira .rz-back:
+   some no Android e segue a regra do iPhone e do computador (UXR-51). (3) Módulos: chip Contador com cadeado quando a
+   rotina "Envio ao contador" está desligada (financeiro.js 1.66.0); cadastro de contador por cima da tela atual
+   (conta.js 1.2.0); textos dentro de condição no limite da D6 (7 módulos). Sem banco.
+   Versão anterior (Beta v1.416.0):
    NOVIDADES (Beta v1.416.0) — ONDA 9c do estudo PROTOTIPO_UX_DENSIDADE_RAMOS_RAIZ v1.2.0 (D6, seção 10, textos):
    ações, descrições, avisos e telas vazias do index e de 24 módulos no limite (24 · 28 · 40 · 40 caracteres). Fora do
    limite no app inteiro: descrições 97 → 0, ações 15 → 0, avisos 58 → 0, telas vazias 50 → 0. Nada de comportamento
@@ -31,14 +38,8 @@
    montada por js/financeiro.js a partir de 1024 px — Recebimentos e Saídas em colunas, seleção, barra de lote (Dar baixa
    em lote · Marcar como pagas · Exportar CSV). No celular nada muda. Sem banco.
    Versão anterior (Beta v1.412.0):
-   NOVIDADES (Beta v1.412.0) — CARTÃO ADICIONAL (FICHA_CARTAO_ADICIONAL_F10_F11_RAIZ v1.1.0, de acordo do Nicola 14/10
-   13:52): cadastro "Cartão adicional" na ficha da conta (cartão principal, final e a conta em que ele cai — padrão a
-   conta de quem usa) em js/comum-minha-empresa.js 1.17.0; fatura com o card "Por cartão", final em cada compra e
-   "Mover para o adicional" em js/financeiro.js 1.62.0; total do adicional no Movimento do ativo em js/cofre-ativos.js
-   1.103.0. Banco: cartao_adicional_f10_f11_v1. Edge: extrato-extrair-transacoes 1.8 e whatsapp-webhook 2.88.
-   Versão anterior (Beta v1.411.0):
    ------------------------------------------------------------------
-   Versões anteriores (v1.411.0 … v1.411.0): CHANGELOG_APP.md, na raiz do
+   Versões anteriores (v1.412.0 … v1.412.0): CHANGELOG_APP.md, na raiz do
    repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
    das 5 versões mais recentes deste cabeçalho.
 
@@ -66,7 +67,7 @@
          O navegador aplica o mapa também aos imports estáticos dentro dos
          módulos (cofre-app.js → ./cofre-api.js etc.). -->
     <!-- RZ-IMPORTMAP:INICIO -->
-    <script type="importmap">{"imports":{"./js/cadastros.js":"./js/cadastros.js?v=1.3.0","./js/financeiro.js":"./js/financeiro.js?v=1.65.0","./js/fechamento.js":"./js/fechamento.js?v=1.14.0","./js/contratos.js":"./js/contratos.js?v=1.59.0","./js/minutas.js":"./js/minutas.js?v=1.5.0","./js/vitrine.js":"./js/vitrine.js?v=1.6.0","./js/imoveis.js":"./js/imoveis.js?v=1.8.0","./js/cofre-api.js":"./js/cofre-api.js?v=1.51.0","./js/cofre-app.js":"./js/cofre-app.js?v=1.49.0","./js/cofre-ativos.js":"./js/cofre-ativos.js?v=1.105.0","./js/cofre-controles.js":"./js/cofre-controles.js?v=1.59.0","./js/cofre-documentos.js":"./js/cofre-documentos.js?v=2.37.0","./js/cofre-imagem.js":"./js/cofre-imagem.js?v=1.1.0","./js/cofre-estado.js":"./js/cofre-estado.js?v=1.5.2","./js/cofre-navegacao.js":"./js/cofre-navegacao.js?v=1.10.0","./js/cofre-ui.js":"./js/cofre-ui.js?v=1.7.2","./js/cofre-validacoes.js":"./js/cofre-validacoes.js?v=2.5.0","./js/comum-licenca.js":"./js/comum-licenca.js?v=1.9.0","./js/comum-renovacao.js":"./js/comum-renovacao.js?v=1.3.5","./js/comum-minha-empresa.js":"./js/comum-minha-empresa.js?v=1.18.0","./js/comum-pessoas.js":"./js/comum-pessoas.js?v=1.213.0","./js/comum-sobre.js":"./js/comum-sobre.js?v=1.5.0","./js/comum-endereco.js":"./js/comum-endereco.js?v=1.2.0","./js/comum-partes.js":"./js/comum-partes.js?v=1.0.0","./js/resultados.js":"./js/resultados.js?v=2.10.0","./js/indicadores.js":"./js/indicadores.js?v=1.2.0","./js/configuracao-inicial.js":"./js/configuracao-inicial.js?v=1.1.0","./js/relatorios-executivos.js":"./js/relatorios-executivos.js?v=1.4.0","./js/raiz-eventos.js":"./js/raiz-eventos.js?v=1.0.0","./js/raiz-device.js":"./js/raiz-device.js?v=1.1.0","./js/raiz-ui.js":"./js/raiz-ui.js?v=1.5.0","./js/fiscal.js":"./js/fiscal.js?v=1.6.0","./js/ativos/ativos-boot.js":"./js/ativos/ativos-boot.js?v=1.4.0","./js/ativos/ativos-markup.js":"./js/ativos/ativos-markup.js?v=1.63.0","./js/nucleo/porta.js":"./js/nucleo/porta.js?v=1.5.0","./js/partes.js":"./js/partes.js?v=1.1.0","./js/conta.js":"./js/conta.js?v=1.1.0","./js/grupo-visao.js":"./js/grupo-visao.js?v=1.0.0","./js/agenda.js":"./js/agenda.js?v=1.4.0"}}</script>
+    <script type="importmap">{"imports":{"./js/cadastros.js":"./js/cadastros.js?v=1.3.0","./js/financeiro.js":"./js/financeiro.js?v=1.66.0","./js/fechamento.js":"./js/fechamento.js?v=1.15.0","./js/contratos.js":"./js/contratos.js?v=1.60.0","./js/minutas.js":"./js/minutas.js?v=1.6.0","./js/vitrine.js":"./js/vitrine.js?v=1.6.0","./js/imoveis.js":"./js/imoveis.js?v=1.8.0","./js/cofre-api.js":"./js/cofre-api.js?v=1.51.0","./js/cofre-app.js":"./js/cofre-app.js?v=1.49.0","./js/cofre-ativos.js":"./js/cofre-ativos.js?v=1.106.0","./js/cofre-controles.js":"./js/cofre-controles.js?v=1.59.0","./js/cofre-documentos.js":"./js/cofre-documentos.js?v=2.37.0","./js/cofre-imagem.js":"./js/cofre-imagem.js?v=1.1.0","./js/cofre-estado.js":"./js/cofre-estado.js?v=1.5.2","./js/cofre-navegacao.js":"./js/cofre-navegacao.js?v=1.10.0","./js/cofre-ui.js":"./js/cofre-ui.js?v=1.7.2","./js/cofre-validacoes.js":"./js/cofre-validacoes.js?v=2.5.0","./js/comum-licenca.js":"./js/comum-licenca.js?v=1.9.0","./js/comum-renovacao.js":"./js/comum-renovacao.js?v=1.3.5","./js/comum-minha-empresa.js":"./js/comum-minha-empresa.js?v=1.19.0","./js/comum-pessoas.js":"./js/comum-pessoas.js?v=1.214.0","./js/comum-sobre.js":"./js/comum-sobre.js?v=1.5.0","./js/comum-endereco.js":"./js/comum-endereco.js?v=1.2.0","./js/comum-partes.js":"./js/comum-partes.js?v=1.0.0","./js/resultados.js":"./js/resultados.js?v=2.10.0","./js/indicadores.js":"./js/indicadores.js?v=1.2.0","./js/configuracao-inicial.js":"./js/configuracao-inicial.js?v=1.1.0","./js/relatorios-executivos.js":"./js/relatorios-executivos.js?v=1.4.0","./js/raiz-eventos.js":"./js/raiz-eventos.js?v=1.0.0","./js/raiz-device.js":"./js/raiz-device.js?v=1.1.0","./js/raiz-ui.js":"./js/raiz-ui.js?v=1.5.0","./js/fiscal.js":"./js/fiscal.js?v=1.7.0","./js/ativos/ativos-boot.js":"./js/ativos/ativos-boot.js?v=1.4.0","./js/ativos/ativos-markup.js":"./js/ativos/ativos-markup.js?v=1.63.0","./js/nucleo/porta.js":"./js/nucleo/porta.js?v=1.5.0","./js/partes.js":"./js/partes.js?v=1.1.0","./js/conta.js":"./js/conta.js?v=1.2.0","./js/grupo-visao.js":"./js/grupo-visao.js?v=1.0.0","./js/agenda.js":"./js/agenda.js?v=1.4.0"}}</script>
     <!-- RZ-IMPORTMAP:FIM -->
 
     <!-- ===== PWA: permite "instalar" o app no celular (Android e iPhone) ===== -->
@@ -3016,7 +3017,7 @@
 
         <section id="tab-imovel-ficha" class="tab-content">
 
-            <button onclick="voltarDaFichaImovel()" class="text-xs font-bold text-slate-600 flex items-center gap-1"><svg data-lucide="chevron-left" style="width:16px;height:16px"></svg> Imóveis</button>
+            <button onclick="voltarDaFichaImovel()" class="rz-back"><svg data-lucide="chevron-left" style="width:16px;height:16px"></svg> Imóveis</button>
 
             <div id="ficha-imovel-head" class="mt-3"></div>
 
@@ -3048,7 +3049,7 @@
              UM card específico em vez da lista inteira. -->
         <section id="tab-recebimento-detalhe" class="tab-content">
 
-            <button onclick="voltarDoRecebimentoDetalhe()" class="text-xs font-bold text-slate-600 flex items-center gap-1 mb-3"><svg data-lucide="chevron-left" style="width:16px;height:16px"></svg> Voltar</button>
+            <button onclick="voltarDoRecebimentoDetalhe()" class="rz-back"><svg data-lucide="chevron-left" style="width:16px;height:16px"></svg> Voltar</button>
 
             <div id="recebimento-detalhe-conteudo"></div>
 
@@ -3542,7 +3543,7 @@
                  #fin-competencia-lock-*, sem ⋮) → 6 botões
                  (#fin-quadrantes-*, financeiroQuadrantesHtml) → seletor
                  (#fin-chips-nivel-*) → KPIs. Sem <h2>. -->
-            <button id="btn-voltar-financeiro" onclick="voltarDoFinanceiroFiltrado()" class="hidden text-xs font-bold text-slate-600 flex items-center gap-1 mb-3"><svg data-lucide="chevron-left" style="width:16px;height:16px"></svg> Voltar</button>
+            <button id="btn-voltar-financeiro" onclick="voltarDoFinanceiroFiltrado()" class="hidden rz-back"><svg data-lucide="chevron-left" style="width:16px;height:16px"></svg> Voltar</button>
             <!-- v1.294.0 (UXR-10/25, demanda 94245176) — topo em 2 linhas: barra de busca + "+"
                  (Lançar) e o segmento de 4 opções; depois a competência, os 4 KPIs e o card
                  "Rotinas de <mês>" (#fin-rotinas-*, financeiroRotinasHtml) no lugar da grade 3x2
@@ -3700,7 +3701,7 @@
                  chegada (toque em "Em atraso" no hero de Recebimentos). -->
             <!-- v1.294.0 (UXR-25/46, demanda 94245176) — Atrasados deixa de ser aba do segmento e vira
                  ficha aberta pela linha "Atrasados" do card Rotinas: "‹ Financeiro", título e busca. -->
-            <button id="btn-voltar-inadimplencia" type="button" onclick="switchTab('tab-mensal')" style="display:flex;align-items:center;gap:4px;font-size:13px;font-weight:600;color:var(--pine);background:none;border:0;padding:0;min-height:40px;margin-bottom:4px"><svg data-lucide="chevron-left" style="width:16px;height:16px"></svg> Financeiro</button>
+            <button id="btn-voltar-inadimplencia" type="button" onclick="switchTab('tab-mensal')" class="rz-back"><svg data-lucide="chevron-left" style="width:16px;height:16px"></svg> Financeiro</button>
 
             <div class="rz-card-h" style="margin-bottom:12px">
                 <h3 style="font-size:20px">Atrasados <span class="rz-sub" style="font-family:var(--font-body);font-size:13px;font-weight:400;letter-spacing:0">· todos os meses</span></h3>
@@ -3760,7 +3761,7 @@
                  #fin-competencia-lock-*, sem ⋮) → 6 botões
                  (#fin-quadrantes-*, financeiroQuadrantesHtml) → seletor
                  (#fin-chips-nivel-*) → KPIs. Sem <h2>. -->
-            <button id="btn-voltar-saidas" onclick="voltarDasSaidasFiltradas()" class="hidden text-xs font-bold text-slate-600 flex items-center gap-1 mb-3"><svg data-lucide="chevron-left" style="width:16px;height:16px"></svg> Voltar</button>
+            <button id="btn-voltar-saidas" onclick="voltarDasSaidasFiltradas()" class="hidden rz-back"><svg data-lucide="chevron-left" style="width:16px;height:16px"></svg> Voltar</button>
             <!-- v1.294.0 (UXR-10/25, demanda 94245176) — topo em 2 linhas: barra de busca + "+"
                  (Lançar) e o segmento de 4 opções; depois a competência, os 4 KPIs e o card
                  "Rotinas de <mês>" (#fin-rotinas-*, financeiroRotinasHtml) no lugar da grade 3x2
@@ -4347,7 +4348,7 @@
         // texto certo toda vez (esqueci 5 versões seguidas, de v1.37.1 até
         // v1.38.3). Agora só precisa mudar UMA linha aqui a cada release;
         // window.onload aplica nos dois lugares automaticamente.
-        const APP_VERSAO = "Beta v1.416.0"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
+        const APP_VERSAO = "Beta v1.417.0"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
 
         // ====================================================================
         // v1.105.0 — HELPERS DE SUPERFÍCIE DA GRAMÁTICA ÚNICA
@@ -13454,7 +13455,10 @@ async function criarLinkVitrineSupabase(token, idsSelecionados) {
         function rzAlternarGrupoAqui(ref, sw) {
             if (rzGruposAbertos.has(ref)) rzGruposAbertos.delete(ref); else rzGruposAbertos.add(ref);
             // redesenha só a tela onde a linha está
-            if (sw && sw.closest('#alertas-patrimonio-mount')) renderListaAlertas();
+            // v1.417.0 (Nicola 14/10 22:12: "os itens que abrem pra baixo só funcionam se clicar e movimentar o período")
+            // — dentro da Agenda (js/agenda.js) quem redesenha é a própria Agenda, não a lista antiga (oculta).
+            if (sw && sw.closest('#agenda-cal') && typeof window.rzAgendaRedesenhar === 'function') window.rzAgendaRedesenhar();
+            else if (sw && sw.closest('#alertas-patrimonio-mount')) renderListaAlertas();
             else if (sw && sw.closest('#geral-atencao-fundidos')) renderizarPontosAtencaoGeral();
             else { if (typeof renderListaAlertas === 'function') renderListaAlertas(); }
         }

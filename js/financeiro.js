@@ -1,7 +1,12 @@
 // ============================================================================
 // financeiro.js — Raiz Patrimônio · Financeiro (Recebimentos · Atrasados · Saídas
 //                  · conciliação de extrato · recibo · detalhe do recebimento)
-// Versão: 1.65.0 · 14/10/2026
+// Versão: 1.66.0 · 14/10/2026
+//
+// v1.66.0 (14/10/2026, sessão 20261014-2215-ajustes-9d, demanda a05ad2ee; teste do Nicola 14/10 22:12) — (1) o chip Contador da faixa
+// de rotinas segue a rotina "Envio ao contador": desligada, aparece com cadeado ("Contador desligado") e leva a Empresa ›
+// Rotinas, como o Fiscal; (2) textos dentro de condição no limite da D6 ("Mês fechado: reabra", "Reclassificar" etc.).
+// Versão anterior: 1.65.0 · 14/10/2026
 //
 // v1.65.0 (14/10/2026, sessão 20261014-2145-onda9c-textos, demanda a05ad2ee; onda 9c do estudo PROTOTIPO_UX_DENSIDADE_RAMOS_RAIZ
 // v1.2.0, D6 seção 10) — textos no limite: ação até 24 caracteres, descrição até 28, aviso até 40 com o resultado e tela
@@ -28,15 +33,11 @@
 // A fatura ganha o card "Por cartão" (principal e cada adicional, com quem usa, a conta em que cai e o total; tocar filtra
 // as compras), o final do adicional em cada compra e a ação "Mover para o adicional" / "Voltar ao principal"
 // (fn_fatura_item_classificar com p_cartao_uso_id). Quem vê só o adicional vê só as compras dele, sem "Marcar como paga".
-// Versão anterior: 1.61.0 · 13/10/2026
-//
-// v1.61.0 (13/10/2026, sessão 20261013-2320-conta-via-item, demanda 47eed96b) — só texto: o aviso "Cadastre o cartão
-// primeiro" da importação de fatura aponta o novo caminho (ativo › Controles › + › "Conta ou cartão").
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.60.0 … v1.60.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.61.0 … v1.61.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '1.65.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.66.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 
 // v1.17.0 (Fase 1 do wrapper de escrita, rollout Financeiro) — emitirEscrita
 // é o evento padrão pra "algo mudou que módulos DE FORA deste arquivo podem
@@ -156,6 +157,7 @@ let financeiroCompetenciaAtual = null; // 'YYYY-MM-01'; null = ainda não inicia
 let financeiroRotinaFechamentoClienteId = null; // v1.30.1
 let financeiroRotinaReverificar = false; // v1.30.1 — true a cada entrada na aba
 let financeiroRotinaFechamentoLigada = null; // null = ainda não verificado nesta sessão; true/false depois
+let financeiroRotinaContadorLigada = null; // v1.66.0 — rotina "Envio ao contador" (envio_contador); null = não verificada
 
 function financeiroCompetenciaHojeISO() {
     const h = new Date();
@@ -320,6 +322,7 @@ function financeiroRotinasHtml(aba) {
         : fechada ? rot({ icone: 'lock', cls: pend?.tem ? 'warn' : 'ok', texto: 'Mês fechado', onclick: 'fechamentoAlternarBotao()' })
         : rot({ icone: 'lock-open', cls: pend?.tem ? 'warn' : 'neu', texto: 'Mês aberto', onclick: 'fechamentoAlternarBotao()' });
     const contador = rotinaOff ? rot({ icone: 'send', texto: 'Contador', off: true, onclick: 'rzTocarChipFechamentoDesligado()' })
+        : financeiroRotinaContadorLigada === false ? rot({ icone: 'send', texto: 'Contador desligado', off: true, onclick: 'financeiroIrParaRotinas()' })
         : rot({ icone: 'send', cls: fechada ? 'ok' : 'neu', texto: fechada ? 'Contador pronto' : 'Contador', onclick: 'fechamentoAbrirCompartilharContador()' });
     let fiscal;
     if (!fis) fiscal = rot({ icone: 'file-check-2', texto: 'Fiscal…', onclick: 'abrirFiscalCompetencia()' });
@@ -381,8 +384,8 @@ export function abrirLancarFinanceiro(aba) {
         { icone: 'file-down', tipo: 'ia', titulo: 'Importar extrato (IA)', codigo: 'conciliacao.importar', sub: 'Excel, PDF ou foto', aoTocar: () => document.getElementById('extrato-file-input')?.click() },
         { icone: 'credit-card', tipo: 'ia', titulo: 'Importar fatura (IA)', codigo: 'cartao.importar', sub: 'PDF ou foto', aoTocar: () => financeiroImportarFatura() }, // v1.37.0 (P5a)
         { icone: 'file-plus', tipo: 'ia', titulo: 'Ler um documento (IA)', codigo: 'cofre.analisar_ia', sub: 'Comprovante, boleto, nota', aoTocar: () => { if (typeof abrirUploadDocumentoNoApp === 'function') abrirUploadDocumentoNoApp(); } },
-        { icone: 'arrow-down-left', titulo: 'Adicionar recebimento', sub: fechada ? 'Competência fechada — reabra para lançar' : 'De um contrato ou sem contrato', aoTocar: () => fechada ? avisoFechada() : abrirAdicionarRecebimento() },
-        { icone: 'arrow-up-right', titulo: 'Adicionar saída', sub: fechada ? 'Competência fechada — reabra para lançar' : 'Despesa, tributo, manutenção', aoTocar: () => fechada ? avisoFechada() : abrirNovaDespesa() },
+        { icone: 'arrow-down-left', titulo: 'Adicionar recebimento', sub: fechada ? 'Mês fechado: reabra' : 'Com ou sem contrato', aoTocar: () => fechada ? avisoFechada() : abrirAdicionarRecebimento() },
+        { icone: 'arrow-up-right', titulo: 'Adicionar saída', sub: fechada ? 'Mês fechado: reabra' : 'Despesa, tributo, manutenção', aoTocar: () => fechada ? avisoFechada() : abrirNovaDespesa() },
     ];
     if (aba === 'conciliacao') {
         acoes.push({ icone: 'refresh-cw', titulo: 'Reprocessar pendências', codigo: 'conciliacao.resolver', sub: 'Compara de novo', aoTocar: () => reprocessarConciliacaoPendente() });
@@ -587,16 +590,21 @@ async function financeiroVerificarRotinaFechamento() {
     financeiroRotinaReverificar = false;
     financeiroRotinaFechamentoClienteId = CLIENTE_ID_SUPABASE;
     const anterior = financeiroRotinaFechamentoLigada;
+    const anteriorContador = financeiroRotinaContadorLigada;
     try {
         const { data, error } = await dbAuth.rpc('fn_rotinas_empresa_listar', { p_cliente_id: CLIENTE_ID_SUPABASE });
         if (error) throw error;
         const linha = (data || []).find(r => r.codigo === 'fechamento_mensal');
         financeiroRotinaFechamentoLigada = linha ? !!linha.ligada : true; // rotina fora do catálogo não deve travar o chip
+        // v1.66.0 (Nicola 14/10 22:12: "Envio ao contador desligado na empresa mas Financeiro sem cadeado") — o chip
+        // Contador segue a própria rotina, como o Fiscal segue a dele.
+        const envio = (data || []).find(r => r.codigo === 'envio_contador');
+        financeiroRotinaContadorLigada = envio ? !!envio.ligada : true;
     } catch (e) {
         console.error('[financeiro] fn_rotinas_empresa_listar', e);
         financeiroRotinaFechamentoLigada = (anterior === null || !mesmaEmpresa) ? true : anterior; // falha de rede nunca trava o chip — só a rotina desligada de propósito trava
     }
-    if (mesmaEmpresa && anterior === financeiroRotinaFechamentoLigada) return; // v1.30.1 — nada mudou, não redesenha
+    if (mesmaEmpresa && anterior === financeiroRotinaFechamentoLigada && anteriorContador === financeiroRotinaContadorLigada) return; // v1.30.1 — nada mudou, não redesenha
     financeiroRedesenharChipsNivel();
     financeiroRedesenharQuadrantes(); // v1.20.0 — Fechar/Contador dependem da rotina
 }
@@ -1040,7 +1048,7 @@ function financeiroRenderCabecalho(aba) {
                 if (!compFechada) {
                     acoesRealizado.push({
                         icone: d.incluirContabilidade === false ? 'plus-circle' : 'ban',
-                        titulo: d.incluirContabilidade === false ? 'Incluir na contabilidade' : 'Não incluir na contabilidade',
+                        titulo: d.incluirContabilidade === false ? 'Incluir na contabilidade' : 'Fora da contabilidade',
                         sub: 'Pacote do contador',
                         codigo: 'financeiro.contabilidade_ajustar',
                         aoTocar: () => alternarIncluirContabilidade('lancamento', id),
@@ -1407,7 +1415,7 @@ function financeiroRenderCabecalho(aba) {
                 acoes.push({ icone: 'sparkles', tipo: 'ia', titulo: financeiroTextoSugestaoCartao(s, nomeCat), sub: `Confiança: ${Math.round(Number(s.confianca || 0))}%`, codigo: 'cartao.classificar',
                     aoTocar: () => financeiroGravarClassificacao([i.id], { categoria: s.categoria, ativo_id: s.ativo_id || null, parte_id: s.parte_id || null, divisao: null, sempre_assim: false }, f.id) });
             }
-            acoes.push({ icone: 'tags', titulo: pend ? (s.categoria ? 'Classificar de outro jeito' : 'Classificar') : 'Mudar classificação', sub: 'Categoria, ativo, fornecedor', codigo: 'cartao.classificar', manterAberto: true,
+            acoes.push({ icone: 'tags', titulo: pend ? (s.categoria ? 'Reclassificar' : 'Classificar') : 'Mudar classificação', sub: 'Categoria, ativo, fornecedor', codigo: 'cartao.classificar', manterAberto: true,
                 aoTocar: () => financeiroClassificarItens([i], f.id) });
             if (!pend) {
                 acoes.push({ icone: 'undo-2', titulo: 'Voltar para em aberto', sub: 'Volta para "A classificar"', codigo: 'cartao.classificar',
@@ -4067,7 +4075,7 @@ function financeiroRenderCabecalho(aba) {
                         aoTocar: () => confirmarVincularConciliacaoRecebimento(fingerprintId, c.mensalidade_id, f),
                     });
                 });
-                acoes.push({ icone: 'search', titulo: 'Buscar manualmente', sub: candidatos.length ? 'Ver outros recebimentos em aberto' : 'Nenhuma sugestão — escolha entre os recebimentos em aberto', aoTocar: () => abrirBuscarMensalidadeManual(fingerprintId) });
+                acoes.push({ icone: 'search', titulo: 'Buscar manualmente', sub: candidatos.length ? 'Outros em aberto' : 'Sem sugestão: escolha', aoTocar: () => abrirBuscarMensalidadeManual(fingerprintId) });
             } else {
                 candidatos.forEach((c, i) => {
                     const mesmoDoMotor = i === 0 && sugCache && sugCache.destino_id === c.lancamento_id;
@@ -4509,7 +4517,7 @@ function financeiroRenderCabecalho(aba) {
                 if (!compFechada) {
                     acoesPago.push({
                         icone: men.incluirContabilidade === false ? 'plus-circle' : 'ban',
-                        titulo: men.incluirContabilidade === false ? 'Incluir na contabilidade' : 'Não incluir na contabilidade',
+                        titulo: men.incluirContabilidade === false ? 'Incluir na contabilidade' : 'Fora da contabilidade',
                         sub: 'Pacote do contador',
                         codigo: 'financeiro.contabilidade_ajustar',
                         aoTocar: () => alternarIncluirContabilidade('mensalidade', men.id),
@@ -6146,9 +6154,9 @@ export function rzAcoesRetirada(id) {
             ? { icone: 'undo-2', titulo: 'Voltar para o fluxo', codigo: 'repasses.registrar', sub: 'Abate o saldo a retirar', aoTocar: () => retiradaClassificar(id, 'distribuicao') }
             : { icone: 'sparkles', titulo: 'Extraordinária', codigo: 'repasses.registrar', sub: 'Não abate o saldo a retirar', aoTocar: () => retiradaClassificar(id, 'extraordinaria') },
         { icone: 'split', titulo: dividida ? 'Refazer a divisão' : 'Dividir em partes', codigo: 'repasses.registrar',
-          sub: dividida ? `${grupo.length} partes · ${formatarMoedaBR(total)}` : 'Parte do fluxo e parte extraordinária no mesmo valor', aoTocar: () => retiradaDividir(id) },
+          sub: dividida ? `${grupo.length} partes · ${formatarMoedaBR(total)}` : 'Fluxo e extraordinária', aoTocar: () => retiradaDividir(id) },
         ...(dividida ? [{ icone: 'merge', titulo: 'Unir partes', codigo: 'repasses.registrar', sub: `Volta a uma retirada de ${formatarMoedaBR(total)}`, aoTocar: () => retiradaUnir(id) }] : []),
-        ...(r.dividido_de ? [] : [{ icone: 'trash-2', tipo: 'bad', titulo: 'Excluir retirada', codigo: 'repasses.excluir', sub: dividida ? (grupo.length === 2 ? 'Exclui também a outra parte' : `Exclui também as outras ${grupo.length - 1} partes`) : '', aoTocar: () => excluirRetirada(id) }]),
+        ...(r.dividido_de ? [] : [{ icone: 'trash-2', tipo: 'bad', titulo: 'Excluir retirada', codigo: 'repasses.excluir', sub: dividida ? (grupo.length === 2 ? 'Exclui também a outra parte' : `E as outras ${grupo.length - 1} partes`) : '', aoTocar: () => excluirRetirada(id) }]),
     ] });
 }
 
@@ -6261,7 +6269,7 @@ async function retiradaClassificar(id, natureza) { // v1.50.0 — F13.7 (D86)
     const r = distribAcharRetirada(id);
     if (!r) return;
     const extra = natureza === 'extraordinaria';
-    if (typeof rzConfirmar === 'function' && !await rzConfirmar({ titulo: extra ? 'Marcar como extraordinária' : 'Voltar para o fluxo',
+    if (typeof rzConfirmar === 'function' && !await rzConfirmar({ titulo: extra ? 'Extraordinária' : 'Voltar para o fluxo',
         impacto: extra ? `${formatarMoedaBR(Number(r.valor || 0))} de ${r.pessoas?.nome || 'Sócio'} sai do saldo a retirar e não gera dívida no Balanço. Fica registrado quem mudou e quando.`
                        : `${formatarMoedaBR(Number(r.valor || 0))} de ${r.pessoas?.nome || 'Sócio'} volta a abater o saldo a retirar.`,
         rotuloConfirmar: extra ? 'Marcar' : 'Voltar' })) return;

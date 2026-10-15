@@ -1,6 +1,11 @@
 // ============================================================================
 // comum-pessoas.js — Raiz Patrimônio · Administração compartilhada
-// Versão: 1.213.0 · 14/10/2026
+// Versão: 1.214.0 · 14/10/2026
+//
+// v1.214.0 (14/10/2026, sessão 20261014-2215-ajustes-9d, demanda a05ad2ee; teste do Nicola 14/10 22:12 — "no menu ativos achei
+// uns itens ainda grandinhos") — textos dentro de condição (sub/titulo com ? :) e dicionários de descrição também no limite
+// da D6 (ação 24, descrição 28). Nada de comportamento mudou.
+// Versão anterior: 1.213.0 · 14/10/2026
 //
 // v1.213.0 (14/10/2026, sessão 20261014-2145-onda9c-textos, demanda a05ad2ee; onda 9c do estudo PROTOTIPO_UX_DENSIDADE_RAMOS_RAIZ
 // v1.2.0, D6 seção 10) — textos no limite: ação até 24 caracteres, descrição até 28, aviso até 40 com o resultado e tela
@@ -20,18 +25,11 @@
 // v1.210.0 (11/10/2026, sessão 20261008-1231-pessoas-ativos, demanda 7c5c4c65; F13.8, ficha v1.4.0 e protótipo v1.3.0; de acordo do Nicola 11/10 22:55) — com o controle de
 // partes nas retiradas extraordinárias ligado na empresa, a ficha da pessoa mostra "Parte nas retiradas extraordinárias".
 // A parte é definida em Minha empresa › Rotinas; o formulário da pessoa não envia parte_retiradas.
-//
-// Versão anterior: 1.209.0 · 11/10/2026
-//
-// v1.209.0 (fase 5 do plano de marca e ramos, demanda 680ee9f8; Nicola 11/10 18:47 "Sobre ramo por pessoa, estou de
-// acordo"; FICHA_RAMO_PADRAO_PESSOA_RAIZ v1.0.0) — "Abrir o app em" no grupo Acesso da pessoa: escolhe o ramo em que
-// ela entra no app (Todo o patrimônio ou um ramo contratado). Aparece para quem tem login, quando a empresa tem 2+ ramos,
-// para a própria pessoa ou admin/master. Grava por fn_pessoa_ramo_padrao_definir (coluna pessoas.ramo_padrao).
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.208.0 … v1.208.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.209.0 … v1.209.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '1.213.0'; // v-check (18/09/2026): lido por Dev › Versões — manter igual ao header
+export const VERSAO = '1.214.0'; // v-check (18/09/2026): lido por Dev › Versões — manter igual ao header
 import { perguntar, avisarComDesfazer } from './cofre-ui.js'; // v1.203.0 (F0.2b) — sem diálogo nativo
 import { buscarContas, contasListaHtml, abrirFichaConta, abrirAcoesConta } from './comum-minha-empresa.js'; // v1.204.0 — contas da pessoa (P4a)
 import { rzMostrarBloqueio as rzBloqueio } from './comum-licenca.js'; // v1.204.0
@@ -388,7 +386,7 @@ export async function montarAbaPessoas(mountEl, ctx) {
         const dados = [], acesso = [], comunicacao = [], atividade = [];
         if (!perfilTravado) dados.push({ icone: 'pencil', titulo: 'Editar dados', sub: 'Contato, função e cotas', codigo: 'pessoas.editar', aoTocar: () => abrirFormPessoaSheet(p.id) });
         else dados.push({ icone: 'lock', titulo: 'Dados do master', sub: 'Só o próprio master edita', aoTocar: null });
-        if (protegidoExclusao) dados.push({ icone: 'lock', titulo: ehMaster ? 'Master não pode ser removido por aqui' : 'Admin não pode ser removido por aqui', sub: 'Fale com a Raiz', aoTocar: null });
+        if (protegidoExclusao) dados.push({ icone: 'lock', titulo: ehMaster ? 'Master protegido' : 'Admin protegido', sub: 'Fale com a Raiz', aoTocar: null });
         else dados.push({ icone: 'trash-2', titulo: 'Excluir pessoa', codigo: 'pessoas.excluir', tipo: 'bad', aoTocar: () => excluirPessoa(p.id) });
         if (!ehMaster) acesso.push({ icone: 'shield', titulo: 'Perfil de acesso', sub: rotuloPerfil(p.perfil), codigo: 'pessoas.editar', aoTocar: () => alterarPerfilPessoa(p.id) });
         else acesso.push({ icone: 'shield-check', titulo: 'Perfil de acesso', sub: 'Master — não muda pela tela', aoTocar: null });
@@ -409,7 +407,7 @@ export async function montarAbaPessoas(mountEl, ctx) {
             }
         }
         if (proativasDisponiveis.length > 0) {
-            comunicacao.push({ icone: 'bell', titulo: 'Avisos no WhatsApp', sub: p.whatsapp ? 'Quais avisos e com que frequência' : 'Sem WhatsApp cadastrado — os avisos não chegam', aoTocar: () => {
+            comunicacao.push({ icone: 'bell', titulo: 'Avisos no WhatsApp', sub: p.whatsapp ? 'Quais avisos e quando' : 'Sem WhatsApp cadastrado', aoTocar: () => {
                 if (p.id === pessoaId && typeof window.abrirPreferenciasComunicacao === 'function') { window.abrirPreferenciasComunicacao(); return; }
                 abrirComunicacoesPessoaSheet(p.id);
             } });
@@ -535,7 +533,7 @@ export async function montarAbaPessoas(mountEl, ctx) {
             }
         }
         if (protegidoExclusao) {
-            acoes.push({ icone: 'lock', titulo: ehMaster ? 'Master não pode ser removido por aqui' : 'Admin não pode ser removido por aqui', sub: 'Fale com a Raiz', aoTocar: () => {} });
+            acoes.push({ icone: 'lock', titulo: ehMaster ? 'Master protegido' : 'Admin protegido', sub: 'Fale com a Raiz', aoTocar: () => {} });
         } else {
             acoes.push({ icone: 'trash-2', titulo: 'Excluir pessoa', codigo: 'pessoas.excluir', tipo: 'bad', aoTocar: () => excluirPessoa(p.id) });
         }

@@ -1,6 +1,11 @@
 // ============================================================================
 // js/fiscal.js — Raiz Patrimônio · Fiscal (check-up da Reforma Tributária)
-// Versão: 1.6.0 · 14/10/2026
+// Versão: 1.7.0 · 14/10/2026
+//
+// v1.7.0 (14/10/2026, sessão 20261014-2215-ajustes-9d, demanda a05ad2ee; teste do Nicola 14/10 22:12 — "no menu ativos achei
+// uns itens ainda grandinhos") — textos dentro de condição (sub/titulo com ? :) e dicionários de descrição também no limite
+// da D6 (ação 24, descrição 28). Nada de comportamento mudou.
+// Versão anterior: 1.6.0 · 14/10/2026
 //
 // v1.6.0 (14/10/2026, sessão 20261014-2145-onda9c-textos, demanda a05ad2ee; onda 9c do estudo PROTOTIPO_UX_DENSIDADE_RAMOS_RAIZ
 // v1.2.0, D6 seção 10) — textos no limite: ação até 24 caracteres, descrição até 28, aviso até 40 com o resultado e tela
@@ -30,32 +35,11 @@
 // .rz-wrap, index.html v1.258.0: sem corte com "…"). Nome dos rótulos mais
 // claros ("A regra da lei", "O que o Raiz calculou", "O que fazer agora",
 // "Quando falar com o contador").
-//
-// v1.3.0 (achados do Nicola testando na Albuquerque, 23/09/2026, com prints):
-//   · Fiscal da competência: sem ⋮ no topo e sem o cartão de avisos
-//     ("obrigatória a partir de…", "Só consulta" — são acesso e alerta, que
-//     já têm lugar próprio). As funções viram 6 botões logo abaixo do mês,
-//     no mesmo formato dos 6 do Financeiro (.rz-fin-quad): Preparar ·
-//     Cadastro · Anexar XML · Contador · Quem emite · Check-up. Sem o plano,
-//     o botão aparece indisponível com o motivo (mesma regra de sempre).
-//     O "‹ Financeiro" saiu: o voltar agora é o do app (index.html v1.257.0 —
-//     botão de voltar do celular e atalho "‹ Voltar" no topo).
-//   · Linha "Falta dado": cada pendência vira uma ação "Completar …" que abre
-//     o campo ali mesmo (antes levava ao checklist sem dizer o quê).
-//     fiscalCompletarPendencia(p, depois) é a função única de completar no
-//     contexto — usada também pelo checklist (fechamento.js v1.9.0) e pelo
-//     alerta (index.html). Grava por fn_fiscal_pendencia_completar
-//     (migration fiscal_pendencia_completar_v1): CPF/CNPJ do locatário ou da
-//     empresa, destinação, município (pelo CEP, ViaCEP → código IBGE) e CIB.
-//   · Check-up: sem ⋮ no topo — Registrar check-up, Ver regras usadas e a
-//     troca do ano viram o cartão "Ações", no mesmo formato de Emissão; os 4
-//     textos (regra, estimativa, o que fazer, quando validar) viram linhas de
-//     lista (antes, texto grande em negrito fora do padrão).
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.2.0 … v1.2.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.3.0 … v1.3.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '1.6.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.7.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 
 const FIS_ROTULO_RESULTADO = {
     verde: { sem: 'ok', txt: 'Abaixo do limite' },
@@ -251,7 +235,7 @@ function fisRender() {
             </div>
             <div class="rz-row rz-link" onclick="fiscalTrocarAno()">
                 <div class="rz-ic"><svg data-lucide="calendar"></svg></div>
-                <div class="rz-tx"><b>Analisar ${outroAno}</b><span>${outroAno > fisAnoAtual() ? 'Projeção com a receita deste ano como ano anterior' : 'Voltar ao ano atual'}</span></div>
+                <div class="rz-tx"><b>Analisar ${outroAno}</b><span>${outroAno > fisAnoAtual() ? 'Receita deste ano como base' : 'Voltar ao ano atual'}</span></div>
                 <svg data-lucide="chevron-right" class="rz-chev"></svg>
             </div>
         </div>`;
@@ -294,7 +278,7 @@ export function fiscalAbrirAcoes() {
     abrirSheetAcoes({ titulo: 'Fiscal', sub: `Check-up ${atual}`, acoes: [
         { icone: 'camera', titulo: 'Registrar check-up', sub: 'Guarda o resultado de hoje', codigo: 'fiscal.checkup', aoTocar: fiscalRegistrar },
         { icone: 'book-open', titulo: 'Ver regras usadas', sub: 'Versão e fonte de cada regra', aoTocar: fiscalAbrirRegras },
-        { icone: 'calendar', titulo: `Analisar ${outro}`, sub: outro > fisAnoAtual() ? 'Projeção com a receita deste ano como ano anterior' : 'Voltar ao ano atual', aoTocar: () => { fisAno = outro; fiscalMontar(); } },
+        { icone: 'calendar', titulo: `Analisar ${outro}`, sub: outro > fisAnoAtual() ? 'Receita deste ano como base' : 'Voltar ao ano atual', aoTocar: () => { fisAno = outro; fiscalMontar(); } },
     ] });
 }
 
