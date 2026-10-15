@@ -1,6 +1,12 @@
 // ============================================================================
 // cofre-ativos.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.111.0 · 15/10/2026
+// Versão: 1.112.0 · 15/10/2026
+//
+// v1.112.0 (15/10/2026, sessão 20261015-1615-usos-fatia6a, demanda 3022603b; de acordo do Nicola 15/10 16:10, itens 4 e 5) —
+// chips de ramo da lista de ativos só com ramos contratados (rzRamoLiberado); "Adicionar uso" passa a trazer Lavoura
+// (acordo safra), tratada como uso sem contrato até o ciclo da safra (fatia 6b). Obra própria e Operação agro chegam pelo
+// catálogo (migration usos_fatia6a_ramos_v1).
+// Versão anterior: 1.111.0 · 15/10/2026
 //
 // v1.111.0 (15/10/2026, sessão 20261014-2245-ia-integrada, demanda 4a28ad50; FICHA_CONTABILIDADE_ROTINA_CONTADOR_RAIZ v1.1.0, D5) —
 // "Incluir na contabilidade" no ⋮ do ativo com a rotina "Envio ao contador" desligada: inclui e avisa "Ligue o Envio ao
@@ -23,19 +29,11 @@
 // queria que abrissem como as despesas no financeiro"; "a pessoa vinculada está diferente do integrante"; "o sócio não
 // permite clicar e editar") — lista: o principal mostra "N integrantes" e o chevron para baixo abre os subativos
 // recuados; ficha: integrante, pessoa do cadastro e sócio com a mesma linha tocável e ⋮; "+ Adicionar" no padrão .rz-add.
-// Versão anterior: 1.107.0 · 14/10/2026
-//
-// v1.107.0 (14/10/2026, sessão 20261014-2220-usos-fatia4, frente usos-fatia3b, demanda 3022603b; FICHA_FATIA3B v1.1.0, de
-// acordo do Nicola 14/10 22:38–22:58) — Novo ativo montado pelo catálogo por contexto: campos e blocos fixos
-// (empreendimento, valor, endereço ou só o complemento, dados do imóvel, divisão societária) conforme ativo_tipos_campos;
-// campo em lista; exemplo do nome por tipo; no subativo, um seletor só com os tipos do ramo do principal e a divisão
-// copiada do principal; Finalidade e Situação de uso fora do cadastro (vêm do uso). "Vincular ativo existente" só oferece
-// tipos do ramo do principal. Lista de Ativos: o principal mostra "▾ N integrantes/unidades/áreas" e abre os subativos.
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.106.0 … v1.106.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.107.0 … v1.107.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '1.111.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.112.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 import { estado } from './cofre-estado.js';
 import * as api from './cofre-api.js';
 import { mostrarToast, erroInline, refrescarIcones, alternarToggle, abrirModal, fecharModal, modalGenerico, perguntar, avisarComDesfazer, escolher } from './cofre-ui.js';
@@ -646,7 +644,7 @@ function recalcularGruposChip() {
     const r = ramoDaLente();
     const base = [{ rotulo: 'Todos', tipos: null }, { rotulo: 'Com alerta', tipos: [], alerta: true }];
     if (r === 'tudo') {
-        GRUPOS_CHIP_TIPO = base.concat(RZ_RAMOS.filter(x => x.status === 'ativo').map(x => ({ rotulo: x.nome, tipos: [], ramo: x.codigo })));
+        GRUPOS_CHIP_TIPO = base.concat(RZ_RAMOS.filter(x => typeof rzRamoLiberado === 'function' ? rzRamoLiberado(x.codigo) : x.status === 'ativo').map(x => ({ rotulo: x.nome, tipos: [], ramo: x.codigo }))); // v1.112.0: só ramos contratados
     } else {
         const ordem = [];
         ativosDoRamo().forEach(a => { const sg = segmentoDoAtivo(a); if (!ordem.includes(sg)) ordem.push(sg); });
@@ -2539,6 +2537,8 @@ export async function abrirAdicionarModeloAtivo() {
     const tipo = tipoDoCatalogo(a.tipo_detalhe_id)?.codigo;
     const ramoAtivo = ramoDoAtivoLista(a);
     let lista = [], tiposContrato = [];
+    // v1.112.0 (fatia 6a) — Lavoura (acordo safra) inicia como uso sem contrato; o ciclo da safra vem na fatia 6b
+    const semContrato = m => m.acordo === 'nenhum' || m.acordo === 'safra';
     try {
         const db = api.dbAuth;
         // v1.97.0 (usos fatia 0) — além dos acordos (contrato, reserva), os usos sem acordo: Uso próprio (universal) e os do
@@ -2546,7 +2546,7 @@ export async function abrirAdicionarModeloAtivo() {
         // e cadastro, não acesso. "Disponível" é o repouso e não se escolhe: ele volta sozinho quando o uso termina.
         const [mt, mods, lic, tps] = await Promise.all([
             tipo ? db.from('operacao_modelo_tipos').select('modelo').eq('tipo', tipo).eq('permite_uso', true) : Promise.resolve({ data: [] }),
-            db.from('operacao_modelos').select('codigo, ramo, nome, descricao, acordo, status, ordem, universal').in('acordo', ['contrato', 'reserva', 'nenhum']).order('ordem'),
+            db.from('operacao_modelos').select('codigo, ramo, nome, descricao, acordo, status, ordem, universal').in('acordo', ['contrato', 'reserva', 'nenhum', 'safra']).order('ordem'), // v1.112.0: safra (Lavoura) é uso sem contrato
             db.rpc('fn_cliente_ramos', { p_cliente_id: estado.clienteId }),
             db.from('contrato_tipos').select('codigo, nome, descricao, modelo, status, ordem').order('ordem'), // v1.101.0 (fatia 2)
         ]);
@@ -2562,15 +2562,15 @@ export async function abrirAdicionarModeloAtivo() {
         if (stHoje?.modelo) modelosHoje.add(stHoje.modelo);
         lista = (mods.data || []).filter(m => {
             if (m.codigo === 'vago') return false;
-            if (m.acordo === 'nenhum' && modelosHoje.has(m.codigo)) return false;
-            if (m.acordo === 'nenhum') return m.universal || (m.ramo === ramoAtivo && (permite.has(m.codigo) || !tipo));
+            if (semContrato(m) && modelosHoje.has(m.codigo)) return false;
+            if (semContrato(m)) return m.universal || (m.ramo === ramoAtivo && (permite.has(m.codigo) || !tipo));
             return permite.has(m.codigo) || (!tipo && m.codigo === 'aluguel');
         });
         lista = lista.map(m => ({ ...m, livre: m.status === 'ativo' && (m.universal || licenciados.includes(m.ramo)) }));
     } catch (e) { console.warn('[cofre-ativos] modelos:', e?.message || e); }
     if (!lista.length) { abrirEscolhaNovoContratoDoAtivo(); return; } // sem catálogo: o caminho de sempre (aluguel)
     const nomeRamo = (c) => (typeof window.rzNomeRamo === 'function' ? window.rzNomeRamo(c) : c);
-    const acordos = lista.filter(m => m.acordo !== 'nenhum'), livres = lista.filter(m => m.acordo === 'nenhum');
+    const acordos = lista.filter(m => !semContrato(m)), livres = lista.filter(m => semContrato(m));
     // v1.101.0 (fatia 2, D-P30) — um contrato por TIPO (contrato_tipos): o modelo diz o uso, o tipo diz o acordo
     // (típico simples, típico longo, atípico…). Modelo sem tipo no catálogo segue como antes.
     const porTipo = [];
@@ -2602,7 +2602,7 @@ export async function abrirAdicionarModeloAtivo() {
             },
         })),
         ...livres.map(m => ({
-            icone: m.codigo === 'revenda' ? 'tag' : 'user-check', codigo: 'ativos.usos.iniciar',
+            icone: m.codigo === 'revenda' ? 'tag' : m.acordo === 'safra' ? 'sprout' : m.ramo === 'obras' ? 'hard-hat' : 'user-check', codigo: 'ativos.usos.iniciar',
             titulo: m.nome + (m.livre ? '' : ' · em breve'),
             sub: m.livre ? (m.descricao || 'Sem contrato: só o período de uso') : 'Chega em breve',
             aoTocar: () => {

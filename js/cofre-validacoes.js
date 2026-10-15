@@ -1,6 +1,11 @@
 // ============================================================================
 // cofre-validacoes.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 2.6.0 · 14/10/2026
+// Versão: 2.7.0 · 15/10/2026
+//
+// v2.7.0 (15/10/2026, sessão 20261015-1615-usos-fatia6a, demanda 3022603b; de acordo do Nicola 15/10 16:10, item 4) — o
+// seletor de tipos do novo ativo (categorias e tipos do ramo) passa a mostrar só ramos ativos E contratados pelo cliente
+// (rzRamoLiberado, lido da fn_cliente_ramos), não só os ativos no catálogo: Agro e Obras abrem só para quem tem o ramo.
+// Versão anterior: 2.6.0 · 14/10/2026
 //
 // v2.6.0 (14/10/2026, sessão 20261014-2220-usos-fatia4, frente usos-fatia3b, demanda 3022603b; FICHA_FATIA3B v1.1.0, de
 // acordo do Nicola 14/10 22:38–22:58) — o formulário do ativo vem do catálogo por contexto (ativo solto ou subativo):
@@ -23,14 +28,11 @@
 // v2.4.0 (demanda 2923ff4d, catálogo único — fatia 2, parte app; "de acordo" do Nicola 03/10/2026 23:42; sessão 20261004-0815-catalogo-f2) — rotuloTipoControle
 // lê primeiro o catálogo controle_tipos (definirCatalogoTiposControle, carregado pelo
 // cofre-controles.js); o mapa fixo fica só como reserva se o catálogo não carregar.
-//
-// v2.3.0 (demanda d3260b23, testes reprovados pelo Nicola em 03/10/2026 23:02, sessão 20261003-2305-controles-despesa-b) — rotuloTipoControle
-// passa a conhecer taxa, documento e despesa (a ficha mostrava "despesa" cru, em minúsculas).
 // --------------------------------------------------------------------------
-// Versões anteriores (v2.1.0 … v2.1.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v2.3.0 … v2.3.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '2.6.0'; // v-check (18/09/2026): lido por Dev › Versões — manter igual ao header
+export const VERSAO = '2.7.0'; // v-check (18/09/2026): lido por Dev › Versões — manter igual ao header
 export function escapeHtml(s) {
     return (s ?? '').toString().replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 }
@@ -276,10 +278,18 @@ export function listarTiposPorCategoria(categoria, opcoes = null) {
     if (!_catalogoAtivoTipos) return [];
     // v2.5.0 (F21) — com { ramo }: só tipos do ramo (ou todos, em 'tudo') e de ramo já ativo (Agro e Pecuária em breve ficam fora)
     const ramo = opcoes && opcoes.ramo;
-    const ramoAtivo = r => !r || typeof rzRamoInfo !== 'function' || rzRamoInfo(r)?.status === 'ativo';
+    const ramoAtivo = ramoLiberado; // v2.7.0 (fatia 6a): ativo e contratado
     return _catalogoAtivoTipos
         .filter(t => t.categoria === categoria && (!opcoes || ((ramo === 'tudo' || !ramo || t.ramo === ramo) && ramoAtivo(t.ramo))))
         .map(t => ({ id: t.id, codigo: t.codigo, nome: t.nome }));
+}
+
+// v2.7.0 (usos fatia 6a) — ramo ativo E contratado (index: rzRamoLiberado, pela fn_cliente_ramos); sem o index (cofre.html
+// avulso) vale só o status do ramo, como antes
+function ramoLiberado(r) {
+    if (!r) return true;
+    if (typeof rzRamoLiberado === 'function') return rzRamoLiberado(r);
+    return typeof rzRamoInfo !== 'function' || rzRamoInfo(r)?.status === 'ativo';
 }
 
 // v2.5.0 (F21/F22) — o tipo do catálogo (com ramo e segmento) pelo id; null sem catálogo
@@ -294,7 +304,7 @@ export function categoriasDoRamo(ramo) {
     return [...new Set(listarTiposPorCategoriaTodas(ramo))];
 }
 function listarTiposPorCategoriaTodas(ramo) {
-    const ramoAtivo = r => !r || typeof rzRamoInfo !== 'function' || rzRamoInfo(r)?.status === 'ativo';
+    const ramoAtivo = ramoLiberado; // v2.7.0 (fatia 6a): ativo e contratado
     return _catalogoAtivoTipos.filter(t => (ramo === 'tudo' || !ramo || t.ramo === ramo) && ramoAtivo(t.ramo)).map(t => t.categoria);
 }
 

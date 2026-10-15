@@ -4,6 +4,19 @@ Histórico completo de versões do `index.html`, movido automaticamente pelo `ge
 
 ---
 
+NOVIDADES (Beta v1.419.0) — Fatia 3c, teste do Nicola 14/10 23:22. (1) Lista de Ativos: o principal com subativos
+mostra "N integrantes" e o chevron para baixo, que abre os subativos recuados (como os meses do Financeiro).
+(2) Ficha: integrante, pessoa do cadastro e sócio na mesma linha da ficha, tocável e com ⋮ (Abrir e Tirar de;
+Trocar e Desligar; Editar divisão); "+ Adicionar integrante" no padrão dos outros cards. (3) Login: as raízes do
+"Abrindo o patrimônio…" são as mesmas da arte Horizonte (antes, 9 traços à mão). js/cofre-ativos.js 1.108.0. Sem banco.
+Versão anterior (Beta v1.418.0):
+------------------------------------------------------------------
+Versões anteriores (v1.418.0 … v1.418.0): CHANGELOG_APP.md, na raiz do
+repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
+das 5 versões mais recentes deste cabeçalho.
+
+---
+
 NOVIDADES (Beta v1.418.0) — Fatia 3b (FICHA_FATIA3B_FORMULARIO_POR_CONTEXTO_RAIZ v1.1.0, de acordo do Nicola 14/10
 22:38–22:58): o formulário do ativo passa a vir do catálogo por contexto (ativo solto ou subativo). Integrante pede
 nome, parentesco e nascimento; pet, espécie, raça e nascimento; família, só o nome; unidade de imóvel, o complemento do
