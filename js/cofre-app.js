@@ -1,6 +1,11 @@
 // ============================================================================
 // cofre-app.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.48.0 · 14/10/2026
+// Versão: 1.49.0 · 14/10/2026
+//
+// v1.49.0 (14/10/2026, sessão 20261014-2145-onda9c-textos, demanda a05ad2ee; onda 9c do estudo PROTOTIPO_UX_DENSIDADE_RAMOS_RAIZ
+// v1.2.0, D6 seção 10) — textos no limite: ação até 24 caracteres, descrição até 28, aviso até 40 com o resultado e tela
+// vazia em 1 frase de até 40. A explicação longa fica na confirmação, quando existe. Nada de comportamento mudou.
+// Versão anterior: 1.48.0 · 14/10/2026
 //
 // v1.48.0 (14/10/2026, sessão 20261014-0830-upload-rapido, demanda 7b0d407b; "De acordo" do Nicola 14/10 08:24) —
 // "uc-rapido-editar" abre o formulário completo da confirmação do upload (docs.abrirDetalhesUpload).
@@ -20,17 +25,11 @@
 // Versão anterior: 1.45.0 · 08/10/2026
 //
 // v1.45.0 (UX F2.8, demanda ed5accfe, sessão 20261003-1707-ux-base; "Sim. Faça 1 e 2 agora" do Nicola 08/10 20:09) — "+" de Ativos: "Montar vitrine" vira "Compartilhar imóveis".
-//
-// Versão anterior: 1.44.2 · 07/10/2026
-//
-// v1.44.1 (07/10/2026, sessão 20261007-1721-rolo-changelog, demanda 2507d554 — VER-06, "de acordo" do Nicola 07/10 17:21) — SÓ
-// CABEÇALHO: as versões além das 5 mais recentes rolaram para o CHANGELOG_MODULOS.md.
-// Nenhuma linha de código mudou — conferido token a token contra o publicado.
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.44.0 … v1.44.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.44.1 … v1.44.1): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '1.48.0'; // v-check (28/09/2026): lido por Dev › Versões — manter igual ao header
+export const VERSAO = '1.49.0'; // v-check (28/09/2026): lido por Dev › Versões — manter igual ao header
 import { estado, COFRE_VERSAO } from './cofre-estado.js';
 import * as api from './cofre-api.js';
 import { mostrarToast, fecharModal, abrirModal, refrescarIcones } from './cofre-ui.js';
@@ -139,11 +138,11 @@ document.addEventListener('click', async (ev) => {
         case 'abrir-acoes-ativos':
             if (typeof window.abrirSheetAcoes !== 'function') { await ativos.abrirFormAtivo(); break; }
             window.abrirSheetAcoes({ titulo: 'Ativos', sub: 'O que você quer fazer?', acoes: [
-                { icone: 'sparkles', tipo: 'ia', titulo: 'Carregar documento', codigo: 'cofre.upload', sub: 'A IA classifica e sugere o vínculo', aoTocar: () => docs.abrirUploadHome() },
+                { icone: 'sparkles', tipo: 'ia', titulo: 'Carregar documento', codigo: 'cofre.upload', sub: 'A IA classifica e vincula', aoTocar: () => docs.abrirUploadHome() },
                 // v1.44.0 (D2) — configuração inicial pelos documentos que a pessoa já tem
-                { icone: 'list-checks', tipo: 'ia', titulo: 'Configuração inicial', codigo: 'cofre.configuracao_inicial', sub: 'Cadastre a carteira mandando os documentos que você já tem', aoTocar: () => abrirConfiguracaoInicialModulo() },
-                { icone: 'plus', titulo: 'Novo ativo', codigo: 'cofre.ativos.criar', sub: 'Imóvel, veículo, obra de arte…', aoTocar: () => ativos.abrirFormAtivo() },
-                { icone: 'share-2', titulo: 'Compartilhar imóveis', codigo: 'vitrine.gerar', sub: 'Escolha os imóveis e mande um link só', aoTocar: () => { if (typeof window.switchTab === 'function') window.switchTab('tab-vitrine'); } }
+                { icone: 'list-checks', tipo: 'ia', titulo: 'Configuração inicial', codigo: 'cofre.configuracao_inicial', sub: 'Envie o que você já tem', aoTocar: () => abrirConfiguracaoInicialModulo() },
+                { icone: 'plus', titulo: 'Novo ativo', codigo: 'cofre.ativos.criar', sub: 'Imóvel, veículo, arte…', aoTocar: () => ativos.abrirFormAtivo() },
+                { icone: 'share-2', titulo: 'Compartilhar imóveis', codigo: 'vitrine.gerar', sub: 'Um link para vários', aoTocar: () => { if (typeof window.switchTab === 'function') window.switchTab('tab-vitrine'); } }
             ]});
             break;
         case 'fechar-busca-ativos': fecharModal('modal-busca-ativos'); break;
@@ -254,7 +253,7 @@ document.addEventListener('click', async (ev) => {
                 window.__rzAposFecharImovel = () => window.dispatchEvent(new CustomEvent('cofre:recarregar-ativos'));
                 window.abrirCadastroImovelModal();
             } else {
-                mostrarToast('Cadastro de imóvel só disponível dentro do app principal.', 'erro');
+                mostrarToast('Abra pelo app principal.', 'erro');
             }
             break;
         // v1.94.1 (31/08/2026, pedido explícito) — "Vitrine" na barra da
@@ -263,7 +262,7 @@ document.addEventListener('click', async (ev) => {
         // sem o mesmo problema de display:none do cadastrar-imovel-app).
         case 'ir-vitrine-app':
             if (typeof window.switchTab === 'function') window.switchTab('tab-vitrine');
-            else mostrarToast('Compartilhar imóveis só funciona dentro do app.', 'erro');
+            else mostrarToast('Abra pelo app principal.', 'erro');
             break;
         // 'alternar-historico-ativo' removido (revisão DS, 25/08/2026) —
         // Histórico não é mais opção do Mais ações do box do Ativo.
@@ -614,7 +613,7 @@ window.addEventListener('cofre:abrir-upload-home', () => docs.abrirUploadHome())
 // v1.44.0 (D2) — configuração inicial (módulo lazy; + de Contratos e alerta chegam por este evento).
 function abrirConfiguracaoInicialModulo() {
     return import('./configuracao-inicial.js').then(m => m.abrirConfiguracaoInicial())
-        .catch(err => { console.warn('[cofre] configuracao-inicial.js:', err?.message); mostrarToast('Não deu para abrir a configuração inicial agora.', 'aviso'); });
+        .catch(err => { console.warn('[cofre] configuracao-inicial.js:', err?.message); mostrarToast('Configuração inicial não abriu.', 'aviso'); });
 }
 window.addEventListener('cofre:abrir-configuracao-inicial', () => abrirConfiguracaoInicialModulo());
 window.addEventListener('cofre:abrir-documento', (ev) => docs.abrirFichaDocumento(ev.detail.id));

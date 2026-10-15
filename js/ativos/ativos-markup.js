@@ -1,6 +1,11 @@
 // ============================================================================
 // js/ativos/ativos-markup.js — Raiz Patrimônio · Módulo Único, fatia frontend 1
-// Versão: 1.62.0 · 14/10/2026
+// Versão: 1.63.0 · 14/10/2026
+//
+// v1.63.0 (14/10/2026, sessão 20261014-2145-onda9c-textos, demanda a05ad2ee; onda 9c do estudo PROTOTIPO_UX_DENSIDADE_RAMOS_RAIZ
+// v1.2.0, D6 seção 10) — textos no limite: ação até 24 caracteres, descrição até 28, aviso até 40 com o resultado e tela
+// vazia em 1 frase de até 40. A explicação longa fica na confirmação, quando existe. Nada de comportamento mudou.
+// Versão anterior: 1.62.0 · 14/10/2026
 //
 // v1.62.0 (14/10/2026, sessão 20261014-0830-upload-rapido, demanda 7b0d407b; "De acordo" do Nicola 14/10 08:24) —
 // tela "Confira o documento": cartão de confirmação rápida (#uc-rapido) acima do formulário, que passa a morar em
@@ -26,16 +31,11 @@
 // v1.59.0 (11/10/2026, sessão 20261008-1231-pessoas-ativos, demanda f3e6cd27; F13 4c etapa 3, D81 a D84) — a ficha
 // do ativo ganha o chip "Financeiro" (data-fa-aba="movimento"), entre Controles e Performance: balanço pendente com
 // Quitar, contas e cartões, movimentações do mês. O id interno "financeiro" continua sendo a Performance.
-//
-// Versão anterior: 1.58.0 · 10/10/2026
-//
-// v1.58.0 (sessão 20261003-1707-ux-base, demanda 28aa5ce1 — teste do Nicola 10/10 21:43) — sai o ícone de filtros do
-// topo de Ativos; fica a barra digitável e o "+".
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.57.0 … v1.57.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.58.0 … v1.58.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '1.62.0'; // v-check (28/09/2026): lido por Dev › Versões — manter igual ao header
+export const VERSAO = '1.63.0'; // v-check (28/09/2026): lido por Dev › Versões — manter igual ao header
 export const ATIVOS_MARKUP = `<style>
     /* v1.94.1 (31/08/2026, pedido explícito: "anexo uma barra de
        rolagem que fica feia... ao rolar os chips não mostrar a barra")
@@ -516,7 +516,7 @@ export const ATIVOS_MARKUP = `<style>
                  terciário. Alternado por montarDocumentosAtivo(). -->
             <div id="fa-documentos-vazio" class="rz-empty hidden">
                 <div class="rz-ic"><i data-lucide="file-plus-2"></i></div>
-                <p id="fa-documentos-vazio-texto">Nenhum anexo neste ativo. A IA lê matrícula, IPTU e apólices e preenche os controles sozinha.</p>
+                <p id="fa-documentos-vazio-texto">Nenhum anexo. A IA lê e preenche.</p>
             </div>
             <div id="fa-documentos-rodape" class="hidden"></div>
             <button type="button" class="rz-add" data-action="fa-acoes-anexos"><i data-lucide="plus"></i>Adicionar documento</button>
@@ -529,7 +529,7 @@ export const ATIVOS_MARKUP = `<style>
             </div>
             <div id="fa-fotos-vazio" class="rz-empty hidden">
                 <div class="rz-ic"><i data-lucide="image"></i></div>
-                <p>Nenhuma foto ainda. Fotos alimentam a vitrine e a vistoria.</p>
+                <p>Nenhuma foto ainda.</p>
             </div>
             <button type="button" class="rz-add" data-rz-codigo="cofre.editar" onclick="if (window.rzMostrarBloqueio &amp;&amp; window.rzMostrarBloqueio('cofre.editar')) return; document.getElementById('fa-foto-input')?.click()"><i data-lucide="plus"></i>Adicionar fotos</button>
             <div id="fa-fotos-rodape" class="hidden"></div>

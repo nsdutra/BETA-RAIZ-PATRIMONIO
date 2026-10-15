@@ -1,6 +1,11 @@
 // ============================================================================
 // comum-minha-empresa.js — Raiz Patrimônio · Administração compartilhada
-// Versão: 1.17.0 · 14/10/2026
+// Versão: 1.18.0 · 14/10/2026
+//
+// v1.18.0 (14/10/2026, sessão 20261014-2145-onda9c-textos, demanda a05ad2ee; onda 9c do estudo PROTOTIPO_UX_DENSIDADE_RAMOS_RAIZ
+// v1.2.0, D6 seção 10) — textos no limite: ação até 24 caracteres, descrição até 28, aviso até 40 com o resultado e tela
+// vazia em 1 frase de até 40. A explicação longa fica na confirmação, quando existe. Nada de comportamento mudou.
+// Versão anterior: 1.17.0 · 14/10/2026
 //
 // v1.17.0 (14/10/2026, sessão 20261014-1355-cartao-adicional, demanda c63d7f9f; FICHA_CARTAO_ADICIONAL_F10_F11 v1.1.0, de
 // acordo do Nicola 14/10 13:52) — a ficha da conta ganha o tipo "Cartão adicional" (só com titular pessoa): escolhe o cartão
@@ -33,24 +38,11 @@
 //     do card Contas (que salva sozinho);
 //   · o texto "Estes dados saem nos recibos…" sai do rodapé solto e vai para dentro do card do Resumo;
 //   · atalhos que rolam até cme-rotinas-card ou cme-pix-card (Financeiro, links do bot) abrem o chip antes de rolar.
-//
-// Versão anterior: 1.13.0 · 10/10/2026
-//
-// v1.13.0 (UX F2.5b, demanda 639bbcd0, sessão 20261003-1707-ux-base; plano F2.5 aprovado pelo Nicola 09/10 23:5x;
-// ESTUDO 9A.4) — Minha empresa vira ficha com chips: cabeçalho de entidade com a completude ("6 de 8 itens
-// configurados") e os chips Resumo · Dados · Fiscal e Pix · Rotinas · Documentos, um assunto por chip.
-//   · Resumo: o que está configurado e o que falta, cada linha leva ao chip e ao campo certo.
-//   · Dados: Identificação, Endereço da sede, Recibos (papel na locação e logo) e Assinatura.
-//   · Fiscal e Pix: Pix, Perfil fiscal e societário, cidade impressa no recibo e o card Contas (intocado, etapa 6).
-//   · Rotinas e Documentos: os boxes do app (Controles e Documentos da empresa) entram por ctx.extras — o módulo
-//     só mostra/esconde; quem monta continua sendo o index (cofre-documentos/cofre-controles).
-//   · O chip com algo faltando leva o ponto --warning; "Salvar dados da empresa" aparece em Dados e Fiscal e Pix.
-//   Todos os ids de campo e os handlers continuam iguais.
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.12.0 … v1.12.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.13.0 … v1.13.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '1.17.0'; // v-check (20/09/2026): lido por Dev › Versões — manter igual ao header
+export const VERSAO = '1.18.0'; // v-check (20/09/2026): lido por Dev › Versões — manter igual ao header
 import { perguntar } from './cofre-ui.js'; // v1.9.0 (F0.2b) — sem diálogo nativo
 import { rzMostrarBloqueio as rzBloqueio, podeUsar as podeUsarMod } from './comum-licenca.js'; // v1.10.0 — porta de licença (contas)
 export const COMUM_MINHA_EMPRESA_VERSAO = '1.0.0';
@@ -616,7 +608,7 @@ export async function montarAbaMinhaEmpresa(mountEl, ctx) {
         }
         rotinas = rotinas || [];
         const partesRet = await buscarPartesRetiradas(dbAuth, clienteId); // v1.15.0 — F13.8
-        if (!rotinas.length && !partesRet) { alvo.innerHTML = '<div class="rz-card"><p class="rz-desc">Nenhuma rotina disponível para esta empresa.</p></div>'; return; }
+        if (!rotinas.length && !partesRet) { alvo.innerHTML = '<div class="rz-card"><p class="rz-desc">Nenhuma rotina disponível.</p></div>'; return; }
 
         const r = typeof window.renderStatus === 'function' ? window.renderStatus : (c, t) => `<span class="rz-st rz-${esc(c)}">${esc(t || c)}</span>`;
         alvo.innerHTML = `
@@ -651,7 +643,7 @@ export async function montarAbaMinhaEmpresa(mountEl, ctx) {
                 abrirSheet({
                     titulo: rt.nome, sub: 'Rotina da empresa',
                     acoes: [{
-                        titulo: 'Desligar rotina', sub: 'Para de gerar controle mensal', icone: 'power-off',
+                        titulo: 'Desligar rotina', sub: 'Para o controle mensal', icone: 'power-off',
                         aoTocar: async () => {
                             try {
                                 await desligarRotinaEmpresa(dbAuth, itemId, 'Desligada pelo usuário em Minha Empresa');
@@ -666,7 +658,7 @@ export async function montarAbaMinhaEmpresa(mountEl, ctx) {
                 abrirSheet({
                     titulo: rt.nome, sub: 'Rotina da empresa',
                     acoes: [{
-                        titulo: 'Ligar rotina', sub: 'Cria um item de controle mensal', icone: 'power', codigo: 'cofre.controles.criar',
+                        titulo: 'Ligar rotina', sub: 'Cria o controle mensal', icone: 'power', codigo: 'cofre.controles.criar',
                         aoTocar: async () => {
                             try {
                                 await ligarRotinaEmpresa(dbAuth, clienteId, codigo);
@@ -866,16 +858,16 @@ export function abrirAcoesConta({ dbAuth, clienteId, conta, onToast, aoMudar, fi
     if (conta.situacao === 'ativa') {
         acoes.push({ titulo: 'Editar', sub: conta.tipo === 'cartao_credito' ? 'Nome, banco, 4 finais, fechamento e vencimento' : 'Nome, banco, 4 finais, contabilidade', icone: 'pencil', codigo: 'financeiro.contas.editar',
             aoTocar: () => abrirFichaConta({ dbAuth, clienteId, conta, fixarPessoaId, onToast, aoSalvar: aoMudar }) });
-        if (!conta.padrao && (conta.tipo || 'conta') === 'conta') acoes.push({ titulo: 'Definir como padrão', sub: 'Lançamentos sem conta escolhida vão para ela', icone: 'star', codigo: 'financeiro.contas.editar',
+        if (!conta.padrao && (conta.tipo || 'conta') === 'conta') acoes.push({ titulo: 'Definir como padrão', sub: 'Recebe o que vem sem conta', icone: 'star', codigo: 'financeiro.contas.editar',
             aoTocar: () => rpc('fn_conta_definir_padrao', { p_conta_id: conta.id }) });
-        if (!(conta.padrao && conta.titular_tipo === 'empresa')) acoes.push({ titulo: 'Encerrar conta', sub: 'O histórico continua no Financeiro', icone: 'archive', tipo: 'bad', codigo: 'financeiro.contas.editar',
+        if (!(conta.padrao && conta.titular_tipo === 'empresa')) acoes.push({ titulo: 'Encerrar conta', sub: 'O histórico fica', icone: 'archive', tipo: 'bad', codigo: 'financeiro.contas.editar',
             aoTocar: async () => {
                 const ok = await perguntar({ titulo: 'Encerrar a conta?', impacto: `"${conta.nome}" deixa de aparecer para novos lançamentos. O que já foi lançado nela continua.`, destrutivo: true, rotuloConfirmar: 'Encerrar conta' });
                 if (ok) rpc('fn_conta_encerrar', { p_conta_id: conta.id, p_motivo: null });
             } });
     }
     // v1.10.1 — sempre visível; o banco decide e explica (sem movimento apaga; com movimento sugere Encerrar).
-    acoes.push({ titulo: 'Excluir conta', sub: 'Só conta sem nenhum movimento', icone: 'trash-2', tipo: 'bad', codigo: 'financeiro.contas.editar',
+    acoes.push({ titulo: 'Excluir conta', sub: 'Só sem movimento', icone: 'trash-2', tipo: 'bad', codigo: 'financeiro.contas.editar',
         aoTocar: async () => {
             const ok = await perguntar({ titulo: 'Excluir a conta?', impacto: `"${conta.nome}" será apagada. Se ela já tiver movimento, o sistema avisa e nada muda.`, destrutivo: true, rotuloConfirmar: 'Excluir conta' });
             if (!ok) return;

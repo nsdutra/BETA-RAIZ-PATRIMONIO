@@ -1,7 +1,12 @@
 // ============================================================================
 // imoveis.js — Raiz Patrimônio · Imóveis (lista · ficha · formulário ·
 //               fotos do Cofre · seletor · status/step do cadastro)
-// Versão: 1.7.2 · 07/10/2026
+// Versão: 1.8.0 · 14/10/2026
+//
+// v1.8.0 (14/10/2026, sessão 20261014-2145-onda9c-textos, demanda a05ad2ee; onda 9c do estudo PROTOTIPO_UX_DENSIDADE_RAMOS_RAIZ
+// v1.2.0, D6 seção 10) — textos no limite: ação até 24 caracteres, descrição até 28, aviso até 40 com o resultado e tela
+// vazia em 1 frase de até 40. A explicação longa fica na confirmação, quando existe. Nada de comportamento mudou.
+// Versão anterior: 1.7.2 · 07/10/2026
 //
 // v1.7.1 (07/10/2026, sessão 20261007-1721-rolo-changelog, demanda 2507d554 — VER-06, "de acordo" do Nicola 07/10 17:21) — SÓ
 // CABEÇALHO: as versões além das 5 mais recentes rolaram para o CHANGELOG_MODULOS.md.
@@ -28,18 +33,11 @@
 // ("Assinando") e "R$ 0". Agora as linhas seguem a gramática .rz-row (ícone,
 // nome do ativo em negrito, empreendimento · endereço embaixo), sem status nem
 // valor. A busca também procura pelo nome do ativo.
-//
-// v1.5.2 (demanda 132ab1f8) — cabeçalho de grupo por empreendimento trocado
-// de uppercase/tracking-wide pra .rz-group (mesmo fix de cofre-ativos.js
-// v1.56.0 — b46e30fa). renderImoveis() é a única chamadora e só roda pela
-// tab-imoveis, hoje redirecionada pra tab-ativos no roteador (index.html) —
-// tela morta, prioridade baixa, mas o padrão certo não custa manter.
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.1.0 … v1.5.1): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.5.2 … v1.5.2): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-
-export const VERSAO = '1.7.2'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.8.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 
 
         export function abrirSeletorImovel(callback, permiteTodos) {
@@ -651,7 +649,7 @@ export const VERSAO = '1.7.2'; // v-check: lido por ⚙️ › Conta › Versõe
                 imoveis = await carregarImoveisSupabase();
                 imo = imoveis.find(i => i.id === id);
             }
-            if (!imo) { mostrarToast('Não consegui carregar este imóvel — tenta de novo em alguns segundos.', 'danger'); return; }
+            if (!imo) { mostrarToast('Imóvel não carregou. Tente de novo.', 'danger'); return; }
 
             try {
                 preencherCamposFormularioImovel(imo);

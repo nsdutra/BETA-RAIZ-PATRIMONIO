@@ -4,6 +4,18 @@ Histórico completo de versões do `index.html`, movido automaticamente pelo `ge
 
 ---
 
+NOVIDADES (Beta v1.411.0) — ONDA 8b do estudo PROTOTIPO_UX_DENSIDADE_RAMOS_RAIZ v1.2.0 (D15, computador): em Ativos e
+Contratos, a partir de 1024 px, a ficha abre ao lado da lista (lista à esquerda, 360 px, rolando sozinha e com o item
+aberto marcado; ficha à direita). O "‹ Ativos/Contratos" da ficha some porque a lista está à vista. No celular nada
+muda. Sem banco e sem mexer nos módulos.
+Versão anterior (Beta v1.410.0):
+------------------------------------------------------------------
+Versões anteriores (v1.410.0 … v1.410.0): CHANGELOG_APP.md, na raiz do
+repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
+das 5 versões mais recentes deste cabeçalho.
+
+---
+
 NOVIDADES (Beta v1.410.0) — Usos, fatia 3 (FICHA_FATIA3_SUBATIVOS_RAIZ v1.1.0, de acordo do Nicola 14/10): um ativo
 principal tem unidades (Imóveis), áreas (Agro e Pecuária) ou integrantes (Família), cada um com uso, contrato, itens e
 status próprios. js/cofre-ativos.js 1.102.0 (card no Resumo, ⋮ Adicionar e Vincular, "Tirar de", pergunta seguem ou

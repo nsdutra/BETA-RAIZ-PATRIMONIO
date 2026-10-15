@@ -1,7 +1,12 @@
 // ============================================================================
 // financeiro.js — Raiz Patrimônio · Financeiro (Recebimentos · Atrasados · Saídas
 //                  · conciliação de extrato · recibo · detalhe do recebimento)
-// Versão: 1.64.0 · 14/10/2026
+// Versão: 1.65.0 · 14/10/2026
+//
+// v1.65.0 (14/10/2026, sessão 20261014-2145-onda9c-textos, demanda a05ad2ee; onda 9c do estudo PROTOTIPO_UX_DENSIDADE_RAMOS_RAIZ
+// v1.2.0, D6 seção 10) — textos no limite: ação até 24 caracteres, descrição até 28, aviso até 40 com o resultado e tela
+// vazia em 1 frase de até 40. A explicação longa fica na confirmação, quando existe. Nada de comportamento mudou.
+// Versão anterior: 1.64.0 · 14/10/2026
 //
 // v1.64.0 (14/10/2026, sessão 20261014-2130-ajustes-9b, demanda a05ad2ee; onda 9b do estudo PROTOTIPO_UX_DENSIDADE_RAMOS_RAIZ
 // v1.2.0, D6 seção 10) — textos no limite: ação até 24 caracteres, descrição até 28 (só quando muda a decisão), aviso até
@@ -27,16 +32,11 @@
 //
 // v1.61.0 (13/10/2026, sessão 20261013-2320-conta-via-item, demanda 47eed96b) — só texto: o aviso "Cadastre o cartão
 // primeiro" da importação de fatura aponta o novo caminho (ativo › Controles › + › "Conta ou cartão").
-// Versão anterior: 1.60.0 · 12/10/2026
-//
-// v1.60.0 (12/10/2026, sessão 20261008-1231-pessoas-ativos, demanda 41d771c8; F13.10, ficha v3.1.0; de acordo do Nicola 12/10 03:27) — Balanço › Grupos ganha o
-// quadro "Rateios em grupo": os itens de controle com rateio aberto ou fechado, com o total e quantas pessoas; tocar abre a
-// ficha do item, onde fica o card do rateio. A categoria "Pagamento de grupo" já aparece no classificar (vem do catálogo).
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.59.0 … v1.59.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.60.0 … v1.60.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '1.64.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.65.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 
 // v1.17.0 (Fase 1 do wrapper de escrita, rollout Financeiro) — emitirEscrita
 // é o evento padrão pra "algo mudou que módulos DE FORA deste arquivo podem
@@ -3812,7 +3812,7 @@ function financeiroRenderCabecalho(aba) {
             financeiroRedesenharChipsNivel();
 
             if (!filtrados.length) {
-                lista.innerHTML = `<p class="text-xs text-center py-4" style="color:var(--sage)">Nenhuma pendência de conciliação nesta competência.</p>`;
+                lista.innerHTML = `<p class="text-xs text-center py-4" style="color:var(--sage)">Nenhuma pendência de conciliação.</p>`;
                 return;
             }
 
@@ -5913,7 +5913,7 @@ async function balancoRenderGrupos() {
     const html = grupos.length
         ? grupos.map(g => `<div class="rz-card"><div class="rz-card-h"><h3>${balEsc(g.nome)}</h3><span class="rz-sub">gasto ${formatarMoedaBR([...g.gasto.values()].reduce((t, v) => t + v, 0))}</span></div>` +
             [...g.saldo.entries()].map(([nome, v]) => `<div class="rz-row"><div class="rz-ic"><svg data-lucide="user"></svg></div><div class="rz-tx"><b>${balEsc(nome)}</b></div><div class="rz-rt">${v > 0.004 ? balSt('run', `${formatarMoedaBR(v)} a receber`) : v < -0.004 ? balSt('warn', `deve ${formatarMoedaBR(-v)}`) : balSt('ok', 'Em dia')}</div></div>`).join('') + '</div>').join('')
-        : `<div class="rz-card"><div class="rz-empty"><div class="rz-ic"><svg data-lucide="users"></svg></div><p>Nenhum grupo com despesa dividida. Um grupo é um ativo (viagem, casa de praia, cuidado do pai): as despesas lançadas nele e divididas entre as pessoas aparecem aqui.</p></div></div>`;
+        : `<div class="rz-card"><div class="rz-empty"><div class="rz-ic"><svg data-lucide="users"></svg></div><p>Nenhum grupo com despesa dividida.</p></div></div>`;
     corpo.innerHTML = balancoChipsVista() + (await balancoRateiosGrupoHtml()) + html; // v1.60.0 — F13.10
     if (typeof lucide !== 'undefined') lucide.createIcons();
 }

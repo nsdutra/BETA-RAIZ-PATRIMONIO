@@ -1,6 +1,11 @@
 // ============================================================================
 // js/fechamento.js — Raiz Patrimônio · Fechamento da competência
-// Versão: 1.13.0 · 11/10/2026
+// Versão: 1.14.0 · 14/10/2026
+//
+// v1.14.0 (14/10/2026, sessão 20261014-2145-onda9c-textos, demanda a05ad2ee; onda 9c do estudo PROTOTIPO_UX_DENSIDADE_RAMOS_RAIZ
+// v1.2.0, D6 seção 10) — textos no limite: ação até 24 caracteres, descrição até 28, aviso até 40 com o resultado e tela
+// vazia em 1 frase de até 40. A explicação longa fica na confirmação, quando existe. Nada de comportamento mudou.
+// Versão anterior: 1.13.0 · 11/10/2026
 //
 // v1.13.0 (11/10/2026, sessão 20261011-1315-marca-saidas, demanda 680ee9f8 — marca e ramos, fase 6; plano aprovado pelo
 // Nicola 11/10 11:20): o PDF do pacote do contador troca o azul-marinho pelo verde da marca e ganha, em toda página, o
@@ -26,21 +31,11 @@
 // no PDF, na planilha e no texto do compartilhamento. Pacotes antigos (sem
 // o bloco) continuam abrindo igual. Ativos marcados "fora da contabilidade"
 // (cofre_ativos.registro_contabil) já chegam excluídos pela função.
-// Versão anterior: 1.11.0.
-//
-// v1.11.0 (demandas cdd8a2a5 e d9c1753c, entrega 2/3 do lote de 29): (1)
-// chip "Fiscal OK" ficava preso no estado (ligada/desligada) da primeira
-// empresa verificada na sessão — fechamentoRotinaFiscalLigada nunca era
-// invalidado ao trocar de tenant. Agora guarda o cliente_id junto do cache
-// (fechamentoRotinaFiscalClienteId) e reavalia quando CLIENTE_ID_SUPABASE
-// mudar. (2) "Compartilhar com o contador": o PDF sempre ia no pacote, sem
-// checkbox pra desmarcar, ao contrário de CSV/XML — ganhou checkbox igual
-// aos outros 2, com guarda de "nenhum arquivo selecionado".
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.10.0 … v1.10.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.11.0 … v1.11.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '1.13.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.14.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 
 // v1.3.0 (Fase 1 do wrapper de escrita, rollout Financeiro) — emitirEscrita
 // é o evento padrão pra "algo mudou que módulos DE FORA deste arquivo podem
@@ -295,7 +290,7 @@ export async function fechamentoAbrirChecklistFiscalAtualizado() {
         fechamentoFiscalPendencias = data || [];
     } catch (e) {
         console.error('[fechamento] fn_fiscal_pendencias_cadastro', e);
-        if (typeof mostrarToast === 'function') mostrarToast('Não consegui carregar as pendências agora.', 'danger');
+        if (typeof mostrarToast === 'function') mostrarToast('Pendências indisponíveis agora.', 'danger');
         return;
     }
     fechamentoAbrirChecklistFiscal();
@@ -339,7 +334,7 @@ export function fechamentoAbrirChecklistFiscal() {
         return `<div class="rz-group">${esc(g.titulo)} (${itens.length})</div>
             <div class="rz-card rz-list">${itens.map(([i, p]) => linhaHtml(p, i)).join('')}</div>`;
     }).join('');
-    const vazio = `<div class="rz-empty"><div class="rz-ic"><svg data-lucide="file-check-2"></svg></div><p class="rz-desc">Nenhuma pendência de cadastro para a NFS-e.</p></div>`;
+    const vazio = `<div class="rz-empty"><div class="rz-ic"><svg data-lucide="file-check-2"></svg></div><p class="rz-desc">Nenhuma pendência para a NFS-e.</p></div>`;
     const dica = 'Toque numa linha para completar o dado aqui mesmo.'; // v1.9.0
     const corpo = `
         <p class="rz-desc">O que falta no cadastro para emitir a NFS-e quando a obrigatoriedade chegar. Nada é emitido a partir daqui.${dica ? ' ' + dica : ''}</p>
@@ -478,7 +473,7 @@ export function fechamentoAbrirAcoes() {
         const total = fechamentoFiscalPendencias.length;
         acoes.push({ icone: 'file-check-2', titulo: 'Checklist fiscal', sub: total === 0 ? 'Tudo certo' : `${total} pendência(s)`, aoTocar: fechamentoAbrirChecklistFiscal });
     }
-    acoes.push({ icone: 'send', titulo: 'Compartilhar com o contador', aoTocar: fechamentoAbrirCompartilharContador });
+    acoes.push({ icone: 'send', titulo: 'Enviar ao contador', aoTocar: fechamentoAbrirCompartilharContador });
     abrirSheetAcoes({ titulo: 'Fechamento da competência', acoes });
 }
 
@@ -515,7 +510,7 @@ function fechamentoAbrirSheetReabrir() {
     if (!ocorrenciaId) return;
     abrirSheetForm({
         titulo: 'Reabrir a competência',
-        sub: 'Desfaz o fechamento — o retrato anterior continua registrado, e um novo é gerado no próximo fechamento (inclusive o pacote do contador). Explique o motivo.',
+        sub: 'O retrato anterior fica',
         rotuloSalvar: 'Reabrir a competência',
         corpo: `<label class="text-xs font-bold text-slate-600">Motivo da reabertura</label>
                 <textarea id="fechamento-motivo" class="w-full p-2.5 border rounded-lg text-sm mt-1" rows="3" placeholder="Ex.: preciso corrigir um lançamento deste mês"></textarea>`,
@@ -554,7 +549,7 @@ export async function fechamentoAbrirCompartilharContador() {
         contadores = (data || []).map(c => ({ id: c.parte_id, nome: c.nome, whatsapp: c.whatsapp, email: c.email }));
     } catch (e) {
         console.error('[fechamento] buscar contador cadastrado', e);
-        if (typeof mostrarToast === 'function') mostrarToast('Não consegui buscar o contador cadastrado agora.', 'danger');
+        if (typeof mostrarToast === 'function') mostrarToast('Contador indisponível agora.', 'danger');
         return;
     }
     if (!contadores.length) {
@@ -562,7 +557,7 @@ export async function fechamentoAbrirCompartilharContador() {
         // destino errado: contador se cadastra em Partes (chip Prestadores,
         // campo "Atua como prestador?" → Contador), mesma tela de
         // administradora/síndico/manutencista (index.html, abrirFormParteSheet).
-        if (typeof mostrarToast === 'function') mostrarToast('Nenhum contador cadastrado ainda — cadastre agora.', 'info');
+        if (typeof mostrarToast === 'function') mostrarToast('Cadastre o contador.', 'info');
         if (typeof window.abrirCadastroContador === 'function') window.abrirCadastroContador();
         return;
     }
@@ -574,7 +569,7 @@ export async function fechamentoAbrirCompartilharContador() {
         fechadas = data || [];
     } catch (e) {
         console.error('[fechamento] listar competências fechadas', e);
-        if (typeof mostrarToast === 'function') mostrarToast('Não consegui listar as competências fechadas agora.', 'danger');
+        if (typeof mostrarToast === 'function') mostrarToast('Meses fechados indisponíveis agora.', 'danger');
         return;
     }
     if (!fechadas.length) {
@@ -593,8 +588,8 @@ export async function fechamentoAbrirCompartilharContador() {
         </label>`).join('');
 
     abrirSheetForm({
-        titulo: 'Compartilhar com o contador',
-        sub: 'Gera 1 PDF por competência selecionada, a partir do retrato já fechado (nunca recalculado).',
+        titulo: 'Enviar ao contador',
+        sub: 'PDF por mês',
         rotuloSalvar: 'Gerar e compartilhar',
         corpo: `
             <label class="text-xs font-bold text-slate-600">Contador</label>
@@ -699,7 +694,7 @@ async function fechamentoGerarEcompartilhar(contadorId, canal, competencias, opc
             if (navigator.canShare({ files })) {
                 // Só o arquivo: com texto junto, o WhatsApp do Android fica só com o texto.
                 try { await navigator.clipboard?.writeText(textoResumo); } catch (_) { /* sem permissão: segue sem copiar */ }
-                if (typeof mostrarToast === 'function') mostrarToast('Resumo copiado — cole na conversa, se quiser.', 'info');
+                if (typeof mostrarToast === 'function') mostrarToast('Resumo copiado', 'info');
                 await navigator.share({ files, title: 'Pacote do contador' });
                 compartilhouNativo = true;
             }
@@ -719,11 +714,11 @@ async function fechamentoGerarEcompartilhar(contadorId, canal, competencias, opc
         const texto = encodeURIComponent(textoResumo + `\n\n(${rotuloArquivo} baixado — anexe antes de enviar)`);
         if (canal === 'whatsapp') {
             const numero = (contadorInfo?.whatsapp || '').replace(/\D/g, '');
-            if (!numero) { if (typeof mostrarToast === 'function') mostrarToast(`Contador sem WhatsApp cadastrado — ${rotuloArquivo} baixado, envie manualmente.`, 'info'); return; }
+            if (!numero) { if (typeof mostrarToast === 'function') mostrarToast(`Contador sem WhatsApp. ${rotuloArquivo} baixado.`, 'info'); return; }
             window.open(`https://wa.me/${numero}?text=${texto}`, '_blank');
         } else {
             const email = contadorInfo?.email || '';
-            if (!email) { if (typeof mostrarToast === 'function') mostrarToast(`Contador sem e-mail cadastrado — ${rotuloArquivo} baixado, envie manualmente.`, 'info'); return; }
+            if (!email) { if (typeof mostrarToast === 'function') mostrarToast(`Contador sem e-mail. ${rotuloArquivo} baixado.`, 'info'); return; }
             window.open(`mailto:${email}?subject=${encodeURIComponent('Pacote do fechamento')}&body=${texto}`, '_blank');
         }
     }

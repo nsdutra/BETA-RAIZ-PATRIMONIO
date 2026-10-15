@@ -1,7 +1,12 @@
 // ============================================================================
 // contratos.js — Raiz Patrimônio · Contratos (lista · ficha · formulário ·
 //                 status/reajuste/detalhes · fiadores · documentos · histórico)
-// Versão: 1.58.0 · 14/10/2026
+// Versão: 1.59.0 · 14/10/2026
+//
+// v1.59.0 (14/10/2026, sessão 20261014-2145-onda9c-textos, demanda a05ad2ee; onda 9c do estudo PROTOTIPO_UX_DENSIDADE_RAMOS_RAIZ
+// v1.2.0, D6 seção 10) — textos no limite: ação até 24 caracteres, descrição até 28, aviso até 40 com o resultado e tela
+// vazia em 1 frase de até 40. A explicação longa fica na confirmação, quando existe. Nada de comportamento mudou.
+// Versão anterior: 1.58.0 · 14/10/2026
 //
 // v1.58.0 (14/10/2026, sessão 20261014-2130-ajustes-9b, demanda a05ad2ee; onda 9b do estudo PROTOTIPO_UX_DENSIDADE_RAMOS_RAIZ
 // v1.2.0, D6 seção 10) — textos no limite: ação até 24 caracteres, descrição até 28 (só quando muda a decisão), aviso até
@@ -24,14 +29,8 @@
 //
 // v1.55.0 (12/10/2026, sessão 20261012-0320-ux-busca, demanda a05ad2ee; Nicola 12/10 03:18) — o card Financeiro da ficha
 // deixa de ter título próprio: "Financeiro ‹ ano ›" vem do rzFinCompetencias, como no card Usos do ativo.
-//
-// Versão anterior: 1.54.0 · 12/10/2026
-//
-// v1.54.0 (12/10/2026, sessão 20261012-0250-ux-onda4d, demanda a05ad2ee; UX onda 4, D9; "Vamos adiante" 12/10 02:46) — a
-// lista de Contratos ganha o total no agrupador: "Capital · 12" à esquerda e o aluguel/mês dos contratos ativos do
-// empreendimento à direita.
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.53.0 … v1.53.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.54.0 … v1.54.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
 import { avaliarProntidaoContratoParaMinuta } from './minutas.js'; // v1.0.1
@@ -43,7 +42,7 @@ import { emitirEscrita, aoEscrever } from './raiz-eventos.js'; // v1.18.0 — Fa
 import { renderizarBlocoEndereco, lerBlocoEndereco } from './comum-endereco.js';
 import { formatarEnderecoParte } from './comum-partes.js';
 
-export const VERSAO = '1.58.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.59.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 
 /** Ponto de entrada do switchTab('tab-contratos'). */
 export function montarAbaContratos() {
@@ -280,7 +279,7 @@ if (!window.__rzListenerEscritaParteContratoLigado) {
             if (!listaEl) return;
 
             if (fiadoresContratoAtual.length === 0) {
-                listaEl.innerHTML = '<p style="font-size:12px;color:#94a3b8;">Nenhum fiador cadastrado. Nem todo contrato precisa — só adicione se a minuta escolhida exigir.</p>';
+                listaEl.innerHTML = '<p style="font-size:12px;color:#94a3b8;">Nenhum fiador. Só se a minuta exigir.</p>';
                 return;
             }
 
@@ -1368,7 +1367,7 @@ if (!window.__rzListenerEscritaParteContratoLigado) {
                         <h3 style="font-size:14px;font-weight:bold;color:#1e293b;">Outros Contratos</h3>
                         <button onclick="fecharModalCampoContrato()" style="background:#e2e8f0;border:none;border-radius:9999px;width:26px;height:26px;flex:none;">✕</button>
                     </div>
-                    ${antigos.length === 0 ? `<p style="font-size:12px;color:#94a3b8;">Nenhum contrato finalizado para este imóvel.</p>` : antigos.map(con => `
+                    ${antigos.length === 0 ? `<p style="font-size:12px;color:#94a3b8;">Nenhum contrato finalizado.</p>` : antigos.map(con => `
                         <div style="border:1px solid #e2e8f0;border-radius:10px;padding:10px;margin-bottom:8px;">
                             <p style="font-size:12px;font-weight:bold;">${con.locatario || '-'}</p>
                             <p style="font-size:11px;color:#64748b;">${formatarDataBR(con.inicio)} até ${formatarDataBR(con.fim)} · ${formatarMoedaBR(con.valor)}/mês</p>
@@ -1796,7 +1795,7 @@ if (!window.__rzListenerEscritaParteContratoLigado) {
                             <div class="rz-ic"><svg data-lucide="shield-check"></svg></div>
                             <div class="rz-tx"><b>${(f.nome || '').replace(/</g, '&lt;')}</b><span>Fiador · ${f.doc_tipo || 'CPF'} ${f.cpf || ''}${f.estado_civil ? ' · ' + f.estado_civil : ''}${f.possui_imovel_proprio ? ' · imóvel em garantia' : ''}</span></div>
                             <button type="button" onclick="event.stopPropagation(); abrirAcoesFiadorContrato('${con.id}', ${iFiador})" class="rz-more" aria-label="Mais ações"><svg data-lucide="ellipsis-vertical"></svg></button>
-                        </div>`).join('') : `<div class="rz-empty" style="padding-top:8px"><p>Nenhum fiador. Adicione se a minuta exigir.</p></div>`}
+                        </div>`).join('') : `<div class="rz-empty" style="padding-top:8px"><p>Nenhum fiador. Só se a minuta exigir.</p></div>`}
                         <div id="fc-partes-encerrados"></div>
                         <button type="button" class="rz-add" data-rz-codigo="contratos.editar" onclick="if (rzMostrarBloqueio('contratos.editar')) return; adicionarParteContrato('${con.id}')"><svg data-lucide="plus"></svg>Adicionar parte</button>
 
@@ -1846,7 +1845,7 @@ if (!window.__rzListenerEscritaParteContratoLigado) {
                 if (error) throw error;
                 const linhas = data || [];
                 if (!linhas.length) {
-                    el.innerHTML = `<div class="rz-empty"><div class="rz-ic"><svg data-lucide="users"></svg></div><p>Sem divisão cadastrada ainda. Sem ela, o aluguel recebido não sabe pra quem repassar.</p></div>`;
+                    el.innerHTML = `<div class="rz-empty"><div class="rz-ic"><svg data-lucide="users"></svg></div><p>Sem divisão cadastrada ainda.</p></div>`;
                 } else {
                     el.innerHTML = linhas.map(l => {
                         const nome = l.pessoas?.nome || l.nome_externo || 'Sem nome';
@@ -1966,7 +1965,7 @@ if (!window.__rzListenerEscritaParteContratoLigado) {
                 if (error) throw error;
                 const linhas = data || [];
                 if (!linhas.length) {
-                    el.innerHTML = `<div class="rz-empty"><div class="rz-ic"><svg data-lucide="calendar-clock"></svg></div><p>Sem reajuste ou revisão parametrizados neste contrato ainda.</p></div>`;
+                    el.innerHTML = `<div class="rz-empty"><div class="rz-ic"><svg data-lucide="calendar-clock"></svg></div><p>Sem reajuste ou revisão ainda.</p></div>`;
                     return;
                 }
                 const rotuloTipo = codigo => codigo === 'revisional_contrato' ? 'Revisional' : 'Reajuste';
@@ -2099,7 +2098,7 @@ if (!window.__rzListenerEscritaParteContratoLigado) {
                 ocorrenciasContratoAtual = todas;
                 if (elSt) elSt.innerHTML = todas.length ? `${abertas.length} em aberto · ${fechadas.length} registrada${fechadas.length === 1 ? '' : 's'}` : '';
                 if (!todas.length) {
-                    el.innerHTML = `<div class="rz-empty"><div class="rz-ic"><svg data-lucide="calendar-check"></svg></div><p>Nada registrado ainda. Reajustes, renovações e alterações aparecem aqui.</p></div>`;
+                    el.innerHTML = `<div class="rz-empty"><div class="rz-ic"><svg data-lucide="calendar-check"></svg></div><p>Nada registrado ainda.</p></div>`;
                 } else {
                     // v1.6.0 (pedido explícito, 16/09/2026) — 3 mudanças neste card:
                     // (1) o chip colorido (rz-rt/renderStatus) saiu — esse padrão é
@@ -2944,7 +2943,7 @@ if (!window.__rzListenerEscritaParteContratoLigado) {
                         <div class="rz-ic"><svg data-lucide="${(v.cofre_documentos.mime_type || '').startsWith('image/') ? 'image' : 'file-text'}"></svg></div>
                         <div class="rz-tx"><b>${escapeHtmlSaidas(v.cofre_documentos.nome_exibicao || 'Documento')}</b><span>${v.criado_em ? new Date(v.criado_em).toLocaleDateString('pt-BR') : ''}</span></div>
                         <svg data-lucide="chevron-right" class="rz-chev"></svg>
-                    </div>`).join('') : `<div class="rz-empty"><div class="rz-ic"><svg data-lucide="file-plus-2"></svg></div><p>Nenhum documento neste contrato. A minuta assinada guardada aqui fica a um toque.</p></div>`;
+                    </div>`).join('') : `<div class="rz-empty"><div class="rz-ic"><svg data-lucide="file-plus-2"></svg></div><p>Nenhum documento no contrato.</p></div>`;
                 if (typeof lucide !== 'undefined') lucide.createIcons();
             } catch (err) {
                 el.innerHTML = `<p class="text-xs text-red-500">Não consegui carregar os documentos.</p>`;
@@ -4873,7 +4872,7 @@ if (!window.__rzListenerEscritaParteContratoLigado) {
                     if (typeof lucide !== 'undefined') lucide.createIcons();
                     return;
                 }
-                container.innerHTML = `<div class="rz-card"><div class="rz-empty"><div class="rz-ic"><svg data-lucide="file-text"></svg></div><p>Nenhum contrato ${comFiltroCon ? 'neste filtro' : 'ainda'}. Um contrato vigente é o que transforma um imóvel em receita.</p>${comFiltroCon ? '' : '<div class="rz-acts"><button type="button" class="rz-btn rz-btn-1" onclick="abrirEscolhaNovoContrato()"><svg data-lucide="plus"></svg> Novo contrato</button></div>'}</div></div>`;
+                container.innerHTML = `<div class="rz-card"><div class="rz-empty"><div class="rz-ic"><svg data-lucide="file-text"></svg></div><p>Nenhum contrato ${comFiltroCon ? 'neste filtro' : 'ainda'}.</p>${comFiltroCon ? '' : '<div class="rz-acts"><button type="button" class="rz-btn rz-btn-1" onclick="abrirEscolhaNovoContrato()"><svg data-lucide="plus"></svg> Novo contrato</button></div>'}</div></div>`;
                 if (typeof lucide !== 'undefined') lucide.createIcons();
                 return;
             }

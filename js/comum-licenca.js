@@ -1,6 +1,11 @@
 // ============================================================================
 // comum-licenca.js — Raiz Patrimônio · Administração compartilhada
-// Versão: 1.8.0 · 10/10/2026
+// Versão: 1.9.0 · 14/10/2026
+//
+// v1.9.0 (14/10/2026, sessão 20261014-2145-onda9c-textos, demanda a05ad2ee; onda 9c do estudo PROTOTIPO_UX_DENSIDADE_RAMOS_RAIZ
+// v1.2.0, D6 seção 10) — textos no limite: ação até 24 caracteres, descrição até 28, aviso até 40 com o resultado e tela
+// vazia em 1 frase de até 40. A explicação longa fica na confirmação, quando existe. Nada de comportamento mudou.
+// Versão anterior: 1.8.0 · 10/10/2026
 //
 // v1.8.0 (UX F2.5d-2, demanda 2a0000a7, sessão 20261003-1707-ux-base; ficha aprovada pelo Nicola 10/10 21:26) —
 // terceiro chip da Licença, Pagamentos: o histórico de pagamentos do plano lido por fn_licenca_pagamentos_listar
@@ -38,17 +43,11 @@
 //     .rz-kv, limites em linhas com barra .rz-uso-bar; sem texto abaixo de 12 px nem cor Tailwind;
 //     esqueleto no carregamento. ctx ganha pessoaId (log do convite).
 //   · Vigência e dias restantes leem a data como dia local (antes mostravam um dia a menos).
-//
-// Versão anterior: 1.5.3 · 07/10/2026
-//
-// v1.5.2 (07/10/2026, sessão 20261007-1721-rolo-changelog, demanda 2507d554 — VER-06, "de acordo" do Nicola 07/10 17:21) — SÓ
-// CABEÇALHO: as versões além das 5 mais recentes rolaram para o CHANGELOG_MODULOS.md.
-// Nenhuma linha de código mudou — conferido token a token contra o publicado.
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.5.1 … v1.5.1): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.5.2 … v1.5.2): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '1.8.0'; // v-check (22/09/2026): lido por Dev › Versões — manter igual ao header
+export const VERSAO = '1.9.0'; // v-check (22/09/2026): lido por Dev › Versões — manter igual ao header
 export const COMUM_LICENCA_VERSAO = '1.0.0';
 
 // ----------------------------------------------------------------------------
@@ -340,7 +339,7 @@ export async function htmlContratarConvidar(dbAuth, clienteId, licenca) {
     if (teste) {
         linhas.push(linhaLink({
             href: `https://wa.me/${WHATSAPP_RAIZ}?text=${encodeURIComponent('Oi! Testei o Raiz Patrimônio e quero contratar.')}`,
-            icone: 'zap', titulo: 'Quero contratar', sub: 'Fale com a Raiz pelo WhatsApp', acao: 'contratar',
+            icone: 'zap', titulo: 'Quero contratar', sub: 'Pelo WhatsApp', acao: 'contratar',
         }));
         try {
             const { count, error } = await dbAuth.from('pessoas').select('id', { count: 'exact', head: true }).eq('cliente_id', clienteId);
@@ -350,7 +349,7 @@ export async function htmlContratarConvidar(dbAuth, clienteId, licenca) {
                     // "?convite=" vem antes do "#": depois dele viraria fragmento, não parâmetro.
                     const link = `${SITE_RAIZ}/?convite=${clienteId}#trial`;
                     const msg = 'Oi! Estou testando o Raiz Patrimônio e você pode entrar no mesmo teste grátis comigo. É só clicar aqui e se cadastrar: ' + link;
-                    linhas.push(linhaLink({ href: `https://wa.me/?text=${encodeURIComponent(msg)}`, icone: 'share-2', titulo: 'Convidar alguém para o teste', sub: `${vagas} vaga${vagas === 1 ? '' : 's'} — entra na mesma empresa`, acao: 'convidar' }));
+                    linhas.push(linhaLink({ href: `https://wa.me/?text=${encodeURIComponent(msg)}`, icone: 'share-2', titulo: 'Convidar alguém para o teste', sub: `${vagas} vaga${vagas === 1 ? '' : 's'} · mesma empresa`, acao: 'convidar' }));
                 } else {
                     linhas.push(`<div class="rz-row"><div class="rz-ic rz-neu"><svg data-lucide="users"></svg></div><div class="rz-tx"><b>Teste completo</b><span>As ${VAGAS_TESTE} vagas do teste já estão em uso</span></div></div>`);
                 }
@@ -360,7 +359,7 @@ export async function htmlContratarConvidar(dbAuth, clienteId, licenca) {
         }
     } else {
         const msg = 'Uso o Raiz Patrimônio para cuidar do patrimônio e recomendo. Dá para testar grátis: ' + SITE_RAIZ + '/#trial';
-        linhas.push(linhaLink({ href: `https://wa.me/?text=${encodeURIComponent(msg)}`, icone: 'share-2', titulo: 'Indicar o Raiz', sub: 'Mande o link do teste grátis para quem também cuida de patrimônio', acao: 'indicar' }));
+        linhas.push(linhaLink({ href: `https://wa.me/?text=${encodeURIComponent(msg)}`, icone: 'share-2', titulo: 'Indicar o Raiz', sub: 'Teste grátis', acao: 'indicar' }));
     }
     return `<div class="rz-card"><div class="rz-card-h"><h3>${teste ? 'Contratar e convidar' : 'Convidar'}</h3></div>${linhas.join('')}</div>`;
 }
@@ -423,7 +422,7 @@ async function listarPagamentosLicenca(dbAuth, clienteId) {
     return data || [];
 }
 function pagamentosHtml(pagamentos) {
-    if (!pagamentos.length) return '<div class="rz-card"><p class="rz-desc">Nenhum pagamento registrado ainda. Quando você renovar ou ampliar o plano, o pagamento aparece aqui.</p></div>';
+    if (!pagamentos.length) return '<div class="rz-card"><p class="rz-desc">Nenhum pagamento ainda.</p></div>';
     const brl = (v) => Number(v || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
     const dia = (v) => v ? dataLocal(String(v).slice(0, 10)).toLocaleDateString('pt-BR') : '';
     return `<div class="rz-card rz-list"><div class="rz-card-h"><h3>Pagamentos do plano</h3></div>${pagamentos.map(p => {
@@ -438,7 +437,7 @@ function pagamentosHtml(pagamentos) {
     }).join('')}</div>`;
 }
 
-const CARD_DUVIDAS = `<div class="rz-card"><div class="rz-card-h"><h3>Dúvidas sobre o plano?</h3></div>${linhaLink({ href: LINK_CONTATOS_RAIZ, icone: 'message-circle', titulo: 'Fale com a Raiz', sub: 'Contatos na página raizpatrimonio.com.br' })}</div>`;
+const CARD_DUVIDAS = `<div class="rz-card"><div class="rz-card-h"><h3>Dúvidas sobre o plano?</h3></div>${linhaLink({ href: LINK_CONTATOS_RAIZ, icone: 'message-circle', titulo: 'Fale com a Raiz', sub: 'raizpatrimonio.com.br' })}</div>`;
 
 // Ponto de entrada da tela. mountEl = container do host (index.html: #mount-licenca).
 // ctx = { dbAuth, clienteId, pessoaId, toast }. Chamar de novo redesenha do zero.
@@ -459,7 +458,7 @@ export async function montarAbaLicenca(mountEl, ctx) {
 
         if (licencas.length === 0) {
             mountEl.innerHTML = topo + `
-                <div class="rz-card"><div class="rz-empty"><div class="rz-ic"><svg data-lucide="badge-check"></svg></div><p>Nenhum plano encontrado para esta empresa. Fale com a Raiz para ativar o seu.</p></div></div>` + CARD_DUVIDAS;
+                <div class="rz-card"><div class="rz-empty"><div class="rz-ic"><svg data-lucide="badge-check"></svg></div><p>Nenhum plano. Fale com a Raiz.</p></div></div>` + CARD_DUVIDAS;
             if (typeof window !== 'undefined' && window.lucide) window.lucide.createIcons();
             return;
         }

@@ -6,9 +6,14 @@
    (base derivada do RUMO v7.4.2 — histórico de versões anteriores
    preservado abaixo para referência técnica)
 
-   VERSÃO: Beta v1.415.0
+   VERSÃO: Beta v1.416.0
    LINHAS: 16844
-   DATA: 14/10/2026 (sessão 20261014-2130-ajustes-9b, demanda a05ad2ee)
+   DATA: 14/10/2026 (sessão 20261014-2145-onda9c-textos, demanda a05ad2ee)
+   NOVIDADES (Beta v1.416.0) — ONDA 9c do estudo PROTOTIPO_UX_DENSIDADE_RAMOS_RAIZ v1.2.0 (D6, seção 10, textos):
+   ações, descrições, avisos e telas vazias do index e de 24 módulos no limite (24 · 28 · 40 · 40 caracteres). Fora do
+   limite no app inteiro: descrições 97 → 0, ações 15 → 0, avisos 58 → 0, telas vazias 50 → 0. Nada de comportamento
+   mudou. Sem banco.
+   Versão anterior (Beta v1.415.0):
    NOVIDADES (Beta v1.415.0) — teste do Nicola 14/10 21:26 + ONDA 9b. (1) Splash no notebook: em tela larga a arte
    escala pela altura (viewBox alargado, centrado na árvore, céu/morros/terra prolongados sem emenda) e, no computador,
    a arte do login tem a altura pela tela — o Entrar aparece sem rolar e a lista de empresas volta a ter altura (antes
@@ -32,13 +37,8 @@
    "Mover para o adicional" em js/financeiro.js 1.62.0; total do adicional no Movimento do ativo em js/cofre-ativos.js
    1.103.0. Banco: cartao_adicional_f10_f11_v1. Edge: extrato-extrair-transacoes 1.8 e whatsapp-webhook 2.88.
    Versão anterior (Beta v1.411.0):
-   NOVIDADES (Beta v1.411.0) — ONDA 8b do estudo PROTOTIPO_UX_DENSIDADE_RAMOS_RAIZ v1.2.0 (D15, computador): em Ativos e
-   Contratos, a partir de 1024 px, a ficha abre ao lado da lista (lista à esquerda, 360 px, rolando sozinha e com o item
-   aberto marcado; ficha à direita). O "‹ Ativos/Contratos" da ficha some porque a lista está à vista. No celular nada
-   muda. Sem banco e sem mexer nos módulos.
-   Versão anterior (Beta v1.410.0):
    ------------------------------------------------------------------
-   Versões anteriores (v1.410.0 … v1.410.0): CHANGELOG_APP.md, na raiz do
+   Versões anteriores (v1.411.0 … v1.411.0): CHANGELOG_APP.md, na raiz do
    repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
    das 5 versões mais recentes deste cabeçalho.
 
@@ -66,7 +66,7 @@
          O navegador aplica o mapa também aos imports estáticos dentro dos
          módulos (cofre-app.js → ./cofre-api.js etc.). -->
     <!-- RZ-IMPORTMAP:INICIO -->
-    <script type="importmap">{"imports":{"./js/cadastros.js":"./js/cadastros.js?v=1.2.0","./js/financeiro.js":"./js/financeiro.js?v=1.64.0","./js/fechamento.js":"./js/fechamento.js?v=1.13.0","./js/contratos.js":"./js/contratos.js?v=1.58.0","./js/minutas.js":"./js/minutas.js?v=1.4.0","./js/vitrine.js":"./js/vitrine.js?v=1.5.2","./js/imoveis.js":"./js/imoveis.js?v=1.7.2","./js/cofre-api.js":"./js/cofre-api.js?v=1.51.0","./js/cofre-app.js":"./js/cofre-app.js?v=1.48.0","./js/cofre-ativos.js":"./js/cofre-ativos.js?v=1.104.0","./js/cofre-controles.js":"./js/cofre-controles.js?v=1.58.0","./js/cofre-documentos.js":"./js/cofre-documentos.js?v=2.36.0","./js/cofre-imagem.js":"./js/cofre-imagem.js?v=1.1.0","./js/cofre-estado.js":"./js/cofre-estado.js?v=1.5.2","./js/cofre-navegacao.js":"./js/cofre-navegacao.js?v=1.9.3","./js/cofre-ui.js":"./js/cofre-ui.js?v=1.7.2","./js/cofre-validacoes.js":"./js/cofre-validacoes.js?v=2.5.0","./js/comum-licenca.js":"./js/comum-licenca.js?v=1.8.0","./js/comum-renovacao.js":"./js/comum-renovacao.js?v=1.3.5","./js/comum-minha-empresa.js":"./js/comum-minha-empresa.js?v=1.17.0","./js/comum-pessoas.js":"./js/comum-pessoas.js?v=1.212.0","./js/comum-sobre.js":"./js/comum-sobre.js?v=1.5.0","./js/comum-endereco.js":"./js/comum-endereco.js?v=1.2.0","./js/comum-partes.js":"./js/comum-partes.js?v=1.0.0","./js/resultados.js":"./js/resultados.js?v=2.9.0","./js/indicadores.js":"./js/indicadores.js?v=1.1.0","./js/configuracao-inicial.js":"./js/configuracao-inicial.js?v=1.0.1","./js/relatorios-executivos.js":"./js/relatorios-executivos.js?v=1.3.0","./js/raiz-eventos.js":"./js/raiz-eventos.js?v=1.0.0","./js/raiz-device.js":"./js/raiz-device.js?v=1.1.0","./js/raiz-ui.js":"./js/raiz-ui.js?v=1.4.0","./js/fiscal.js":"./js/fiscal.js?v=1.5.2","./js/ativos/ativos-boot.js":"./js/ativos/ativos-boot.js?v=1.4.0","./js/ativos/ativos-markup.js":"./js/ativos/ativos-markup.js?v=1.62.0","./js/nucleo/porta.js":"./js/nucleo/porta.js?v=1.5.0","./js/partes.js":"./js/partes.js?v=1.0.2","./js/conta.js":"./js/conta.js?v=1.0.1","./js/grupo-visao.js":"./js/grupo-visao.js?v=1.0.0","./js/agenda.js":"./js/agenda.js?v=1.4.0"}}</script>
+    <script type="importmap">{"imports":{"./js/cadastros.js":"./js/cadastros.js?v=1.3.0","./js/financeiro.js":"./js/financeiro.js?v=1.65.0","./js/fechamento.js":"./js/fechamento.js?v=1.14.0","./js/contratos.js":"./js/contratos.js?v=1.59.0","./js/minutas.js":"./js/minutas.js?v=1.5.0","./js/vitrine.js":"./js/vitrine.js?v=1.6.0","./js/imoveis.js":"./js/imoveis.js?v=1.8.0","./js/cofre-api.js":"./js/cofre-api.js?v=1.51.0","./js/cofre-app.js":"./js/cofre-app.js?v=1.49.0","./js/cofre-ativos.js":"./js/cofre-ativos.js?v=1.105.0","./js/cofre-controles.js":"./js/cofre-controles.js?v=1.59.0","./js/cofre-documentos.js":"./js/cofre-documentos.js?v=2.37.0","./js/cofre-imagem.js":"./js/cofre-imagem.js?v=1.1.0","./js/cofre-estado.js":"./js/cofre-estado.js?v=1.5.2","./js/cofre-navegacao.js":"./js/cofre-navegacao.js?v=1.10.0","./js/cofre-ui.js":"./js/cofre-ui.js?v=1.7.2","./js/cofre-validacoes.js":"./js/cofre-validacoes.js?v=2.5.0","./js/comum-licenca.js":"./js/comum-licenca.js?v=1.9.0","./js/comum-renovacao.js":"./js/comum-renovacao.js?v=1.3.5","./js/comum-minha-empresa.js":"./js/comum-minha-empresa.js?v=1.18.0","./js/comum-pessoas.js":"./js/comum-pessoas.js?v=1.213.0","./js/comum-sobre.js":"./js/comum-sobre.js?v=1.5.0","./js/comum-endereco.js":"./js/comum-endereco.js?v=1.2.0","./js/comum-partes.js":"./js/comum-partes.js?v=1.0.0","./js/resultados.js":"./js/resultados.js?v=2.10.0","./js/indicadores.js":"./js/indicadores.js?v=1.2.0","./js/configuracao-inicial.js":"./js/configuracao-inicial.js?v=1.1.0","./js/relatorios-executivos.js":"./js/relatorios-executivos.js?v=1.4.0","./js/raiz-eventos.js":"./js/raiz-eventos.js?v=1.0.0","./js/raiz-device.js":"./js/raiz-device.js?v=1.1.0","./js/raiz-ui.js":"./js/raiz-ui.js?v=1.5.0","./js/fiscal.js":"./js/fiscal.js?v=1.6.0","./js/ativos/ativos-boot.js":"./js/ativos/ativos-boot.js?v=1.4.0","./js/ativos/ativos-markup.js":"./js/ativos/ativos-markup.js?v=1.63.0","./js/nucleo/porta.js":"./js/nucleo/porta.js?v=1.5.0","./js/partes.js":"./js/partes.js?v=1.1.0","./js/conta.js":"./js/conta.js?v=1.1.0","./js/grupo-visao.js":"./js/grupo-visao.js?v=1.0.0","./js/agenda.js":"./js/agenda.js?v=1.4.0"}}</script>
     <!-- RZ-IMPORTMAP:FIM -->
 
     <!-- ===== PWA: permite "instalar" o app no celular (Android e iPhone) ===== -->
@@ -4347,7 +4347,7 @@
         // texto certo toda vez (esqueci 5 versões seguidas, de v1.37.1 até
         // v1.38.3). Agora só precisa mudar UMA linha aqui a cada release;
         // window.onload aplica nos dois lugares automaticamente.
-        const APP_VERSAO = "Beta v1.415.0"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
+        const APP_VERSAO = "Beta v1.416.0"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
 
         // ====================================================================
         // v1.105.0 — HELPERS DE SUPERFÍCIE DA GRAMÁTICA ÚNICA
@@ -4851,7 +4851,7 @@
             if (typeof corpo === 'function') { corpo(corpoEl); rzIcones(); }
             const btn = sheet.querySelector('#rz-sheet-salvar');
             if (btn) btn.addEventListener('click', async () => {
-                if (rzSemRede()) { mostrarToast('Sem conexão. O que você digitou continua aqui; salve quando a rede voltar.', 'danger'); return; } // v1.301.0
+                if (rzSemRede()) { mostrarToast('Sem conexão. O texto continua aqui.', 'danger'); return; } // v1.301.0
                 btn.disabled = true;
                 try {
                     const r = typeof aoSalvar === 'function' ? await aoSalvar(corpoEl) : true;
@@ -8491,7 +8491,7 @@ async function criarLinkVitrineSupabase(token, idsSelecionados) {
                 const overlay = document.getElementById('overlay-feedback-livre');
                 if (overlay) overlay.remove();
             } catch (err) {
-                mostrarToast('Não deu pra enviar agora. Tenta de novo mais tarde.', 'danger');
+                mostrarToast('Não enviado. Tente mais tarde.', 'danger');
                 console.warn('Erro ao enviar feedback livre:', err.message);
             }
         }
@@ -8517,7 +8517,7 @@ async function criarLinkVitrineSupabase(token, idsSelecionados) {
                 await abrirRenovacao({ dbAuth, clienteId: CLIENTE_ID_SUPABASE, toast: mostrarToast, planoPreferido });
             } catch (err) {
                 console.warn('rzAbrirRenovacao:', err.message);
-                mostrarToast('Não foi possível abrir a renovação agora.', 'danger');
+                mostrarToast('A renovação não abriu agora.', 'danger');
             }
         };
 
@@ -8624,13 +8624,13 @@ async function criarLinkVitrineSupabase(token, idsSelecionados) {
             const el = document.getElementById('lista-relatorios'); if (!el) return;
             const socios = [...new Set((typeof repasses !== 'undefined' && Array.isArray(repasses) ? repasses : []).map(r => r.socio).filter(Boolean))];
             const itens = [
-                { codigo: 'relatorios.resultados', icone: 'bar-chart-2', titulo: 'Resultados analítico', sub: 'PDF com filtros de imóvel e período da aba Desempenho', acao: () => baixarRelatorioPdfLocal() },
+                { codigo: 'relatorios.resultados', icone: 'bar-chart-2', titulo: 'Resultados analítico', sub: 'PDF por imóvel e período', acao: () => baixarRelatorioPdfLocal() },
                 // v1.312.0 (P4b, REL-49 a 55) — modelo executivo: capa + detalhe, tela e PDF pelo mesmo documento
-                { codigo: 'relatorios.fluxo_caixa', icone: 'trending-up', titulo: 'Fluxo de caixa', sub: 'Previsto × realizado por mês e por conta, com projeção', acao: () => abrirRelatorioExecutivo('fluxo') },
-                { codigo: 'relatorios.gerencial', icone: 'pie-chart', titulo: 'Visão gerencial', sub: 'Resultado do mês por conta e por pessoa', acao: () => abrirRelatorioExecutivo('gerencial') },
+                { codigo: 'relatorios.fluxo_caixa', icone: 'trending-up', titulo: 'Fluxo de caixa', sub: 'Previsto × realizado', acao: () => abrirRelatorioExecutivo('fluxo') },
+                { codigo: 'relatorios.gerencial', icone: 'pie-chart', titulo: 'Visão gerencial', sub: 'Por conta e por pessoa', acao: () => abrirRelatorioExecutivo('gerencial') },
                 // v1.379.0 (F13.8) — só fatos e dados (REL-56)
-                { codigo: 'relatorios.retiradas_extraordinarias', icone: 'sparkles', titulo: 'Retiradas extraordinárias', sub: 'Por pessoa, por mês e por ano; com as partes quando o controle está ligado', acao: () => abrirRelatorioExecutivo('retiradas') },
-                { codigo: 'relatorios.distribuicao', icone: 'users', titulo: 'Distribuição aos sócios', sub: socios.length ? `PDF por sócio · ${socios.length} sócio${socios.length > 1 ? 's' : ''}` : 'PDF por sócio', acao: () => abrirSheetAcoes({ titulo: 'Distribuição aos sócios', sub: 'Escolha o sócio', acoes: socios.length ? socios.map(sc => ({ icone: 'user', titulo: sc, codigo: 'relatorios.distribuicao', aoTocar: () => exportarRelatorioSocioPDF(sc) })) : [{ icone: 'info', titulo: 'Nenhum sócio com distribuição registrada', aoTocar: () => {} }] }) },
+                { codigo: 'relatorios.retiradas_extraordinarias', icone: 'sparkles', titulo: 'Retiradas extraordinárias', sub: 'Por pessoa, mês e ano', acao: () => abrirRelatorioExecutivo('retiradas') },
+                { codigo: 'relatorios.distribuicao', icone: 'users', titulo: 'Distribuição aos sócios', sub: socios.length ? `PDF por sócio · ${socios.length} sócio${socios.length > 1 ? 's' : ''}` : 'PDF por sócio', acao: () => abrirSheetAcoes({ titulo: 'Distribuição aos sócios', sub: 'Escolha o sócio', acoes: socios.length ? socios.map(sc => ({ icone: 'user', titulo: sc, codigo: 'relatorios.distribuicao', aoTocar: () => exportarRelatorioSocioPDF(sc) })) : [{ icone: 'info', titulo: 'Sem distribuição ainda', aoTocar: () => {} }] }) },
             ];
             el.innerHTML = itens.map((it, i) => {
                 const b = typeof podeUsar === 'function' ? podeUsar(it.codigo) : { ok: true };
@@ -9145,7 +9145,7 @@ async function criarLinkVitrineSupabase(token, idsSelecionados) {
             if (document.getElementById('rz-veil')?.classList.contains('rz-on') && typeof fecharSheet === 'function') fecharSheet();
             try {
                 if (rota.tipo === 'contrato') {
-                    if (!contratos.some(c => c.id === rota.ref)) { mostrarToast('Esse contrato não está na empresa aberta.', 'danger'); return; }
+                    if (!contratos.some(c => c.id === rota.ref)) { mostrarToast('Contrato de outra empresa.', 'danger'); return; }
                     const m = await carregarContratos();
                     m.abrirFichaContrato(rota.ref);
                 } else if (rota.tipo === 'ativo') {
@@ -9160,13 +9160,13 @@ async function criarLinkVitrineSupabase(token, idsSelecionados) {
                         const { data } = await dbAuth.storage.from('cofre-documentos').download(`${CLIENTE_ID_SUPABASE}/tmp-ia/${rota.ref}.leitura.json`);
                         if (data) g = JSON.parse(await data.text());
                     } catch (_) { g = null; }
-                    if (!g || !g.storage_path) { mostrarToast('Essa leitura não está mais disponível (o link vale 48 h) ou é de outra empresa.', 'danger'); return; }
+                    if (!g || !g.storage_path) { mostrarToast('Leitura expirada (vale 48 h).', 'danger'); return; }
                     rzRetomarLeitura({ documentoId: rota.ref, storagePath: g.storage_path, nome: g.nome || 'documento', mime: g.mime || null, contexto: null, configTipo: g.config_tipo || null, origem: g.origem || 'bot' }, g.resposta || null);
                 } else if (rota.tipo === 'alerta') {
                     abrirTabAlertas();
                     const achou = await rzEsperar(() => alertasPorChave.has(rota.ref), 8000);
                     if (achou) abrirAlertaDetalheSheet(rota.ref);
-                    else mostrarToast('Esse alerta não está na empresa aberta ou já foi resolvido.', 'danger');
+                    else mostrarToast('Alerta resolvido ou de outra empresa.', 'danger');
                 }
             } catch (err) {
                 mostrarToast('Não consegui abrir o link: ' + (err.message || String(err)), 'danger');
@@ -9686,10 +9686,10 @@ async function criarLinkVitrineSupabase(token, idsSelecionados) {
 
         function abrirEscolherModoRegra(regraId, nome, descricao) {
             const hero = descricao ? `<p style="font-size:12.5px;color:var(--sage);padding:0 2px 8px">${escapeHtmlSaidas(descricao)}</p>` : '';
-            const sheet = abrirSheetAcoes({ titulo: nome, sub: 'Como esta regra deve se comportar', acoes: [
-                { icone: 'zap', titulo: 'Automático', sub: 'Concilia sozinho, sem perguntar', aoTocar: () => salvarModoRegraConciliacao(regraId, 'automatico') },
-                { icone: 'sparkles', titulo: 'Sugerir', sub: 'Avisa e espera você confirmar', aoTocar: () => salvarModoRegraConciliacao(regraId, 'sugerir') },
-                { icone: 'circle-slash', titulo: 'Desligada', sub: 'Não faz nada com esse tipo de linha', aoTocar: () => salvarModoRegraConciliacao(regraId, 'desligada') },
+            const sheet = abrirSheetAcoes({ titulo: nome, sub: 'Como a regra age', acoes: [
+                { icone: 'zap', titulo: 'Automático', sub: 'Concilia sem perguntar', aoTocar: () => salvarModoRegraConciliacao(regraId, 'automatico') },
+                { icone: 'sparkles', titulo: 'Sugerir', sub: 'Espera você confirmar', aoTocar: () => salvarModoRegraConciliacao(regraId, 'sugerir') },
+                { icone: 'circle-slash', titulo: 'Desligada', sub: 'Não faz nada', aoTocar: () => salvarModoRegraConciliacao(regraId, 'desligada') },
             ] });
             // v1.179.2 — achado do Nicola: explicar melhor o que a regra faz
             // ao tocar nela, não só o nome curto que já aparecia na lista.
@@ -9786,9 +9786,9 @@ async function criarLinkVitrineSupabase(token, idsSelecionados) {
                 '<div class="rz-ia-atalhos"><button type="button" data-ia-atalho="ocorrencia"><svg data-lucide="wrench"></svg>Ocorrência</button>' +
                 '<button type="button" data-ia-atalho="lancamento"><svg data-lucide="wallet"></svg>Lançamento</button>' +
                 '<button type="button" data-ia-atalho="documento"><svg data-lucide="file-up"></svg>Documento</button></div>';
-            const sheet = abrirSheetAcoes({ titulo: 'Raiz IA', sub: 'Pergunte ou registre, por texto ou voz', acoes: [
-                { icone: 'sparkles', tipo: 'ia', titulo: 'Importar extrato bancário', codigo: 'conciliacao.importar', sub: 'Concilia os recebimentos automaticamente', aoTocar: () => { switchTab('tab-mensal'); setTimeout(() => document.getElementById('extrato-file-input')?.click(), 250); } },
-                { icone: 'bot', titulo: 'Raiz IA no WhatsApp', sub: 'Consultas e avisos pelo WhatsApp', aoTocar: abrirBotWhatsapp }
+            const sheet = abrirSheetAcoes({ titulo: 'Raiz IA', sub: 'Pergunte ou registre', acoes: [
+                { icone: 'sparkles', tipo: 'ia', titulo: 'Importar extrato', codigo: 'conciliacao.importar', sub: 'Concilia os recebimentos', aoTocar: () => { switchTab('tab-mensal'); setTimeout(() => document.getElementById('extrato-file-input')?.click(), 250); } },
+                { icone: 'bot', titulo: 'Raiz IA no WhatsApp', sub: 'Consultas e avisos', aoTocar: abrirBotWhatsapp }
             ]});
             const corpo = sheet.querySelector('.rz-sh-b');
             if (corpo) { corpo.insertAdjacentHTML('afterbegin', campo); rzIcones(); }
@@ -9869,7 +9869,7 @@ async function criarLinkVitrineSupabase(token, idsSelecionados) {
             }
             abrirSheetAcoes({ titulo: 'Não entendi', sub: `“${texto.slice(0, 80)}”`, acoes: [
                 { icone: 'wallet', titulo: 'É um lançamento', sub: 'Pagamento ou recebimento', aoTocar: () => rzEscolherLancamento({ descricao: texto }) },
-                { icone: 'wrench', titulo: 'É uma ocorrência', sub: 'Algo que aconteceu com um bem', aoTocar: () => rzNovaOcorrencia({ descricao: texto }) },
+                { icone: 'wrench', titulo: 'É uma ocorrência', sub: 'Aconteceu com um bem', aoTocar: () => rzNovaOcorrencia({ descricao: texto }) },
             ] });
         }
 
@@ -9910,7 +9910,7 @@ async function criarLinkVitrineSupabase(token, idsSelecionados) {
                     `<option value="m">Manutenção do bem</option>`];
                 sel.innerHTML = ops.join('');
             };
-            const sheetOc = abrirSheetForm({ titulo: 'Nova ocorrência', sub: 'Fica em aberto até você tratar', rotuloSalvar: 'Registrar ocorrência',
+            const sheetOc = abrirSheetForm({ titulo: 'Nova ocorrência', sub: 'Fica em aberto até tratar', rotuloSalvar: 'Registrar ocorrência',
                 corpo: `<div class="rz-f"><label for="oc-ia-ativo">Bem</label><select id="oc-ia-ativo">${opcoes}</select></div>
                         <div class="rz-f"><label for="oc-ia-onde">Onde registrar</label><select id="oc-ia-onde"><option value="">Escolha o bem primeiro</option></select></div>
                         <div class="rz-f"><label for="oc-ia-desc">O que aconteceu</label><textarea id="oc-ia-desc" rows="3" maxlength="500">${rzEsc(descricao || '')}</textarea></div>
@@ -9994,9 +9994,9 @@ async function criarLinkVitrineSupabase(token, idsSelecionados) {
             abrirSheetAcoes({
                 titulo, sub: (p.nome || 'Documento') + (tipo ? ' · ' + tipo : '') + ' · o app foi fechado no meio',
                 acoes: [
-                    r ? { icone: 'check', titulo: r.analisado ? 'Conferir e salvar' : 'Ver e preencher', sub: 'Abre o envio de onde parou, sem ler de novo', aoTocar: () => rzRetomarLeitura(p, r) }
-                      : { icone: 'refresh-cw', tipo: 'ia', titulo: 'Ler de novo', sub: 'O arquivo já foi enviado: não precisa escolher de novo', aoTocar: () => rzRetomarLeitura(p, null) },
-                    { icone: 'trash-2', tipo: 'bad', titulo: 'Descartar', sub: 'Apaga o arquivo enviado e esta leitura', aoTocar: () => rzDescartarLeituraPendente(p, k) },
+                    r ? { icone: 'check', titulo: r.analisado ? 'Conferir e salvar' : 'Ver e preencher', sub: 'De onde parou', aoTocar: () => rzRetomarLeitura(p, r) }
+                      : { icone: 'refresh-cw', tipo: 'ia', titulo: 'Ler de novo', sub: 'Com o mesmo arquivo', aoTocar: () => rzRetomarLeitura(p, null) },
+                    { icone: 'trash-2', tipo: 'bad', titulo: 'Descartar', sub: 'Apaga arquivo e leitura', aoTocar: () => rzDescartarLeituraPendente(p, k) },
                 ],
             });
         }
@@ -10952,7 +10952,7 @@ async function criarLinkVitrineSupabase(token, idsSelecionados) {
                     // deveria disparar aqui, mas se algum dia um cliente com os
                     // 2 módulos cair nessa variante dentro do app principal, não
                     // pode travar silenciosamente sem feedback nenhum.
-                    else if (acao === 'abrir_formulario_ativo') mostrarToast('Esse cadastro fica no Cofre de Documentos.', 'info');
+                    else if (acao === 'abrir_formulario_ativo') mostrarToast('Cadastro feito no Cofre.', 'info');
                 },
                 onToast: function(msg, tipo) { mostrarToast(msg, tipo); }
             };
@@ -11108,11 +11108,11 @@ async function criarLinkVitrineSupabase(token, idsSelecionados) {
             if (!ctx || ctx.temRecebimentoOuOcorrenciaTratada || !naJanela) { mount.innerHTML = ''; return; }
             const soControle = ctx.temItemControle && !ctx.temContrato;
             const passos = [
-                { feito: !!ctx.temImovelOuAtivo, titulo: 'Comece pelo primeiro imóvel', sub: 'Cadastre um imóvel — ou envie um documento e a Raiz IA preenche por você.', ir: 'rzAbrirMaisAtivos()' },
-                { feito: !!ctx.temContratoOuItemControle, titulo: 'Contrato ou item de controle', sub: 'Abra o bem e use o box Contrato ou o box Controles.', ir: "irParaAbaRodape('tab-ativos')" },
+                { feito: !!ctx.temImovelOuAtivo, titulo: 'Comece pelo primeiro imóvel', sub: 'Cadastre ou envie documento', ir: 'rzAbrirMaisAtivos()' },
+                { feito: !!ctx.temContratoOuItemControle, titulo: 'Contrato ou item de controle', sub: 'Na ficha do bem', ir: "irParaAbaRodape('tab-ativos')" },
                 soControle
-                    ? { feito: !!ctx.temOcorrenciaTratada, titulo: 'Trate a primeira ocorrência', sub: 'Quando o seguro ou a manutenção vencer, marque como tratado.', ir: "irParaAbaRodape('tab-ativos')" }
-                    : { feito: !!ctx.temRecebimento, titulo: 'Experimente o Financeiro', sub: 'Dê baixa num pagamento e emita o recibo.', ir: "irParaAbaRodape('tab-mensal')" },
+                    ? { feito: !!ctx.temOcorrenciaTratada, titulo: 'Trate a primeira ocorrência', sub: 'Quando algo vencer', ir: "irParaAbaRodape('tab-ativos')" }
+                    : { feito: !!ctx.temRecebimento, titulo: 'Experimente o Financeiro', sub: 'Dê baixa e emita o recibo', ir: "irParaAbaRodape('tab-mensal')" },
             ];
             const prox = passos.findIndex(p => !p.feito);
             const feitos = passos.filter(p => p.feito).length;
@@ -13135,7 +13135,7 @@ async function criarLinkVitrineSupabase(token, idsSelecionados) {
         function abrirListaAlertasGrupo(modo, chaveGrupo) {
             const mapa = modo === 'cadastro' ? alertasPorGrupoCadastro : modo === 'tipo' ? alertasPorGrupoTipo : modo === 'entidade' ? alertasPorGrupoEntidade : alertasPorGrupoNatureza;
             const grupo = mapa.get(chaveGrupo);
-            if (!grupo || !grupo.length) { mostrarToast('Não encontrei esses alertas — a lista pode ter mudado.', 'danger'); return; }
+            if (!grupo || !grupo.length) { mostrarToast('A lista mudou. Tente de novo.', 'danger'); return; }
             const st = (sem, txt) => (typeof renderStatus === 'function') ? renderStatus(sem, txt) : `<span class="rz-st rz-${sem}">${txt}</span>`;
             // v1.298.1 — no grupo de cadastro, junta pelo tipo (os 6 ativos sem dono em sequência).
             const ordenados = modo === 'cadastro'
@@ -13198,7 +13198,7 @@ async function criarLinkVitrineSupabase(token, idsSelecionados) {
         // texto) → Dispensar (sempre por último, vermelha, §2).
         async function abrirAlertaDetalheSheet(alertaChave) {
             const r = alertasPorChave.get(alertaChave);
-            if (!r) { mostrarToast('Não encontrei esse alerta — a lista pode ter mudado.', 'danger'); return; }
+            if (!r) { mostrarToast('A lista mudou. Tente de novo.', 'danger'); return; }
 
             const st = (sem, txt) => (typeof renderStatus === 'function') ? renderStatus(sem, txt) : `<span class="rz-st rz-${sem}">${txt}</span>`;
             const semPrazo = ROTINA_PRONTA_ALERTA.includes(r.tipo_alerta) ? 'neu' : (r.dias === null ? 'neu' : (r.dias < 0 ? 'bad' : (r.dias <= 14 ? 'warn' : 'run')));
@@ -13418,7 +13418,7 @@ async function criarLinkVitrineSupabase(token, idsSelecionados) {
         }
 
         async function rzAdiarAlertas(chaves) {
-            const dias = await rzEscolherUm({ titulo: chaves.length > 1 ? `Adiar ${chaves.length} alertas` : 'Adiar o alerta', sub: 'Ele some da lista e volta depois', opcoes: [
+            const dias = await rzEscolherUm({ titulo: chaves.length > 1 ? `Adiar ${chaves.length} alertas` : 'Adiar o alerta', sub: 'Some e volta depois', opcoes: [
                 { icone: 'calendar-clock', titulo: '7 dias', valor: 7 },
                 { icone: 'calendar-clock', titulo: '30 dias', valor: 30 },
             ] });
@@ -13442,7 +13442,7 @@ async function criarLinkVitrineSupabase(token, idsSelecionados) {
         }
         function rzAcoesRapidasAlerta(chave) {
             const r = alertasPorChave.get(chave);
-            if (!r) { mostrarToast('Não encontrei esse alerta — a lista pode ter mudado.', 'danger'); return; }
+            if (!r) { mostrarToast('A lista mudou. Tente de novo.', 'danger'); return; }
             const acoes = rzAcoesAlerta(r, chave);
             acoes.unshift({ icone: 'info', titulo: 'Ver detalhes', aoTocar: () => abrirAlertaDetalheSheet(chave) });
             abrirSheetAcoes({ titulo: tituloAlertaMotor(r), sub: subtituloAlertaMotor(r), acoes });
@@ -13469,7 +13469,7 @@ async function criarLinkVitrineSupabase(token, idsSelecionados) {
         }
         function rzEscolherNoGrupo(ref) {
             const linhas = rzLinhasDoGrupo(ref);
-            if (!linhas.length) { mostrarToast('Não encontrei esses alertas — a lista pode ter mudado.', 'danger'); return; }
+            if (!linhas.length) { mostrarToast('A lista mudou. Tente de novo.', 'danger'); return; }
             const st = (sem, txt) => (typeof renderStatus === 'function') ? renderStatus(sem, txt) : `<span class="rz-st rz-${sem}">${txt}</span>`;
             const marcados = new Set();
             const corpo = `<div class="rz-card rz-list">
@@ -14040,7 +14040,7 @@ async function criarLinkVitrineSupabase(token, idsSelecionados) {
                 const fotos = (imo && Array.isArray(imo.fotos)) ? imo.fotos.filter(f => typeof f === 'string' && f.length > 5) : [];
                 listaEl.innerHTML = fotos.length > 0
                     ? `<div class="flex flex-wrap gap-1">${fotos.map((f, i) => `<img src="${f}" onclick="abrirLightboxImovelSalvo('${imo.id}', ${i})" class="w-10 h-10 object-cover rounded border cursor-pointer">`).join('')}</div>`
-                    : `<p class="text-[12px] text-slate-500">Nenhuma foto cadastrada para este imóvel.</p>`;
+                    : `<p class="text-[12px] text-slate-500">Nenhuma foto deste imóvel.</p>`;
                 return;
             }
 
@@ -15783,7 +15783,7 @@ async function criarLinkVitrineSupabase(token, idsSelecionados) {
             const lista = document.getElementById('lista-links-vitrine');
             if (!lista) return;
             if (!links || links.length === 0) {
-                lista.innerHTML = '<div class="rz-empty"><div class="rz-ic"><svg data-lucide="link"></svg></div><p>Nenhum link compartilhado ainda. Em Ativos › + › Compartilhar imóveis, escolha os imóveis e mande o link.</p></div>';
+                lista.innerHTML = '<div class="rz-empty"><div class="rz-ic"><svg data-lucide="link"></svg></div><p>Nenhum link compartilhado ainda.</p></div>';
                 if (typeof lucide !== 'undefined') lucide.createIcons();
                 return;
             }
@@ -16102,7 +16102,7 @@ async function criarLinkVitrineSupabase(token, idsSelecionados) {
         function abrirAcoesLinkVitrine(token) {
             const url = window.location.href.split('?')[0].split('#')[0] + '?v=' + encodeURIComponent(token);
             abrirSheetAcoes({ titulo: 'Link compartilhado', sub: 'Código ' + token, acoes: [
-                { icone: 'copy', titulo: 'Copiar link', sub: 'Para mandar a quem quiser ver os imóveis', aoTocar: () => rzCopiar(url, 'Link copiado.', 'Não consegui copiar; use "Abrir a página".') },
+                { icone: 'copy', titulo: 'Copiar link', sub: 'Para mandar a quem quiser', aoTocar: () => rzCopiar(url, 'Link copiado.', 'Não consegui copiar; use "Abrir a página".') },
                 { icone: 'external-link', titulo: 'Abrir a página', aoTocar: () => window.open(url, '_blank') },
                 { icone: 'link-2-off', titulo: 'Revogar link', codigo: 'vitrine.links.gerenciar', tipo: 'bad', aoTocar: () => revogarLinkVitrine(token) },
             ] });
@@ -16286,7 +16286,7 @@ async function criarLinkVitrineSupabase(token, idsSelecionados) {
             const unicos = empreendimentosCadastrados.map(function(e) { return e.nome; });
 
             if (unicos.length === 0) {
-                container.innerHTML = '<p class="text-[12px] text-gray-400">Nenhum empreendimento cadastrado em Parametrizações ainda.</p>';
+                container.innerHTML = '<p class="text-[12px] text-gray-400">Nenhum empreendimento cadastrado.</p>';
                 return;
             }
 
@@ -16317,7 +16317,7 @@ async function criarLinkVitrineSupabase(token, idsSelecionados) {
             const unicos = empreendimentosCadastrados.map(function(e) { return e.nome; });
 
             if (unicos.length === 0) {
-                container.innerHTML = '<p class="text-[12px] text-gray-400">Nenhum empreendimento cadastrado em Parametrizações ainda.</p>';
+                container.innerHTML = '<p class="text-[12px] text-gray-400">Nenhum empreendimento cadastrado.</p>';
                 return;
             }
 
@@ -16718,7 +16718,7 @@ async function criarLinkVitrineSupabase(token, idsSelecionados) {
                 opcoes = (window.__cofreAtivos || []).filter(a => (a.status || '').toLowerCase() !== 'arquivado').map(a => (
                     { icone: 'boxes', titulo: a.nome_exibicao || 'Ativo', sub: a.tipo_ativo || '', aoTocar: () => gravarPapelParte(parteId, papel, 'ativo', a.id) }
                 ));
-                if (!opcoes.length) { mostrarToast('Abra a aba Ativos uma vez pra carregar a lista, e tente de novo.', 'danger'); return; }
+                if (!opcoes.length) { mostrarToast('Abra Ativos e tente de novo.', 'danger'); return; }
             }
             if (!opcoes.length) { mostrarToast('Nada disponível pra vincular.', 'danger'); return; }
             abrirSheetAcoes({ titulo: `${PARTES_ROTULO_PAPEL[papel] || papel} de…`, sub: 'Escolha o vínculo', acoes: opcoes.slice(0, 40) });

@@ -1,6 +1,11 @@
 // ============================================================================
 // cofre-ativos.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.104.0 · 14/10/2026
+// Versão: 1.105.0 · 14/10/2026
+//
+// v1.105.0 (14/10/2026, sessão 20261014-2145-onda9c-textos, demanda a05ad2ee; onda 9c do estudo PROTOTIPO_UX_DENSIDADE_RAMOS_RAIZ
+// v1.2.0, D6 seção 10) — textos no limite: ação até 24 caracteres, descrição até 28, aviso até 40 com o resultado e tela
+// vazia em 1 frase de até 40. A explicação longa fica na confirmação, quando existe. Nada de comportamento mudou.
+// Versão anterior: 1.104.0 · 14/10/2026
 //
 // v1.104.0 (14/10/2026, sessão 20261014-1445-onda9a-textos, demanda a05ad2ee; onda 9 do estudo PROTOTIPO_UX_DENSIDADE_RAMOS_RAIZ v1.2.0,
 // D6 seção 10) — textos no limite: ação até 24 caracteres, descrição até 28 (só quando muda a decisão), aviso até 40 e
@@ -28,18 +33,11 @@
 // Venda só pelo uso Revenda: "Registrar venda" sai da Situação e aparece no ⋮ do uso Revenda (fn_status_transicionar
 // 'uso'/'vender'). ⋮ da ficha: um item só de IA, "Raiz IA", que abre a Raiz IA já com o nome do ativo; saem "Carregar
 // documento", "Adicionar documento com IA" e "Upload simples"; "Iniciar revisão anual" não aparece em pessoa (vida).
-//
-// Versão anterior: 1.100.0 · 14/10/2026
-//
-// v1.100.0 (14/10/2026, sessão 20261014-0010-ativo-pessoa, demanda d6a6f577; de acordo do Nicola 14/10 00:08) — ativo
-// vida › Resumo ganha a linha "Pessoa do cadastro": ligar (pessoas de Pessoas sem outro ativo), trocar e desligar, pela
-// fn_ativo_pessoa_vincular (F16, que não tinha tela). ligarPessoaAoAtivo() é exportada para o "Conta ou cartão" do item
-// (cofre-controles.js 1.57.0). Nenhuma pessoa é criada sozinha.
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.99.0 … v1.99.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.100.0 … v1.100.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '1.104.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.105.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 import { estado } from './cofre-estado.js';
 import * as api from './cofre-api.js';
 import { mostrarToast, erroInline, refrescarIcones, alternarToggle, abrirModal, fecharModal, modalGenerico, perguntar, avisarComDesfazer, escolher } from './cofre-ui.js';
@@ -1126,7 +1124,7 @@ function renderizarCamposEstruturados(tipo, valores, prefixoId = 'at-campo-', ti
         <div class="rz-f">
             <label>${escapeHtml(c.label)} ${c.obrigatorio ? '<i>*</i>' : ''}</label>
             <input type="${c.tipo === 'number' ? 'number' : c.tipo === 'date' ? 'date' : 'text'}" id="${prefixoId}${c.chave}" value="${escapeHtml(valores[c.chave] || '')}">
-        </div>`).join('') || `<p class="text-xs sm:col-span-2" style="color:var(--sage)">Sem campos estruturados adicionais para este tipo.</p>`;
+        </div>`).join('') || `<p class="text-xs sm:col-span-2" style="color:var(--sage)">Sem campos extras para este tipo.</p>`;
 }
 
 function lerCamposEstruturados(tipo, prefixoId = 'at-campo-', tipoDetalheId = null) {
@@ -1958,7 +1956,7 @@ export async function montarUsosAtivo(a) {
         usoVigenteFicha = usos.find(u => u.inicio <= hoje && (!u.fim || u.fim >= hoje)) || null;
         if (sub) sub.textContent = '';
         if (!usosLinhas.length) {
-            painel.innerHTML = `<p class="rz-desc" style="margin:2px 0 6px">Nenhum uso ainda. Escolha o modelo — aluguel, temporada, uso próprio — e o Raiz acompanha o período.</p>`;
+            painel.innerHTML = `<p class="rz-desc" style="margin:2px 0 6px">Nenhum uso ainda.</p>`;
             return;
         }
         await desenharUsosAno(a, vig);
@@ -2787,7 +2785,7 @@ async function montarPropriedadeAtivo(a) {
     const linhas = await api.buscarPropriedadeDoAtivo(a.id);
 
     if (!linhas.length) {
-        lista.innerHTML = `<div class="rz-empty"><div class="rz-ic"><i data-lucide="users"></i></div><p>Sem divisão de propriedade ainda. Sem ela, a distribuição de resultados não sabe pra quem repassar.</p></div>` + registroContabilLinhaHtml(a);
+        lista.innerHTML = `<div class="rz-empty"><div class="rz-ic"><i data-lucide="users"></i></div><p>Sem divisão de propriedade ainda.</p></div>` + registroContabilLinhaHtml(a);
         refrescarIcones();
         return;
     }
@@ -3066,7 +3064,7 @@ async function montarDadosAtivo(a) {
         // rodapé passa a apontar pro formulário do imóvel (abaixo).
         gridWrapper.innerHTML = (campos.length || campoEndereco)
             ? `<div class="rz-kv">${campos.join('')}${campoEndereco}</div>`
-            : `<p class="rz-desc">Sem endereço, IPTU, valor de mercado ou uso cadastrado ainda.</p>`;
+            : `<p class="rz-desc">Sem endereço, IPTU ou valor ainda.</p>`;
     }
     const titulo = document.getElementById('fa-dados-titulo');
     if (titulo) titulo.textContent = ehImovelVinculado ? 'Dados do imóvel' : 'Dados do ativo';
@@ -3100,7 +3098,7 @@ async function montarDadosAtivo(a) {
     if (ehImovelVinculado && camposPreenchidos.length === 0) {
         resumo.innerHTML = '';
     } else if (camposPreenchidos.length === 0) {
-        resumo.innerHTML = `<p class="rz-desc${ehImovelVinculado ? ' mt-2' : ''}">Sem campos específicos preenchidos ainda.</p>`;
+        resumo.innerHTML = `<p class="rz-desc${ehImovelVinculado ? ' mt-2' : ''}">Nenhum campo específico ainda.</p>`;
     } else {
         const kv = camposPreenchidos.map(c => `<div><small>${escapeHtml(c.label)}</small><b>${c.mascarar ? mascarar(dados[c.chave]) : escapeHtml(dados[c.chave])}</b></div>`).join('');
         resumo.innerHTML = `<div class="rz-kv${ehImovelVinculado ? ' mt-2' : ''}">${kv}</div>`;

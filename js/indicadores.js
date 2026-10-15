@@ -1,8 +1,11 @@
 // =====================================================================
 // RAIZ PATRIMÔNIO — js/indicadores.js
-// VERSÃO: Beta v1.1.0 (12/10/2026 — demanda a05ad2ee)
+// VERSÃO: Beta v1.2.0 (14/10/2026 — demanda a05ad2ee)
 // LINHAS: (ver versoes.json)
 // -----------------------------------------------------------------
+// NOVIDADES (Beta v1.2.0) (14/10/2026, sessão 20261014-2145-onda9c-textos, demanda a05ad2ee; onda 9c do estudo, D6 seção 10) — textos no
+//   limite: ação até 24, descrição até 28, aviso e tela vazia até 40 caracteres. Nada de comportamento mudou.
+// Versão anterior (Beta v1.1.0):
 // NOVIDADES (Beta v1.1.0) — sessão 20261012-0300-ux-onda5 (Nicola 12/10 02:50: "padronize os seletores de ano para o
 //   padrão das setinhas") — o ano do "Mês a mês" vira ‹ ano › (classe .rz-ano do index), nos mesmos 3 anos de antes.
 // Versão anterior (Beta v1.0.0):
@@ -24,7 +27,7 @@
 // Depende de globais do index.html: dbAuth, CLIENTE_ID_SUPABASE, abrirSheet, rzSheetCabecalho,
 // rzEsc, rzIcones, formatarMoedaBR.
 
-export const VERSAO = '1.1.0';
+export const VERSAO = '1.2.0';
 
 const NOME = { ipca: 'IPCA', igpm: 'IGP-M', inccdi: 'INCC-DI', selic: 'Selic', cdi: 'CDI', ivgr: 'IVG-R' };
 const ORDEM = ['ipca', 'igpm', 'inccdi', 'selic', 'cdi', 'ivgr'];
@@ -141,7 +144,7 @@ async function telaMes() {
 async function telaCarteira() {
     const d = cache.cart || (cache.cart = await rpc('fn_carteira_indices_resumo', { p_cliente_id: CLIENTE_ID_SUPABASE }));
     if (!d.contratos) {
-        return `<div class="rz-card"><div class="rz-empty" style="padding:14px 8px"><p>Nenhum contrato ativo com valor para comparar.</p></div></div>`;
+        return `<div class="rz-card"><div class="rz-empty" style="padding:14px 8px"><p>Nenhum contrato para comparar.</p></div></div>`;
     }
     const j = estado.janelaCart, k = 'a' + j;
     const pond = d.ponderado?.[k];
@@ -176,7 +179,7 @@ async function telaSimulador() {
         <div class="rz-chips">${[12, 24, 36].map(x => `<button type="button" class="rz-chip ${estado.janelaSim === x ? 'rz-on' : ''}" data-js="${x}">${x} meses</button>`).join('')}</div>`;
     if (!d.ok) return seletores + `<div class="rz-card"><p class="rz-desc">${esc(d.mensagem || 'Sem histórico suficiente para esta janela.')}</p></div>`;
     const t = d.totais || {};
-    if (!t.contratos) return seletores + `<div class="rz-card"><p class="rz-desc">Nenhum contrato ativo com valor para simular.</p></div>`;
+    if (!t.contratos) return seletores + `<div class="rz-card"><p class="rz-desc">Nenhum contrato para simular.</p></div>`;
     const dif = Number(t.diferenca_mensal) || 0;
     const linhas = (d.contratos || []).map((c, i) => `<div class="rz-row" style="${i ? '' : 'border-top:0'}">
         <div class="rz-tx"><b style="display:block;font-weight:600;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(c.nome)}</b>

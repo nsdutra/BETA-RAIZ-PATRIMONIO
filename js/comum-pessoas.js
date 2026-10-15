@@ -1,6 +1,11 @@
 // ============================================================================
 // comum-pessoas.js — Raiz Patrimônio · Administração compartilhada
-// Versão: 1.212.0 · 14/10/2026
+// Versão: 1.213.0 · 14/10/2026
+//
+// v1.213.0 (14/10/2026, sessão 20261014-2145-onda9c-textos, demanda a05ad2ee; onda 9c do estudo PROTOTIPO_UX_DENSIDADE_RAMOS_RAIZ
+// v1.2.0, D6 seção 10) — textos no limite: ação até 24 caracteres, descrição até 28, aviso até 40 com o resultado e tela
+// vazia em 1 frase de até 40. A explicação longa fica na confirmação, quando existe. Nada de comportamento mudou.
+// Versão anterior: 1.212.0 · 14/10/2026
 //
 // v1.212.0 (14/10/2026, sessão 20261014-0010-ativo-pessoa, demanda d6a6f577; de acordo do Nicola 14/10 00:08) — ações da
 // pessoa ganham "Ativo da pessoa": abre o ativo vida ligado a ela; sem ativo, oferece ligar a um ativo vida que ainda
@@ -22,20 +27,11 @@
 // acordo"; FICHA_RAMO_PADRAO_PESSOA_RAIZ v1.0.0) — "Abrir o app em" no grupo Acesso da pessoa: escolhe o ramo em que
 // ela entra no app (Todo o patrimônio ou um ramo contratado). Aparece para quem tem login, quando a empresa tem 2+ ramos,
 // para a própria pessoa ou admin/master. Grava por fn_pessoa_ramo_padrao_definir (coluna pessoas.ramo_padrao).
-//
-// Versão anterior: 1.208.0 · 10/10/2026
-//
-// v1.208.0 (ajuste da etapa 6 · E, demanda b4b047fd; teste do Nicola 10/10 23:50) —
-//   · os números dos chips acompanham o texto digitado na barra ("Filtro só não atualizou os chips");
-//   · o toque na pessoa volta a abrir a LISTA de ações (como era o ⋮), agora em grupos Dados · Acesso · Comunicação ·
-//     Atividade ("prefiro como estava: ao clicar abrir uma lista com as opções"); a ficha com chips sai e "Ver dados"
-//     abre a ficha de leitura de antes; a pressão longa sai ("eliminar o segurar pra abrir o menu"). A linha volta a
-//     ter o ⋮ à direita (o toque abre ações), junto do status Acessa / Sem acesso.
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.207.0 … v1.207.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.208.0 … v1.208.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '1.212.0'; // v-check (18/09/2026): lido por Dev › Versões — manter igual ao header
+export const VERSAO = '1.213.0'; // v-check (18/09/2026): lido por Dev › Versões — manter igual ao header
 import { perguntar, avisarComDesfazer } from './cofre-ui.js'; // v1.203.0 (F0.2b) — sem diálogo nativo
 import { buscarContas, contasListaHtml, abrirFichaConta, abrirAcoesConta } from './comum-minha-empresa.js'; // v1.204.0 — contas da pessoa (P4a)
 import { rzMostrarBloqueio as rzBloqueio } from './comum-licenca.js'; // v1.204.0
@@ -273,7 +269,7 @@ export async function montarAbaPessoas(mountEl, ctx) {
         ]);
     } catch (err) {
         console.warn('[comum-pessoas] Falha ao carregar pessoas:', err.message);
-        document.getElementById('cp-lista').innerHTML = '<div class="rz-empty"><p>Não foi possível carregar as pessoas agora.</p></div>';
+        document.getElementById('cp-lista').innerHTML = '<div class="rz-empty"><p>Pessoas indisponíveis agora.</p></div>';
         return;
     }
 
@@ -390,8 +386,8 @@ export async function montarAbaPessoas(mountEl, ctx) {
         const protegidoExclusao = p.perfil === 'admin' || p.perfil === 'master';
         const temLogin = !!p.userId;
         const dados = [], acesso = [], comunicacao = [], atividade = [];
-        if (!perfilTravado) dados.push({ icone: 'pencil', titulo: 'Editar dados', sub: 'Nome, e-mail, WhatsApp, função e % de cotas', codigo: 'pessoas.editar', aoTocar: () => abrirFormPessoaSheet(p.id) });
-        else dados.push({ icone: 'lock', titulo: 'Dados protegidos do master', sub: 'Só o próprio master edita', aoTocar: null });
+        if (!perfilTravado) dados.push({ icone: 'pencil', titulo: 'Editar dados', sub: 'Contato, função e cotas', codigo: 'pessoas.editar', aoTocar: () => abrirFormPessoaSheet(p.id) });
+        else dados.push({ icone: 'lock', titulo: 'Dados do master', sub: 'Só o próprio master edita', aoTocar: null });
         if (protegidoExclusao) dados.push({ icone: 'lock', titulo: ehMaster ? 'Master não pode ser removido por aqui' : 'Admin não pode ser removido por aqui', sub: 'Fale com a Raiz', aoTocar: null });
         else dados.push({ icone: 'trash-2', titulo: 'Excluir pessoa', codigo: 'pessoas.excluir', tipo: 'bad', aoTocar: () => excluirPessoa(p.id) });
         if (!ehMaster) acesso.push({ icone: 'shield', titulo: 'Perfil de acesso', sub: rotuloPerfil(p.perfil), codigo: 'pessoas.editar', aoTocar: () => alterarPerfilPessoa(p.id) });
@@ -400,20 +396,20 @@ export async function montarAbaPessoas(mountEl, ctx) {
         if (temLogin && (p.id === pessoaId || ['admin', 'master', 'master_plataforma'].includes(perfilLogado)) && ramosDaEmpresa().length > 1) {
             acesso.push({ icone: 'layers', titulo: 'Abrir o app em', sub: p.ramoPadrao ? (window.rzNomeRamo?.(p.ramoPadrao) || p.ramoPadrao) : 'Todo o patrimônio', codigo: 'pessoas.editar', aoTocar: () => escolherRamoPadrao(p) });
         }
-        dados.push({ icone: 'heart-pulse', titulo: 'Ativo da pessoa', sub: 'Abre a ficha dela em Ativos — liga a um ativo existente ou cria', codigo: 'cofre.ativos.criar', aoTocar: () => abrirAtivoDaPessoa(p) }); // v1.212.0 (d6a6f577)
+        dados.push({ icone: 'heart-pulse', titulo: 'Ativo da pessoa', sub: 'Ligar ou criar o ativo', codigo: 'cofre.ativos.criar', aoTocar: () => abrirAtivoDaPessoa(p) }); // v1.212.0 (d6a6f577)
         acesso.push({ icone: 'wallet', titulo: 'Contas que vê', sub: ehMaster ? 'Vê todas as contas' : (ESCOPO_CONTAS_ROTULO[p.escopoContas] || 'Contas dela e quais contas ela vê'), codigo: 'financeiro.contas.ver', aoTocar: () => abrirContasPessoaSheet(p.id) });
         if (!perfilTravado) {
             if (temLogin) {
-                if (p.whatsapp) acesso.push({ icone: 'message-circle', titulo: 'Convidar pelo WhatsApp', sub: 'Mensagem com o endereço do app', aoTocar: () => convidarPessoaWhatsapp(p) });
-                if (protegidoExclusao) acesso.push({ icone: 'lock', titulo: 'Acesso protegido', sub: 'Admin e master não perdem o acesso por aqui', aoTocar: null });
-                else acesso.push({ icone: 'user-x', titulo: 'Remover acesso ao sistema', sub: 'A pessoa continua cadastrada', codigo: 'pessoas.editar', tipo: 'bad', aoTocar: () => desvincularAcessoPessoa(p.id) });
+                if (p.whatsapp) acesso.push({ icone: 'message-circle', titulo: 'Convidar pelo WhatsApp', sub: 'Com o endereço do app', aoTocar: () => convidarPessoaWhatsapp(p) });
+                if (protegidoExclusao) acesso.push({ icone: 'lock', titulo: 'Acesso protegido', sub: 'Admin e master', aoTocar: null });
+                else acesso.push({ icone: 'user-x', titulo: 'Remover acesso', sub: 'A pessoa continua cadastrada', codigo: 'pessoas.editar', tipo: 'bad', aoTocar: () => desvincularAcessoPessoa(p.id) });
             } else {
-                acesso.push({ icone: 'user-check', titulo: 'Criar acesso', sub: 'Envia e-mail para definir senha', codigo: 'pessoas.editar', aoTocar: () => criarAcessoPessoa(p.id) });
-                acesso.push({ icone: 'link', titulo: 'Vincular login existente', sub: 'Pelo e-mail de quem já entra no Raiz', codigo: 'pessoas.editar', aoTocar: () => vincularLoginPessoa(p.id) });
+                acesso.push({ icone: 'user-check', titulo: 'Criar acesso', sub: 'E-mail para criar a senha', codigo: 'pessoas.editar', aoTocar: () => criarAcessoPessoa(p.id) });
+                acesso.push({ icone: 'link', titulo: 'Vincular login existente', sub: 'Pelo e-mail de quem já entra', codigo: 'pessoas.editar', aoTocar: () => vincularLoginPessoa(p.id) });
             }
         }
         if (proativasDisponiveis.length > 0) {
-            comunicacao.push({ icone: 'bell', titulo: 'Avisos automáticos por WhatsApp', sub: p.whatsapp ? 'Quais avisos e com que frequência' : 'Sem WhatsApp cadastrado — os avisos não chegam', aoTocar: () => {
+            comunicacao.push({ icone: 'bell', titulo: 'Avisos no WhatsApp', sub: p.whatsapp ? 'Quais avisos e com que frequência' : 'Sem WhatsApp cadastrado — os avisos não chegam', aoTocar: () => {
                 if (p.id === pessoaId && typeof window.abrirPreferenciasComunicacao === 'function') { window.abrirPreferenciasComunicacao(); return; }
                 abrirComunicacoesPessoaSheet(p.id);
             } });
@@ -481,7 +477,7 @@ export async function montarAbaPessoas(mountEl, ctx) {
             const g = acoesFichaPessoa(p);
             const semAcao = (lista) => lista.map(a => (typeof a.aoTocar === 'function' ? a : { ...a, aoTocar: () => {} }));
             const grupos = [
-                { titulo: 'Dados', acoes: semAcao([{ icone: 'id-card', titulo: 'Ver dados', sub: 'E-mail, WhatsApp, função, % de cotas', aoTocar: () => abrirFichaPessoa(p.id) }, ...g.dados]) },
+                { titulo: 'Dados', acoes: semAcao([{ icone: 'id-card', titulo: 'Ver dados', sub: 'Contato, função e cotas', aoTocar: () => abrirFichaPessoa(p.id) }, ...g.dados]) },
                 { titulo: 'Acesso', acoes: semAcao(g.acesso) },
                 { titulo: 'Comunicação', acoes: semAcao(g.comunicacao) },
                 { titulo: 'Atividade', acoes: semAcao(g.atividade) },
@@ -504,7 +500,7 @@ export async function montarAbaPessoas(mountEl, ctx) {
         if (!perfilTravado) {
             acoes.push({ icone: 'pencil', titulo: 'Editar dados', codigo: 'pessoas.editar', aoTocar: () => abrirFormPessoaSheet(p.id) });
         } else {
-            acoes.push({ icone: 'lock', titulo: 'Dados protegidos do master', sub: 'Só o próprio master edita', aoTocar: () => {} });
+            acoes.push({ icone: 'lock', titulo: 'Dados do master', sub: 'Só o próprio master edita', aoTocar: () => {} });
         }
         if (!ehMaster) {
             acoes.push({ icone: 'shield', titulo: 'Perfil de acesso', sub: p.perfil ? capitalizar(p.perfil) : 'Sem perfil', codigo: 'pessoas.editar', aoTocar: () => alterarPerfilPessoa(p.id) });
@@ -515,12 +511,12 @@ export async function montarAbaPessoas(mountEl, ctx) {
             // comunicações da Raiz numa peça só; pra outra pessoa (fluxo
             // admin), a Raiz não se aplica (é conta de terceiro) — fica só
             // o Sheet local de alertas.
-            acoes.push({ icone: 'bell', titulo: 'Comunicações', sub: 'Avisos automáticos por WhatsApp', aoTocar: () => {
+            acoes.push({ icone: 'bell', titulo: 'Comunicações', sub: 'Avisos no WhatsApp', aoTocar: () => {
                 if (id === pessoaId && typeof window.abrirPreferenciasComunicacao === 'function') { window.abrirPreferenciasComunicacao(); return; }
                 abrirComunicacoesPessoaSheet(p.id);
             } });
         }
-        acoes.push({ icone: 'wallet', titulo: 'Contas', sub: 'Contas dela e quais contas ela vê', codigo: 'financeiro.contas.ver', aoTocar: () => abrirContasPessoaSheet(p.id) }); // v1.204.0
+        acoes.push({ icone: 'wallet', titulo: 'Contas', sub: 'As dela e as que vê', codigo: 'financeiro.contas.ver', aoTocar: () => abrirContasPessoaSheet(p.id) }); // v1.204.0
         if (autoFiltro && typeof carregarAcessosDaPessoa === 'function') {
             acoes.push({ icone: 'history', titulo: 'Acessos recentes', aoTocar: () => abrirAcessosPessoaSheet(p.id) });
         }
@@ -529,13 +525,13 @@ export async function montarAbaPessoas(mountEl, ctx) {
                 // v2.1.0 — pedido explícito: remover acesso também trava pra
                 // admin, não só master (mesma proteção de "Excluir pessoa").
                 if (protegidoExclusao) {
-                    acoes.push({ icone: 'lock', titulo: 'Acesso protegido', sub: 'Admin e master não perdem o acesso por aqui', aoTocar: () => {} });
+                    acoes.push({ icone: 'lock', titulo: 'Acesso protegido', sub: 'Admin e master', aoTocar: () => {} });
                 } else {
-                    acoes.push({ icone: 'user-x', titulo: 'Remover acesso ao sistema', sub: 'A pessoa continua cadastrada', codigo: 'pessoas.editar', tipo: 'bad', aoTocar: () => desvincularAcessoPessoa(p.id) });
+                    acoes.push({ icone: 'user-x', titulo: 'Remover acesso', sub: 'A pessoa continua cadastrada', codigo: 'pessoas.editar', tipo: 'bad', aoTocar: () => desvincularAcessoPessoa(p.id) });
                 }
             } else {
-                acoes.push({ icone: 'user-check', titulo: 'Criar acesso', sub: 'Envia e-mail para definir senha', codigo: 'pessoas.editar', aoTocar: () => criarAcessoPessoa(p.id) });
-                acoes.push({ icone: 'link', titulo: 'Vincular login existente', sub: 'Pelo e-mail de quem já entra no Raiz', codigo: 'pessoas.editar', aoTocar: () => vincularLoginPessoa(p.id) });
+                acoes.push({ icone: 'user-check', titulo: 'Criar acesso', sub: 'E-mail para criar a senha', codigo: 'pessoas.editar', aoTocar: () => criarAcessoPessoa(p.id) });
+                acoes.push({ icone: 'link', titulo: 'Vincular login existente', sub: 'Pelo e-mail de quem já entra', codigo: 'pessoas.editar', aoTocar: () => vincularLoginPessoa(p.id) });
             }
         }
         if (protegidoExclusao) {
@@ -557,8 +553,8 @@ export async function montarAbaPessoas(mountEl, ctx) {
         if (e1) { onToast?.(e1.message, 'danger'); return; }
         if (ja?.id) { abrir(ja.id); return; }
         const { data: soltos } = await dbAuth.from('cofre_ativos').select('id, nome_exibicao').eq('cliente_id', clienteId).eq('tipo_ativo', 'vida').eq('status', 'ativo').is('entidade_origem_tipo', null).order('nome_exibicao');
-        const opcoes = (soltos || []).map(a => ({ valor: a.id, titulo: `Ligar a ${a.nome_exibicao}`, sub: 'Ativo que já existe, sem pessoa', icone: 'link' }))
-            .concat([{ valor: '__criar', titulo: `Criar o ativo de ${p.nome}`, sub: 'Novo ativo do tipo pessoa, já ligado', icone: 'plus' }]);
+        const opcoes = (soltos || []).map(a => ({ valor: a.id, titulo: `Ligar a ${a.nome_exibicao}`, sub: 'Ativo já existente', icone: 'link' }))
+            .concat([{ valor: '__criar', titulo: `Criar o ativo de ${p.nome}`, sub: 'Novo, já ligado', icone: 'plus' }]);
         const v = typeof window.rzEscolher === 'function' ? await window.rzEscolher({ titulo: `${p.nome} ainda não tem ativo`, opcoes }) : '__criar';
         if (!v) return;
         const r = v === '__criar'
@@ -732,7 +728,7 @@ export async function montarAbaPessoas(mountEl, ctx) {
             corpo: (elCorpo) => {
                 elCorpo.innerHTML = `
                     <p class="rz-desc">Pelo WhatsApp, pela manhã. Semanais saem às segundas; mensais, no dia 5.</p>
-                    ${semWhatsapp ? '<p class="rz-desc" style="color:var(--warning);margin-top:6px">Sem WhatsApp cadastrado — os avisos não chegam até preencher o número.</p>' : ''}
+                    ${semWhatsapp ? '<p class="rz-desc" style="color:var(--warning);margin-top:6px">Sem WhatsApp: os avisos não chegam.</p>' : ''}
                     <div>${proativasDisponiveis.length ? proativasDisponiveis.map(linhaHtml).join('') : '<p class="rz-desc" style="margin-top:8px">Nenhum aviso disponível no plano atual.</p>'}</div>
                 `;
                 elCorpo.querySelectorAll('.pc-toggle').forEach(btn => {
@@ -841,7 +837,7 @@ export async function montarAbaPessoas(mountEl, ctx) {
         if (!perfil) return;
         if (typeof window.abrirSheetForm !== 'function') { onToast?.(AVISO_SO_APP, 'info'); return; }
         window.abrirSheetForm({
-            titulo: 'Vincular login existente', sub: 'Pessoa que já entra no Raiz com um e-mail', rotuloSalvar: 'Vincular',
+            titulo: 'Vincular login existente', sub: 'De quem já entra no Raiz', rotuloSalvar: 'Vincular',
             // v1.202.0 (F0.3) — e-mail em vez do UUID do Supabase; a função do banco
             // confere quem pede (admin/master da empresa), acha o login e grava o log.
             corpo: `<div class="rz-f"><label for="vi-email">E-mail do login</label>

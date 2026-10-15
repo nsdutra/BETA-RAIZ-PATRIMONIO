@@ -1,7 +1,12 @@
 // ============================================================================
 // partes.js — Raiz Patrimônio · Partes (pessoas do negócio): lista, busca,
 //             ficha, papéis, vínculos, empreendimentos e acesso de sócio
-// Versão: 1.0.2 · 10/10/2026
+// Versão: 1.1.0 · 14/10/2026
+//
+// v1.1.0 (14/10/2026, sessão 20261014-2145-onda9c-textos, demanda a05ad2ee; onda 9c do estudo PROTOTIPO_UX_DENSIDADE_RAMOS_RAIZ
+// v1.2.0, D6 seção 10) — textos no limite: ação até 24 caracteres, descrição até 28, aviso até 40 com o resultado e tela
+// vazia em 1 frase de até 40. A explicação longa fica na confirmação, quando existe. Nada de comportamento mudou.
+// Versão anterior: 1.0.2 · 10/10/2026
 //
 // v1.0.2 (10/10/2026, sessão 20261003-1707-ux-base, demanda 28aa5ce1) — HOTFIX dos imports dinâmicos (mesma causa do
 // conta.js 1.0.1): import("./js/comum-endereco.js") e import("./js/comum-partes.js") viravam js/js/… dentro do módulo.
@@ -45,7 +50,7 @@
 // mesmo rzPonteModulo dos outros módulos R8.
 // ============================================================================
 
-export const VERSAO = '1.0.2';  // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.1.0';  // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 
 // FORMULÁRIO — abrirSheetForm; campos base sempre, campos de
 // prestador aparecem quando o papel escolhido pede (pedido: "a
@@ -304,7 +309,7 @@ export async function carregarVinculosFichaParte(sheet, pt) {
             encerrados.length ? `${encerrados.length} encerrado${encerrados.length === 1 ? '' : 's'}` : ''
         ].filter(Boolean).join(' · ');
         if (!vincs.length) {
-            listaEl.innerHTML = '<div class="rz-empty"><p>Nenhum vínculo. "Adicionar papel" liga esta parte a um contrato, ativo ou empreendimento.</p></div>';
+            listaEl.innerHTML = '<div class="rz-empty"><p>Nenhum vínculo ainda.</p></div>';
             return;
         }
         const linha = (v) => {
@@ -354,10 +359,10 @@ export async function adicionarSocioInput() {
 
     // v1.297.0 (F0.2a) — prompt() numerado virou escolha em lista + Sheet de nome livre.
     const escolha = await rzEscolherUm({
-        titulo: 'Adicionar proprietário', sub: 'Sócio com cotas ou terceiro de fora',
+        titulo: 'Adicionar proprietário', sub: 'Sócio ou terceiro',
         opcoes: [
             ...pessoasDisponiveis.map((p, i) => ({ valor: String(i), titulo: p.nome, sub: p.percentualCotasEmpresa ? p.percentualCotasEmpresa + '% de cotas' : '', icone: 'user' })),
-            { valor: 'externo', titulo: 'Outro proprietário', sub: 'Terceiro, não cadastrado em Pessoas', icone: 'user-plus' },
+            { valor: 'externo', titulo: 'Outro proprietário', sub: 'Fora de Pessoas', icone: 'user-plus' },
         ],
     });
     if (escolha === null) return;
@@ -514,10 +519,10 @@ export function abrirAcoesVinculoParte(parteId, papelId) {
     if (naOrigem) {
         if (vinculoParteNavegavel(v)) acoes.push({ icone: 'pencil', titulo: v.papel === 'locatario' ? 'Alterar no contrato' : 'Alterar no ativo', sub: v.papel === 'locatario' ? 'O locatário vem do próprio contrato' : 'A propriedade tem rateio em %, no chip Propriedade', aoTocar: () => abrirDestinoVinculoParte(papelId) });
     } else {
-        if (v.ativo !== false) acoes.push({ icone: 'archive', titulo: 'Encerrar vínculo', codigo: 'partes.editar', sub: 'Troca real (ex.: síndico substituído). Fica no histórico', aoTocar: () => encerrarVinculoParte(parteId, papelId) });
+        if (v.ativo !== false) acoes.push({ icone: 'archive', titulo: 'Encerrar vínculo', codigo: 'partes.editar', sub: 'Fica no histórico', aoTocar: () => encerrarVinculoParte(parteId, papelId) });
         // v1.316.0 — encerrado pode voltar (fn_vinculo_reativar; fiador volta ao contrato com os dados de antes)
-        else acoes.push({ icone: 'rotate-ccw', titulo: 'Reativar vínculo', codigo: 'partes.editar', sub: 'Volta a valer, como antes do encerramento', aoTocar: () => reativarVinculoParte(parteId, papelId) });
-        acoes.push({ icone: 'trash-2', tipo: 'bad', titulo: 'Excluir vínculo', codigo: 'partes.editar', sub: 'Cadastro errado. Sai também do histórico', aoTocar: () => excluirVinculoParte(parteId, papelId) });
+        else acoes.push({ icone: 'rotate-ccw', titulo: 'Reativar vínculo', codigo: 'partes.editar', sub: 'Volta a valer', aoTocar: () => reativarVinculoParte(parteId, papelId) });
+        acoes.push({ icone: 'trash-2', tipo: 'bad', titulo: 'Excluir vínculo', codigo: 'partes.editar', sub: 'Sai também do histórico', aoTocar: () => excluirVinculoParte(parteId, papelId) });
     }
     abrirSheetAcoes({ titulo: `${papel} · ${v.rotulo || tipo}`, sub: v.ativo === false ? 'Vínculo encerrado' : 'Vínculo ativo', acoes });
 }
@@ -561,16 +566,16 @@ export async function abrirEmpreendimentosDaParte(parteId) {
     const pt = partesCliente.find(x => x.id === parteId); if (!pt || typeof abrirSheetForm !== 'function') return;
     const { data: papelPrest } = await dbAuth.from('partes_papeis').select('entidade_id').eq('parte_id', parteId).eq('papel', 'prestador').eq('ativo', true).limit(1);
     const prestadorId = papelPrest && papelPrest.length ? papelPrest[0].entidade_id : null;
-    if (!prestadorId) { mostrarToast('Salve a parte como prestador primeiro (Editar dados).', 'danger'); return; }
+    if (!prestadorId) { mostrarToast('Salve como prestador antes.', 'danger'); return; }
     const [{ data: emps, error: e1 }, { data: vincs, error: e2 }] = await Promise.all([
         dbAuth.from('empreendimentos').select('id, nome').eq('cliente_id', CLIENTE_ID_SUPABASE).order('nome'),
         dbAuth.from('prestador_vinculo').select('id, empreendimento_id').eq('prestador_id', prestadorId).is('data_fim_vigencia', null)
     ]);
-    if (e1 || e2) { mostrarToast('Não consegui carregar os empreendimentos.', 'danger'); return; }
-    if (!emps || !emps.length) { mostrarToast('Nenhum empreendimento cadastrado ainda (menu › Tipos e modelos).', 'danger'); return; }
+    if (e1 || e2) { mostrarToast('Empreendimentos indisponíveis.', 'danger'); return; }
+    if (!emps || !emps.length) { mostrarToast('Cadastre um empreendimento antes.', 'danger'); return; }
     const vigentes = new Set((vincs || []).map(v => v.empreendimento_id));
     abrirSheetForm({
-        titulo: 'Empreendimentos atendidos', sub: pt.nome, rotuloSalvar: 'Salvar',
+        titulo: 'Empreendimentos', sub: pt.nome, rotuloSalvar: 'Salvar',
         corpo: emps.map(e => `
             <label class="rz-row" style="cursor:pointer">
                 <input type="checkbox" class="pe-check" value="${e.id}" ${vigentes.has(e.id) ? 'checked' : ''} style="width:18px;height:18px;accent-color:var(--pine)">
@@ -641,8 +646,8 @@ export async function sincronizarPrestadorDaParte(parteId, linha, tipoPrestador)
 export function abrirAcoesParte(parteId) {
     const pt = partesCliente.find(x => x.id === parteId); if (!pt || typeof abrirSheetAcoes !== 'function') return;
     const acoes = [
-        { icone: 'link', titulo: 'Vínculos', codigo: 'partes.ver', sub: 'Onde esta parte atua, ativos e encerrados', aoTocar: () => abrirFichaParte(pt.id, 'vinculos') },
-        { icone: 'plus', titulo: 'Adicionar papel', codigo: 'partes.editar', sub: 'Ligar a um contrato, ativo ou empreendimento', aoTocar: () => abrirAdicionarPapelParte(pt.id) },
+        { icone: 'link', titulo: 'Vínculos', codigo: 'partes.ver', sub: 'Onde a parte atua', aoTocar: () => abrirFichaParte(pt.id, 'vinculos') },
+        { icone: 'plus', titulo: 'Adicionar papel', codigo: 'partes.editar', sub: 'Contrato, ativo ou local', aoTocar: () => abrirAdicionarPapelParte(pt.id) },
     ];
     // v1.118.0 — a ficha MOSTRAVA os empreendimentos do síndico/
     // manutencista (RPC) mas não EDITAVA (limitação registrada na
@@ -651,7 +656,7 @@ export function abrirAcoesParte(parteId) {
     // antiga (data_fim_vigencia; síndico exclusivo por
     // empreendimento).
     if (pt.tipo_prestador === 'sindico' || pt.tipo_prestador === 'manutencista') {
-        acoes.push({ icone: 'landmark', titulo: 'Empreendimentos atendidos', codigo: 'partes.editar', sub: 'Onde este prestador atua', aoTocar: () => abrirEmpreendimentosDaParte(pt.id) });
+        acoes.push({ icone: 'landmark', titulo: 'Empreendimentos', codigo: 'partes.editar', sub: 'Onde este prestador atua', aoTocar: () => abrirEmpreendimentosDaParte(pt.id) });
     }
     acoes.push({ icone: 'trash-2', titulo: 'Excluir parte', codigo: 'partes.excluir', tipo: 'bad', aoTocar: () => excluirParte(pt.id) });
     abrirSheetAcoes({ titulo: pt.nome, sub: pt.documento ? `${pt.doc_tipo || ''} ${pt.documento}` : '', acoes });
@@ -669,7 +674,7 @@ export function abrirAdicionarPapelParte(parteId) {
         { icone: 'key-round', titulo: 'Proprietário', codigo: 'partes.editar', sub: 'De um ativo', aoTocar: ir('proprietario', 'ativo') },
         { icone: 'user-search', titulo: 'Interessado', codigo: 'partes.editar', sub: 'Sem vínculo com entidade', aoTocar: () => gravarPapelParte(parteId, 'interessado', null, null) },
         { icone: 'handshake', titulo: 'Corretor', codigo: 'partes.editar', sub: 'Sem vínculo com entidade', aoTocar: () => gravarPapelParte(parteId, 'corretor', null, null) },
-        { icone: 'wrench', titulo: 'Prestador', codigo: 'partes.editar', sub: 'Síndico, administradora ou manutencista', aoTocar: () => abrirFormParteSheet(parteId) },
+        { icone: 'wrench', titulo: 'Prestador', codigo: 'partes.editar', sub: 'Síndico, administradora…', aoTocar: () => abrirFormParteSheet(parteId) },
     ] });
 }
 
@@ -715,7 +720,7 @@ export async function carregarPartes() {
         await lerPartesDoBanco();
     } catch (err) {
         console.warn('[partes] Falha ao carregar:', err.message);
-        if (container) container.innerHTML = '<div class="rz-empty"><p>Não foi possível carregar agora. Toque pra tentar de novo.</p></div>';
+        if (container) container.innerHTML = '<div class="rz-empty"><p>Não carregou. Toque para tentar.</p></div>';
         if (container) container.onclick = () => { container.onclick = null; carregarPartes(); };
         return;
     }

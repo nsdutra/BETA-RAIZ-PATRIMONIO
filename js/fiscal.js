@@ -1,6 +1,11 @@
 // ============================================================================
 // js/fiscal.js — Raiz Patrimônio · Fiscal (check-up da Reforma Tributária)
-// Versão: 1.5.2 · 07/10/2026
+// Versão: 1.6.0 · 14/10/2026
+//
+// v1.6.0 (14/10/2026, sessão 20261014-2145-onda9c-textos, demanda a05ad2ee; onda 9c do estudo PROTOTIPO_UX_DENSIDADE_RAMOS_RAIZ
+// v1.2.0, D6 seção 10) — textos no limite: ação até 24 caracteres, descrição até 28, aviso até 40 com o resultado e tela
+// vazia em 1 frase de até 40. A explicação longa fica na confirmação, quando existe. Nada de comportamento mudou.
+// Versão anterior: 1.5.2 · 07/10/2026
 //
 // v1.5.1 (07/10/2026, sessão 20261007-1721-rolo-changelog, demanda 2507d554 — VER-06, "de acordo" do Nicola 07/10 17:21) — SÓ
 // CABEÇALHO: as versões além das 5 mais recentes rolaram para o CHANGELOG_MODULOS.md.
@@ -46,18 +51,11 @@
 //     troca do ano viram o cartão "Ações", no mesmo formato de Emissão; os 4
 //     textos (regra, estimativa, o que fazer, quando validar) viram linhas de
 //     lista (antes, texto grande em negrito fora do padrão).
-//
-// v1.2.0 (frente fiscal, Fase 6 — demanda 976fcbf6): fiscalCompetenciaMontar
-// ganha o 2º parâmetro abrirMensalidadeId — com ele, a tela já abre as ações
-// daquele recebimento (⋮ "Nota fiscal" do Financeiro, financeiro.js v1.23.0,
-// via window.abrirFiscalCompetencia do index.html v1.255.0). O mês pode vir
-// do alerta de notas pendentes (Motor, destino financeiro/fiscal).
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.0.0 … v1.1.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.2.0 … v1.2.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-
-export const VERSAO = '1.5.2'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.6.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 
 const FIS_ROTULO_RESULTADO = {
     verde: { sem: 'ok', txt: 'Abaixo do limite' },
@@ -294,7 +292,7 @@ export function fiscalAbrirAcoes() {
     const atual = fisAno || fisAnoAtual();
     const outro = atual === fisAnoAtual() ? fisAnoAtual() + 1 : fisAnoAtual();
     abrirSheetAcoes({ titulo: 'Fiscal', sub: `Check-up ${atual}`, acoes: [
-        { icone: 'camera', titulo: 'Registrar check-up', sub: 'Guarda o resultado de hoje com as regras usadas', codigo: 'fiscal.checkup', aoTocar: fiscalRegistrar },
+        { icone: 'camera', titulo: 'Registrar check-up', sub: 'Guarda o resultado de hoje', codigo: 'fiscal.checkup', aoTocar: fiscalRegistrar },
         { icone: 'book-open', titulo: 'Ver regras usadas', sub: 'Versão e fonte de cada regra', aoTocar: fiscalAbrirRegras },
         { icone: 'calendar', titulo: `Analisar ${outro}`, sub: outro > fisAnoAtual() ? 'Projeção com a receita deste ano como ano anterior' : 'Voltar ao ano atual', aoTocar: () => { fisAno = outro; fiscalMontar(); } },
     ] });
@@ -427,7 +425,7 @@ export async function fiscalCompetenciaMontar(comp, abrirMensalidadeId) {
         if (abrirMensalidadeId) {
             const i = (fcDados.recebimentos || []).findIndex(r => r.mensalidade_id === abrirMensalidadeId);
             if (i >= 0) fiscalCompetenciaAbrirRecebimento(i);
-            else mostrarToast('Este recebimento não está na lista fiscal deste mês.', 'info');
+            else mostrarToast('Fora da lista fiscal do mês.', 'info');
         }
     } catch (e) {
         console.error('[fiscal] fn_fiscal_competencia', e?.code || '');
@@ -549,7 +547,7 @@ export function fiscalCompetenciaAnexarXml() { fcEscolherXml(); }
 export function fiscalCompetenciaEnviarContador() {
     if (fcBloqueado()) return;
     const prep = (fcDados?.documentos || []).filter(x => x.status === 'preparada' && !x.enviado_contador_em);
-    if (!prep.length) { mostrarToast('Nenhum rascunho a enviar. Para mandar o pacote do mês, use Financeiro › Contador.', 'info'); return; }
+    if (!prep.length) { mostrarToast('Nenhum rascunho a enviar.', 'info'); return; }
     abrirSheetForm({
         titulo: `Marcar ${prep.length} rascunho(s) como enviados`, sub: fcRotuloComp(fcComp), rotuloSalvar: 'Marcar como enviados',
         corpo: `<p class="rz-desc">Registra a data de envio ao contador. Para mandar os arquivos (PDF com os campos de cada nota, planilha e XML), use Financeiro › Contador — ele já marca sozinho.</p>`,
@@ -598,10 +596,10 @@ export function fiscalCompetenciaAbrirRecebimento(i) {
     const r = (window.RZ_FC_RECEBIMENTOS || [])[i]; if (!r) return;
     const st = FC_STATUS[r.status_fiscal] || FC_STATUS.a_preparar;
     const acoes = [];
-    const semNota = { icone: 'file-x-2', titulo: 'Este recebimento não gera nota', sub: 'Registre o motivo (ex.: caução, reembolso)', codigo: FC_COD, aoTocar: () => fcMarcarSemNota(r) };
+    const semNota = { icone: 'file-x-2', titulo: 'Não gera nota', sub: 'Caução, reembolso…', codigo: FC_COD, aoTocar: () => fcMarcarSemNota(r) };
     switch (r.status_fiscal) {
         case 'a_preparar':
-            acoes.push({ icone: 'file-plus-2', titulo: 'Preparar a nota', sub: 'Monta o rascunho com os dados do contrato', codigo: FC_COD, aoTocar: async () => { await fcPreparar([r.mensalidade_id]); } });
+            acoes.push({ icone: 'file-plus-2', titulo: 'Preparar a nota', sub: 'Rascunho com o contrato', codigo: FC_COD, aoTocar: async () => { await fcPreparar([r.mensalidade_id]); } });
             acoes.push(semNota);
             break;
         case 'falta_dado':
@@ -615,18 +613,18 @@ export function fiscalCompetenciaAbrirRecebimento(i) {
             acoes.push(semNota);
             break;
         case 'preparada': case 'com_contador':
-            acoes.push({ icone: 'clipboard-copy', titulo: 'Ver rascunho e copiar dados', sub: 'Campos na ordem do Emissor Nacional', aoTocar: () => fiscalCompetenciaAbrirDocumento(r.documento_id) });
+            acoes.push({ icone: 'clipboard-copy', titulo: 'Ver e copiar rascunho', sub: 'Na ordem do Emissor', aoTocar: () => fiscalCompetenciaAbrirDocumento(r.documento_id) });
             acoes.push({ icone: 'file-check-2', titulo: 'Registrar nota emitida', sub: 'Número e/ou chave de acesso', codigo: FC_COD, aoTocar: () => fcRegistrarEmitida(r.documento_id) });
-            acoes.push({ icone: 'file-code-2', titulo: 'Anexar XML da nota', sub: 'Registra sozinho e guarda no Cofre', codigo: FC_COD, aoTocar: () => fcEscolherXml() });
-            acoes.push({ icone: 'trash-2', tipo: 'bad', titulo: 'Descartar rascunho', sub: 'O recebimento volta para "a preparar"', codigo: FC_COD, aoTocar: () => fcDescartar(r.documento_id) });
+            acoes.push({ icone: 'file-code-2', titulo: 'Anexar XML da nota', sub: 'Registra e guarda no Cofre', codigo: FC_COD, aoTocar: () => fcEscolherXml() });
+            acoes.push({ icone: 'trash-2', tipo: 'bad', titulo: 'Descartar rascunho', sub: 'Volta para "a preparar"', codigo: FC_COD, aoTocar: () => fcDescartar(r.documento_id) });
             break;
         case 'emitida':
             acoes.push({ icone: 'file-text', titulo: 'Ver a nota', sub: r.numero ? `Nota nº ${r.numero}` : 'Dados e histórico', aoTocar: () => fiscalCompetenciaAbrirDocumento(r.documento_id) });
-            acoes.push({ icone: 'file-code-2', titulo: 'Anexar XML da nota', sub: 'Guarda no Cofre, ligado à nota', codigo: FC_COD, aoTocar: () => fcEscolherXml() });
-            acoes.push({ icone: 'ban', tipo: 'bad', titulo: 'Registrar cancelamento', sub: 'Depois de cancelar no Emissor Nacional', codigo: FC_COD, aoTocar: () => fcCancelar(r.documento_id) });
+            acoes.push({ icone: 'file-code-2', titulo: 'Anexar XML da nota', sub: 'Guarda no Cofre', codigo: FC_COD, aoTocar: () => fcEscolherXml() });
+            acoes.push({ icone: 'ban', tipo: 'bad', titulo: 'Registrar cancelamento', sub: 'Depois do Emissor', codigo: FC_COD, aoTocar: () => fcCancelar(r.documento_id) });
             break;
         case 'aguardando_recebimento':
-            acoes.push({ icone: 'hourglass', titulo: 'Aguardando pagamento', sub: 'A nota é preparada depois que o pagamento for registrado', aoTocar: () => {} });
+            acoes.push({ icone: 'hourglass', titulo: 'Aguardando pagamento', sub: 'Nota depois do pagamento', aoTocar: () => {} });
             acoes.push(semNota);
             break;
         case 'sem_nota':
@@ -640,7 +638,7 @@ export function fiscalCompetenciaAbrirRecebimento(i) {
     // a marca de "estimado".
     if (r.valor_estimado) {
         acoes.push({ icone: 'badge-check', titulo: 'Confirmar valor bruto', sub: `${fisMoeda(r.valor_bruto)} bruto · ${fisMoeda(r.valor_taxa_adm)} taxa · ${fisMoeda(r.valor_confirmado)} líquido`, codigo: 'mensal.baixar', aoTocar: () => fcConfirmarBruto(r) });
-        acoes.push({ icone: 'badge-check', titulo: 'Confirmar bruto pelo contrato', sub: 'Todos os recebimentos estimados deste contrato', codigo: 'mensal.baixar', aoTocar: () => fcConfirmarBrutoLote(r) });
+        acoes.push({ icone: 'badge-check', titulo: 'Confirmar bruto', sub: 'Todos deste contrato', codigo: 'mensal.baixar', aoTocar: () => fcConfirmarBrutoLote(r) });
     }
     abrirSheetAcoes({ titulo: r.imovel || 'Recebimento', sub: `${st.txt} · ${fisMoeda(r.valor_bruto)}${r.valor_estimado ? ' (estimado)' : ''}`, acoes });
 }
@@ -662,7 +660,7 @@ async function fcConfirmarBrutoLote(r) {
     });
     if (error) { fcErro(error, 'Não consegui confirmar em lote.'); return; }
     const pulados = Number(data?.pulados || 0);
-    mostrarToast(`${data?.confirmados || 0} recebimento(s) confirmado(s)${pulados ? ` · ${pulados} pulado(s) (competência fechada)` : ''}.`, 'success');
+    mostrarToast(`${data?.confirmados || 0} confirmados${pulados ? ` · ${pulados} em mês fechado` : ''}`, 'success');
     fiscalCompetenciaMontar();
 }
 
@@ -686,7 +684,7 @@ function fcMarcarSemNota(r) {
 async function fcDesfazerSemNota(r) {
     const { error } = await dbAuth.rpc('fn_fiscal_marcar_nao_aplicavel', { p_mensalidade_id: r.mensalidade_id, p_motivo: null, p_canal: 'app' });
     if (error) { fcErro(error, 'Não consegui desfazer.'); return; }
-    mostrarToast('Desfeito. O recebimento volta para a lista.', 'success');
+    mostrarToast('Desfeito', 'success');
     fiscalCompetenciaMontar();
 }
 
@@ -707,7 +705,7 @@ function fcRegistrarEmitida(documentoId) {
             const numero = (c.querySelector('#fc-num')?.value || '').trim() || null;
             const chave = (c.querySelector('#fc-chave')?.value || '').replace(/\D/g, '') || null;
             if (!numero && !chave) { mostrarToast('Informe o número ou a chave de acesso.', 'info'); return false; }
-            if (chave && chave.length !== 50) { mostrarToast('A chave de acesso tem 50 dígitos. Confira.', 'info'); return false; }
+            if (chave && chave.length !== 50) { mostrarToast('A chave tem 50 dígitos.', 'info'); return false; }
             const { error } = await dbAuth.rpc('fn_fiscal_documento_registrar_emitido', {
                 p_documento_id: documentoId, p_numero: numero, p_chave_acesso: chave,
                 p_emitida_em: c.querySelector('#fc-data')?.value || null, p_serie: null,
@@ -738,7 +736,7 @@ function fcDescartar(documentoId) {
 
 function fcCancelar(documentoId) {
     abrirSheetForm({
-        titulo: 'Registrar cancelamento', sub: 'Cancele primeiro no Emissor Nacional', rotuloSalvar: 'Registrar cancelamento',
+        titulo: 'Registrar cancelamento', sub: 'Cancele antes no Emissor', rotuloSalvar: 'Registrar cancelamento',
         corpo: `<div class="rz-f"><label for="fc-motivo">Motivo do cancelamento</label><textarea id="fc-motivo" rows="3" maxlength="300"></textarea>
             <span class="rz-hint">O Raiz só registra; o cancelamento vale quando feito no Emissor Nacional. O arquivo da nota continua guardado no Cofre.</span></div>`,
         aoSalvar: async (c) => {
@@ -746,7 +744,7 @@ function fcCancelar(documentoId) {
             if (!motivo) { mostrarToast('Informe o motivo do cancelamento.', 'info'); return false; }
             const { error } = await dbAuth.rpc('fn_fiscal_documento_cancelar', { p_documento_id: documentoId, p_motivo: motivo, p_canal: 'app' });
             if (error) { fcErro(error, 'Não consegui registrar o cancelamento.'); return false; }
-            mostrarToast('Cancelamento registrado. O recebimento pode ser preparado de novo.', 'success');
+            mostrarToast('Cancelamento registrado', 'success');
             fiscalCompetenciaMontar();
             return true;
         },
@@ -756,7 +754,7 @@ function fcCancelar(documentoId) {
 async function fcEnviarContador(ids) {
     const { data, error } = await dbAuth.rpc('fn_fiscal_documento_enviar_contador', { p_documento_ids: ids, p_canal: 'app' });
     if (error) { fcErro(error, 'Não consegui marcar.'); return; }
-    mostrarToast(`${data?.marcados ?? ids.length} rascunho(s) marcados como enviados ao contador.`, 'success');
+    mostrarToast(`${data?.marcados ?? ids.length} enviados ao contador`, 'success');
     fiscalCompetenciaMontar();
 }
 
@@ -829,7 +827,7 @@ function fcEscolherXml() {
 
 async function fcEnviarXml(file) {
     if (!/\.xml$/i.test(file.name || '')) { mostrarToast('Escolha o arquivo .xml da nota.', 'info'); return; }
-    if (file.size > 2 * 1024 * 1024) { mostrarToast('XML grande demais para uma NFS-e (limite 2 MB).', 'info'); return; }
+    if (file.size > 2 * 1024 * 1024) { mostrarToast('XML acima de 2 MB.', 'info'); return; }
     mostrarToast('Lendo a nota…', 'info');
     let api;
     try { api = await import('./cofre-api.js'); } catch (e) { fcErro(e, 'Não consegui carregar o Cofre.'); return; }
@@ -863,7 +861,7 @@ async function fcEnviarXml(file) {
         }
     } catch (e) {
         console.error('[fiscal] cofre-extrair-documento (xml)', e?.message || '');
-        mostrarToast('O arquivo foi para o Cofre, mas não consegui ler a nota agora.', 'danger');
+        mostrarToast('No Cofre; nota não lida agora.', 'danger');
     }
     fiscalCompetenciaMontar();
 }
@@ -913,10 +911,10 @@ export function fiscalCompletarPendencia(p, depois) {
                 const cep = (el.querySelector('#fcp-cep')?.value || '').replace(/\D/g, '');
                 if (ibge) { valor.valor = ibge; if (cep) valor.cep = cep; }
                 else {
-                    if (cep.length !== 8) { mostrarToast('Informe o CEP (8 dígitos) ou o código IBGE.', 'info'); return false; }
+                    if (cep.length !== 8) { mostrarToast('Informe o CEP ou o código IBGE.', 'info'); return false; }
                     let r = { ok: false };
                     try { const m = await import('./comum-endereco.js'); r = await m.consultarCep(cep); } catch (e) { r = { ok: false }; }
-                    if (!r.ok || !r.codigo_ibge_municipio) { mostrarToast('Não achei esse CEP. Confira ou informe o código IBGE.', 'info'); return false; }
+                    if (!r.ok || !r.codigo_ibge_municipio) { mostrarToast('CEP não achado. Use o código IBGE.', 'info'); return false; }
                     Object.assign(valor, { valor: r.codigo_ibge_municipio, cep, uf: r.uf, cidade: r.endereco_cidade });
                 }
             } else if (!valor.valor) { mostrarToast('Preencha o valor.', 'info'); return false; }

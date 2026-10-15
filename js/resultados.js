@@ -1,8 +1,11 @@
 // =====================================================================
 // RAIZ PATRIMÔNIO — js/resultados.js
-// VERSÃO: Beta v2.9.0 (10/10/2026 — demanda f3e6cd27)
+// VERSÃO: Beta v2.10.0 (14/10/2026 — demanda a05ad2ee)
 // LINHAS: (ver versoes.json)
 // -----------------------------------------------------------------
+// NOVIDADES (Beta v2.10.0) (14/10/2026, sessão 20261014-2145-onda9c-textos, demanda a05ad2ee; onda 9c do estudo, D6 seção 10) — textos no
+//   limite: ação até 24, descrição até 28, aviso e tela vazia até 40 caracteres. Nada de comportamento mudou.
+// Versão anterior (Beta v2.9.0):
 // NOVIDADES (Beta v2.9.0) — F23 (resultados por ramo; Nicola 10/10 10:45, "opção b"):
 //   — As funções de resultado recebem p_ramo. Num ramo que soma valor (Imóveis, Outros bens) o Hoje volta a ter
 //     o herói completo (patrimônio, resultado do ano, rentabilidade, ocupação, inadimplência) e os cards do ramo;
@@ -49,7 +52,7 @@
 // Versões anteriores (v2.4.0 … v2.4.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '2.9.0';
+export const VERSAO = '2.10.0';
 
 // ---------------------------------------------------------------------
 // Estado do filtro (module-scoped — sobrevive entre renders porque o
@@ -249,8 +252,8 @@ export function abrirResultadosExportar() {
         titulo: 'Exportar',
         acoes: [
             { icone: 'file-text', titulo: 'Resultados analítico', sub: 'PDF com os filtros aplicados', aoTocar: () => { if (typeof baixarRelatorioPdfLocal === 'function') baixarRelatorioPdfLocal(); } },
-            { icone: 'users', titulo: 'Distribuição aos sócios', sub: socios.length ? `PDF por sócio · ${socios.length} sócio${socios.length > 1 ? 's' : ''}` : 'PDF por sócio', aoTocar: () => abrirSheetAcoes({ titulo: 'Distribuição aos sócios', sub: 'Escolha o sócio', acoes: socios.length ? socios.map(sc => ({ icone: 'user', titulo: sc, aoTocar: () => { if (typeof exportarRelatorioSocioPDF === 'function') exportarRelatorioSocioPDF(sc); } })) : [{ icone: 'info', titulo: 'Nenhum sócio com distribuição registrada', aoTocar: () => {} }] }) },
-            { icone: 'folder-open', titulo: 'Ver todos os relatórios', sub: 'Catálogo completo e distribuição', aoTocar: () => switchTab('tab-relatorios-catalogo') },
+            { icone: 'users', titulo: 'Distribuição aos sócios', sub: socios.length ? `PDF por sócio · ${socios.length} sócio${socios.length > 1 ? 's' : ''}` : 'PDF por sócio', aoTocar: () => abrirSheetAcoes({ titulo: 'Distribuição aos sócios', sub: 'Escolha o sócio', acoes: socios.length ? socios.map(sc => ({ icone: 'user', titulo: sc, aoTocar: () => { if (typeof exportarRelatorioSocioPDF === 'function') exportarRelatorioSocioPDF(sc); } })) : [{ icone: 'info', titulo: 'Sem distribuição ainda', aoTocar: () => {} }] }) },
+            { icone: 'folder-open', titulo: 'Ver todos os relatórios', sub: 'Catálogo completo', aoTocar: () => switchTab('tab-relatorios-catalogo') },
         ]
     });
 }
@@ -277,7 +280,7 @@ async function renderizarConteudo() {
         alvo.innerHTML = [
             mensalF.error ? '' : montarGraficoMensal(mensalF.data || []),
             grupoF.error ? '' : montarPorGrupo(grupoF.data || []),
-        ].filter(Boolean).join('') || '<p class="rz-desc">Nenhuma despesa lançada para este ramo no ano.</p>';
+        ].filter(Boolean).join('') || '<p class="rz-desc">Nenhuma despesa deste ramo no ano.</p>';
         if (typeof rzIcones === 'function') rzIcones();
         return;
     }
@@ -406,7 +409,7 @@ export async function renderIndicadoresMercado(mountId) {
 function montarIndicadoresMercado(indicadores) {
     const cab = `<div class="rz-card-h"><h3>Indicadores de mercado</h3>${botaoInfoCard('abrirInfoIndicadores()')}</div>`;
     if (!indicadores || !indicadores.length) {
-        return `<div class="rz-card">${cab}<div class="rz-empty"><div class="rz-ic"><svg data-lucide="trending-up"></svg></div><p>Sem índice de mercado disponível no momento.</p></div></div>`;
+        return `<div class="rz-card">${cab}<div class="rz-empty"><div class="rz-ic"><svg data-lucide="trending-up"></svg></div><p>Índice de mercado indisponível.</p></div></div>`;
     }
     const blocos = indicadores.map(ind => {
         const mes = ind.valor_mes_pct == null ? null : Number(ind.valor_mes_pct);
@@ -528,7 +531,7 @@ function montarGraficoIndicador(series) {
     if (!base || base.length < 2) {
         return `<div class="rz-card" id="res-card-carteira-ind">
             ${cabecalhoGrafico('Sua carteira × indicadores', `Base 100 em jan · ${filtro.ano}`, 'abrirInfoGraficoIndicador()')}
-            ${chips}<p class="rz-desc rz-res-nota">Sem patrimônio ou resultado suficiente no período para montar a comparação.</p></div>`;
+            ${chips}<p class="rz-desc rz-res-nota">Dados insuficientes no período.</p></div>`;
     }
     const ate = Math.max(1, Math.min(mesesFechadosNoAno() || 12, base.length));
     const carteira = base.slice(0, ate).map(p => Number(p.carteira_indice));

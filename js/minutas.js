@@ -1,7 +1,12 @@
 // ============================================================================
 // minutas.js — Raiz Patrimônio · Minutas de contrato (modelos, placeholders,
 //               geração da minuta preenchida, minutização de um contrato real)
-// Versão: 1.4.0 · 08/10/2026
+// Versão: 1.5.0 · 14/10/2026
+//
+// v1.5.0 (14/10/2026, sessão 20261014-2145-onda9c-textos, demanda a05ad2ee; onda 9c do estudo PROTOTIPO_UX_DENSIDADE_RAMOS_RAIZ
+// v1.2.0, D6 seção 10) — textos no limite: ação até 24 caracteres, descrição até 28, aviso até 40 com o resultado e tela
+// vazia em 1 frase de até 40. A explicação longa fica na confirmação, quando existe. Nada de comportamento mudou.
+// Versão anterior: 1.4.0 · 08/10/2026
 //
 // v1.4.0 (UX F2.8, demanda 42ef8b51, sessão 20261003-1707-ux-base; "Sim. Faça 1 e 2 agora" do Nicola 08/10 20:09) —
 // "Minuta ainda indisponível" deixa de listar chaves técnicas (locador_cnpj, imovel_endereco…): o que falta vem
@@ -93,7 +98,7 @@
 
 import { emitirEscrita, aoEscrever } from './raiz-eventos.js'; // v1.1.0 — Fase 1 do wrapper de escrita
 
-export const VERSAO = '1.4.0'; // v-check: manter igual ao header
+export const VERSAO = '1.5.0'; // v-check: manter igual ao header
 
 /** Ponto de entrada do switchTab('tab-minutas'). */
 export function montarAbaMinutas() {
@@ -240,7 +245,7 @@ if (!window.__rzListenerEscritaMinutaLigado) {
                 esconderCarregamentoGlobal();
 
                 if (__minzEstado.sugestoes.length === 0) {
-                    mostrarToast('A Raiz IA não achou nenhum trecho que mude de contrato para contrato. Confira se o arquivo é o certo, ou cadastre o modelo .docx no "+".', 'aviso');
+                    mostrarToast('Nada variável achado. Confira o arquivo.', 'aviso');
                 }
 
                 renderRevisaoMinutizacao();
@@ -1394,7 +1399,7 @@ if (!window.__rzListenerEscritaMinutaLigado) {
 
                 esconderCarregamentoGlobal();
                 registrarLog('minutas.gerar', { contratoId: con.id, minutaId: minuta.id, origem: 'cofre' }); // v1.131
-                mostrarToast('Minuta gerada e guardada no Cofre deste contrato!', 'success');
+                mostrarToast('Minuta guardada no Cofre', 'success');
 
                 // CORRIGIDO (v1.58.0 — pedido explícito): o menu "Locação"
                 // só fecha aqui, no sucesso — os alerts de validação acima
@@ -1445,7 +1450,7 @@ if (!window.__rzListenerEscritaMinutaLigado) {
             if (typeof abrirSheetAcoes !== 'function') return;
             abrirSheetAcoes({
                 titulo: modo === 'gerar' ? 'Qual modelo usar?' : 'Qual modelo ver?',
-                sub: 'Mais de uma minuta vale para este imóvel',
+                sub: 'Mais de uma serve aqui',
                 acoes: aplicaveis.map(m => ({
                     icone: modo === 'gerar' ? 'file-signature' : 'eye',
                     titulo: m.nome || 'Minuta',

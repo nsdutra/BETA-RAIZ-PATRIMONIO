@@ -1,6 +1,11 @@
 // ============================================================================
 // cofre-controles.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.58.0 · 14/10/2026
+// Versão: 1.59.0 · 14/10/2026
+//
+// v1.59.0 (14/10/2026, sessão 20261014-2145-onda9c-textos, demanda a05ad2ee; onda 9c do estudo PROTOTIPO_UX_DENSIDADE_RAMOS_RAIZ
+// v1.2.0, D6 seção 10) — textos no limite: ação até 24 caracteres, descrição até 28, aviso até 40 com o resultado e tela
+// vazia em 1 frase de até 40. A explicação longa fica na confirmação, quando existe. Nada de comportamento mudou.
+// Versão anterior: 1.58.0 · 14/10/2026
 //
 // v1.58.0 (14/10/2026, sessão 20261014-1445-onda9a-textos, demanda a05ad2ee; onda 9 do estudo PROTOTIPO_UX_DENSIDADE_RAMOS_RAIZ v1.2.0,
 // D6 seção 10) — textos no limite: ação até 24 caracteres, descrição até 28 (só quando muda a decisão), aviso até 40 e
@@ -26,20 +31,11 @@
 // ativo vida (pessoa) e dos Controles da empresa, o tipo ganha "Conta ou cartão", que abre o cadastro da conta
 // (comum-minha-empresa.js) com o titular preso — a pessoa ligada ao ativo (entidade_origem_id) ou a Empresa. O banco cria
 // o item junto (fn_conta_salvar). Ativo vida sem pessoa ligada recebe aviso.
-// Versão anterior: 1.54.0 · 13/10/2026
-//
-// v1.54.0 (13/10/2026, sessão 20261013-2310-item-conta, demandas 5b4934d5 e 1f9a8d04; "Demais ajustes pode aplicar" do
-// Nicola 13/10 23:03) —
-//   · Salvar e regerar: as ocorrências seguem o dia da data de início (ex.: início 11/09 mensal → 11/10, 11/11…), avançando
-//     até hoje; antes recomeçavam no dia da edição. "Hoje" passa a ser a data local (hojeLocalISO): toISOString() em UTC
-//     virava o dia seguinte depois das 21h em São Paulo.
-//   · Item de conta ou cartão (conta_id, F18): "Editar" não abre mais o formulário do item — oferece "Editar a conta ou o
-//     cartão", que abre a ficha da conta (comum-minha-empresa.js), dona do nome, tipo, titular e vencimento.
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.53.0 … v1.53.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.54.0 … v1.54.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '1.58.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.59.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 import { estado } from './cofre-estado.js';
 import * as api from './cofre-api.js';
 import { mostrarToast, refrescarIcones, abrirModal, fecharModal, modalGenerico, perguntar, escolher, avisarComDesfazer } from './cofre-ui.js';
@@ -141,7 +137,7 @@ function renderizarControlesEmpresa() {
     const alvo = document.getElementById('me-controles');
     if (!alvo) return;
     if (!itensEmpresaAtual.length) {
-        alvo.innerHTML = `<div class="rz-empty"><div class="rz-ic"><i data-lucide="building-2"></i></div><p>Nenhum controle da empresa ainda. Licenças, domínio e telefonia cadastrados aqui viram alertas e despesas da empresa.</p></div>`;
+        alvo.innerHTML = `<div class="rz-empty"><div class="rz-ic"><i data-lucide="building-2"></i></div><p>Nenhum controle da empresa ainda.</p></div>`;
         refrescarIcones();
         return;
     }
@@ -334,7 +330,7 @@ function renderizarListaControles() {
     if (!itensDoAtivoAtual.length) {
         // v1.13.0 — vazio no formato único (REGRAS §9): a ação fica no
         // rodapé do card ("Novo item"), por isso o vazio não repete botão.
-        alvo.innerHTML = `<div class="rz-empty"><div class="rz-ic"><i data-lucide="shield"></i></div><p>Nenhum item de controle ainda. Seguros, tributos e vistorias cadastrados aqui viram alertas automáticos.</p></div>`;
+        alvo.innerHTML = `<div class="rz-empty"><div class="rz-ic"><i data-lucide="shield"></i></div><p>Nenhum item de controle ainda.</p></div>`;
         refrescarIcones();
         return;
     }
@@ -486,7 +482,7 @@ async function montarPartesItemControle(item) {
     // v1.13.0 (fatia 3b-i) — de pills pra .rz-row (REGRAS §8: pill é só
     // filtro/sub-navegação). Toque abre o editor de partes.
     if (!linhas.length) {
-        mount.innerHTML = `<div class="rz-empty"><div class="rz-ic"><i data-lucide="users"></i></div><p>Nenhuma parte ainda. A parte responsável vira o fornecedor quando você gera a despesa.</p></div>`;
+        mount.innerHTML = `<div class="rz-empty"><div class="rz-ic"><i data-lucide="users"></i></div><p>Nenhuma parte ainda.</p></div>`;
         anexarEncerradosItem(mount, item, encerrados);
         refrescarIcones();
         return;
@@ -876,7 +872,7 @@ function renderizarFichaItemControle() {
     const abertas = ocorrencias.filter(o => o.status_execucao === 'aberto').length;
     if (elOcSt) elOcSt.innerHTML = ocorrencias.length ? `<span class="rz-sub">${abertas} em aberto · ${ocorrencias.length - abertas} concluída${ocorrencias.length - abertas === 1 ? '' : 's'}</span>` : '';
     if (!ocorrencias.length) {
-        elOc.innerHTML = `<div class="rz-empty"><div class="rz-ic"><i data-lucide="calendar-check"></i></div><p>Nenhuma ocorrência gerada ainda. Elas nascem da frequência e do início do item.</p></div>`;
+        elOc.innerHTML = `<div class="rz-empty"><div class="rz-ic"><i data-lucide="calendar-check"></i></div><p>Nenhuma ocorrência gerada ainda.</p></div>`;
     } else {
         elOc.innerHTML = ocorrencias.map(oc => {
             const aberta = oc.status_execucao === 'aberto';
@@ -1112,7 +1108,7 @@ export async function abrirFecharRateio(item) {
                 ${x.itens.map((it, j) => `<div style="display:flex;gap:6px;margin-top:6px"><select data-fr-cat="${i}:${j}" style="${est};flex:1;min-width:0">${opCat(it.cat)}</select><input type="number" step="0.01" min="0" inputmode="decimal" data-fr-val="${i}:${j}" value="${it.valor}" style="${est};width:110px;text-align:right"></div>`).join('')}
                 <button type="button" class="rz-btn rz-btn-3" data-fr-mais="${i}" style="height:36px;margin-top:4px">+ outra categoria</button>
                 <p class="rz-desc" style="margin:4px 0 0;color:${Math.abs(soma(x) - Number(x.p.parte)) < 0.01 ? 'var(--muted)' : 'var(--danger)'}">Soma ${moedaBR(soma(x))} de ${moedaBR(x.p.parte)}</p>` : '<p class="rz-desc" style="margin:4px 0 0">Não vai ao financeiro.</p>'}
-            </div>`).join('') : '<p class="rz-desc">Nenhuma pessoa do Raiz no rateio: nada vai ao financeiro.</p>');
+            </div>`).join('') : '<p class="rz-desc">Ninguém do Raiz no rateio.</p>');
         corpo.querySelectorAll('[data-fr-levar]').forEach(c => c.addEventListener('change', () => { porPessoa[Number(c.dataset.frLevar)].levar = c.checked; desenhar(); }));
         corpo.querySelectorAll('[data-fr-conta]').forEach(c => c.addEventListener('change', () => { porPessoa[Number(c.dataset.frConta)].conta = c.value; }));
         corpo.querySelectorAll('[data-fr-cat]').forEach(c => c.addEventListener('change', () => { const [i, j] = c.dataset.frCat.split(':').map(Number); porPessoa[i].itens[j].cat = c.value; }));
@@ -1376,7 +1372,7 @@ export function renderizarDocumentosItemControle() {
             <div class="rz-tx rz-link" data-action="abrir-documento" data-id="${d.id}"><b>${escapeHtml(d.nome_exibicao || 'Documento')}</b><span>${d.origem === 'bot_whatsapp' ? 'Pela Raiz IA' : 'Documento'}${d.criado_em ? ' · ' + formatarDataBR(String(d.criado_em).slice(0, 10)) : ''}</span></div>
             <button type="button" data-action="excluir-documento-do-item" data-vinculo-id="${vinculo?.id || ''}" title="Remover deste item" class="rz-ico-btn" style="width:36px;height:36px"><i data-lucide="x" style="width:16px;height:16px;color:var(--muted)"></i></button>
         </div>`;
-    }).join('') : `<div class="rz-empty"><div class="rz-ic"><i data-lucide="file-plus-2"></i></div><p>Nenhum documento vinculado. Apólice ou guia anexada aqui fica a um toque do alerta.</p></div>`;
+    }).join('') : `<div class="rz-empty"><div class="rz-ic"><i data-lucide="file-plus-2"></i></div><p>Nenhum documento vinculado.</p></div>`;
     refrescarIcones();
 }
 
@@ -1496,7 +1492,7 @@ function detalhesOcorrenciaHtml(oc, lanc) {
         `</div>`;
 }
 function abrirSheetOcorrencia(oc, lanc, acoes, titulo) {
-    if (typeof window.abrirSheetAcoes !== 'function') { mostrarToast('Detalhes disponíveis só dentro do app principal.', 'erro'); return; }
+    if (typeof window.abrirSheetAcoes !== 'function') { mostrarToast('Abra pelo app principal.', 'erro'); return; }
     const sheet = window.abrirSheetAcoes({ titulo, sub: itemEmFoco?.titulo || '', acoes });
     sheet?.querySelector('.rz-sh-b')?.insertAdjacentHTML('afterbegin', detalhesOcorrenciaHtml(oc, lanc));
 }

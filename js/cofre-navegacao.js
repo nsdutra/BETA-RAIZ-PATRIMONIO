@@ -1,6 +1,11 @@
 // ============================================================================
 // cofre-navegacao.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.9.3 · 07/10/2026
+// Versão: 1.10.0 · 14/10/2026
+//
+// v1.10.0 (14/10/2026, sessão 20261014-2145-onda9c-textos, demanda a05ad2ee; onda 9c do estudo PROTOTIPO_UX_DENSIDADE_RAMOS_RAIZ
+// v1.2.0, D6 seção 10) — textos no limite: ação até 24 caracteres, descrição até 28, aviso até 40 com o resultado e tela
+// vazia em 1 frase de até 40. A explicação longa fica na confirmação, quando existe. Nada de comportamento mudou.
+// Versão anterior: 1.9.3 · 07/10/2026
 //
 // v1.9.2 (07/10/2026, sessão 20261007-1721-rolo-changelog, demanda 2507d554) — ordem do
 // cabeçalho corrigida: a linha "Versão:" estava DEPOIS das entradas de changelog, e o
@@ -31,20 +36,11 @@
 // v1.9.1 (07/10/2026, sessão 20261007-1721-rolo-changelog, demanda 2507d554 — VER-06, "de acordo" do Nicola 07/10 17:21) — SÓ
 // CABEÇALHO: as versões além das 5 mais recentes rolaram para o CHANGELOG_MODULOS.md.
 // Nenhuma linha de código mudou — conferido token a token contra o publicado.
-//
-// Versão anterior: 1.9.0 · 04/10/2026
-//
-// Versão anterior: 1.8.0 · 22/09/2026
-//
-// v1.7.1 (15/09/2026) — PLANO_IMPLEMENTACAO v1.0, etapa E14.4:
-// listarContatos() saiu de carregarTudo() — estado.contatos nunca era
-// lido por nada no app (achado ao investigar a E14.4), 1 query a menos
-// no boot do Cofre.
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.6.1 … v1.7.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.7.1 … v1.7.1): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '1.9.3'; // v-check (04/10/2026): lido por Dev › Versões — manter igual ao header
+export const VERSAO = '1.10.0'; // v-check (04/10/2026): lido por Dev › Versões — manter igual ao header
 import { estado, COFRE_VERSAO } from './cofre-estado.js';
 import * as api from './cofre-api.js';
 import { normalizarContexto } from './cofre-validacoes.js';
@@ -160,7 +156,7 @@ export async function bootstrap() {
                 if (acao === 'abrir_formulario_ativo') window.dispatchEvent(new CustomEvent('cofre:abrir-form-ativo'));
                 // Defensivo: a variante "imóvel" pertence ao app principal — não
                 // deveria disparar aqui, mas não pode travar se disparar.
-                else if (acao === 'abrir_formulario_imovel') mostrarToast('Esse cadastro fica no Raiz Patrimônio (app principal).', 'info');
+                else if (acao === 'abrir_formulario_imovel') mostrarToast('Abra pelo app principal.', 'info');
             },
             onToast: function (msg, tipo) { mostrarToast(msg, tipo); }
         }
@@ -229,13 +225,13 @@ export async function abrirContexto(tipo, ref, nomeCosmetico) {
 
     if (tipo === 'ativo') {
         const ativo = estado.ativos.find(a => a.id === ref);
-        if (!ativo) { mostrarToast('Ativo não encontrado ou sem autorização nesta empresa.', 'erro'); mudarTela('home'); return; }
+        if (!ativo) { mostrarToast('Ativo não encontrado.', 'erro'); mudarTela('home'); return; }
         window.dispatchEvent(new CustomEvent('cofre:abrir-ativo', { detail: { id: ref } }));
         return;
     }
     if (tipo === 'documento') {
         const doc = estado.documentos.find(d => d.id === ref) || await api.buscarDocumentoPorId(ref);
-        if (!doc || doc.cliente_id !== estado.clienteId) { mostrarToast('Documento não encontrado ou sem autorização nesta empresa.', 'erro'); mudarTela('home'); return; }
+        if (!doc || doc.cliente_id !== estado.clienteId) { mostrarToast('Documento não encontrado.', 'erro'); mudarTela('home'); return; }
         window.dispatchEvent(new CustomEvent('cofre:abrir-documento', { detail: { id: ref } }));
         return;
     }

@@ -2,7 +2,12 @@
 // conta.js — Raiz Patrimônio · Conta e preferências: menu da conta, seção Sobre,
 //            licença, preferências de comunicação e de alerta, atalhos de
 //            configuração (Cofre, configuração inicial, cadastro do contador)
-// Versão: 1.0.1 · 10/10/2026
+// Versão: 1.1.0 · 14/10/2026
+//
+// v1.1.0 (14/10/2026, sessão 20261014-2145-onda9c-textos, demanda a05ad2ee; onda 9c do estudo PROTOTIPO_UX_DENSIDADE_RAMOS_RAIZ
+// v1.2.0, D6 seção 10) — textos no limite: ação até 24 caracteres, descrição até 28, aviso até 40 com o resultado e tela
+// vazia em 1 frase de até 40. A explicação longa fica na confirmação, quando existe. Nada de comportamento mudou.
+// Versão anterior: 1.0.1 · 10/10/2026
 //
 // v1.0.1 (10/10/2026, sessão 20261003-1707-ux-base, demanda 28aa5ce1 — teste do Nicola 10/10 21:43: "Tela licença não
 // carrega") — HOTFIX dos imports dinâmicos. As funções vieram do index.html com import("./js/<módulo>.js"); dentro de
@@ -32,7 +37,7 @@
 //    por 345 bytes — é a mesma classe de armadilha do montarBoxDivisaoSocietaria.
 // ============================================================================
 
-export const VERSAO = '1.0.1';  // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.1.0';  // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 
 // v1.71.0 — LGPD: tela de preferências de comunicação, 1 toggle por
 // mensagem que permite opt-out (permite_opt_out=true) — substitui o
@@ -90,7 +95,7 @@ export async function abrirPreferenciasComunicacao() {
         ]);
         const listaAlertas = document.getElementById('lista-preferencias-alertas');
         if (!proativas.length) {
-            listaAlertas.innerHTML = '<p class="rz-desc" style="margin-top:8px">Nenhum aviso automático disponível no seu plano.</p>';
+            listaAlertas.innerHTML = '<p class="rz-desc" style="margin-top:8px">Nenhum aviso no seu plano.</p>';
         } else {
             // v1.201.0 — mesmo padrão visual/comportamental do toggle de
             // "Comunicações da Raiz" logo abaixo: cada aviso salva na
@@ -126,7 +131,7 @@ export async function abrirPreferenciasComunicacao() {
         if (error) throw error;
         const lista = document.getElementById('lista-preferencias-comunicacao');
         if (!data || !data.length) {
-            lista.innerHTML = '<p class="rz-desc">Nenhuma preferência configurável no momento.</p>';
+            lista.innerHTML = '<p class="rz-desc">Nada a configurar agora.</p>';
             return;
         }
         lista.innerHTML = data.map(item => `
@@ -148,11 +153,11 @@ export function abrirMenuConta() {
     const empresa = (CONFIG_CLIENTE && CONFIG_CLIENTE.nomeEmpresa) || '';
     const nEmpresas = Array.isArray(pessoaRowsSelecaoEmpresa) ? pessoaRowsSelecaoEmpresa.length : 0;
     const minhaEmpresa = [
-        { icone: 'building', titulo: 'Dados da empresa', sub: 'Cadastro, fiscal, Pix, rotinas e documentos', aoTocar: ir('tab-minha-empresa') },
-        { icone: 'users', titulo: 'Pessoas e acessos', sub: 'Quem usa o Raiz e o que cada um pode ver', codigo: 'pessoas.ver', aoTocar: ir('tab-pessoas') },
+        { icone: 'building', titulo: 'Dados da empresa', sub: 'Cadastro, fiscal e Pix', aoTocar: ir('tab-minha-empresa') },
+        { icone: 'users', titulo: 'Pessoas e acessos', sub: 'Quem usa e o que vê', codigo: 'pessoas.ver', aoTocar: ir('tab-pessoas') },
         { icone: 'badge-check', titulo: 'Licença e plano', sub: plano, aoTocar: ir('tab-licenca') },
-        { icone: 'file-text', titulo: 'Relatórios', sub: 'Fluxo de caixa, gerencial, resultados e distribuição', codigo: 'relatorios.ver', aoTocar: ir('tab-relatorios-catalogo') }, // v1.313.1 — pedido do Nicola 07/10
-        { icone: 'file-check-2', titulo: 'Fiscal', sub: 'Check-up da Reforma Tributária', codigo: 'fiscal.checkup', aoTocar: ir('tab-fiscal') }, // fica aqui até a etapa 6 (F2.5a)
+        { icone: 'file-text', titulo: 'Relatórios', sub: 'Caixa, gerencial, resultados', codigo: 'relatorios.ver', aoTocar: ir('tab-relatorios-catalogo') }, // v1.313.1 — pedido do Nicola 07/10
+        { icone: 'file-check-2', titulo: 'Fiscal', sub: 'Reforma Tributária', codigo: 'fiscal.checkup', aoTocar: ir('tab-fiscal') }, // fica aqui até a etapa 6 (F2.5a)
     ];
     if (nEmpresas > 1) minhaEmpresa.unshift({ icone: 'repeat', titulo: 'Trocar empresa', sub: 'Você acessa ' + nEmpresas + ' empresas', aoTocar: rzTrocarEmpresa });
     abrirSheetAcoes({
@@ -161,22 +166,22 @@ export function abrirMenuConta() {
         grupos: [
             { titulo: 'Minha empresa', acoes: minhaEmpresa },
             { titulo: 'Cadastros e regras', acoes: [
-                { icone: 'contact', titulo: 'Partes', sub: 'Locatários, fiadores, proprietários, prestadores', codigo: 'contratos.ver', aoTocar: () => { partesFiltroPapel = 'todos'; ir('tab-partes')(); } },
-                { icone: 'file-signature', titulo: 'Minutas de contrato', sub: 'Modelos para gerar o contrato preenchido', codigo: 'minutas.gerar', aoTocar: ir('tab-minutas') },
-                { icone: 'landmark', titulo: 'Tipo de empreendimento', sub: 'Como os imóveis se agrupam na carteira', codigo: 'imoveis.editar', aoTocar: ir('tab-tipo-empreendimento') },
-                { icone: 'sparkles', tipo: 'ia', titulo: 'Regras de conciliação', sub: 'O que o sistema decide sozinho', codigo: 'conciliacao.configurar', aoTocar: ir('tab-regras-conciliacao') },
-                { icone: 'link', titulo: 'Links compartilhados', sub: 'Links de imóveis enviados a interessados', codigo: 'vitrine.links.gerenciar', aoTocar: ir('tab-links-vitrine') },
-                { icone: 'archive', titulo: 'Documentos arquivados', sub: 'Restaurar, vincular ou excluir de vez', codigo: 'cofre.editar', aoTocar: () => abrirConfiguracaoCofre('arquivados') },
+                { icone: 'contact', titulo: 'Partes', sub: 'Locatários, fiadores…', codigo: 'contratos.ver', aoTocar: () => { partesFiltroPapel = 'todos'; ir('tab-partes')(); } },
+                { icone: 'file-signature', titulo: 'Minutas de contrato', sub: 'Modelos de contrato', codigo: 'minutas.gerar', aoTocar: ir('tab-minutas') },
+                { icone: 'landmark', titulo: 'Tipo de empreendimento', sub: 'Como os imóveis se agrupam', codigo: 'imoveis.editar', aoTocar: ir('tab-tipo-empreendimento') },
+                { icone: 'sparkles', tipo: 'ia', titulo: 'Regras de conciliação', sub: 'O que o Raiz decide só', codigo: 'conciliacao.configurar', aoTocar: ir('tab-regras-conciliacao') },
+                { icone: 'link', titulo: 'Links compartilhados', sub: 'Enviados a interessados', codigo: 'vitrine.links.gerenciar', aoTocar: ir('tab-links-vitrine') },
+                { icone: 'archive', titulo: 'Documentos arquivados', sub: 'Restaurar ou excluir', codigo: 'cofre.editar', aoTocar: () => abrirConfiguracaoCofre('arquivados') },
             ]},
             { titulo: 'Preferências', acoes: [
-                { icone: 'bell', titulo: 'Notificações', sub: 'O que chega no app, no WhatsApp e no e-mail', aoTocar: abrirPreferenciasComunicacao },
-                { icone: 'bot', titulo: 'Raiz IA no WhatsApp', sub: 'Consultas e avisos pelo WhatsApp', aoTocar: abrirBotWhatsapp },
+                { icone: 'bell', titulo: 'Notificações', sub: 'App, WhatsApp e e-mail', aoTocar: abrirPreferenciasComunicacao },
+                { icone: 'bot', titulo: 'Raiz IA no WhatsApp', sub: 'Consultas e avisos', aoTocar: abrirBotWhatsapp },
             ]},
             { titulo: 'Ajuda e conta', acoes: [
                 { icone: 'life-buoy', titulo: 'Suporte', sub: 'WhatsApp, e-mail e sugestões', aoTocar: abrirSuporte },
-                { icone: 'scroll-text', titulo: 'Termos e privacidade', sub: 'Como o Raiz trata os seus dados', aoTocar: () => window.open('https://raizpatrimonio.com.br/termos-de-uso', '_blank') },
+                { icone: 'scroll-text', titulo: 'Termos e privacidade', sub: 'Como tratamos seus dados', aoTocar: () => window.open('https://raizpatrimonio.com.br/termos-de-uso', '_blank') },
                 { icone: 'info', titulo: 'Sobre o app', sub: APP_VERSAO, codigo: 'sistema.versoes.ver', aoTocar: abrirVersoesDev }, // era "Versões" (v1.244.0, 472927ba)
-                { icone: 'log-out', titulo: 'Sair', sub: 'Encerra a sessão neste aparelho', aoTocar: fazerLogoutSupabase },
+                { icone: 'log-out', titulo: 'Sair', sub: 'Neste aparelho', aoTocar: fazerLogoutSupabase },
             ]},
         ]
     });

@@ -1,6 +1,11 @@
 // ============================================================================
 // cadastros.js — Raiz Patrimônio · Telas de cadastro do menu ⚙️
-// Versão: 1.2.0 · 08/10/2026
+// Versão: 1.3.0 · 14/10/2026
+//
+// v1.3.0 (14/10/2026, sessão 20261014-2145-onda9c-textos, demanda a05ad2ee; onda 9c do estudo PROTOTIPO_UX_DENSIDADE_RAMOS_RAIZ
+// v1.2.0, D6 seção 10) — textos no limite: ação até 24 caracteres, descrição até 28, aviso até 40 com o resultado e tela
+// vazia em 1 frase de até 40. A explicação longa fica na confirmação, quando existe. Nada de comportamento mudou.
+// Versão anterior: 1.2.0 · 08/10/2026
 //
 // v1.2.0 (UX F2.7c-3, demanda b8602a3a, sessão 20261003-1707-ux-base; "De acordo" do Nicola 08/10 14:04) —
 // formulário de nome no padrão de campo (.rz-f, rótulo ligado ao campo); vazio do card sem "pra".
@@ -41,7 +46,7 @@
 //    index → acessíveis via window.
 // ============================================================================
 
-export const VERSAO = '1.2.0'; // v-check (06/09/2026): lido por Dev › Versões — manter igual ao header
+export const VERSAO = '1.3.0'; // v-check (06/09/2026): lido por Dev › Versões — manter igual ao header
 const db = () => window.__raizDbAuth;
 const ponte = () => window.__raizCadastrosPonte || {};
 
@@ -106,7 +111,7 @@ function render(chave) {
     if (!lista) return;
     const itens = cache[chave] || [];
     if (!itens.length) {
-        lista.innerHTML = `<div class="rz-empty"><div class="rz-ic"><svg data-lucide="${cfg.icone}"></svg></div><p>Nenhum ${cfg.titulo} ainda. Toque no "+" para cadastrar o primeiro.</p></div>`;
+        lista.innerHTML = `<div class="rz-empty"><div class="rz-ic"><svg data-lucide="${cfg.icone}"></svg></div><p>Nenhum ${cfg.titulo} ainda.</p></div>`;
         if (window.rzIcones) window.rzIcones();
         return;
     }

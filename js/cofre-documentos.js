@@ -1,6 +1,11 @@
 // ============================================================================
 // cofre-documentos.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 2.36.0 · 14/10/2026
+// Versão: 2.37.0 · 14/10/2026
+//
+// v2.37.0 (14/10/2026, sessão 20261014-2145-onda9c-textos, demanda a05ad2ee; onda 9c do estudo PROTOTIPO_UX_DENSIDADE_RAMOS_RAIZ
+// v1.2.0, D6 seção 10) — textos no limite: ação até 24 caracteres, descrição até 28, aviso até 40 com o resultado e tela
+// vazia em 1 frase de até 40. A explicação longa fica na confirmação, quando existe. Nada de comportamento mudou.
+// Versão anterior: 2.36.0 · 14/10/2026
 //
 // v2.36.0 (14/10/2026, sessão 20261014-0830-upload-rapido, demanda 7b0d407b; "De acordo" do Nicola 14/10 08:24) —
 // "Confira o documento" mais curto. (a) Confirmação rápida: documento de pessoa lido com confiança, titular forte,
@@ -26,22 +31,11 @@
 //
 // v2.33.0 (UX F2.7b, demanda b8602a3a, sessão 20261003-1707-ux-base; plano F2.7 aprovado pelo Nicola 07/10 20:05; achado do teste da F2.7a em 08/10 08:12) — vazio de "Documentos
 // da empresa" diz o que se ganha e como começar (vazio dentro de card, REGRAS §0.7).
-//
-// Versão anterior: 2.32.0 · 07/10/2026
-//
-// v2.32.0 (catálogo único, demanda 2923ff4d, sessão 20261007-2005-catalogo-fim; "Pode fazer 3 e 4" do Nicola
-// 07/10 20:02) — "Criar o ativo a partir deste documento" deixa de usar o campo antigo
-// cofre_controle_subtipos.tipo_ativo_aplicavel e o mapa fixo TIPO_ATIVO_SUGERIDO (que ainda tinha os nomes
-// de categoria anteriores à fatia B — vida_protecao, imovel, terreno, animal, veiculo_blindado — e por isso
-// criaria o ativo com um tipo que o banco recusa). O tipo vem agora da mesma regra do resto do app: as
-// categorias de ativo ligadas ao subtipo em cofre_subtipo_aplicabilidade; se houver mais de uma, vale a
-// sugestão da IA quando for uma delas; sem decisão segura, o botão não aparece. Nome e dados do ativo
-// sugeridos passam a reconhecer vida, imovel_predial e imovel_territorial.
 // --------------------------------------------------------------------------
-// Versões anteriores (v2.31.1 … v2.31.1): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v2.32.0 … v2.32.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '2.36.0'; // v-check (22/09/2026): lido por Dev › Versões — manter igual ao header
+export const VERSAO = '2.37.0'; // v-check (22/09/2026): lido por Dev › Versões — manter igual ao header
 import { estado } from './cofre-estado.js';
 // v2.3.1 — import TOLERANTE: na v2.2.0 isto era um import estático. Quando o
 // cofre-imagem.js não subiu no deploy (faltava a linha no manifesto), o import
@@ -242,7 +236,7 @@ export async function acionarContatoAlerta(itemControleId, titulo, tipo) {
     } catch (err) { mostrarToast('Erro ao buscar contato: ' + err.message, 'erro'); return; }
 
     if (!contatos.length) {
-        mostrarToast('Nenhuma parte vinculada a este item ainda. Adicione uma na ficha do item (chip Partes → Editar partes).', 'aviso');
+        mostrarToast('Adicione uma parte na ficha do item.', 'aviso');
         return;
     }
     const contato = contatos.find(c => c.whatsapp) || contatos.find(c => c.email) || contatos[0];
@@ -258,7 +252,7 @@ export async function acionarContatoAlerta(itemControleId, titulo, tipo) {
         const assunto = `Cotação — renovação: ${titulo}`;
         window.open(`mailto:${contato.email}?subject=${encodeURIComponent(assunto)}&body=${encodeURIComponent(mensagem)}`, '_blank', 'noopener');
     } else {
-        mostrarToast(`Contato "${contato.nome}" não tem WhatsApp nem e-mail cadastrado.`, 'aviso');
+        mostrarToast(`${contato.nome} sem WhatsApp nem e-mail.`, 'aviso');
     }
 }
 
@@ -978,7 +972,7 @@ async function processarArquivoUpload() {
     // sem IA (Word/Excel, ou "Ler com IA" desmarcado): direto para o Confira, como antes
     passoLeitura(3);
     try { await carregarApoioUpload(); } catch (err) { console.warn('apoio do upload:', err.message); }
-    if (up.comIA) mostrarToast('Word/Excel não passam pela IA — preencha os dados.', 'aviso');
+    if (up.comIA) mostrarToast('Word/Excel sem IA: preencha.', 'aviso');
     seguirParaConfira();
 }
 
@@ -1070,7 +1064,7 @@ export function abrirCriarAtivoDoDocumento() {
     // v2.4.0 — sem nenhum campo lido, o ativo nasceria vazio e sem nome útil
     // (foi o que aconteceu no teste: um ativo chamado "Veículo", sem placa).
     if (!Object.values(dados).some(v => v !== null && v !== '')) {
-        mostrarToast('Preencha ao menos um dado do documento antes de criar o ativo.', 'aviso');
+        mostrarToast('Preencha um dado antes de criar.', 'aviso');
         return;
     }
     const nome = nomeAtivoSugerido(tipo, dados) || g('uc-nome').value || '';
@@ -1342,7 +1336,7 @@ async function depoisDeSalvarUpload(docId, p) {
             await pedirEquipeDocumento(docId, p.extracaoId, p.nome, p.cfg?.tipo === 'lista_ativos' ? 'Lista de ativos para cadastrar' : null);
             mensagem = 'A equipe Raiz vai conferir e te avisar.';
         } catch (err) {
-            mostrarToast('O documento foi salvo, mas não consegui chamar a equipe: ' + err.message, 'aviso');
+            mostrarToast('Salvo; equipe não avisada: ' + err.message, 'aviso');
         }
     }
     if (p.criarContrato && typeof window.abrirNovoContratoDoDocumento === 'function') {
@@ -1360,7 +1354,7 @@ window.addEventListener('cofre:vincular-documento', async (ev) => {
         await api.inserirVinculo(estado.clienteId, d.documentoId, d.entidadeTipo || 'contrato', d.entidadeId, false, estado.pessoa.id);
         mostrarToast('Documento anexado ao contrato.');
     } catch (err) {
-        mostrarToast('O contrato foi salvo, mas não consegui anexar o documento: ' + err.message, 'aviso');
+        mostrarToast('Contrato salvo, sem o anexo: ' + err.message, 'aviso');
     }
 });
 
@@ -1829,7 +1823,7 @@ async function buscarCandidatosUpload(tipo, termo) {
     const el = document.getElementById('up-vinculo-candidatos');
     if (!termo || termo.trim().length < 2) { el.innerHTML = ''; return; }
     const candidatos = tipo === 'ativo' ? await api.buscarCandidatosAtivo(estado.clienteId, termo) : await api.buscarCandidatosContrato(estado.clienteId, termo);
-    if (candidatos.length === 0) { el.innerHTML = `<p class="text-xs" style="color:var(--sage)">Nada encontrado. Você pode salvar em triagem e resolver depois.</p>`; return; }
+    if (candidatos.length === 0) { el.innerHTML = `<p class="text-xs" style="color:var(--sage)">Nada encontrado. Salve em triagem.</p>`; return; }
     el.innerHTML = candidatos.map(c => {
         const nome = rotuloCandidatoVinculo(tipo, c);
         return `<button type="button" data-action="escolher-candidato-upload" data-tipo="${tipo}" data-id="${c.id}" data-nome="${escapeHtml(nome)}" data-tipo-ativo="${escapeHtml(c.tipo_ativo || '')}" class="w-full text-left text-xs border-2 border-slate-200 rounded-lg p-2 hover:border-emerald-700">${escapeHtml(nome)}</button>`;
@@ -2211,13 +2205,13 @@ export async function irParaVinculo(tipo, id) {
     fecharFichaDoc();
     if (tipo === 'ativo') { window.dispatchEvent(new CustomEvent('cofre:abrir-ativo', { detail: { id } })); return; }
     if (tipo === 'imovel') { window.dispatchEvent(new CustomEvent('cofre:navegar-contexto', { detail: { tipo: 'imovel', ref: id } })); return; }
-    mostrarToast('Esse vínculo ainda não tem ficha própria no Cofre.', 'aviso');
+    mostrarToast('Vínculo sem ficha no Cofre.', 'aviso');
 }
 
 export async function baixarDocumentoAtual() {
     const d = estado.documentos.find(x => x.id === docAtualId) || await api.buscarDocumentoPorId(docAtualId);
     if (!d) return;
-    if (d.arquivo_mantido === false) { mostrarToast('Este documento foi guardado só com os dados — o arquivo não está armazenado.', 'aviso'); return; }
+    if (d.arquivo_mantido === false) { mostrarToast('Guardado só com os dados.', 'aviso'); return; }
     try {
         const url = await api.gerarSignedUrl(d.bucket, d.storage_path, 120);
         window.open(url, '_blank');
@@ -2357,7 +2351,7 @@ function renderizarDocumentosArquivados() {
     if (!el) return;
     if (!arqNoSheet()) { renderizarArquivadosModal(el); return; }
     if (!arquivadosCache.length) {
-        el.innerHTML = `<div class="rz-empty"><div class="rz-ic"><svg data-lucide="archive"></svg></div><p>Nenhum documento arquivado. O que você excluir na ficha de um documento fica aqui, e dá para restaurar.</p></div>`;
+        el.innerHTML = `<div class="rz-empty"><div class="rz-ic"><svg data-lucide="archive"></svg></div><p>Nenhum documento arquivado.</p></div>`;
         refrescarIcones();
         return;
     }
@@ -2379,8 +2373,8 @@ function abrirAcoesArquivado(id) {
     if (!d || typeof window.abrirSheetAcoes !== 'function') return;
     const semVinculo = !d.cofre_documento_vinculos || d.cofre_documento_vinculos.length === 0;
     const acoes = [{ icone: 'rotate-ccw', titulo: 'Restaurar', sub: 'Volta para onde estava', codigo: 'cofre.editar', aoTocar: () => restaurarDocumentoArquivado(id) }];
-    if (semVinculo) acoes.push({ icone: 'link', titulo: 'Vincular', sub: 'Restaura e liga a um ativo ou contrato', codigo: 'cofre.editar', aoTocar: () => vincularDocumentoArquivado(id) });
-    acoes.push({ icone: 'trash-2', titulo: 'Excluir de vez', sub: 'Apaga o arquivo; não dá para desfazer', codigo: 'cofre.excluir', tipo: 'bad', aoTocar: () => excluirDocumentoArquivadoDeVez(id) });
+    if (semVinculo) acoes.push({ icone: 'link', titulo: 'Vincular', sub: 'A um ativo ou contrato', codigo: 'cofre.editar', aoTocar: () => vincularDocumentoArquivado(id) });
+    acoes.push({ icone: 'trash-2', titulo: 'Excluir de vez', sub: 'Não dá para desfazer', codigo: 'cofre.excluir', tipo: 'bad', aoTocar: () => excluirDocumentoArquivadoDeVez(id) });
     window.abrirSheetAcoes({ titulo: d.nome_exibicao, sub: 'Documento arquivado', acoes, empilhar: true });
 }
 

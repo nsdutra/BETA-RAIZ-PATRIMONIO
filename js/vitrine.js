@@ -1,7 +1,12 @@
 // ============================================================================
 // vitrine.js — Raiz Patrimônio · Compartilhar imóveis (links públicos de imóveis, lightbox)
 //               e contratação pública (formulário do interessado via link)
-// Versão: 1.5.2 · 10/10/2026
+// Versão: 1.6.0 · 14/10/2026
+//
+// v1.6.0 (14/10/2026, sessão 20261014-2145-onda9c-textos, demanda a05ad2ee; onda 9c do estudo PROTOTIPO_UX_DENSIDADE_RAMOS_RAIZ
+// v1.2.0, D6 seção 10) — textos no limite: ação até 24 caracteres, descrição até 28, aviso até 40 com o resultado e tela
+// vazia em 1 frase de até 40. A explicação longa fica na confirmação, quando existe. Nada de comportamento mudou.
+// Versão anterior: 1.5.2 · 10/10/2026
 //
 // v1.5.2 (10/10/2026, sessão 20261010-0155-onda1-nucleo, demanda 6b11c602) — o catch do link público
 // grava o erro real no console antes de mostrar a mensagem genérica ao visitante. Sem isso, qualquer
@@ -34,19 +39,13 @@
 // fn_vitrine_publica_obter (visitante sem login), mostra o nome da empresa e esconde campo vazio. Contratação:
 // reaproveita o link pendente e válido do mesmo imóvel em vez de criar outro a cada toque; o formulário público
 // manda o endereço também separado (rua, número, complemento, bairro, cidade, UF, CEP).
-//
-// Versão anterior: 1.3.5 · 07/10/2026
-//
-// v1.3.4 (07/10/2026, sessão 20261007-1721-rolo-changelog, demanda 2507d554 — VER-06, "de acordo" do Nicola 07/10 17:21) — SÓ
-// CABEÇALHO: as versões além das 5 mais recentes rolaram para o CHANGELOG_MODULOS.md.
-// Nenhuma linha de código mudou — conferido token a token contra o publicado.
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.3.3 … v1.3.3): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.3.4 … v1.3.4): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
 import { encontrarMinutaParaImovel } from './minutas.js'; // retorno usado de forma síncrona — import, não ponte
 
-export const VERSAO = '1.5.2'; // v-check: manter igual ao header
+export const VERSAO = '1.6.0'; // v-check: manter igual ao header
 
 /** Ponto de entrada do switchTab('tab-vitrine'). */
 export async function montarAbaVitrine() {
@@ -151,7 +150,7 @@ export async function montarAbaVitrine() {
                     }).catch((err) => {
                         console.error('[compartilhar] link não salvo:', err);
                         salvo = null;
-                        mostrarToast('Não consegui salvar o link. Confira a internet e tente de novo.', 'danger');
+                        mostrarToast('Link não salvo. Confira a internet.', 'danger');
                         return false;
                     });
                 }
@@ -175,7 +174,7 @@ export async function montarAbaVitrine() {
         // os dados e o link deste imóvel.
         export function compartilharImovelDoAtivo(ativoId) {
             const lista = imoveisPorIds([String(ativoId)]);
-            if (!lista.length) { mostrarToast('Não encontrei este imóvel. Atualize a tela e tente de novo.', 'danger'); return; }
+            if (!lista.length) { mostrarToast('Imóvel não encontrado. Atualize.', 'danger'); return; }
             enviarWhatsAppCompartilhar(lista, prepararCompartilhamento([String(ativoId)]));
         }
 
@@ -188,15 +187,15 @@ export async function montarAbaVitrine() {
             const n = lista.length;
             abrirSheetAcoes({
                 titulo: n === 1 ? 'Compartilhar 1 imóvel' : 'Compartilhar ' + n + ' imóveis',
-                sub: 'Um link só, com fotos e detalhes',
+                sub: 'Um link, com fotos',
                 acoes: [
-                    { icone: 'message-circle', titulo: 'Enviar pelo WhatsApp', sub: 'Mensagem com o resumo e o link', codigo: 'vitrine.gerar', aoTocar: () => enviarWhatsAppCompartilhar(lista, comp) },
+                    { icone: 'message-circle', titulo: 'Enviar pelo WhatsApp', sub: 'Com o resumo e o link', codigo: 'vitrine.gerar', aoTocar: () => enviarWhatsAppCompartilhar(lista, comp) },
                     { icone: 'copy', titulo: 'Copiar link', codigo: 'vitrine.gerar', aoTocar: () => {
                         comp.salvar();
                         if (typeof rzCopiar === 'function') rzCopiar(comp.url, 'Link copiado.', 'Não consegui copiar; use "Abrir a página".');
                         else navigator.clipboard.writeText(comp.url).then(() => mostrarToast('Link copiado.', 'success'));
                     } },
-                    { icone: 'external-link', titulo: 'Abrir a página', sub: 'Veja como o interessado recebe', codigo: 'vitrine.gerar', aoTocar: () => {
+                    { icone: 'external-link', titulo: 'Abrir a página', sub: 'Como o interessado vê', codigo: 'vitrine.gerar', aoTocar: () => {
                         const janela = window.open('', '_blank');
                         comp.salvar().then(ok => { if (ok && janela) janela.location.href = comp.url; else if (janela) janela.close(); });
                     } },
@@ -243,7 +242,7 @@ export async function montarAbaVitrine() {
             abrirSheetAcoes({
                 titulo: tituloImovelCompartilhar(imo), sub: enderecoCurtoImovel(imo) || imo.status || '',
                 acoes: [
-                    { icone: 'message-circle', titulo: 'Compartilhar só este', sub: 'Abre o WhatsApp com os dados e o link', codigo: 'vitrine.gerar', aoTocar: () => compartilharImovelDoAtivo(id) },
+                    { icone: 'message-circle', titulo: 'Compartilhar só este', sub: 'Pelo WhatsApp', codigo: 'vitrine.gerar', aoTocar: () => compartilharImovelDoAtivo(id) },
                     { icone: 'house', titulo: 'Abrir a ficha', aoTocar: () => { window.location.hash = '#/ativo/' + id; } },
                 ],
             });
@@ -313,7 +312,7 @@ export async function montarAbaVitrine() {
             }
 
             if (!imo) {
-                mostrarToast('Não encontrei este imóvel — atualize a página e tente de novo.', 'danger');
+                mostrarToast('Imóvel não encontrado. Atualize.', 'danger');
                 return;
             }
 
@@ -395,14 +394,14 @@ export async function montarAbaVitrine() {
             const acoes = [];
             {
                 acoes.push(
-                    { icone: 'copy', titulo: 'Gerar link para coleta de dados', codigo: 'contratos.criar', sub: 'Vale por 15 dias · interessado preenche sozinho', aoTocar: () => { registrarLog('contratacao.link_gerado', { imovelId: imo.id, processoId }); dbAuth.from('processos_contratacao').update({ origem: 'link' }).eq('id', processoId); if (typeof rzCopiar === 'function') rzCopiar(link, 'Link copiado.'); else { navigator.clipboard.writeText(link); mostrarToast('Link copiado.', 'success'); } } },
-                    { icone: 'message-circle', titulo: 'Abrir WhatsApp com os dados pedidos', codigo: 'contratos.criar', aoTocar: () => { registrarLog('contratacao.whatsapp_aberto', { imovelId: imo.id, processoId }); dbAuth.from('processos_contratacao').update({ origem: 'whatsapp_manual' }).eq('id', processoId); window.open('https://api.whatsapp.com/send?text=' + encodeURIComponent(mensagemZap), '_blank'); } },
+                    { icone: 'copy', titulo: 'Link de coleta de dados', codigo: 'contratos.criar', sub: 'Vale 15 dias', aoTocar: () => { registrarLog('contratacao.link_gerado', { imovelId: imo.id, processoId }); dbAuth.from('processos_contratacao').update({ origem: 'link' }).eq('id', processoId); if (typeof rzCopiar === 'function') rzCopiar(link, 'Link copiado.'); else { navigator.clipboard.writeText(link); mostrarToast('Link copiado.', 'success'); } } },
+                    { icone: 'message-circle', titulo: 'Pedir pelo WhatsApp', codigo: 'contratos.criar', aoTocar: () => { registrarLog('contratacao.whatsapp_aberto', { imovelId: imo.id, processoId }); dbAuth.from('processos_contratacao').update({ origem: 'whatsapp_manual' }).eq('id', processoId); window.open('https://api.whatsapp.com/send?text=' + encodeURIComponent(mensagemZap), '_blank'); } },
                 );
             }
             if (minuta) {
                 acoes.push(
                     { icone: 'download', titulo: 'Conferir minuta padrão', codigo: 'minutas.gerar', aoTocar: () => baixarMinutaPadraoImovel(imo.id) },
-                    { icone: 'file-signature', titulo: 'Gerar minuta', codigo: 'minutas.gerar', sub: 'A partir de um contrato Assinando já com os dados', aoTocar: () => gerarMinutaNoCofre(imo.id) }
+                    { icone: 'file-signature', titulo: 'Gerar minuta', codigo: 'minutas.gerar', sub: 'De um contrato Assinando', aoTocar: () => gerarMinutaNoCofre(imo.id) }
                 );
             }
             abrirSheetAcoes({
@@ -410,7 +409,7 @@ export async function montarAbaVitrine() {
                 grupos: minuta ? null : [
                     { titulo: 'Coleta de dados', acoes: acoes.slice() },
                     { titulo: 'Sem minuta padrão cadastrada', acoes: [
-                        { icone: 'file-signature', titulo: 'Cadastrar minuta padrão', codigo: 'minutas.gerar', sub: 'Necessária só pra conferir e gerar a minuta', aoTocar: () => switchTab('tab-minutas') }
+                        { icone: 'file-signature', titulo: 'Cadastrar minuta padrão', codigo: 'minutas.gerar', sub: 'Para gerar a minuta', aoTocar: () => switchTab('tab-minutas') }
                     ] }
                 ]
             });

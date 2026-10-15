@@ -1,6 +1,13 @@
 // ============================================================================
 // relatorios-executivos.js — Raiz Patrimônio · Relatórios no modelo executivo
-// Versão: 1.3.0 · 11/10/2026
+// Versão: 1.4.0 · 14/10/2026
+//
+// v1.4.0 (14/10/2026, sessão 20261014-2145-onda9c-textos, demanda a05ad2ee; onda 9c do estudo PROTOTIPO_UX_DENSIDADE_RAMOS_RAIZ
+// v1.2.0, D6 seção 10) — textos no limite: ação até 24 caracteres, descrição até 28, aviso até 40 com o resultado e tela
+// vazia em 1 frase de até 40. A explicação longa fica na confirmação, quando existe. Nada de comportamento mudou.
+// Também: o resumo do topo do relatório troca o style com cor solta por uma classe (.acao-sub.rx-resumo) — zera o
+// hex_solto_style deste arquivo no verificar_gramatica.py.
+// Versão anterior: 1.3.0 · 11/10/2026
 //
 // v1.3.0 (11/10/2026, sessão 20261008-1231-pessoas-ativos, demandas 0aa64e93 e 7c5c4c65; F13.8, ficha v1.4.0 e protótipo v1.3.0; de acordo do Nicola 11/10 22:55) — relatório
 // novo "Retiradas extraordinárias" (relatorios.retiradas_extraordinarias), lido de fn_relatorio_retiradas_extraordinarias:
@@ -23,19 +30,15 @@
 //
 // v1.1.1 (07/10/2026, sessão 20261007-1845-financeiro, demanda f3e6cd27 — P5a.2): o filtro "Conta" do Fluxo de
 // caixa não lista cartão de crédito (as compras estão na conta que paga a fatura). Versão anterior: 1.1.0.
-//
-// v1.1.0 (07/10/2026, sessão 20261007-0137-financeiro — P4b, B4): Visão gerencial mostra o reembolso
-// de quem pagou despesa da própria conta (fn_apurar_distribuicao): passo "Reembolso" na cascata da
-// capa, coluna "(+) Reembolso" no quadro por pessoa e nota explicando. Versão anterior: 1.0.1.
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.0.1 … v1.0.1): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.1.0 … v1.1.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
 import { rzMostrarBloqueio } from './comum-licenca.js';
 import { rzToast } from './raiz-ui.js';
 import RaizDevice from './raiz-device.js';
 
-export const VERSAO = '1.3.0';
+export const VERSAO = '1.4.0';
 
 // ---------------------------------------------------------------------------
 // Formatos (REL-13 a REL-17)
@@ -407,7 +410,7 @@ const CSS = `
 .rzrel .page .ph .t{flex:1}.rzrel .page .ph .t .l1{font:700 13pt/1.15 'Bricolage Grotesque',Inter,sans-serif;letter-spacing:-.01em}.rzrel .page .ph .t .l2{font-size:9pt;color:#6f7a76;margin-top:3px}.rzrel .page .ph .r{text-align:right;font-size:7.5pt;color:#6f7a76}.rzrel .page .ph .r b{display:block;color:#1e3a32;font-size:9pt}.rzrel .page .ph .r b.rzm{display:flex;align-items:center;justify-content:flex-end;gap:4px}.rzrel .page .ph .r .rzm-s{flex:none}
 .rzrel .page .trk{display:flex;font-size:7.5pt;color:#9aa49f;margin:-4px 0 10px}.rzrel .page .trk span{padding:2px 8px;border-right:1px solid #e6e3da}.rzrel .page .trk span:last-child{border:0}.rzrel .page .trk span.on{color:#1e3a32;font-weight:700}
 .rzrel .page .acao{font:700 17pt/1.18 'Bricolage Grotesque',Inter,sans-serif;letter-spacing:-.015em;color:#17211e;margin:6px 0 4px}
-.rzrel .page .acao-sub{font-size:8pt;color:#6f7a76;margin-bottom:12px}.rzrel .page .acao-sub i{font-style:normal;border:1px solid #e6e3da;border-radius:999px;padding:1px 7px;margin-right:6px}
+.rzrel .page .acao-sub{font-size:8pt;color:#6f7a76;margin-bottom:12px}.rzrel .page .acao-sub.rx-resumo{font-size:9.5pt;color:#17211e;margin:4px 0 12px}.rzrel .page .acao-sub i{font-style:normal;border:1px solid #e6e3da;border-radius:999px;padding:1px 7px;margin-right:6px}
 .rzrel .page .kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:12px}.rzrel .page .kpis>div{border:1px solid #e6e3da;border-radius:8px;padding:8px 10px}.rzrel .page .kpis small{display:block;font-size:7.5pt;color:#6f7a76}.rzrel .page .kpis b{font:700 14pt 'Bricolage Grotesque',Inter,sans-serif;font-variant-numeric:tabular-nums}.rzrel .page .kpis .d{font-size:8pt;margin-top:2px}
 .rzrel .page .pts{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:0 0 12px}.rzrel .page .pts>div{border-top:2px solid #1e3a32;padding-top:6px}.rzrel .page .pts .n{font:700 15pt 'Bricolage Grotesque',Inter,sans-serif;color:#3f8163;line-height:1}.rzrel .page .pts b{display:block;font-size:9.5pt;margin:3px 0 2px;line-height:1.25}.rzrel .page .pts span{font-size:8.5pt;color:#6f7a76}
 .rzrel .page .g2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
@@ -505,14 +508,14 @@ function montarRetiradas(d) {
     const barras = pp.map(p => {
         const l = linhaP[p.pessoa_id];
         return `<div class="hbar"><span style="width:150px">${esc(p.nome)}</span><div class="trk2"><i style="width:${Math.max(0.6, Math.round(num(p.recebido_periodo) / mx * 1000) / 10)}%"></i>${l ? `<em class="exp" style="left:${Math.round(num(l.parte_periodo) / mx * 1000) / 10}%" title="Parte: ${esc(brl(l.parte_periodo))}"></em>` : ''}</div><b>${mil(p.recebido_periodo)}</b></div>`;
-    }).join('') || '<p class="mut">Nenhuma retirada extraordinária no período.</p>';
+    }).join('') || '<p class="mut">Nenhuma retirada extraordinária.</p>';
     const unid1 = 'R$ mil' + (partes ? ` · traço = parte da pessoa (percentual × ${compacto(partes.base_periodo)} recebidos pelas pessoas com parte)${pp.some(p => !linhaP[p.pessoa_id]) ? ' · sem traço = pessoa sem parte definida' : ''}` : '');
     const fonte = `Raiz · fn_relatorio_retiradas_extraordinarias · ${perCurto}`;
     const col = ano
         ? (d.por_mes || []).map(m => ({ l: MESES[num(m.mes) - 1], titulo: `${MESES[num(m.mes) - 1]}/${ano}`, v: num(m.total) / 1000 }))
         : porAno.map(a => ({ l: String(a.ano), titulo: String(a.ano), v: num(a.total) / 1000 }));
     const capa = `
-      <div class="acao-sub" style="font-size:9.5pt;color:#17211e;margin:4px 0 12px">${esc(resumo)}</div>
+      <div class="acao-sub rx-resumo">${esc(resumo)}</div>
       ${kpis}
       <div class="g2">
         ${figura(`Retiradas por pessoa ${ano ? 'em ' + ano : perCurto}`, unid1, '', fonte, barras)}
@@ -542,7 +545,7 @@ function montarRetiradas(d) {
     }).join('');
     p2 += secao(`${++n}. Retiradas ${ano ? 'de ' + ano : perCurto} por pessoa`, 'Data da retirada · R$ · origem: conciliada (veio do extrato) ou lançada no app') +
         `<table><thead><tr><th>Data</th><th>Origem</th><th class="hm">Observação</th><th class="n">Valor</th></tr></thead><tbody>${
-            grupos || '<tr><td colspan="4" class="mut">Nenhuma retirada extraordinária no período.</td></tr>'
+            grupos || '<tr><td colspan="4" class="mut">Nenhuma retirada extraordinária.</td></tr>'
         }<tr class="tot"><td colspan="3">Total ${ano ? 'de ' + ano : perCurto}</td><td class="n">${tab(tP)}</td></tr></tbody></table>`;
     const primAno = prim ? dataIso(prim).getFullYear() : null;
     p2 += secao(`${++n}. Retiradas extraordinárias por ano`, `R$ · ${d.pessoa_nome ? esc(d.pessoa_nome) : 'todas as pessoas'}`) +
@@ -722,8 +725,8 @@ async function compartilhar() {
     const [l1, l2, l3] = estado.montado.linhas3; // REL-42
     const r = await RaizDevice.share({ titulo: l1, texto: `${l1}\n${l2}\n${l3}` });
     if (r && r.ok === false && r.motivo === 'sem_share') {
-        try { await navigator.clipboard.writeText(`${l1}\n${l2}\n${l3}`); rzToast('Resumo copiado. Para enviar o arquivo, use PDF.'); }
-        catch (e) { rzToast('Este aparelho não compartilha daqui. Use PDF.', 'warning'); }
+        try { await navigator.clipboard.writeText(`${l1}\n${l2}\n${l3}`); rzToast('Resumo copiado'); }
+        catch (e) { rzToast('Sem compartilhar aqui. Use PDF.', 'warning'); }
     }
 }
 

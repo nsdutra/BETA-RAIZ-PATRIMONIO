@@ -1,6 +1,11 @@
 // ============================================================================
 // raiz-ui.js — Raiz Patrimônio · Diálogos sem diálogo nativo (UXR-29/30)
-// Versão: 1.4.0 · 11/10/2026
+// Versão: 1.5.0 · 14/10/2026
+//
+// v1.5.0 (14/10/2026, sessão 20261014-2145-onda9c-textos, demanda a05ad2ee; onda 9c do estudo PROTOTIPO_UX_DENSIDADE_RAMOS_RAIZ
+// v1.2.0, D6 seção 10) — textos no limite: ação até 24 caracteres, descrição até 28, aviso até 40 com o resultado e tela
+// vazia em 1 frase de até 40. A explicação longa fica na confirmação, quando existe. Nada de comportamento mudou.
+// Versão anterior: 1.4.0 · 11/10/2026
 //
 // v1.4.0 (11/10/2026, sessão 20261008-1231-pessoas-ativos, demanda f3e6cd27; bloco "Produto, já registrado", Nicola 11/10 18:41 ("quero evoluir com Produto, já registrado"); F13 §3.5 e F13.4) — rzEditarDivisao
 // ganha a opção modos: true, com o seletor "%  ·  Cotas  ·  Valor" no topo (Valor só quando há valorBase), como no
@@ -35,31 +40,11 @@
 // abrem com { empilhar: true }: com um sheet já aberto, vão para o NÍVEL 2 da pilha
 // (index.html 1.298.0) e o sheet de baixo volta intacto ao responder ou fechar. Sem sheet
 // aberto, nada muda. Assinaturas iguais.
-//
-// Versão anterior: 1.0.0 · 03/10/2026
-//
-// v1.0.0 (03/10/2026, sessão 20261003-2250-financeiro, demanda 94245176,
-// decisão D25 do Nicola) — módulo NOVO com os 3 substitutos que a DIRETRIZES
-// UXR-30 exige no lugar de alert()/confirm()/prompt(), na assinatura do
-// PLANO_UX_PWA_ATUAL (fatia F0.2), para a frente UX adotar sem reescrever:
-//   rzToast(msg, { tipo, desfazer, rotuloDesfazer, duracao })
-//   rzConfirmar({ titulo, impacto, destrutivo, rotuloConfirmar, rotuloCancelar }) → Promise<boolean>
-//   rzEscolher({ titulo, sub, opcoes: [{ valor, titulo, sub, icone }] })        → Promise<valor|null>
-// e 1 auxiliar para o caso que o alert() fazia e nenhum dos 3 cobre — um
-// resumo de várias linhas que a pessoa precisa ler (ex.: fim da importação
-// do extrato):
-//   rzAviso({ titulo, linhas, rotulo })                                          → Promise<void>
-//
-// Tudo é Sheet (única superfície modal, REGRAS §2) montado pelos helpers que
-// já existem no index.html (abrirSheet / fecharSheet / rzSheetCabecalho /
-// mostrarToast / rzDev) — nenhuma superfície nova, nenhum CSS novo. Sheet
-// fechado pelo X, por toque fora ou por arraste conta como "Cancelar".
-// Destrutivo segue REGRAS §6: a confirmação vira o último item vermelho de um
-// Sheet de ações (nunca botão vermelho em rodapé) e dispara o háptico
-// 'warning' (UXR-35). Também publica window.rzToast/rzConfirmar/rzEscolher/
-// rzAviso para código inline do index.html.
-// ============================================================================
-export const VERSAO = '1.4.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+// --------------------------------------------------------------------------
+// Versões anteriores (v1.0.0 … v1.0.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
+// mais recentes deste cabeçalho (VER-06).
+export const VERSAO = '1.5.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 
 const esc = (v) => String(v ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 const g = (nome) => (typeof window !== 'undefined' && typeof window[nome] === 'function') ? window[nome] : null;
@@ -280,8 +265,8 @@ export function rzEditarDivisao({ titulo = 'Editar divisão', sub = '', nota = '
         corpo.querySelector('[data-rzd-add]')?.addEventListener('click', async () => {
             const ja = new Set(lista.map(i => i.pessoa_id).filter(Boolean));
             const opcoes = (candidatos || []).filter(c => c.id && !ja.has(c.id)).map(c => ({ valor: c.id, titulo: c.nome, sub: c.sub || '', icone: 'user' }));
-            if (permitirExterno) opcoes.push({ valor: '__externo', titulo: 'Parte externa', sub: 'Alguém sem cadastro: digite o nome', icone: 'user-round' });
-            if (!opcoes.length) { rzToast('Todas as pessoas cadastradas já estão na divisão.', { tipo: 'info' }); return; }
+            if (permitirExterno) opcoes.push({ valor: '__externo', titulo: 'Parte externa', sub: 'Sem cadastro, só o nome', icone: 'user-round' });
+            if (!opcoes.length) { rzToast('Todos já estão na divisão.', { tipo: 'info' }); return; }
             const v = await rzEscolher({ titulo: rotuloAdicionar, opcoes });
             if (!v) return;
             const falta = Math.max(0, Math.round((100 - soma()) * 100) / 100);

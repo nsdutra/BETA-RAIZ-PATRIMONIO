@@ -1,8 +1,11 @@
 // =====================================================================
 // RAIZ PATRIMÔNIO — js/configuracao-inicial.js
-// VERSÃO: Beta v1.0.1 (07/10/2026 — demanda 6a1210a0)
+// VERSÃO: Beta v1.1.0 (14/10/2026 — demanda a05ad2ee)
 // LINHAS: (ver versoes.json)
 // -----------------------------------------------------------------
+// NOVIDADES (Beta v1.1.0) (14/10/2026, sessão 20261014-2145-onda9c-textos, demanda a05ad2ee; onda 9c do estudo, D6 seção 10) — textos no
+//   limite: ação até 24, descrição até 28, aviso e tela vazia até 40 caracteres. Nada de comportamento mudou.
+// Versão anterior (Beta v1.0.1):
 // NOVIDADES (Beta v1.0.1) — sessão 20261007-0207-ia-falha ("Pode fazer sim" do Nicola 07/10 02:07):
 //   o erro ao começar ("Não consegui começar agora…") saía como toast VERDE com ✓ — o tipo 'aviso'
 //   não existe no mostrarToast do app e caía no padrão de sucesso. Passa a 'danger' (vermelho, com a
@@ -29,7 +32,7 @@
 
 import * as docs from './cofre-documentos.js';
 
-export const VERSAO = '1.0.1';
+export const VERSAO = '1.1.0';
 
 const TIPOS = [
     { c: 'lista_ativos', ic: 'list', t: 'Lista de ativos', d: 'Planilha ou PDF com seus imóveis, veículos e outros bens', cria: 'A equipe Raiz cadastra os ativos da lista', dica: 'Mande a planilha ou o PDF. A equipe Raiz cadastra os ativos e te avisa.' },
@@ -159,7 +162,7 @@ function telaEnviar() {
         <p class="rz-desc">${nDocs(documentos.length)} · ${c.lidos || 0} pronto${(c.lidos || 0) === 1 ? '' : 's'} · ${c.confira || 0} para conferir · ${c.equipe || 0} com a equipe Raiz</p>
         ${documentos.length ? `<div class="rz-chips">${FILTROS.map(([k, rot]) => `<button type="button" class="rz-chip ${st.filtro === k ? 'rz-on' : ''}${k === 'voce' && conta(k) ? ' rz-warn' : ''}" data-filtro="${k}">${rot} <span class="rz-n">${conta(k)}</span></button>`).join('')}</div>
         <div class="rz-card">${linhas || '<p class="rz-desc">Nada neste filtro.</p>'}</div>` :
-        `<div class="rz-card"><div class="rz-empty"><div class="rz-ic"><svg data-lucide="inbox"></svg></div><p>Nenhum documento ainda. Comece pelo botão acima.</p></div></div>`}
+        `<div class="rz-card"><div class="rz-empty"><div class="rz-ic"><svg data-lucide="inbox"></svg></div><p>Nenhum documento ainda.</p></div></div>`}
         <div class="rz-acts">
             <button type="button" class="rz-btn rz-btn-2" id="ci-depois">Terminar depois</button>
             <button type="button" class="rz-btn rz-btn-2" id="ci-resumo">Ver resumo</button>
@@ -205,7 +208,7 @@ function ligar(corpo) {
     corpo.querySelector('#ci-enviar')?.addEventListener('click', enviar);
     corpo.querySelector('#ci-depois')?.addEventListener('click', () => {
         fecharSheet();
-        mostrarToast('Tudo guardado. Você continua de onde parou pelo + de Ativos.');
+        mostrarToast('Guardado. Continue pelo + de Ativos.');
     });
     corpo.querySelector('#ci-resumo')?.addEventListener('click', () => { st.tela = 'resumo'; desenhar(); });
     corpo.querySelector('#ci-mais-docs')?.addEventListener('click', () => { st.tela = 'enviar'; desenhar(); });
