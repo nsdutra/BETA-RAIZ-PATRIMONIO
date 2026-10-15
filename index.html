@@ -6,9 +6,18 @@
    (base derivada do RUMO v7.4.2 — histórico de versões anteriores
    preservado abaixo para referência técnica)
 
-   VERSÃO: Beta v1.421.0
-   LINHAS: 16879
-   DATA: 15/10/2026 (sessão 20261014-2345-usos-fatia4, demanda 3022603b)
+   VERSÃO: Beta v1.422.0
+   LINHAS: 16987
+   DATA: 15/10/2026 (sessão 20261014-2245-ia-integrada, demandas 7f966068 e 4a28ad50)
+   NOVIDADES (Beta v1.422.0) — RAIZ IA INTEGRADA (FICHA_INTEGRACAO_RAIZ_IA_ROBO_RAIZ v1.1.0, de acordo do Nicola 14/10 22:43,
+   fatia I3): a Raiz IA do app usa o mesmo intérprete do robô (Edge raiz-ia-registrar 1.2.0 · _shared_ia 2.0.0) e ganha
+   dar baixa, cobrar, recibo, relatórios, pendências, buscar contrato, extrato, fatura e documento — sempre abrindo a
+   tela de sempre, preenchida — e vários pedidos numa frase ("Entendi N pedidos", um de cada vez). Receita abre a
+   "Receita sem contrato" preenchida (financeiro.js 1.67.0). CONTABILIDADE × ENVIO AO CONTADOR (FICHA_CONTABILIDADE_
+   ROTINA_CONTADOR_RAIZ v1.1.0): ao ligar a rotina, "Quais ativos entram?" — Todos · Escolher · Agora não
+   (comum-minha-empresa.js 1.20.0); incluir com a rotina desligada avisa (cofre-ativos.js 1.111.0). Banco:
+   contabil_rotina_contador_v1 (o ativo nasce fora com a rotina desligada).
+   Versão anterior (Beta v1.421.0):
    NOVIDADES (Beta v1.421.0) — Fatia 4 (FICHA_FATIA4_PROGRAMAS_RAIZ v1.2.0, de acordo do Nicola 14/10 21:42 e 23:34). (1) Chip
    Controles da ficha do ativo: "Programa sugerido" (Veículo, Cuidado do imóvel, Imóvel disponível, Reforma, Compra na
    planta…) com Aceitar e Agora não; a folha Aceitar tem caixas e pede a data só quando o item precisa (vence em, última
@@ -35,15 +44,8 @@
    na lista de Ativos. js/cofre-ativos.js 1.107.0, js/cofre-validacoes.js 2.6.0, js/ativos/ativos-markup.js 1.64.0; o index
    lê o nome do subativo de cada ramo. Banco: usos_fatia3b_estrutura_v1 e usos_fatia3b_dados_v1.
    Versão anterior (Beta v1.417.0):
-   NOVIDADES (Beta v1.417.0) — teste do Nicola 14/10 22:12. (1) Agenda: abrir e fechar um grupo de alertas ("4
-   documentos sem vínculo") redesenha a própria Agenda — antes só aparecia depois de mudar o período. (2) Voltar das
-   telas antigas (Atrasados, ficha do imóvel, detalhe do recebimento, Recebimentos/Saídas filtradas) vira .rz-back:
-   some no Android e segue a regra do iPhone e do computador (UXR-51). (3) Módulos: chip Contador com cadeado quando a
-   rotina "Envio ao contador" está desligada (financeiro.js 1.66.0); cadastro de contador por cima da tela atual
-   (conta.js 1.2.0); textos dentro de condição no limite da D6 (7 módulos). Sem banco.
-   Versão anterior (Beta v1.416.0):
    ------------------------------------------------------------------
-   Versões anteriores (v1.416.0 … v1.416.0): CHANGELOG_APP.md, na raiz do
+   Versões anteriores (v1.417.0 … v1.417.0): CHANGELOG_APP.md, na raiz do
    repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
    das 5 versões mais recentes deste cabeçalho.
 
@@ -71,7 +73,7 @@
          O navegador aplica o mapa também aos imports estáticos dentro dos
          módulos (cofre-app.js → ./cofre-api.js etc.). -->
     <!-- RZ-IMPORTMAP:INICIO -->
-    <script type="importmap">{"imports":{"./js/cadastros.js":"./js/cadastros.js?v=1.3.0","./js/financeiro.js":"./js/financeiro.js?v=1.66.0","./js/fechamento.js":"./js/fechamento.js?v=1.15.0","./js/contratos.js":"./js/contratos.js?v=1.60.0","./js/minutas.js":"./js/minutas.js?v=1.6.0","./js/vitrine.js":"./js/vitrine.js?v=1.6.0","./js/imoveis.js":"./js/imoveis.js?v=1.8.0","./js/cofre-api.js":"./js/cofre-api.js?v=1.51.0","./js/cofre-app.js":"./js/cofre-app.js?v=1.49.0","./js/cofre-ativos.js":"./js/cofre-ativos.js?v=1.110.0","./js/cofre-controles.js":"./js/cofre-controles.js?v=1.60.0","./js/cofre-documentos.js":"./js/cofre-documentos.js?v=2.37.0","./js/cofre-imagem.js":"./js/cofre-imagem.js?v=1.1.0","./js/cofre-estado.js":"./js/cofre-estado.js?v=1.5.2","./js/cofre-navegacao.js":"./js/cofre-navegacao.js?v=1.10.0","./js/cofre-ui.js":"./js/cofre-ui.js?v=1.7.2","./js/cofre-validacoes.js":"./js/cofre-validacoes.js?v=2.6.0","./js/comum-licenca.js":"./js/comum-licenca.js?v=1.9.0","./js/comum-renovacao.js":"./js/comum-renovacao.js?v=1.3.5","./js/comum-minha-empresa.js":"./js/comum-minha-empresa.js?v=1.19.0","./js/comum-pessoas.js":"./js/comum-pessoas.js?v=1.214.0","./js/comum-sobre.js":"./js/comum-sobre.js?v=1.5.0","./js/comum-endereco.js":"./js/comum-endereco.js?v=1.2.0","./js/comum-partes.js":"./js/comum-partes.js?v=1.0.0","./js/resultados.js":"./js/resultados.js?v=2.10.0","./js/indicadores.js":"./js/indicadores.js?v=1.2.0","./js/configuracao-inicial.js":"./js/configuracao-inicial.js?v=1.1.0","./js/relatorios-executivos.js":"./js/relatorios-executivos.js?v=1.4.0","./js/raiz-eventos.js":"./js/raiz-eventos.js?v=1.0.0","./js/raiz-device.js":"./js/raiz-device.js?v=1.1.0","./js/raiz-ui.js":"./js/raiz-ui.js?v=1.5.0","./js/fiscal.js":"./js/fiscal.js?v=1.7.0","./js/ativos/ativos-boot.js":"./js/ativos/ativos-boot.js?v=1.4.0","./js/ativos/ativos-markup.js":"./js/ativos/ativos-markup.js?v=1.64.0","./js/nucleo/porta.js":"./js/nucleo/porta.js?v=1.5.0","./js/partes.js":"./js/partes.js?v=1.1.0","./js/conta.js":"./js/conta.js?v=1.2.0","./js/grupo-visao.js":"./js/grupo-visao.js?v=1.0.0","./js/agenda.js":"./js/agenda.js?v=1.4.0"}}</script>
+    <script type="importmap">{"imports":{"./js/cadastros.js":"./js/cadastros.js?v=1.3.0","./js/financeiro.js":"./js/financeiro.js?v=1.67.0","./js/fechamento.js":"./js/fechamento.js?v=1.15.0","./js/contratos.js":"./js/contratos.js?v=1.60.0","./js/minutas.js":"./js/minutas.js?v=1.6.0","./js/vitrine.js":"./js/vitrine.js?v=1.6.0","./js/imoveis.js":"./js/imoveis.js?v=1.8.0","./js/cofre-api.js":"./js/cofre-api.js?v=1.51.0","./js/cofre-app.js":"./js/cofre-app.js?v=1.49.0","./js/cofre-ativos.js":"./js/cofre-ativos.js?v=1.111.0","./js/cofre-controles.js":"./js/cofre-controles.js?v=1.60.0","./js/cofre-documentos.js":"./js/cofre-documentos.js?v=2.37.0","./js/cofre-imagem.js":"./js/cofre-imagem.js?v=1.1.0","./js/cofre-estado.js":"./js/cofre-estado.js?v=1.5.2","./js/cofre-navegacao.js":"./js/cofre-navegacao.js?v=1.10.0","./js/cofre-ui.js":"./js/cofre-ui.js?v=1.7.2","./js/cofre-validacoes.js":"./js/cofre-validacoes.js?v=2.6.0","./js/comum-licenca.js":"./js/comum-licenca.js?v=1.9.0","./js/comum-renovacao.js":"./js/comum-renovacao.js?v=1.3.5","./js/comum-minha-empresa.js":"./js/comum-minha-empresa.js?v=1.20.0","./js/comum-pessoas.js":"./js/comum-pessoas.js?v=1.214.0","./js/comum-sobre.js":"./js/comum-sobre.js?v=1.5.0","./js/comum-endereco.js":"./js/comum-endereco.js?v=1.2.0","./js/comum-partes.js":"./js/comum-partes.js?v=1.0.0","./js/resultados.js":"./js/resultados.js?v=2.10.0","./js/indicadores.js":"./js/indicadores.js?v=1.2.0","./js/configuracao-inicial.js":"./js/configuracao-inicial.js?v=1.1.0","./js/relatorios-executivos.js":"./js/relatorios-executivos.js?v=1.4.0","./js/raiz-eventos.js":"./js/raiz-eventos.js?v=1.0.0","./js/raiz-device.js":"./js/raiz-device.js?v=1.1.0","./js/raiz-ui.js":"./js/raiz-ui.js?v=1.5.0","./js/fiscal.js":"./js/fiscal.js?v=1.7.0","./js/ativos/ativos-boot.js":"./js/ativos/ativos-boot.js?v=1.4.0","./js/ativos/ativos-markup.js":"./js/ativos/ativos-markup.js?v=1.64.0","./js/nucleo/porta.js":"./js/nucleo/porta.js?v=1.5.0","./js/partes.js":"./js/partes.js?v=1.1.0","./js/conta.js":"./js/conta.js?v=1.2.0","./js/grupo-visao.js":"./js/grupo-visao.js?v=1.0.0","./js/agenda.js":"./js/agenda.js?v=1.4.0"}}</script>
     <!-- RZ-IMPORTMAP:FIM -->
 
     <!-- ===== PWA: permite "instalar" o app no celular (Android e iPhone) ===== -->
@@ -4379,7 +4381,7 @@
         // texto certo toda vez (esqueci 5 versões seguidas, de v1.37.1 até
         // v1.38.3). Agora só precisa mudar UMA linha aqui a cada release;
         // window.onload aplica nos dois lugares automaticamente.
-        const APP_VERSAO = "Beta v1.421.0"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
+        const APP_VERSAO = "Beta v1.422.0"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
 
         // ====================================================================
         // v1.105.0 — HELPERS DE SUPERFÍCIE DA GRAMÁTICA ÚNICA
@@ -9785,6 +9787,10 @@ async function criarLinkVitrineSupabase(token, idsSelecionados) {
         // campo único: pergunta ou registro, por texto ou voz. A frase vai à Edge raiz-ia-registrar (mesmo modelo e
         // vocabulário do robô, _shared_ia) e volta como despesa · receita · ocorrência · pergunta; o app abre SEMPRE o
         // formulário preenchido — nada grava sem o toque em Salvar (UXR-37). Atalhos: Ocorrência · Lançamento · Documento.
+        // v1.422.0 (demanda 7f966068, FICHA_INTEGRACAO_RAIZ_IA_ROBO_RAIZ v1.0.0, de acordo do Nicola 14/10 22:43, fatia I3) — a
+        // Raiz IA do app usa o MESMO intérprete do robô (_shared_ia 2.0.0, Edge raiz-ia-registrar 1.2.0) e ganha o que o robô
+        // já fazia: dar baixa, cobrar, recibo, relatórios, pendências, buscar contrato, extrato, fatura e documento, e VÁRIOS
+        // pedidos numa frase (fila "Entendi N pedidos", um de cada vez). Receita abre a "Receita sem contrato" preenchida.
         // v1.401.0 — a Raiz IA fica "no fundo": o que ela abrir (formulário, busca, "Qual destes?") volta para ela quando
         // fecha — salvando ou não. Vale para sheet e para os formulários em modal (Nova saída). Escolher um resultado da
         // busca leva à ficha e encerra a volta. Nada abriu em 10 s (ex.: escolher arquivo) também encerra.
@@ -9805,7 +9811,7 @@ async function criarLinkVitrineSupabase(token, idsSelecionados) {
                 if (!visto) { if (voltas > 25) rzIaFundoParar(); return; }
                 if (++vazios < 2) return;
                 rzIaFundoParar();
-                abrirSheetRaizIA();
+                if (rzIaFila.length) rzIaMostrarFila(); else abrirSheetRaizIA(); // v1.422.0 — vários pedidos: volta para a fila
             }, 400);
         }
         function abrirSheetRaizIA() {
@@ -9881,28 +9887,130 @@ async function criarLinkVitrineSupabase(token, idsSelecionados) {
                 return;
             }
             fecharSheet();
-            rzIaVoltarAoFechar(); // v1.401.0 — fecha o que abrir e volta para a Raiz IA
             if (r.aviso_limite) rzAvisar(r.aviso_limite, 'aviso');
-            const p = r.parametros || {};
-            const comAtivo = (fazer) => {
-                if (p.ativo_id || !(r.candidatos || []).length) return fazer(p.ativo_id || null);
-                abrirSheetAcoes({ titulo: 'Qual destes?', sub: `“${p.ativo_termo || ''}”`, acoes: [
-                    ...r.candidatos.map(c => ({ icone: 'boxes', titulo: c.nome, aoTocar: () => fazer(c.id) })),
-                    { icone: 'minus', titulo: 'Nenhum destes', aoTocar: () => fazer(null) },
-                ] });
-            };
-            if (r.intencao === 'despesa') return comAtivo((ativoId) => rzAbrirDespesaPreenchida(ativoId, { valor: p.valor, descricao: p.descricao, vencimento: p.data, categoria: p.categoria }));
-            if (r.intencao === 'receita') { if (typeof window.abrirNovoRecebimento === 'function') window.abrirNovoRecebimento(); if (p.valor) rzAvisar(`Confira o valor: ${formatarMoedaBR(p.valor)}`, 'info'); return; }
-            if (r.intencao === 'ocorrencia') return comAtivo((ativoId) => rzNovaOcorrencia({ ativoId, descricao: p.descricao || texto, data: p.data }));
-            if (r.intencao === 'pergunta') {
-                const sh = rzAbrirBuscaUniversal();
-                setTimeout(() => { const i = sh && sh.querySelector('#rz-bu-q'); if (i) { i.value = texto; i.dispatchEvent(new Event('input', { bubbles: true })); } }, 120);
-                return;
-            }
+            // v1.422.0 (demanda 7f966068, I3) — o intérprete é o mesmo do robô (_shared_ia 2.0.0): a resposta traz acoes[]
+            // (várias numa frase). Edge antiga sem acoes[] → a intenção única de antes.
+            const acoes = Array.isArray(r.acoes) ? r.acoes
+                : (r.intencao && r.intencao !== 'nao_entendi' ? [{ intencao: r.intencao, parametros: r.parametros || {}, candidatos: r.candidatos || [] }] : []);
+            rzIaFila = [];
+            if (acoes.length > 1) { rzIaFila = acoes.slice(); rzIaMostrarFila(); return; }
+            rzIaVoltarAoFechar(); // v1.401.0 — fecha o que abrir e volta para a Raiz IA
+            if (acoes.length === 1) return rzIaExecutar(acoes[0], texto);
             abrirSheetAcoes({ titulo: 'Não entendi', sub: `“${texto.slice(0, 80)}”`, acoes: [
                 { icone: 'wallet', titulo: 'É um lançamento', sub: 'Pagamento ou recebimento', aoTocar: () => rzEscolherLancamento({ descricao: texto }) },
                 { icone: 'wrench', titulo: 'É uma ocorrência', sub: 'Aconteceu com um bem', aoTocar: () => rzNovaOcorrencia({ descricao: texto }) },
             ] });
+        }
+
+        // v1.422.0 — "Entendi N pedidos": um de cada vez; o que abrir volta para cá até a fila acabar (como o robô)
+        let rzIaFila = [];
+        const RZ_IA_ICONE = { despesa: 'arrow-up-right', receita: 'arrow-down-left', ocorrencia: 'wrench', dar_baixa: 'check', cobrar: 'message-circle',
+            recibo: 'receipt', relatorio: 'bar-chart-2', pendencias: 'bell', buscar_contrato: 'search', comprovante: 'file-up', cofre_upload: 'file-up',
+            extrato: 'file-down', fatura_cartao: 'credit-card', pergunta: 'search' };
+        function rzIaResumo(ac) {
+            const p = ac.parametros || {}, v = p.valor ? formatarMoedaBR(p.valor) : '', d = p.descricao || '';
+            const quem = p.nome_locatario || p.nome_rua || p.termo_busca || '';
+            const m = { despesa: ['Saída', [v, d].filter(Boolean).join(' · ')], receita: ['Receita', [v, d].filter(Boolean).join(' · ')],
+                ocorrencia: ['Ocorrência', [d, p.ativo_termo].filter(Boolean).join(' · ')], dar_baixa: ['Dar baixa', quem], cobrar: ['Cobrar', quem],
+                recibo: ['Recibo', quem], relatorio: ['Relatórios', p.competencia || ''], pendencias: ['Pendências', 'Alertas e atrasos'],
+                buscar_contrato: ['Buscar', quem], comprovante: ['Enviar documento', ''], cofre_upload: ['Enviar documento', ''],
+                extrato: ['Importar extrato', ''], fatura_cartao: ['Importar fatura', ''], pergunta: ['Buscar', p.termo_busca || ''] }[ac.intencao] || [ac.intencao, ''];
+            return { titulo: m[0], sub: String(m[1] || '').slice(0, 28) };
+        }
+        function rzIaMostrarFila() {
+            rzIaFundoParar();
+            if (!rzIaFila.length) return;
+            abrirSheetAcoes({ titulo: rzIaFila.length === 1 ? 'Falta 1 pedido' : `Entendi ${rzIaFila.length} pedidos`, sub: 'Um de cada vez', acoes: [
+                ...rzIaFila.map((ac, i) => { const r = rzIaResumo(ac); return { icone: RZ_IA_ICONE[ac.intencao] || 'sparkles', titulo: r.titulo, sub: r.sub,
+                    aoTocar: () => { const [escolhida] = rzIaFila.splice(i, 1); rzIaVoltarAoFechar(); rzIaExecutar(escolhida, ''); } }; }),
+                { icone: 'x', titulo: 'Deixar o resto', sub: 'Nada é gravado', aoTocar: () => { rzIaFila = []; } },
+            ] });
+        }
+
+        // v1.422.0 — contratos que casam com o nome/endereço falado ("da Maria", "da Augusta"): todas as palavras no texto
+        function rzIaAcharContratos(p) {
+            const norm = (t) => String(t || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+            const termo = norm([p.nome_locatario, p.nome_rua, p.termo_busca].filter(Boolean).join(' '));
+            const palavras = termo.split(' ').filter(w => w.length > 1 && !['de', 'do', 'da', 'dos', 'das', 'no', 'na', 'rua', 'av'].includes(w));
+            if (!palavras.length) return { termo: '', lista: [] };
+            const lista = (contratos || []).filter(c => {
+                const imo = (imoveis || []).find(i => i.id === c.imovelId) || {};
+                const tudo = ' ' + norm([c.locatario, imo.empreendimento, imo.enderecoRua, imo.enderecoNum, imo.unidade].filter(Boolean).join(' ')) + ' ';
+                return palavras.every(w => tudo.includes(' ' + w) || tudo.includes(w));
+            }).sort((a, b) => (a.status === 'Ativo' ? 0 : 1) - (b.status === 'Ativo' ? 0 : 1));
+            return { termo: [p.nome_locatario, p.nome_rua, p.termo_busca].filter(Boolean).join(' '), lista };
+        }
+        function rzIaRotuloContrato(c) {
+            const imo = (imoveis || []).find(i => i.id === c.imovelId);
+            return { titulo: c.locatario || 'Contrato', sub: String(imo ? (imo.empreendimento || imo.enderecoRua || '') : '').slice(0, 28) };
+        }
+        // um contrato → fazer(c); vários → "Qual contrato?"; nenhum → busca em tudo com o termo
+        function rzIaComContrato(p, fazer) {
+            const { termo, lista } = rzIaAcharContratos(p);
+            if (lista.length === 1) return fazer(lista[0]);
+            if (lista.length > 1) return abrirSheetAcoes({ titulo: 'Qual contrato?', sub: `“${termo.slice(0, 40)}”`, acoes: lista.slice(0, 8).map(c => ({ icone: 'file-text', ...rzIaRotuloContrato(c), aoTocar: () => fazer(c) })) });
+            rzAvisar(termo ? 'Contrato não encontrado' : 'Diga de qual contrato', 'aviso');
+            rzIaBuscar(termo);
+        }
+        const rzIaChaveRef = (m) => { const [mm, aa] = String(m.referencia || '').split('/'); return (aa || '') + (mm || ''); };
+        // meses do contrato que atendem o filtro; um → fazer(m); vários → "Qual mês?"
+        function rzIaComMes(con, filtro, recentesPrimeiro, vazio, fazer) {
+            const lista = (mensalidades || []).filter(m => m.contratoId === con.id && filtro(m))
+                .sort((a, b) => recentesPrimeiro ? rzIaChaveRef(b).localeCompare(rzIaChaveRef(a)) : rzIaChaveRef(a).localeCompare(rzIaChaveRef(b)));
+            if (!lista.length) { rzAvisar(vazio, 'info'); if (typeof window.abrirFichaContrato === 'function') window.abrirFichaContrato(con.id); return; }
+            if (lista.length === 1) return fazer(lista[0]);
+            abrirSheetAcoes({ titulo: 'Qual mês?', sub: con.locatario || '', acoes: lista.slice(0, 8).map(m => ({ icone: 'calendar', titulo: m.referencia,
+                sub: formatarMoedaBR(Number(m.valorConfirmado ?? m.valor ?? 0)), aoTocar: () => fazer(m) })) });
+        }
+        function rzIaBuscar(termo) {
+            const sh = rzAbrirBuscaUniversal();
+            setTimeout(() => { const i = sh && sh.querySelector('#rz-bu-q'); if (i && termo) { i.value = termo; i.dispatchEvent(new Event('input', { bubbles: true })); } }, 120);
+        }
+
+        // v1.422.0 — o que cada intenção abre no app: SEMPRE a tela que já existe, preenchida, para conferir (D4, UXR-37)
+        function rzIaExecutar(ac, texto) {
+            const p = ac.parametros || {};
+            const comAtivo = (fazer) => {
+                if (p.ativo_id || !(ac.candidatos || []).length) return fazer(p.ativo_id || null);
+                abrirSheetAcoes({ titulo: 'Qual destes?', sub: `“${p.ativo_termo || ''}”`, acoes: [
+                    ...ac.candidatos.map(c => ({ icone: 'boxes', titulo: c.nome, aoTocar: () => fazer(c.id) })),
+                    { icone: 'minus', titulo: 'Nenhum destes', aoTocar: () => fazer(null) },
+                ] });
+            };
+            switch (ac.intencao) {
+                case 'despesa': return comAtivo((ativoId) => rzAbrirDespesaPreenchida(ativoId, { valor: p.valor, descricao: p.descricao, vencimento: p.data, categoria: p.categoria }));
+                case 'receita': return comAtivo((ativoId) => { // v1.422.0 — "Receita sem contrato" preenchida (antes abria o recebimento de contrato, vazio)
+                    if (typeof window.abrirReceitaAvulsa === 'function') window.abrirReceitaAvulsa({ valor: p.valor, descricao: p.descricao, data: p.data, categoria: p.categoria, ativoId });
+                    else if (typeof window.abrirNovoRecebimento === 'function') window.abrirNovoRecebimento(); });
+                case 'ocorrencia': return comAtivo((ativoId) => rzNovaOcorrencia({ ativoId, descricao: p.descricao || texto, data: p.data }));
+                case 'dar_baixa':
+                    if (rzMostrarBloqueio('mensal.baixar')) return;
+                    if (!(p.nome_locatario || p.nome_rua || p.termo_busca)) { switchTab('tab-mensal'); rzAvisar('Escolha o recebimento', 'info'); return; }
+                    return rzIaComContrato(p, (con) => rzIaComMes(con, (m) => m.status !== 'Pago', false, 'Nada em aberto neste contrato', (m) => window.rzAbrirBaixaMensalidade(m.id)));
+                case 'cobrar':
+                    if (rzMostrarBloqueio('cobrar.lembrete')) return;
+                    if (!(p.nome_locatario || p.nome_rua || p.termo_busca)) { switchTab('tab-inadimplencia'); return; }
+                    return rzIaComContrato(p, (con) => rzIaComMes(con, (m) => m.status !== 'Pago', false, 'Nada em aberto neste contrato', (m) => window.rzAcoesMensalidade(m.id)));
+                case 'recibo':
+                    if (rzMostrarBloqueio('recibo.gerar')) return;
+                    if (!(p.nome_locatario || p.nome_rua || p.termo_busca)) { switchTab('tab-mensal'); rzAvisar('Escolha um recebimento pago', 'info'); return; }
+                    return rzIaComContrato(p, (con) => rzIaComMes(con, (m) => m.status === 'Pago', true, 'Nenhum mês pago neste contrato', (m) => window.abrirModalOpcoesRecibo(m.id, con.id)));
+                case 'relatorio': return switchTab('tab-relatorios-catalogo');
+                case 'pendencias': return abrirTabAlertas();
+                case 'buscar_contrato': {
+                    const { termo, lista } = rzIaAcharContratos(p);
+                    if (lista.length === 1 && typeof window.abrirFichaContrato === 'function') return window.abrirFichaContrato(lista[0].id);
+                    return rzIaBuscar(termo || texto);
+                }
+                case 'comprovante': case 'cofre_upload': return abrirUploadDocumentoNoApp();
+                case 'extrato':
+                    if (rzMostrarBloqueio('conciliacao.importar')) return;
+                    switchTab('tab-mensal'); setTimeout(() => document.getElementById('extrato-file-input')?.click(), 250); return;
+                case 'fatura_cartao':
+                    if (rzMostrarBloqueio('cartao.importar')) return;
+                    if (typeof window.financeiroImportarFatura === 'function') window.financeiroImportarFatura(); return;
+                default: return rzIaBuscar(p.termo_busca || texto); // pergunta → busca em tudo
+            }
         }
 
         function rzAbrirDespesaPreenchida(ativoId, sugestoes) {

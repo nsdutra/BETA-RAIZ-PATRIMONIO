@@ -1,7 +1,13 @@
 // ============================================================================
 // financeiro.js — Raiz Patrimônio · Financeiro (Recebimentos · Atrasados · Saídas
 //                  · conciliação de extrato · recibo · detalhe do recebimento)
-// Versão: 1.66.0 · 14/10/2026
+// Versão: 1.67.0 · 15/10/2026
+//
+// v1.67.0 (15/10/2026, sessão 20261014-2245-ia-integrada, demanda 7f966068; FICHA_INTEGRACAO_RAIZ_IA_ROBO_RAIZ v1.0.0, de acordo
+// do Nicola 14/10 22:43, fatia I3) — "Receita sem contrato" (abrirReceitaAvulsa) aceita as sugestões da Raiz IA (valor,
+// descrição, data, categoria de entrada e bem) e abre preenchida para conferir. Antes a receita lida pela Raiz IA abria o
+// recebimento de contrato, vazio.
+// Versão anterior: 1.66.0 · 14/10/2026
 //
 // v1.66.0 (14/10/2026, sessão 20261014-2215-ajustes-9d, demanda a05ad2ee; teste do Nicola 14/10 22:12) — (1) o chip Contador da faixa
 // de rotinas segue a rotina "Envio ao contador": desligada, aparece com cadeado ("Contador desligado") e leva a Empresa ›
@@ -25,19 +31,11 @@
 // forma para todos, valor de cada um editável; grava um por um com a mesma sincronização da baixa individual e oferece
 // Desfazer); Saídas › "Marcar como pagas" (idem, só lançamentos sem fatura); e "Exportar" (CSV das linhas marcadas).
 // Pagos/faturas são ignorados no lote, com aviso. Abaixo de 1024 px e no celular a lista de sempre. Sem banco.
-// Versão anterior: 1.62.0 · 14/10/2026
-//
-// v1.62.0 (14/10/2026, sessão 20261014-1355-cartao-adicional, demanda c63d7f9f; FICHA_CARTAO_ADICIONAL_F10_F11 v1.1.0, de
-// acordo do Nicola 14/10 13:52) — CARTÃO ADICIONAL: a importação lista só cartões principais (a fatura do adicional é a do
-// principal) e manda o final de cada compra lida (o banco liga ao adicional); a conferência conta as compras por cartão.
-// A fatura ganha o card "Por cartão" (principal e cada adicional, com quem usa, a conta em que cai e o total; tocar filtra
-// as compras), o final do adicional em cada compra e a ação "Mover para o adicional" / "Voltar ao principal"
-// (fn_fatura_item_classificar com p_cartao_uso_id). Quem vê só o adicional vê só as compras dele, sem "Marcar como paga".
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.61.0 … v1.61.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.62.0 … v1.62.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '1.66.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.67.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 
 // v1.17.0 (Fase 1 do wrapper de escrita, rollout Financeiro) — emitirEscrita
 // é o evento padrão pra "algo mudou que módulos DE FORA deste arquivo podem
@@ -5516,7 +5514,7 @@ export async function abrirAdicionarRecebimento() {
     else if (v === 'avulso') abrirReceitaAvulsa();
 }
 
-export async function abrirReceitaAvulsa() {
+export async function abrirReceitaAvulsa(sugestoes) { // v1.67.0 — sugestoes da Raiz IA: { valor, descricao, data, categoria, ativoId }
     if (typeof abrirSheetForm !== 'function') return;
     let ativos = [];
     try { ativos = (typeof carregarAtivosParaSelectSupabase === 'function') ? await carregarAtivosParaSelectSupabase() : []; } catch (e) { ativos = []; }
@@ -5567,6 +5565,17 @@ export async function abrirReceitaAvulsa() {
     });
     selC?.addEventListener('change', () => { const f = categoriaDoCatalogo(selC.value); if (chkC && f) chkC.checked = f.contabilidade_padrao !== false; atualizarRav(); });
     chkC?.addEventListener('change', atualizarRav);
+    // v1.67.0 — veio da Raiz IA ("recebi 1.200 de juros"): já abre preenchido para conferir (nada grava sem Salvar)
+    if (sugestoes && sheet) {
+        const pv = (id, v) => { const el = sheet.querySelector(id); if (el && v != null && v !== '') el.value = v; };
+        pv('#rav-descricao', sugestoes.descricao); pv('#rav-valor', sugestoes.valor); pv('#rav-data', sugestoes.data);
+        if (sugestoes.ativoId && sheet.querySelector(`#rav-ativo option[value="${sugestoes.ativoId}"]`)) pv('#rav-ativo', sugestoes.ativoId);
+        const folha = sugestoes.categoria ? cat.find(c => c.codigo === sugestoes.categoria && c.direcao === 'entrada' && c.categoria_pai) : null;
+        if (folha && selG && selC) {
+            selG.value = folha.categoria_pai; selG.dispatchEvent(new Event('change'));
+            selC.value = folha.codigo; selC.dispatchEvent(new Event('change'));
+        }
+    }
     atualizarRav();
     sheet?.querySelectorAll('#rav-seg button').forEach(b => b.addEventListener('click', () => {
         sheet.querySelectorAll('#rav-seg button').forEach(x => x.classList.toggle('rz-on', x === b));

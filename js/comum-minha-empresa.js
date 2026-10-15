@@ -1,6 +1,13 @@
 // ============================================================================
 // comum-minha-empresa.js — Raiz Patrimônio · Administração compartilhada
-// Versão: 1.19.0 · 14/10/2026
+// Versão: 1.20.0 · 15/10/2026
+//
+// v1.20.0 (15/10/2026, sessão 20261014-2245-ia-integrada, demanda 4a28ad50; FICHA_CONTABILIDADE_ROTINA_CONTADOR_RAIZ v1.1.0, de
+// acordo do Nicola 14/10 22:43 e 23:00) — ao ligar a rotina "Envio ao contador", a folha "Quais ativos entram?" lista os
+// ativos que estão fora da contabilidade (lido do cadastro de cada um) com Todos · Escolher (marcar um a um) · Agora não;
+// grava por fn_ativos_contabilidade_definir (sub-ativo acompanha o principal; pessoa e pet nunca entram). Com a rotina
+// desligada, o banco já faz o ativo novo nascer fora (trigger trg_cofre_ativos_vida_fora_contabil v2).
+// Versão anterior: 1.19.0 · 14/10/2026
 //
 // v1.19.0 (14/10/2026, sessão 20261014-2215-ajustes-9d, demanda a05ad2ee; teste do Nicola 14/10 22:12 — "no menu ativos achei
 // uns itens ainda grandinhos") — textos dentro de condição (sub/titulo com ? :) e dicionários de descrição também no limite
@@ -23,18 +30,11 @@
 // deixar apenas pelos ativos") — Minha empresa › Contas perde o "+": conta e cartão novos nascem pelo item de controle
 // (cofre-controles.js 1.55.0). A lista continua (editar, encerrar, excluir). abrirFichaConta ganha fixarEmpresa (titular
 // Empresa preso, usado pelos Controles da empresa).
-// Versão anterior: 1.15.0 · 11/10/2026
-//
-// v1.15.0 (11/10/2026, sessão 20261008-1231-pessoas-ativos, demanda 7c5c4c65; F13.8, ficha v1.4.0 e protótipo v1.3.0; de acordo do Nicola 11/10 22:55) — chip Rotinas ganha a
-// linha fixa "Controlar retiradas extraordinárias por partes" com Ligado/Desligado. O ⋮ abre "Pessoas e partes" (o editor
-// único de divisão, com "Dividir igual"), Ligar/Desligar controle e "Ver relatório". Grava só por
-// fn_partes_retiradas_definir (soma 100%; desligar guarda as partes). Sem retiradas.partes.editar no plano/perfil, a linha
-// aparece com cadeado e o motivo (planos Plus e acima).
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.14.0 … v1.14.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.15.0 … v1.15.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '1.19.0'; // v-check (20/09/2026): lido por Dev › Versões — manter igual ao header
+export const VERSAO = '1.20.0'; // v-check (20/09/2026): lido por Dev › Versões — manter igual ao header
 import { perguntar } from './cofre-ui.js'; // v1.9.0 (F0.2b) — sem diálogo nativo
 import { rzMostrarBloqueio as rzBloqueio, podeUsar as podeUsarMod } from './comum-licenca.js'; // v1.10.0 — porta de licença (contas)
 export const COMUM_MINHA_EMPRESA_VERSAO = '1.0.0';
@@ -657,6 +657,8 @@ export async function montarAbaMinhaEmpresa(mountEl, ctx) {
                                 onToast?.('Rotina ligada.', 'success');
                                 registrarLog?.('cofre.controles.criar', { subtipo: codigo, origem: 'rotina' });
                                 renderRotinasCard();
+                                // v1.20.0 — ligou o Envio ao contador: quais ativos (hoje fora) entram na contabilidade
+                                if (codigo === 'envio_contador') perguntarAtivosContabilidade(dbAuth, clienteId, onToast);
                             } catch (err) { onToast?.('Falha ao ligar: ' + err.message, 'danger'); }
                         }
                     }]
@@ -997,6 +999,52 @@ async function buscarRotinasEmpresa(dbAuth, clienteId) {
 async function ligarRotinaEmpresa(dbAuth, clienteId, subtipoCodigo) {
     const { error } = await dbAuth.rpc('fn_rotina_empresa_ligar', { p_cliente_id: clienteId, p_subtipo_codigo: subtipoCodigo });
     if (error) throw error;
+}
+
+// v1.20.0 (demanda 4a28ad50, FICHA_CONTABILIDADE_ROTINA_CONTADOR v1.1.0) — ao ligar o "Envio ao contador": os ativos
+// que estão FORA da contabilidade (lido do próprio cadastro, registro_contabil) podem entrar — Todos, Escolher um a um
+// ou Agora não. Pessoa e pet nunca entram. Sub-ativo acompanha o principal. Grava por fn_ativos_contabilidade_definir.
+async function perguntarAtivosContabilidade(dbAuth, clienteId, onToast) {
+    if (typeof window.abrirSheetAcoes !== 'function') return;
+    let fora = [];
+    try {
+        const { data, error } = await dbAuth.from('cofre_ativos').select('id, nome_exibicao, tipo_ativo, status, ativo_principal_id')
+            .eq('cliente_id', clienteId).eq('registro_contabil', 'fora').neq('tipo_ativo', 'vida').limit(1000);
+        if (error) throw error;
+        fora = (data || []).filter(a => String(a.status || '').toLowerCase() !== 'arquivado');
+    } catch (e) { console.warn('[rotinas] ativos fora da contabilidade:', e.message); return; }
+    const idsFora = new Set(fora.map(a => a.id));
+    // na lista só os principais (e sub-ativo cujo principal não está fora); ao incluir um principal, os subs vão junto
+    const lista = fora.filter(a => !a.ativo_principal_id || !idsFora.has(a.ativo_principal_id))
+        .sort((a, b) => String(a.nome_exibicao || '').localeCompare(String(b.nome_exibicao || '')));
+    if (!lista.length) return;
+    const comSubs = (ids) => [...ids, ...fora.filter(a => a.ativo_principal_id && ids.includes(a.ativo_principal_id)).map(a => a.id)];
+    const definir = async (ids) => {
+        try {
+            const { data, error } = await dbAuth.rpc('fn_ativos_contabilidade_definir', { p_cliente_id: clienteId, p_ativo_ids: comSubs(ids), p_incluir: true });
+            if (error) throw error;
+            const n = Number(data) || 0;
+            onToast?.(n === 1 ? '1 ativo na contabilidade' : `${n} ativos na contabilidade`, 'success');
+            window.dispatchEvent(new CustomEvent('cofre:recarregar-ativos'));
+        } catch (e) { onToast?.('Não consegui incluir: ' + (e.message || e), 'danger'); }
+    };
+    const n = lista.length;
+    const esc = (v) => String(v ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+    window.abrirSheetAcoes({ titulo: 'Quais ativos entram?', sub: `${n} fora da contabilidade`, acoes: [
+        { icone: 'check-check', titulo: 'Todos', sub: n === 1 ? 'Entra 1 ativo' : `Entram ${n} ativos`, aoTocar: () => definir(lista.map(a => a.id)) },
+        { icone: 'list-checks', titulo: 'Escolher', sub: 'Marque um a um', aoTocar: () => {
+            if (typeof window.abrirSheetForm !== 'function') return;
+            window.abrirSheetForm({ titulo: 'Escolher ativos', sub: 'Entram na contabilidade', rotuloSalvar: 'Incluir na contabilidade',
+                corpo: lista.map(a => `<label class="rz-row rz-chk"><input type="checkbox" data-contab-ativo="${esc(a.id)}"><div class="rz-tx"><b>${esc(a.nome_exibicao || 'Ativo')}</b></div></label>`).join(''),
+                aoSalvar: async (el) => {
+                    const ids = Array.from(el.querySelectorAll('[data-contab-ativo]:checked')).map(c => c.getAttribute('data-contab-ativo'));
+                    if (!ids.length) { onToast?.('Marque ao menos um ativo.', 'danger'); return false; }
+                    await definir(ids);
+                    return true;
+                } });
+        } },
+        { icone: 'clock', titulo: 'Agora não', sub: 'Pelo ⋮ de cada ativo', aoTocar: () => {} },
+    ] });
 }
 
 async function desligarRotinaEmpresa(dbAuth, itemId, motivo) {

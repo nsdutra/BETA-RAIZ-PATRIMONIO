@@ -1,6 +1,11 @@
 // ============================================================================
 // cofre-ativos.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.110.0 · 15/10/2026
+// Versão: 1.111.0 · 15/10/2026
+//
+// v1.111.0 (15/10/2026, sessão 20261014-2245-ia-integrada, demanda 4a28ad50; FICHA_CONTABILIDADE_ROTINA_CONTADOR_RAIZ v1.1.0, D5) —
+// "Incluir na contabilidade" no ⋮ do ativo com a rotina "Envio ao contador" desligada: inclui e avisa "Ligue o Envio ao
+// contador em Rotinas" (o pacote só sai com a rotina ligada). Com a rotina desligada o ativo novo já nasce fora (banco).
+// Versão anterior: 1.110.0 · 15/10/2026
 //
 // v1.110.0 (15/10/2026, sessão 20261014-2345-usos-fatia4, demanda 3022603b e 305c6c2f; FICHA_FATIA4_PROGRAMAS_RAIZ v1.2.0, D4-4)
 // — sai "Iniciar revisão anual" do ⋮ do ativo: a revisão de valor passa a ser item dos programas Cuidado do imóvel, Terreno,
@@ -26,16 +31,11 @@
 // campo em lista; exemplo do nome por tipo; no subativo, um seletor só com os tipos do ramo do principal e a divisão
 // copiada do principal; Finalidade e Situação de uso fora do cadastro (vêm do uso). "Vincular ativo existente" só oferece
 // tipos do ramo do principal. Lista de Ativos: o principal mostra "▾ N integrantes/unidades/áreas" e abre os subativos.
-// Versão anterior: 1.106.0 · 14/10/2026
-//
-// v1.106.0 (14/10/2026, sessão 20261014-2215-ajustes-9d, demanda a05ad2ee; teste do Nicola 14/10 22:12 — "no menu ativos achei
-// uns itens ainda grandinhos") — textos dentro de condição (sub/titulo com ? :) e dicionários de descrição também no limite
-// da D6 (ação 24, descrição 28). Nada de comportamento mudou.
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.105.0 … v1.105.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.106.0 … v1.106.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '1.110.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.111.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 import { estado } from './cofre-estado.js';
 import * as api from './cofre-api.js';
 import { mostrarToast, erroInline, refrescarIcones, alternarToggle, abrirModal, fecharModal, modalGenerico, perguntar, avisarComDesfazer, escolher } from './cofre-ui.js';
@@ -2700,6 +2700,14 @@ async function alternarRegistroContabilAtivo() {
         a.registro_contabil = novo;
         emitirEscrita('ativo', { id: a.id, acao: 'registro_contabil' });
         mostrarToast(novo === 'fora' ? 'Ativo fora da contabilidade da empresa' : 'Ativo de volta à contabilidade da empresa', 'sucesso');
+        // v1.111.0 (demanda 4a28ad50, D5) — incluiu com o "Envio ao contador" desligado: permite, mas avisa que não vai ao pacote
+        if (novo === 'empresa') {
+            try {
+                const { data: rot } = await api.dbAuth.rpc('fn_rotinas_empresa_listar', { p_cliente_id: estado.clienteId });
+                const envio = (rot || []).find(r => r.codigo === 'envio_contador');
+                if (envio && !envio.ligada) setTimeout(() => mostrarToast('Ligue o Envio ao contador em Rotinas', 'info'), 1800);
+            } catch (_) { /* aviso é só ajuda */ }
+        }
         await montarPropriedadeAtivo(a);
     } catch (err) {
         mostrarToast('Não consegui alterar: ' + (err.message || err), 'erro');

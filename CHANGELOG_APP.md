@@ -4,6 +4,20 @@ Histórico completo de versões do `index.html`, movido automaticamente pelo `ge
 
 ---
 
+NOVIDADES (Beta v1.417.0) — teste do Nicola 14/10 22:12. (1) Agenda: abrir e fechar um grupo de alertas ("4
+documentos sem vínculo") redesenha a própria Agenda — antes só aparecia depois de mudar o período. (2) Voltar das
+telas antigas (Atrasados, ficha do imóvel, detalhe do recebimento, Recebimentos/Saídas filtradas) vira .rz-back:
+some no Android e segue a regra do iPhone e do computador (UXR-51). (3) Módulos: chip Contador com cadeado quando a
+rotina "Envio ao contador" está desligada (financeiro.js 1.66.0); cadastro de contador por cima da tela atual
+(conta.js 1.2.0); textos dentro de condição no limite da D6 (7 módulos). Sem banco.
+Versão anterior (Beta v1.416.0):
+------------------------------------------------------------------
+Versões anteriores (v1.416.0 … v1.416.0): CHANGELOG_APP.md, na raiz do
+repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
+das 5 versões mais recentes deste cabeçalho.
+
+---
+
 NOVIDADES (Beta v1.416.0) — ONDA 9c do estudo PROTOTIPO_UX_DENSIDADE_RAMOS_RAIZ v1.2.0 (D6, seção 10, textos):
 ações, descrições, avisos e telas vazias do index e de 24 módulos no limite (24 · 28 · 40 · 40 caracteres). Fora do
 limite no app inteiro: descrições 97 → 0, ações 15 → 0, avisos 58 → 0, telas vazias 50 → 0. Nada de comportamento
