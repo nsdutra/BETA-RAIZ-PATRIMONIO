@@ -4,6 +4,17 @@ Histórico completo de versões do `index.html`, movido automaticamente pelo `ge
 
 ---
 
+NOVIDADES (Beta v1.414.0) — ONDA 9a do estudo PROTOTIPO_UX_DENSIDADE_RAMOS_RAIZ v1.2.0 (D6, seção 10, textos): só o
+mapa de módulos muda — js/cofre-ativos.js 1.104.0 e js/cofre-controles.js 1.58.0 com ações, descrições e avisos no
+limite (24 · 28 · 40 caracteres). O verificar_gramatica.py 1.5 passa a contar textos fora do limite. Sem banco.
+Versão anterior (Beta v1.413.0):
+------------------------------------------------------------------
+Versões anteriores (v1.413.0 … v1.413.0): CHANGELOG_APP.md, na raiz do
+repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
+das 5 versões mais recentes deste cabeçalho.
+
+---
+
 NOVIDADES (Beta v1.413.0) — ONDA 8c do estudo PROTOTIPO_UX_DENSIDADE_RAMOS_RAIZ v1.2.0 (D15, computador;
 FICHA_ONDA_8C_FINANCEIRO_COMPUTADOR v1.0.0, de acordo do Nicola 14/10 13:54): estilo da tabela do Financeiro (.rz-ft)
 montada por js/financeiro.js a partir de 1024 px — Recebimentos e Saídas em colunas, seleção, barra de lote (Dar baixa

@@ -1,6 +1,12 @@
 // ============================================================================
 // cofre-ativos.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.107.0 · 14/10/2026
+// Versão: 1.108.0 · 14/10/2026
+//
+// v1.108.0 (14/10/2026, sessão 20261014-2330-usos-fatia3c, demanda 3022603b; teste do Nicola 14/10 23:22: "os ativos
+// queria que abrissem como as despesas no financeiro"; "a pessoa vinculada está diferente do integrante"; "o sócio não
+// permite clicar e editar") — lista: o principal mostra "N integrantes" e o chevron para baixo abre os subativos
+// recuados; ficha: integrante, pessoa do cadastro e sócio com a mesma linha tocável e ⋮; "+ Adicionar" no padrão .rz-add.
+// Versão anterior: 1.107.0 · 14/10/2026
 //
 // v1.107.0 (14/10/2026, sessão 20261014-2220-usos-fatia4, frente usos-fatia3b, demanda 3022603b; FICHA_FATIA3B v1.1.0, de
 // acordo do Nicola 14/10 22:38–22:58) — Novo ativo montado pelo catálogo por contexto: campos e blocos fixos
@@ -24,16 +30,11 @@
 // D6 seção 10) — textos no limite: ação até 24 caracteres, descrição até 28 (só quando muda a decisão), aviso até 40 e
 // com o resultado (sem processo nem emoji). Fora do app principal, um aviso só: "Abra pelo app principal.". A explicação
 // longa fica na confirmação, que já existia. Nada de comportamento mudou.
-// Versão anterior: 1.103.0 · 14/10/2026
-//
-// v1.103.0 (14/10/2026, sessão 20261014-1355-cartao-adicional, demanda c63d7f9f; FICHA_CARTAO_ADICIONAL_F10_F11 v1.1.0, de
-// acordo do Nicola 14/10 13:52) — Movimento do ativo vida: o card "Contas e cartões" mostra o cartão adicional como
-// "Adicional do <principal>" com o total das compras dele na última fatura importada (fn_fatura_listar).
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.102.0 … v1.102.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.103.0 … v1.103.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '1.107.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.108.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 import { estado } from './cofre-estado.js';
 import * as api from './cofre-api.js';
 import { mostrarToast, erroInline, refrescarIcones, alternarToggle, abrirModal, fecharModal, modalGenerico, perguntar, avisarComDesfazer, escolher } from './cofre-ui.js';
@@ -863,8 +864,10 @@ function identificadorDocumentoAtivo(a) {
     return a.dados_especificos?.[campo] || null;
 }
 
-// v1.107.0 (fatia 3b, pedido do Nicola 14/10 22:38) — principal com unidades, áreas ou integrantes: a linha ganha
-// "▾ 3 integrantes", que abre logo abaixo, recuados, os subativos (cada um com o seu status; tocar abre a ficha).
+// v1.108.0 (fatia 3c, Nicola 14/10 23:22: "os ativos queria que abrissem como as despesas no financeiro ou os alertas
+// agrupados") — o principal com unidades, áreas ou integrantes ganha "N integrantes" na 2ª linha e, no lugar da seta, o
+// chevron para baixo que abre os subativos logo abaixo, recuados (mesma gramática dos meses do Financeiro). Tocar no resto
+// da linha continua abrindo a ficha.
 const subativosAbertos = new Set();
 function ativoComSubativosHtml(a) {
     const subs = estado.ativos.filter(x => x.ativo_principal_id === a.id && (x.status || 'ativo') === 'ativo')
@@ -873,10 +876,15 @@ function ativoComSubativosHtml(a) {
     const info = typeof rzRamoInfo === 'function' ? rzRamoInfo(a.ramo) : null;
     const nomeSub = (subs.length === 1 ? info?.nome_subativo_singular : info?.nome_subativo_plural) || (subs.length === 1 ? 'subativo' : 'subativos');
     const aberto = subativosAbertos.has(a.id);
-    return ativoCardHtml(a)
-        + `<button type="button" class="rz-subs-toggle" aria-expanded="${aberto}" data-subs-toggle="${a.id}" onclick="window.__rzAlternarSubativos && window.__rzAlternarSubativos('${a.id}', this)"
-             style="display:block;width:100%;text-align:left;background:none;border:none;color:var(--sprout);font-size:12px;font-weight:600;padding:0 0 10px 64px;cursor:pointer">${aberto ? '▴' : '▾'} ${subs.length} ${escapeHtml(nomeSub.toLowerCase())}</button>`
-        + `<div class="rz-subs${aberto ? '' : ' hidden'}" data-subs-de="${a.id}" style="margin:0 0 8px 28px;padding-left:10px;border-left:2px solid var(--line)">${subs.map(ativoCardHtml).join('')}</div>`;
+    let html = ativoCardHtml(a);
+    html = html.replace(/(<div class="rz-tx">[\s\S]*?)(<\/div>)/, `$1<span class="rz-subs-n">${subs.length} ${escapeHtml(nomeSub.toLowerCase())}</span>$2`);
+    const k = html.lastIndexOf('<svg data-lucide="chevron-right" class="rz-chev"></svg>');
+    const botao = `<button type="button" class="rz-subs-toggle" data-subs-toggle="${a.id}" aria-expanded="${aberto}" aria-label="${aberto ? 'Fechar' : 'Mostrar'} ${escapeHtml(nomeSub.toLowerCase())}"
+        onclick="event.stopPropagation(); window.__rzAlternarSubativos && window.__rzAlternarSubativos('${a.id}', this)"
+        style="background:none;border:0;padding:10px 4px 10px 10px;margin:-10px -4px -10px 0;color:inherit;cursor:pointer;display:flex"><svg data-lucide="${aberto ? 'chevron-up' : 'chevron-down'}" class="rz-chev"></svg></button>`;
+    if (k >= 0) html = html.slice(0, k) + botao + html.slice(k + '<svg data-lucide="chevron-right" class="rz-chev"></svg>'.length);
+    const filhos = subs.map(x => ativoCardHtml(x).replace('<div class="rz-row rz-link"', '<div class="rz-row rz-link rz-sub-row" style="padding-left:28px"')).join('');
+    return html + `<div class="rz-subs${aberto ? '' : ' hidden'}" data-subs-de="${a.id}">${filhos}</div>`;
 }
 window.__rzAlternarSubativos = (id, btn) => {
     const lista = document.querySelector(`[data-subs-de="${id}"]`);
@@ -884,7 +892,7 @@ window.__rzAlternarSubativos = (id, btn) => {
     const abrir = lista.classList.contains('hidden');
     lista.classList.toggle('hidden', !abrir);
     if (abrir) subativosAbertos.add(id); else subativosAbertos.delete(id);
-    if (btn) { btn.setAttribute('aria-expanded', String(abrir)); btn.textContent = btn.textContent.replace(/^[▾▴]/, abrir ? '▴' : '▾'); }
+    if (btn) { btn.setAttribute('aria-expanded', String(abrir)); btn.innerHTML = `<svg data-lucide="${abrir ? 'chevron-up' : 'chevron-down'}" class="rz-chev"></svg>`; }
     refrescarIcones();
 };
 
@@ -1750,12 +1758,13 @@ async function montarSubativosAtivo(a) {
         const linhas = subs.map(x => {
             const st = rotuloStatusSubativo(x.status);
             return `<div class="rz-row rz-link" role="button" tabindex="0" data-sub-abrir="${x.id}"><div class="rz-ic"><i data-lucide="${iconeAtivo(estado.ativos.find(y => y.id === x.id)?.tipo_ativo || a.tipo_ativo)}"></i></div>
-                <div class="rz-tx"><b>${escapeHtml(x.nome)}</b><span>${escapeHtml(x.tipo || '')}</span></div>${r(st.sem, st.rotulo)}</div>`;
+                <div class="rz-tx"><b>${escapeHtml(x.nome)}</b><span>${escapeHtml(x.tipo || '')}</span></div><div class="rz-rt">${r(st.sem, st.rotulo)}</div>
+                <button type="button" class="rz-more" data-sub-menu="${x.id}" aria-label="Ações de ${escapeHtml(x.nome)}"><i data-lucide="ellipsis-vertical"></i></button></div>`; // v1.108.0 (3c) — ⋮ como nas outras linhas
         }).join('');
         const vazio = `<p class="rz-desc" style="margin:4px 0 8px">${femSubativo(sing) ? 'Nenhuma' : 'Nenhum'} ${escapeHtml(sing.toLowerCase())} ainda. Cada ${femSubativo(sing) ? 'uma' : 'um'} tem uso, contratos e itens próprios, e este ativo mostra o resumo.</p>`;
         card.innerHTML = `<div class="rz-card-h"><h3>${escapeHtml(plur)}</h3><span class="rz-sub">${subs.length ? `${emUso} de ${subs.length} em uso` : ''}</span></div>
             ${subs.length ? `<div class="rz-list">${linhas}</div>` : vazio}
-            ${e.pode_criar ? `<button type="button" class="rz-btn rz-btn-2 rz-sm" data-sub-novo="1" style="margin-top:8px">+ Adicionar ${escapeHtml(sing.toLowerCase())}</button>` : ''}`;
+            ${e.pode_criar ? `<button type="button" class="rz-add" data-sub-novo="1"><i data-lucide="plus"></i>Adicionar ${escapeHtml(sing.toLowerCase())}</button>` : ''}`; // v1.108.0 (3c) — mesmo "+ Adicionar" dos outros cards
         card.classList.remove('hidden');
     } else {
         card.classList.add('hidden'); card.innerHTML = '';
@@ -1766,6 +1775,16 @@ async function montarSubativosAtivo(a) {
         el.addEventListener('keydown', ev => { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); ir(); } });
     });
     card.querySelector('[data-sub-novo]')?.addEventListener('click', () => abrirNovoSubativo(a, e));
+    // v1.108.0 (fatia 3c) — ⋮ do subativo na ficha do principal: Abrir e Tirar de <principal>
+    card.querySelectorAll('[data-sub-menu]').forEach(b => b.addEventListener('click', (ev) => {
+        ev.stopPropagation();
+        const sub = estado.ativos.find(x => x.id === b.dataset.subMenu); if (!sub) return;
+        sheetOuAviso({ titulo: sub.nome_exibicao, sub: `${e.singular || 'Subativo'} de ${a.nome_exibicao}`, acoes: [
+            { icone: 'arrow-up-right', titulo: 'Abrir', aoTocar: () => abrirFichaAtivo(sub.id) },
+            { icone: 'unlink', titulo: `Tirar de ${a.nome_exibicao}`, codigo: 'cofre.editar', sub: 'Vira um ativo solto na lista',
+              aoTocar: () => abrirTirarDoPrincipal(sub, { principal: { id: a.id, nome: a.nome_exibicao } }, () => { estruturaAtual = null; montarSubativosAtivo(a); }) },
+        ] });
+    }));
     refrescarIcones();
 }
 function abrirNovoSubativo(a, e) {
@@ -1799,7 +1818,7 @@ async function abrirVincularSubativo(a, e) {
     });
 }
 // Tirar do principal: o subativo vira ativo solto (passa a contar no limite de ativos)
-function abrirTirarDoPrincipal(a, e) {
+function abrirTirarDoPrincipal(a, e, depois = null) {
     if (typeof window.abrirSheetForm !== 'function') { mostrarToast('Abra pelo app principal.', 'erro'); return; }
     window.abrirSheetForm({
         titulo: `Tirar de ${e.principal.nome}`, sub: a.nome_exibicao, rotuloSalvar: 'Tirar',
@@ -1811,7 +1830,8 @@ function abrirTirarDoPrincipal(a, e) {
             a.ativo_principal_id = null;
             window.dispatchEvent(new CustomEvent('cofre:recarregar-ativos'));
             recarregarFuncionalidadesLiberadas().catch(() => {});
-            estruturaAtual = null; await montarSubativosAtivo(a);
+            estruturaAtual = null;
+            if (depois) depois(); else await montarSubativosAtivo(a);
             return true;
         },
     });
@@ -2685,6 +2705,7 @@ function registroContabilLinhaHtml(a) {
             <div class="rz-ic${fora ? ' rz-neu' : ''}"><i data-lucide="${fora ? 'ban' : 'landmark'}"></i></div>
             <div class="rz-tx"><b>Contabilidade da empresa</b><span>${fora ? 'Fora — não vai ao pacote do contador' : 'Entra no pacote do contador'}</span></div>
             <div class="rz-rt"><span class="rz-st rz-${fora ? 'neu' : 'ok'}">${fora ? 'Fora' : 'Entra'}</span></div>
+            <button type="button" class="rz-more" aria-label="Ações da propriedade" onclick="event.stopPropagation(); window.__rzAcoesPropriedade && window.__rzAcoesPropriedade()"><i data-lucide="ellipsis-vertical"></i></button>
         </div>`;
 }
 if (typeof window !== 'undefined') window.__rzAcoesPropriedade = () => abrirAcoesPropriedade();
@@ -2892,11 +2913,13 @@ async function montarPropriedadeAtivo(a) {
     // v1.17.0 (fatia 3, REGRAS §9/§11) — de pills pra .rz-row (sócio à
     // esquerda, % em destaque à direita), mesmo item de lista do resto da
     // ficha. Pills ficam só pra filtro/sub-navegação (REGRAS §8).
+    // v1.108.0 (fatia 3c, Nicola 14/10 23:22: "o sócio não permite clicar e editar") — sócio tocável, com ⋮ (Editar divisão)
     lista.innerHTML = linhas.map(l => `
-        <div class="rz-row">
+        <div class="rz-row rz-link" role="button" tabindex="0" onclick="window.__rzAcoesPropriedade && window.__rzAcoesPropriedade()">
             <div class="rz-ic"><i data-lucide="${l.nome_pessoa ? 'user' : 'user-round'}"></i></div>
             <div class="rz-tx"><b>${escapeHtml(l.nome_pessoa || l.nome_externo || 'Sem nome')}</b><span>${l.nome_pessoa ? 'Sócio' : 'Parte externa'}</span></div>
             <div class="rz-rt"><b style="color:var(--sprout)">${Number(l.percentual)}%</b></div>
+            <button type="button" class="rz-more" aria-label="Ações da propriedade" onclick="event.stopPropagation(); window.__rzAcoesPropriedade && window.__rzAcoesPropriedade()"><i data-lucide="ellipsis-vertical"></i></button>
         </div>`).join('') + registroContabilLinhaHtml(a); // v1.72.0 (P2 Ficha 3)
     refrescarIcones();
 }
@@ -3212,10 +3235,12 @@ function desenharPessoaDoAtivo(a) {
     const alvo = document.getElementById('fa-pessoa-cad');
     if (!alvo) return;
     const ligada = a.entidade_origem_tipo === 'pessoa' && a.entidade_origem_id;
-    alvo.innerHTML = `<div class="rz-card rz-list"><div class="rz-row rz-link" role="button" tabindex="0" data-acao="pessoa-cad">
+    // v1.108.0 (fatia 3c, Nicola 14/10 23:22: "a pessoa vinculada está diferente do integrante") — linha comum da ficha,
+    // sem caixa própria: ícone, nome e ⋮ (Trocar, Desligar), como o integrante e o sócio
+    alvo.innerHTML = `<div class="rz-list" style="border-top:1px solid var(--line);margin-top:10px"><div class="rz-row rz-link" role="button" tabindex="0" data-acao="pessoa-cad">
         <div class="rz-ic${ligada ? '' : ' rz-neu'}"><i data-lucide="${ligada ? 'user-check' : 'user-plus'}"></i></div>
-        <div class="rz-tx"><b>Pessoa do cadastro</b><span id="fa-pessoa-cad-nome">${ligada ? 'carregando…' : 'Não ligada — toque para ligar (titular de contas e cartões)'}</span></div>
-        <i data-lucide="chevron-right" class="rz-chev"></i></div></div>`;
+        <div class="rz-tx"><b id="fa-pessoa-cad-nome">${ligada ? 'carregando…' : 'Ligar a uma pessoa do cadastro'}</b><span>${ligada ? 'Pessoa do cadastro · titular das contas' : 'Titular de contas e cartões'}</span></div>
+        ${ligada ? '<button type="button" class="rz-more" data-acao="pessoa-cad-menu" aria-label="Ações da pessoa do cadastro"><i data-lucide="ellipsis-vertical"></i></button>' : '<i data-lucide="chevron-right" class="rz-chev"></i>'}</div></div>`;
     refrescarIcones();
     if (ligada) {
         api.dbAuth.from('pessoas').select('nome').eq('id', a.entidade_origem_id).maybeSingle().then(({ data }) => {
@@ -3223,6 +3248,7 @@ function desenharPessoaDoAtivo(a) {
         });
     }
     alvo.querySelector('[data-acao="pessoa-cad"]')?.addEventListener('click', () => acoesPessoaDoAtivo(a));
+    alvo.querySelector('[data-acao="pessoa-cad-menu"]')?.addEventListener('click', (ev) => { ev.stopPropagation(); acoesPessoaDoAtivo(a); });
 }
 async function acoesPessoaDoAtivo(a) {
     const ligada = a.entidade_origem_tipo === 'pessoa' && a.entidade_origem_id;
