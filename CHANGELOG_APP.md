@@ -4,6 +4,19 @@ Histórico completo de versões do `index.html`, movido automaticamente pelo `ge
 
 ---
 
+NOVIDADES (Beta v1.424.0) — FATIA 6a, AGRO E OBRAS (de acordo do Nicola 15/10 16:10): os ramos Agro e Obras abrem para
+quem tem o plano Premium Ampliado (fn_cliente_ramos; transição até a licença por ramo, demanda 1ee2e3be). O seletor de
+tipos do novo ativo e os chips de ramo da lista só mostram ramos contratados (cofre-validacoes.js 2.7.0 · cofre-ativos.js
+1.112.0); "Adicionar uso" ganha Lavoura, Operação agro e Obra própria. Visão geral: o convite "Cadastre também" só cita
+ramos contratados. Banco: usos_fatia6a_ramos_v1.
+Versão anterior (Beta v1.423.0):
+------------------------------------------------------------------
+Versões anteriores (v1.423.0 … v1.423.0): CHANGELOG_APP.md, na raiz do
+repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
+das 5 versões mais recentes deste cabeçalho.
+
+---
+
 NOVIDADES (Beta v1.423.0) — CONVITE DE FESTA (FICHA_CONVITE_ANIVERSARIO_RAIZ v1.3.0, de acordo do Nicola 15/10 08:16): o
 convite lido pela IA vira item "Eventos e viagens" na pessoa; cada pessoa sugerida mostra a razão ("7 anos em 06/11",
 "quem enviou o convite"); o controle usa a data da festa como início e fim, com aviso 7 dias antes e reforço a cada 3.

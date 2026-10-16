@@ -6,9 +6,13 @@
    (base derivada do RUMO v7.4.2 — histórico de versões anteriores
    preservado abaixo para referência técnica)
 
-   VERSÃO: Beta v1.428.0
-   LINHAS: 17014
-   DATA: 16/10/2026 (sessão 20261016-0105-usos-fatia7-fix, demanda 3022603b)
+   VERSÃO: Beta v1.429.0
+   LINHAS: 17017
+   DATA: 16/10/2026 (sessão 20261016-0945-usos-fatia8, demanda 3022603b)
+   NOVIDADES (Beta v1.429.0) — CORREÇÃO (Nicola 16/10 09:30): em Ativos o botão "+" voltou ao lugar (desde a 1.427.0, sem a vista
+   Contratos, ele subia para baixo do cabeçalho e sumia); no computador o conteúdo ocupa a área central toda, até 1280 px
+   (era 820 px).
+   Versão anterior (Beta v1.428.0):
    NOVIDADES (Beta v1.428.0) — CORREÇÃO (achado do Nicola 16/10 01:03): o novo ativo passa a oferecer as categorias Agro e
    Pecuária no 1º seletor (lote bovino, lote suíno, pasto, lavoura, talhão, máquinas…). cofre-ativos.js 1.115.0 ·
    cofre-validacoes.js 2.8.0.
@@ -36,14 +40,8 @@
    partes / Unir (a soma é o total). cofre-controles.js 1.61.0 · financeiro.js 1.68.0. Banco: usos_fatia6_estrutura_v1,
    usos_fatia6_dados_v1, usos_fatia6_funcoes_v1..v3, usos_fatia6_dividir_v1.
    Versão anterior (Beta v1.424.0):
-   NOVIDADES (Beta v1.424.0) — FATIA 6a, AGRO E OBRAS (de acordo do Nicola 15/10 16:10): os ramos Agro e Obras abrem para
-   quem tem o plano Premium Ampliado (fn_cliente_ramos; transição até a licença por ramo, demanda 1ee2e3be). O seletor de
-   tipos do novo ativo e os chips de ramo da lista só mostram ramos contratados (cofre-validacoes.js 2.7.0 · cofre-ativos.js
-   1.112.0); "Adicionar uso" ganha Lavoura, Operação agro e Obra própria. Visão geral: o convite "Cadastre também" só cita
-   ramos contratados. Banco: usos_fatia6a_ramos_v1.
-   Versão anterior (Beta v1.423.0):
    ------------------------------------------------------------------
-   Versões anteriores (v1.423.0 … v1.423.0): CHANGELOG_APP.md, na raiz do
+   Versões anteriores (v1.424.0 … v1.424.0): CHANGELOG_APP.md, na raiz do
    repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
    das 5 versões mais recentes deste cabeçalho.
 
@@ -1516,8 +1514,11 @@
         #main-content .rz-topo{justify-content:flex-end}
         #main-content .rz-topo:not(:has(.rz-primary)){display:none}
         #main-content .rz-vista{padding-right:56px}
-        #tab-contratos > .rz-vista + * + .rz-topo,#tab-contratos > .rz-vista + .rz-topo,#tab-ativos [data-screen="ativos"] > .rz-topo{margin-top:-58px;position:relative;z-index:1;pointer-events:none}
-        #tab-contratos .rz-topo .rz-primary,#tab-ativos [data-screen="ativos"] > .rz-topo .rz-primary{pointer-events:auto}
+        /* v1.429.0 — sem a vista Contratos em Ativos (v1.427.0) o "+" de Ativos não sobe mais para a linha da vista: subia 58 px
+           para baixo do cabeçalho e sumia (Nicola 16/10 09:30). Contratos continua com a vista. */
+        #tab-contratos > .rz-vista + * + .rz-topo,#tab-contratos > .rz-vista + .rz-topo{margin-top:-58px;position:relative;z-index:1;pointer-events:none}
+        #tab-contratos .rz-topo .rz-primary{pointer-events:auto}
+        #tab-ativos [data-screen="ativos"] > .rz-topo{margin:0 0 8px}
         /* v1.403.0 — ONDA 7a: Agenda Lista · Semana · Mês (js/agenda.js) */
         .rz-ag-topo{display:flex;align-items:center;gap:4px;margin-bottom:6px}
         .rz-ag-dia{display:flex;justify-content:space-between;align-items:baseline;text-transform:none}
@@ -1581,7 +1582,9 @@
             #bottom-nav-bar .rz-sol{width:32px;height:32px;margin-top:0;box-shadow:none}
             #bottom-nav-bar .rz-sol svg{width:17px;height:17px}
             #bottom-nav-bar .rz-nav-n{position:static;margin-left:auto}
-            #main-content{max-width:820px!important;margin-left:calc(232px + max(24px, (100vw - 232px - 820px) / 2))!important;margin-right:auto!important;
+            /* v1.429.0 (Nicola 16/10 09:30: "não está aproveitando toda largura da parte central") — o conteúdo ocupa a área central
+               toda, até 1280 px (era 820 px) */
+            #main-content{max-width:1280px!important;margin-left:calc(232px + max(24px, (100vw - 232px - 1280px) / 2))!important;margin-right:max(24px, calc((100vw - 232px - 1280px) / 2))!important;
                 padding-bottom:40px!important}
             .rz-veil{align-items:stretch;justify-content:flex-end}
             .rz-sheet{max-width:460px;height:100vh;height:100dvh;max-height:none;border-radius:20px 0 0 20px;transform:translateX(32px)}
@@ -1593,7 +1596,7 @@
            da ficha some porque a lista está à vista. As classes rz-split-* só são postas por rzSplitAtualizar() a partir de
            1024 px; no celular nada muda. */
         @media (min-width:1024px){
-            body.rz-split #main-content{max-width:1180px!important;margin-left:calc(232px + max(24px, (100vw - 232px - 1180px) / 2))!important}
+            body.rz-split #main-content{max-width:1280px!important;margin-left:calc(232px + max(24px, (100vw - 232px - 1280px) / 2))!important}
             body.rz-split-con #main-content,
             body.rz-split-at #app-cofre > main{display:grid;grid-template-columns:minmax(300px,360px) minmax(0,1fr);column-gap:24px;align-items:start}
             body.rz-split-con #main-content > *,
@@ -4405,7 +4408,7 @@
         // texto certo toda vez (esqueci 5 versões seguidas, de v1.37.1 até
         // v1.38.3). Agora só precisa mudar UMA linha aqui a cada release;
         // window.onload aplica nos dois lugares automaticamente.
-        const APP_VERSAO = "Beta v1.428.0"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
+        const APP_VERSAO = "Beta v1.429.0"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
 
         // ====================================================================
         // v1.105.0 — HELPERS DE SUPERFÍCIE DA GRAMÁTICA ÚNICA
