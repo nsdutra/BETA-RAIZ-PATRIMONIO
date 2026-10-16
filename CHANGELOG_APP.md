@@ -4,6 +4,18 @@ Histórico completo de versões do `index.html`, movido automaticamente pelo `ge
 
 ---
 
+NOVIDADES (Beta v1.420.0) — Nicola 14/10 23:34. (1) Login: raízes novas, finas (pivotante, laterais e radicelas
+afinando, desenhadas em sequência), no lugar das copiadas da arte. (2) Lista de Ativos: o principal com subativos tem o
+ícone com borda na cor do ramo e o número no canto; o selo fica só "Disponível"; os subativos abertos ganham um traço na
+cor do ramo. js/cofre-ativos.js 1.109.0. Sem banco.
+Versão anterior (Beta v1.419.0):
+------------------------------------------------------------------
+Versões anteriores (v1.419.0 … v1.419.0): CHANGELOG_APP.md, na raiz do
+repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
+das 5 versões mais recentes deste cabeçalho.
+
+---
+
 NOVIDADES (Beta v1.419.0) — Fatia 3c, teste do Nicola 14/10 23:22. (1) Lista de Ativos: o principal com subativos
 mostra "N integrantes" e o chevron para baixo, que abre os subativos recuados (como os meses do Financeiro).
 (2) Ficha: integrante, pessoa do cadastro e sócio na mesma linha da ficha, tocável e com ⋮ (Abrir e Tirar de;

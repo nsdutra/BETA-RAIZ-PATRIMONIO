@@ -1,6 +1,15 @@
 // ============================================================================
 // cofre-controles.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.60.0 · 15/10/2026
+// Versão: 1.61.0 · 15/10/2026
+//
+// v1.61.0 (15/10/2026, sessão 20261015-2220-usos-fatia6b, demanda 3022603b; FICHA_FATIA6_CICLOS_E_FASES_RAIZ v1.2.0, de acordo do
+// Nicola 15/10 13:34, 14:45, 15:22 e 22:27) — EXECUÇÃO do programa: a obra (Construção, etapas escolhidas do modelo, com
+// opcionais e próprias) e a safra (Safra de café, ciclo com fases). No grupo do programa, a linha diz a fase atual (n de m) e
+// o botão "Ver/Abrir a obra|safra" abre a tela da execução (abrirExecucao): fases com situação e custo, custo pago e a pagar,
+// itens de agora, da safra e do programa, e as folhas Abrir, Avançar (levar ou concluir cada item aberto; itens da próxima
+// marcados), Pular/Retomar/Voltar fase com motivo, Fechar a safra (resultado e "abrir a próxima"), Reabrir, Concluir a obra
+// (o lote pode virar Casa) e "+ Do catálogo". Regra no banco (fn_execucao_*, fn_fase_*, fn_ciclo_*).
+// Versão anterior: 1.60.0 · 15/10/2026
 //
 // v1.60.0 (15/10/2026, sessão 20261014-2345-usos-fatia4, demanda 3022603b; FICHA_FATIA4_PROGRAMAS_RAIZ v1.2.0, de acordo do
 // Nicola 14/10 21:42 e 23:34) — PROGRAMAS no chip Controles: "Programa sugerido" com Aceitar e Agora não (fn_ativo_programas);
@@ -25,18 +34,11 @@
 // v1.57.0 (14/10/2026, sessão 20261014-0010-ativo-pessoa, demanda d6a6f577; de acordo do Nicola 14/10 00:08) — "Conta ou
 // cartão" num ativo vida sem pessoa ligada: em vez do aviso, pergunta "Ligar agora" e abre a escolha da pessoa
 // (cofre-ativos.js 1.100.0, ligarPessoaAoAtivo); ligada, segue direto para o cadastro da conta. Nenhuma pessoa é criada.
-// Versão anterior: 1.56.0 · 13/10/2026
-//
-// v1.56.0 (13/10/2026, sessão 20261013-2350-usos-fatia1, demanda 3022603b; FICHA_FATIA1_MAQUINA_STATUS_RAIZ v1.0.0, "Restante
-// ok. Vamos seguir" do Nicola 13/10 23:45) — máquina de status no item de controle: o ⋮ mostra Pausar, Retomar, Concluir
-// e Reabrir conforme a situação (fn_entidade_status), e a ação passa pela porta única fn_status_transicionar (motivo
-// quando o catálogo pede; status_historico e log no banco). "Encerrar item" virou Concluir; a lista e a ficha mostram
-// Pausado ou Concluído no lugar de Encerrado.
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.55.0 … v1.55.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.56.0 … v1.56.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '1.60.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.61.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 import { estado } from './cofre-estado.js';
 import * as api from './cofre-api.js';
 import { mostrarToast, refrescarIcones, abrirModal, fecharModal, modalGenerico, perguntar, escolher, avisarComDesfazer } from './cofre-ui.js';
@@ -389,10 +391,14 @@ function programasAgrupadosHtml(lista) {
         its.forEach(i => usados.add(i.id));
         const n = its.length;
         const prox = p.proximo?.data ? ` · próximo: ${p.proximo.titulo} em ${formatarDataBR(p.proximo.data)}` : '';
-        const sub = p.situacao === 'pausado' ? 'Pausado · os itens não avisam' : `${n} ite${n === 1 ? 'm' : 'ns'}${prox}`;
+        const ex = p.execucao; // v1.61.0 (fatia 6b) — obra (etapas) ou safra (ciclo e fases)
+        const exSub = ex ? (ex.aberta ? `${ex.ciclo && ex.ciclo.situacao !== 'fechado' ? ex.ciclo.nome + ' · ' : ''}${ex.fase_atual || ''} (${ex.posicao} de ${ex.total})`
+            : (ex.tem_etapas ? 'Obra ainda não aberta' : `${ex.ciclo_rotulo || 'Ciclo'} não aberta`)) : '';
+        const sub = p.situacao === 'pausado' ? 'Pausado · os itens não avisam' : (exSub || `${n} ite${n === 1 ? 'm' : 'ns'}${prox}`);
+        const exBtn = ex ? `<button type="button" class="rz-prog-exec" data-prog-exec="${p.id}"><i data-lucide="${ex.tem_etapas ? 'hard-hat' : 'sprout'}"></i>${ex.aberta ? 'Ver' : 'Abrir'} a ${ex.tem_etapas ? 'obra' : escapeHtml((ex.ciclo_rotulo || 'ciclo').toLowerCase())}</button>` : '';
         return `<div class="rz-prog-h"><span class="rz-prog-pt" aria-hidden="true"></span><div class="rz-tx"><b>${escapeHtml(p.nome)}</b><span>${escapeHtml(sub)}</span></div>
             ${(p.acoes || []).length ? `<button type="button" class="rz-more" data-prog-mais="${p.id}" aria-label="Ações do programa ${escapeHtml(p.nome)}"><i data-lucide="ellipsis-vertical"></i></button>` : ''}</div>`
-            + its.map(itemResumoHtml).join('');
+            + exBtn + its.map(itemResumoHtml).join('');
     }).join('');
     const resto = lista.filter(i => !usados.has(i.id));
     if (resto.length) html += `<div class="rz-group rz-group-t"><span>Outros itens · ${resto.length}</span></div>` + resto.map(itemResumoHtml).join('');
@@ -402,6 +408,7 @@ function ligarAcoesProgramas(alvo) {
     alvo.querySelectorAll('[data-prog-aceitar]').forEach(b => b.addEventListener('click', () => abrirAceitarPrograma(b.dataset.progAceitar)));
     alvo.querySelectorAll('[data-prog-recusar]').forEach(b => b.addEventListener('click', () => recusarPrograma(b.dataset.progRecusar, b)));
     alvo.querySelectorAll('[data-prog-mais]').forEach(b => b.addEventListener('click', (ev) => { ev.stopPropagation(); abrirAcoesPrograma(b.dataset.progMais); }));
+    alvo.querySelectorAll('[data-prog-exec]').forEach(b => b.addEventListener('click', (ev) => { ev.stopPropagation(); abrirExecucao(b.dataset.progExec); })); // v1.61.0
 }
 async function recarregarControlesDoAtivo() {
     const a = estado.ativoEmFoco; if (!a) return;
@@ -470,8 +477,12 @@ function abrirAcoesPrograma(id) {
     const p = (programasAtual?.ativos || []).find(x => x.id === id); if (!p) return;
     const ICONE = { pausar: 'pause', retomar: 'play', concluir: 'check', reabrir: 'rotate-ccw' };
     const SUB = { pausar: 'Os itens param de avisar', retomar: 'Os itens voltam a avisar', concluir: 'Encerra o programa e os itens' };
-    sheetAcoes({ titulo: p.nome, sub: estado.ativoEmFoco?.nome_exibicao || '', acoes: (p.acoes || []).map(m => ({
-        icone: ICONE[m.acao] || 'circle-dot', titulo: m.rotulo + ' programa', codigo: m.codigo, sub: SUB[m.acao] || '', aoTocar: () => transicionarPrograma(p, m) })) });
+    const ex = p.execucao; // v1.61.0 (fatia 6b)
+    const exAcao = ex ? [{ icone: ex.tem_etapas ? 'hard-hat' : 'sprout', codigo: 'ciclos.ver',
+        titulo: `${ex.aberta ? 'Ver' : 'Abrir'} a ${ex.tem_etapas ? 'obra' : (ex.ciclo_rotulo || 'ciclo').toLowerCase()}`,
+        sub: ex.aberta ? `${ex.fase_atual || ''} (${ex.posicao} de ${ex.total})` : (ex.tem_etapas ? 'Etapas e custo' : 'Fases e custo'), aoTocar: () => abrirExecucao(p.id) }] : [];
+    sheetAcoes({ titulo: p.nome, sub: estado.ativoEmFoco?.nome_exibicao || '', acoes: [...exAcao, ...(p.acoes || []).map(m => ({
+        icone: ICONE[m.acao] || 'circle-dot', titulo: m.rotulo + ' programa', codigo: m.codigo, sub: SUB[m.acao] || '', aoTocar: () => transicionarPrograma(p, m) }))] });
 }
 async function transicionarPrograma(p, m) {
     const executar = async (motivo) => {
@@ -515,6 +526,278 @@ export async function abrirTodosProgramas() {
     sheetAcoes({ titulo: 'Programas', sub: a.nome_exibicao, acoes });
 }
 window.__rzAbrirProgramas = () => abrirTodosProgramas();
+
+// ============================================================================
+// v1.61.0 (usos fatia 6b — FICHA_FATIA6_CICLOS_E_FASES_RAIZ v1.2.0, D6-1 a D6-13) — EXECUÇÃO do programa: a obra (etapas que
+// não se repetem) e a safra (ciclo que se repete, com fases). Regra no banco (CAN-02): fn_execucao_detalhe diz o que mostrar;
+// fn_execucao_abrir, fn_fase_avancar, fn_fase_mover, fn_ciclo_fechar, fn_ciclo_reabrir e fn_execucao_concluir mudam; o custo
+// vem dos lançamentos com destino na fase, no ciclo ou no programa (F6-7). "Fase" na safra, "etapa" na obra.
+// ============================================================================
+const SIT_FASE = { concluida: ['check', 'Concluída'], atual: ['circle-dot', 'Em andamento'], pendente: ['circle', 'A seguir'], pulada: ['minus', 'Pulada'] };
+const execRot = (d) => d?.programa?.tem_etapas ? { fase: 'etapa', Fase: 'Etapa', exec: 'obra', Exec: 'Obra' }
+    : { fase: 'fase', Fase: 'Fase', exec: (d?.programa?.ciclo_rotulo || 'Ciclo').toLowerCase(), Exec: d?.programa?.ciclo_rotulo || 'Ciclo' };
+async function lerExecucao(apId, cicloId = null) {
+    const { data, error } = await api.dbAuth.rpc('fn_execucao_detalhe', { p_ativo_programa_id: apId, p_ciclo_id: cicloId });
+    if (error) { mostrarToast(error.message || 'Não consegui abrir.', 'erro'); return null; }
+    if (!data?.pode_ver) { mostrarToast('Seu perfil não vê a execução.', 'erro'); return null; }
+    return data;
+}
+async function aposMudarExecucao(apId, cicloId) {
+    emitirEscrita('controle', { ativo: estado.ativoEmFoco?.id, acao: 'execucao' });
+    window.dispatchEvent(new CustomEvent('cofre:recarregar-eventos'));
+    await recarregarControlesDoAtivo();
+    if (apId) abrirExecucao(apId, cicloId);
+}
+function linhaFaseHtml(f, d) {
+    const [ic, rot] = SIT_FASE[f.situacao] || ['circle', f.situacao];
+    const quando = f.situacao === 'atual' && f.inicio ? 'desde ' + formatarDataBR(f.inicio)
+        : f.situacao === 'concluida' && f.fim ? 'até ' + formatarDataBR(f.fim)
+        : f.inicio_previsto ? 'prevista ' + formatarDataBR(f.inicio_previsto) : '';
+    const custo = Number(f.realizado || 0) + Number(f.a_pagar || 0);
+    const sub = [rot, quando, f.situacao === 'pulada' && f.motivo ? f.motivo : '', custo ? moedaBR(custo) + (f.custo_previsto ? ' de ' + moedaBR(f.custo_previsto) : '') : (f.custo_previsto ? 'previsto ' + moedaBR(f.custo_previsto) : '')]
+        .filter(Boolean).join(' · ');
+    const mexe = d.pode_gerir && d.ciclo?.situacao !== 'fechado' && f.situacao !== 'atual';
+    return `<div class="rz-exec-f rz-exec-${f.situacao}"><span class="rz-exec-ic"><i data-lucide="${ic}"></i></span>
+        <div class="rz-tx"><b>${escapeHtml(f.nome)}</b><span>${escapeHtml(sub)}</span></div>
+        ${mexe ? `<button type="button" class="rz-more" data-exec-fase="${f.id}" aria-label="Ações de ${escapeHtml(f.nome)}"><i data-lucide="ellipsis-vertical"></i></button>` : ''}</div>`;
+}
+function linhaItemExecHtml(i) {
+    const prox = i.proximo?.data ? (diasAte(i.proximo.data) < 0 ? 'Venceu ' : 'Próximo ') + formatarDataBR(i.proximo.data) : 'Sem pendência';
+    const val = i.valor_previsto ? ' · ' + moedaBR(i.valor_previsto) : '';
+    return `<button type="button" class="rz-row" data-exec-item="${i.id}"><div class="rz-tx"><b>${escapeHtml(i.titulo)}</b><span>${escapeHtml(prox + val)}</span></div><i data-lucide="chevron-right"></i></button>`;
+}
+// A tela da execução: as fases (ou etapas) com situação e custo, o custo somado, os itens de agora e as ações.
+export async function abrirExecucao(apId, cicloId = null) {
+    if (typeof window.abrirSheet !== 'function') { mostrarToast('Abra pelo app principal.', 'erro'); return; }
+    const d = await lerExecucao(apId, cicloId); if (!d) return;
+    const R = execRot(d), P = d.programa, C = d.ciclo;
+    const titulo = P.nome + (C ? ' · ' + C.nome : '');
+    const sub = !d.aberta ? (P.tem_etapas ? 'Obra ainda não aberta' : 'Nenhuma ' + R.exec + ' aberta')
+        : C?.situacao === 'fechado' ? `${R.Exec} fechada em ${formatarDataBR(C.fim)}`
+        : d.fase_atual ? `${R.Fase} atual: ${d.fase_atual.nome}` : '';
+    const ciclosChips = (d.ciclos || []).length > 1 ? `<div class="rz-chips" style="margin:0 0 10px">${d.ciclos.map(c =>
+        `<button type="button" class="rz-chip ${c.id === C?.id ? 'rz-on' : ''}" data-exec-ciclo="${c.id}">${escapeHtml(c.nome)}</button>`).join('')}</div>` : '';
+    const custo = d.custo || {};
+    const res = C?.resultado && C.situacao === 'fechado' ? (P.resultado_campos || []).map(rc => C.resultado[rc.campo] != null
+        ? `<span><b>${rc.unidade && rc.unidade.startsWith('R$') ? moedaBR(C.resultado[rc.campo]) : escapeHtml(String(C.resultado[rc.campo]))}</b> ${escapeHtml(rc.unidade && !rc.unidade.startsWith('R$') ? rc.unidade : '')} ${escapeHtml(rc.rotulo)}</span>` : '').join('') : '';
+    const custoHtml = d.aberta ? `<div class="rz-exec-custo"><span><b>${moedaBR(custo.realizado || 0)}</b> pago</span><span><b>${moedaBR(custo.a_pagar || 0)}</b> a pagar</span>${custo.previsto ? `<span><b>${moedaBR(custo.previsto)}</b> previsto</span>` : ''}${res}</div>` : '';
+    const porEscopo = (e) => (d.itens || []).filter(i => i.escopo === e);
+    const grupo = (rot, lista) => lista.length ? `<div class="rz-group rz-group-t"><span>${escapeHtml(rot)} · ${lista.length}</span></div>` + lista.map(linhaItemExecHtml).join('') : '';
+    const itensHtml = d.aberta && C?.situacao !== 'fechado'
+        ? grupo(d.fase_atual ? 'Agora: ' + d.fase_atual.nome : 'Agora', porEscopo('fase')) + grupo('Da ' + R.exec + ' inteira', porEscopo('ciclo')) + grupo('Do programa', porEscopo('programa'))
+        : grupo('Do programa', porEscopo('programa'));
+    const sugN = (d.sugestoes_fase || []).length + (d.sugestoes_ciclo || []).length;
+    const acoes = [];
+    if (d.pode_gerir && P.situacao === 'ativo') {
+        if (!d.aberta || (C && C.situacao === 'fechado' && !(d.ciclos || []).some(c => c.situacao !== 'fechado')))
+            acoes.push(`<button type="button" class="rz-btn rz-btn-1" data-exec-abrir>${P.tem_etapas ? 'Abrir a obra' : (d.ciclos || []).length ? 'Abrir a próxima' : 'Abrir a ' + R.exec}</button>`);
+        else if (C?.situacao !== 'fechado') {
+            if (d.proxima) acoes.push(`<button type="button" class="rz-btn rz-btn-1" data-exec-avancar>Avançar para ${escapeHtml(d.proxima.nome)}</button>`);
+            acoes.push(P.tem_etapas ? `<button type="button" class="rz-btn ${d.proxima ? 'rz-btn-2' : 'rz-btn-1'}" data-exec-concluir>Concluir a obra</button>`
+                : `<button type="button" class="rz-btn ${d.proxima ? 'rz-btn-2' : 'rz-btn-1'}" data-exec-fechar>Fechar a ${escapeHtml(R.exec)}</button>`);
+            if (sugN) acoes.push(`<button type="button" class="rz-btn rz-btn-3" data-exec-incluir>+ Do catálogo</button>`);
+        }
+    }
+    if (C?.situacao === 'fechado' && d.pode_reabrir && !(d.ciclos || []).some(c => c.situacao !== 'fechado'))
+        acoes.push(`<button type="button" class="rz-btn rz-btn-3" data-exec-reabrir>Reabrir ${escapeHtml(C.nome)}</button>`);
+    const corpo = ciclosChips + custoHtml
+        + (d.aberta ? `<div class="rz-exec-fases">${(d.fases || []).map(f => linhaFaseHtml(f, d)).join('')}</div>`
+            : `<p class="rz-desc">${P.tem_etapas ? 'Escolha as etapas desta obra a partir do modelo. Cada uma terá os seus itens e o seu custo.'
+                : 'A ' + R.exec + ' começa em ' + R.Fase.toLowerCase() + ' pela data e traz os itens de cada fase.'}</p>`)
+        + itensHtml;
+    const sheet = window.abrirSheet(window.rzSheetCabecalho(titulo, sub) + `<div class="rz-sh-b">${corpo}</div>`
+        + (acoes.length ? `<div class="rz-sh-f rz-exec-acoes">${acoes.join('')}</div>` : ''));
+    refrescarIcones();
+    sheet.querySelectorAll('[data-exec-ciclo]').forEach(b => b.addEventListener('click', () => abrirExecucao(apId, b.dataset.execCiclo)));
+    sheet.querySelectorAll('[data-exec-item]').forEach(b => b.addEventListener('click', () => { window.fecharSheet(); abrirFichaItemControle(b.dataset.execItem); }));
+    sheet.querySelectorAll('[data-exec-fase]').forEach(b => b.addEventListener('click', (ev) => { ev.stopPropagation(); abrirAcoesFase(d, b.dataset.execFase); }));
+    sheet.querySelector('[data-exec-abrir]')?.addEventListener('click', () => P.tem_etapas ? abrirFolhaAbrirObra(d) : abrirFolhaAbrirCiclo(d));
+    sheet.querySelector('[data-exec-avancar]')?.addEventListener('click', () => abrirFolhaAvancar(d));
+    sheet.querySelector('[data-exec-fechar]')?.addEventListener('click', () => abrirFolhaFecharCiclo(d));
+    sheet.querySelector('[data-exec-concluir]')?.addEventListener('click', () => abrirFolhaConcluirObra(d));
+    sheet.querySelector('[data-exec-incluir]')?.addEventListener('click', () => abrirFolhaIncluirItens(d));
+    sheet.querySelector('[data-exec-reabrir]')?.addEventListener('click', () => abrirFolhaReabrirCiclo(d));
+}
+window.__rzAbrirExecucao = (apId, cicloId) => abrirExecucao(apId, cicloId);
+function caixasSugestoesHtml(lista, prefixo) {
+    return (lista || []).map(s => `<label class="rz-row rz-chk"><input type="checkbox" data-${prefixo}="${s.modelo_id}" ${s.marcado ? 'checked' : ''}>
+        <div class="rz-tx"><b>${escapeHtml(s.titulo)}</b><span>${escapeHtml(s.recorrente ? rotuloFrequencia(s.frequencia_intervalo, s.frequencia_unidade) : 'Uma vez')}</span></div></label>`).join('');
+}
+function abrirFolhaAbrirObra(d) {
+    const modelo = d.modelo_etapas || [];
+    window.abrirSheetForm({
+        titulo: 'Abrir a obra', sub: d.programa.nome, rotuloSalvar: 'Abrir a obra', empilhar: true,
+        corpo: `<p class="rz-desc">Marque as etapas desta obra, na ordem. Tire as que não se aplicam e inclua as próprias.</p>
+            <div class="rz-list">${modelo.map(m => `<label class="rz-row rz-chk"><input type="checkbox" data-etapa="${m.id}" ${m.opcional ? '' : 'checked'}>
+                <div class="rz-tx"><b>${escapeHtml(m.nome)}</b><span>${m.opcional ? 'Opcional' : 'Do modelo'}</span></div></label>`).join('')}</div>
+            <div class="rz-f"><label for="ex-proprias">Etapas próprias <small>(opcional)</small></label><input type="text" id="ex-proprias" maxlength="200" placeholder="Ex.: Muro de divisa, Piscina">
+            <span class="rz-hint">Separe por vírgula. Entram depois das do modelo.</span></div>`,
+        aoSalvar: async (el) => {
+            const etapas = [...el.querySelectorAll('[data-etapa]:checked')].map(c => ({ fase_id: c.dataset.etapa }));
+            (el.querySelector('#ex-proprias')?.value || '').split(',').map(s => s.trim()).filter(Boolean).forEach(nome => etapas.push({ nome }));
+            if (!etapas.length) { mostrarToast('Marque ao menos uma etapa.', 'erro'); return false; }
+            const { data, error } = await api.dbAuth.rpc('fn_execucao_abrir', { p_ativo_programa_id: d.programa.id, p_etapas: etapas, p_canal: 'app' });
+            if (error) { mostrarToast(error.message || 'Não foi possível abrir.', 'erro'); return false; }
+            mostrarToast('Obra aberta.', 'sucesso');
+            setTimeout(() => aposMudarExecucao(d.programa.id, null), 0);
+            return true;
+        },
+    });
+}
+function abrirFolhaAbrirCiclo(d) {
+    const R = execRot(d);
+    window.abrirSheetForm({
+        titulo: 'Abrir a ' + R.exec, sub: d.programa.nome, rotuloSalvar: 'Abrir', empilhar: true,
+        corpo: `<p class="rz-desc">A ${escapeHtml(R.exec)} começa na fase do mês e já traz os itens marcados por padrão. As fases que já passaram ficam como puladas.</p>
+            <div class="rz-f"><label for="ex-nome">Nome <small>(opcional)</small></label><input type="text" id="ex-nome" maxlength="60" placeholder="Pelo padrão: ${escapeHtml(R.Exec)} 26/27"></div>`,
+        aoSalvar: async (el) => {
+            const nome = (el.querySelector('#ex-nome')?.value || '').trim() || null;
+            const { data, error } = await api.dbAuth.rpc('fn_execucao_abrir', { p_ativo_programa_id: d.programa.id, p_nome: nome, p_canal: 'app' });
+            if (error) { mostrarToast(error.message || 'Não foi possível abrir.', 'erro'); return false; }
+            mostrarToast(R.Exec + ' aberta.', 'sucesso');
+            setTimeout(() => aposMudarExecucao(d.programa.id, data?.ciclo_id || null), 0);
+            return true;
+        },
+    });
+}
+// Avançar (D6-3): cada item aberto da fase é levado para a próxima (padrão) ou concluído; os da próxima vêm marcados.
+function abrirFolhaAvancar(d) {
+    const R = execRot(d);
+    const abertos = (d.itens || []).filter(i => i.escopo === 'fase' && i.situacao === 'ativo');
+    const hoje = hojeLocalISO();
+    window.abrirSheetForm({
+        titulo: 'Avançar para ' + d.proxima.nome, sub: d.programa.nome + (d.ciclo ? ' · ' + d.ciclo.nome : ''), rotuloSalvar: 'Avançar', empilhar: true,
+        corpo: `<div class="rz-f"><label for="ex-data">${escapeHtml(d.fase_atual?.nome || R.Fase)} termina em</label><input type="date" id="ex-data" value="${hoje}" max="${hoje}"></div>
+            ${abertos.length ? `<div class="rz-group rz-group-t"><span>Itens abertos de ${escapeHtml(d.fase_atual?.nome || '')}</span></div>
+            <div class="rz-list">${abertos.map(i => `<div class="rz-row"><div class="rz-tx"><b>${escapeHtml(i.titulo)}</b></div>
+                <select data-aberto="${i.id}" aria-label="O que fazer com ${escapeHtml(i.titulo)}"><option value="levar">Levar</option><option value="concluir">Concluir</option></select></div>`).join('')}</div>` : ''}
+            ${(d.proxima.sugestoes || []).length ? `<div class="rz-group rz-group-t"><span>Itens de ${escapeHtml(d.proxima.nome)}</span></div>
+            <div class="rz-list">${caixasSugestoesHtml(d.proxima.sugestoes, 'nova')}</div>` : ''}`,
+        aoSalvar: async (el) => {
+            const data = el.querySelector('#ex-data')?.value || hoje;
+            const p_abertos = [...el.querySelectorAll('[data-aberto]')].map(s => ({ item_id: s.dataset.aberto, acao: s.value }));
+            const p_itens_nova = [...el.querySelectorAll('[data-nova]:checked')].map(c => ({ modelo_id: c.dataset.nova }));
+            const { data: r, error } = await api.dbAuth.rpc('fn_fase_avancar', { p_ativo_programa_id: d.programa.id, p_ciclo_id: d.ciclo?.id || null,
+                p_abertos, p_itens_nova, p_data: data, p_canal: 'app' });
+            if (error) { mostrarToast(error.message || 'Não foi possível avançar.', 'erro'); return false; }
+            mostrarToast(d.proxima.nome + ' em andamento.', 'sucesso');
+            setTimeout(() => aposMudarExecucao(d.programa.id, d.ciclo?.id || null), 0);
+            return true;
+        },
+    });
+}
+function abrirAcoesFase(d, faseId) {
+    const f = (d.fases || []).find(x => x.id === faseId); if (!f) return;
+    const R = execRot(d);
+    const acoes = [];
+    if (f.situacao === 'pendente') acoes.push({ icone: 'skip-forward', titulo: 'Pular ' + R.fase, codigo: 'ciclos.gerir', sub: 'Com o motivo', aoTocar: () => moverFase(d, f, 'pular') });
+    if (f.situacao === 'pulada') acoes.push({ icone: 'undo-2', titulo: 'Retomar ' + R.fase, codigo: 'ciclos.gerir', sub: 'Volta para a lista', aoTocar: () => moverFase(d, f, 'retomar') });
+    if (f.situacao === 'concluida') acoes.push({ icone: 'rotate-ccw', titulo: 'Voltar para esta', codigo: 'ciclos.gerir', sub: 'A atual volta para a lista', aoTocar: () => moverFase(d, f, 'voltar') });
+    if (!acoes.length) return;
+    sheetAcoes({ titulo: f.nome, sub: d.programa.nome, acoes });
+}
+function moverFase(d, f, acao) {
+    const ROT = { pular: 'Pular', retomar: 'Retomar', voltar: 'Voltar para' };
+    window.abrirSheetForm({
+        titulo: ROT[acao] + ' ' + f.nome, sub: d.programa.nome, rotuloSalvar: ROT[acao], empilhar: true,
+        corpo: `<div class="rz-f"><label for="ex-motivo">Motivo</label><input type="text" id="ex-motivo" maxlength="200" placeholder="Ex.: não se aplica nesta obra"></div>`,
+        aoSalvar: async (el) => {
+            const motivo = (el.querySelector('#ex-motivo')?.value || '').trim();
+            if (!motivo) { mostrarToast('Diga o motivo.', 'erro'); return false; }
+            const { error } = await api.dbAuth.rpc('fn_fase_mover', { p_fase_id: f.id, p_acao: acao, p_motivo: motivo, p_canal: 'app' });
+            if (error) { mostrarToast(error.message || 'Não foi possível.', 'erro'); return false; }
+            mostrarToast('Feito.', 'sucesso');
+            setTimeout(() => aposMudarExecucao(d.programa.id, d.ciclo?.id || null), 0);
+            return true;
+        },
+    });
+}
+function abrirFolhaFecharCiclo(d) {
+    const R = execRot(d), C = d.ciclo;
+    const campos = (d.programa.resultado_campos || []).filter(rc => !rc.calculado);
+    window.abrirSheetForm({
+        titulo: 'Fechar ' + C.nome, sub: d.programa.nome, rotuloSalvar: 'Fechar', empilhar: true,
+        corpo: campos.map(rc => `<div class="rz-f"><label for="ex-r-${escapeHtml(rc.campo)}">${escapeHtml(rc.rotulo)}${rc.unidade ? ' (' + escapeHtml(rc.unidade) + ')' : ''}</label>
+                <input type="number" inputmode="decimal" step="0.01" min="0" id="ex-r-${escapeHtml(rc.campo)}" data-res="${escapeHtml(rc.campo)}"></div>`).join('')
+            + `<p class="rz-desc">O custo sai dos lançamentos com destino nesta ${escapeHtml(R.exec)}: ${moedaBR(Number(d.custo?.realizado || 0) + Number(d.custo?.a_pagar || 0))} até agora. Os itens abertos encerram junto.</p>
+            <label class="rz-row rz-chk"><input type="checkbox" id="ex-proxima" checked><div class="rz-tx"><b>Abrir a próxima ${escapeHtml(R.exec)}</b><span>Com os itens de padrão</span></div></label>`,
+        aoSalvar: async (el) => {
+            const res = {};
+            el.querySelectorAll('[data-res]').forEach(i => { if (i.value !== '') res[i.dataset.res] = Number(i.value); });
+            const { data, error } = await api.dbAuth.rpc('fn_ciclo_fechar', { p_ciclo_id: C.id, p_resultado: res,
+                p_proximo: !!el.querySelector('#ex-proxima')?.checked, p_canal: 'app' });
+            if (error) { mostrarToast(error.message || 'Não foi possível fechar.', 'erro'); return false; }
+            mostrarToast(R.Exec + ' fechada.', 'sucesso');
+            setTimeout(() => aposMudarExecucao(d.programa.id, data?.proximo?.ciclo_id || C.id), 0);
+            return true;
+        },
+    });
+}
+function abrirFolhaReabrirCiclo(d) {
+    const C = d.ciclo;
+    window.abrirSheetForm({
+        titulo: 'Reabrir ' + C.nome, sub: d.programa.nome, rotuloSalvar: 'Reabrir', empilhar: true,
+        corpo: `<div class="rz-f"><label for="ex-motivo">Motivo</label><input type="text" id="ex-motivo" maxlength="200" placeholder="Ex.: faltou lançar a sacaria"></div>`,
+        aoSalvar: async (el) => {
+            const motivo = (el.querySelector('#ex-motivo')?.value || '').trim();
+            if (!motivo) { mostrarToast('Diga o motivo.', 'erro'); return false; }
+            const { error } = await api.dbAuth.rpc('fn_ciclo_reabrir', { p_ciclo_id: C.id, p_motivo: motivo, p_canal: 'app' });
+            if (error) { mostrarToast(error.message || 'Não foi possível.', 'erro'); return false; }
+            mostrarToast(C.nome + ' reaberta.', 'sucesso');
+            setTimeout(() => aposMudarExecucao(d.programa.id, C.id), 0);
+            return true;
+        },
+    });
+}
+// Concluir a obra (D6-7 / D4-12): o lote pode virar Casa; o uso Construção conclui e o repouso volta.
+function abrirFolhaConcluirObra(d) {
+    const a = estado.ativoEmFoco;
+    const tipos = [...listarTiposPorCategoria('imovel_predial', { ramo: 'tudo' })];
+    window.abrirSheetForm({
+        titulo: 'Concluir a obra', sub: a?.nome_exibicao || d.programa.nome, rotuloSalvar: 'Concluir', empilhar: true,
+        corpo: `<div class="rz-f"><label for="ex-tipo">O ativo passa a ser</label><select id="ex-tipo"><option value="">Manter o tipo de hoje</option>
+                ${tipos.map(t => `<option value="${t.id}">${escapeHtml(t.nome)}</option>`).join('')}</select>
+                <span class="rz-hint">Ex.: o lote vira Casa. O tipo anterior fica no histórico.</span></div>
+            <div class="rz-f"><label for="ex-motivo">Observação <small>(opcional)</small></label><input type="text" id="ex-motivo" maxlength="200" placeholder="Ex.: habite-se emitido"></div>
+            <p class="rz-desc">As etapas que faltam ficam como puladas, os itens da obra encerram e o uso Construção termina hoje.</p>`,
+        aoSalvar: async (el) => {
+            const novo = el.querySelector('#ex-tipo')?.value || null;
+            const motivo = (el.querySelector('#ex-motivo')?.value || '').trim() || null;
+            const { error } = await api.dbAuth.rpc('fn_execucao_concluir', { p_ativo_programa_id: d.programa.id,
+                p_dados: { novo_tipo_id: novo, motivo }, p_canal: 'app' });
+            if (error) { mostrarToast(error.message || 'Não foi possível concluir.', 'erro'); return false; }
+            mostrarToast('Obra concluída.', 'sucesso');
+            setTimeout(async () => {
+                emitirEscrita('ativo', { id: a?.id, acao: 'obra_concluida' });
+                await aposMudarExecucao(null, null);
+                if (typeof window.__rzRecarregarFichaAtivo === 'function') window.__rzRecarregarFichaAtivo();
+            }, 0);
+            return true;
+        },
+    });
+}
+function abrirFolhaIncluirItens(d) {
+    const R = execRot(d);
+    const fase = d.sugestoes_fase || [], ciclo = d.sugestoes_ciclo || [];
+    window.abrirSheetForm({
+        titulo: 'Incluir do catálogo', sub: d.programa.nome, rotuloSalvar: 'Incluir', empilhar: true,
+        corpo: (fase.length ? `<div class="rz-group rz-group-t"><span>${escapeHtml(d.fase_atual?.nome || R.Fase)}</span></div><div class="rz-list">${caixasSugestoesHtml(fase.map(s => ({ ...s, marcado: false })), 'inc-fase')}</div>` : '')
+            + (ciclo.length ? `<div class="rz-group rz-group-t"><span>Da ${escapeHtml(R.exec)} inteira</span></div><div class="rz-list">${caixasSugestoesHtml(ciclo.map(s => ({ ...s, marcado: false })), 'inc-ciclo')}</div>` : ''),
+        aoSalvar: async (el) => {
+            const f = [...el.querySelectorAll('[data-inc-fase]:checked')].map(c => ({ modelo_id: c.dataset.incFase }));
+            const c = [...el.querySelectorAll('[data-inc-ciclo]:checked')].map(x => ({ modelo_id: x.dataset.incCiclo }));
+            if (!f.length && !c.length) { mostrarToast('Marque ao menos um item.', 'erro'); return false; }
+            for (const [escopo, itens] of [['fase', f], ['ciclo', c]]) {
+                if (!itens.length) continue;
+                const { error } = await api.dbAuth.rpc('fn_execucao_itens_adicionar', { p_ativo_programa_id: d.programa.id, p_escopo: escopo, p_itens: itens, p_canal: 'app' });
+                if (error) { mostrarToast(error.message || 'Não foi possível incluir.', 'erro'); return false; }
+            }
+            mostrarToast('Itens incluídos.', 'sucesso');
+            setTimeout(() => aposMudarExecucao(d.programa.id, d.ciclo?.id || null), 0);
+            return true;
+        },
+    });
+}
 
 // Linha de item de controle — DS (revisão 25/08/2026): paralelo direto das
 // linhas de "itens a receber" do box Financeiro na Ficha do Imóvel

@@ -1,7 +1,14 @@
 // ============================================================================
 // financeiro.js — Raiz Patrimônio · Financeiro (Recebimentos · Atrasados · Saídas
 //                  · conciliação de extrato · recibo · detalhe do recebimento)
-// Versão: 1.67.0 · 15/10/2026
+// Versão: 1.68.0 · 15/10/2026
+//
+// v1.68.0 (15/10/2026, sessão 20261015-2220-usos-fatia6b, demanda 3022603b; FICHA_FATIA6 F6-7 v1.3 e D6-4c, de acordo do Nicola
+// 15/10 22:16 e 22:27) — no ⋮ da despesa: "Destino" (o lançamento inteiro vai para a obra, a safra, a etapa ou o item;
+// fn_lancamento_destinar) e, na despesa paga, "Dividir em partes" / "Refazer a divisão" / "Unir as partes" no padrão da
+// retirada: a parte 1 fica no lançamento original (mesmo id e conciliação), as outras ganham categoria e destino próprios e
+// a soma é sempre o total (fn_lancamento_dividir / fn_lancamento_unir). Nada soma em dobro.
+// Versão anterior: 1.67.0 · 15/10/2026
 //
 // v1.67.0 (15/10/2026, sessão 20261014-2245-ia-integrada, demanda 7f966068; FICHA_INTEGRACAO_RAIZ_IA_ROBO_RAIZ v1.0.0, de acordo
 // do Nicola 14/10 22:43, fatia I3) — "Receita sem contrato" (abrirReceitaAvulsa) aceita as sugestões da Raiz IA (valor,
@@ -22,20 +29,11 @@
 // v1.64.0 (14/10/2026, sessão 20261014-2130-ajustes-9b, demanda a05ad2ee; onda 9b do estudo PROTOTIPO_UX_DENSIDADE_RAMOS_RAIZ
 // v1.2.0, D6 seção 10) — textos no limite: ação até 24 caracteres, descrição até 28 (só quando muda a decisão), aviso até
 // 40 com o resultado. A explicação longa fica na confirmação, que já existia. Nada de comportamento mudou.
-// Versão anterior: 1.63.0 · 14/10/2026
-//
-// v1.63.0 (14/10/2026, sessão 20261014-1430-onda8c-financeiro, demanda a05ad2ee; FICHA_ONDA_8C_FINANCEIRO_COMPUTADOR v1.0.0, de acordo do
-// Nicola 14/10 13:54: "Pode ser em recebimento e saidas e seguir em frente") — ONDA 8c, computador (≥ 1024 px):
-// Recebimentos e Saídas viram TABELA (☐ · nome · imóvel/ativo · data · valor · situação · ⋮), com ordenação pelo
-// cabeçalho e seleção. Com linhas marcadas aparece a barra de lote: Recebimentos › "Dar baixa em lote" (uma data e uma
-// forma para todos, valor de cada um editável; grava um por um com a mesma sincronização da baixa individual e oferece
-// Desfazer); Saídas › "Marcar como pagas" (idem, só lançamentos sem fatura); e "Exportar" (CSV das linhas marcadas).
-// Pagos/faturas são ignorados no lote, com aviso. Abaixo de 1024 px e no celular a lista de sempre. Sem banco.
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.62.0 … v1.62.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.63.0 … v1.63.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '1.67.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.68.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 
 // v1.17.0 (Fase 1 do wrapper de escrita, rollout Financeiro) — emitirEscrita
 // é o evento padrão pra "algo mudou que módulos DE FORA deste arquivo podem
@@ -1005,10 +1003,154 @@ function financeiroRenderCabecalho(aba) {
             } catch (e) { console.warn('[financeiro] comprovante da despesa:', e.message); return null; }
         }
 
+        // v1.68.0 (usos fatia 6b — FICHA_FATIA6 F6-7 v1.3 e D6-4c, de acordo do Nicola 15/10 22:16 e 22:27) — DESTINO e DIVISÃO do
+        // lançamento. Destino: o lançamento inteiro vai para a obra, a safra, a etapa ou o item (fn_lancamento_destinar). Dividir em
+        // partes: como a retirada, a parte 1 fica no lançamento original (mesmo id e conciliação) e as outras viram lançamentos com
+        // categoria e destino próprios (fn_lancamento_dividir); a soma é sempre o total e "Unir as partes" desfaz (fn_lancamento_unir).
+        async function lancExtrasDestino(id) {
+            try {
+                const { data } = await dbAuth.from('lancamentos')
+                    .select('dividido_de, item_controle_id, ativo_fase_id, ciclo_id, ativo_programa_id, cofre_itens_controle(titulo), ativo_fases(nome), ciclos(nome)')
+                    .eq('id', id).maybeSingle();
+                if (!data) return null;
+                const raiz = data.dividido_de || id;
+                const { data: grupo } = await dbAuth.from('lancamentos').select('id').or(`id.eq.${raiz},dividido_de.eq.${raiz}`);
+                return { ...data, raiz, partes: (grupo || []).length,
+                    destinoNome: data.cofre_itens_controle?.titulo || data.ativo_fases?.nome || data.ciclos?.nome || (data.ativo_programa_id ? 'Programa' : '') };
+            } catch (e) { console.warn('[financeiro] destino do lançamento:', e.message); return null; }
+        }
+        async function arvoreDestinos(ativoId) {
+            if (!ativoId) return [];
+            const { data, error } = await dbAuth.rpc('fn_lancamento_destinos', { p_ativo_id: ativoId });
+            if (error) { console.warn('[financeiro] destinos:', error.message); return []; }
+            const ops = [];
+            (data || []).forEach(p => {
+                ops.push({ chave: 'ativo_programa_id:' + p.id, rotulo: p.nome + ' (inteiro)', nivel: 0 });
+                const ciclos = p.ciclos || [];
+                ciclos.forEach(c => {
+                    ops.push({ chave: 'ciclo_id:' + c.id, rotulo: c.nome + (c.situacao === 'fechado' ? ' · fechada' : ''), nivel: 1 });
+                    (p.fases || []).filter(f => f.ciclo_id === c.id).forEach(f => ops.push({ chave: 'ativo_fase_id:' + f.id, rotulo: f.nome, nivel: 2 }));
+                });
+                (p.fases || []).filter(f => !f.ciclo_id).forEach(f => ops.push({ chave: 'ativo_fase_id:' + f.id, rotulo: f.nome, nivel: 1 }));
+                (p.itens || []).forEach(i => ops.push({ chave: 'item_controle_id:' + i.id, rotulo: 'Item: ' + i.titulo, nivel: 1 }));
+            });
+            return ops;
+        }
+        const destinoJson = (chave) => { if (!chave) return {}; const [k, v] = chave.split(':'); return { [k]: v }; };
+        async function recarregarSaidasDepoisDe(id, acao) {
+            lancamentos = await carregarLancamentosSupabase();
+            emitirEscrita('lancamento', { id, acao });
+            renderSaidas();
+        }
+        async function financeiroAbrirDestino(d) {
+            const ops = await arvoreDestinos(d.ativoId);
+            if (!ops.length) { rzToast('Este ativo não tem obra nem safra.', { tipo: 'danger' }); return; }
+            const esc = escapeHtmlSaidas;
+            const item = (o) => `<button type="button" class="rz-act" data-dest="${esc(o.chave)}" style="padding-left:${12 + o.nivel * 16}px"><div class="rz-ic"><svg data-lucide="${o.chave.startsWith('item') ? 'list-checks' : o.chave.startsWith('ativo_fase') ? 'milestone' : o.chave.startsWith('ciclo') ? 'refresh-cw' : 'package'}"></svg></div><div>${esc(o.rotulo)}</div></button>`;
+            const sheet = abrirSheet(rzSheetCabecalho('Destino', `${esc(d.descricao || 'Despesa')} · ${formatarMoedaBR(d.valor)}`) +
+                `<div class="rz-sh-b"><p style="margin:0 0 10px;font-size:14px;color:var(--muted)">O lançamento inteiro vai para o ponto escolhido. Para dividir entre vários, use "Dividir em partes".</p>${ops.map(item).join('')}
+                <button type="button" class="rz-act" data-dest=""><div class="rz-ic"><svg data-lucide="x"></svg></div><div>Sem destino<small>Fica só no ativo</small></div></button></div>`);
+            if (typeof lucide !== 'undefined') lucide.createIcons();
+            sheet.querySelectorAll('[data-dest]').forEach(b => b.addEventListener('click', async () => {
+                const { data, error } = await dbAuth.rpc('fn_lancamento_destinar', { p_lancamento_id: d.id, p_destino: destinoJson(b.dataset.dest), p_canal: 'app' });
+                if (error) { rzToast(error.message || 'Não foi possível.', { tipo: 'danger' }); return; }
+                fecharSheet();
+                rzToast(b.dataset.dest ? 'Destino gravado.' : 'Destino retirado.');
+                await recarregarSaidasDepoisDe(d.id, 'destino');
+            }));
+        }
+        async function financeiroDividirLancamento(d, extras) {
+            const cat = (await carregarCatalogoCategorias()) || [];
+            const ops = await arvoreDestinos(d.ativoId);
+            const raiz = extras?.raiz || d.id;
+            const { data: grupo } = await dbAuth.from('lancamentos').select('id, valor, categoria, descricao, dividido_de, criado_em, item_controle_id, ativo_fase_id, ciclo_id, ativo_programa_id')
+                .or(`id.eq.${raiz},dividido_de.eq.${raiz}`);
+            const linhas = (grupo || []).sort((a, b) => (a.dividido_de ? 1 : 0) - (b.dividido_de ? 1 : 0) || String(a.criado_em).localeCompare(String(b.criado_em)));
+            const chaveDe = (x) => x.item_controle_id ? 'item_controle_id:' + x.item_controle_id : x.ativo_fase_id ? 'ativo_fase_id:' + x.ativo_fase_id
+                : x.ciclo_id ? 'ciclo_id:' + x.ciclo_id : x.ativo_programa_id ? 'ativo_programa_id:' + x.ativo_programa_id : '';
+            const total = Math.round(linhas.reduce((t, x) => t + Number(x.valor || 0), 0) * 100) / 100 || d.valor;
+            const partes = linhas.length > 1
+                ? linhas.map(x => ({ valor: Number(x.valor || 0), categoria: x.categoria, destino: chaveDe(x), descricao: x.descricao || '' }))
+                : [{ valor: total, categoria: d.categoria, destino: linhas[0] ? chaveDe(linhas[0]) : '', descricao: d.descricao || '' },
+                   { valor: 0, categoria: d.categoria, destino: '', descricao: '' }];
+            const r2 = v => Math.round((Number(v) || 0) * 100) / 100;
+            const resto = () => r2(total - partes.slice(1).reduce((t, p) => t + (Number(p.valor) || 0), 0));
+            const esc = escapeHtmlSaidas;
+            const est = 'box-sizing:border-box;height:44px;padding:0 10px;border:1.5px solid var(--line);border-radius:var(--r-ctl);font:inherit;font-size:16px;background:var(--card);color:var(--ink)';
+            const grupos = cat.filter(c => !c.categoria_pai && c.direcao === 'saida' && cat.some(f => f.categoria_pai === c.codigo));
+            const optsCat = (sel) => grupos.map(g => `<optgroup label="${esc(g.nome)}">${cat.filter(f => f.categoria_pai === g.codigo && f.direcao === 'saida')
+                .map(f => `<option value="${esc(f.codigo)}" ${f.codigo === sel ? 'selected' : ''}>${esc(f.nome)}</option>`).join('')}</optgroup>`).join('')
+                + (sel && !cat.some(f => f.codigo === sel) ? `<option value="${esc(sel)}" selected>${esc(rotuloCategoriaSaida(sel))}</option>` : '');
+            const optsDest = (sel) => `<option value="">Sem destino</option>` + ops.map(o => `<option value="${esc(o.chave)}" ${o.chave === sel ? 'selected' : ''}>${' '.repeat(o.nivel * 3)}${esc(o.rotulo)}</option>`).join('');
+            const sheet = abrirSheet(rzSheetCabecalho(linhas.length > 1 ? 'Refazer a divisão' : 'Dividir em partes', `${esc(d.descricao || 'Despesa')} · ${formatarMoedaBR(total)}`) +
+                `<div class="rz-sh-b" data-dl-corpo></div><div class="rz-sh-f"><button type="button" class="rz-btn rz-btn-2" data-dl-cancelar>Cancelar</button><button type="button" class="rz-btn rz-btn-1" data-dl-salvar>Salvar partes</button></div>`);
+            const corpo = sheet.querySelector('[data-dl-corpo]'), salvar = sheet.querySelector('[data-dl-salvar]');
+            const valido = () => partes.length >= 2 && partes.length <= 20 && resto() > 0 && partes.slice(1).every(p => Number(p.valor) > 0);
+            const atualizar = () => {
+                partes[0].valor = resto();
+                const el0 = corpo.querySelector('[data-dl-resto]'); if (el0) { el0.textContent = formatarMoedaBR(partes[0].valor); el0.style.color = partes[0].valor > 0 ? 'var(--ink)' : 'var(--danger)'; }
+                const msg = corpo.querySelector('[data-dl-msg]');
+                if (msg) msg.textContent = partes[0].valor > 0 ? (partes.slice(1).every(p => Number(p.valor) > 0) ? '' : 'Informe o valor de cada parte.') : 'As partes passam do total.';
+                salvar.disabled = !valido();
+            };
+            const desenhar = () => {
+                corpo.innerHTML = `<p style="margin:0 0 10px;font-size:14px;color:var(--muted);line-height:1.4">A soma das partes é sempre ${esc(formatarMoedaBR(total))}: a parte 1 fica com o restante e com a conciliação do extrato. Cada parte tem a sua categoria${ops.length ? ' e o seu destino' : ''}.</p>` +
+                    partes.map((p, k) => `<div class="rz-card" style="padding:12px 14px;margin-bottom:8px">
+                        <div style="display:flex;align-items:center;gap:10px"><b style="flex:1">Parte ${k + 1}</b>${k === 0
+                            ? `<small style="color:var(--muted)">Restante</small><b data-dl-resto style="font-variant-numeric:tabular-nums">${esc(formatarMoedaBR(p.valor))}</b>`
+                            : `<span style="color:var(--muted);font-size:14px">R$</span><input type="number" inputmode="decimal" step="0.01" min="0" data-dl-valor="${k}" value="${p.valor || ''}" aria-label="Valor da parte ${k + 1}" style="${est};width:120px;text-align:right">` +
+                              (partes.length > 2 ? `<button type="button" data-dl-tirar="${k}" aria-label="Tirar parte ${k + 1}" style="flex:none;width:40px;height:44px;border:0;background:none;color:var(--muted);display:grid;place-items:center;cursor:pointer"><svg data-lucide="trash-2" style="width:18px;height:18px"></svg></button>` : '')}</div>
+                        <select data-dl-cat="${k}" aria-label="Categoria da parte ${k + 1}" style="${est};width:100%;margin-top:8px">${optsCat(p.categoria)}</select>
+                        ${ops.length ? `<select data-dl-dest="${k}" aria-label="Destino da parte ${k + 1}" style="${est};width:100%;margin-top:8px">${optsDest(p.destino)}</select>` : ''}
+                        <input type="text" data-dl-desc="${k}" value="${esc(p.descricao)}" placeholder="Descrição (opcional)" aria-label="Descrição da parte ${k + 1}" style="${est};width:100%;margin-top:8px">
+                    </div>`).join('') +
+                    (partes.length < 20 ? `<button type="button" class="rz-act" data-dl-add><div class="rz-ic"><svg data-lucide="plus"></svg></div><div>Adicionar parte<small>Até 20 partes</small></div></button>` : '') +
+                    `<p data-dl-msg style="margin:8px 0 0;font-size:13px;color:var(--danger)"></p>`;
+                corpo.querySelectorAll('[data-dl-valor]').forEach(inp => inp.addEventListener('input', () => { partes[Number(inp.dataset.dlValor)].valor = r2(String(inp.value).replace(',', '.')); atualizar(); }));
+                corpo.querySelectorAll('[data-dl-cat]').forEach(s => s.addEventListener('change', () => { partes[Number(s.dataset.dlCat)].categoria = s.value; }));
+                corpo.querySelectorAll('[data-dl-dest]').forEach(s => s.addEventListener('change', () => { partes[Number(s.dataset.dlDest)].destino = s.value; }));
+                corpo.querySelectorAll('[data-dl-desc]').forEach(inp => inp.addEventListener('input', () => { partes[Number(inp.dataset.dlDesc)].descricao = inp.value; }));
+                corpo.querySelectorAll('[data-dl-tirar]').forEach(b => b.addEventListener('click', () => { partes.splice(Number(b.dataset.dlTirar), 1); desenhar(); }));
+                corpo.querySelector('[data-dl-add]')?.addEventListener('click', () => { partes.push({ valor: 0, categoria: partes[0].categoria, destino: '', descricao: '' }); desenhar(); corpo.querySelector(`[data-dl-valor="${partes.length - 1}"]`)?.focus(); });
+                if (typeof lucide !== 'undefined') lucide.createIcons();
+                atualizar();
+            };
+            desenhar();
+            sheet.querySelector('[data-dl-cancelar]')?.addEventListener('click', () => fecharSheet());
+            salvar.addEventListener('click', async () => {
+                if (!valido()) return;
+                salvar.disabled = true;
+                const { data, error } = await dbAuth.rpc('fn_lancamento_dividir', { p_lancamento_id: raiz, p_canal: 'app',
+                    p_partes: partes.map(p => ({ valor: r2(p.valor), categoria: p.categoria || null, descricao: String(p.descricao || '').trim() || null, destino: destinoJson(p.destino) })) });
+                if (error) { rzToast(error.message || 'Não consegui dividir.', { tipo: 'danger' }); salvar.disabled = false; return; }
+                fecharSheet();
+                rzToast(data?.mensagem || 'Lançamento dividido.');
+                await recarregarSaidasDepoisDe(raiz, 'dividir');
+            });
+        }
+        async function financeiroUnirLancamento(d, extras) {
+            if (!await rzConfirmar({ titulo: 'Unir as partes', impacto: `As ${extras.partes} partes voltam a ser um lançamento só, com a categoria e o destino da parte 1.`, rotuloConfirmar: 'Unir' })) return;
+            const { error } = await dbAuth.rpc('fn_lancamento_unir', { p_lancamento_id: extras.raiz, p_canal: 'app' });
+            if (error) { rzToast(error.message || 'Não foi possível unir.', { tipo: 'danger' }); return; }
+            rzToast('Partes unidas.');
+            await recarregarSaidasDepoisDe(extras.raiz, 'unir');
+        }
+        function acoesDestinoDivisao(d, extras, realizado, compFechada) {
+            if (!extras) return [];
+            const acoes = [];
+            if (d.ativoId) acoes.push({ icone: 'git-branch', titulo: 'Destino', sub: extras.destinoNome || 'Obra, safra, etapa ou item', aoTocar: () => financeiroAbrirDestino(d) });
+            if (realizado && !compFechada) {
+                acoes.push({ icone: 'layers', titulo: extras.partes > 1 ? 'Refazer a divisão' : 'Dividir em partes',
+                    sub: extras.partes > 1 ? `${extras.partes} partes` : 'Categorias e destinos', aoTocar: () => financeiroDividirLancamento(d, extras) });
+                if (extras.partes > 1) acoes.push({ icone: 'merge', titulo: 'Unir as partes', sub: 'Volta a um lançamento', aoTocar: () => financeiroUnirLancamento(d, extras) });
+            }
+            return acoes;
+        }
+
         export async function rzAcoesDespesa(id) {
             const d = lancamentos.find(x => x.id === id); if (!d || typeof abrirSheetAcoes !== 'function') return;
             if (d.faturaId) { financeiroAbrirFatura(d.faturaId); return; } // compra de cartão se paga pela fatura, nunca sozinha
-            const [urlComprovante, origem] = await Promise.all([comprovanteDaDespesa(d), origemDaDespesa(d)]);
+            const [urlComprovante, origem, extras] = await Promise.all([comprovanteDaDespesa(d), origemDaDespesa(d), lancExtrasDestino(id)]); // v1.68.0: destino e divisão
             // v1.29.0 (RF-18.22) — 1ª ação mostra de onde a despesa veio e abre o item.
             const acaoOrigem = origem ? [{ icone: 'link-2', titulo: `Origem: ${origem.titulo}`,
                 sub: `Ocorrência de ${formatarDataBR(origem.data)}${origem.daEmpresa ? ' · da empresa' : ''}`,
@@ -1054,6 +1196,7 @@ function financeiroRenderCabecalho(aba) {
                 }
                 acoesRealizado.push(...financeiroAcaoConta('lancamento', id, d.contaId, (v) => { d.contaId = v; renderSaidas(); })); // v1.33.0
                 acoesRealizado.push(...financeiroAcaoDivisao('lancamento', id, d.valor, d.divisaoAjustada, (aj) => { d.divisaoAjustada = aj; renderSaidas(); })); // v1.35.0
+                acoesRealizado.push(...acoesDestinoDivisao(d, extras, true, compFechada)); // v1.68.0
                 abrirSheetAcoes({ titulo: escapeHtmlSaidas(d.descricao || 'Despesa'), sub, acoes: acoesRealizado });
                 return;
             }
@@ -1061,6 +1204,7 @@ function financeiroRenderCabecalho(aba) {
                 ...acaoOrigem,
                 ...financeiroAcaoConta('lancamento', id, d.contaId, (v) => { d.contaId = v; renderSaidas(); }), // v1.33.0
                 ...financeiroAcaoDivisao('lancamento', id, d.valor, d.divisaoAjustada, (aj) => { d.divisaoAjustada = aj; renderSaidas(); }), // v1.35.0
+                ...acoesDestinoDivisao(d, extras, false, false), // v1.68.0
                 { icone: 'check', titulo: 'Dar baixa / editar', sub: 'Abre o formulário completo', aoTocar: () => abrirEditarDespesa(id) },
                 { icone: 'trash-2', titulo: 'Excluir despesa', tipo: 'bad', aoTocar: () => excluirDespesa(id) },
             ] });
