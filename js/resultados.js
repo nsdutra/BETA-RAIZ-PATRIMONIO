@@ -1,8 +1,10 @@
 // =====================================================================
 // RAIZ PATRIMÔNIO — js/resultados.js
-// VERSÃO: Beta v2.11.0 (16/10/2026 — demanda 3022603b)
+// VERSÃO: Beta v2.11.1 (16/10/2026 — demanda 3022603b)
 // LINHAS: (ver versoes.json)
 // -----------------------------------------------------------------
+// NOVIDADES (Beta v2.11.1) (16/10/2026) — comparação em .rz-vs (a .rz-cmp é do gráfico Carteira × indicador).
+// Versão anterior (Beta v2.11.0):
 // NOVIDADES (Beta v2.11.0) (16/10/2026, sessão 20261016-0945-usos-fatia8, demanda 3022603b; FICHA_FATIA8_HOJE_POR_RAMO_RAIZ v1.2.0 e
 //   PROTOTIPO_HOJE_COCKPIT_RAMOS_RAIZ v1.0.0, de acordo do Nicola 16/10 01:09 e 09:43) — o Hoje responde "qual ramo dá resultado":
 //   — Todo o patrimônio: card Resultado por ramo (fn_hoje_por_ramo), uma linha por ramo com receita × despesa, margem e
@@ -62,7 +64,7 @@
 // Versões anteriores (v2.4.0 … v2.4.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '2.11.0';
+export const VERSAO = '2.11.1';
 
 // ---------------------------------------------------------------------
 // Estado do filtro (module-scoped — sobrevive entre renders porque o
@@ -131,10 +133,10 @@ function comparar(atual, anterior, { pp = false, bom = 'sobe', rotulo } = {}) {
     if (pp) { d = a - b; txt = `${sinalTxt(d)}${fmtNum(Math.abs(d))} p.p.`; }
     else { if (b === 0) return ''; d = (a - b) / Math.abs(b) * 100; txt = `${sinalTxt(Math.round(d))}${fmtNum(Math.abs(d), 0)}%`; }
     const igual = pp ? Math.abs(d) < 0.05 : Math.round(d) === 0;
-    const cls = igual || !bom ? 'rz-cmp' : ((d > 0) === (bom === 'sobe') ? 'rz-cmp rz-cmp-bom' : 'rz-cmp rz-cmp-ruim');
+    const cls = igual || !bom ? 'rz-vs' : ((d > 0) === (bom === 'sobe') ? 'rz-vs rz-vs-bom' : 'rz-vs rz-vs-ruim');
     return `<em class="${cls}">${txt} ${rotulo || `vs ${filtro.ano - 1}`}</em>`;
 }
-const notaCmp = (t, cls = '') => t ? `<em class="rz-cmp${cls ? ' ' + cls : ''}">${escR(t)}</em>` : '';
+const notaCmp = (t, cls = '') => t ? `<em class="rz-vs${cls ? ' ' + cls : ''}">${escR(t)}</em>` : '';
 
 // Linha do ano: resultado acumulado mês a mês até o mês corrente (só o desenho; o número está ao lado).
 function sparkSvg(mensal, campo = 'resultado') {
@@ -345,7 +347,7 @@ function celulasHeroiRamo({ tem, resumo, ant, ind, moeda, pctBR, rentabilidade, 
             celula('Investido no ano', tem ? moeda(despesa) : traco, false, prev > 0 ? notaCmp(`de ${moedaCurta(prev)} previstos`) : (ant ? comparar(despesa, ant.saidas_ano, { bom: null }) : '')),
             celula('Avanço físico', fis != null ? pctBR(fis) : traco, false, notaCmp(tot ? `${conc} de ${tot} etapas` : 'sem obra em andamento')),
             celula('Avanço financeiro', fin != null ? pctBR(fin) : traco, false,
-                dif == null ? notaCmp(fin != null ? 'pago ÷ previsto' : '') : notaCmp(Math.abs(dif) < 1 ? 'igual ao físico' : `${fmtNum(Math.abs(dif), 0)} p.p. ${dif > 0 ? 'à frente' : 'atrás'} do físico`, dif > 5 ? 'rz-cmp-ruim' : '')),
+                dif == null ? notaCmp(fin != null ? 'pago ÷ previsto' : '') : notaCmp(Math.abs(dif) < 1 ? 'igual ao físico' : `${fmtNum(Math.abs(dif), 0)} p.p. ${dif > 0 ? 'à frente' : 'atrás'} do físico`, dif > 5 ? 'rz-vs-ruim' : '')),
             cAPagar(),
         ];
     }
@@ -392,7 +394,7 @@ function montarHeroiRamo(d, carregando) {
             <div class="rz-heroi-3 rz-q4">
                 ${cel('Por vida, ao mês', ind.custo_por_vida_mes != null ? moeda(ind.custo_por_vida_mes) : '—', notaCmp(`${ind.meses} ${Number(ind.meses) === 1 ? 'mês' : 'meses'} no ano`))}
                 ${cel('A pagar 30 dias', moeda(ind.a_pagar_30?.valor), notaCmp(`${Number(ind.a_pagar_30?.qtd) || 0} ${Number(ind.a_pagar_30?.qtd) === 1 ? 'conta' : 'contas'}`))}
-                ${cel('Vencidos', String(venc), notaCmp(venc ? 'itens de controle' : 'tudo em dia', venc ? 'rz-cmp-ruim' : 'rz-cmp-bom'))}
+                ${cel('Vencidos', String(venc), notaCmp(venc ? 'itens de controle' : 'tudo em dia', venc ? 'rz-vs-ruim' : 'rz-vs-bom'))}
                 ${cel('Receita', moeda(ind.receita), comparar(ind.receita, ind.anterior?.receita))}
             </div></div>`;
     }
@@ -713,7 +715,7 @@ function montarCardsDoRamo(ramo, ind) {
         const v = ind.vendas || {};
         const cab = Number(v.cabecas) || 0, val = Number(v.valor) || 0;
         if (cab || val) {
-            cards.push(card('Vendas de animais', String(filtro.ano), `<div class="rz-ck-kpis"><div><small>Cabeças vendidas</small><b>${cab}</b></div><div><small>Receita</small><b>${moedaCurta(val)}</b>${cab && val ? `<em class="rz-cmp">${moedaCurta(val / cab)} por cabeça</em>` : ''}</div></div>`));
+            cards.push(card('Vendas de animais', String(filtro.ano), `<div class="rz-ck-kpis"><div><small>Cabeças vendidas</small><b>${cab}</b></div><div><small>Receita</small><b>${moedaCurta(val)}</b>${cab && val ? `<em class="rz-vs">${moedaCurta(val / cab)} por cabeça</em>` : ''}</div></div>`));
         }
     }
 

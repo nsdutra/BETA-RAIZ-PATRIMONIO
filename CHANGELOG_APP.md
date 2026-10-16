@@ -4,6 +4,22 @@ Histórico completo de versões do `index.html`, movido automaticamente pelo `ge
 
 ---
 
+NOVIDADES (Beta v1.426.0) — FATIA 7, MEMBROS (FICHA_FATIA7_MEMBROS_RAIZ v1.2.0, de acordo do Nicola 15/10 23:17 e 16/10
+00:05, D7-1 a D7-14): o ramo Pecuária abre no Premium Ampliado. Lote bovino, lote suíno, equinos, ovinos e caprinos ganham
+o card "Rebanho · N" (animal com espécie, categoria pela idade e pelos partos, raça, nascimento ou safra) e a adega de
+vinho, "Garrafas · N" (rótulo com saldo e janela de consumo). Ficha do animal com o ciclo de reprodução e as datas
+previstas (diagnóstico, secagem, parto, desmame), Transferir, Registrar saída (a venda lança a receita), Desfazer e Editar.
+O relógio move as fases (apta, secagem, desmame) e a categoria; o parto e o diagnóstico pedem confirmação, e a cria nasce
+ligada à mãe. A Agenda mostra os avisos. cofre-membros.js 1.0.0 (novo) · cofre-ativos.js 1.113.0 · cofre-controles.js
+1.62.0 · agenda.js 1.5.0. Banco: usos_fatia7_estrutura_v1, usos_fatia7_dados_v1, usos_fatia7_funcoes_v1 e v2.
+Versão anterior (Beta v1.425.0):
+------------------------------------------------------------------
+Versões anteriores (v1.425.0 … v1.425.0): CHANGELOG_APP.md, na raiz do
+repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
+das 5 versões mais recentes deste cabeçalho.
+
+---
+
 NOVIDADES (Beta v1.425.0) — FATIA 6b, CICLOS E ETAPAS (FICHA_FATIA6_CICLOS_E_FASES_RAIZ v1.2.0, de acordo do Nicola 15/10
 13:34, 14:45, 15:22, 22:16 e 22:27): Construção vira obra com etapas escolhidas do modelo (opcionais e próprias) e Safra de
 café vira ciclo com fases. No chip Controles, o programa mostra a fase atual (n de m) e "Ver/Abrir a obra|safra" abre a
