@@ -6,9 +6,14 @@
    (base derivada do RUMO v7.4.2 — histórico de versões anteriores
    preservado abaixo para referência técnica)
 
-   VERSÃO: Beta v1.430.1
-   LINHAS: 17097
-   DATA: 16/10/2026 (sessão 20261016-0945-usos-fatia8, demanda 3022603b)
+   VERSÃO: Beta v1.431.0
+   LINHAS: 17098
+   DATA: 16/10/2026 (sessão 20261016-2010-rel-cadastro, demanda 91e3516e)
+   NOVIDADES (Beta v1.431.0) — RELATÓRIO NOVO "Cadastro da carteira" (de acordo do Nicola 16/10 20:08): em Minha empresa ›
+   Relatórios, escolhe o empreendimento (ou todos) e baixa uma planilha .xlsx com imóveis, contratos e locatários, diagnóstico
+   por linha e recomendações no fim. Código relatorios.cadastro_carteira (todos os planos com Relatórios). relatorios-executivos.js
+   1.5.0. Banco: rel_cadastro_carteira_v1 (fn_relatorio_cadastro_carteira).
+   Versão anterior (Beta v1.430.1):
    NOVIDADES (Beta v1.430.1) — CORREÇÃO da 1.430.0: a comparação com o ano anterior usa a classe nova .rz-vs (a .rz-cmp já era
    do gráfico Carteira × indicador e ganhava margem e corte). resultados.js 2.11.1.
    Versão anterior (Beta v1.430.0):
@@ -28,14 +33,8 @@
    Pecuária no 1º seletor (lote bovino, lote suíno, pasto, lavoura, talhão, máquinas…). cofre-ativos.js 1.115.0 ·
    cofre-validacoes.js 2.8.0.
    Versão anterior (Beta v1.427.0):
-   NOVIDADES (Beta v1.427.0) — CARGA SILVA CAFÉS, LOTES 1 A 3 (planos de 16/10 00:48, de acordo do Nicola 16/10 00:53): a tela
-   de Ativos perde a vista Contratos (contrato e uso pelo ativo); o "Ver o app de" mostra o ícone de cada ramo na sua cor; o
-   estado vazio dentro de lista tem uma moldura só; "Comece por aqui" fala em bem, não em imóvel; a situação de cada ativo
-   é relida depois do cadastro (fim do "Disponível" errado e dos sub-ativos sem etiqueta). cofre-ativos.js 1.114.0 ·
-   comum-pessoas.js 1.215.0 · cofre-app.js 1.50.0. Banco: usos_lote1_situacao_v1, agro_catalogo_lote3_v1.
-   Versão anterior (Beta v1.426.0):
    ------------------------------------------------------------------
-   Versões anteriores (v1.426.0 … v1.426.0): CHANGELOG_APP.md, na raiz do
+   Versões anteriores (v1.427.0 … v1.427.0): CHANGELOG_APP.md, na raiz do
    repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
    das 5 versões mais recentes deste cabeçalho.
 
@@ -63,7 +62,7 @@
          O navegador aplica o mapa também aos imports estáticos dentro dos
          módulos (cofre-app.js → ./cofre-api.js etc.). -->
     <!-- RZ-IMPORTMAP:INICIO -->
-    <script type="importmap">{"imports":{"./js/cadastros.js":"./js/cadastros.js?v=1.3.0","./js/financeiro.js":"./js/financeiro.js?v=1.68.0","./js/fechamento.js":"./js/fechamento.js?v=1.15.0","./js/contratos.js":"./js/contratos.js?v=1.60.0","./js/minutas.js":"./js/minutas.js?v=1.6.0","./js/vitrine.js":"./js/vitrine.js?v=1.6.0","./js/imoveis.js":"./js/imoveis.js?v=1.8.0","./js/cofre-api.js":"./js/cofre-api.js?v=1.51.0","./js/cofre-app.js":"./js/cofre-app.js?v=1.50.0","./js/cofre-ativos.js":"./js/cofre-ativos.js?v=1.115.0","./js/cofre-controles.js":"./js/cofre-controles.js?v=1.62.0","./js/cofre-documentos.js":"./js/cofre-documentos.js?v=2.38.0","./js/cofre-imagem.js":"./js/cofre-imagem.js?v=1.1.0","./js/cofre-estado.js":"./js/cofre-estado.js?v=1.5.2","./js/cofre-navegacao.js":"./js/cofre-navegacao.js?v=1.10.0","./js/cofre-ui.js":"./js/cofre-ui.js?v=1.7.2","./js/cofre-validacoes.js":"./js/cofre-validacoes.js?v=2.8.0","./js/comum-licenca.js":"./js/comum-licenca.js?v=1.9.0","./js/comum-renovacao.js":"./js/comum-renovacao.js?v=1.3.5","./js/comum-minha-empresa.js":"./js/comum-minha-empresa.js?v=1.20.0","./js/comum-pessoas.js":"./js/comum-pessoas.js?v=1.215.0","./js/comum-sobre.js":"./js/comum-sobre.js?v=1.5.0","./js/comum-endereco.js":"./js/comum-endereco.js?v=1.2.0","./js/comum-partes.js":"./js/comum-partes.js?v=1.0.0","./js/resultados.js":"./js/resultados.js?v=2.11.1","./js/indicadores.js":"./js/indicadores.js?v=1.2.0","./js/configuracao-inicial.js":"./js/configuracao-inicial.js?v=1.1.0","./js/relatorios-executivos.js":"./js/relatorios-executivos.js?v=1.4.0","./js/raiz-eventos.js":"./js/raiz-eventos.js?v=1.0.0","./js/raiz-device.js":"./js/raiz-device.js?v=1.1.0","./js/raiz-ui.js":"./js/raiz-ui.js?v=1.5.0","./js/fiscal.js":"./js/fiscal.js?v=1.7.0","./js/ativos/ativos-boot.js":"./js/ativos/ativos-boot.js?v=1.4.0","./js/ativos/ativos-markup.js":"./js/ativos/ativos-markup.js?v=1.65.0","./js/nucleo/porta.js":"./js/nucleo/porta.js?v=1.5.0","./js/partes.js":"./js/partes.js?v=1.1.0","./js/conta.js":"./js/conta.js?v=1.2.0","./js/grupo-visao.js":"./js/grupo-visao.js?v=1.0.0","./js/agenda.js":"./js/agenda.js?v=1.5.0","./js/cofre-membros.js":"./js/cofre-membros.js?v=1.0.0"}}</script>
+    <script type="importmap">{"imports":{"./js/cadastros.js":"./js/cadastros.js?v=1.3.0","./js/financeiro.js":"./js/financeiro.js?v=1.68.0","./js/fechamento.js":"./js/fechamento.js?v=1.15.0","./js/contratos.js":"./js/contratos.js?v=1.60.0","./js/minutas.js":"./js/minutas.js?v=1.6.0","./js/vitrine.js":"./js/vitrine.js?v=1.6.0","./js/imoveis.js":"./js/imoveis.js?v=1.8.0","./js/cofre-api.js":"./js/cofre-api.js?v=1.51.0","./js/cofre-app.js":"./js/cofre-app.js?v=1.50.0","./js/cofre-ativos.js":"./js/cofre-ativos.js?v=1.115.0","./js/cofre-controles.js":"./js/cofre-controles.js?v=1.62.0","./js/cofre-documentos.js":"./js/cofre-documentos.js?v=2.38.0","./js/cofre-imagem.js":"./js/cofre-imagem.js?v=1.1.0","./js/cofre-estado.js":"./js/cofre-estado.js?v=1.5.2","./js/cofre-navegacao.js":"./js/cofre-navegacao.js?v=1.10.0","./js/cofre-ui.js":"./js/cofre-ui.js?v=1.7.2","./js/cofre-validacoes.js":"./js/cofre-validacoes.js?v=2.8.0","./js/comum-licenca.js":"./js/comum-licenca.js?v=1.9.0","./js/comum-renovacao.js":"./js/comum-renovacao.js?v=1.3.5","./js/comum-minha-empresa.js":"./js/comum-minha-empresa.js?v=1.20.0","./js/comum-pessoas.js":"./js/comum-pessoas.js?v=1.215.0","./js/comum-sobre.js":"./js/comum-sobre.js?v=1.5.0","./js/comum-endereco.js":"./js/comum-endereco.js?v=1.2.0","./js/comum-partes.js":"./js/comum-partes.js?v=1.0.0","./js/resultados.js":"./js/resultados.js?v=2.11.1","./js/indicadores.js":"./js/indicadores.js?v=1.2.0","./js/configuracao-inicial.js":"./js/configuracao-inicial.js?v=1.1.0","./js/relatorios-executivos.js":"./js/relatorios-executivos.js?v=1.5.0","./js/raiz-eventos.js":"./js/raiz-eventos.js?v=1.0.0","./js/raiz-device.js":"./js/raiz-device.js?v=1.1.0","./js/raiz-ui.js":"./js/raiz-ui.js?v=1.5.0","./js/fiscal.js":"./js/fiscal.js?v=1.7.0","./js/ativos/ativos-boot.js":"./js/ativos/ativos-boot.js?v=1.4.0","./js/ativos/ativos-markup.js":"./js/ativos/ativos-markup.js?v=1.65.0","./js/nucleo/porta.js":"./js/nucleo/porta.js?v=1.5.0","./js/partes.js":"./js/partes.js?v=1.1.0","./js/conta.js":"./js/conta.js?v=1.2.0","./js/grupo-visao.js":"./js/grupo-visao.js?v=1.0.0","./js/agenda.js":"./js/agenda.js?v=1.5.0","./js/cofre-membros.js":"./js/cofre-membros.js?v=1.0.0"}}</script>
     <!-- RZ-IMPORTMAP:FIM -->
 
     <!-- ===== PWA: permite "instalar" o app no celular (Android e iPhone) ===== -->
@@ -4448,7 +4447,7 @@
         // texto certo toda vez (esqueci 5 versões seguidas, de v1.37.1 até
         // v1.38.3). Agora só precisa mudar UMA linha aqui a cada release;
         // window.onload aplica nos dois lugares automaticamente.
-        const APP_VERSAO = "Beta v1.430.1"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
+        const APP_VERSAO = "Beta v1.431.0"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
 
         // ====================================================================
         // v1.105.0 — HELPERS DE SUPERFÍCIE DA GRAMÁTICA ÚNICA
@@ -8731,6 +8730,8 @@ async function criarLinkVitrineSupabase(token, idsSelecionados) {
                 { codigo: 'relatorios.gerencial', icone: 'pie-chart', titulo: 'Visão gerencial', sub: 'Por conta e por pessoa', acao: () => abrirRelatorioExecutivo('gerencial') },
                 // v1.379.0 (F13.8) — só fatos e dados (REL-56)
                 { codigo: 'relatorios.retiradas_extraordinarias', icone: 'sparkles', titulo: 'Retiradas extraordinárias', sub: 'Por pessoa, mês e ano', acao: () => abrirRelatorioExecutivo('retiradas') },
+                // v1.431.0 — planilha para o Excel (dem 91e3516e)
+                { codigo: 'relatorios.cadastro_carteira', icone: 'sheet', titulo: 'Cadastro da carteira', sub: 'Planilha para o Excel', acao: () => abrirRelatorioCadastroCarteira() },
                 { codigo: 'relatorios.distribuicao', icone: 'users', titulo: 'Distribuição aos sócios', sub: socios.length ? `PDF por sócio · ${socios.length} sócio${socios.length > 1 ? 's' : ''}` : 'PDF por sócio', acao: () => abrirSheetAcoes({ titulo: 'Distribuição aos sócios', sub: 'Escolha o sócio', acoes: socios.length ? socios.map(sc => ({ icone: 'user', titulo: sc, codigo: 'relatorios.distribuicao', aoTocar: () => exportarRelatorioSocioPDF(sc) })) : [{ icone: 'info', titulo: 'Sem distribuição ainda', aoTocar: () => {} }] }) },
             ];
             el.innerHTML = itens.map((it, i) => {
@@ -8746,7 +8747,7 @@ async function criarLinkVitrineSupabase(token, idsSelecionados) {
             if (__rzRelExecModulo) return Promise.resolve(__rzRelExecModulo);
             return import('./js/relatorios-executivos.js').then(m => (__rzRelExecModulo = m));
         }
-        ['abrirRelatorioExecutivo', 'fecharRelatorioExecutivo'].forEach(nome => { window[nome] = (...args) => rzPonteModulo(carregarRelatoriosExecutivos, nome, args); });
+        ['abrirRelatorioExecutivo', 'fecharRelatorioExecutivo', 'abrirRelatorioCadastroCarteira'].forEach(nome => { window[nome] = (...args) => rzPonteModulo(carregarRelatoriosExecutivos, nome, args); });
         // =====================================================================
         // R8 (fatia 4, Beta v1.143.0) — VITRINE VIVE EM js/vitrine.js
         // Mesmo desenho de Financeiro/Contratos/Minutas (blocos abaixo).

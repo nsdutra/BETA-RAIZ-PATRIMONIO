@@ -1,6 +1,14 @@
 // ============================================================================
 // relatorios-executivos.js — Raiz Patrimônio · Relatórios no modelo executivo
-// Versão: 1.4.0 · 14/10/2026
+// Versão: 1.5.0 · 16/10/2026
+//
+// v1.5.0 (16/10/2026, sessão 20261016-2010-rel-cadastro, demanda 91e3516e; de acordo do Nicola 16/10 20:08) — relatório
+// novo "Cadastro da carteira" (relatorios.cadastro_carteira): planilha .xlsx com imóveis, contratos e locatários, uma
+// linha por imóvel × contrato ativo, coluna Diagnóstico e Recomendações no fim, lida de fn_relatorio_cadastro_carteira.
+// Abas Carteira (filtro em todas as colunas), Por empreendimento (escolha na célula B5) e Sobre. ExcelJS 4.4.0 carregado
+// sob demanda (jsdelivr, cdnjs de reserva); símbolo da marca desenhado em PNG na hora. abrirRelatorioCadastroCarteira()
+// abre a escolha do empreendimento e baixa o arquivo (exceção à REL-36 registrada na demanda).
+// Versão anterior: 1.4.0 · 14/10/2026
 //
 // v1.4.0 (14/10/2026, sessão 20261014-2145-onda9c-textos, demanda a05ad2ee; onda 9c do estudo PROTOTIPO_UX_DENSIDADE_RAMOS_RAIZ
 // v1.2.0, D6 seção 10) — textos no limite: ação até 24 caracteres, descrição até 28, aviso até 40 com o resultado e tela
@@ -27,18 +35,15 @@
 // v1.1.2 (09/10/2026, sessão 20261009-2055-integridade, demanda 0e5618ca): a tela do relatório sai da camada 96
 // (aposentada no DESIGN_SYSTEM §5) para a 80, criada para tela cheia de leitura — acima do cabeçalho (50) e
 // abaixo do véu dos sheets (97), então os filtros continuam abrindo por cima. Versão anterior: 1.1.1.
-//
-// v1.1.1 (07/10/2026, sessão 20261007-1845-financeiro, demanda f3e6cd27 — P5a.2): o filtro "Conta" do Fluxo de
-// caixa não lista cartão de crédito (as compras estão na conta que paga a fatura). Versão anterior: 1.1.0.
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.1.0 … v1.1.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.1.1 … v1.1.1): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
 import { rzMostrarBloqueio } from './comum-licenca.js';
 import { rzToast } from './raiz-ui.js';
 import RaizDevice from './raiz-device.js';
 
-export const VERSAO = '1.4.0';
+export const VERSAO = '1.5.0';
 
 // ---------------------------------------------------------------------------
 // Formatos (REL-13 a REL-17)
@@ -753,5 +758,313 @@ export function abrirRelatorioExecutivo(tipo, opcoes = {}) {
     carregar();
 }
 
+// ---------------------------------------------------------------------------
+// Cadastro da carteira (planilha .xlsx) — relatorios.cadastro_carteira, dados de fn_relatorio_cadastro_carteira
+// (REL-02: a planilha só formata o que a função devolve; diagnóstico e próximo reajuste vêm prontos do banco).
+// Exceção registrada à REL-36: o toque escolhe o empreendimento e baixa a planilha, sem tela intermediária
+// (dem 91e3516e).
+// ---------------------------------------------------------------------------
+const CADASTRO_CODIGO = 'relatorios.cadastro_carteira';
+const EXCELJS_URLS = [
+    'https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js',
+    'https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.4.0/exceljs.min.js',
+];
+let __excelJs = null;
+function carregarExcelJs() {
+    if (window.ExcelJS) return Promise.resolve(window.ExcelJS);
+    if (__excelJs) return __excelJs;
+    const tentar = (i) => new Promise((ok, falha) => {
+        if (i >= EXCELJS_URLS.length) { falha(new Error('Não foi possível carregar o gerador de planilha.')); return; }
+        const s = document.createElement('script');
+        s.src = EXCELJS_URLS[i]; s.async = true;
+        s.onload = () => (window.ExcelJS ? ok(window.ExcelJS) : tentar(i + 1).then(ok, falha));
+        s.onerror = () => { s.remove(); tentar(i + 1).then(ok, falha); };
+        document.head.appendChild(s);
+    });
+    __excelJs = tentar(0).catch(e => { __excelJs = null; throw e; });
+    return __excelJs;
+}
+
+// símbolo da marca (MAR-06) desenhado em PNG na hora: a planilha não carrega imagem externa
+const SIMBOLO_SVG = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="16 2 88 112" width="176" height="224"><g fill="none" stroke="#1e3a32" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"><path d="M60 92 V64"/><path d="M60 64 Q60 44 26 30"/><path d="M60 64 Q58 36 44 16"/><path d="M60 64 V10"/><path d="M60 64 Q62 36 76 16"/><path d="M60 64 Q60 44 94 30"/><path d="M60 92 Q50 98 40 108"/><path d="M60 92 V110"/><path d="M60 92 Q70 98 80 108"/><path d="M30 72 H90" opacity=".3"/></g><circle cx="26" cy="30" r="6.5" fill="#7e6596"/><circle cx="44" cy="16" r="6.5" fill="#3c4f9a"/><circle cx="60" cy="10" r="6.5" fill="#3f8163"/><circle cx="76" cy="16" r="6.5" fill="#7a8f3c"/><circle cx="94" cy="30" r="6.5" fill="#966040"/></svg>';
+function simboloPng() {
+    return new Promise((ok) => {
+        try {
+            const img = new Image();
+            img.onload = () => {
+                try {
+                    const c = document.createElement('canvas'); c.width = 176; c.height = 224;
+                    c.getContext('2d').drawImage(img, 0, 0, 176, 224);
+                    ok(c.toDataURL('image/png'));
+                } catch (e) { ok(null); }
+            };
+            img.onerror = () => ok(null);
+            img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(SIMBOLO_SVG);
+        } catch (e) { ok(null); }
+    });
+}
+
+const CC = { pine: 'FF1E3A32', sprout: 'FF2F6A51', paper: 'FFF1F4EC', ink: 'FF17211E', muted: 'FF5B6662', line: 'FFE3E6E0',
+    brassBg: 'FFF7ECD9', brass: 'FF8A5A1F', brassTx: 'FF6B4415', zebra: 'FFF6F7F4', loc: 'FF3C5A50', branco: 'FFFFFFFF' };
+const SIT_ATIVO = { alugado: 'Alugado', disponivel: 'Disponível', uso_proprio: 'Uso próprio' };
+const FORMA_PG = { pix: 'PIX', boleto: 'Boleto', transferencia: 'Transferência', dinheiro: 'Dinheiro', outro: 'Outro' };
+const dataXl = (s) => { if (!s) return null; const [a, m, d] = String(s).slice(0, 10).split('-').map(Number); return new Date(Date.UTC(a, m - 1, d)); };
+const nOuNulo = (v) => (v === null || v === undefined || v === '' ? null : Number(v));
+const tOuNulo = (v) => { const t = String(v ?? '').trim(); return t || null; };
+
+// [grupo, cabeçalho, largura, formato, leitura da linha]
+const CADASTRO_COLUNAS = [
+    ['Imóvel', 'Empreendimento', 18, null, r => r.empreendimento],
+    ['Imóvel', 'Imóvel', 30, null, r => r.imovel],
+    ['Imóvel', 'Tipo', 16, null, r => tOuNulo(r.tipo)],
+    ['Imóvel', 'Endereço', 28, null, r => tOuNulo(r.endereco)],
+    ['Imóvel', 'Nº', 7, null, r => tOuNulo(r.numero)],
+    ['Imóvel', 'Complemento', 14, null, r => tOuNulo(r.complemento)],
+    ['Imóvel', 'Bairro', 16, null, r => tOuNulo(r.bairro)],
+    ['Imóvel', 'Cidade/UF', 16, null, r => tOuNulo(r.cidade_uf)],
+    ['Imóvel', 'CEP', 11, null, r => tOuNulo(r.cep)],
+    ['Imóvel', 'Área (m²)', 10, '#,##0.00', r => nOuNulo(r.area_m2)],
+    ['Imóvel', 'Situação', 12, null, r => SIT_ATIVO[r.situacao] || tOuNulo(r.situacao)],
+    ['Imóvel', 'Valor de referência (R$)', 16, '#,##0.00', r => nOuNulo(r.valor_referencia)],
+    ['Imóvel', 'Data do valor', 12, 'dd/mm/yyyy', r => dataXl(r.valor_referencia_em)],
+    ['Imóvel', 'Aluguel desejado (R$)', 14, '#,##0.00', r => nOuNulo(r.aluguel_desejado)],
+    ['Imóvel', 'Proprietários e %', 30, null, r => tOuNulo(r.proprietarios)],
+    ['Imóvel', 'Observação', 24, null, r => tOuNulo(r.observacao)],
+    ['Contrato', 'Situação do contrato', 13, null, r => (r.contrato_situacao ? r.contrato_situacao.charAt(0).toUpperCase() + r.contrato_situacao.slice(1) : null)],
+    ['Contrato', 'Tipo de contrato', 22, null, r => tOuNulo(r.contrato_tipo)],
+    ['Contrato', 'Início', 11, 'dd/mm/yyyy', r => dataXl(r.inicio)],
+    ['Contrato', 'Fim', 11, 'dd/mm/yyyy', r => dataXl(r.fim)],
+    ['Contrato', 'Dia de vencimento', 10, '0', r => nOuNulo(r.vencimento_dia)],
+    ['Contrato', 'Aluguel atual (R$)', 14, '#,##0.00', r => nOuNulo(r.aluguel)],
+    ['Contrato', 'Aluguel anterior (R$)', 14, '#,##0.00', r => nOuNulo(r.aluguel_anterior)],
+    ['Contrato', 'Índice de reajuste', 11, null, r => tOuNulo(r.reajuste)],
+    ['Contrato', 'Periodicidade (meses)', 12, '0', r => nOuNulo(r.periodicidade_meses)],
+    ['Contrato', 'Próximo reajuste', 12, 'dd/mm/yyyy', r => dataXl(r.proximo_reajuste)],
+    ['Contrato', 'Forma de pagamento', 13, null, r => FORMA_PG[r.forma_pagamento] || tOuNulo(r.forma_pagamento)],
+    ['Contrato', 'Administradora', 20, null, r => tOuNulo(r.administradora)],
+    ['Locatário', 'Locatário', 30, null, r => tOuNulo(r.locatario)],
+    ['Locatário', 'PF/PJ', 7, null, r => ({ cpf: 'PF', cnpj: 'PJ' })[String(r.doc_tipo || '').toLowerCase()] || tOuNulo(r.doc_tipo)],
+    ['Locatário', 'CPF/CNPJ', 19, null, r => tOuNulo(r.documento)],
+    ['Locatário', 'Pessoa de contato', 18, null, r => tOuNulo(r.contato)],
+    ['Locatário', 'WhatsApp', 16, null, r => tOuNulo(r.whatsapp)],
+    ['Locatário', 'E-mail', 24, null, r => tOuNulo(r.email)],
+    ['Diagnóstico', 'Diagnóstico', 60, null, r => tOuNulo(r.diagnostico)],
+];
+
+function dataBr(s) { if (!s) return ''; const [a, m, d] = String(s).slice(0, 10).split('-'); return `${d}/${m}/${a}`; }
+function colLetra(n) { let s = ''; while (n > 0) { const r = (n - 1) % 26; s = String.fromCharCode(65 + r) + s; n = Math.floor((n - 1) / 26); } return s; }
+
+function recomendacoesCadastro(dados) {
+    const ex = dados.extrato || {};
+    const rec = [];
+    if (ex.ultima_data) {
+        const dia = new Date(ex.ultima_data + 'T00:00:00'); dia.setDate(dia.getDate() + 1);
+        const prox = `${String(dia.getDate()).padStart(2, '0')}/${String(dia.getMonth() + 1).padStart(2, '0')}/${dia.getFullYear()}`;
+        rec.push(`Atualize o extrato bancário: o último importado vai até ${dataBr(ex.ultima_data)}. Importe de ${prox} até hoje em Financeiro › Importar › Importar extrato, ou mande o PDF ao R.AI.Z no WhatsApp (+55 11 97895-0609). Recebimentos já pagos deixam de aparecer como atrasados.`);
+    } else {
+        rec.push('Importe o extrato bancário em Financeiro › Importar › Importar extrato, ou mande o PDF ao R.AI.Z no WhatsApp (+55 11 97895-0609).');
+    }
+    rec.push('Antes de importar, corrija nome e CPF/CNPJ dos locatários marcados no diagnóstico: é o CPF/CNPJ que faz o pagamento do banco casar sozinho com o contrato.');
+    const pe = num(ex.pendentes_entrada), ps = num(ex.pendentes_saida);
+    if (pe + ps > 0) rec.push(`Do extrato já importado (${dataBr(ex.pendentes_de)} a ${dataBr(ex.pendentes_ate)}) ficaram ${pe} entrada(s) e ${ps} saída(s) sem destino: confira em Financeiro › Conciliação.`);
+    if (num(dados.sem_whatsapp) > 0) rec.push(`${num(dados.sem_whatsapp)} contrato(s) ativo(s) sem o WhatsApp do locatário: é por ele que saem recibo e lembrete de cobrança.`);
+    return rec;
+}
+
+async function montarPlanilhaCadastro(ExcelJS, dados, opcoes = {}) {
+    const linhas = Array.isArray(dados.linhas) ? dados.linhas : [];
+    const empresa = dados.empresa || 'Empresa';
+    const agora = new Date();
+    const quando = `${String(agora.getDate()).padStart(2, '0')}/${String(agora.getMonth() + 1).padStart(2, '0')}/${agora.getFullYear()} às ${String(agora.getHours()).padStart(2, '0')}:${String(agora.getMinutes()).padStart(2, '0')}`;
+    const recorte = opcoes.empreendimentoNome ? `empreendimento ${opcoes.empreendimentoNome}` : 'todos os empreendimentos';
+    const F = (sz = 10, b = false, cor = CC.ink, i = false) => ({ name: 'Arial', size: sz, bold: b, italic: i, color: { argb: cor } });
+    const fundo = (c) => ({ type: 'pattern', pattern: 'solid', fgColor: { argb: c } });
+    const fio = { style: 'thin', color: { argb: CC.line } };
+
+    const wb = new ExcelJS.Workbook();
+    wb.creator = 'Raiz Patrimônio'; wb.title = `Cadastro da carteira · ${empresa}`; wb.created = agora;
+    wb.calcProperties = { fullCalcOnLoad: true };
+
+    // ---- Carteira ----
+    const ws = wb.addWorksheet('Carteira', { views: [{ state: 'frozen', xSplit: 2, ySplit: 8, showGridLines: false }],
+        pageSetup: { orientation: 'landscape', fitToPage: true, fitToWidth: 1, fitToHeight: 0, printTitlesRow: '8:8' } });
+    ws.headerFooter.oddFooter = `&L&8Cadastro da carteira · ${empresa.replace(/&/g, '&&')} · gerado em ${quando}${opcoes.quem ? ' por ' + opcoes.quem.replace(/&/g, '&&') : ''}&R&8Página &P de &N`;
+    CADASTRO_COLUNAS.forEach((c, i) => { ws.getColumn(i + 1).width = c[2]; });
+    ws.getRow(1).height = 30;
+    ws.getCell('A1').value = empresa; ws.getCell('A1').font = F(18, true, CC.pine);
+    ws.getCell('A2').value = 'Cadastro da carteira · imóveis, contratos e locatários'; ws.getCell('A2').font = F(12, true);
+    ws.getCell('A3').value = `Situação em ${quando.slice(0, 10)} · ${recorte} · gerado em ${quando}${opcoes.quem ? ' por ' + opcoes.quem : ''} · uma linha por imóvel e contrato ativo`;
+    ws.getCell('A3').font = F(9, false, CC.muted);
+    const png = await simboloPng();
+    if (png) { const id = wb.addImage({ base64: png, extension: 'png' }); ws.addImage(id, { tl: { col: 5, row: 0 }, ext: { width: 30, height: 38 } }); }
+    ws.getCell('G1').value = 'Raiz'; ws.getCell('G1').font = F(12, true, CC.pine);
+    ws.getCell('G2').value = 'Patrimônio'; ws.getCell('G2').font = F(8, true, CC.sprout);
+
+    const HDR = 8, INI = 9, FIM = Math.max(INI, INI + linhas.length - 1), NC = CADASTRO_COLUNAS.length;
+    const L = {}; CADASTRO_COLUNAS.forEach((c, i) => { L[c[1]] = colLetra(i + 1); });
+    const faixa = (n) => `${L[n]}${INI}:${L[n]}${FIM}`;
+    const kpis = [
+        ['Linhas (imóvel × contrato)', `COUNTA(${faixa('Imóvel')})`, '0'],
+        ['Contratos ativos', `COUNTIF(${faixa('Situação do contrato')},"Ativo")`, '0'],
+        ['Aluguel mensal (R$)', `SUM(${faixa('Aluguel atual (R$)')})`, '#,##0.00'],
+        ['Linhas com diagnóstico', `COUNTIF(${faixa('Diagnóstico')},"?*")`, '0'],
+    ];
+    kpis.forEach(([rot, f, fmt], i) => {
+        const c0 = 1 + i * 3;
+        const a = ws.getCell(5, c0); a.value = rot; a.font = F(8, false, CC.muted);
+        const b = ws.getCell(6, c0); b.value = { formula: f }; b.font = F(14, true, CC.pine); b.numFmt = fmt; b.alignment = { horizontal: 'left' };
+        [5, 6].forEach(rr => [c0, c0 + 1].forEach(cc => { ws.getCell(rr, cc).fill = fundo(CC.paper); }));
+    });
+
+    const COR_GRUPO = { 'Imóvel': CC.pine, 'Contrato': CC.sprout, 'Locatário': CC.loc, 'Diagnóstico': CC.brass };
+    let ini = 1;
+    for (let i = 1; i <= NC; i++) {
+        const g = CADASTRO_COLUNAS[i - 1][0];
+        if (i === NC || CADASTRO_COLUNAS[i][0] !== g) {
+            if (i > ini) ws.mergeCells(HDR - 1, ini, HDR - 1, i);
+            const cl = ws.getCell(HDR - 1, ini); cl.value = g.toUpperCase(); cl.font = F(8, true, CC.branco);
+            cl.alignment = { horizontal: 'left', indent: 1 };
+            for (let k = ini; k <= i; k++) ws.getCell(HDR - 1, k).fill = fundo(COR_GRUPO[g]);
+            ini = i + 1;
+        }
+    }
+    const numerico = (c) => c[3] && c[3] !== 'dd/mm/yyyy';
+    CADASTRO_COLUNAS.forEach((c, i) => {
+        const cl = ws.getCell(HDR, i + 1); cl.value = c[1]; cl.font = F(9, true, CC.pine); cl.fill = fundo(CC.paper);
+        cl.alignment = { wrapText: true, vertical: 'middle', horizontal: numerico(c) ? 'right' : 'left' };
+        cl.border = { bottom: { style: 'medium', color: { argb: CC.pine } } };
+    });
+    ws.getRow(HDR).height = 30;
+
+    linhas.forEach((r, k) => {
+        const rr = INI + k;
+        CADASTRO_COLUNAS.forEach((c, i) => {
+            const cl = ws.getCell(rr, i + 1);
+            cl.value = c[4](r);
+            cl.font = F(9); cl.border = { bottom: fio };
+            if (c[3]) cl.numFmt = c[3];
+            if (numerico(c)) cl.alignment = { horizontal: 'right' };
+            if (k % 2 === 1) cl.fill = fundo(CC.zebra);
+        });
+        const d = ws.getCell(rr, NC);
+        d.alignment = { wrapText: true, vertical: 'top' };
+        if (d.value) { d.fill = fundo(CC.brassBg); d.font = F(9, false, CC.brassTx); }
+    });
+    ws.autoFilter = { from: { row: HDR, column: 1 }, to: { row: FIM, column: NC } };
+
+    let rr = FIM + 2;
+    ws.getCell(rr, 1).value = 'Recomendações'; ws.getCell(rr, 1).font = F(12, true, CC.pine); rr++;
+    recomendacoesCadastro(dados).forEach(t => {
+        ws.mergeCells(rr, 1, rr, 12);
+        const cl = ws.getCell(rr, 1); cl.value = '•  ' + t; cl.font = F(9); cl.alignment = { wrapText: true, vertical: 'top' };
+        ws.getRow(rr).height = 26; rr++;
+    });
+    rr++;
+    ws.getCell(rr, 1).value = `Fonte: Raiz · cadastro de ativos, contratos, locatários e recebimentos · situação em ${quando.slice(0, 10)} · Raiz Patrimônio · raizpatrimonio.com.br`;
+    ws.getCell(rr, 1).font = F(8, false, CC.muted, true);
+
+    // ---- Por empreendimento ----
+    const we = wb.addWorksheet('Por empreendimento', { views: [{ showGridLines: false }] });
+    we.getCell('A1').value = empresa; we.getCell('A1').font = F(14, true, CC.pine);
+    we.getCell('A2').value = 'Resumo por empreendimento'; we.getCell('A2').font = F(11, true);
+    we.getCell('A3').value = 'Escolha o empreendimento na célula B5 para ver só ele; na aba Carteira, use o filtro da coluna Empreendimento.';
+    we.getCell('A3').font = F(9, false, CC.muted);
+    const emps = [...new Set(linhas.map(r => r.empreendimento || 'Sem empreendimento'))].sort((a, b) => a.localeCompare(b, 'pt-BR'));
+    we.getCell('A5').value = 'Empreendimento'; we.getCell('A5').font = F(9, true, CC.pine);
+    we.getCell('B5').value = 'Todos'; we.getCell('B5').font = F(11, true, CC.pine); we.getCell('B5').fill = fundo(CC.brassBg);
+    // lista da validação numa coluna escondida (sem o limite de 255 caracteres da lista literal)
+    ['Todos', ...emps].forEach((e, i) => { we.getCell(8 + i, 8).value = e; });
+    we.getColumn(8).hidden = true;
+    we.getCell('B5').dataValidation = { type: 'list', allowBlank: false, formulae: [`$H$8:$H$${8 + emps.length}`] };
+    ['Empreendimento', 'Linhas', 'Contratos ativos', 'Aluguel mensal (R$)', 'Linhas com diagnóstico'].forEach((h, i) => {
+        const cl = we.getCell(7, i + 1); cl.value = h; cl.font = F(9, true, CC.pine); cl.fill = fundo(CC.paper);
+        cl.border = { bottom: { style: 'medium', color: { argb: CC.pine } } };
+        we.getColumn(i + 1).width = [24, 10, 15, 20, 22][i];
+    });
+    const abs = (n) => `Carteira!$${L[n]}$${INI}:$${L[n]}$${FIM}`;
+    const E = abs('Empreendimento'), S = abs('Situação do contrato'), A = abs('Aluguel atual (R$)'), D = abs('Diagnóstico');
+    emps.forEach((e, k) => {
+        const r_ = 8 + k, vis = `OR($B$5="Todos",$B$5=A${r_})`;
+        we.getCell(r_, 1).value = e; we.getCell(r_, 1).font = F(9); we.getCell(r_, 1).border = { bottom: fio };
+        [[2, `IF(${vis},COUNTIF(${E},A${r_}),0)`, '0'], [3, `IF(${vis},COUNTIFS(${E},A${r_},${S},"Ativo"),0)`, '0'],
+         [4, `IF(${vis},SUMIFS(${A},${E},A${r_}),0)`, '#,##0.00'], [5, `IF(${vis},COUNTIFS(${E},A${r_},${D},"?*"),0)`, '0']]
+            .forEach(([c_, f_, fmt]) => { const cl = we.getCell(r_, c_); cl.value = { formula: f_ }; cl.numFmt = fmt; cl.font = F(9); cl.border = { bottom: fio }; });
+    });
+    const tr = 8 + emps.length;
+    we.getCell(tr, 1).value = 'Total'; we.getCell(tr, 1).font = F(9, true);
+    for (let c_ = 2; c_ <= 5; c_++) {
+        const cl = we.getCell(tr, c_); cl.value = { formula: `SUM(${colLetra(c_)}8:${colLetra(c_)}${tr - 1})` };
+        cl.numFmt = c_ === 4 ? '#,##0.00' : '0'; cl.font = F(9, true); cl.border = { top: { style: 'medium', color: { argb: CC.pine } } };
+    }
+
+    // ---- Sobre ----
+    const wsb = wb.addWorksheet('Sobre', { views: [{ showGridLines: false }] });
+    wsb.getColumn(1).width = 30; wsb.getColumn(2).width = 100;
+    wsb.getCell('A1').value = 'Sobre esta planilha'; wsb.getCell('A1').font = F(14, true, CC.pine);
+    [
+        ['Uma linha por imóvel e contrato ativo', 'Imóvel vago aparece uma vez, com as colunas de contrato em branco. Imóvel com mais de um contrato ativo aparece uma vez por contrato.'],
+        ['Próximo reajuste', 'Calculado a partir do início do contrato e da periodicidade de reajuste (12 meses quando não informada).'],
+        ['Aluguel mensal', 'Soma do aluguel atual dos contratos ativos, como está no cadastro.'],
+        ['Diagnóstico', 'O que precisa de atenção na linha:'],
+        ['', '· Endereço provisório (rua fictícia)'],
+        ['', '· Imóvel sem valor de referência'],
+        ['', '· Marcado como alugado sem contrato ativo, ou disponível com contrato ativo'],
+        ['', '· Locatário sem nome ("Identificar Locatário") ou sem CPF/CNPJ'],
+        ['', '· Contrato sem valor de aluguel'],
+        ['', '· Último recebimento diferente do aluguel do contrato'],
+        ['', '· Recebimentos marcados como atrasados: em geral somem quando o extrato é atualizado'],
+        ['Como corrigir no app', 'Imóvel: Ativos › imóvel › ⋮ › Editar. Contrato e locatário: Ativos › imóvel › card Contrato › ⋮ › Editar. Extrato: Financeiro › Importar › Importar extrato.'],
+        ['Dados pessoais', 'CPF/CNPJ e contatos aparecem completos porque a planilha é da própria empresa. Guarde e compartilhe com cuidado.'],
+    ].forEach(([a, b], k) => {
+        wsb.getCell(3 + k, 1).value = a || null; wsb.getCell(3 + k, 1).font = F(9, true, CC.pine);
+        const cl = wsb.getCell(3 + k, 2); cl.value = b; cl.font = F(9); cl.alignment = { wrapText: true, vertical: 'top' };
+    });
+    return wb;
+}
+
+function nomeArquivoCadastro(empresa, empNome) {
+    const s = (t) => String(t || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '');
+    const h = new Date();
+    return `raiz_cadastro_carteira_${s(empresa) || 'empresa'}${empNome ? '_' + s(empNome) : ''}_${h.getFullYear()}-${String(h.getMonth() + 1).padStart(2, '0')}.xlsx`;
+}
+
+async function baixarPlanilhaCadastro(empId, empNome) {
+    rzToast('Montando a planilha…');
+    try {
+        const [ExcelJS, resp, quem] = await Promise.all([
+            carregarExcelJs(),
+            dbAuth.rpc('fn_relatorio_cadastro_carteira', { p_cliente_id: CLIENTE_ID_SUPABASE, p_empreendimento_id: empId || null }),
+            quemGera(),
+        ]);
+        if (resp.error) throw resp.error;
+        const dados = resp.data || {};
+        if (!Array.isArray(dados.linhas) || !dados.linhas.length) { rzToast('Nenhum imóvel neste recorte.', 'warning'); return; }
+        const wb = await montarPlanilhaCadastro(ExcelJS, dados, { empreendimentoNome: empNome || null, quem });
+        const buf = await wb.xlsx.writeBuffer();
+        const nome = nomeArquivoCadastro(dados.empresa, empNome);
+        const blob = new Blob([buf], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a'); a.href = url; a.download = nome; document.body.appendChild(a); a.click(); a.remove();
+        setTimeout(() => URL.revokeObjectURL(url), 30000);
+        rzToast('Planilha baixada');
+    } catch (e) {
+        console.error('[rz] cadastro da carteira', e);
+        rzToast('Não foi possível gerar a planilha: ' + (e?.message || e), 'danger');
+    }
+}
+
+export async function abrirRelatorioCadastroCarteira() {
+    if (rzMostrarBloqueio(CADASTRO_CODIGO)) return; // ACE-04
+    let emps = [];
+    try {
+        const { data, error } = await dbAuth.from('empreendimentos').select('id, nome').eq('cliente_id', CLIENTE_ID_SUPABASE).order('nome');
+        if (!error && Array.isArray(data)) emps = data;
+    } catch (e) { /* sem a lista, segue só com "Todos" */ }
+    abrirSheetAcoes({ titulo: 'Cadastro da carteira', sub: 'Planilha para o Excel', acoes: [
+        { icone: 'layers', titulo: 'Todos os empreendimentos', sub: 'Baixar planilha', codigo: CADASTRO_CODIGO, aoTocar: () => baixarPlanilhaCadastro(null, null) },
+        ...emps.map(e => ({ icone: 'building-2', titulo: e.nome, sub: 'Baixar planilha', codigo: CADASTRO_CODIGO, aoTocar: () => baixarPlanilhaCadastro(e.id, e.nome) })),
+    ] });
+}
+
 // usados por testes e pelo protótipo
-export const _interno = { montarFluxo, montarGerencial, montarRetiradas, compacto, comp };
+export const _interno = { montarFluxo, montarGerencial, montarRetiradas, compacto, comp, montarPlanilhaCadastro };
