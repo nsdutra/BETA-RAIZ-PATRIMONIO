@@ -1,8 +1,18 @@
 // =====================================================================
 // RAIZ PATRIMÔNIO — js/resultados.js
-// VERSÃO: Beta v2.10.0 (14/10/2026 — demanda a05ad2ee)
+// VERSÃO: Beta v2.11.0 (16/10/2026 — demanda 3022603b)
 // LINHAS: (ver versoes.json)
 // -----------------------------------------------------------------
+// NOVIDADES (Beta v2.11.0) (16/10/2026, sessão 20261016-0945-usos-fatia8, demanda 3022603b; FICHA_FATIA8_HOJE_POR_RAMO_RAIZ v1.2.0 e
+//   PROTOTIPO_HOJE_COCKPIT_RAMOS_RAIZ v1.0.0, de acordo do Nicola 16/10 01:09 e 09:43) — o Hoje responde "qual ramo dá resultado":
+//   — Todo o patrimônio: card Resultado por ramo (fn_hoje_por_ramo), uma linha por ramo com receita × despesa, margem e
+//     patrimônio, a linha Geral · sem ativo e o Consolidado; tocar no ramo abre a lente. Sai o card Geral separado (D8-1).
+//   — Herói: todo número compara com o ano anterior (% ou p.p.; verde e vermelho só dizem bom e ruim) e o resultado tem a
+//     linha do ano (sparkline). Cada ramo tem os seus números no herói (D8-2 revista, D8-8, D8-9).
+//   — Lentes: Família (por vida), Outros bens (custo por bem), Agro (safras abertas, sacas, custo por saca e por hectare),
+//     Obras (avanço físico × financeiro), Pecuária (rebanho, prenhez, partos, avisos, vendas) e o resultado por ativo
+//     (fn_hoje_ramo_indicadores). Tocar num ativo abre a ficha; num aviso, a ficha do animal.
+// Versão anterior (Beta v2.10.0):
 // NOVIDADES (Beta v2.10.0) (14/10/2026, sessão 20261014-2145-onda9c-textos, demanda a05ad2ee; onda 9c do estudo, D6 seção 10) — textos no
 //   limite: ação até 24, descrição até 28, aviso e tela vazia até 40 caracteres. Nada de comportamento mudou.
 // Versão anterior (Beta v2.9.0):
@@ -52,7 +62,7 @@
 // Versões anteriores (v2.4.0 … v2.4.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '2.10.0';
+export const VERSAO = '2.11.0';
 
 // ---------------------------------------------------------------------
 // Estado do filtro (module-scoped — sobrevive entre renders porque o
@@ -96,6 +106,67 @@ function pctSinal(v) {
     if (v == null) return '—';
     const n = Number(v);
     return (n >= 0 ? '+' : '') + n.toFixed(2).replace('.', ',') + '%';
+}
+
+// ---------------------------------------------------------------------
+// v2.11.0 (fatia 8, cockpit) — peças do cockpit (DESIGN_SYSTEM §cockpit): comparação com o ano anterior, sparkline,
+// barra de bala (real × previsto) e linha comparativa por ramo.
+// ---------------------------------------------------------------------
+const ehBloqueado = p => p === false || !!(p && p.ok === false);
+function podeVerPorRamo() { return typeof podeUsar !== 'function' || !ehBloqueado(podeUsar('hoje.resultado_por_ramo')); }
+const nOuNull = v => (v === null || v === undefined || v === '' || Number.isNaN(Number(v))) ? null : Number(v);
+const fmtNum = (v, casas = 1) => Number(v).toLocaleString('pt-BR', { maximumFractionDigits: casas });
+const sinalTxt = v => (v > 0 ? '+' : v < 0 ? '−' : '');
+function moedaCurta(v) { const n = Number(v) || 0; return (n < 0 ? '−' : '') + formatarPatrimonioCompacto(Math.abs(n)); }
+function moedaInteira(v) { return formatarMoedaBR(Number(v) || 0, { semCentavos: true }); }
+function escR(t) { return String(t ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
+const codR = c => String(c || '').replace(/[^a-z0-9_]/gi, ''); // código de ramo vai para onclick e var() de CSS
+
+// Todo número compara (DIRETRIZES_UX §cockpit). pp: o número já é % e a diferença vai em pontos percentuais.
+// bom: 'sobe' (receita, resultado), 'desce' (custo, inadimplência) ou null (neutro: sem verde nem vermelho).
+function comparar(atual, anterior, { pp = false, bom = 'sobe', rotulo } = {}) {
+    const a = nOuNull(atual), b = nOuNull(anterior);
+    if (a === null || b === null) return '';
+    let d, txt;
+    if (pp) { d = a - b; txt = `${sinalTxt(d)}${fmtNum(Math.abs(d))} p.p.`; }
+    else { if (b === 0) return ''; d = (a - b) / Math.abs(b) * 100; txt = `${sinalTxt(Math.round(d))}${fmtNum(Math.abs(d), 0)}%`; }
+    const igual = pp ? Math.abs(d) < 0.05 : Math.round(d) === 0;
+    const cls = igual || !bom ? 'rz-cmp' : ((d > 0) === (bom === 'sobe') ? 'rz-cmp rz-cmp-bom' : 'rz-cmp rz-cmp-ruim');
+    return `<em class="${cls}">${txt} ${rotulo || `vs ${filtro.ano - 1}`}</em>`;
+}
+const notaCmp = (t, cls = '') => t ? `<em class="rz-cmp${cls ? ' ' + cls : ''}">${escR(t)}</em>` : '';
+
+// Linha do ano: resultado acumulado mês a mês até o mês corrente (só o desenho; o número está ao lado).
+function sparkSvg(mensal, campo = 'resultado') {
+    if (!Array.isArray(mensal) || !mensal.length) return '';
+    const ate = filtro.ano === ANO_ATUAL ? new Date().getMonth() + 1 : 12;
+    let acc = 0;
+    const v = Array.from({ length: ate }, (_, i) => (acc += Number((mensal.find(m => Number(m.mes) === i + 1) || {})[campo]) || 0));
+    if (v.length < 2) return '';
+    const min = Math.min(...v), max = Math.max(...v), amp = (max - min) || 1;
+    const pts = v.map((x, i) => `${(i / (v.length - 1) * 54).toFixed(1)},${(18 - (x - min) / amp * 16).toFixed(1)}`).join(' ');
+    return `<svg class="rz-spark" viewBox="0 0 54 20" aria-hidden="true"><polyline points="${pts}"/></svg>`;
+}
+
+// Barra de bala (Few): trilho = previsto; sombra = pago + a pagar; barra escura = pago; traço = marcador (avanço físico
+// ou fase). `alerta`: a barra fica vermelha (gasto à frente do físico).
+function barraBala({ pago = 0, aPagar = 0, previsto = null, marcador = null, alerta = false, esquerda = '', direita = '' }) {
+    const base = Math.max(Number(previsto) || 0, (Number(pago) || 0) + (Number(aPagar) || 0), 1);
+    const p = x => Math.max(0, Math.min(100, (Number(x) || 0) / base * 100)).toFixed(1);
+    const mk = marcador == null ? '' : `<span class="rz-bl-mk" style="left:${Math.max(0, Math.min(100, marcador)).toFixed(1)}%"></span>`;
+    return `<div class="rz-bl"><div class="rz-bl-tr"><span class="rz-bl-fs" style="width:${p(Number(pago) + Number(aPagar || 0))}%"></span><span class="rz-bl-ex${alerta ? ' rz-ruim' : ''}" style="width:${p(pago)}%"></span>${mk}</div>`
+        + `<div class="rz-bl-lg"><span>${esquerda}</span><span>${direita}</span></div></div>`;
+}
+
+// Tocar num ativo do Hoje abre a ficha dele; num aviso de animal, a ficha do animal.
+export function abrirAtivoHoje(id) {
+    if (!id) return;
+    if (typeof switchTab === 'function') switchTab('tab-ativos');
+    if (typeof window.abrirFichaAtivoNoChip === 'function') window.abrirFichaAtivoNoChip(id, 'resumo');
+}
+export function abrirMembroHoje(id) {
+    if (!id) return;
+    import('./cofre-membros.js').then(m => m.abrirFichaMembro(id)).catch(() => { if (typeof mostrarToast === 'function') mostrarToast('Não consegui abrir.'); });
 }
 
 const NOME_CURTO_INDICADOR = { ipca: 'IPCA', igpm: 'IGP-M', selic: 'Selic', ivgr: 'IVG-R', inccdi: 'INCC-DI', cdi: 'CDI' };
@@ -162,7 +233,8 @@ export function resetarResultadosParaAbaInicial() {
 }
 
 // UXR-17 — herói unificado. `carregando`: casca com "—" enquanto as funções respondem.
-function montarHeroi(resumo, perf, carregando) {
+// v2.11.0 (fatia 8) — ctx: { ant (fn_resumo_resultados do ano anterior), mensal (sparkline), ind (fn_hoje_ramo_indicadores) }.
+function montarHeroi(resumo, perf, carregando, ctx = {}) {
     const familia = filtro.contexto === 'familia';
     const tem = !!(resumo || perf);
     const traco = '—';
@@ -179,15 +251,21 @@ function montarHeroi(resumo, perf, carregando) {
     const resRotulo = familia ? 'Custo · ' + filtro.ano : 'Resultado do ano';
     const resValor = !tem ? traco : (familia ? moeda(saidasAno) : moeda(resultadoAno));
     const resNeg = tem && !familia && Number(resultadoAno) < 0 ? ' class="rz-neg"' : '';
-    const celula = (r, v, neg) => `<div><small>${r}</small><b${neg ? ' class="rz-neg"' : ''}>${v}</b></div>`;
+    const celula = (r, v, neg, cmp) => `<div><small>${r}</small><b${neg ? ' class="rz-neg"' : ''}>${v}</b>${cmp || ''}</div>`;
+    const ant = tem ? (ctx.ant || null) : null;
+    const ind = tem && ctx.ind && ctx.ind.pode_ver !== false ? ctx.ind : null;
     const celulas = familia
-        ? [celula('Inadimplência', tem ? moeda(inadimplencia) : traco, tem && Number(inadimplencia) > 0)]
-        : [
-            celula('Rentabilidade', tem ? pctBR(rentabilidade) : traco),
-            celula('Ocupação', tem ? pctBR(ocupacao) : traco),
-            celula('Inadimplência', tem ? moeda(inadimplencia) : traco, tem && Number(inadimplencia) > 0),
-        ];
-    const ativosTxt = totalAtivos == null ? '' : `${totalAtivos} ${Number(totalAtivos) === 1 ? 'ativo' : 'ativos'}`;
+        ? [celula('Inadimplência', tem ? moeda(inadimplencia) : traco, tem && Number(inadimplencia) > 0, ant ? comparar(inadimplencia, ant.inadimplencia_valor, { bom: 'desce' }) : '')]
+        : celulasHeroiRamo({ tem, resumo, ant, ind, moeda, pctBR, rentabilidade, ocupacao, inadimplencia, celula });
+    const resCmp = ant && !familia ? comparar(resultadoAno, ant.resultado_liquido_ano)
+        : (ant && familia ? comparar(saidasAno, ant.saidas_ano, { bom: 'desce' }) : '');
+    const spark = tem && ctx.mensal ? sparkSvg(ctx.mensal) : '';
+    let ativosTxt = totalAtivos == null ? '' : `${totalAtivos} ${Number(totalAtivos) === 1 ? 'ativo' : 'ativos'}`;
+    if (filtro.ramo !== 'tudo' && ind && ind.qtd != null) { // v2.11.0 — na lente, a unidade do ramo (lotes, talhões, bens)
+        const q = Number(ind.qtd);
+        ativosTxt = `${q} ${q === 1 ? (ramoInfo?.unidade_singular || 'ativo') : (ramoInfo?.unidade_plural || 'ativos')}`;
+        if (filtro.ramo === 'pecuaria' && ind.animais != null) ativosTxt = `${ind.animais} ${Number(ind.animais) === 1 ? 'animal' : 'animais'} em ${ativosTxt}`;
+    }
     const seg = segRamoUsoHtml();
 
     return `<div class="rz-heroi"${carregando ? ' aria-busy="true"' : ''}>
@@ -203,11 +281,84 @@ function montarHeroi(resumo, perf, carregando) {
         <b class="rz-heroi-pat">${tem ? formatarPatrimonioCompacto(patrimonio) : traco}</b>
         ${ativosTxt ? `<small>${ativosTxt}</small>` : ''}
         <div class="rz-heroi-res">
-            <small>${resRotulo}</small><b${resNeg}>${resValor}</b>
-            <div class="rz-heroi-3${celulas.length === 1 ? ' rz-um' : ''}">${celulas.join('')}</div>
+            <div class="rz-heroi-resl"><div><small>${resRotulo}</small><b${resNeg}>${resValor}</b>${resCmp}</div>${spark}</div>
+            <div class="rz-heroi-3${celulas.length === 1 ? ' rz-um' : celulas.length === 4 ? ' rz-q4' : ''}">${celulas.join('')}</div>
         </div>
         ${seg}
     </div>`;
+}
+
+// v2.11.0 (fatia 8, D8-2 revista e D8-9) — os números do herói de cada ramo. Imóveis e Todo o patrimônio: margem,
+// rentabilidade, ocupação e inadimplência. Os outros ramos: os números da operação deles. Todos comparam.
+function celulasHeroiRamo({ tem, resumo, ant, ind, moeda, pctBR, rentabilidade, ocupacao, inadimplencia, celula }) {
+    const traco = '—';
+    const r = filtro.ramo;
+    const receita = resumo ? Number(resumo.recebido_ano) || 0 : 0;
+    const despesa = resumo ? Number(resumo.saidas_ano) || 0 : 0;
+    const resultado = resumo ? Number(resumo.resultado_liquido_ano) || 0 : 0;
+    const margem = receita > 0 ? resultado / receita * 100 : null;
+    const margemAnt = ant && Number(ant.recebido_ano) > 0 ? Number(ant.resultado_liquido_ano) / Number(ant.recebido_ano) * 100 : null;
+    const cMargem = () => celula('Margem', tem && margem != null ? pctBR(margem) : traco, margem != null && margem < 0, margem != null ? comparar(margem, margemAnt, { pp: true }) : notaCmp(tem ? 'sem receita no ano' : ''));
+    const cAPagar = () => celula('A pagar 30 dias', ind ? moeda(ind.a_pagar_30?.valor) : traco, false,
+        ind ? notaCmp(`${Number(ind.a_pagar_30?.qtd) || 0} ${Number(ind.a_pagar_30?.qtd) === 1 ? 'conta' : 'contas'}`) : '');
+    const cInad = () => celula('Inadimplência', tem ? moeda(inadimplencia) : traco, tem && Number(inadimplencia) > 0, ant ? comparar(inadimplencia, ant.inadimplencia_valor, { bom: 'desce' }) : '');
+    const cRent = () => celula('Rentabilidade', tem ? pctBR(rentabilidade) : traco, false, ant ? comparar(rentabilidade, ant.yield_ano_pct, { pp: true }) : '');
+    if (r === 'tudo' || r === 'imoveis') {
+        return [cMargem(), cRent(), celula('Ocupação', tem ? pctBR(ocupacao) : traco, false, ant ? comparar(ocupacao, ant.ocupacao_pct, { pp: true }) : ''), cInad()];
+    }
+    if (r === 'outros') {
+        return [
+            celula('Custo de manter', tem ? moeda(despesa) : traco, false, ant ? comparar(despesa, ant.saidas_ano, { bom: 'desce' }) : ''),
+            celula('Custo ÷ valor', ind && ind.custo_pct_valor != null ? `${fmtNum(ind.custo_pct_valor)}%` : traco, false, notaCmp(ind ? 'do valor dos bens, no ano' : '')),
+            cAPagar(),
+            celula('Receita', tem ? moeda(receita) : traco, false, ant ? comparar(receita, ant.recebido_ano) : ''),
+        ];
+    }
+    if (r === 'agro') {
+        const ult = ind && Array.isArray(ind.ciclos_fechados) ? ind.ciclos_fechados[0] : null;
+        const res = ult?.resultado || {};
+        const sacas = nOuNull(res.sacas), custo = nOuNull(res.custo);
+        if (ult && sacas) {
+            const area = nOuNull(ult.area_ha);
+            return [
+                cMargem(),
+                celula('Sacas (última safra)', fmtNum(sacas, 0), false, notaCmp(ult.nome || '')),
+                celula('Custo por saca', custo != null ? moeda(custo / sacas) : traco, false, notaCmp('custo da safra ÷ sacas')),
+                celula('Custo por hectare', custo != null && area ? moeda(custo / area) : traco, false, notaCmp(area ? `${fmtNum(area)} ha` : 'sem área no talhão')),
+            ];
+        }
+        const abertas = ind && Array.isArray(ind.ciclos_abertos) ? ind.ciclos_abertos.length : null;
+        return [
+            cMargem(),
+            celula('Custo no ano', tem ? moeda(despesa) : traco, false, ant ? comparar(despesa, ant.saidas_ano, { bom: 'desce' }) : ''),
+            celula('Safras abertas', abertas == null ? traco : String(abertas), false, notaCmp(ind ? 'sacas e custo por saca no fechamento' : '')),
+            cAPagar(),
+        ];
+    }
+    if (r === 'obras') {
+        const obras = ind && Array.isArray(ind.obras) ? ind.obras : [];
+        const conc = obras.reduce((s, o) => s + (Number(o.concluidas) || 0), 0), tot = obras.reduce((s, o) => s + (Number(o.total) || 0), 0);
+        const pago = obras.reduce((s, o) => s + (Number(o.pago) || 0), 0), prev = obras.reduce((s, o) => s + (Number(o.previsto) || 0), 0);
+        const fis = tot > 0 ? conc / tot * 100 : null, fin = prev > 0 ? pago / prev * 100 : null;
+        const dif = fis != null && fin != null ? fin - fis : null;
+        return [
+            celula('Investido no ano', tem ? moeda(despesa) : traco, false, prev > 0 ? notaCmp(`de ${moedaCurta(prev)} previstos`) : (ant ? comparar(despesa, ant.saidas_ano, { bom: null }) : '')),
+            celula('Avanço físico', fis != null ? pctBR(fis) : traco, false, notaCmp(tot ? `${conc} de ${tot} etapas` : 'sem obra em andamento')),
+            celula('Avanço financeiro', fin != null ? pctBR(fin) : traco, false,
+                dif == null ? notaCmp(fin != null ? 'pago ÷ previsto' : '') : notaCmp(Math.abs(dif) < 1 ? 'igual ao físico' : `${fmtNum(Math.abs(dif), 0)} p.p. ${dif > 0 ? 'à frente' : 'atrás'} do físico`, dif > 5 ? 'rz-cmp-ruim' : '')),
+            cAPagar(),
+        ];
+    }
+    if (r === 'pecuaria') {
+        return [
+            cMargem(),
+            celula('Taxa de prenhez', ind && ind.taxa_prenhez != null ? `${fmtNum(ind.taxa_prenhez, 0)}%` : traco, false,
+                notaCmp(ind && ind.em_ciclo ? `${ind.prenhes} de ${ind.em_ciclo} em ciclo` : (ind ? 'nenhuma fêmea em ciclo' : ''))),
+            celula('Partos em 90 dias', ind ? String(Number(ind.partos_90) || 0) : traco, false, notaCmp(ind ? `${Number(ind.partos_30) || 0} nos próximos 30` : '')),
+            celula('Custo por cabeça/mês', ind && ind.custo_cabeca_mes != null ? moeda(ind.custo_cabeca_mes) : traco, false, notaCmp(ind && ind.animais ? `${ind.animais} animais` : '')),
+        ];
+    }
+    return [cMargem(), cRent(), cInad(), cAPagar()]; // varejo, investimentos e os que vierem
 }
 
 // v2.7.0 (F21) — o ramo mora na lente do cabeçalho; aqui fica só o uso, e só em ramo que tem uso
@@ -229,10 +380,27 @@ function montarHeroiRamo(d, carregando) {
     const grande = somaValor ? (d == null ? '—' : formatarPatrimonioCompacto(d.valor)) : qtdTxt;
     const usoTxt = filtro.contexto === 'comercial' ? ' · comercial' : filtro.contexto === 'familia' ? ' · uso próprio' : '';
     const sub = somaValor ? qtdTxt : 'Sem valor de patrimônio: entram na contagem';
+    // v2.11.0 (fatia 8) — Família: custo do ano (contra o anterior, com a linha do ano), por vida ao mês, a pagar e vencidos
+    const ind = d && d.ind && d.ind.pode_ver !== false ? d.ind : null;
+    let kpis = '';
+    if (ind) {
+        const moeda = v => formatarMoedaBR(Number(v) || 0, { semCentavos: true });
+        const cel = (r, v, cmp) => `<div><small>${r}</small><b>${v}</b>${cmp || ''}</div>`;
+        const venc = Number(ind.vencidos) || 0;
+        kpis = `<div class="rz-heroi-res">
+            <div class="rz-heroi-resl"><div><small>Custo · ${filtro.ano}</small><b>${moeda(ind.despesa)}</b>${comparar(ind.despesa, ind.anterior?.despesa, { bom: 'desce' })}</div>${sparkSvg(d.mensal, 'saidas')}</div>
+            <div class="rz-heroi-3 rz-q4">
+                ${cel('Por vida, ao mês', ind.custo_por_vida_mes != null ? moeda(ind.custo_por_vida_mes) : '—', notaCmp(`${ind.meses} ${Number(ind.meses) === 1 ? 'mês' : 'meses'} no ano`))}
+                ${cel('A pagar 30 dias', moeda(ind.a_pagar_30?.valor), notaCmp(`${Number(ind.a_pagar_30?.qtd) || 0} ${Number(ind.a_pagar_30?.qtd) === 1 ? 'conta' : 'contas'}`))}
+                ${cel('Vencidos', String(venc), notaCmp(venc ? 'itens de controle' : 'tudo em dia', venc ? 'rz-cmp-ruim' : 'rz-cmp-bom'))}
+                ${cel('Receita', moeda(ind.receita), comparar(ind.receita, ind.anterior?.receita))}
+            </div></div>`;
+    }
     return `<div class="rz-heroi"${carregando ? ' aria-busy="true"' : ''}>
         <small>${esc(nome)}${usoTxt}</small>
         <b class="rz-heroi-pat">${grande}</b>
         <small>${esc(sub)}</small>
+        ${kpis}
         ${segRamoUsoHtml()}
     </div>`;
 }
@@ -267,17 +435,21 @@ async function renderizarConteudo() {
     const minha = ++geracao; // v2.0.0
     const p_ramo = filtro.ramo === 'tudo' ? null : filtro.ramo; // v2.9.0 (F23)
     if (p_ramo && ramoInfo && ramoInfo.soma_valor === false) { // v2.9.0 — ramo de contagem (Família): vidas + despesas do ramo
-        const [ativosR, mensalF, grupoF] = await Promise.all([
+        const [ativosR, mensalF, grupoF, indF] = await Promise.all([
             dbAuth.from('cofre_ativos').select('tipo_ativo, tipo_detalhe:ativo_tipos(ramo)').eq('cliente_id', CLIENTE_ID_SUPABASE).eq('status', 'ativo'),
             dbAuth.rpc('fn_resultado_mensal', { p_cliente_id: CLIENTE_ID_SUPABASE, p_ano: filtro.ano, p_nivel: 'carteira', p_id: null, p_uso: null, p_ramo }),
             dbAuth.rpc('fn_resultado_por_grupo', { p_cliente_id: CLIENTE_ID_SUPABASE, p_ano: filtro.ano, p_nivel: 'carteira', p_id: null, p_uso: null, p_ramo }),
+            podeVerPorRamo() ? dbAuth.rpc('fn_hoje_ramo_indicadores', { p_cliente_id: CLIENTE_ID_SUPABASE, p_ramo, p_ano: filtro.ano }) : Promise.resolve({ data: null }), // v2.11.0
         ]);
         if (minha !== geracao) return;
+        if (indF.error) console.warn('[resultados] indicadores do ramo:', indF.error.message);
+        const indFam = indF.error ? null : indF.data;
         const ramoDe = typeof rzRamoDoAtivo === 'function' ? rzRamoDoAtivo : (x => x?.tipo_detalhe?.ramo || 'outros');
         const qtd = ativosR.error ? null : (ativosR.data || []).filter(x => ramoDe(x) === p_ramo).length;
         const heroiR = document.getElementById('hoje-heroi-mount');
-        if (heroiR) heroiR.innerHTML = montarHeroiRamo(qtd == null ? null : { qtd, valor: 0 });
+        if (heroiR) heroiR.innerHTML = montarHeroiRamo(qtd == null ? null : { qtd, valor: 0, ind: indFam, mensal: mensalF.error ? [] : (mensalF.data || []) });
         alvo.innerHTML = [
+            montarCardsDoRamo(p_ramo, indFam), // v2.11.0
             mensalF.error ? '' : montarGraficoMensal(mensalF.data || []),
             grupoF.error ? '' : montarPorGrupo(grupoF.data || []),
         ].filter(Boolean).join('') || '<p class="rz-desc">Nenhuma despesa deste ramo no ano.</p>';
@@ -324,6 +496,21 @@ async function renderizarConteudo() {
             cardsLocacao ? dbAuth.rpc('fn_carteira_indices_resumo', { p_cliente_id: CLIENTE_ID_SUPABASE }) : Promise.resolve({ data: null }),
         ]);
         if (minha !== geracao) return; // v2.0.0 — chegou um desenho mais novo
+        // v2.11.0 (fatia 8) — o ano anterior (todo número compara), o resultado por ramo (Todo o patrimônio) e os indicadores
+        // do ramo (lente). Erro aqui só tira a comparação ou o card; o resto do Hoje segue.
+        const pr = podeVerPorRamo() && filtro.abrangencia === 'carteira';
+        const [antR, porRamoR, indR] = await Promise.all([
+            filtro.abrangencia === 'carteira'
+                ? dbAuth.rpc('fn_resumo_resultados', { p_cliente_id: CLIENTE_ID_SUPABASE, p_uso, p_ano: filtro.ano - 1, p_ramo })
+                : Promise.resolve({ data: null }),
+            pr && !p_ramo && !p_uso ? dbAuth.rpc('fn_hoje_por_ramo', { p_cliente_id: CLIENTE_ID_SUPABASE, p_ano: filtro.ano }) : Promise.resolve({ data: null }),
+            pr && p_ramo ? dbAuth.rpc('fn_hoje_ramo_indicadores', { p_cliente_id: CLIENTE_ID_SUPABASE, p_ramo, p_ano: filtro.ano }) : Promise.resolve({ data: null }),
+        ]);
+        if (minha !== geracao) return;
+        [antR, porRamoR, indR].forEach(x => { if (x.error) console.warn('[resultados] fatia 8:', x.error.message); });
+        const resumoAnt = antR.error ? null : (Array.isArray(antR.data) ? antR.data[0] : antR.data);
+        const porRamo = porRamoR.error ? null : porRamoR.data;
+        const indRamo = indR.error ? null : indR.data;
         if (resumoR.error) throw resumoR.error;
         if (perfR.error) throw perfR.error;
         if (mensalR.error) throw mensalR.error;
@@ -344,10 +531,12 @@ async function renderizarConteudo() {
 
         // v2.0.0 (UXR-17) — os números de cima vão para o herói de Hoje; os cards ficam abaixo
         const heroiEl = document.getElementById('hoje-heroi-mount');
-        if (heroiEl) heroiEl.innerHTML = montarHeroi(resumo, perf);
-        // v2.9.0 (F23, opção b) — Geral: o que foi lançado sem ativo; só em Todo o patrimônio, nível carteira
+        if (heroiEl) heroiEl.innerHTML = montarHeroi(resumo, perf, false, { ant: resumoAnt, mensal, ind: indRamo });
+        // v2.11.0 (fatia 8, D8-1) — em Todo o patrimônio o Geral vira uma linha do Resultado por ramo
+        const cardPorRamo = !p_ramo ? montarResultadoPorRamo(porRamo) : '';
+        // v2.9.0 (F23, opção b) — Geral: o que foi lançado sem ativo; só em Todo o patrimônio, nível carteira (agora só sem o card por ramo)
         let cardGeral = '';
-        if (!p_ramo && filtro.abrangencia === 'carteira') {
+        if (!p_ramo && filtro.abrangencia === 'carteira' && !cardPorRamo) {
             const g = await dbAuth.rpc('fn_resumo_resultados', { p_cliente_id: CLIENTE_ID_SUPABASE, p_uso, p_ano: filtro.ano, p_ramo: 'geral' });
             if (minha !== geracao) return;
             const gr = !g.error ? (Array.isArray(g.data) ? g.data[0] : g.data) : null;
@@ -358,6 +547,8 @@ async function renderizarConteudo() {
             }
         }
         alvo.innerHTML = [
+            cardPorRamo, // v2.11.0 — logo abaixo do herói: "qual ramo dá resultado"
+            p_ramo ? montarCardsDoRamo(p_ramo, indRamo) : '', // v2.11.0 — os números da operação do ramo
             montarGraficoMensal(mensal), // v2.4.0 — Indicadores foi para o Fique por dentro (renderIndicadoresMercado)
             montarPorGrupo(porGrupo), // v2.3.0
             cardGeral, // v2.9.0 (F23)
@@ -380,6 +571,174 @@ async function renderizarConteudo() {
         alvo.innerHTML = `<div class="rz-card"><p class="rz-desc">Não deu para carregar os resultados agora.</p><button type="button" class="rz-btn rz-btn-2" id="rz-res-tentar" style="margin-top:10px">Tentar de novo</button></div>`;
         alvo.querySelector('#rz-res-tentar')?.addEventListener('click', () => renderizarConteudo());
     }
+}
+
+// ---------------------------------------------------------------------
+// v2.11.0 (fatia 8, F8-1, D8-1) — Resultado por ramo: uma linha por ramo (receita × despesa em barras, resultado, margem,
+// patrimônio), a linha Geral · sem ativo e o Consolidado. Tocar no ramo abre a lente (escolherGeralRamo, index.html).
+// ---------------------------------------------------------------------
+function montarResultadoPorRamo(pr) {
+    if (!pr || pr.pode_ver === false || !Array.isArray(pr.ramos) || !pr.ramos.length) return '';
+    const ramos = pr.ramos, g = pr.geral || {}, c = pr.consolidado || {};
+    const escala = Math.max(1, ...ramos.flatMap(r => [Number(r.receita) || 0, Number(r.despesa) || 0]));
+    const larg = v => Math.max(0, Math.min(100, (Number(v) || 0) / escala * 100)).toFixed(1);
+    const corte = filtro.ano === ANO_ATUAL ? `jan–${MES_CURTO_IND[new Date().getMonth()]} ${filtro.ano}` : String(filtro.ano);
+    const un = (r, q) => Number(q) === 1 ? (r.unidade_singular || 'ativo') : (r.unidade_plural || 'ativos');
+    const linhas = ramos.map(r => {
+        const cod = codR(r.codigo);
+        const rec = Number(r.receita) || 0, res = Number(r.resultado) || 0;
+        const patr = r.soma_valor !== false && Number(r.patrimonio) > 0 ? moedaCurta(r.patrimonio) : '';
+        const sub = r.soma_valor === false ? `${r.qtd} ${un(r, r.qtd)} · custo de vida`
+            : [r.margem != null ? `margem ${fmtNum(r.margem, 0)}%` : (cod === 'obras' ? 'em construção' : 'sem receita'), patr].filter(Boolean).join(' · ');
+        const vlSub = rec > 0 ? `de ${moedaCurta(rec)}` : (cod === 'obras' ? 'investido' : 'custo');
+        return `<button type="button" class="rz-rr" onclick="escolherGeralRamo('${cod}')" aria-label="Abrir ${escR(r.nome)}">
+            <span class="rz-rr-pt" style="background:var(--ramo-cor-${cod}, var(--sage))"></span>
+            <span class="rz-rr-nm">${escR(r.nome)}<small>${escR(sub)}</small></span>
+            <span class="rz-rr-vl${res < 0 ? ' rz-neg' : ''}">${moedaCurta(res)}<small>${vlSub}</small>${comparar(res, r.anterior?.resultado, { rotulo: 'vs ' + (filtro.ano - 1) })}</span>
+            <span class="rz-rr-bars"><span><i class="rz-rr-rec" style="width:${larg(r.receita)}%"></i></span><span><i class="rz-rr-desp" style="width:${larg(r.despesa)}%"></i></span></span>
+        </button>`;
+    }).join('');
+    const gRes = Number(g.resultado) || 0;
+    const linhaGeral = (Number(g.receita) || Number(g.despesa) || gRes) ? `<div class="rz-rr rz-rr-geral">
+            <span class="rz-rr-pt" style="background:var(--ramo-cor-geral, var(--sage))"></span>
+            <span class="rz-rr-nm">Geral · sem ativo<small>lançado sem ativo: contador, banco</small></span>
+            <span class="rz-rr-vl${gRes < 0 ? ' rz-neg' : ''}">${moedaCurta(gRes)}</span>
+        </div>` : '';
+    const cRes = Number(c.resultado) || 0, cRec = Number(c.receita) || 0;
+    const cSub = [c.margem != null ? `margem ${fmtNum(c.margem, 0)}%` : '', Number(c.patrimonio) > 0 ? moedaCurta(c.patrimonio) : ''].filter(Boolean).join(' · ');
+    const linhaTot = `<div class="rz-rr rz-rr-tot">
+            <span class="rz-rr-pt" style="background:var(--ink)"></span>
+            <span class="rz-rr-nm">Consolidado<small>${escR(cSub)}</small></span>
+            <span class="rz-rr-vl${cRes < 0 ? ' rz-neg' : ''}">${moedaCurta(cRes)}<small>${cRec > 0 ? `de ${moedaCurta(cRec)}` : ''}</small>${comparar(cRes, c.anterior?.resultado)}</span>
+        </div>`;
+    const nota = pr.soma_ok ? 'A soma das linhas é igual ao Consolidado e ao resultado do herói.' : 'A soma das linhas não fechou com o Consolidado: avise o suporte.';
+    return `<div class="rz-card rz-ck">
+        <div class="rz-card-h"><h3>Resultado por ramo</h3><span class="rz-sub">${corte}</span></div>
+        <p class="rz-desc">Receita, despesa e resultado de cada ramo. Toque para abrir a lente.</p>
+        <div class="rz-rr-leg"><span><i class="rz-rr-rec"></i>receita</span><span><i class="rz-rr-desp"></i>despesa</span></div>
+        ${linhas}${linhaGeral}${linhaTot}
+        <p class="rz-desc rz-ck-nota">${nota} Família e Outros bens mostram o custo, sem margem.</p>
+    </div>`;
+}
+
+// ---------------------------------------------------------------------
+// v2.11.0 (fatia 8, F8-2, D8-2 revista) — os cards da operação de cada ramo, abaixo do herói da lente.
+// Imóveis já tem os dele (cards de locação); os outros ramos ganham os seus aqui.
+// ---------------------------------------------------------------------
+function montarCardsDoRamo(ramo, ind) {
+    if (!ind || ind.pode_ver === false || ramo === 'imoveis') return '';
+    const cards = [];
+    const linha = ({ ic, tit, sub, rt, rtSub, rtCls, toque, extra = '' }) => {
+        const tag = toque ? 'button' : 'div';
+        return `<${tag}${toque ? ` type="button" onclick="${toque}"` : ''} class="rz-row rz-ck-li">
+            ${ic ? `<span class="rz-ic"><i data-lucide="${escR(ic)}"></i></span>` : ''}
+            <div class="rz-tx"><b>${escR(tit)}</b>${sub ? `<span>${escR(sub)}</span>` : ''}${extra}</div>
+            ${rt != null ? `<div class="rz-rt"><b${rtCls ? ` class="${rtCls}"` : ''}>${rt}</b>${rtSub ? `<small>${escR(rtSub)}</small>` : ''}</div>` : ''}
+        </${tag}>`;
+    };
+    const card = (titulo, sub, corpo, desc = '') => `<div class="rz-card rz-ck"><div class="rz-card-h"><h3>${escR(titulo)}</h3>${sub ? `<span class="rz-sub">${escR(sub)}</span>` : ''}</div>${desc ? `<p class="rz-desc">${escR(desc)}</p>` : ''}${corpo}</div>`;
+    const idAtivo = id => `abrirAtivoHoje('${String(id || '').replace(/[^0-9a-f-]/gi, '')}')`;
+    const porAtivo = Array.isArray(ind.por_ativo) ? ind.por_ativo : [];
+
+    // Ciclos abertos (safra do talhão, engorda do lote): fase n de m e o custo pago, a pagar e previsto
+    if ((ramo === 'agro' || ramo === 'pecuaria') && Array.isArray(ind.ciclos_abertos) && ind.ciclos_abertos.length) {
+        const corpo = ind.ciclos_abertos.map(c => {
+            const tot = Number(c.total) || 0, pos = Number(c.posicao) || 0;
+            const sub = [c.fase, tot ? `fase ${pos} de ${tot}` : '', c.area_ha ? `${fmtNum(c.area_ha)} ha` : ''].filter(Boolean).join(' · ');
+            const prev = nOuNull(c.previsto);
+            return linha({ ic: ramo === 'agro' ? 'sprout' : 'fence', tit: `${c.ativo} · ${c.nome || c.programa || ''}`, sub,
+                extra: barraBala({ pago: c.pago, aPagar: c.a_pagar, previsto: prev, marcador: tot ? pos / tot * 100 : null,
+                    esquerda: `pago ${moedaCurta(c.pago)}${Number(c.a_pagar) ? ` · a pagar ${moedaCurta(c.a_pagar)}` : ''}`,
+                    direita: prev ? `previsto ${moedaCurta(prev)}` : 'sem previsto' }) });
+        }).join('');
+        cards.push(card(ramo === 'agro' ? 'Safras abertas' : 'Ciclos abertos', '', corpo, 'Fase atual e o custo até agora. Traço = onde a fase está.'));
+    }
+    if (ramo === 'agro' && Array.isArray(ind.ciclos_fechados) && ind.ciclos_fechados.length) {
+        const corpo = ind.ciclos_fechados.map(c => {
+            const r = c.resultado || {};
+            const partes = (Array.isArray(c.campos) ? c.campos : []).map(f => {
+                let v = nOuNull(r[f.campo]);
+                if (v == null && f.calculado) { const [a, b] = String(f.calculado).split('/'); v = nOuNull(r[a]) != null && nOuNull(r[b]) ? Number(r[a]) / Number(r[b]) : null; }
+                if (v == null) return '';
+                return String(f.unidade || '').startsWith('R$') ? `${f.rotulo}: ${moedaInteira(v)}` : `${f.rotulo}: ${fmtNum(v, 0)} ${f.unidade || ''}`.trim();
+            }).filter(Boolean).join(' · ');
+            return linha({ ic: 'wheat', tit: `${c.ativo} · ${c.nome || ''}`, sub: partes || 'Fechada sem resultado informado', rt: r.custo != null ? moedaCurta(r.custo) : null, rtSub: 'custo' });
+        }).join('');
+        cards.push(card('Última safra fechada', '', corpo));
+    }
+
+    // Obras: avanço físico (traço) × financeiro (barra); gasto mais de 5 p.p. à frente do físico fica vermelho
+    if (ramo === 'obras') {
+        const obras = Array.isArray(ind.obras) ? ind.obras : [];
+        const corpo = obras.map(o => {
+            const tot = Number(o.total) || 0, conc = Number(o.concluidas) || 0, prev = nOuNull(o.previsto);
+            const fis = tot ? conc / tot * 100 : null, fin = prev ? (Number(o.pago) || 0) / prev * 100 : null;
+            return linha({ ic: 'hard-hat', tit: `${o.ativo} · ${o.programa || ''}`, sub: [o.etapa, tot ? `etapa ${Math.min(conc + 1, tot)} de ${tot}` : ''].filter(Boolean).join(' · '),
+                extra: barraBala({ pago: o.pago, aPagar: o.a_pagar, previsto: prev, marcador: fis, alerta: fis != null && fin != null && fin - fis > 5,
+                    esquerda: `pago ${moedaCurta(o.pago)}${fin != null ? ` (${fmtNum(fin, 0)}%)` : ''}`,
+                    direita: `${fis != null ? `físico ${fmtNum(fis, 0)}%` : ''}${prev ? ` · previsto ${moedaCurta(prev)}` : ''}` }) });
+        }).join('');
+        cards.push(card('Obras em andamento', '', corpo || '<p class="rz-desc">Nenhuma obra com etapa em andamento.</p>',
+            obras.length ? 'Barra escura = pago; traço = avanço físico. Gasto passando do físico pede atenção.' : ''));
+    }
+
+    // Pecuária: rebanho, próximos avisos e vendas (D8-3, D8-5, D8-9)
+    if (ramo === 'pecuaria') {
+        const cats = Array.isArray(ind.por_categoria) ? ind.por_categoria : [];
+        const fases = Array.isArray(ind.por_fase) ? ind.por_fase : [];
+        const total = Number(ind.animais) || 0;
+        if (total) {
+            const tons = ['var(--ramo-acc)', 'var(--ramo-hdr)', 'var(--sage)', 'var(--brass-light)', 'var(--muted)', 'var(--line)'];
+            const C = 2 * Math.PI * 15.9;
+            let acc = 0;
+            const arcos = cats.map((c, k) => { const len = C * (Number(c.qtd) || 0) / total; const s = `<circle cx="21" cy="21" r="15.9" style="stroke:${tons[k % tons.length]};stroke-dasharray:${len.toFixed(1)} ${(C - len).toFixed(1)};stroke-dashoffset:${(-acc).toFixed(1)}" transform="rotate(-90 21 21)"/>`; acc += len; return s; }).join('');
+            const leg = cats.map((c, k) => `<div><span class="rz-ck-dot" style="background:${tons[k % tons.length]}"></span>${escR(c.nome)}<b>${Number(c.qtd) || 0}</b></div>`).join('');
+            const chips = fases.map(f => `<span class="rz-ck-cnt"><b>${Number(f.qtd) || 0}</b> ${escR(String(f.fase || '').toLowerCase())}</span>`).join('');
+            cards.push(card('Rebanho', `${total} ${total === 1 ? 'animal' : 'animais'}`, `<div class="rz-ck-ring"><svg viewBox="0 0 42 42" role="img" aria-label="Animais por categoria"><circle cx="21" cy="21" r="15.9" class="rz-ck-ring-bg"/>${arcos}<text x="21" y="22" text-anchor="middle" class="rz-ck-ring-n">${total}</text><text x="21" y="27.5" text-anchor="middle" class="rz-ck-ring-u">${total === 1 ? 'animal' : 'animais'}</text></svg><div class="rz-ck-ring-leg">${leg}</div></div>`
+                + `${chips ? `<div class="rz-ck-cnts">${chips}</div>` : ''}<p class="rz-desc rz-ck-nota">${Number(ind.em_ciclo) || 0} em ciclo · ${Number(ind.prenhes) || 0} prenhes${Number(ind.lotes) ? ` · ${ind.lotes} ${Number(ind.lotes) === 1 ? 'lote' : 'lotes'}` : ''}</p>`));
+        }
+        const avisos = Array.isArray(ind.avisos) ? ind.avisos : [];
+        if (avisos.length) {
+            const corpo = avisos.map(a => {
+                const atras = !!a.atrasado;
+                const quando = a.data ? formatarDataBR(a.data).slice(0, 5) : '';
+                return `<button type="button" class="rz-row rz-ck-li" onclick="abrirMembroHoje('${String(a.membro_id || '').replace(/[^0-9a-f-]/gi, '')}')">
+                    <span class="rz-ck-dot" style="background:var(--ramo-cor-pecuaria, var(--sage))"></span>
+                    <div class="rz-tx"><b>${escR(`${a.rotulo || a.fase} · ${a.identificador}${a.nome ? ' ' + a.nome : ''}`)}</b><span>${escR([a.ativo_nome, a.automatica ? 'muda sozinha na data' : 'você confirma'].filter(Boolean).join(' · '))}</span></div>
+                    <span class="rz-ck-tag ${atras ? 'rz-ruim' : a.automatica ? 'rz-info' : 'rz-aten'}">${atras ? 'atrasado' : escR(quando)}</span>
+                </button>`;
+            }).join('');
+            cards.push(card('Próximos 30 dias no rebanho', '', corpo));
+        }
+        const v = ind.vendas || {};
+        const cab = Number(v.cabecas) || 0, val = Number(v.valor) || 0;
+        if (cab || val) {
+            cards.push(card('Vendas de animais', String(filtro.ano), `<div class="rz-ck-kpis"><div><small>Cabeças vendidas</small><b>${cab}</b></div><div><small>Receita</small><b>${moedaCurta(val)}</b>${cab && val ? `<em class="rz-cmp">${moedaCurta(val / cab)} por cabeça</em>` : ''}</div></div>`));
+        }
+    }
+
+    // Família: por vida · Outros bens: custo por bem (quanto pesa no valor) · demais: resultado por ativo
+    if (porAtivo.length) {
+        if (ramo === 'familia') {
+            cards.push(card('Por vida', String(filtro.ano), porAtivo.map(a => linha({ ic: 'user', tit: a.nome, sub: a.principal || '', rt: moedaInteira(a.despesa), rtSub: 'custo no ano', toque: idAtivo(a.id) })).join('')));
+        } else if (ramo === 'outros') {
+            const L = [...porAtivo].sort((x, y) => (Number(y.despesa) || 0) - (Number(x.despesa) || 0));
+            cards.push(card('Custo por bem', String(filtro.ano), L.map(a => linha({ ic: 'gem', tit: a.nome,
+                sub: a.custo_pct_valor != null ? `${fmtNum(a.custo_pct_valor)}% do valor` : 'sem valor cadastrado', rt: moedaInteira(a.despesa), rtSub: Number(a.receita) ? `receita ${moedaCurta(a.receita)}` : '', toque: idAtivo(a.id) })).join(''),
+                'Quanto cada bem custa no ano e quanto isso pesa no valor dele.'));
+        } else {
+            const tit = ramo === 'pecuaria' ? 'Resultado por lote' : ramo === 'agro' ? 'Resultado por talhão e ativo' : 'Resultado por ativo';
+            cards.push(card(tit, String(filtro.ano), porAtivo.map(a => {
+                const res = Number(a.resultado) || 0;
+                const sub = [a.principal, `receita ${moedaCurta(a.receita)} · custo ${moedaCurta(a.despesa)}`, a.custo_ha != null ? `${moedaInteira(a.custo_ha)}/ha` : ''].filter(Boolean).join(' · ');
+                return linha({ tit: a.nome, sub, rt: (res > 0 ? '+' : '') + moedaCurta(res), rtCls: res < 0 ? 'rz-neg' : res > 0 ? 'rz-in' : '', toque: idAtivo(a.id) });
+            }).join('')));
+        }
+    }
+    if (ramo === 'agro' || ramo === 'pecuaria') {
+        cards.push(`<p class="rz-desc rz-ck-depois">${ramo === 'agro' ? 'Chuva e produtividade em tempo real' : 'Litros por vaca, ganho de peso e DEL'} entram com os registros do dia (medições).</p>`);
+    }
+    return cards.join('');
 }
 
 // v2.4.0 (dem 43bc3cab) — "Indicadores de mercado" no chip Fique por dentro do Hoje: uma linha por indicador

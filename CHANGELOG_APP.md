@@ -4,6 +4,21 @@ Histórico completo de versões do `index.html`, movido automaticamente pelo `ge
 
 ---
 
+NOVIDADES (Beta v1.425.0) — FATIA 6b, CICLOS E ETAPAS (FICHA_FATIA6_CICLOS_E_FASES_RAIZ v1.2.0, de acordo do Nicola 15/10
+13:34, 14:45, 15:22, 22:16 e 22:27): Construção vira obra com etapas escolhidas do modelo (opcionais e próprias) e Safra de
+café vira ciclo com fases. No chip Controles, o programa mostra a fase atual (n de m) e "Ver/Abrir a obra|safra" abre a
+tela da execução: fases com custo, Avançar (levar ou concluir os itens), Pular/Voltar com motivo, Fechar a safra com sacas
+e custo por saca (e abrir a próxima), Concluir a obra (o lote vira Casa). Financeiro: Destino do lançamento e Dividir em
+partes / Unir (a soma é o total). cofre-controles.js 1.61.0 · financeiro.js 1.68.0. Banco: usos_fatia6_estrutura_v1,
+usos_fatia6_dados_v1, usos_fatia6_funcoes_v1..v3, usos_fatia6_dividir_v1.
+Versão anterior (Beta v1.424.0):
+------------------------------------------------------------------
+Versões anteriores (v1.424.0 … v1.424.0): CHANGELOG_APP.md, na raiz do
+repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
+das 5 versões mais recentes deste cabeçalho.
+
+---
+
 NOVIDADES (Beta v1.424.0) — FATIA 6a, AGRO E OBRAS (de acordo do Nicola 15/10 16:10): os ramos Agro e Obras abrem para
 quem tem o plano Premium Ampliado (fn_cliente_ramos; transição até a licença por ramo, demanda 1ee2e3be). O seletor de
 tipos do novo ativo e os chips de ramo da lista só mostram ramos contratados (cofre-validacoes.js 2.7.0 · cofre-ativos.js

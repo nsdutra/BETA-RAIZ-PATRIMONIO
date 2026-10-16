@@ -6,9 +6,17 @@
    (base derivada do RUMO v7.4.2 — histórico de versões anteriores
    preservado abaixo para referência técnica)
 
-   VERSÃO: Beta v1.429.0
-   LINHAS: 17017
+   VERSÃO: Beta v1.430.0
+   LINHAS: 17103
    DATA: 16/10/2026 (sessão 20261016-0945-usos-fatia8, demanda 3022603b)
+   NOVIDADES (Beta v1.430.0) — FATIA 8, HOJE POR RAMO (FICHA_FATIA8_HOJE_POR_RAMO_RAIZ v1.2.0 e PROTOTIPO_HOJE_COCKPIT_RAMOS_RAIZ
+   v1.0.0, de acordo do Nicola 16/10 01:09 e 09:43): em Todo o patrimônio, o card Resultado por ramo (receita × despesa,
+   margem, patrimônio, Geral e Consolidado; tocar abre a lente). Todo número do herói compara com o ano anterior e o
+   resultado tem a linha do ano. Cada ramo tem os seus números: Família (por vida), Outros bens (custo por bem), Agro (safras,
+   sacas, custo por saca e por hectare), Obras (avanço físico × financeiro), Pecuária (rebanho, prenhez, partos, vendas). Os
+   avisos dos animais viram alertas do Motor (Todos e a lente) e abrem a ficha do animal; o anel da Pecuária diz "N animais
+   em M lotes". resultados.js 2.11.0. Banco: usos_fatia8_alertas_v1, usos_fatia8_funcoes_v1.
+   Versão anterior (Beta v1.429.0):
    NOVIDADES (Beta v1.429.0) — CORREÇÃO (Nicola 16/10 09:30): em Ativos o botão "+" voltou ao lugar (desde a 1.427.0, sem a vista
    Contratos, ele subia para baixo do cabeçalho e sumia); no computador o conteúdo ocupa a área central toda, até 1280 px
    (era 820 px).
@@ -32,16 +40,8 @@
    ligada à mãe. A Agenda mostra os avisos. cofre-membros.js 1.0.0 (novo) · cofre-ativos.js 1.113.0 · cofre-controles.js
    1.62.0 · agenda.js 1.5.0. Banco: usos_fatia7_estrutura_v1, usos_fatia7_dados_v1, usos_fatia7_funcoes_v1 e v2.
    Versão anterior (Beta v1.425.0):
-   NOVIDADES (Beta v1.425.0) — FATIA 6b, CICLOS E ETAPAS (FICHA_FATIA6_CICLOS_E_FASES_RAIZ v1.2.0, de acordo do Nicola 15/10
-   13:34, 14:45, 15:22, 22:16 e 22:27): Construção vira obra com etapas escolhidas do modelo (opcionais e próprias) e Safra de
-   café vira ciclo com fases. No chip Controles, o programa mostra a fase atual (n de m) e "Ver/Abrir a obra|safra" abre a
-   tela da execução: fases com custo, Avançar (levar ou concluir os itens), Pular/Voltar com motivo, Fechar a safra com sacas
-   e custo por saca (e abrir a próxima), Concluir a obra (o lote vira Casa). Financeiro: Destino do lançamento e Dividir em
-   partes / Unir (a soma é o total). cofre-controles.js 1.61.0 · financeiro.js 1.68.0. Banco: usos_fatia6_estrutura_v1,
-   usos_fatia6_dados_v1, usos_fatia6_funcoes_v1..v3, usos_fatia6_dividir_v1.
-   Versão anterior (Beta v1.424.0):
    ------------------------------------------------------------------
-   Versões anteriores (v1.424.0 … v1.424.0): CHANGELOG_APP.md, na raiz do
+   Versões anteriores (v1.425.0 … v1.425.0): CHANGELOG_APP.md, na raiz do
    repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
    das 5 versões mais recentes deste cabeçalho.
 
@@ -69,7 +69,7 @@
          O navegador aplica o mapa também aos imports estáticos dentro dos
          módulos (cofre-app.js → ./cofre-api.js etc.). -->
     <!-- RZ-IMPORTMAP:INICIO -->
-    <script type="importmap">{"imports":{"./js/cadastros.js":"./js/cadastros.js?v=1.3.0","./js/financeiro.js":"./js/financeiro.js?v=1.68.0","./js/fechamento.js":"./js/fechamento.js?v=1.15.0","./js/contratos.js":"./js/contratos.js?v=1.60.0","./js/minutas.js":"./js/minutas.js?v=1.6.0","./js/vitrine.js":"./js/vitrine.js?v=1.6.0","./js/imoveis.js":"./js/imoveis.js?v=1.8.0","./js/cofre-api.js":"./js/cofre-api.js?v=1.51.0","./js/cofre-app.js":"./js/cofre-app.js?v=1.50.0","./js/cofre-ativos.js":"./js/cofre-ativos.js?v=1.115.0","./js/cofre-controles.js":"./js/cofre-controles.js?v=1.62.0","./js/cofre-documentos.js":"./js/cofre-documentos.js?v=2.38.0","./js/cofre-imagem.js":"./js/cofre-imagem.js?v=1.1.0","./js/cofre-estado.js":"./js/cofre-estado.js?v=1.5.2","./js/cofre-navegacao.js":"./js/cofre-navegacao.js?v=1.10.0","./js/cofre-ui.js":"./js/cofre-ui.js?v=1.7.2","./js/cofre-validacoes.js":"./js/cofre-validacoes.js?v=2.8.0","./js/comum-licenca.js":"./js/comum-licenca.js?v=1.9.0","./js/comum-renovacao.js":"./js/comum-renovacao.js?v=1.3.5","./js/comum-minha-empresa.js":"./js/comum-minha-empresa.js?v=1.20.0","./js/comum-pessoas.js":"./js/comum-pessoas.js?v=1.215.0","./js/comum-sobre.js":"./js/comum-sobre.js?v=1.5.0","./js/comum-endereco.js":"./js/comum-endereco.js?v=1.2.0","./js/comum-partes.js":"./js/comum-partes.js?v=1.0.0","./js/resultados.js":"./js/resultados.js?v=2.10.0","./js/indicadores.js":"./js/indicadores.js?v=1.2.0","./js/configuracao-inicial.js":"./js/configuracao-inicial.js?v=1.1.0","./js/relatorios-executivos.js":"./js/relatorios-executivos.js?v=1.4.0","./js/raiz-eventos.js":"./js/raiz-eventos.js?v=1.0.0","./js/raiz-device.js":"./js/raiz-device.js?v=1.1.0","./js/raiz-ui.js":"./js/raiz-ui.js?v=1.5.0","./js/fiscal.js":"./js/fiscal.js?v=1.7.0","./js/ativos/ativos-boot.js":"./js/ativos/ativos-boot.js?v=1.4.0","./js/ativos/ativos-markup.js":"./js/ativos/ativos-markup.js?v=1.65.0","./js/nucleo/porta.js":"./js/nucleo/porta.js?v=1.5.0","./js/partes.js":"./js/partes.js?v=1.1.0","./js/conta.js":"./js/conta.js?v=1.2.0","./js/grupo-visao.js":"./js/grupo-visao.js?v=1.0.0","./js/agenda.js":"./js/agenda.js?v=1.5.0","./js/cofre-membros.js":"./js/cofre-membros.js?v=1.0.0"}}</script>
+    <script type="importmap">{"imports":{"./js/cadastros.js":"./js/cadastros.js?v=1.3.0","./js/financeiro.js":"./js/financeiro.js?v=1.68.0","./js/fechamento.js":"./js/fechamento.js?v=1.15.0","./js/contratos.js":"./js/contratos.js?v=1.60.0","./js/minutas.js":"./js/minutas.js?v=1.6.0","./js/vitrine.js":"./js/vitrine.js?v=1.6.0","./js/imoveis.js":"./js/imoveis.js?v=1.8.0","./js/cofre-api.js":"./js/cofre-api.js?v=1.51.0","./js/cofre-app.js":"./js/cofre-app.js?v=1.50.0","./js/cofre-ativos.js":"./js/cofre-ativos.js?v=1.115.0","./js/cofre-controles.js":"./js/cofre-controles.js?v=1.62.0","./js/cofre-documentos.js":"./js/cofre-documentos.js?v=2.38.0","./js/cofre-imagem.js":"./js/cofre-imagem.js?v=1.1.0","./js/cofre-estado.js":"./js/cofre-estado.js?v=1.5.2","./js/cofre-navegacao.js":"./js/cofre-navegacao.js?v=1.10.0","./js/cofre-ui.js":"./js/cofre-ui.js?v=1.7.2","./js/cofre-validacoes.js":"./js/cofre-validacoes.js?v=2.8.0","./js/comum-licenca.js":"./js/comum-licenca.js?v=1.9.0","./js/comum-renovacao.js":"./js/comum-renovacao.js?v=1.3.5","./js/comum-minha-empresa.js":"./js/comum-minha-empresa.js?v=1.20.0","./js/comum-pessoas.js":"./js/comum-pessoas.js?v=1.215.0","./js/comum-sobre.js":"./js/comum-sobre.js?v=1.5.0","./js/comum-endereco.js":"./js/comum-endereco.js?v=1.2.0","./js/comum-partes.js":"./js/comum-partes.js?v=1.0.0","./js/resultados.js":"./js/resultados.js?v=2.11.0","./js/indicadores.js":"./js/indicadores.js?v=1.2.0","./js/configuracao-inicial.js":"./js/configuracao-inicial.js?v=1.1.0","./js/relatorios-executivos.js":"./js/relatorios-executivos.js?v=1.4.0","./js/raiz-eventos.js":"./js/raiz-eventos.js?v=1.0.0","./js/raiz-device.js":"./js/raiz-device.js?v=1.1.0","./js/raiz-ui.js":"./js/raiz-ui.js?v=1.5.0","./js/fiscal.js":"./js/fiscal.js?v=1.7.0","./js/ativos/ativos-boot.js":"./js/ativos/ativos-boot.js?v=1.4.0","./js/ativos/ativos-markup.js":"./js/ativos/ativos-markup.js?v=1.65.0","./js/nucleo/porta.js":"./js/nucleo/porta.js?v=1.5.0","./js/partes.js":"./js/partes.js?v=1.1.0","./js/conta.js":"./js/conta.js?v=1.2.0","./js/grupo-visao.js":"./js/grupo-visao.js?v=1.0.0","./js/agenda.js":"./js/agenda.js?v=1.5.0","./js/cofre-membros.js":"./js/cofre-membros.js?v=1.0.0"}}</script>
     <!-- RZ-IMPORTMAP:FIM -->
 
     <!-- ===== PWA: permite "instalar" o app no celular (Android e iPhone) ===== -->
@@ -617,11 +617,13 @@
            (cabeçalho, herói, lente, traço da barra = hdr/acc); TEXTO colorido usa --ramo-txt (contraste AA no papel);
            --ramo-cor-* = cor de identificação (pontos, barras, faixas). Papel de cada ramo só no tema claro. */
         :root{--ramo-hdr:var(--pine);--ramo-acc:var(--sprout);--ramo-txt:#2f6a51;--ramo-txt-esc:#9fc3ae;
+              --ramo-cor-obras:#b07a2a;--ramo-cor-geral:#8b918e; /* v1.430.0 (fatia 8) — Obras e a linha Geral · sem ativo */
               --ramo-cor-imoveis:#3c4f9a;--ramo-cor-familia:#7e6596;--ramo-cor-outros:#5d636b;--ramo-cor-agro:#7a8f3c;--ramo-cor-pecuaria:#966040;--ramo-cor-varejo:#944272;--ramo-cor-investimentos:#38949f}
         :root[data-ramo="imoveis"]{--ramo-hdr:#1f2951;--ramo-acc:#3c4f9a;--ramo-txt:#3c4f9a;--ramo-txt-esc:#aab6e6}
         :root[data-ramo="familia"]{--ramo-hdr:#4f3b5c;--ramo-acc:#7e6596;--ramo-txt:#6c5384;--ramo-txt-esc:#c9b6dc}
         :root[data-ramo="outros"]{--ramo-hdr:#35383b;--ramo-acc:#5d636b;--ramo-txt:#5d636b;--ramo-txt-esc:#c3c7cc}
         :root[data-ramo="agro"]{--ramo-hdr:#4a5a2a;--ramo-acc:#7a8f3c;--ramo-txt:#5c6f2f;--ramo-txt-esc:#cbd99a}
+        :root[data-ramo="obras"]{--ramo-hdr:#5e4116;--ramo-acc:#b07a2a;--ramo-txt:#8e611d;--ramo-txt-esc:#e6c48f} /* v1.430.0 */
         :root[data-ramo="pecuaria"]{--ramo-hdr:#4f3222;--ramo-acc:#966040;--ramo-txt:#925d3f;--ramo-txt-esc:#e0b896}
         :root[data-ramo="varejo"]{--ramo-hdr:#4d233c;--ramo-acc:#944272;--ramo-txt:#944272;--ramo-txt-esc:#e2b4cf}
         :root[data-ramo="investimentos"]{--ramo-hdr:#1d4e53;--ramo-acc:#38949f;--ramo-txt:#2c747d;--ramo-txt-esc:#9fd3d9}
@@ -915,6 +917,50 @@
         .rz-heroi .rz-seg{background:rgba(255,255,255,.12);margin:14px 0 0}
         .rz-heroi .rz-seg button{color:rgba(255,255,255,.85)}
         .rz-heroi .rz-seg button.rz-on{background:#fff;color:var(--pine)}
+        /* v1.430.0 (fatia 8, cockpit — DESIGN_SYSTEM §cockpit) — herói com comparação e linha do ano; resultado por ramo;
+           barra de bala; anel do rebanho; listas da lente. Verde e vermelho só dizem bom e ruim; a cor do ramo só identifica. */
+        .rz-heroi-resl{display:flex;align-items:flex-end;gap:10px}.rz-heroi-resl>div{flex:1;min-width:0}
+        .rz-heroi .rz-spark{width:72px;height:26px;flex:none;margin-bottom:4px}
+        .rz-spark polyline{fill:none;stroke:currentColor;stroke-width:1.8;stroke-linejoin:round;stroke-linecap:round;opacity:.85}
+        .rz-heroi-3.rz-q4{grid-template-columns:1fr 1fr}
+        .rz-cmp{display:block;font-style:normal;font-size:11.5px;font-weight:600;line-height:1.3;margin-top:2px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+        .rz-cmp.rz-cmp-bom{color:var(--success)}.rz-cmp.rz-cmp-ruim{color:var(--danger)}
+        .rz-heroi .rz-cmp{color:rgba(255,255,255,.72)}.rz-heroi .rz-cmp.rz-cmp-bom{color:#a6e3bd}.rz-heroi .rz-cmp.rz-cmp-ruim{color:#f3b3ac}
+        .rz-ck .rz-desc{margin:0 0 8px}.rz-ck .rz-ck-nota{margin:8px 0 0;font-size:12.5px}
+        .rz-rr{box-sizing:border-box;display:grid;grid-template-columns:10px minmax(0,1fr) auto;gap:2px 8px;align-items:center;width:100%;padding:9px 0;border:0;border-bottom:1px solid var(--line);background:none;font:inherit;color:inherit;text-align:left}
+        button.rz-rr{cursor:pointer;min-height:44px}
+        .rz-rr-pt{width:10px;height:10px;border-radius:3px}
+        .rz-rr-nm{font-weight:600;min-width:0}.rz-rr-nm small{display:block;font-weight:500;color:var(--muted);font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+        .rz-rr-vl{text-align:right;font:700 15px var(--font-title);white-space:nowrap}.rz-rr-vl small{display:block;font:600 11.5px var(--font-body);color:var(--muted)}
+        .rz-rr-vl.rz-neg{color:var(--danger)}.rz-rr-vl .rz-cmp{font-family:var(--font-body)}
+        .rz-rr-bars{grid-column:2/4;display:flex;flex-direction:column;gap:3px;margin-top:3px}
+        .rz-rr-bars>span{height:6px;border-radius:3px;background:var(--tile);position:relative;overflow:hidden}
+        .rz-rr-bars i{position:absolute;left:0;top:0;bottom:0;border-radius:3px}
+        .rz-rr-rec{background:var(--success)}.rz-rr-desp{background:var(--danger)}
+        .rz-rr-leg{display:flex;gap:12px;font-size:11.5px;color:var(--muted);margin:0 0 4px}.rz-rr-leg span{display:inline-flex;align-items:center;gap:5px}.rz-rr-leg i{width:10px;height:6px;border-radius:2px;display:inline-block}
+        .rz-rr.rz-rr-tot{background:var(--paper);border-radius:10px;padding:10px 8px;margin-top:6px;border:0}
+        .rz-ck-li{width:100%;background:none;border:0;border-bottom:1px solid var(--line);font:inherit;color:inherit;text-align:left;display:flex;align-items:center;gap:12px;padding:10px 0}
+        .rz-ck-li:last-child{border-bottom:0}.rz-ck-li .rz-tx{flex:1;min-width:0}
+        .rz-ck-li .rz-rt{text-align:right}.rz-ck-li .rz-rt small{display:block;font-size:11.5px;color:var(--muted)}
+        .rz-ck-li .rz-rt b.rz-in{color:var(--success)}.rz-ck-li .rz-rt b.rz-neg{color:var(--danger)}
+        .rz-bl{margin:6px 0 2px}
+        .rz-bl-tr{height:12px;border-radius:4px;background:var(--tile);position:relative}
+        .rz-bl-fs{position:absolute;left:0;top:0;bottom:0;border-radius:4px;background:rgba(23,33,30,.08)}
+        .rz-bl-ex{position:absolute;left:0;top:3px;height:6px;border-radius:3px;background:var(--ramo-hdr)}.rz-bl-ex.rz-ruim{background:var(--danger)}
+        .rz-bl-mk{position:absolute;top:-3px;bottom:-3px;width:2px;background:var(--ink)}
+        .rz-bl-lg{display:flex;flex-wrap:wrap;justify-content:space-between;gap:0 8px;font-size:11.5px;color:var(--muted);margin-top:3px}
+        .rz-ck-dot{width:8px;height:8px;border-radius:50%;flex:none;display:inline-block}
+        .rz-ck-tag{flex:none;font-size:11.5px;font-weight:700;padding:3px 8px;border-radius:99px;background:var(--tile);color:var(--muted)}
+        .rz-ck-tag.rz-ruim{background:var(--danger-bg);color:var(--danger)}.rz-ck-tag.rz-aten{background:var(--warning-bg);color:var(--warning)}.rz-ck-tag.rz-info{background:var(--info-bg);color:var(--info)}
+        .rz-ck-ring{display:flex;gap:14px;align-items:center}.rz-ck-ring svg{width:104px;height:104px;flex:none}
+        .rz-ck-ring circle{fill:none;stroke-width:6}.rz-ck-ring .rz-ck-ring-bg{stroke:var(--tile)}
+        .rz-ck-ring-n{font:700 7px var(--font-title);fill:var(--ink)}.rz-ck-ring-u{font-size:3.6px;fill:var(--muted)}
+        .rz-ck-ring-leg{flex:1;font-size:12.5px;min-width:0}.rz-ck-ring-leg div{display:flex;align-items:center;gap:6px;padding:2px 0}.rz-ck-ring-leg b{margin-left:auto}
+        .rz-ck-cnts{display:flex;flex-wrap:wrap;gap:6px;margin:10px 0 0}
+        .rz-ck-cnt{display:inline-flex;align-items:baseline;gap:4px;padding:4px 10px;border-radius:99px;background:var(--info-bg);font-size:12.5px;color:var(--muted)}.rz-ck-cnt b{color:var(--ink)}
+        .rz-ck-kpis{display:grid;grid-template-columns:1fr 1fr;gap:8px}.rz-ck-kpis>div{background:var(--paper);border-radius:12px;padding:10px}
+        .rz-ck-kpis small{display:block;font-size:11.5px;color:var(--muted)}.rz-ck-kpis b{display:block;font:700 18px/1.2 var(--font-title);margin-top:2px}
+        .rz-ck-depois{font-size:12.5px;background:var(--paper);border-radius:10px;padding:8px 10px;margin:0 0 12px}
         .rz-seg + .rz-seg-uso{margin-top:8px}.rz-seg.rz-seg-uso button{height:30px;font-size:12px} /* F20: uso dentro de Patrimônio */
         .rz-donut-nota{font-size:12px;color:var(--muted);margin-top:8px}
         .rz-prog{height:6px;border-radius:3px;background:var(--paper);overflow:hidden}
@@ -4408,7 +4454,7 @@
         // texto certo toda vez (esqueci 5 versões seguidas, de v1.37.1 até
         // v1.38.3). Agora só precisa mudar UMA linha aqui a cada release;
         // window.onload aplica nos dois lugares automaticamente.
-        const APP_VERSAO = "Beta v1.429.0"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
+        const APP_VERSAO = "Beta v1.430.0"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
 
         // ====================================================================
         // v1.105.0 — HELPERS DE SUPERFÍCIE DA GRAMÁTICA ÚNICA
@@ -8885,6 +8931,7 @@ async function criarLinkVitrineSupabase(token, idsSelecionados) {
             // v1.305.0 (5B, demanda e42f649b) — "Ver todos" do card Indicadores
             'abrirIndicadores',
             'trocarIndicadorComparacao', 'abrirInfoContratosIndice', // dem 4de70503
+            'abrirAtivoHoje', 'abrirMembroHoje', // v1.430.0 (fatia 8) — tocar num ativo ou num aviso do rebanho no Hoje
         ].forEach(nome => { window[nome] = (...args) => rzPonteModulo(carregarResultados, nome, args); });
 
         // =====================================================================
@@ -11710,6 +11757,27 @@ async function criarLinkVitrineSupabase(token, idsSelecionados) {
             return `<div class="rz-card"><div class="rz-card-h"><h3>Sua árvore</h3></div><div class="rz-arvore"><svg viewBox="0 0 ${W} ${H}" aria-hidden="true">${galhos}${tronco}</svg>${frutos}</div><div class="rz-arvore-leg">${leg}</div></div>`;
         }
 
+        // v1.430.0 (fatia 8, D8-3) — quantos animais a empresa tem nos lotes (indivíduos que não saíram). Lê uma vez por empresa e
+        // redesenha quem pediu; até chegar, devolve null e o anel fica como era ("N lotes"). Vale 1 minuto (cadastro novo aparece).
+        let __rzAnimais = { cliente: null, n: null, lendo: false, em: 0 };
+        function rzAnimaisDoCliente(aoChegar) {
+            if (!CLIENTE_ID_SUPABASE) return null;
+            if (__rzAnimais.cliente === CLIENTE_ID_SUPABASE && __rzAnimais.n != null && Date.now() - __rzAnimais.em < 60000) return __rzAnimais.n;
+            if (__rzAnimais.lendo && __rzAnimais.cliente === CLIENTE_ID_SUPABASE) return __rzAnimais.n;
+            __rzAnimais = { cliente: CLIENTE_ID_SUPABASE, n: __rzAnimais.cliente === CLIENTE_ID_SUPABASE ? __rzAnimais.n : null, lendo: true, em: 0 };
+            const cli = CLIENTE_ID_SUPABASE;
+            dbAuth.from('ativo_membros').select('id', { count: 'exact', head: true }).eq('cliente_id', cli).eq('modo', 'individuo').neq('situacao', 'saiu')
+                .then(({ count, error }) => {
+                    if (__rzAnimais.cliente !== cli) return;
+                    __rzAnimais.lendo = false;
+                    if (error) { console.warn('[hoje] animais:', error.message); return; }
+                    const antes = __rzAnimais.n;
+                    __rzAnimais.n = count || 0; __rzAnimais.em = Date.now();
+                    if (antes !== __rzAnimais.n && typeof aoChegar === 'function' && geralRamoFiltro === 'pecuaria') aoChegar();
+                });
+            return __rzAnimais.n;
+        }
+
         function renderizarQuebraTipoGeral(rows) {
             const secao = document.getElementById('geral-quebra-tipo-secao');
             const wrap = document.getElementById('geral-quebra-tipo');
@@ -11757,7 +11825,11 @@ async function criarLinkVitrineSupabase(token, idsSelecionados) {
                 acum += len; return arco;
             }).join('');
             const qtdCentro = tudo ? `${totQ} ${totQ === 1 ? 'cadastro' : 'cadastros'}` : `${totQ} ${unid(geralRamoFiltro, totQ)}`;
-            const centro = porValor
+            // v1.430.0 (fatia 8, D8-3) — na Pecuária o centro conta os animais: "168 animais" e, embaixo, "em 4 lotes"
+            const animais = geralRamoFiltro === 'pecuaria' ? rzAnimaisDoCliente(() => renderizarQuebraTipoGeral(rows)) : null;
+            const centro = animais != null
+                ? `<text x="56" y="52" text-anchor="middle" font-size="13">${porValor ? formatarValorCompacto(totV) : animais}</text><text x="56" y="67" text-anchor="middle" font-size="10" style="font-family:var(--font-body);fill:var(--muted)">${porValor ? `${animais} ${animais === 1 ? 'animal' : 'animais'}` : (animais === 1 ? 'animal' : 'animais')}</text><text x="56" y="80" text-anchor="middle" font-size="10" style="font-family:var(--font-body);fill:var(--muted)">em ${qtdCentro}</text>`
+                : porValor
                 ? `<text x="56" y="57" text-anchor="middle" font-size="13">${formatarValorCompacto(totV)}</text><text x="56" y="73" text-anchor="middle" font-size="10" style="font-family:var(--font-body);fill:var(--muted)">${qtdCentro}</text>`
                 : `<text x="56" y="63" text-anchor="middle" font-size="20">${totQ}</text>`;
             const leg = grupos.map(g => `<button type="button" onclick="${g.toque}"><i style="background:${g.cor}"></i><span>${rzEsc(g.rotulo)}<small>${g.qtd} ${g.un}${g.valor != null ? ' · ' + formatarValorCompacto(g.valor) : ''}</small></span>${porValor && g.valor ? `<b>${Math.round(g.valor / totV * 100)}%</b>` : ''}</button>`).join('');
@@ -12275,6 +12347,8 @@ async function criarLinkVitrineSupabase(token, idsSelecionados) {
                 case 'contrato_sem_divisao': return 'Contrato sem divisão do aluguel';
                 case 'pix_empresa_pendente': return 'Chave Pix da empresa pendente';
                 case 'carteira_sem_ativos': return 'Nenhum ativo cadastrado'; // v1.308.0 (D2)
+                // v1.430.0 (fatia 8, D8-5 revista) — o que o relógio prevê para o animal: o rótulo da fase ("Parto previsto")
+                case 'membro_fase_prevista': return String(row.titulo || '').split(' · ')[0] || 'Fase prevista do animal';
                 // Rede de segurança: tipo novo sem texto aqui nunca mostra o
                 // código cru — vira frase legível ("ativo sem proprietário").
                 default: return rzTipoAlertaLegivel(row.tipo_alerta);
@@ -12402,6 +12476,13 @@ async function criarLinkVitrineSupabase(token, idsSelecionados) {
                 const valor = row.detalhe?.valor_total;
                 return valor != null ? `${row.detalhe.locatario} · ${formatarMoedaBR(valor)}/mês` : (row.detalhe?.locatario || '');
             }
+            // v1.430.0 (fatia 8) — o animal e quando: "1043 Mimosa · previsto para 12/11/2026 · você confirma"
+            if (row.tipo_alerta === 'membro_fase_prevista') {
+                const d = row.detalhe || {};
+                const quem = String(row.titulo || '').split(' · ').slice(1).join(' · ');
+                const quando = d.data ? `${(row.dias ?? 0) < 0 ? 'previsto desde' : 'previsto para'} ${formatarDataBR(d.data)}` : '';
+                return [quem, quando, d.automatica ? 'muda sozinha na data' : 'você confirma'].filter(Boolean).join(' · ');
+            }
             return row.detalhe?.locatario || row.titulo || '';
         }
 
@@ -12421,6 +12502,10 @@ async function criarLinkVitrineSupabase(token, idsSelecionados) {
             switch (row.destino_rota) {
                 case 'contrato/ficha':
                     abrirFichaContrato(row.entidade_id);
+                    return;
+                // v1.430.0 (fatia 8, D8-5 revista) — aviso do rebanho (membro_fase_prevista): abre a ficha do animal
+                case 'ativo/membro':
+                    import('./js/cofre-membros.js').then(m => m.abrirFichaMembro(row.entidade_id)).catch(() => mostrarToast('Não consegui abrir.'));
                     return;
                 case 'financeiro/atrasados':
                     switchTab('tab-inadimplencia');
@@ -12607,6 +12692,7 @@ async function criarLinkVitrineSupabase(token, idsSelecionados) {
                 case 'indicador_atualizado': return `${n} índices de mercado publicados`; // v1.258.0
                 case 'ativo_sem_proprietario': return `${n} ativos sem proprietário`; // v1.297.5
                 case 'contrato_sem_divisao': return `${n} contratos sem divisão do aluguel`; // v1.297.5
+                case 'membro_fase_prevista': return `${n} avisos do rebanho`; // v1.430.0 (fatia 8)
                 default: return `${n} ${rzTipoAlertaLegivel(tipoAlerta).toLowerCase()}`; // v1.297.5 — nunca "N alertas" sem dizer de quê
             }
         }
