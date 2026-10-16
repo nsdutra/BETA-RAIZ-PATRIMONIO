@@ -1,8 +1,12 @@
 // =====================================================================
 // RAIZ PATRIMÔNIO — js/agenda.js
-// VERSÃO: Beta v1.4.0 (14/10/2026 — demanda a05ad2ee)
+// VERSÃO: Beta v1.5.0 (16/10/2026 — demanda 3022603b)
 // LINHAS: (ver versoes.json)
 // -----------------------------------------------------------------
+// NOVIDADES (Beta v1.5.0) — usos fatia 7 (FICHA_FATIA7_MEMBROS_RAIZ v1.2.0 §2A, de acordo do Nicola 16/10 00:05): entra o que
+//   o relógio prevê para os animais (fn_agenda_periodo, tipo 'membro': parto previsto, diagnóstico, secagem, desmame), no
+//   assunto Ativos; o toque abre a ficha do animal (cofre-membros.js). Sessão 20261016-0020-usos-fatia7.
+// Versão anterior (Beta v1.4.0):
 // NOVIDADES (Beta v1.4.0) — Nicola 14/10 21:26 ("a visão de lista prefiro eliminar ela. Pode retirar e deixar apenas
 //   semana e mês"): a vista Lista sai; a Agenda abre na Semana (com a lista do dia embaixo) e tem só Semana · Mês. A
 //   ação do ⋮ vira "Enviar a semana" (estudo D6, ação até 24 caracteres; a descrição continua dizendo o WhatsApp).
@@ -53,7 +57,7 @@
 // formatarMoedaBR, abrirSheet, abrirSheetAcoes, rzSheetCabecalho, fecharSheet, abrirAlertaItemControle,
 // abrirFichaContrato, switchTab, mostrarToast, rzDev.
 
-export const VERSAO = '1.4.0';
+export const VERSAO = '1.5.0';
 
 const TIPOS = {
     ocorrencia:   { rotulo: 'Ocorrência',  icone: 'wrench',          dominio: 'ocorrencias' },
@@ -62,6 +66,7 @@ const TIPOS = {
     contrato_fim: { rotulo: 'Contrato',    icone: 'file-x',          dominio: 'contratos' },
     reajuste:     { rotulo: 'Reajuste',    icone: 'trending-up',     dominio: 'contratos' },
     documento:    { rotulo: 'Documento',   icone: 'file-clock',      dominio: 'documentos' },
+    membro:       { rotulo: 'Rebanho',     icone: 'beef',            dominio: 'ativos' }, // v1.5.0 (fatia 7)
 };
 const ASSUNTOS = [['ativos', 'Ativos'], ['itens', 'Itens de controle'], ['contratos', 'Contratos e usos'], ['ocorrencias', 'Ocorrências'], ['financeiro', 'Financeiro'], ['documentos', 'Documentos']];
 const STATUS = [['critico', 'Crítico'], ['atencao', 'Atenção'], ['informativo', 'Informativo']];
@@ -371,6 +376,7 @@ function abrirCompromisso(r) {
     if (!r) return;
     if (r.entidade_tipo === 'item_controle') { abrirAlertaItemControle(r.entidade_id, r.ativo_id || ''); return; }
     if (r.entidade_tipo === 'contrato') { abrirFichaContrato(r.entidade_id); return; }
+    if (r.entidade_tipo === 'membro') { import('./cofre-membros.js').then(m => m.abrirFichaMembro(r.entidade_id)).catch(() => mostrarToast('Não consegui abrir.')); return; } // v1.5.0
     if (r.entidade_tipo === 'documento') { switchTab('tab-ativos'); setTimeout(() => window.dispatchEvent(new CustomEvent('cofre:abrir-documento', { detail: { id: r.entidade_id } })), 120); return; }
     // recebimento e pagamento: o Financeiro no mês do vencimento
     switchTab(r.tipo === 'recebimento' ? 'tab-mensal' : 'tab-saidas');

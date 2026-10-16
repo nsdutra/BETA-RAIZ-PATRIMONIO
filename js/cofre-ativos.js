@@ -1,6 +1,12 @@
 // ============================================================================
 // cofre-ativos.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.112.0 · 15/10/2026
+// Versão: 1.113.0 · 16/10/2026
+//
+// v1.113.0 (16/10/2026, sessão 20261016-0020-usos-fatia7, demanda 3022603b; FICHA_FATIA7_MEMBROS_RAIZ v1.2.0, de acordo do Nicola
+// 15/10 23:17 e 16/10 00:05) — o Resumo da ficha do ativo ganha o card dos MEMBROS quando o tipo tem membros (lote bovino,
+// lote suíno, equinos, ovinos e caprinos: "Rebanho"/"Plantel"/"Animais"; adega de vinho: "Garrafas"), montado por
+// cofre-membros.js (módulo novo, D7-7). "Adicionar uso" traz Leite e Corte (acordo lote) como uso sem contrato (D7-2).
+// Versão anterior: 1.112.0 · 15/10/2026
 //
 // v1.112.0 (15/10/2026, sessão 20261015-1615-usos-fatia6a, demanda 3022603b; de acordo do Nicola 15/10 16:10, itens 4 e 5) —
 // chips de ramo da lista de ativos só com ramos contratados (rzRamoLiberado); "Adicionar uso" passa a trazer Lavoura
@@ -23,17 +29,11 @@
 // ruim… borda do ícone na cor do ramo") — o principal com subativos tem o ícone com borda na cor do ramo e o número de
 // subativos no canto; o selo fica só com a classe (sem "0 de 1 integrantes") e o texto "N integrantes" sai da linha; os
 // subativos abertos ganham um traço à esquerda na cor do ramo.
-// Versão anterior: 1.108.0 · 14/10/2026
-//
-// v1.108.0 (14/10/2026, sessão 20261014-2330-usos-fatia3c, demanda 3022603b; teste do Nicola 14/10 23:22: "os ativos
-// queria que abrissem como as despesas no financeiro"; "a pessoa vinculada está diferente do integrante"; "o sócio não
-// permite clicar e editar") — lista: o principal mostra "N integrantes" e o chevron para baixo abre os subativos
-// recuados; ficha: integrante, pessoa do cadastro e sócio com a mesma linha tocável e ⋮; "+ Adicionar" no padrão .rz-add.
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.107.0 … v1.107.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.108.0 … v1.108.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '1.112.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.113.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 import { estado } from './cofre-estado.js';
 import * as api from './cofre-api.js';
 import { mostrarToast, erroInline, refrescarIcones, alternarToggle, abrirModal, fecharModal, modalGenerico, perguntar, avisarComDesfazer, escolher } from './cofre-ui.js';
@@ -1404,6 +1404,7 @@ export async function abrirFichaAtivo(id, chipInicial = 'resumo') {
         seguro(montarFinanceiroAtivo, 'montarFinanceiroAtivo'),
         seguro(montarPropriedadeAtivo, 'montarPropriedadeAtivo'),
         seguro(montarSubativosAtivo, 'montarSubativosAtivo'), // v1.102.0 (usos fatia 3)
+        seguro(montarMembrosAtivo, 'montarMembrosAtivo'), // v1.113.0 (usos fatia 7)
         seguro(aplicarAlertaMotorNoChipControles, 'aplicarAlertaMotorNoChipControles'),
     ]);
     if (ativoAtualId !== id) return; // outro ativo foi aberto no meio — o dele repinta
@@ -1736,6 +1737,19 @@ function rotuloStatusSubativo(st) {
     const semFn = typeof window.rzSemantica === 'function' ? window.rzSemantica : (typeof rzSemantica === 'function' ? rzSemantica : null);
     return { sem: semFn ? semFn(classe) : 'neu', rotulo: classe === nome ? classe : classe + ' · ' + nome };
 }
+// v1.113.0 (usos fatia 7, D7-3/D7-14) — card "Rebanho · N" ou "Garrafas · N" quando o tipo tem membros
+// (ativo_tipos.modo_membro); o card, a ficha do membro e as folhas moram em cofre-membros.js (carregado só aqui).
+async function montarMembrosAtivo(a) {
+    const t = tipoDoCatalogo(a.tipo_detalhe_id);
+    if (!t || !t.modo_membro || t.modo_membro === 'nenhum') {
+        const c = document.getElementById('fa-card-membros'); if (c) { c.classList.add('hidden'); c.innerHTML = ''; }
+        return;
+    }
+    const mod = await import('./cofre-membros.js');
+    if (ativoAtualId !== a.id) return;
+    await mod.montarCardMembros(a);
+}
+
 async function montarSubativosAtivo(a) {
     const painel = document.getElementById('fa-painel-resumo'); if (!painel) return;
     let card = document.getElementById('fa-card-subativos');
@@ -2538,7 +2552,7 @@ export async function abrirAdicionarModeloAtivo() {
     const ramoAtivo = ramoDoAtivoLista(a);
     let lista = [], tiposContrato = [];
     // v1.112.0 (fatia 6a) — Lavoura (acordo safra) inicia como uso sem contrato; o ciclo da safra vem na fatia 6b
-    const semContrato = m => m.acordo === 'nenhum' || m.acordo === 'safra';
+    const semContrato = m => m.acordo === 'nenhum' || m.acordo === 'safra' || m.acordo === 'lote'; // v1.113.0: lote (Leite, Corte) sem contrato (D7-2)
     try {
         const db = api.dbAuth;
         // v1.97.0 (usos fatia 0) — além dos acordos (contrato, reserva), os usos sem acordo: Uso próprio (universal) e os do
@@ -2546,7 +2560,7 @@ export async function abrirAdicionarModeloAtivo() {
         // e cadastro, não acesso. "Disponível" é o repouso e não se escolhe: ele volta sozinho quando o uso termina.
         const [mt, mods, lic, tps] = await Promise.all([
             tipo ? db.from('operacao_modelo_tipos').select('modelo').eq('tipo', tipo).eq('permite_uso', true) : Promise.resolve({ data: [] }),
-            db.from('operacao_modelos').select('codigo, ramo, nome, descricao, acordo, status, ordem, universal').in('acordo', ['contrato', 'reserva', 'nenhum', 'safra']).order('ordem'), // v1.112.0: safra (Lavoura) é uso sem contrato
+            db.from('operacao_modelos').select('codigo, ramo, nome, descricao, acordo, status, ordem, universal').in('acordo', ['contrato', 'reserva', 'nenhum', 'safra', 'lote']).order('ordem'), // v1.112.0: safra (Lavoura) é uso sem contrato
             db.rpc('fn_cliente_ramos', { p_cliente_id: estado.clienteId }),
             db.from('contrato_tipos').select('codigo, nome, descricao, modelo, status, ordem').order('ordem'), // v1.101.0 (fatia 2)
         ]);
@@ -2602,7 +2616,7 @@ export async function abrirAdicionarModeloAtivo() {
             },
         })),
         ...livres.map(m => ({
-            icone: m.codigo === 'revenda' ? 'tag' : m.acordo === 'safra' ? 'sprout' : m.ramo === 'obras' ? 'hard-hat' : 'user-check', codigo: 'ativos.usos.iniciar',
+            icone: m.codigo === 'revenda' ? 'tag' : m.acordo === 'safra' ? 'sprout' : m.acordo === 'lote' ? 'beef' : m.ramo === 'obras' ? 'hard-hat' : 'user-check', codigo: 'ativos.usos.iniciar',
             titulo: m.nome + (m.livre ? '' : ' · em breve'),
             sub: m.livre ? (m.descricao || 'Sem contrato: só o período de uso') : 'Chega em breve',
             aoTocar: () => {

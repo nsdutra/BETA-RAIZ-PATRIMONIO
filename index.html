@@ -6,9 +6,18 @@
    (base derivada do RUMO v7.4.2 — histórico de versões anteriores
    preservado abaixo para referência técnica)
 
-   VERSÃO: Beta v1.425.0
-   LINHAS: 17007
-   DATA: 15/10/2026 (sessão 20261015-2220-usos-fatia6b, demanda 3022603b)
+   VERSÃO: Beta v1.426.0
+   LINHAS: 17018
+   DATA: 16/10/2026 (sessão 20261016-0020-usos-fatia7, demanda 3022603b)
+   NOVIDADES (Beta v1.426.0) — FATIA 7, MEMBROS (FICHA_FATIA7_MEMBROS_RAIZ v1.2.0, de acordo do Nicola 15/10 23:17 e 16/10
+   00:05, D7-1 a D7-14): o ramo Pecuária abre no Premium Ampliado. Lote bovino, lote suíno, equinos, ovinos e caprinos ganham
+   o card "Rebanho · N" (animal com espécie, categoria pela idade e pelos partos, raça, nascimento ou safra) e a adega de
+   vinho, "Garrafas · N" (rótulo com saldo e janela de consumo). Ficha do animal com o ciclo de reprodução e as datas
+   previstas (diagnóstico, secagem, parto, desmame), Transferir, Registrar saída (a venda lança a receita), Desfazer e Editar.
+   O relógio move as fases (apta, secagem, desmame) e a categoria; o parto e o diagnóstico pedem confirmação, e a cria nasce
+   ligada à mãe. A Agenda mostra os avisos. cofre-membros.js 1.0.0 (novo) · cofre-ativos.js 1.113.0 · cofre-controles.js
+   1.62.0 · agenda.js 1.5.0. Banco: usos_fatia7_estrutura_v1, usos_fatia7_dados_v1, usos_fatia7_funcoes_v1 e v2.
+   Versão anterior (Beta v1.425.0):
    NOVIDADES (Beta v1.425.0) — FATIA 6b, CICLOS E ETAPAS (FICHA_FATIA6_CICLOS_E_FASES_RAIZ v1.2.0, de acordo do Nicola 15/10
    13:34, 14:45, 15:22, 22:16 e 22:27): Construção vira obra com etapas escolhidas do modelo (opcionais e próprias) e Safra de
    café vira ciclo com fases. No chip Controles, o programa mostra a fase atual (n de m) e "Ver/Abrir a obra|safra" abre a
@@ -38,15 +47,8 @@
    (comum-minha-empresa.js 1.20.0); incluir com a rotina desligada avisa (cofre-ativos.js 1.111.0). Banco:
    contabil_rotina_contador_v1 (o ativo nasce fora com a rotina desligada).
    Versão anterior (Beta v1.421.0):
-   NOVIDADES (Beta v1.421.0) — Fatia 4 (FICHA_FATIA4_PROGRAMAS_RAIZ v1.2.0, de acordo do Nicola 14/10 21:42 e 23:34). (1) Chip
-   Controles da ficha do ativo: "Programa sugerido" (Veículo, Cuidado do imóvel, Imóvel disponível, Reforma, Compra na
-   planta…) com Aceitar e Agora não; a folha Aceitar tem caixas e pede a data só quando o item precisa (vence em, última
-   vez em, 1ª data e valor de pagamento); os itens ficam agrupados sob o programa (⋮ Pausar, Retomar, Concluir) e o resto em
-   "Outros itens". (2) ⋮ do ativo: sai "Iniciar revisão anual" (vira item dos programas) e entra "Programas". Banco:
-   usos_fatia4_estrutura_v1..v3 e usos_fatia4_dados_v1. js/cofre-controles.js 1.60.0 · js/cofre-ativos.js 1.110.0.
-   Versão anterior (Beta v1.420.0):
    ------------------------------------------------------------------
-   Versões anteriores (v1.420.0 … v1.420.0): CHANGELOG_APP.md, na raiz do
+   Versões anteriores (v1.421.0 … v1.421.0): CHANGELOG_APP.md, na raiz do
    repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
    das 5 versões mais recentes deste cabeçalho.
 
@@ -74,7 +76,7 @@
          O navegador aplica o mapa também aos imports estáticos dentro dos
          módulos (cofre-app.js → ./cofre-api.js etc.). -->
     <!-- RZ-IMPORTMAP:INICIO -->
-    <script type="importmap">{"imports":{"./js/cadastros.js":"./js/cadastros.js?v=1.3.0","./js/financeiro.js":"./js/financeiro.js?v=1.68.0","./js/fechamento.js":"./js/fechamento.js?v=1.15.0","./js/contratos.js":"./js/contratos.js?v=1.60.0","./js/minutas.js":"./js/minutas.js?v=1.6.0","./js/vitrine.js":"./js/vitrine.js?v=1.6.0","./js/imoveis.js":"./js/imoveis.js?v=1.8.0","./js/cofre-api.js":"./js/cofre-api.js?v=1.51.0","./js/cofre-app.js":"./js/cofre-app.js?v=1.49.0","./js/cofre-ativos.js":"./js/cofre-ativos.js?v=1.112.0","./js/cofre-controles.js":"./js/cofre-controles.js?v=1.61.0","./js/cofre-documentos.js":"./js/cofre-documentos.js?v=2.38.0","./js/cofre-imagem.js":"./js/cofre-imagem.js?v=1.1.0","./js/cofre-estado.js":"./js/cofre-estado.js?v=1.5.2","./js/cofre-navegacao.js":"./js/cofre-navegacao.js?v=1.10.0","./js/cofre-ui.js":"./js/cofre-ui.js?v=1.7.2","./js/cofre-validacoes.js":"./js/cofre-validacoes.js?v=2.7.0","./js/comum-licenca.js":"./js/comum-licenca.js?v=1.9.0","./js/comum-renovacao.js":"./js/comum-renovacao.js?v=1.3.5","./js/comum-minha-empresa.js":"./js/comum-minha-empresa.js?v=1.20.0","./js/comum-pessoas.js":"./js/comum-pessoas.js?v=1.214.0","./js/comum-sobre.js":"./js/comum-sobre.js?v=1.5.0","./js/comum-endereco.js":"./js/comum-endereco.js?v=1.2.0","./js/comum-partes.js":"./js/comum-partes.js?v=1.0.0","./js/resultados.js":"./js/resultados.js?v=2.10.0","./js/indicadores.js":"./js/indicadores.js?v=1.2.0","./js/configuracao-inicial.js":"./js/configuracao-inicial.js?v=1.1.0","./js/relatorios-executivos.js":"./js/relatorios-executivos.js?v=1.4.0","./js/raiz-eventos.js":"./js/raiz-eventos.js?v=1.0.0","./js/raiz-device.js":"./js/raiz-device.js?v=1.1.0","./js/raiz-ui.js":"./js/raiz-ui.js?v=1.5.0","./js/fiscal.js":"./js/fiscal.js?v=1.7.0","./js/ativos/ativos-boot.js":"./js/ativos/ativos-boot.js?v=1.4.0","./js/ativos/ativos-markup.js":"./js/ativos/ativos-markup.js?v=1.65.0","./js/nucleo/porta.js":"./js/nucleo/porta.js?v=1.5.0","./js/partes.js":"./js/partes.js?v=1.1.0","./js/conta.js":"./js/conta.js?v=1.2.0","./js/grupo-visao.js":"./js/grupo-visao.js?v=1.0.0","./js/agenda.js":"./js/agenda.js?v=1.4.0"}}</script>
+    <script type="importmap">{"imports":{"./js/cadastros.js":"./js/cadastros.js?v=1.3.0","./js/financeiro.js":"./js/financeiro.js?v=1.68.0","./js/fechamento.js":"./js/fechamento.js?v=1.15.0","./js/contratos.js":"./js/contratos.js?v=1.60.0","./js/minutas.js":"./js/minutas.js?v=1.6.0","./js/vitrine.js":"./js/vitrine.js?v=1.6.0","./js/imoveis.js":"./js/imoveis.js?v=1.8.0","./js/cofre-api.js":"./js/cofre-api.js?v=1.51.0","./js/cofre-app.js":"./js/cofre-app.js?v=1.49.0","./js/cofre-ativos.js":"./js/cofre-ativos.js?v=1.113.0","./js/cofre-controles.js":"./js/cofre-controles.js?v=1.62.0","./js/cofre-documentos.js":"./js/cofre-documentos.js?v=2.38.0","./js/cofre-imagem.js":"./js/cofre-imagem.js?v=1.1.0","./js/cofre-estado.js":"./js/cofre-estado.js?v=1.5.2","./js/cofre-navegacao.js":"./js/cofre-navegacao.js?v=1.10.0","./js/cofre-ui.js":"./js/cofre-ui.js?v=1.7.2","./js/cofre-validacoes.js":"./js/cofre-validacoes.js?v=2.7.0","./js/comum-licenca.js":"./js/comum-licenca.js?v=1.9.0","./js/comum-renovacao.js":"./js/comum-renovacao.js?v=1.3.5","./js/comum-minha-empresa.js":"./js/comum-minha-empresa.js?v=1.20.0","./js/comum-pessoas.js":"./js/comum-pessoas.js?v=1.214.0","./js/comum-sobre.js":"./js/comum-sobre.js?v=1.5.0","./js/comum-endereco.js":"./js/comum-endereco.js?v=1.2.0","./js/comum-partes.js":"./js/comum-partes.js?v=1.0.0","./js/resultados.js":"./js/resultados.js?v=2.10.0","./js/indicadores.js":"./js/indicadores.js?v=1.2.0","./js/configuracao-inicial.js":"./js/configuracao-inicial.js?v=1.1.0","./js/relatorios-executivos.js":"./js/relatorios-executivos.js?v=1.4.0","./js/raiz-eventos.js":"./js/raiz-eventos.js?v=1.0.0","./js/raiz-device.js":"./js/raiz-device.js?v=1.1.0","./js/raiz-ui.js":"./js/raiz-ui.js?v=1.5.0","./js/fiscal.js":"./js/fiscal.js?v=1.7.0","./js/ativos/ativos-boot.js":"./js/ativos/ativos-boot.js?v=1.4.0","./js/ativos/ativos-markup.js":"./js/ativos/ativos-markup.js?v=1.65.0","./js/nucleo/porta.js":"./js/nucleo/porta.js?v=1.5.0","./js/partes.js":"./js/partes.js?v=1.1.0","./js/conta.js":"./js/conta.js?v=1.2.0","./js/grupo-visao.js":"./js/grupo-visao.js?v=1.0.0","./js/agenda.js":"./js/agenda.js?v=1.5.0","./js/cofre-membros.js":"./js/cofre-membros.js?v=1.0.0"}}</script>
     <!-- RZ-IMPORTMAP:FIM -->
 
     <!-- ===== PWA: permite "instalar" o app no celular (Android e iPhone) ===== -->
@@ -510,6 +512,15 @@
         .rz-exec-atual .rz-tx b{color:var(--pine)}
         .rz-exec-pulada .rz-tx b{color:var(--muted);text-decoration:line-through}
         .rz-exec-acoes{display:flex;flex-wrap:wrap;gap:8px}
+        /* v1.426.0 (usos fatia 7) — membros: contagem por categoria e fase no card do rebanho, campos lado a lado nas folhas */
+        .rz-mb-cnts{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 10px}
+        .rz-mb-cnt{display:inline-flex;align-items:baseline;gap:4px;padding:3px 9px;border-radius:999px;background:var(--tile);font-size:12.5px;color:var(--muted)}
+        .rz-mb-cnt b{color:var(--ink);font-variant-numeric:tabular-nums}
+        .rz-mb-fase{background:var(--info-bg)}
+        .rz-mb-busca{margin:0 0 8px}
+        .rz-mb-2{display:grid;grid-template-columns:1fr 1fr;gap:0 10px}
+        .rz-mb-ciclo .rz-btn{margin-top:8px}
+        .rz-exec-atraso .rz-tx span{color:var(--wine)}
         .rz-exec-acoes .rz-btn{flex:1 1 140px}
         .rz-esc-grupo{text-transform:none;letter-spacing:0;font-size:12.5px;color:#a9c4b6}
         #lista-selecao-empresa .rz-card{background:none;border:0;box-shadow:none;padding:0;margin:0}
@@ -4401,7 +4412,7 @@
         // texto certo toda vez (esqueci 5 versões seguidas, de v1.37.1 até
         // v1.38.3). Agora só precisa mudar UMA linha aqui a cada release;
         // window.onload aplica nos dois lugares automaticamente.
-        const APP_VERSAO = "Beta v1.425.0"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
+        const APP_VERSAO = "Beta v1.426.0"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
 
         // ====================================================================
         // v1.105.0 — HELPERS DE SUPERFÍCIE DA GRAMÁTICA ÚNICA

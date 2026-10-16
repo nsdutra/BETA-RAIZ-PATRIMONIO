@@ -4,6 +4,20 @@ Histórico completo de versões do `index.html`, movido automaticamente pelo `ge
 
 ---
 
+NOVIDADES (Beta v1.421.0) — Fatia 4 (FICHA_FATIA4_PROGRAMAS_RAIZ v1.2.0, de acordo do Nicola 14/10 21:42 e 23:34). (1) Chip
+Controles da ficha do ativo: "Programa sugerido" (Veículo, Cuidado do imóvel, Imóvel disponível, Reforma, Compra na
+planta…) com Aceitar e Agora não; a folha Aceitar tem caixas e pede a data só quando o item precisa (vence em, última
+vez em, 1ª data e valor de pagamento); os itens ficam agrupados sob o programa (⋮ Pausar, Retomar, Concluir) e o resto em
+"Outros itens". (2) ⋮ do ativo: sai "Iniciar revisão anual" (vira item dos programas) e entra "Programas". Banco:
+usos_fatia4_estrutura_v1..v3 e usos_fatia4_dados_v1. js/cofre-controles.js 1.60.0 · js/cofre-ativos.js 1.110.0.
+Versão anterior (Beta v1.420.0):
+------------------------------------------------------------------
+Versões anteriores (v1.420.0 … v1.420.0): CHANGELOG_APP.md, na raiz do
+repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
+das 5 versões mais recentes deste cabeçalho.
+
+---
+
 NOVIDADES (Beta v1.420.0) — Nicola 14/10 23:34. (1) Login: raízes novas, finas (pivotante, laterais e radicelas
 afinando, desenhadas em sequência), no lugar das copiadas da arte. (2) Lista de Ativos: o principal com subativos tem o
 ícone com borda na cor do ramo e o número no canto; o selo fica só "Disponível"; os subativos abertos ganham um traço na

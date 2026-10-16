@@ -1,6 +1,14 @@
 // ============================================================================
 // cofre-controles.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.61.0 · 15/10/2026
+// Versão: 1.62.0 · 16/10/2026
+//
+// v1.62.0 (16/10/2026, sessão 20261016-0020-usos-fatia7, demanda 3022603b; FICHA_FATIA7_MEMBROS_RAIZ v1.2.0, de acordo do Nicola
+// 15/10 23:17 e 16/10 00:05, D7-4, D7-11, D7-12) — CICLO DO ANIMAL na tela da execução: o programa por animal (Reprodução
+// bovina e suína) mostra no lote "N animais em ciclo" e a lista; o ciclo do animal mostra as fases com a data prevista
+// (muda sozinha ou você confirma), "Registrar" a próxima (cobertura, diagnóstico positivo, parto com a cria cadastrada
+// ligada à mãe, ou outra fase adiante), "Diagnóstico negativo" (volta para Apta) e Fechar/Abrir o próximo ciclo. Depois de
+// mudar, o card do rebanho recarrega (cofre-membros.js).
+// Versão anterior: 1.61.0 · 15/10/2026
 //
 // v1.61.0 (15/10/2026, sessão 20261015-2220-usos-fatia6b, demanda 3022603b; FICHA_FATIA6_CICLOS_E_FASES_RAIZ v1.2.0, de acordo do
 // Nicola 15/10 13:34, 14:45, 15:22 e 22:27) — EXECUÇÃO do programa: a obra (Construção, etapas escolhidas do modelo, com
@@ -29,16 +37,11 @@
 // D6 seção 10) — textos no limite: ação até 24 caracteres, descrição até 28 (só quando muda a decisão), aviso até 40 e
 // com o resultado (sem processo nem emoji). Fora do app principal, um aviso só: "Abra pelo app principal.". A explicação
 // longa fica na confirmação, que já existia. Nada de comportamento mudou.
-// Versão anterior: 1.57.0 · 14/10/2026
-//
-// v1.57.0 (14/10/2026, sessão 20261014-0010-ativo-pessoa, demanda d6a6f577; de acordo do Nicola 14/10 00:08) — "Conta ou
-// cartão" num ativo vida sem pessoa ligada: em vez do aviso, pergunta "Ligar agora" e abre a escolha da pessoa
-// (cofre-ativos.js 1.100.0, ligarPessoaAoAtivo); ligada, segue direto para o cadastro da conta. Nenhuma pessoa é criada.
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.56.0 … v1.56.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.57.0 … v1.57.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '1.61.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.62.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 import { estado } from './cofre-estado.js';
 import * as api from './cofre-api.js';
 import { mostrarToast, refrescarIcones, abrirModal, fecharModal, modalGenerico, perguntar, escolher, avisarComDesfazer } from './cofre-ui.js';
@@ -392,10 +395,12 @@ function programasAgrupadosHtml(lista) {
         const n = its.length;
         const prox = p.proximo?.data ? ` · próximo: ${p.proximo.titulo} em ${formatarDataBR(p.proximo.data)}` : '';
         const ex = p.execucao; // v1.61.0 (fatia 6b) — obra (etapas) ou safra (ciclo e fases)
-        const exSub = ex ? (ex.aberta ? `${ex.ciclo && ex.ciclo.situacao !== 'fechado' ? ex.ciclo.nome + ' · ' : ''}${ex.fase_atual || ''} (${ex.posicao} de ${ex.total})`
+        const exSub = ex ? (ex.por_membro ? `${ex.em_ciclo || 0} ${ex.em_ciclo === 1 ? 'animal' : 'animais'} em ciclo · abre pela ficha do animal` // v1.62.0 (fatia 7)
+            : ex.aberta ? `${ex.ciclo && ex.ciclo.situacao !== 'fechado' ? ex.ciclo.nome + ' · ' : ''}${ex.fase_atual || ''} (${ex.posicao} de ${ex.total})`
             : (ex.tem_etapas ? 'Obra ainda não aberta' : `${ex.ciclo_rotulo || 'Ciclo'} não aberta`)) : '';
         const sub = p.situacao === 'pausado' ? 'Pausado · os itens não avisam' : (exSub || `${n} ite${n === 1 ? 'm' : 'ns'}${prox}`);
-        const exBtn = ex ? `<button type="button" class="rz-prog-exec" data-prog-exec="${p.id}"><i data-lucide="${ex.tem_etapas ? 'hard-hat' : 'sprout'}"></i>${ex.aberta ? 'Ver' : 'Abrir'} a ${ex.tem_etapas ? 'obra' : escapeHtml((ex.ciclo_rotulo || 'ciclo').toLowerCase())}</button>` : '';
+        const exBtn = !ex ? '' : ex.por_membro ? (ex.em_ciclo ? `<button type="button" class="rz-prog-exec" data-prog-exec="${p.id}"><i data-lucide="heart-pulse"></i>Ver os animais em ciclo</button>` : '')
+            : `<button type="button" class="rz-prog-exec" data-prog-exec="${p.id}"><i data-lucide="${ex.tem_etapas ? 'hard-hat' : 'sprout'}"></i>${ex.aberta ? 'Ver' : 'Abrir'} a ${ex.tem_etapas ? 'obra' : escapeHtml((ex.ciclo_rotulo || 'ciclo').toLowerCase())}</button>`;
         return `<div class="rz-prog-h"><span class="rz-prog-pt" aria-hidden="true"></span><div class="rz-tx"><b>${escapeHtml(p.nome)}</b><span>${escapeHtml(sub)}</span></div>
             ${(p.acoes || []).length ? `<button type="button" class="rz-more" data-prog-mais="${p.id}" aria-label="Ações do programa ${escapeHtml(p.nome)}"><i data-lucide="ellipsis-vertical"></i></button>` : ''}</div>`
             + exBtn + its.map(itemResumoHtml).join('');
@@ -478,7 +483,8 @@ function abrirAcoesPrograma(id) {
     const ICONE = { pausar: 'pause', retomar: 'play', concluir: 'check', reabrir: 'rotate-ccw' };
     const SUB = { pausar: 'Os itens param de avisar', retomar: 'Os itens voltam a avisar', concluir: 'Encerra o programa e os itens' };
     const ex = p.execucao; // v1.61.0 (fatia 6b)
-    const exAcao = ex ? [{ icone: ex.tem_etapas ? 'hard-hat' : 'sprout', codigo: 'ciclos.ver',
+    const exAcao = ex?.por_membro ? (ex.em_ciclo ? [{ icone: 'heart-pulse', codigo: 'ciclos.ver', titulo: 'Ver os animais em ciclo',
+        sub: `${ex.em_ciclo} em ciclo`, aoTocar: () => abrirExecucao(p.id) }] : []) : ex ? [{ icone: ex.tem_etapas ? 'hard-hat' : 'sprout', codigo: 'ciclos.ver',
         titulo: `${ex.aberta ? 'Ver' : 'Abrir'} a ${ex.tem_etapas ? 'obra' : (ex.ciclo_rotulo || 'ciclo').toLowerCase()}`,
         sub: ex.aberta ? `${ex.fase_atual || ''} (${ex.posicao} de ${ex.total})` : (ex.tem_etapas ? 'Etapas e custo' : 'Fases e custo'), aoTocar: () => abrirExecucao(p.id) }] : [];
     sheetAcoes({ titulo: p.nome, sub: estado.ativoEmFoco?.nome_exibicao || '', acoes: [...exAcao, ...(p.acoes || []).map(m => ({
@@ -546,6 +552,7 @@ async function aposMudarExecucao(apId, cicloId) {
     emitirEscrita('controle', { ativo: estado.ativoEmFoco?.id, acao: 'execucao' });
     window.dispatchEvent(new CustomEvent('cofre:recarregar-eventos'));
     await recarregarControlesDoAtivo();
+    if (typeof window.__rzRecarregarMembros === 'function') window.__rzRecarregarMembros(); // v1.62.0 (fatia 7)
     if (apId) abrirExecucao(apId, cicloId);
 }
 function linhaFaseHtml(f, d) {
@@ -570,6 +577,8 @@ function linhaItemExecHtml(i) {
 export async function abrirExecucao(apId, cicloId = null) {
     if (typeof window.abrirSheet !== 'function') { mostrarToast('Abra pelo app principal.', 'erro'); return; }
     const d = await lerExecucao(apId, cicloId); if (!d) return;
+    if (d.por_membro && !d.ciclo) { abrirListaPorMembro(d); return; } // v1.62.0 (fatia 7): programa por animal
+    if (d.membro) { abrirExecucaoMembro(d); return; }
     const R = execRot(d), P = d.programa, C = d.ciclo;
     const titulo = P.nome + (C ? ' · ' + C.nome : '');
     const sub = !d.aberta ? (P.tem_etapas ? 'Obra ainda não aberta' : 'Nenhuma ' + R.exec + ' aberta')
@@ -619,6 +628,169 @@ export async function abrirExecucao(apId, cicloId = null) {
     sheet.querySelector('[data-exec-reabrir]')?.addEventListener('click', () => abrirFolhaReabrirCiclo(d));
 }
 window.__rzAbrirExecucao = (apId, cicloId) => abrirExecucao(apId, cicloId);
+
+// ============================================================================
+// v1.62.0 (usos fatia 7 — FICHA_FATIA7_MEMBROS_RAIZ v1.2.0, D7-4, D7-11, D7-12) — CICLO DO ANIMAL. O programa por animal
+// (Reprodução bovina, Reprodução suína) tem um ciclo para cada fêmea; no lote ele mostra a lista dos animais em ciclo.
+// No ciclo do animal: as fases com as datas previstas (o relógio: diagnóstico, secagem, parto, desmame), "Registrar"
+// a próxima fase (cobertura, diagnóstico positivo, parto com a cria) com escolha de outra fase adiante, "Diagnóstico
+// negativo" (volta a Apta/Vazia) e Fechar. A fase final fecha o ciclo e abre o próximo sozinha (fn_fase_avancar).
+// ============================================================================
+function abrirListaPorMembro(d) {
+    const lista = d.membros || [];
+    const sheet = window.abrirSheet(window.rzSheetCabecalho(d.programa.nome, `${lista.length} ${lista.length === 1 ? 'animal' : 'animais'} em ciclo`)
+        + `<div class="rz-sh-b">${lista.length ? `<div class="rz-card rz-list">${lista.map(m => `<button type="button" class="rz-row" data-pm-ciclo="${m.ciclo_id}">
+            <div class="rz-tx"><b>${escapeHtml(m.identificador)}${m.nome ? ' · ' + escapeHtml(m.nome) : ''}</b><span>${escapeHtml((m.ciclo || '') + (m.fase ? ' · ' + m.fase : ''))}</span></div>
+            <i data-lucide="chevron-right"></i></button>`).join('')}</div>` : '<p class="rz-desc">Nenhum animal em ciclo. O ciclo abre pela ficha do animal, no card do rebanho.</p>'}</div>`);
+    refrescarIcones();
+    sheet.querySelectorAll('[data-pm-ciclo]').forEach(b => b.addEventListener('click', () => abrirExecucao(d.programa.id, b.dataset.pmCiclo)));
+}
+const ehParto = (f) => f && f.aviso === 'Parto previsto';
+const ehDiag = (f) => f && /^Diagn/.test(f.aviso || '');
+function rotuloRegistrar(f) {
+    if (!f) return '';
+    if (ehParto(f)) return 'Registrar o parto';
+    if (ehDiag(f)) return 'Diagnóstico positivo';
+    if (f.codigo === 'coberta') return 'Registrar a cobertura';
+    return 'Avançar para ' + f.nome;
+}
+function abrirExecucaoMembro(d) {
+    const P = d.programa, C = d.ciclo, M = d.membro;
+    const aberto = C && C.situacao !== 'fechado';
+    const titulo = `${M.identificador}${M.nome ? ' · ' + M.nome : ''}`;
+    const sub = `${P.nome} · ${C?.nome || ''}${aberto && d.fase_atual ? ' · ' + d.fase_atual.nome : C?.situacao === 'fechado' ? ' · fechado em ' + formatarDataBR(C.fim) : ''}`;
+    const ciclosChips = (d.ciclos || []).length > 1 ? `<div class="rz-chips" style="margin:0 0 10px">${d.ciclos.map(c =>
+        `<button type="button" class="rz-chip ${c.id === C?.id ? 'rz-on' : ''}" data-exec-ciclo="${c.id}">${escapeHtml(c.nome)}</button>`).join('')}</div>` : '';
+    const linhaFase = (f) => {
+        const [ic, rot] = SIT_FASE[f.situacao] || ['circle', f.situacao];
+        const n = f.inicio_previsto ? diasAte(f.inicio_previsto) : null;
+        const quando = f.situacao === 'atual' && f.inicio ? 'desde ' + formatarDataBR(f.inicio)
+            : f.situacao === 'concluida' && f.fim ? 'até ' + formatarDataBR(f.fim)
+            : f.inicio_previsto ? (f.aviso || 'prevista') + ' ' + formatarDataBR(f.inicio_previsto) + (f.automatica ? ' · muda sozinha' : ' · você confirma') : '';
+        const sub2 = [rot, quando, f.situacao === 'pulada' && f.motivo ? f.motivo : ''].filter(Boolean).join(' · ');
+        const mexe = d.pode_gerir && aberto && f.situacao !== 'atual';
+        return `<div class="rz-exec-f rz-exec-${f.situacao}${n != null && f.situacao === 'pendente' && n < 0 ? ' rz-exec-atraso' : ''}"><span class="rz-exec-ic"><i data-lucide="${ic}"></i></span>
+            <div class="rz-tx"><b>${escapeHtml(f.nome)}</b><span>${escapeHtml(sub2)}</span></div>
+            ${mexe ? `<button type="button" class="rz-more" data-exec-fase="${f.id}" aria-label="Ações de ${escapeHtml(f.nome)}"><i data-lucide="ellipsis-vertical"></i></button>` : ''}</div>`;
+    };
+    const res = C?.resultado || {};
+    const resTxt = Object.entries(res).filter(([k, v]) => v && typeof v === 'object' && v.data).map(([k, v]) => {
+        const f = (d.fases || []).find(x => x.codigo === k);
+        const ROT = { diagnostico: 'diagnóstico', cria: 'cria', nascidos_vivos: 'nascidos vivos', natimortos: 'natimortos', touro: 'touro ou sêmen' };
+        const extra = Object.entries(v).filter(([kk]) => kk !== 'data').map(([kk, vv]) => `${ROT[kk] || kk.replace(/_/g, ' ')}: ${vv === 'femea' ? 'fêmea' : vv}`).join(', ');
+        return `<span><b>${escapeHtml(f ? f.nome : k)}</b> ${escapeHtml(formatarDataBR(v.data))}${extra ? ' · ' + escapeHtml(extra) : ''}</span>`;
+    }).join('');
+    const prox = d.proxima ? (d.fases || []).find(f => f.id === d.proxima.id) : null;
+    const atual = (d.fases || []).find(f => f.situacao === 'atual');
+    const acoes = [];
+    if (d.pode_gerir && P.situacao === 'ativo') {
+        if (aberto) {
+            if (prox) acoes.push(`<button type="button" class="rz-btn rz-btn-1" data-mb-registrar>${escapeHtml(rotuloRegistrar(prox))}</button>`);
+            if (ehDiag(prox)) acoes.push(`<button type="button" class="rz-btn rz-btn-2" data-mb-negativo>Diagnóstico negativo</button>`);
+            acoes.push(`<button type="button" class="rz-btn rz-btn-3" data-exec-fechar>Fechar o ciclo</button>`);
+        } else if (M.situacao !== 'saiu' && !(d.ciclos || []).some(c => c.situacao !== 'fechado')) {
+            acoes.push(`<button type="button" class="rz-btn rz-btn-1" data-mb-novo-ciclo>Abrir o próximo ciclo</button>`);
+        }
+    }
+    if (C?.situacao === 'fechado' && d.pode_reabrir && M.situacao !== 'saiu' && !(d.ciclos || []).some(c => c.situacao !== 'fechado'))
+        acoes.push(`<button type="button" class="rz-btn rz-btn-3" data-exec-reabrir>Reabrir ${escapeHtml(C.nome)}</button>`);
+    const corpo = ciclosChips + (resTxt ? `<div class="rz-exec-custo">${resTxt}</div>` : '')
+        + `<div class="rz-exec-fases">${(d.fases || []).map(linhaFase).join('')}</div>`
+        + ((d.itens || []).length ? `<div class="rz-group rz-group-t"><span>Itens · ${d.itens.length}</span></div>` + d.itens.map(linhaItemExecHtml).join('') : '')
+        + `<button type="button" class="rz-btn rz-btn-3 rz-wide" data-mb-ficha style="margin-top:10px"><i data-lucide="beef"></i> Ficha de ${escapeHtml(M.identificador)}</button>`;
+    const sheet = window.abrirSheet(window.rzSheetCabecalho(titulo, sub) + `<div class="rz-sh-b">${corpo}</div>`
+        + (acoes.length ? `<div class="rz-sh-f rz-exec-acoes">${acoes.join('')}</div>` : ''));
+    refrescarIcones();
+    sheet.querySelectorAll('[data-exec-ciclo]').forEach(b => b.addEventListener('click', () => abrirExecucao(P.id, b.dataset.execCiclo)));
+    sheet.querySelectorAll('[data-exec-item]').forEach(b => b.addEventListener('click', () => { window.fecharSheet(); abrirFichaItemControle(b.dataset.execItem); }));
+    sheet.querySelectorAll('[data-exec-fase]').forEach(b => b.addEventListener('click', (ev) => { ev.stopPropagation(); abrirAcoesFase(d, b.dataset.execFase); }));
+    sheet.querySelector('[data-mb-registrar]')?.addEventListener('click', () => abrirFolhaRegistrarFase(d));
+    sheet.querySelector('[data-mb-negativo]')?.addEventListener('click', () => diagnosticoNegativo(d, atual));
+    sheet.querySelector('[data-exec-fechar]')?.addEventListener('click', () => abrirFolhaFecharCiclo(d));
+    sheet.querySelector('[data-exec-reabrir]')?.addEventListener('click', () => abrirFolhaReabrirCiclo(d));
+    sheet.querySelector('[data-mb-novo-ciclo]')?.addEventListener('click', async () => {
+        const { data, error } = await api.dbAuth.rpc('fn_membro_ciclo_abrir', { p_membro_id: M.id, p_ativo_programa_id: P.id, p_canal: 'app' });
+        if (error) { mostrarToast(error.message || 'Não foi possível abrir.', 'erro'); return; }
+        mostrarToast('Ciclo aberto.', 'sucesso');
+        aposMudarExecucao(data?.ativo_programa_id || P.id, data?.ciclo_id || null);
+    });
+    sheet.querySelector('[data-mb-ficha]')?.addEventListener('click', async () => { const mb = await import('./cofre-membros.js'); mb.abrirFichaMembro(M.id); });
+}
+// Registrar a próxima fase do animal: a data, a fase (a próxima ou outra adiante) e, no parto, a cria (D7-12).
+function abrirFolhaRegistrarFase(d) {
+    const M = d.membro, hoje = hojeLocalISO();
+    const atual = (d.fases || []).find(f => f.situacao === 'atual');
+    const adiante = (d.fases || []).filter(f => f.situacao === 'pendente' && (!atual || f.ordem > atual.ordem));
+    if (!adiante.length) return;
+    const suino = M.especie === 'suino';
+    window.abrirSheetForm({
+        titulo: rotuloRegistrar(adiante[0]), sub: `${M.identificador} · ${d.ciclo.nome}`, rotuloSalvar: 'Registrar', empilhar: true,
+        corpo: (el) => {
+            el.innerHTML = (adiante.length > 1 ? `<div class="rz-f"><label for="mbf-fase">Fase</label><select id="mbf-fase">${adiante.map((f, i) =>
+                    `<option value="${f.id}" ${i === 0 ? 'selected' : ''}>${escapeHtml(f.nome)}${i ? ' (pula as do meio)' : ''}</option>`).join('')}</select></div>` : '')
+                + `<div class="rz-f"><label for="mbf-data">Em</label><input type="date" id="mbf-data" value="${hoje}" max="${hoje}"></div><div id="mbf-extra"></div>`;
+            const pintar = () => {
+                const f = adiante.find(x => x.id === (el.querySelector('#mbf-fase')?.value || adiante[0].id)) || adiante[0];
+                el.querySelector('#mbf-extra').innerHTML = ehParto(f) ? (suino
+                    ? `<div class="rz-f"><label for="mbf-vivos">Nascidos vivos</label><input type="number" id="mbf-vivos" inputmode="numeric" min="0" step="1"></div>
+                       <div class="rz-f"><label for="mbf-mortos">Natimortos <small>(opcional)</small></label><input type="number" id="mbf-mortos" inputmode="numeric" min="0" step="1"></div>`
+                    : `<div class="rz-f"><label for="mbf-cria-sexo">Cria</label><select id="mbf-cria-sexo"><option value="femea">Fêmea</option><option value="macho">Macho</option><option value="natimorto">Natimorto</option></select></div>
+                       <label class="rz-row rz-chk"><input type="checkbox" id="mbf-cria-cad" checked><div class="rz-tx"><b>Cadastrar a cria agora</b><span>No mesmo lote, ligada à mãe</span></div></label>
+                       <div class="rz-f" id="mbf-cria-id-box"><label for="mbf-cria-id">Identificação da cria</label><input type="text" id="mbf-cria-id" maxlength="60" placeholder="Brinco"></div>`)
+                    + '<p class="rz-desc">O parto soma na mãe e fecha o ciclo quando é a última fase; o próximo abre sozinho.</p>'
+                    : f.codigo === 'coberta' ? `<div class="rz-f"><label for="mbf-touro">Touro ou sêmen <small>(opcional)</small></label><input type="text" id="mbf-touro" maxlength="80"></div>
+                       <p class="rz-desc">Com a data da cobertura, o app prevê o diagnóstico, a secagem e o parto.</p>` : '';
+                const cad = el.querySelector('#mbf-cria-cad'), sx = el.querySelector('#mbf-cria-sexo');
+                const ver = () => { const box = el.querySelector('#mbf-cria-id-box'); if (box) box.classList.toggle('hidden', !cad?.checked || sx?.value === 'natimorto'); };
+                cad?.addEventListener('change', ver); sx?.addEventListener('change', ver); ver();
+            };
+            pintar();
+            el.querySelector('#mbf-fase')?.addEventListener('change', pintar);
+        },
+        aoSalvar: async (el) => {
+            const f = adiante.find(x => x.id === (el.querySelector('#mbf-fase')?.value || adiante[0].id)) || adiante[0];
+            const data = el.querySelector('#mbf-data')?.value || hoje;
+            const dados = {};
+            const v = (id) => (el.querySelector('#' + id)?.value || '').trim();
+            if (ehParto(f)) {
+                if (suino) { if (v('mbf-vivos') !== '') dados.nascidos_vivos = Number(v('mbf-vivos')); if (v('mbf-mortos') !== '') dados.natimortos = Number(v('mbf-mortos')); }
+                else dados.cria = v('mbf-cria-sexo');
+            }
+            if (f.codigo === 'coberta' && v('mbf-touro')) dados.touro = v('mbf-touro');
+            if (ehDiag(f)) dados.diagnostico = 'positivo';
+            const criaCad = ehParto(f) && !suino && el.querySelector('#mbf-cria-cad')?.checked && dados.cria !== 'natimorto';
+            if (criaCad && !v('mbf-cria-id')) { mostrarToast('Diga a identificação da cria.', 'erro'); return false; }
+            const { data: r, error } = await api.dbAuth.rpc('fn_fase_avancar', { p_ativo_programa_id: d.programa.id, p_ciclo_id: d.ciclo.id,
+                p_data: data, p_canal: 'app', p_para_fase_id: f.id, p_dados: Object.keys(dados).length ? dados : null });
+            if (error) { mostrarToast(error.message || 'Não foi possível registrar.', 'erro'); return false; }
+            let criaOk = false;
+            if (criaCad) {
+                const mb = await import('./cofre-membros.js');
+                criaOk = !!(await mb.cadastrarCria({ ...M, ativo_id: M.ativo_id }, { identificador: v('mbf-cria-id'), sexo: dados.cria, nascimento: data }));
+            }
+            mostrarToast(criaOk ? 'Parto e cria registrados.' : (r?.ciclo_novo_id ? 'Registrado; novo ciclo aberto.' : 'Registrado.'), 'sucesso');
+            setTimeout(() => aposMudarExecucao(d.programa.id, r?.ciclo_novo_id || d.ciclo.id), 0);
+            return true;
+        },
+    });
+}
+// Diagnóstico negativo: volta para Apta a cobrir (ou a fase de antes da cobertura) e as datas previstas somem.
+function diagnosticoNegativo(d, atual) {
+    const antes = (d.fases || []).filter(f => atual && f.ordem < atual.ordem && (f.situacao === 'concluida' || f.situacao === 'pulada'));
+    const alvo = antes.find(f => f.codigo === 'apta') || antes[antes.length - 1];
+    if (!alvo) { mostrarToast('Não há fase anterior para voltar.', 'erro'); return; }
+    window.abrirSheetForm({
+        titulo: 'Diagnóstico negativo', sub: `${d.membro.identificador} · ${d.ciclo.nome}`, rotuloSalvar: 'Voltar para ' + alvo.nome, empilhar: true,
+        corpo: `<p class="rz-desc">${escapeHtml(d.membro.identificador)} volta para ${escapeHtml(alvo.nome)} e as datas previstas da cobertura saem. Registre a nova cobertura quando houver.</p>`,
+        aoSalvar: async () => {
+            const { error } = await api.dbAuth.rpc('fn_fase_mover', { p_fase_id: alvo.id, p_acao: 'voltar', p_motivo: 'Diagnóstico negativo', p_canal: 'app' });
+            if (error) { mostrarToast(error.message || 'Não foi possível.', 'erro'); return false; }
+            mostrarToast('Voltou para ' + alvo.nome + '.', 'sucesso');
+            setTimeout(() => aposMudarExecucao(d.programa.id, d.ciclo.id), 0);
+            return true;
+        },
+    });
+}
 function caixasSugestoesHtml(lista, prefixo) {
     return (lista || []).map(s => `<label class="rz-row rz-chk"><input type="checkbox" data-${prefixo}="${s.modelo_id}" ${s.marcado ? 'checked' : ''}>
         <div class="rz-tx"><b>${escapeHtml(s.titulo)}</b><span>${escapeHtml(s.recorrente ? rotuloFrequencia(s.frequencia_intervalo, s.frequencia_unidade) : 'Uma vez')}</span></div></label>`).join('');
@@ -719,15 +891,15 @@ function abrirFolhaFecharCiclo(d) {
         titulo: 'Fechar ' + C.nome, sub: d.programa.nome, rotuloSalvar: 'Fechar', empilhar: true,
         corpo: campos.map(rc => `<div class="rz-f"><label for="ex-r-${escapeHtml(rc.campo)}">${escapeHtml(rc.rotulo)}${rc.unidade ? ' (' + escapeHtml(rc.unidade) + ')' : ''}</label>
                 <input type="number" inputmode="decimal" step="0.01" min="0" id="ex-r-${escapeHtml(rc.campo)}" data-res="${escapeHtml(rc.campo)}"></div>`).join('')
-            + `<p class="rz-desc">O custo sai dos lançamentos com destino nesta ${escapeHtml(R.exec)}: ${moedaBR(Number(d.custo?.realizado || 0) + Number(d.custo?.a_pagar || 0))} até agora. Os itens abertos encerram junto.</p>
-            <label class="rz-row rz-chk"><input type="checkbox" id="ex-proxima" checked><div class="rz-tx"><b>Abrir a próxima ${escapeHtml(R.exec)}</b><span>Com os itens de padrão</span></div></label>`,
+            + `<p class="rz-desc">O custo sai dos lançamentos com destino ${/a$/.test(R.exec) ? 'nesta' : 'neste'} ${escapeHtml(R.exec)}: ${moedaBR(Number(d.custo?.realizado || 0) + Number(d.custo?.a_pagar || 0))} até agora. Os itens abertos encerram junto.</p>
+            <label class="rz-row rz-chk"><input type="checkbox" id="ex-proxima" ${d.membro ? '' : 'checked'}><div class="rz-tx"><b>${d.membro ? 'Abrir o próximo ciclo' : (/a$/.test(R.exec) ? 'Abrir a próxima ' : 'Abrir o próximo ') + escapeHtml(R.exec)}</b><span>${d.membro ? 'Começa em ' + escapeHtml((d.fases || [])[0]?.nome || 'Vazia') + ' hoje' : 'Com os itens de padrão'}</span></div></label>`,
         aoSalvar: async (el) => {
             const res = {};
             el.querySelectorAll('[data-res]').forEach(i => { if (i.value !== '') res[i.dataset.res] = Number(i.value); });
             const { data, error } = await api.dbAuth.rpc('fn_ciclo_fechar', { p_ciclo_id: C.id, p_resultado: res,
                 p_proximo: !!el.querySelector('#ex-proxima')?.checked, p_canal: 'app' });
             if (error) { mostrarToast(error.message || 'Não foi possível fechar.', 'erro'); return false; }
-            mostrarToast(R.Exec + ' fechada.', 'sucesso');
+            mostrarToast(R.Exec + (/a$/.test(R.exec) ? ' fechada.' : ' fechado.'), 'sucesso');
             setTimeout(() => aposMudarExecucao(d.programa.id, data?.proximo?.ciclo_id || C.id), 0);
             return true;
         },
@@ -743,7 +915,7 @@ function abrirFolhaReabrirCiclo(d) {
             if (!motivo) { mostrarToast('Diga o motivo.', 'erro'); return false; }
             const { error } = await api.dbAuth.rpc('fn_ciclo_reabrir', { p_ciclo_id: C.id, p_motivo: motivo, p_canal: 'app' });
             if (error) { mostrarToast(error.message || 'Não foi possível.', 'erro'); return false; }
-            mostrarToast(C.nome + ' reaberta.', 'sucesso');
+            mostrarToast(C.nome + (d.membro ? ' reaberto.' : ' reaberta.'), 'sucesso');
             setTimeout(() => aposMudarExecucao(d.programa.id, C.id), 0);
             return true;
         },
