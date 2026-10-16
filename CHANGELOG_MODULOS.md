@@ -779,6 +779,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/cofre-api.js`
 
 //
@@ -1406,7 +1408,18 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/cofre-app.js`
+
+//
+// Versão anterior: 1.45.0 · 08/10/2026
+//
+// v1.45.0 (UX F2.8, demanda ed5accfe, sessão 20261003-1707-ux-base; "Sim. Faça 1 e 2 agora" do Nicola 08/10 20:09) — "+" de Ativos: "Montar vitrine" vira "Compartilhar imóveis".
+// --------------------------------------------------------------------------
+// Versões anteriores (v1.44.1 … v1.44.1): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
+// mais recentes deste cabeçalho (VER-06).
 
 //
 // Versão anterior: 1.44.2 · 07/10/2026
@@ -2009,7 +2022,20 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/cofre-ativos.js`
+
+// Versão anterior: 1.109.0 · 14/10/2026
+//
+// v1.109.0 (14/10/2026, sessão 20261014-2340-usos-fatia3d, demanda 3022603b; Nicola 14/10 23:34: "o item agrupado ficou
+// ruim… borda do ícone na cor do ramo") — o principal com subativos tem o ícone com borda na cor do ramo e o número de
+// subativos no canto; o selo fica só com a classe (sem "0 de 1 integrantes") e o texto "N integrantes" sai da linha; os
+// subativos abertos ganham um traço à esquerda na cor do ramo.
+// --------------------------------------------------------------------------
+// Versões anteriores (v1.108.0 … v1.108.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
+// mais recentes deste cabeçalho (VER-06).
 
 // Versão anterior: 1.107.0 · 14/10/2026
 //
@@ -3511,6 +3537,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/cofre-controles.js`
 
 // Versão anterior: 1.57.0 · 14/10/2026
@@ -4263,6 +4291,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 // não está implementado (geração automática de ocorrências recorrentes,
 // Central de Alertas consolidada).
 // ============================================================================
+
+---
 
 ---
 
@@ -5277,6 +5307,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/cofre-estado.js`
 
 //
@@ -5422,6 +5454,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 // v1.21.6 (Arquivar/RLS, sessão paralela) nem esta entrega — fechado
 // agora. Ver changelog completo em cofre.html v1.22.0 (merge das 2
 // sessões paralelas + badge fix + form fix + função Vendido).
+
+---
 
 ---
 
@@ -5930,6 +5964,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/cofre-ui.js`
 
 //
@@ -5961,6 +5997,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 // genérica, template de card, indicador de "liga/desliga" (Design System
 // v1.43.0 §2). Não importa cofre-api.js — não sabe nada de Supabase.
 // ============================================================================
+
+---
 
 ---
 
@@ -6462,6 +6500,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/comum-licenca.js`
 
 //
@@ -6604,6 +6644,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 // hospeda (index.html, cofre.html, ou um módulo futuro) é quem decide
 // COMO obtém esse client; este arquivo só usa o que recebe.
 // ============================================================================
+
+---
 
 ---
 
@@ -7178,7 +7220,19 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/comum-pessoas.js`
+
+// Versão anterior: 1.210.0 · 11/10/2026
+//
+// v1.210.0 (11/10/2026, sessão 20261008-1231-pessoas-ativos, demanda 7c5c4c65; F13.8, ficha v1.4.0 e protótipo v1.3.0; de acordo do Nicola 11/10 22:55) — com o controle de
+// partes nas retiradas extraordinárias ligado na empresa, a ficha da pessoa mostra "Parte nas retiradas extraordinárias".
+// A parte é definida em Minha empresa › Rotinas; o formulário da pessoa não envia parte_retiradas.
+// --------------------------------------------------------------------------
+// Versões anteriores (v1.209.0 … v1.209.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
+// mais recentes deste cabeçalho (VER-06).
 
 //
 // Versão anterior: 1.209.0 · 11/10/2026
@@ -7707,6 +7761,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/comum-renovacao.js`
 
 //
@@ -7749,6 +7805,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 // jsdelivr (mesma origem já usada pelo app); se não carregar, o "copia e cola"
 // continua funcionando sozinho.
 // ============================================================================
+
+---
 
 ---
 
@@ -8006,6 +8064,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 // dados de conta — recebe `dbAuth` já autenticado do host, por
 // parâmetro (ver nota completa em comum-licenca.js).
 // ============================================================================
+
+---
 
 ---
 
@@ -9264,6 +9324,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/fechamento.js`
 
 // Versão anterior: 1.12.0.
@@ -9594,6 +9656,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 // window.jspdf, CONFIG_CLIENTE (todos já globais no index.html clássico —
 // mesmo acesso que financeiro.js já faz).
 // ============================================================================
+
+---
 
 ---
 
@@ -11329,6 +11393,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/fiscal.js`
 
 //
@@ -11425,6 +11491,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 // abrirSheet, abrirSheetAcoes, abrirSheetForm, rzSheetCabecalho, fecharSheet,
 // mostrarToast, switchTab, rzIcones, podeUsar, window.fechamentoAbrirChecklistFiscalAtualizado.
 // ============================================================================
+
+---
 
 ---
 
@@ -11901,6 +11969,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/minutas.js`
 
 //
@@ -11993,6 +12063,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/raiz-ui.js`
 
 //
@@ -12019,6 +12091,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 // 'warning' (UXR-35). Também publica window.rzToast/rzConfirmar/rzEscolher/
 // rzAviso para código inline do index.html.
 // ============================================================================
+
+---
 
 ---
 
@@ -12076,6 +12150,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 // que o bot usa); aqui só se monta o texto e o desenho — nunca se recalcula
 // (REL-02). Protótipo: raiz\docs\PROTOTIPO_RELATORIOS_FLUXO_GERENCIAL v1.1.0.
 // ============================================================================
+
+---
 
 ---
 
@@ -12619,6 +12695,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/vitrine.js`
 
 //
@@ -12739,6 +12817,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 // CLIENTE_ID_SUPABASE, dbAuth. Exclusivo (4) virou nível de módulo.
 // Indentação de origem mantida. Strict verificado.
 // ============================================================================
+
+---
 
 ---
 

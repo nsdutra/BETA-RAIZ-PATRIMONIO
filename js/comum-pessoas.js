@@ -1,6 +1,12 @@
 // ============================================================================
 // comum-pessoas.js — Raiz Patrimônio · Administração compartilhada
-// Versão: 1.214.0 · 14/10/2026
+// Versão: 1.215.0 · 16/10/2026
+//
+// v1.215.0 (16/10/2026, sessão 20261016-0053-carga-silva, demanda 9404081c; pedido do Nicola 16/10 00:57) — Perfil de acesso,
+// Criar acesso e Vincular login existente voltam a funcionar: a escolha do perfil pedia a coluna "nome", que a tabela perfis
+// não tem; o select falhava, a lista vinha vazia e aparecia o aviso enganoso "só dentro do app principal". Agora lê
+// codigo/descricao, mostra o nome do perfil pelo rótulo e, se falhar, diz que não carregou os perfis.
+// Versão anterior: 1.214.0 · 14/10/2026
 //
 // v1.214.0 (14/10/2026, sessão 20261014-2215-ajustes-9d, demanda a05ad2ee; teste do Nicola 14/10 22:12 — "no menu ativos achei
 // uns itens ainda grandinhos") — textos dentro de condição (sub/titulo com ? :) e dicionários de descrição também no limite
@@ -20,16 +26,11 @@
 // v1.211.0 (13/10/2026, sessão 20261013-2320-conta-via-item, demanda 47eed96b; de acordo do Nicola 13/10 23:17) —
 // Pessoas › Contas perde o "+": conta e cartão da pessoa nascem no ativo dela › Controles › + › "Conta ou cartão"
 // (cofre-controles.js 1.55.0). Ficam a lista (editar/encerrar) e o "Quem ela vê".
-// Versão anterior: 1.210.0 · 11/10/2026
-//
-// v1.210.0 (11/10/2026, sessão 20261008-1231-pessoas-ativos, demanda 7c5c4c65; F13.8, ficha v1.4.0 e protótipo v1.3.0; de acordo do Nicola 11/10 22:55) — com o controle de
-// partes nas retiradas extraordinárias ligado na empresa, a ficha da pessoa mostra "Parte nas retiradas extraordinárias".
-// A parte é definida em Minha empresa › Rotinas; o formulário da pessoa não envia parte_retiradas.
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.209.0 … v1.209.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.210.0 … v1.210.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '1.214.0'; // v-check (18/09/2026): lido por Dev › Versões — manter igual ao header
+export const VERSAO = '1.215.0'; // v-check (18/09/2026): lido por Dev › Versões — manter igual ao header
 import { perguntar, avisarComDesfazer } from './cofre-ui.js'; // v1.203.0 (F0.2b) — sem diálogo nativo
 import { buscarContas, contasListaHtml, abrirFichaConta, abrirAcoesConta } from './comum-minha-empresa.js'; // v1.204.0 — contas da pessoa (P4a)
 import { rzMostrarBloqueio as rzBloqueio } from './comum-licenca.js'; // v1.204.0
@@ -237,17 +238,20 @@ export async function montarAbaPessoas(mountEl, ctx) {
     let perfisCache = null;
     async function escolherPerfilSheet(titulo, sub, padrao = 'operador') {
         if (!perfisCache) {
-            const { data } = await dbAuth.from('perfis').select('codigo, nome, descricao, protegido, escopo').eq('escopo', 'empresa').order('codigo');
+            // perfis não tem coluna nome: pedir uma coluna que não existe faz o select falhar inteiro e a lista vir vazia (dem 9404081c)
+            const { data, error } = await dbAuth.from('perfis').select('codigo, descricao, protegido, escopo').eq('escopo', 'empresa').order('codigo');
+            if (error) { onToast?.('Não consegui carregar os perfis de acesso.', 'danger'); return null; }
             perfisCache = data || [];
         }
         const lista = perfisCache.filter(p => !p.protegido || perfilLogado === 'master');
-        if (!lista.length || typeof window.abrirSheetAcoes !== 'function') {
+        if (!lista.length) { onToast?.('Nenhum perfil disponível para você dar.', 'info'); return null; }
+        if (typeof window.abrirSheetAcoes !== 'function') {
             onToast?.(AVISO_SO_APP, 'info'); return null; // v1.203.0 (F0.2b) — sem diálogo nativo; fora do app não há Sheet
         }
         return new Promise(resolve => {
             let escolhido = null;
             window.abrirSheetAcoes({ titulo, sub, acoes: lista.map(p => ({
-                icone: p.protegido ? 'shield' : 'user', titulo: p.nome || p.codigo, sub: p.descricao || '',
+                icone: p.protegido ? 'shield' : 'user', titulo: rotuloPerfil(p.codigo), sub: p.descricao || '',
                 aoTocar: () => { escolhido = p.codigo; resolve(p.codigo); },
             })) });
             // fechar sem escolher → null (o sheet não tem hook de fechar aqui: usa polling leve)

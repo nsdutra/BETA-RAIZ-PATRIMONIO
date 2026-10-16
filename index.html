@@ -6,9 +6,15 @@
    (base derivada do RUMO v7.4.2 — histórico de versões anteriores
    preservado abaixo para referência técnica)
 
-   VERSÃO: Beta v1.426.0
-   LINHAS: 17018
-   DATA: 16/10/2026 (sessão 20261016-0020-usos-fatia7, demanda 3022603b)
+   VERSÃO: Beta v1.427.0
+   LINHAS: 17016
+   DATA: 16/10/2026 (sessão 20261016-0053-carga-silva, demanda 9404081c)
+   NOVIDADES (Beta v1.427.0) — CARGA SILVA CAFÉS, LOTES 1 A 3 (planos de 16/10 00:48, de acordo do Nicola 16/10 00:53): a tela
+   de Ativos perde a vista Contratos (contrato e uso pelo ativo); o "Ver o app de" mostra o ícone de cada ramo na sua cor; o
+   estado vazio dentro de lista tem uma moldura só; "Comece por aqui" fala em bem, não em imóvel; a situação de cada ativo
+   é relida depois do cadastro (fim do "Disponível" errado e dos sub-ativos sem etiqueta). cofre-ativos.js 1.114.0 ·
+   comum-pessoas.js 1.215.0 · cofre-app.js 1.50.0. Banco: usos_lote1_situacao_v1, agro_catalogo_lote3_v1.
+   Versão anterior (Beta v1.426.0):
    NOVIDADES (Beta v1.426.0) — FATIA 7, MEMBROS (FICHA_FATIA7_MEMBROS_RAIZ v1.2.0, de acordo do Nicola 15/10 23:17 e 16/10
    00:05, D7-1 a D7-14): o ramo Pecuária abre no Premium Ampliado. Lote bovino, lote suíno, equinos, ovinos e caprinos ganham
    o card "Rebanho · N" (animal com espécie, categoria pela idade e pelos partos, raça, nascimento ou safra) e a adega de
@@ -38,17 +44,8 @@
    js/cofre-documentos.js 2.38.0 · js/ativos/ativos-markup.js 1.65.0. Edge: cofre-extrair-documento 1.13, whatsapp-webhook 2.90
    (motor_documental 1.8: vínculo pela idade e titular de documento de pessoa voltando a ser sugerido pelo nome).
    Versão anterior (Beta v1.422.0):
-   NOVIDADES (Beta v1.422.0) — RAIZ IA INTEGRADA (FICHA_INTEGRACAO_RAIZ_IA_ROBO_RAIZ v1.1.0, de acordo do Nicola 14/10 22:43,
-   fatia I3): a Raiz IA do app usa o mesmo intérprete do robô (Edge raiz-ia-registrar 1.2.0 · _shared_ia 2.0.0) e ganha
-   dar baixa, cobrar, recibo, relatórios, pendências, buscar contrato, extrato, fatura e documento — sempre abrindo a
-   tela de sempre, preenchida — e vários pedidos numa frase ("Entendi N pedidos", um de cada vez). Receita abre a
-   "Receita sem contrato" preenchida (financeiro.js 1.67.0). CONTABILIDADE × ENVIO AO CONTADOR (FICHA_CONTABILIDADE_
-   ROTINA_CONTADOR_RAIZ v1.1.0): ao ligar a rotina, "Quais ativos entram?" — Todos · Escolher · Agora não
-   (comum-minha-empresa.js 1.20.0); incluir com a rotina desligada avisa (cofre-ativos.js 1.111.0). Banco:
-   contabil_rotina_contador_v1 (o ativo nasce fora com a rotina desligada).
-   Versão anterior (Beta v1.421.0):
    ------------------------------------------------------------------
-   Versões anteriores (v1.421.0 … v1.421.0): CHANGELOG_APP.md, na raiz do
+   Versões anteriores (v1.422.0 … v1.422.0): CHANGELOG_APP.md, na raiz do
    repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
    das 5 versões mais recentes deste cabeçalho.
 
@@ -76,7 +73,7 @@
          O navegador aplica o mapa também aos imports estáticos dentro dos
          módulos (cofre-app.js → ./cofre-api.js etc.). -->
     <!-- RZ-IMPORTMAP:INICIO -->
-    <script type="importmap">{"imports":{"./js/cadastros.js":"./js/cadastros.js?v=1.3.0","./js/financeiro.js":"./js/financeiro.js?v=1.68.0","./js/fechamento.js":"./js/fechamento.js?v=1.15.0","./js/contratos.js":"./js/contratos.js?v=1.60.0","./js/minutas.js":"./js/minutas.js?v=1.6.0","./js/vitrine.js":"./js/vitrine.js?v=1.6.0","./js/imoveis.js":"./js/imoveis.js?v=1.8.0","./js/cofre-api.js":"./js/cofre-api.js?v=1.51.0","./js/cofre-app.js":"./js/cofre-app.js?v=1.49.0","./js/cofre-ativos.js":"./js/cofre-ativos.js?v=1.113.0","./js/cofre-controles.js":"./js/cofre-controles.js?v=1.62.0","./js/cofre-documentos.js":"./js/cofre-documentos.js?v=2.38.0","./js/cofre-imagem.js":"./js/cofre-imagem.js?v=1.1.0","./js/cofre-estado.js":"./js/cofre-estado.js?v=1.5.2","./js/cofre-navegacao.js":"./js/cofre-navegacao.js?v=1.10.0","./js/cofre-ui.js":"./js/cofre-ui.js?v=1.7.2","./js/cofre-validacoes.js":"./js/cofre-validacoes.js?v=2.7.0","./js/comum-licenca.js":"./js/comum-licenca.js?v=1.9.0","./js/comum-renovacao.js":"./js/comum-renovacao.js?v=1.3.5","./js/comum-minha-empresa.js":"./js/comum-minha-empresa.js?v=1.20.0","./js/comum-pessoas.js":"./js/comum-pessoas.js?v=1.214.0","./js/comum-sobre.js":"./js/comum-sobre.js?v=1.5.0","./js/comum-endereco.js":"./js/comum-endereco.js?v=1.2.0","./js/comum-partes.js":"./js/comum-partes.js?v=1.0.0","./js/resultados.js":"./js/resultados.js?v=2.10.0","./js/indicadores.js":"./js/indicadores.js?v=1.2.0","./js/configuracao-inicial.js":"./js/configuracao-inicial.js?v=1.1.0","./js/relatorios-executivos.js":"./js/relatorios-executivos.js?v=1.4.0","./js/raiz-eventos.js":"./js/raiz-eventos.js?v=1.0.0","./js/raiz-device.js":"./js/raiz-device.js?v=1.1.0","./js/raiz-ui.js":"./js/raiz-ui.js?v=1.5.0","./js/fiscal.js":"./js/fiscal.js?v=1.7.0","./js/ativos/ativos-boot.js":"./js/ativos/ativos-boot.js?v=1.4.0","./js/ativos/ativos-markup.js":"./js/ativos/ativos-markup.js?v=1.65.0","./js/nucleo/porta.js":"./js/nucleo/porta.js?v=1.5.0","./js/partes.js":"./js/partes.js?v=1.1.0","./js/conta.js":"./js/conta.js?v=1.2.0","./js/grupo-visao.js":"./js/grupo-visao.js?v=1.0.0","./js/agenda.js":"./js/agenda.js?v=1.5.0","./js/cofre-membros.js":"./js/cofre-membros.js?v=1.0.0"}}</script>
+    <script type="importmap">{"imports":{"./js/cadastros.js":"./js/cadastros.js?v=1.3.0","./js/financeiro.js":"./js/financeiro.js?v=1.68.0","./js/fechamento.js":"./js/fechamento.js?v=1.15.0","./js/contratos.js":"./js/contratos.js?v=1.60.0","./js/minutas.js":"./js/minutas.js?v=1.6.0","./js/vitrine.js":"./js/vitrine.js?v=1.6.0","./js/imoveis.js":"./js/imoveis.js?v=1.8.0","./js/cofre-api.js":"./js/cofre-api.js?v=1.51.0","./js/cofre-app.js":"./js/cofre-app.js?v=1.50.0","./js/cofre-ativos.js":"./js/cofre-ativos.js?v=1.114.0","./js/cofre-controles.js":"./js/cofre-controles.js?v=1.62.0","./js/cofre-documentos.js":"./js/cofre-documentos.js?v=2.38.0","./js/cofre-imagem.js":"./js/cofre-imagem.js?v=1.1.0","./js/cofre-estado.js":"./js/cofre-estado.js?v=1.5.2","./js/cofre-navegacao.js":"./js/cofre-navegacao.js?v=1.10.0","./js/cofre-ui.js":"./js/cofre-ui.js?v=1.7.2","./js/cofre-validacoes.js":"./js/cofre-validacoes.js?v=2.7.0","./js/comum-licenca.js":"./js/comum-licenca.js?v=1.9.0","./js/comum-renovacao.js":"./js/comum-renovacao.js?v=1.3.5","./js/comum-minha-empresa.js":"./js/comum-minha-empresa.js?v=1.20.0","./js/comum-pessoas.js":"./js/comum-pessoas.js?v=1.215.0","./js/comum-sobre.js":"./js/comum-sobre.js?v=1.5.0","./js/comum-endereco.js":"./js/comum-endereco.js?v=1.2.0","./js/comum-partes.js":"./js/comum-partes.js?v=1.0.0","./js/resultados.js":"./js/resultados.js?v=2.10.0","./js/indicadores.js":"./js/indicadores.js?v=1.2.0","./js/configuracao-inicial.js":"./js/configuracao-inicial.js?v=1.1.0","./js/relatorios-executivos.js":"./js/relatorios-executivos.js?v=1.4.0","./js/raiz-eventos.js":"./js/raiz-eventos.js?v=1.0.0","./js/raiz-device.js":"./js/raiz-device.js?v=1.1.0","./js/raiz-ui.js":"./js/raiz-ui.js?v=1.5.0","./js/fiscal.js":"./js/fiscal.js?v=1.7.0","./js/ativos/ativos-boot.js":"./js/ativos/ativos-boot.js?v=1.4.0","./js/ativos/ativos-markup.js":"./js/ativos/ativos-markup.js?v=1.65.0","./js/nucleo/porta.js":"./js/nucleo/porta.js?v=1.5.0","./js/partes.js":"./js/partes.js?v=1.1.0","./js/conta.js":"./js/conta.js?v=1.2.0","./js/grupo-visao.js":"./js/grupo-visao.js?v=1.0.0","./js/agenda.js":"./js/agenda.js?v=1.5.0","./js/cofre-membros.js":"./js/cofre-membros.js?v=1.0.0"}}</script>
     <!-- RZ-IMPORTMAP:FIM -->
 
     <!-- ===== PWA: permite "instalar" o app no celular (Android e iPhone) ===== -->
@@ -960,6 +957,8 @@
         .rz-vazio p{font-size:13px;color:var(--muted);margin:0 auto 14px;line-height:1.45;max-width:340px}
         .rz-vazio .rz-acts{display:flex;flex-direction:column;gap:4px;max-width:320px;margin:0 auto}
         .rz-vazio .rz-btn svg{width:18px;height:18px}
+        /* estado vazio dentro de uma lista em card: a moldura é uma só, a do vazio (dem 9404081c, item 7) */
+        .rz-card:has(> .rz-vazio:only-child){background:none;border:0;box-shadow:none;padding:0}
         .rz-comece .rz-comece-n{font-size:12px;font-weight:600;color:var(--sage)}
         .rz-comece .rz-row .rz-tx span{white-space:normal}
         .rz-comece .rz-feito .rz-ic{color:var(--sage)} .rz-comece .rz-feito .rz-tx b{color:var(--muted);font-weight:500}
@@ -3071,11 +3070,7 @@
                  necessária" na Visão Geral, e pelo botão "Cadastrar
                  imóvel" novo aqui embaixo. -->
 
-            <!-- v1.381.0 (UX onda 2, D10) — Contratos mora dentro de Ativos: as duas telas são vistas da mesma aba -->
-            <div class="rz-vista" role="tablist" aria-label="Ativos e contratos">
-                <button type="button" role="tab" data-rz-codigo="cofre.ver" aria-selected="true" class="rz-on" onclick="irParaAbaRodape('tab-ativos')">Ativos</button>
-                <button type="button" role="tab" data-rz-codigo="contratos.ver" aria-selected="false" onclick="irParaAbaRodape('tab-contratos')">Contratos</button>
-            </div>
+            <!-- dem 9404081c (item 8a): sem a vista Contratos ao lado de Ativos — contrato e uso se abrem pelo ativo -->
             <div id="ativos-mount-point"></div>
         </section>
 
@@ -4412,7 +4407,7 @@
         // texto certo toda vez (esqueci 5 versões seguidas, de v1.37.1 até
         // v1.38.3). Agora só precisa mudar UMA linha aqui a cada release;
         // window.onload aplica nos dois lugares automaticamente.
-        const APP_VERSAO = "Beta v1.426.0"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
+        const APP_VERSAO = "Beta v1.427.0"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
 
         // ====================================================================
         // v1.105.0 — HELPERS DE SUPERFÍCIE DA GRAMÁTICA ÚNICA
@@ -11279,7 +11274,7 @@ async function criarLinkVitrineSupabase(token, idsSelecionados) {
             if (!ctx || ctx.temRecebimentoOuOcorrenciaTratada || !naJanela) { mount.innerHTML = ''; return; }
             const soControle = ctx.temItemControle && !ctx.temContrato;
             const passos = [
-                { feito: !!ctx.temImovelOuAtivo, titulo: 'Comece pelo primeiro imóvel', sub: 'Cadastre ou envie documento', ir: 'rzAbrirMaisAtivos()' },
+                { feito: !!ctx.temImovelOuAtivo, titulo: 'Cadastre o primeiro bem', sub: 'Ou envie um documento', ir: 'rzAbrirMaisAtivos()' },
                 { feito: !!ctx.temContratoOuItemControle, titulo: 'Contrato ou item de controle', sub: 'Na ficha do bem', ir: "irParaAbaRodape('tab-ativos')" },
                 soControle
                     ? { feito: !!ctx.temOcorrenciaTratada, titulo: 'Trate a primeira ocorrência', sub: 'Quando algo vencer', ir: "irParaAbaRodape('tab-ativos')" }
@@ -12123,16 +12118,19 @@ async function criarLinkVitrineSupabase(token, idsSelecionados) {
             window.dispatchEvent(new CustomEvent('raiz:ramo', { detail: { ramo: geralRamoFiltro } }));
         }
         window.rzRecarregarUsosRamo = async () => { await rzCarregarUsosRamo(); rzRepintarPorRamo(); }; // chamado pela ficha do ativo (F25)
+        window.rzNomeRamo = rzNomeRamo; // nome do ramo pelo catálogo, para os módulos (dem 9404081c)
         function rzAbrirLenteRamo() {
-            const item = (c, nome, sub, cor, lock) =>
+            // ícone do ramo na cor do ramo, como o botão do cabeçalho (dem 9404081c, item 11)
+            const item = (c, nome, sub, cor, lock, icone) =>
                 `<button type="button" class="rz-act ${lock ? 'rz-off' : ''}" ${lock ? 'aria-disabled="true"' : `data-rz-ramo="${c}"`}>` +
-                `<div class="rz-ic"><span class="rz-ramo-dot" style="background:${cor}"></span></div>` +
+                `<div class="rz-ic" style="background:${cor};color:var(--paper)"><svg data-lucide="${rzEsc(icone || 'circle')}"></svg></div>` +
                 `<div>${rzEsc(nome)}${c === geralRamoFiltro ? ' ✓' : ''}<small>${rzEsc(sub)}</small></div></button>`;
-            const corpo = item('tudo', 'Todo o patrimônio', 'Todos os ramos somados', 'var(--pine)', false) +
+            const corpo = item('tudo', 'Todo o patrimônio', 'Todos os ramos somados', 'var(--pine)', false, 'layers') +
                 RZ_RAMOS.filter(r => !RZ_RAMOS_LICENCIADOS || RZ_RAMOS_LICENCIADOS.includes(r.codigo)) // F25: só os ramos contratados
-                    .map(r => item(r.codigo, r.nome + (r.status === 'ativo' ? '' : ' · em breve'), r.descricao || '', `var(--ramo-cor-${r.codigo}, var(--sage))`, r.status !== 'ativo')).join('');
+                    .map(r => item(r.codigo, r.nome + (r.status === 'ativo' ? '' : ' · em breve'), r.descricao || '', `var(--ramo-cor-${r.codigo}, var(--sage))`, r.status !== 'ativo', r.icone)).join('');
             const sheet = abrirSheet(rzSheetCabecalho('Ver o app de', 'Vale para todas as abas até você trocar de novo.') + `<div class="rz-sh-b">${corpo}</div>`);
             sheet.querySelectorAll('[data-rz-ramo]').forEach(b => b.addEventListener('click', () => { fecharSheet(); escolherGeralRamo(b.dataset.rzRamo); }));
+            if (typeof lucide !== 'undefined') lucide.createIcons();
         }
         rzAplicarRamo(); // tonalidade já no boot, com a escolha guardada
 

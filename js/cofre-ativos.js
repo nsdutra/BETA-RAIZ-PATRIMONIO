@@ -1,6 +1,15 @@
 // ============================================================================
 // cofre-ativos.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.113.0 · 16/10/2026
+// Versão: 1.114.0 · 16/10/2026
+//
+// v1.114.0 (16/10/2026, sessão 20261016-0053-carga-silva, demanda 9404081c; planos dos lotes 1–3 aprovados pelo Nicola 16/10 00:53)
+// — Adicionar uso segue a lente "Ver o app de" (Moradia aparece na Casa em Família e em Todo o patrimônio); a situação é
+// relida depois de cadastrar (lista sem "Disponível" falso e sub-ativos com etiqueta), com a Situação gravada como reserva;
+// Situação e Finalidade de uso saem do formulário de edição (vêm do uso); ficha mostra o tipo do catálogo (Fazenda, não
+// Terreno) e o ramo pelo nome; contador de Usos e contratos conta os usos; histórico diz "Uso iniciado"/"Uso excluído" com
+// período e motivo, sem Desfazer na exclusão; sai "Ver todos os contratos"; Compartilhar só com uso Disponível ou Em venda;
+// grupos "Sem empreendimento"/"Outros ativos" sem parênteses.
+// Versão anterior: 1.113.0 · 16/10/2026
 //
 // v1.113.0 (16/10/2026, sessão 20261016-0020-usos-fatia7, demanda 3022603b; FICHA_FATIA7_MEMBROS_RAIZ v1.2.0, de acordo do Nicola
 // 15/10 23:17 e 16/10 00:05) — o Resumo da ficha do ativo ganha o card dos MEMBROS quando o tipo tem membros (lote bovino,
@@ -23,17 +32,11 @@
 // — sai "Iniciar revisão anual" do ⋮ do ativo: a revisão de valor passa a ser item dos programas Cuidado do imóvel, Terreno,
 // Acervo (avaliação) e Venda do imóvel, aceitos no chip Controles. O ⋮ (grupo Controles) e o "Adicionar item de controle"
 // ganham "Programas", que abre a lista dos programas do ativo (cofre-controles.js 1.60.0). Quem já tem revisão segue com ela.
-// Versão anterior: 1.109.0 · 14/10/2026
-//
-// v1.109.0 (14/10/2026, sessão 20261014-2340-usos-fatia3d, demanda 3022603b; Nicola 14/10 23:34: "o item agrupado ficou
-// ruim… borda do ícone na cor do ramo") — o principal com subativos tem o ícone com borda na cor do ramo e o número de
-// subativos no canto; o selo fica só com a classe (sem "0 de 1 integrantes") e o texto "N integrantes" sai da linha; os
-// subativos abertos ganham um traço à esquerda na cor do ramo.
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.108.0 … v1.108.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.109.0 … v1.109.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '1.113.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.114.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 import { estado } from './cofre-estado.js';
 import * as api from './cofre-api.js';
 import { mostrarToast, erroInline, refrescarIcones, alternarToggle, abrirModal, fecharModal, modalGenerico, perguntar, avisarComDesfazer, escolher } from './cofre-ui.js';
@@ -278,7 +281,7 @@ function renderizarBlocoEmpreendimentoValor(prefixo, v = {}, empreendimentos = [
             <label>Valor de referência (R$)</label>
             <input type="number" step="0.01" id="${prefixo}valor-referencia" value="${v.valor_referencia ?? ''}">
         </div>
-        ${comFinalidade ? renderizarCampoFinalidadeUso(prefixo, v) : ''}
+        ${''/* Finalidade de uso vem do uso vigente (dem 091b87d4, 9404081c): fora do formulário */}
     `;
 }
 
@@ -329,7 +332,7 @@ function renderizarBlocoImovel(prefixo, v = {}, opcoes = {}) {
     // esconde dado que a pessoa já preencheu antes). Só nasce escondido
     // quando os 3 estão vazios (criação, ou edição de imóvel que nunca
     // preencheu nada ali).
-    const temCamposAvancados = !!(v.situacao_uso || v.cib || v.destinacao);
+    const temCamposAvancados = !!(v.cib || v.destinacao);
     const maisCamposClasse = temCamposAvancados ? '' : ' hidden';
     const maisCamposTexto = temCamposAvancados ? '− Ocultar campos avançados' : '+ Mostrar mais campos';
     return `
@@ -337,20 +340,12 @@ function renderizarBlocoImovel(prefixo, v = {}, opcoes = {}) {
             <label>Área (m²)</label>
             <input type="number" step="0.01" id="${prefixo}area-m2" value="${v.area_m2 ?? ''}">
         </div>
-        ${cadastro ? '' : renderizarCampoFinalidadeUso(prefixo, v)}
         <div id="${prefixo}aluguel-wrapper" class="rz-f${aluguelVisivel}">
             <label>Aluguel esperado (R$)</label>
             <input type="number" step="0.01" id="${prefixo}aluguel-desejado" value="${v.dados_especificos?.aluguel_desejado ?? ''}">
         </div>
         <button type="button" id="${prefixo}toggle-mais-campos" data-action="ativo-toggle-mais-campos" data-prefixo="${prefixo}" class="sm:col-span-2 text-xs font-semibold" style="color:var(--sprout);text-align:left;background:none;border:none;padding:4px 0;cursor:pointer">${maisCamposTexto}</button>
         <div id="${prefixo}mais-campos" class="${maisCamposClasse.trim()} sm:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-2">
-            <div class="rz-f${cadastro ? ' hidden' : ''}">
-                <label>Situação de uso <button type="button" data-action="fa-info-situacao-uso" class="text-slate-400" title="O que é isso?" aria-label="O que é isso?" style="line-height:0;display:inline-flex;vertical-align:middle;margin-left:4px"><svg data-lucide="info" style="width:13px;height:13px"></svg></button></label>
-                <select id="${prefixo}situacao-uso">
-                    <option value=""${optSel('', 'situacao_uso')}>— não informado —</option>
-                    ${SITUACOES_USO_ATIVO.map(s => `<option value="${s.v}"${optSel(s.v, 'situacao_uso')}>${s.l}</option>`).join('')}
-                </select>
-            </div>
             ${v.id ? renderizarCampoDestinacao(prefixo, v) : ''}
             <div class="rz-f">
                 <label>CIB (NFS-e) <button type="button" data-action="fa-info-cib" class="text-slate-400" title="O que é isso?" aria-label="O que é isso?" style="line-height:0;display:inline-flex;vertical-align:middle;margin-left:4px"><svg data-lucide="info" style="width:13px;height:13px"></svg></button></label>
@@ -405,8 +400,10 @@ function lerBlocoImovel(prefixo) {
     return {
         camposImovel: {
             area_m2: num('area-m2'),
-            finalidade_uso: txt('finalidade-uso'),
-            situacao_uso: txt('situacao-uso'),
+            // Situação e Finalidade saem do formulário (vêm do uso, no banco): campo ausente = undefined, que o update ignora.
+            // Armadilha: mandar null apagaria o que fn_ativo_derivar_uso_campos gravou.
+            finalidade_uso: document.getElementById(prefixo + 'finalidade-uso') ? txt('finalidade-uso') : undefined,
+            situacao_uso: document.getElementById(prefixo + 'situacao-uso') ? txt('situacao-uso') : undefined,
             observacao: txt('observacao'),
             cib: txt('cib'),
         },
@@ -525,12 +522,12 @@ export function renderAtivosLista(filtroTipo = '', filtroTexto = '') {
     const grupos = {};
     lista.forEach(a => {
         const resumo = ehCategoriaImovel(a.tipo_ativo) ? resumoImoveisPorId.get(a.id) : null;
-        const chave = resumo?.empreendimento || (ehCategoriaImovel(a.tipo_ativo) ? '(Sem empreendimento)' : '(Outros ativos)');
+        const chave = resumo?.empreendimento || (ehCategoriaImovel(a.tipo_ativo) ? 'Sem empreendimento' : 'Outros ativos');
         (grupos[chave] = grupos[chave] || []).push(a);
     });
     const nomesGrupos = Object.keys(grupos).sort((x, y) => {
-        if (x === '(Outros ativos)') return 1;
-        if (y === '(Outros ativos)') return -1;
+        if (x === 'Outros ativos') return 1;
+        if (y === 'Outros ativos') return -1;
         return x.localeCompare(y);
     });
     // F2.4 (UXR-15) — carteira só com imóveis: um card de convite no FIM da lista (nunca no topo).
@@ -959,13 +956,16 @@ function ativoCardHtml(a) {
         // "Vago" passa a "Disponível"; Uso próprio e Uso férias aparecem pelo nome, em cinza.
         const stHoje = typeof window.rzStatusDoAtivo === 'function' ? window.rzStatusDoAtivo(a.id) : null;
         const usoHoje = stHoje && !stHoje.contrato_id && stHoje.modelo && stHoje.modelo !== 'vago' ? stHoje.nome : null;
+        // sem status carregado, cai na Situação gravada (derivada do uso no banco), nunca em "Disponível" por omissão
+        const semStatus = { disponivel: 'Disponível', em_uso: 'Em uso', alugado: 'Alugado', assinando: 'Assinando' }[a.situacao_uso] || '';
         const situacao = (stPrincipal === 'ativo') ? 'Alugado'
             : (stPrincipal === 'assinando') ? 'Assinando'
             : usoHoje ? usoHoje
-            : usoProprio ? 'Em uso' : 'Disponível';
+            : stHoje ? 'Disponível'
+            : semStatus || (usoProprio ? 'Em uso' : '');
         const alugado = situacao === 'Alugado';
         const rsSem = { Alugado: 'ok', Assinando: 'run', 'Disponível': 'warn' }[situacao] || 'neu';
-        const badgeHtml = (typeof window.renderStatus === 'function') ? window.renderStatus(rsSem, situacao) : `<span class="rz-st rz-${rsSem}">${situacao}</span>`;
+        const badgeHtml = !situacao ? '' : (typeof window.renderStatus === 'function') ? window.renderStatus(rsSem, situacao) : `<span class="rz-st rz-${rsSem}">${situacao}</span>`;
 
         // v1.45.0 (17/09/2026, pedido explícito) — a linha "Empreendimento ·
         // Tipo" (titulo) SAIU de dentro da caixa: o agrupador da lista
@@ -1032,7 +1032,10 @@ function ativoCardHtml(a) {
     const modeloAtivo = a.dados_especificos?.modelo || null;
     // v1.97.0 (usos fatia 0) — selo do status de hoje (classe · modelo), o mesmo da ficha e do bot
     const stGen = typeof window.rzStatusDoAtivo === 'function' ? window.rzStatusDoAtivo(a.id) : null;
-    const seloGen = stGen && typeof window.renderStatus === 'function' ? window.renderStatus(stGen.sem, stGen.rotulo) : '';
+    const rotSit = { disponivel: ['warn', 'Disponível'], em_uso: ['neu', 'Em uso'], alugado: ['ok', 'Alugado'], assinando: ['run', 'Assinando'] }[a.situacao_uso];
+    const seloGen = typeof window.renderStatus !== 'function' ? ''
+        : stGen ? window.renderStatus(stGen.sem, stGen.rotulo)
+        : rotSit ? window.renderStatus(rotSit[0], rotSit[1]) : ''; // sem status carregado: a Situação gravada (derivada do uso)
     return `<div class="rz-row rz-link" role="button" tabindex="0" data-action="abrir-ativo" data-id="${a.id}" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault(); this.click();}">
         <div class="rz-ic"><svg data-lucide="${iconeAtivo(a.tipo_ativo)}"></svg></div>
         <div class="rz-tx">
@@ -1333,6 +1336,9 @@ export async function salvarAtivo() {
         mostrarToast(principal ? `${principal.singular} cadastrad${femSubativo(principal.singular) ? 'a' : 'o'} em ${principal.nome} ✅` : ehImovel ? 'Imóvel cadastrado ✅' : 'Ativo cadastrado ✅');
         document.getElementById('at-nome').value = '';
         fecharFormAtivo();
+        // o ativo nasce com uso (repouso do tipo): relê o status antes de repintar, senão a lista mostra o ativo novo sem
+        // etiqueta e o cache antigo segura "Disponível" (dem 9404081c, itens 25 e 26)
+        try { if (typeof window.rzRecarregarUsosRamo === 'function') await window.rzRecarregarUsosRamo(); } catch (e) { console.warn('[cofre-ativos] status:', e?.message || e); }
         window.dispatchEvent(new CustomEvent('cofre:recarregar-ativos'));
         recarregarFuncionalidadesLiberadas().catch(() => {}); // v1.62.0 — cota mudou
         // v1.102.0 — volta para a ficha do principal com o card atualizado
@@ -1373,7 +1379,7 @@ export async function abrirFichaAtivo(id, chipInicial = 'resumo') {
         <div class="rz-ic"><i data-lucide="${iconeAtivo(a.tipo_ativo)}"></i></div>
         <div class="rz-tx">
             <b>${escapeHtml(a.nome_exibicao)}</b>
-            <span>${escapeHtml(rotuloTipoAtivo(a.tipo_ativo))}</span>
+            <span>${escapeHtml(tipoDoCatalogo(a.tipo_detalhe_id)?.nome || rotuloTipoAtivo(a.tipo_ativo))}</span>
         </div>
         <span id="fa-status-selo">${statusAtivoHtml(a)}</span>
         <button type="button" data-action="abrir-acoes-ativo" class="rz-more rz-more-topo" aria-label="Ações do ativo"><i data-lucide="ellipsis-vertical"></i></button>
@@ -1556,7 +1562,10 @@ export async function abrirAcoesAtivo() {
     acoes.push({ icone: 'pencil', titulo: 'Editar', codigo: 'cofre.editar', sub: ehCategoriaImovelAtivo ? 'Endereço, valores e uso' : 'Campos deste tipo', aoTocar: () => { faTrocarAba('resumo'); alternarEditarAtivo(); } });
     acoes.push({ icone: 'image-plus', titulo: 'Adicionar fotos', codigo: 'cofre.editar', aoTocar: () => { faTrocarAba('arquivos'); faTrocarSegArquivos('fotos'); document.getElementById('fa-foto-input')?.click(); } });
     // Compartilhar: WhatsApp já com os dados e o link deste imóvel (o link guarda o id do ativo). (dem ed5accfe)
-    if (ehCategoriaImovelAtivo && a.status !== 'vendido' && typeof window.compartilharImovelDoAtivo === 'function') acoes.push({ icone: 'share-2', titulo: 'Compartilhar', codigo: 'vitrine.gerar', sub: 'Pelo WhatsApp', aoTocar: () => window.compartilharImovelDoAtivo(a.id) });
+    // vitrine só para o que está em oferta: uso de hoje com classe Disponível ou Em venda (Nicola 15/10 22:39, dem 9404081c item 9b)
+    const stOferta = typeof window.rzStatusDoAtivo === 'function' ? window.rzStatusDoAtivo(a.id) : null;
+    const emOferta = stOferta ? ['Disponível', 'Em venda'].includes(stOferta.classe) : a.situacao_uso === 'disponivel';
+    if (ehCategoriaImovelAtivo && emOferta && a.status !== 'vendido' && typeof window.compartilharImovelDoAtivo === 'function') acoes.push({ icone: 'share-2', titulo: 'Compartilhar', codigo: 'vitrine.gerar', sub: 'Pelo WhatsApp', aoTocar: () => window.compartilharImovelDoAtivo(a.id) });
     // Fase R / Entrega R.3 (20/09/2026) — esqueleto sem IA. O botão aparece
     // sempre (nenhuma consulta nova só pra decidir se esconde); duplicidade
     // é recusada no banco por fn_revisao_valor_ativo_iniciar, com toast de
@@ -1588,7 +1597,6 @@ export async function abrirAcoesAtivo() {
         { titulo: 'Usos e contratos', acoes: [
             { icone: 'plus', titulo: 'Adicionar uso', codigo: 'ativos.usos.iniciar', sub: 'Aluguel, temporada…', aoTocar: () => abrirAdicionarModeloAtivo() },
             ...acaoConcluirUsoVigente(a),
-            { icone: 'list', titulo: 'Ver todos os contratos', codigo: 'contratos.ver', aoTocar: () => { if (typeof window.switchTab === 'function') window.switchTab('tab-contratos'); } },
         ] },
         { titulo: 'Controles', acoes: [
             { icone: 'plus', titulo: 'Novo item de controle', codigo: 'cofre.controles.criar', sub: 'Seguro, tributo, vistoria', aoTocar: () => window.__rzAbrirFormControle?.() },
@@ -1898,11 +1906,19 @@ async function montarHistoricoStatusAtivo(a) {
         }
         const quando = (t) => { const d = new Date(t); return d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: '2-digit' }) + ' ' + d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }); };
         lista.innerHTML = linhas.map((h, i) => {
-            const pode = h.dados?.desfazivel && !desfeitas.has(h.id) && !h.desfaz_id;
+            // exclusão de uso é definitiva: não oferece Desfazer, mesmo nas linhas antigas gravadas como desfazíveis (dem 9404081c, item 20)
+            const exclusao = h.dados?.acao === 'excluir_uso';
+            const pode = h.dados?.desfazivel && !exclusao && !desfeitas.has(h.id) && !h.desfaz_id;
             const quem = h.gatilho === 'acao' ? (nomes[h.pessoa_id] || 'você') : 'automático · rotina diária';
-            const det = [h.motivo, quem, quando(h.criado_em)].filter(Boolean).join(' · ');
-            return `<div class="rz-row"><div class="rz-ic${desfeitas.has(h.id) ? ' rz-neu' : ''}"><i data-lucide="${h.desfaz_id ? 'undo-2' : 'arrow-right-left'}"></i></div>
-                <div class="rz-tx"><b>${escapeHtml(h.de || '—')} → ${escapeHtml(h.para || '—')}${desfeitas.has(h.id) ? ' <small>(desfeito)</small>' : ''}</b><span>${escapeHtml(det)}</span></div>
+            const dataBr = (d) => d ? d.split('-').reverse().join('/') : '';
+            const uE = exclusao ? h.dados?.uso : null;
+            const periodo = uE ? `${dataBr(uE.inicio)} → ${uE.fim ? dataBr(uE.fim) : 'sem fim'}` : '';
+            const det = [periodo, h.motivo ? 'Motivo: ' + h.motivo : '', quem, quando(h.criado_em)].filter(Boolean).join(' · ');
+            const titulo = exclusao ? `Uso excluído: ${h.de || 'uso'}`
+                : !h.de ? `Uso iniciado: ${h.para || '—'}`
+                : `${h.de} → ${h.para || '—'}`;
+            return `<div class="rz-row"><div class="rz-ic${desfeitas.has(h.id) ? ' rz-neu' : ''}"><i data-lucide="${h.desfaz_id ? 'undo-2' : exclusao ? 'trash-2' : 'arrow-right-left'}"></i></div>
+                <div class="rz-tx"><b>${escapeHtml(titulo)}${desfeitas.has(h.id) ? ' <small>(desfeito)</small>' : ''}</b><span>${escapeHtml(det)}</span></div>
                 ${pode ? `<button type="button" class="rz-more" data-hist-i="${i}" aria-label="Ações da mudança"><i data-lucide="ellipsis-vertical"></i></button>` : ''}</div>`;
         }).join('');
         lista.querySelectorAll('[data-hist-i]').forEach(b => b.addEventListener('click', (ev) => {
@@ -1977,7 +1993,7 @@ async function montarContratosAtivo(a) {
     if (!painel) return;
 
     const sub = document.getElementById('fa-contratos-sub');
-    faAtualizarContador('contratos', 0);
+    if (usosAtivoId !== a.id) faAtualizarContador('contratos', 0);
     if (sub) sub.textContent = '';
 
     // v1.41.0 (16/09/2026, BUG REAL do teste real — print "Casa de Campo,
@@ -2011,7 +2027,7 @@ async function montarContratosAtivo(a) {
             lista.forEach(c => { c.modeloNome = modC[c.id] || ''; });
         } catch (e) { /* sem o nome do modelo a lista segue igual */ }
         const vigentes = lista.filter(c => c.st === 'ativo' || c.st === 'assinando');
-        faAtualizarContador('contratos', vigentes.length);
+        faAtualizarContador('contratos', Math.max(vigentes.length, usosAtivoId === a.id ? usosContagemFicha : 0));
         if (sub) sub.textContent = lista.length ? `${vigentes.length} vigente${vigentes.length === 1 ? '' : 's'} · ${lista.length - vigentes.length} encerrado${lista.length - vigentes.length === 1 ? '' : 's'}` : '';
         if (!lista.length) {
             // v1.17.0 — único card vazio que RENDERIZA sem ação própria
@@ -2069,6 +2085,7 @@ let usoVigenteFicha = null; // v1.97.0 — uso de hoje (não repouso) da ficha a
 // v1.97.0 — "hoje" no fuso do aparelho (o toISOString é UTC e virava o dia depois das 21h em Brasília)
 const hojeLocalUso = () => new Date().toLocaleDateString('sv-SE');
 const USOS_MESES = ['J', 'F', 'M', 'A', 'M', 'J', 'J', 'A', 'S', 'O', 'N', 'D'];
+let usosContagemFicha = 0;
 export async function montarUsosAtivo(a) {
     const card = document.getElementById('fa-card-usos');
     const painel = document.getElementById('fa-usos-lista');
@@ -2082,7 +2099,9 @@ export async function montarUsosAtivo(a) {
         const usos = usosLinhas.filter(u => !u.repouso);
         if (usosAtivoId !== a.id) { usosAtivoId = a.id; usosAno = new Date().getFullYear(); }
         card?.classList.remove('hidden');
-        if (!ehCategoriaImovel(a.tipo_ativo)) faAtualizarContador('contratos', usos.length);
+        // o chip conta usos (contrato espelhado também é uso): imóvel em Lavoura, Moradia etc. não pode mostrar 0 (dem 9404081c, 26b)
+        usosContagemFicha = usos.length;
+        faAtualizarContador('contratos', usos.length);
         const hoje = hojeLocalUso();
         const vig = usos.find(u => u.inicio <= hoje && (!u.fim || u.fim >= hoje))
             || usosLinhas.find(u => u.inicio <= hoje && (!u.fim || u.fim >= hoje)); // v1.97.0 — sem uso, o repouso de hoje
@@ -2577,7 +2596,15 @@ export async function abrirAdicionarModeloAtivo() {
         lista = (mods.data || []).filter(m => {
             if (m.codigo === 'vago') return false;
             if (semContrato(m) && modelosHoje.has(m.codigo)) return false;
-            if (semContrato(m)) return m.universal || (m.ramo === ramoAtivo && (permite.has(m.codigo) || !tipo));
+            // Usos sem contrato seguem a lente "Ver o app de" (Nicola 16/10 00:48, dem 9404081c): com ramo escolhido, os do ramo
+            // da lente ligados ao tipo; sem filtro, os ligados ao tipo em qualquer ramo liberado. Universais sempre.
+            // Armadilha: filtrar pelo ramo do ATIVO escondia Moradia (ramo Família) da Casa (ramo Imóveis).
+            if (semContrato(m)) {
+                if (m.universal) return true;
+                const ligado = permite.has(m.codigo) || (!tipo && m.ramo === ramoAtivo);
+                const lente = ramoDaLente();
+                return ligado && (lente === 'tudo' ? (licenciados.includes(m.ramo) || m.ramo === ramoAtivo) : m.ramo === lente);
+            }
             return permite.has(m.codigo) || (!tipo && m.codigo === 'aluguel');
         });
         lista = lista.map(m => ({ ...m, livre: m.status === 'ativo' && (m.universal || licenciados.includes(m.ramo)) }));
@@ -2878,7 +2905,6 @@ export function abrirAcoesContratosAtivo() {
     const a = estado.ativoEmFoco; if (!a) return;
     sheetOuAviso({ titulo: 'Contratos', sub: a.nome_exibicao, acoes: [
         { icone: 'plus', titulo: 'Adicionar uso', codigo: 'ativos.usos.iniciar', sub: 'Aluguel, temporada…', aoTocar: () => abrirAdicionarModeloAtivo() }, // v1.88.0 (F25c); v1.97.0 usos sem contrato
-        { icone: 'list', titulo: 'Ver todos os contratos', codigo: 'contratos.ver', aoTocar: () => { if (typeof window.switchTab === 'function') window.switchTab('tab-contratos'); } },
     ] });
 }
 
@@ -3423,7 +3449,8 @@ export async function alternarEditarAtivo() {
         : '';
     if (typeof window.abrirSheetForm === 'function') {
         const campos =
-            `<div class="rz-f"><label>Tipo</label><input type="text" value="${escapeHtml(rotuloTipoAtivo(a.tipo_ativo))}" disabled></div>` +
+            // categoria crua ("agro") não é texto de tela: mostra o ramo pelo nome do catálogo (dem 9404081c, item 16d)
+            `<div class="rz-f"><label>Ramo</label><input type="text" value="${escapeHtml(typeof window.rzNomeRamo === 'function' && a.ramo ? window.rzNomeRamo(a.ramo) : rotuloTipoAtivo(a.tipo_ativo))}" disabled></div>` +
             blocoTipoDetalhe + blocoEmpreendimentoValor +
             `<div class="rz-f"><label>Nome de exibição <i>*</i></label><input type="text" id="fa-editar-nome" value="${escapeHtml(a.nome_exibicao)}"></div>` +
             `<div class="rz-campos-estruturados" id="fa-editar-campos-estruturados">${renderizarCamposEstruturados(a.tipo_ativo, a.dados_especificos || {}, 'fa-editar-campo-', a.tipo_detalhe_id)}</div>` +

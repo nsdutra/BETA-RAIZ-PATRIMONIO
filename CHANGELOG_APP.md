@@ -4,6 +4,22 @@ Histórico completo de versões do `index.html`, movido automaticamente pelo `ge
 
 ---
 
+NOVIDADES (Beta v1.422.0) — RAIZ IA INTEGRADA (FICHA_INTEGRACAO_RAIZ_IA_ROBO_RAIZ v1.1.0, de acordo do Nicola 14/10 22:43,
+fatia I3): a Raiz IA do app usa o mesmo intérprete do robô (Edge raiz-ia-registrar 1.2.0 · _shared_ia 2.0.0) e ganha
+dar baixa, cobrar, recibo, relatórios, pendências, buscar contrato, extrato, fatura e documento — sempre abrindo a
+tela de sempre, preenchida — e vários pedidos numa frase ("Entendi N pedidos", um de cada vez). Receita abre a
+"Receita sem contrato" preenchida (financeiro.js 1.67.0). CONTABILIDADE × ENVIO AO CONTADOR (FICHA_CONTABILIDADE_
+ROTINA_CONTADOR_RAIZ v1.1.0): ao ligar a rotina, "Quais ativos entram?" — Todos · Escolher · Agora não
+(comum-minha-empresa.js 1.20.0); incluir com a rotina desligada avisa (cofre-ativos.js 1.111.0). Banco:
+contabil_rotina_contador_v1 (o ativo nasce fora com a rotina desligada).
+Versão anterior (Beta v1.421.0):
+------------------------------------------------------------------
+Versões anteriores (v1.421.0 … v1.421.0): CHANGELOG_APP.md, na raiz do
+repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
+das 5 versões mais recentes deste cabeçalho.
+
+---
+
 NOVIDADES (Beta v1.421.0) — Fatia 4 (FICHA_FATIA4_PROGRAMAS_RAIZ v1.2.0, de acordo do Nicola 14/10 21:42 e 23:34). (1) Chip
 Controles da ficha do ativo: "Programa sugerido" (Veículo, Cuidado do imóvel, Imóvel disponível, Reforma, Compra na
 planta…) com Aceitar e Agora não; a folha Aceitar tem caixas e pede a data só quando o item precisa (vence em, última

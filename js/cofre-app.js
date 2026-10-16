@@ -1,6 +1,10 @@
 // ============================================================================
 // cofre-app.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.49.0 · 14/10/2026
+// Versão: 1.50.0 · 16/10/2026
+//
+// v1.50.0 (16/10/2026, sessão 20261016-0053-carga-silva, demanda 9404081c item 9a; de acordo do Nicola 16/10 00:53) — "+" de
+// Ativos: "Compartilhar imóveis" vira "Compartilhar ativos".
+// Versão anterior: 1.49.0 · 14/10/2026
 //
 // v1.49.0 (14/10/2026, sessão 20261014-2145-onda9c-textos, demanda a05ad2ee; onda 9c do estudo PROTOTIPO_UX_DENSIDADE_RAMOS_RAIZ
 // v1.2.0, D6 seção 10) — textos no limite: ação até 24 caracteres, descrição até 28, aviso até 40 com o resultado e tela
@@ -21,15 +25,11 @@
 // v1.46.0 (UX F2.3a, demanda fcd3008d, sessão 20261003-1707-ux-base; "Estou de acordo com f2.3 e opcao a" do Nicola 09/10 20:52) —
 // "abrir-busca-ativos" abre a busca em Sheet (ativos.abrirBuscaAtivos) quando o app tem Sheet; no
 // cofre.html avulso continua o popup de sempre.
-//
-// Versão anterior: 1.45.0 · 08/10/2026
-//
-// v1.45.0 (UX F2.8, demanda ed5accfe, sessão 20261003-1707-ux-base; "Sim. Faça 1 e 2 agora" do Nicola 08/10 20:09) — "+" de Ativos: "Montar vitrine" vira "Compartilhar imóveis".
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.44.1 … v1.44.1): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.45.0 … v1.45.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '1.49.0'; // v-check (28/09/2026): lido por Dev › Versões — manter igual ao header
+export const VERSAO = '1.50.0'; // v-check (28/09/2026): lido por Dev › Versões — manter igual ao header
 import { estado, COFRE_VERSAO } from './cofre-estado.js';
 import * as api from './cofre-api.js';
 import { mostrarToast, fecharModal, abrirModal, refrescarIcones } from './cofre-ui.js';
@@ -142,7 +142,7 @@ document.addEventListener('click', async (ev) => {
                 // v1.44.0 (D2) — configuração inicial pelos documentos que a pessoa já tem
                 { icone: 'list-checks', tipo: 'ia', titulo: 'Configuração inicial', codigo: 'cofre.configuracao_inicial', sub: 'Envie o que você já tem', aoTocar: () => abrirConfiguracaoInicialModulo() },
                 { icone: 'plus', titulo: 'Novo ativo', codigo: 'cofre.ativos.criar', sub: 'Imóvel, veículo, arte…', aoTocar: () => ativos.abrirFormAtivo() },
-                { icone: 'share-2', titulo: 'Compartilhar imóveis', codigo: 'vitrine.gerar', sub: 'Um link para vários', aoTocar: () => { if (typeof window.switchTab === 'function') window.switchTab('tab-vitrine'); } }
+                { icone: 'share-2', titulo: 'Compartilhar ativos', codigo: 'vitrine.gerar', sub: 'Um link para vários', aoTocar: () => { if (typeof window.switchTab === 'function') window.switchTab('tab-vitrine'); } }
             ]});
             break;
         case 'fechar-busca-ativos': fecharModal('modal-busca-ativos'); break;
