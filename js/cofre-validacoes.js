@@ -1,6 +1,10 @@
 // ============================================================================
 // cofre-validacoes.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 2.7.0 · 15/10/2026
+// Versão: 2.8.0 · 16/10/2026
+//
+// v2.8.0 (16/10/2026, sessão 20261016-0105-usos-fatia7-fix, demanda 3022603b; achado do Nicola 16/10 01:03) — rótulo e ícone
+// das categorias Agro e Pecuária (rotuloTipoAtivo, iconeAtivo), que o novo ativo passa a oferecer (cofre-ativos.js 1.115.0).
+// Versão anterior: 2.7.0 · 15/10/2026
 //
 // v2.7.0 (15/10/2026, sessão 20261015-1615-usos-fatia6a, demanda 3022603b; de acordo do Nicola 15/10 16:10, item 4) — o
 // seletor de tipos do novo ativo (categorias e tipos do ramo) passa a mostrar só ramos ativos E contratados pelo cliente
@@ -22,17 +26,11 @@
 // v2.4.1 (07/10/2026, sessão 20261007-1721-rolo-changelog, demanda 2507d554 — VER-06, "de acordo" do Nicola 07/10 17:21) — SÓ
 // CABEÇALHO: as versões além das 5 mais recentes rolaram para o CHANGELOG_MODULOS.md.
 // Nenhuma linha de código mudou — conferido token a token contra o publicado.
-//
-// Versão anterior: 2.4.0 · 04/10/2026
-//
-// v2.4.0 (demanda 2923ff4d, catálogo único — fatia 2, parte app; "de acordo" do Nicola 03/10/2026 23:42; sessão 20261004-0815-catalogo-f2) — rotuloTipoControle
-// lê primeiro o catálogo controle_tipos (definirCatalogoTiposControle, carregado pelo
-// cofre-controles.js); o mapa fixo fica só como reserva se o catálogo não carregar.
 // --------------------------------------------------------------------------
-// Versões anteriores (v2.3.0 … v2.3.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v2.4.0 … v2.4.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '2.7.0'; // v-check (18/09/2026): lido por Dev › Versões — manter igual ao header
+export const VERSAO = '2.8.0'; // v-check (18/09/2026): lido por Dev › Versões — manter igual ao header
 export function escapeHtml(s) {
     return (s ?? '').toString().replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 }
@@ -102,6 +100,7 @@ export function rotuloTipoAtivo(t) {
         veiculo: 'Veículo', veiculo_blindado: 'Veículo blindado', imovel: 'Imóvel', terreno: 'Terreno', vida_protecao: 'Vida / proteção pessoal', obra_arte: 'Obra de arte', outro: 'Outro', aeronave: 'Aeronave', embarcacao: 'Embarcação', colecao_bem_valor: 'Coleção / bem de valor',
         // v1.4.0 (E4.2 fatia B — ponte de compatibilidade) — categorias macro novas
         imovel_predial: 'Imóvel', imovel_territorial: 'Terreno', vida: 'Vida / proteção pessoal', bem_valor: 'Obra de arte / bem de valor',
+        agro: 'Agro', pecuaria: 'Pecuária', // v2.8.0
     }[t] || t;
 }
 
@@ -109,7 +108,7 @@ export function iconeAtivo(t) {
     return {
         veiculo: 'car', veiculo_blindado: 'shield', imovel: 'home', terreno: 'map', vida_protecao: 'heart-pulse', obra_arte: 'image', outro: 'package', aeronave: 'plane', embarcacao: 'sailboat', colecao_bem_valor: 'gem',
         // v1.4.0 (E4.2 fatia B — ponte de compatibilidade)
-        imovel_predial: 'home', imovel_territorial: 'map', vida: 'heart-pulse', bem_valor: 'gem',
+        imovel_predial: 'home', imovel_territorial: 'map', vida: 'heart-pulse', bem_valor: 'gem', agro: 'sprout', pecuaria: 'fence', // v2.8.0
     }[t] || 'package';
 }
 

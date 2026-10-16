@@ -4,6 +4,19 @@ Histórico completo de versões do `index.html`, movido automaticamente pelo `ge
 
 ---
 
+NOVIDADES (Beta v1.423.0) — CONVITE DE FESTA (FICHA_CONVITE_ANIVERSARIO_RAIZ v1.3.0, de acordo do Nicola 15/10 08:16): o
+convite lido pela IA vira item "Eventos e viagens" na pessoa; cada pessoa sugerida mostra a razão ("7 anos em 06/11",
+"quem enviou o convite"); o controle usa a data da festa como início e fim, com aviso 7 dias antes e reforço a cada 3.
+js/cofre-documentos.js 2.38.0 · js/ativos/ativos-markup.js 1.65.0. Edge: cofre-extrair-documento 1.13, whatsapp-webhook 2.90
+(motor_documental 1.8: vínculo pela idade e titular de documento de pessoa voltando a ser sugerido pelo nome).
+Versão anterior (Beta v1.422.0):
+------------------------------------------------------------------
+Versões anteriores (v1.422.0 … v1.422.0): CHANGELOG_APP.md, na raiz do
+repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
+das 5 versões mais recentes deste cabeçalho.
+
+---
+
 NOVIDADES (Beta v1.422.0) — RAIZ IA INTEGRADA (FICHA_INTEGRACAO_RAIZ_IA_ROBO_RAIZ v1.1.0, de acordo do Nicola 14/10 22:43,
 fatia I3): a Raiz IA do app usa o mesmo intérprete do robô (Edge raiz-ia-registrar 1.2.0 · _shared_ia 2.0.0) e ganha
 dar baixa, cobrar, recibo, relatórios, pendências, buscar contrato, extrato, fatura e documento — sempre abrindo a

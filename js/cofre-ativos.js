@@ -1,6 +1,12 @@
 // ============================================================================
 // cofre-ativos.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.114.0 · 16/10/2026
+// Versão: 1.115.0 · 16/10/2026
+//
+// v1.115.0 (16/10/2026, sessão 20261016-0105-usos-fatia7-fix, demanda 3022603b; achado do Nicola 16/10 01:03, "Não veio opção
+// de lote pecuária"; "Pode publicar a correção" 01:10) — o 1º seletor do novo ativo ganha as categorias Agro e Pecuária
+// (CATEGORIAS_ATIVO era fixa sem elas: na lente Pecuária o filtro ficava vazio e caía na lista inteira; no Agro faltavam
+// lavoura, talhão e máquinas). Nada mais muda.
+// Versão anterior: 1.114.0 · 16/10/2026
 //
 // v1.114.0 (16/10/2026, sessão 20261016-0053-carga-silva, demanda 9404081c; planos dos lotes 1–3 aprovados pelo Nicola 16/10 00:53)
 // — Adicionar uso segue a lente "Ver o app de" (Moradia aparece na Casa em Família e em Todo o patrimônio); a situação é
@@ -26,17 +32,11 @@
 // v1.111.0 (15/10/2026, sessão 20261014-2245-ia-integrada, demanda 4a28ad50; FICHA_CONTABILIDADE_ROTINA_CONTADOR_RAIZ v1.1.0, D5) —
 // "Incluir na contabilidade" no ⋮ do ativo com a rotina "Envio ao contador" desligada: inclui e avisa "Ligue o Envio ao
 // contador em Rotinas" (o pacote só sai com a rotina ligada). Com a rotina desligada o ativo novo já nasce fora (banco).
-// Versão anterior: 1.110.0 · 15/10/2026
-//
-// v1.110.0 (15/10/2026, sessão 20261014-2345-usos-fatia4, demanda 3022603b e 305c6c2f; FICHA_FATIA4_PROGRAMAS_RAIZ v1.2.0, D4-4)
-// — sai "Iniciar revisão anual" do ⋮ do ativo: a revisão de valor passa a ser item dos programas Cuidado do imóvel, Terreno,
-// Acervo (avaliação) e Venda do imóvel, aceitos no chip Controles. O ⋮ (grupo Controles) e o "Adicionar item de controle"
-// ganham "Programas", que abre a lista dos programas do ativo (cofre-controles.js 1.60.0). Quem já tem revisão segue com ela.
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.109.0 … v1.109.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.110.0 … v1.110.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '1.114.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.115.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 import { estado } from './cofre-estado.js';
 import * as api from './cofre-api.js';
 import { mostrarToast, erroInline, refrescarIcones, alternarToggle, abrirModal, fecharModal, modalGenerico, perguntar, avisarComDesfazer, escolher } from './cofre-ui.js';
@@ -127,7 +127,7 @@ async function garantirEmpreendimentos() {
 // LISTA (tela Ativos)
 // ============================================================================
 // F2.4 — as 8 categorias do formulário de ativo (fonte única: seletor #at-tipo e chips de convite).
-const CATEGORIAS_ATIVO = ['imovel_predial', 'imovel_territorial', 'veiculo', 'embarcacao', 'aeronave', 'vida', 'bem_valor', 'outro'];
+const CATEGORIAS_ATIVO = ['imovel_predial', 'imovel_territorial', 'agro', 'pecuaria', 'veiculo', 'embarcacao', 'aeronave', 'vida', 'bem_valor', 'outro']; // v1.115.0: agro e pecuaria
 // Valores antigos de tipo_ativo → categoria atual (mesma ponte de rotuloTipoAtivo).
 const CATEGORIA_POR_TIPO = { imovel: 'imovel_predial', terreno: 'imovel_territorial', veiculo_blindado: 'veiculo', vida_protecao: 'vida', obra_arte: 'bem_valor', colecao_bem_valor: 'bem_valor' };
 // Rótulo curto do chip de convite (sem "Outro": convite genérico não convida a nada).
@@ -223,7 +223,7 @@ function podeSerSubativoDe(tipoId, ramoPrincipal) {
 }
 function tiposSubativoPermitidos() {
     const ramo = subativoDe?.ramo;
-    return CATEGORIAS_ATIVO.concat(['agro', 'pecuaria']).flatMap(c => listarTiposPorCategoria(c).map(t => ({ ...t, categoria: c })))
+    return CATEGORIAS_ATIVO.flatMap(c => listarTiposPorCategoria(c).map(t => ({ ...t, categoria: c })))
         .filter(t => podeSerSubativoDe(t.id, ramo));
 }
 
