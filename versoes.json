@@ -1,8 +1,8 @@
 {
   "app": "patrimonio",
-  "gerado_em": "2026-10-19T15:18:00",
+  "gerado_em": "2026-10-19T15:49:35",
   "arquivos": {
-    "index.html": "1.438.2",
+    "index.html": "1.439.0",
     "sw.js": "3.2",
     "js/cadastros.js": "1.3.0",
     "js/financeiro.js": "1.68.0",
@@ -12,8 +12,8 @@
     "js/vitrine.js": "1.6.0",
     "js/imoveis.js": "1.8.0",
     "js/cofre-api.js": "1.53.0",
-    "js/cofre-app.js": "1.51.0",
-    "js/cofre-ativos.js": "1.123.0",
+    "js/cofre-app.js": "1.52.0",
+    "js/cofre-ativos.js": "1.124.0",
     "js/cofre-controles.js": "1.62.0",
     "js/cofre-documentos.js": "2.38.0",
     "js/cofre-imagem.js": "1.1.0",
@@ -37,19 +37,19 @@
     "js/raiz-ui.js": "1.5.0",
     "js/fiscal.js": "1.7.0",
     "js/ativos/ativos-boot.js": "1.4.0",
-    "js/ativos/ativos-markup.js": "1.65.0",
+    "js/ativos/ativos-markup.js": "1.66.0",
     "js/nucleo/porta.js": "1.5.0",
     "js/partes.js": "1.1.0",
     "js/conta.js": "1.3.0",
     "grupo.html": "1.0.0",
     "js/grupo-visao.js": "1.0.0",
-    "js/agenda.js": "1.6.0",
+    "js/agenda.js": "1.7.0",
     "js/cofre-membros.js": "1.0.0",
     "js/cockpit-metas.js": "1.0.0"
   },
   "detalhes": {
     "index.html": {
-      "linhas": 17145,
+      "linhas": 17162,
       "funcoes": 70
     },
     "sw.js": {
@@ -89,12 +89,12 @@
       "funcoes": 110
     },
     "js/cofre-app.js": {
-      "linhas": 775,
+      "linhas": 774,
       "funcoes": 13
     },
     "js/cofre-ativos.js": {
-      "linhas": 4154,
-      "funcoes": 157
+      "linhas": 4201,
+      "funcoes": 159
     },
     "js/cofre-controles.js": {
       "linhas": 3579,
@@ -189,7 +189,7 @@
       "funcoes": 1
     },
     "js/ativos/ativos-markup.js": {
-      "linhas": 1252,
+      "linhas": 1248,
       "funcoes": 0
     },
     "js/nucleo/porta.js": {
@@ -213,7 +213,7 @@
       "funcoes": 10
     },
     "js/agenda.js": {
-      "linhas": 447,
+      "linhas": 450,
       "funcoes": 24
     },
     "js/cofre-membros.js": {

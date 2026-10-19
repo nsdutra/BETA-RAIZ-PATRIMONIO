@@ -6,9 +6,16 @@
    (base derivada do RUMO v7.4.2 — histórico de versões anteriores
    preservado abaixo para referência técnica)
 
-   VERSÃO: Beta v1.438.2
-   LINHAS: 17139
-   DATA: 19/10/2026 (sessão 20261019-1220-carga-silva-icones2, demanda 9404081c)
+   VERSÃO: Beta v1.439.0
+   LINHAS: 17158
+   DATA: 19/10/2026 (sessão 20261019-1250-carga-silva-patrimonio, demanda 9404081c)
+   NOVIDADES (Beta v1.439.0) — PATRIMÔNIO POR RAMO (PROTOTIPO_PATRIMONIO_RAMOS_RAIZ v1.0.0, opção A; decisões do Nicola 19/10
+   12:44): o rodapé diz Patrimônio; em Todo o patrimônio cada ramo tem o card que estava no Hoje (ícone do ramo, Valor ou
+   Vidas, quantidade, alertas) e "Ver só" filtra só esta tela, com "Ver todos"; a linha das áreas liga o ícone do principal
+   aos ícones das áreas; o "+" redondo de Patrimônio e do Financeiro vira ⋮; Arquivados no ⋮; a Agenda abre no Mês; no Hoje
+   fica a árvore, e tocar num ramo abre Patrimônio filtrado. cofre-ativos.js 1.124.0, cofre-app.js 1.52.0,
+   ativos-markup.js 1.66.0, agenda.js 1.7.0.
+   Versão anterior (Beta v1.438.2):
    NOVIDADES (Beta v1.438.2) — ÍCONES (Nicola 19/10 12:16): criança volta ao ícone de pessoa (idoso a partir de 65 fica);
    os ícones pelo tipo já aparecem na primeira abertura de Ativos. cofre-ativos.js 1.123.0, cofre-validacoes.js 2.13.0. O
    index só muda o import map.
@@ -28,12 +35,8 @@
    Arquivar. Chip "Arquivados" na lista de Ativos, com Reativar no ⋮ da ficha. cofre-ativos.js 1.120.0, cofre-api.js 1.53.0.
    Banco: ativos_excluir_v1 (fn_ativo_excluir). O index só muda o import map.
    Versão anterior (Beta v1.436.1):
-   NOVIDADES (Beta v1.436.1) — AJUSTES DO L5-A (Nicola 19/10 09:17): sem grupo por ramo; empreendimento só agrupa com mais
-   de 10 ativos; áreas abrem e fecham pela seta e pelo ícone com a quantidade (sai a faixa); etiqueta de status embaixo do
-   nome, com o texto usando a largura toda. cofre-ativos.js 1.119.0.
-   Versão anterior (Beta v1.436.0):
    ------------------------------------------------------------------
-   Versões anteriores (v1.436.0 … v1.436.0): CHANGELOG_APP.md, na raiz do
+   Versões anteriores (v1.436.1 … v1.436.1): CHANGELOG_APP.md, na raiz do
    repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
    das 5 versões mais recentes deste cabeçalho.
 
@@ -61,7 +64,7 @@
          O navegador aplica o mapa também aos imports estáticos dentro dos
          módulos (cofre-app.js → ./cofre-api.js etc.). -->
     <!-- RZ-IMPORTMAP:INICIO -->
-    <script type="importmap">{"imports":{"./js/cadastros.js":"./js/cadastros.js?v=1.3.0","./js/financeiro.js":"./js/financeiro.js?v=1.68.0","./js/fechamento.js":"./js/fechamento.js?v=1.15.0","./js/contratos.js":"./js/contratos.js?v=1.60.0","./js/minutas.js":"./js/minutas.js?v=1.6.0","./js/vitrine.js":"./js/vitrine.js?v=1.6.0","./js/imoveis.js":"./js/imoveis.js?v=1.8.0","./js/cofre-api.js":"./js/cofre-api.js?v=1.53.0","./js/cofre-app.js":"./js/cofre-app.js?v=1.51.0","./js/cofre-ativos.js":"./js/cofre-ativos.js?v=1.123.0","./js/cofre-controles.js":"./js/cofre-controles.js?v=1.62.0","./js/cofre-documentos.js":"./js/cofre-documentos.js?v=2.38.0","./js/cofre-imagem.js":"./js/cofre-imagem.js?v=1.1.0","./js/cofre-estado.js":"./js/cofre-estado.js?v=1.5.2","./js/cofre-navegacao.js":"./js/cofre-navegacao.js?v=1.10.0","./js/cofre-ui.js":"./js/cofre-ui.js?v=1.7.2","./js/cofre-validacoes.js":"./js/cofre-validacoes.js?v=2.13.0","./js/comum-licenca.js":"./js/comum-licenca.js?v=1.9.0","./js/comum-renovacao.js":"./js/comum-renovacao.js?v=1.3.5","./js/comum-minha-empresa.js":"./js/comum-minha-empresa.js?v=1.21.0","./js/comum-pessoas.js":"./js/comum-pessoas.js?v=1.216.0","./js/comum-sobre.js":"./js/comum-sobre.js?v=1.5.0","./js/comum-endereco.js":"./js/comum-endereco.js?v=1.2.0","./js/comum-partes.js":"./js/comum-partes.js?v=1.0.0","./js/resultados.js":"./js/resultados.js?v=2.14.0","./js/indicadores.js":"./js/indicadores.js?v=1.2.0","./js/configuracao-inicial.js":"./js/configuracao-inicial.js?v=1.1.0","./js/relatorios-executivos.js":"./js/relatorios-executivos.js?v=1.6.0","./js/raiz-eventos.js":"./js/raiz-eventos.js?v=1.0.0","./js/raiz-device.js":"./js/raiz-device.js?v=1.1.0","./js/raiz-ui.js":"./js/raiz-ui.js?v=1.5.0","./js/fiscal.js":"./js/fiscal.js?v=1.7.0","./js/ativos/ativos-boot.js":"./js/ativos/ativos-boot.js?v=1.4.0","./js/ativos/ativos-markup.js":"./js/ativos/ativos-markup.js?v=1.65.0","./js/nucleo/porta.js":"./js/nucleo/porta.js?v=1.5.0","./js/partes.js":"./js/partes.js?v=1.1.0","./js/conta.js":"./js/conta.js?v=1.3.0","./js/grupo-visao.js":"./js/grupo-visao.js?v=1.0.0","./js/agenda.js":"./js/agenda.js?v=1.6.0","./js/cofre-membros.js":"./js/cofre-membros.js?v=1.0.0","./js/cockpit-metas.js":"./js/cockpit-metas.js?v=1.0.0"}}</script>
+    <script type="importmap">{"imports":{"./js/cadastros.js":"./js/cadastros.js?v=1.3.0","./js/financeiro.js":"./js/financeiro.js?v=1.68.0","./js/fechamento.js":"./js/fechamento.js?v=1.15.0","./js/contratos.js":"./js/contratos.js?v=1.60.0","./js/minutas.js":"./js/minutas.js?v=1.6.0","./js/vitrine.js":"./js/vitrine.js?v=1.6.0","./js/imoveis.js":"./js/imoveis.js?v=1.8.0","./js/cofre-api.js":"./js/cofre-api.js?v=1.53.0","./js/cofre-app.js":"./js/cofre-app.js?v=1.52.0","./js/cofre-ativos.js":"./js/cofre-ativos.js?v=1.124.0","./js/cofre-controles.js":"./js/cofre-controles.js?v=1.62.0","./js/cofre-documentos.js":"./js/cofre-documentos.js?v=2.38.0","./js/cofre-imagem.js":"./js/cofre-imagem.js?v=1.1.0","./js/cofre-estado.js":"./js/cofre-estado.js?v=1.5.2","./js/cofre-navegacao.js":"./js/cofre-navegacao.js?v=1.10.0","./js/cofre-ui.js":"./js/cofre-ui.js?v=1.7.2","./js/cofre-validacoes.js":"./js/cofre-validacoes.js?v=2.13.0","./js/comum-licenca.js":"./js/comum-licenca.js?v=1.9.0","./js/comum-renovacao.js":"./js/comum-renovacao.js?v=1.3.5","./js/comum-minha-empresa.js":"./js/comum-minha-empresa.js?v=1.21.0","./js/comum-pessoas.js":"./js/comum-pessoas.js?v=1.216.0","./js/comum-sobre.js":"./js/comum-sobre.js?v=1.5.0","./js/comum-endereco.js":"./js/comum-endereco.js?v=1.2.0","./js/comum-partes.js":"./js/comum-partes.js?v=1.0.0","./js/resultados.js":"./js/resultados.js?v=2.14.0","./js/indicadores.js":"./js/indicadores.js?v=1.2.0","./js/configuracao-inicial.js":"./js/configuracao-inicial.js?v=1.1.0","./js/relatorios-executivos.js":"./js/relatorios-executivos.js?v=1.6.0","./js/raiz-eventos.js":"./js/raiz-eventos.js?v=1.0.0","./js/raiz-device.js":"./js/raiz-device.js?v=1.1.0","./js/raiz-ui.js":"./js/raiz-ui.js?v=1.5.0","./js/fiscal.js":"./js/fiscal.js?v=1.7.0","./js/ativos/ativos-boot.js":"./js/ativos/ativos-boot.js?v=1.4.0","./js/ativos/ativos-markup.js":"./js/ativos/ativos-markup.js?v=1.66.0","./js/nucleo/porta.js":"./js/nucleo/porta.js?v=1.5.0","./js/partes.js":"./js/partes.js?v=1.1.0","./js/conta.js":"./js/conta.js?v=1.3.0","./js/grupo-visao.js":"./js/grupo-visao.js?v=1.0.0","./js/agenda.js":"./js/agenda.js?v=1.7.0","./js/cofre-membros.js":"./js/cofre-membros.js?v=1.0.0","./js/cockpit-metas.js":"./js/cockpit-metas.js?v=1.0.0"}}</script>
     <!-- RZ-IMPORTMAP:FIM -->
 
     <!-- ===== PWA: permite "instalar" o app no celular (Android e iPhone) ===== -->
@@ -461,7 +464,14 @@
         .rz-row .rz-ic.rz-ic-grupo{position:relative;overflow:visible;box-shadow:inset 0 0 0 2px var(--ramo-grupo,var(--sprout))}
         .rz-ic-grupo .rz-ic-n{position:absolute;right:-5px;bottom:-5px;min-width:18px;height:18px;padding:0 4px;border-radius:9px;background:var(--ramo-grupo,var(--sprout));color:#fff;font:700 11px/18px var(--font-body);text-align:center;box-shadow:0 0 0 2px var(--card)}
         .rz-ic-grupo img{border-radius:inherit}
-        .rz-sub-row{border-left:2px solid var(--ramo-grupo,var(--line))}
+        /* v1.439.0 (item 40) — a linha sai do ícone do principal (centro a 21px) e chega a cada ícone de sub-ativo */
+        .rz-subs{position:relative;padding-left:40px}
+        .rz-subs>.rz-sub-row{position:relative}
+        .rz-subs>.rz-sub-row::before{content:"";position:absolute;left:-19px;top:-12px;bottom:0;border-left:2px solid var(--ramo-grupo,var(--line))}
+        .rz-subs>.rz-sub-row:last-child::before{bottom:auto;height:calc(50% + 12px)}
+        .rz-subs>.rz-sub-row::after{content:"";position:absolute;left:-19px;top:50%;width:17px;border-top:2px solid var(--ramo-grupo,var(--line))}
+        .rz-ramo-ic{width:28px;height:28px;border-radius:9px;display:inline-flex;align-items:center;justify-content:center;color:var(--card);flex:none}
+        .rz-ramo-ic svg{width:15px;height:15px}
         /* v1.436.1 (dem 9404081c, ajuste do Nicola 19/10 09:17) — na lista de Ativos a etiqueta de status fica embaixo do nome */
         .rz-row .rz-tx .rz-tx-st{margin:4px 0 2px;line-height:1}
         .rz-row .rz-tx .rz-tx-st .rz-st{display:inline-flex;margin-top:0;overflow:visible}
@@ -2543,7 +2553,7 @@
              tab-imoveis) — mesmo ícone, mesma tela, só ganhou o vizinho. -->
         <button onclick="irParaAbaRodape('tab-ativos')" id="btn-tab-ativos" class="flex-1 flex flex-col items-center justify-center py-2 gap-0.5">
             <svg data-lucide="boxes" style="width:21px;height:21px"></svg>
-            <span class="text-[12px] font-bold">Ativos</span>
+            <span class="text-[12px] font-bold">Patrimônio</span>
         </button>
 
         <!-- v1.88.0 — pedido explícito, seguindo a proposta do protótipo:
@@ -3684,7 +3694,7 @@
                 <button type="button" class="rz-ico-btn" onclick="financeiroMudarCompetencia(1)" aria-label="Próximo mês"><svg data-lucide="chevron-right"></svg></button>
                 </div>
                 <button type="button" class="rz-ico-btn rz-fin-lupa" onclick="rzFinAlternarBusca('mensal')" aria-label="Buscar"><svg data-lucide="search"></svg></button>
-                <button type="button" class="rz-ico-btn rz-primary" onclick="abrirLancarFinanceiro('mensal')" aria-label="Lançar"><svg data-lucide="plus"></svg></button>
+                <button type="button" class="rz-ico-btn" onclick="abrirLancarFinanceiro('mensal')" aria-label="Lançar"><svg data-lucide="more-vertical"></svg></button>
             </div>
             <div class="rz-seg rz-seg-4 rz-fin-abas" id="fin-chips-nivel-mensal"></div>
             <div class="rz-topo rz-fin-busca" id="fin-busca-wrap-mensal">
@@ -3765,7 +3775,7 @@
                 <button type="button" class="rz-ico-btn" onclick="financeiroMudarCompetencia(1)" aria-label="Próximo mês"><svg data-lucide="chevron-right"></svg></button>
                 </div>
                 <button type="button" class="rz-ico-btn rz-fin-lupa" onclick="rzFinAlternarBusca('conciliacao')" aria-label="Buscar"><svg data-lucide="search"></svg></button>
-                <button type="button" class="rz-ico-btn rz-primary" onclick="abrirLancarFinanceiro('conciliacao')" aria-label="Lançar"><svg data-lucide="plus"></svg></button>
+                <button type="button" class="rz-ico-btn" onclick="abrirLancarFinanceiro('conciliacao')" aria-label="Lançar"><svg data-lucide="more-vertical"></svg></button>
             </div>
             <div class="rz-seg rz-seg-4 rz-fin-abas" id="fin-chips-nivel-conciliacao"></div>
             <div class="rz-topo rz-fin-busca" id="fin-busca-wrap-conciliacao">
@@ -3902,7 +3912,7 @@
                 <button type="button" class="rz-ico-btn" onclick="financeiroMudarCompetencia(1)" aria-label="Próximo mês"><svg data-lucide="chevron-right"></svg></button>
                 </div>
                 <button type="button" class="rz-ico-btn rz-fin-lupa" onclick="rzFinAlternarBusca('saidas')" aria-label="Buscar"><svg data-lucide="search"></svg></button>
-                <button type="button" class="rz-ico-btn rz-primary" onclick="abrirLancarFinanceiro('saidas')" aria-label="Lançar"><svg data-lucide="plus"></svg></button>
+                <button type="button" class="rz-ico-btn" onclick="abrirLancarFinanceiro('saidas')" aria-label="Lançar"><svg data-lucide="more-vertical"></svg></button>
             </div>
             <div class="rz-seg rz-seg-4 rz-fin-abas" id="fin-chips-nivel-saidas"></div>
             <div class="rz-topo rz-fin-busca" id="fin-busca-wrap-saidas">
@@ -3945,7 +3955,7 @@
             <!-- v1.115.0 (fatia 7) — "‹ Ativos" (era "Imóveis", tela que o
                  roteador já não alcança) e os 2 ícones no catálogo:
                  Buscar + Gerar link (share, preenchido — é a ação da tela). -->
-            <button onclick="switchTab('tab-ativos')" class="rz-back"><svg data-lucide="chevron-left"></svg> Ativos</button>
+            <button onclick="switchTab('tab-ativos')" class="rz-back"><svg data-lucide="chevron-left"></svg> Patrimônio</button>
             <!-- Compartilhar imóveis (dem ed5accfe): toque escolhe; o botão fixo manda um link só. -->
             <div class="rz-topo">
                 <button type="button" class="rz-search" id="vitrine-busca-btn" onclick="abrirBuscaVitrine()" aria-label="Buscar imóvel"><svg data-lucide="search"></svg><span>Buscar imóvel para compartilhar</span></button>
@@ -4475,7 +4485,7 @@
         // texto certo toda vez (esqueci 5 versões seguidas, de v1.37.1 até
         // v1.38.3). Agora só precisa mudar UMA linha aqui a cada release;
         // window.onload aplica nos dois lugares automaticamente.
-        const APP_VERSAO = "Beta v1.438.2"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
+        const APP_VERSAO = "Beta v1.439.0"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
 
         // ====================================================================
         // v1.105.0 — HELPERS DE SUPERFÍCIE DA GRAMÁTICA ÚNICA
@@ -9086,7 +9096,7 @@ async function criarLinkVitrineSupabase(token, idsSelecionados) {
         // O roteador de sempre virou rzSwitchTabInterno (corpo intacto).
         // ===================================================================
         var RZ_NOME_TAB = {
-            'tab-geral': 'Hoje', 'tab-ativos': 'Ativos', 'tab-contratos': 'Contratos', 'tab-mensal': 'Financeiro',
+            'tab-geral': 'Hoje', 'tab-ativos': 'Patrimônio', 'tab-contratos': 'Contratos', 'tab-mensal': 'Financeiro',
             'tab-relatorios': 'Resultados', 'tab-alertas': 'Agenda', 'tab-fiscal': 'Fiscal', 'tab-fiscal-competencia': 'Fiscal da competência',
             'tab-minha-empresa': 'Minha empresa', 'tab-partes': 'Partes', 'tab-saidas': 'Saídas', 'tab-conciliacao': 'Conciliação',
             'tab-inadimplencia': 'Atrasados', 'tab-pessoas': 'Pessoas', 'tab-minutas': 'Minutas', 'tab-licenca': 'Licença',
@@ -11741,12 +11751,21 @@ async function criarLinkVitrineSupabase(token, idsSelecionados) {
                     `<div class="rz-card">${segs.map(g => `<div class="rz-ramo-seg"><span>${rzEsc(g.sg)}</span><i><em style="width:${Math.round((soma ? g.v : g.q) / max * 100)}%;background:var(--ramo-cor-${r.codigo}, var(--sage))"></em></i><b>${soma && g.v ? formatarValorCompacto(g.v) : g.q + ' ' + un(g.q)}</b></div>`).join('')}</div></section>`;
             }).join('');
             const breve = RZ_RAMOS.filter(r => r.status === 'em_breve').map(r => r.nome);
-            mount.innerHTML = rzArvoreHtml(rows, ativos) + html + (breve.length ? `<div class="rz-ramo-breve">${rzEsc(breve.join(' e '))} chegam em breve.</div>` : '');
+            // v1.439.0 (item 44) — os cards de cada ramo saíram para Patrimônio (Nicola 19/10 12:44); fica a árvore com o resumo
+            void html;
+            mount.innerHTML = rzArvoreHtml(rows, ativos) + (breve.length ? `<div class="rz-ramo-breve">${rzEsc(breve.join(' e '))} chegam em breve.</div>` : '');
             rzIcones();
         }
         // v1.378.0 (C4, PROTOTIPO_CONTINUIDADE_SPLASH_APP_RAIZ v1.0.0) — "Sua árvore": um tronco com os ramos da empresa em
         // leque; o fruto tem o tamanho do ramo (valor; ramo de vidas pela quantidade, menor); ramo contratado sem nada vira
         // broto; tocar no fruto (ou no nome embaixo) troca a lente. Mesmo desenho do splash, sem imagem nova.
+        // v1.439.0 (item 44) — tocar num ramo do resumo abre Patrimônio já com "Ver só" daquele ramo (a lente do app não muda)
+        function rzAbrirPatrimonioRamo(r) {
+            irParaAbaRodape('tab-ativos');
+            let tent = 0;
+            const tentar = () => { if (typeof window.rzPatrimonioVerSo === 'function' && document.getElementById('ativos-lista')) { window.rzPatrimonioVerSo(r); return; } if (++tent < 30) setTimeout(tentar, 100); };
+            setTimeout(tentar, 60);
+        }
         function rzArvoreHtml(rows, ativos) {
             const liberados = ativos.filter(r => typeof rzRamoLiberado !== 'function' || rzRamoLiberado(r.codigo));
             const breves = RZ_RAMOS.filter(r => r.status === 'em_breve');
@@ -11771,13 +11790,13 @@ async function criarLinkVitrineSupabase(token, idsSelecionados) {
                 if (vivo) {
                     const s = d.soma ? Math.sqrt(d.v / maxV) : 0.45 * Math.sqrt(d.n / maxN);
                     const diam = Math.round(26 + 22 * Math.min(1, s));
-                    frutos += `<button type="button" onclick="escolherGeralRamo('${d.r.codigo}')" aria-label="Ver só ${rzEsc(d.r.nome)}" style="left:${(Math.round((x / W * 100) * 10) / 10)}%;top:${(Math.round((y / H * 100) * 10) / 10)}%;width:${diam}px;height:${diam}px;background-color:var(--ramo-cor-${d.r.codigo}, var(--sage))"><svg data-lucide="${rzEsc(d.r.icone || 'circle')}"></svg></button>`;
+                    frutos += `<button type="button" onclick="rzAbrirPatrimonioRamo('${d.r.codigo}')" aria-label="Ver ${rzEsc(d.r.nome)} no Patrimônio" style="left:${(Math.round((x / W * 100) * 10) / 10)}%;top:${(Math.round((y / H * 100) * 10) / 10)}%;width:${diam}px;height:${diam}px;background-color:var(--ramo-cor-${d.r.codigo}, var(--sage))"><svg data-lucide="${rzEsc(d.r.icone || 'circle')}"></svg></button>`;
                 } else {
                     galhos += `<ellipse cx="${Math.round(x)}" cy="${Math.round(y)}" rx="6" ry="9" transform="rotate(${Math.round(ang)} ${Math.round(x)} ${Math.round(y)})" fill="#9cc7a6"/>`;
                 }
             });
             const tronco = `<path d="M${PX - 4} ${H} C${PX - 3} ${H - 20} ${PX - 3} ${PY + 25} ${PX - 2} ${PY} L${PX + 2} ${PY} C${PX + 3} ${PY + 25} ${PX + 3} ${H - 20} ${PX + 4} ${H}Z" fill="#2f5a48"/>`;
-            const leg = dados.filter(d => d.n).map(d => `<button type="button" onclick="escolherGeralRamo('${d.r.codigo}')"><b>${d.soma ? formatarValorCompacto(d.v) : d.n + ' ' + rzEsc(d.n === 1 ? d.r.unidade_singular : d.r.unidade_plural)}</b>${rzEsc(d.r.nome)}</button>`).join('');
+            const leg = dados.filter(d => d.n).map(d => `<button type="button" onclick="rzAbrirPatrimonioRamo('${d.r.codigo}')"><b>${d.soma ? formatarValorCompacto(d.v) : d.n + ' ' + rzEsc(d.n === 1 ? d.r.unidade_singular : d.r.unidade_plural)}</b>${rzEsc(d.r.nome)}</button>`).join('');
             return `<div class="rz-card"><div class="rz-card-h"><h3>Sua árvore</h3></div><div class="rz-arvore"><svg viewBox="0 0 ${W} ${H}" aria-hidden="true">${galhos}${tronco}</svg>${frutos}</div><div class="rz-arvore-leg">${leg}</div></div>`;
         }
 

@@ -1,6 +1,13 @@
 // ============================================================================
 // cofre-ativos.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.123.0 · 19/10/2026
+// Versão: 1.124.0 · 19/10/2026
+//
+// v1.124.0 (19/10/2026, sessão 20261019-1250-carga-silva-patrimonio, demanda 9404081c, itens 40, 43 e 44; PROTOTIPO_PATRIMONIO_RAMOS
+// v1.0.0 opção A, decisões do Nicola 19/10 12:44) — em Todo o patrimônio, um grupo por ramo com o card que estava no Hoje
+// (ícone do ramo, Valor ou Vidas, quantidade, alertas) e "Ver só ›", que filtra só esta tela (verSoRamoPatrimonio; o chip
+// "Ver todos" desfaz; trocar a lente do app também); Arquivados abre pelo ⋮ (verArquivados) e sai dos chips; as áreas ficam
+// ligadas ao ícone do principal por uma linha (CSS .rz-subs no index); empreendimento só agrupa com mais de 10 ativos.
+// Versão anterior: 1.123.0 · 19/10/2026
 //
 // v1.123.0 (19/10/2026, sessão 20261019-1220-carga-silva-icones2, demanda 9404081c, itens 38 e 39; Nicola 19/10 12:16) — a lista
 // carrega o catálogo de tipos também em Todo o patrimônio e repinta: os ícones pelo tipo já aparecem na 1ª abertura.
@@ -20,17 +27,11 @@
 // do Nicola 18/10 23:43) — L5-B: "Excluir" no fim da Situação do ⋮ apaga de verdade (fn_ativo_excluir) o ativo sem nada
 // ligado, com motivo; com vínculo, o banco diz o quê e a tela oferece Arquivar. Chip "Arquivados" no fim da fileira (só
 // com arquivado), com a etiqueta "Arquivado"; a ficha abre e o ⋮ traz Reativar. Arquivar/reativar relê a lista.
-// Versão anterior: 1.119.0 · 19/10/2026
-//
-// v1.119.0 (19/10/2026, sessão 20261019-0920-carga-silva-l5a2, demanda 9404081c; ajustes do Nicola 19/10 09:17 sobre o L5-A) —
-// sai o grupo por ramo; empreendimento só agrupa em carteira com mais de 10 ativos; sai a faixa "▾ N áreas": abre e fecha
-// pela seta e pelo ícone com a quantidade; a etiqueta de status vai para baixo do nome (o texto usa a largura toda, sem a
-// coluna da direita vazia em volta da etiqueta).
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.118.0 … v1.118.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.119.0 … v1.119.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '1.123.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.124.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 import { estado } from './cofre-estado.js';
 import * as api from './cofre-api.js';
 import { mostrarToast, erroInline, refrescarIcones, alternarToggle, abrirModal, fecharModal, modalGenerico, perguntar, avisarComDesfazer, escolher } from './cofre-ui.js';
@@ -509,7 +510,7 @@ export function renderAtivosLista(filtroTipo = '', filtroTexto = '') {
     const soComAlerta = !!GRUPOS_CHIP_TIPO[chipAtivoAtual]?.alerta; // v1.75.0 (F2.2)
     const comAlerta = soComAlerta ? ativosComAlerta(ocorrenciasPorAtivo) : null;
     // v1.120.0 (L5-5) — chip Arquivados: a lista vira a dos arquivados da lente (tocar abre a ficha; Reativar no ⋮)
-    const soArquivados = !!GRUPOS_CHIP_TIPO[chipAtivoAtual]?.arquivados;
+    const soArquivados = modoArquivados; // v1.124.0 — pelo ⋮
     const lista = (soArquivados ? arquivadosDaLente() : principais()).filter(a => {
         if (soArquivados) return ativoBateComBusca(a, null);
         if (ramoLente !== 'tudo' && ramoDoAtivoLista(a) !== ramoLente) return false; // v1.85.0 (F21)
@@ -551,13 +552,40 @@ export function renderAtivosLista(filtroTipo = '', filtroTexto = '') {
     };
     const SEM_EMP = 'Sem empreendimento';
     const agrupar = principais().length > 10 && !soArquivados;
-    const emps = (() => {
-        if (!agrupar) return [{ nome: null, itens: lista }];
+    const porEmp = (l) => {
+        if (!agrupar) return [{ nome: null, itens: l }];
         const g = {};
-        lista.forEach(a => { const k = nomeEmp(a) || SEM_EMP; (g[k] = g[k] || []).push(a); });
+        l.forEach(a => { const k = nomeEmp(a) || SEM_EMP; (g[k] = g[k] || []).push(a); });
         const ks = Object.keys(g).sort((x, y) => x === SEM_EMP ? 1 : y === SEM_EMP ? -1 : x.localeCompare(y, 'pt-BR'));
-        return ks.length === 1 && ks[0] === SEM_EMP ? [{ nome: null, itens: lista }] : ks.map(k => ({ nome: k, itens: g[k] }));
-    })();
+        return ks.length === 1 && ks[0] === SEM_EMP ? [{ nome: null, itens: l }] : ks.map(k => ({ nome: k, itens: g[k] }));
+    };
+    // v1.124.0 (item 44, opção A do PROTOTIPO_PATRIMONIO_RAMOS_RAIZ v1.0.0, Nicola 19/10 12:44) — em Todo o patrimônio, um grupo
+    // por ramo com o card que estava no Hoje: ícone do ramo, nome, "Ver só ›" e Valor (ou Vidas) · quantidade · Alertas; logo
+    // abaixo, a lista do ramo (sem moldura nova). Com "Ver só", o mesmo cabeçalho sem o botão. Numa lente do app, só a lista.
+    const comCards = ramoDaLenteApp() === 'tudo' && !verSoRamo && !soArquivados && !termo && !soComAlerta;
+    const blocos = [];
+    if (comCards) {
+        const ordemRamos = typeof RZ_RAMOS !== 'undefined' ? RZ_RAMOS.map(r => r.codigo) : [];
+        const g = {};
+        lista.forEach(a => { const r = ramoDoAtivoLista(a) || 'outros'; (g[r] = g[r] || []).push(a); });
+        Object.keys(g).sort((x, y) => (ordemRamos.indexOf(x) + 1 || 99) - (ordemRamos.indexOf(y) + 1 || 99))
+            .forEach(r => blocos.push({ ramo: r, itens: g[r] }));
+    } else blocos.push({ ramo: null, itens: lista });
+    const comAlertaTodos = ativosComAlerta(ocorrenciasPorAtivo);
+    const cardRamo = (r, itens) => {
+        const info = (typeof rzRamoInfo === 'function' && rzRamoInfo(r)) || { nome: r, unidade_singular: 'ativo', unidade_plural: 'ativos' };
+        const soma = info.soma_valor !== false;
+        const ramoDe = (x) => ramoDoAtivoLista(x.ativo_principal_id ? (estado.ativos.find(p => p.id === x.ativo_principal_id) || x) : x);
+        const todosDoRamo = estado.ativos.filter(x => (x.status || 'ativo') === 'ativo' && ramoDe(x) === r);
+        const valor = itens.reduce((t, x) => t + Number(x.valor_referencia || 0), 0);
+        const nAl = todosDoRamo.filter(x => comAlertaTodos.has(x.id)).length;
+        const plural = String(info.unidade_plural || 'ativos');
+        const k2 = soma ? `<div><small>${escapeHtml(plural.charAt(0).toUpperCase() + plural.slice(1))}</small><b>${itens.length}</b></div>`
+            : `<div><small>Grupos</small><b>${itens.length}</b></div>`;
+        return `<section class="rz-ramo-sec"><div class="rz-ramo-cab"><span class="rz-ramo-ic" style="background:var(--ramo-cor-${r.replace(/[^a-z_]/g, '')}, var(--sage))"><svg data-lucide="${escapeHtml(info.icone || 'circle')}"></svg></span><h3>${escapeHtml(info.nome)}</h3>` +
+            (verSoRamo ? '' : `<button type="button" onclick="window.rzPatrimonioVerSo && window.rzPatrimonioVerSo('${r}')">Ver só ›</button>`) + `</div>` +
+            `<div class="rz-ramo-k3"><div><small>${soma ? 'Valor' : 'Vidas'}</small><b>${soma ? escapeHtml(compactoRamo(valor)) : todosDoRamo.length}</b></div>${k2}<div><small>Alertas</small><b>${nAl}</b></div></div></section>`;
+    };
     // F2.4 (UXR-15) — carteira só com imóveis: um card de convite no FIM da lista (nunca no topo).
     const soImoveis = principais().length > 0 && principais().every(a => ehCategoriaImovel(categoriaDoAtivo(a.tipo_ativo)));
     const cardConvite = soImoveis && chipAtivoAtual === 0 && !termo ? `
@@ -570,10 +598,13 @@ export function renderAtivosLista(filtroTipo = '', filtroTexto = '') {
     atualizarRotuloBuscaAtivos();
     // v1.96.0 (UX onda 4, D9) — agrupador com total: a soma do valor de referência dos ativos do grupo, à direita
     const compacto = (v) => (typeof window.formatarValorCompacto === 'function' ? window.formatarValorCompacto(v) : Number(v || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 }));
+    const compactoRamo = (v) => compacto(v);
     const totalGrupo = (l) => { const c = l.filter(a => a.valor_referencia != null); return c.length ? compacto(c.reduce((t, a) => t + Number(a.valor_referencia || 0), 0)) : ''; };
-    container.innerHTML = emps.map(e => `
+    const listaHtml = (itens) => porEmp(itens).map(e => `
         ${e.nome ? `<div class="rz-group rz-group-t"><span>${escapeHtml(e.nome)} · ${e.itens.length}</span>${totalGrupo(e.itens) ? `<b>${totalGrupo(e.itens)}</b>` : ''}</div>` : ''}
-        <div class="rz-card rz-list">${e.itens.map(soArquivados ? ativoCardArquivadoHtml : ativoComSubativosHtml).join('')}</div>`).join('') + (soArquivados ? '' : cardConvite);
+        <div class="rz-card rz-list">${e.itens.map(soArquivados ? ativoCardArquivadoHtml : ativoComSubativosHtml).join('')}</div>`).join('');
+    const cabVerSo = verSoRamo && ramoDaLenteApp() === 'tudo' && !soArquivados ? cardRamo(verSoRamo, lista) : '';
+    container.innerHTML = cabVerSo + blocos.map(bl => (bl.ramo ? cardRamo(bl.ramo, bl.itens) : '') + listaHtml(bl.itens)).join('') + (soArquivados ? '' : cardConvite);
 
     // v1.121.0 (item 33, Nicola 19/10 11:19) — lente de um ramo sem nenhum ativo mostra o card de cadastro daquele ramo (antes:
     // "Todos 0" e um card vazio). Com ativo mas sem resultado na busca/chip, uma linha de texto, nunca um card em branco.
@@ -685,7 +716,16 @@ if (typeof window !== 'undefined') window.addEventListener('cofre:recarregar-ati
 const arquivadosDaLente = () => (ativosArquivados || []).filter(a => ramoDaLente() === 'tudo' || ramoDoAtivoLista(a) === ramoDaLente());
 
 // ---- Ramo da lente (F21) -------------------------------------------------------------------------
-const ramoDaLente = () => (typeof window !== 'undefined' && typeof window.rzRamoAtual === 'function') ? window.rzRamoAtual() : 'tudo';
+// v1.124.0 (item 44, Nicola 19/10 12:44: "Ver só" filtra só a tela de Patrimônio) — a lente do app (cabeçalho) e o "Ver só"
+// desta tela: ramoDaLente() é o ramo EFETIVO da tela (lente do app; em Todo o patrimônio, o "Ver só" escolhido); a lente do
+// app pura é ramoDaLenteApp(). Trocar a lente do app desfaz o "Ver só".
+const ramoDaLenteApp = () => (typeof window !== 'undefined' && typeof window.rzRamoAtual === 'function') ? window.rzRamoAtual() : 'tudo';
+let verSoRamo = null;
+let modoArquivados = false; // v1.124.0 — Arquivados abre pelo ⋮ (sai dos chips)
+const ramoDaLente = () => { const l = ramoDaLenteApp(); return l !== 'tudo' ? l : (verSoRamo || 'tudo'); };
+export function verSoRamoPatrimonio(r) { verSoRamo = r || null; modoArquivados = false; chipAtivoAtual = 0; segmentoChip = null; redesenharComFiltros(); }
+export function verArquivados() { modoArquivados = true; chipAtivoAtual = 0; segmentoChip = null; garantirArquivados(); redesenharComFiltros(); }
+if (typeof window !== 'undefined') { window.rzPatrimonioVerSo = verSoRamoPatrimonio; window.rzPatrimonioArquivados = verArquivados; }
 function ramoDoAtivoLista(a) {
     const det = tipoDoCatalogo(a.tipo_detalhe_id);
     if (typeof rzRamoDoAtivo === 'function') return rzRamoDoAtivo({ id: a.id, ramo: a.ramo, modelo_repouso: a.modelo_repouso, tipo_ativo: a.tipo_ativo, tipo_detalhe: det }); // F25: modelo vigente
@@ -711,12 +751,15 @@ function recalcularGruposChip() {
         ativosDoRamo().forEach(a => { const sg = segmentoDoAtivo(a); const o = tipoDoCatalogo(a.tipo_detalhe_id)?.ordem ?? 999; if (!ordem.has(sg) || o < ordem.get(sg)) ordem.set(sg, o); });
         GRUPOS_CHIP_TIPO = base.concat([...ordem.keys()].sort((x, y) => (ordem.get(x) - ordem.get(y)) || x.localeCompare(y, 'pt-BR')).map(sg => ({ rotulo: sg, tipos: [], segmento: sg })));
     }
-    GRUPOS_CHIP_TIPO = GRUPOS_CHIP_TIPO.concat([{ rotulo: 'Arquivados', tipos: [], arquivados: true }]); // v1.120.0 (L5-5)
+    // v1.124.0 — "Ver só" (item 44): na frente, o chip "Ver todos" que desfaz; Arquivados (pelo ⋮): um chip só, que fecha
+    if (verSoRamo && ramoDaLenteApp() === 'tudo') GRUPOS_CHIP_TIPO = [{ rotulo: 'Ver todos', tipos: null, sair: 'ramo' }].concat(GRUPOS_CHIP_TIPO.map(g => g.rotulo === 'Todos' ? { ...g, rotulo: (typeof rzRamoInfo === 'function' && rzRamoInfo(verSoRamo)?.nome) || 'Todos' } : g));
+    if (modoArquivados) GRUPOS_CHIP_TIPO = [{ rotulo: 'Arquivados', tipos: [], arquivados: true, sair: 'arquivados' }];
+    if (verSoRamo && ramoDaLenteApp() === 'tudo' && !modoArquivados && chipAtivoAtual === 0) chipAtivoAtual = 1;
     if (chipAtivoAtual >= GRUPOS_CHIP_TIPO.length) { chipAtivoAtual = 0; segmentoChip = null; }
 }
 if (typeof window !== 'undefined') {
     window.addEventListener('raiz:ramo', () => {
-        chipAtivoAtual = 0; segmentoChip = null;
+        chipAtivoAtual = 0; segmentoChip = null; verSoRamo = null; modoArquivados = false;
         if (document.getElementById('ativos-lista')) renderAtivosLista('', document.getElementById('filtro-ativo-busca')?.value || '');
     });
 }
@@ -766,6 +809,7 @@ function renderChipsAtivos() {
             : g.segmento ? base.filter(a => segmentoDoAtivo(a) === g.segmento).length // v1.85.0 (F22) — chip de segmento
             : (g.tipos ? base.filter(a => g.tipos.includes(a.tipo_ativo)).length : base.length);
         const ativo = i === chipAtivoAtual;
+        if (g.sair) return `<button type="button" data-action="filtrar-ativos-chip" data-chip-indice="${i}" class="rz-chip${g.sair === 'arquivados' ? ' rz-on' : ''}" aria-label="${g.sair === 'ramo' ? 'Ver todos os ramos' : 'Fechar arquivados'}"><svg data-lucide="x" style="width:13px;height:13px;vertical-align:-2px"></svg> ${escapeHtml(g.rotulo)}${g.sair === 'arquivados' ? ` <span class="rz-n">${qtd}</span>` : ''}</button>`;
         if ((g.alerta || g.arquivados) && !qtd && !ativo) return ''; // chip de ação só aparece com contador > 0 (UXR-15)
         if (g.tipos && g.tipos.length && !qtd && !ativo) return ''; // recorte vazio vira convite (abaixo)
         if ((g.ramo || g.segmento) && !qtd && !ativo) return ''; // v1.85.0 — ramo/segmento vazio não aparece
@@ -872,6 +916,8 @@ export function abrirBuscaAtivos() {
 export function aplicarFiltroChipAtivos(indice) {
     if (indice < 0 || indice >= GRUPOS_CHIP_TIPO.length) return;
     const g = GRUPOS_CHIP_TIPO[indice];
+    if (g.sair === 'ramo') { verSoRamoPatrimonio(null); return; } // v1.124.0 — "Ver todos"
+    if (g.sair === 'arquivados') { modoArquivados = false; chipAtivoAtual = 0; redesenharComFiltros(); return; }
     if (g.ramo && typeof window.escolherGeralRamo === 'function') { window.escolherGeralRamo(g.ramo); return; } // v1.85.0 — troca a lente
     chipAtivoAtual = indice;
     segmentoChip = g.segmento || null;
@@ -959,8 +1005,9 @@ function ativoComSubativosHtml(a) {
     const botao = `<button type="button" class="rz-subs-toggle" data-subs-toggle="${a.id}" aria-expanded="${aberto}" aria-label="${aberto ? 'Fechar' : 'Mostrar'} ${escapeHtml(nomeSub.toLowerCase())}" ${toggle}
         style="background:none;border:0;padding:10px 4px 10px 10px;margin:-10px -4px -10px 0;color:inherit;cursor:pointer;display:flex"><svg data-lucide="${aberto ? 'chevron-up' : 'chevron-down'}" class="rz-chev"></svg></button>`;
     if (k >= 0) html = html.slice(0, k) + botao + html.slice(k + '<svg data-lucide="chevron-right" class="rz-chev"></svg>'.length);
-    const filhos = subs.map(x => ativoCardHtml(x).replace('<div class="rz-row rz-link"', `<div class="rz-row rz-link rz-sub-row" style="padding-left:12px;margin-left:10px;--ramo-grupo:${corRamo}"`)).join('');
-    return html + `<div class="rz-subs${aberto ? '' : ' hidden'}" data-subs-de="${a.id}">${filhos}</div>`;
+    const filhos = subs.map(x => ativoCardHtml(x).replace('<div class="rz-row rz-link"', '<div class="rz-row rz-link rz-sub-row"')).join('');
+    // v1.124.0 (item 40) — a linha sai do ícone do principal e chega ao ícone de cada sub-ativo (CSS .rz-subs, index)
+    return html + `<div class="rz-subs${aberto ? '' : ' hidden'}" data-subs-de="${a.id}" style="--ramo-grupo:${corRamo}">${filhos}</div>`;
 }
 // v1.120.0 (L5-5) — linha do arquivado: o card de sempre com a etiqueta "Arquivado" no lugar do uso
 function ativoCardArquivadoHtml(a) {

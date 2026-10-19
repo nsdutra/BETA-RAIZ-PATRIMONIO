@@ -1,6 +1,9 @@
 // ============================================================================
 // js/ativos/ativos-markup.js — Raiz Patrimônio · Módulo Único, fatia frontend 1
-// Versão: 1.65.0 · 15/10/2026
+// Versão: 1.66.0 · 19/10/2026
+//
+// v1.66.0 (19/10/2026, sessão 20261019-1250-carga-silva-patrimonio, demanda 9404081c) — item 43: o botão redondo "+" do topo de Patrimônio vira o ⋮ (mesmas opções).
+// Versão anterior: 1.65.0 · 15/10/2026
 //
 // v1.65.0 (15/10/2026, sessão 20261015-0816-convite, demanda c59f09c5) — "Controlar vencimento" do upload ganha o tipo
 // "Eventos e viagens" (convite de festa lido pela IA).
@@ -20,19 +23,11 @@
 // tela "Confira o documento": cartão de confirmação rápida (#uc-rapido) acima do formulário, que passa a morar em
 // #uc-completo; o "Início" do controle ganha id (#uc-ctl-inicio-wrap) para sair da tela quando o controle é de
 // documento; o botão Salvar ganha id (#uc-salvar) para virar "Confirmar e controlar" no modo rápido.
-//
-// Versão anterior: 1.61.0 · 12/10/2026
-//
-// v1.61.0 (12/10/2026, sessão 20261012-0215-ux-onda3b, demanda a05ad2ee; UX onda 3, estudo PROTOTIPO_UX_DENSIDADE_RAMOS_RAIZ
-// v1.2.0 D11/D12, "pode avançar" do Nicola 12/10 01:53) — os ⋮ dos cabeçalhos dos cards da ficha do ativo saem (Dados,
-// Propriedade, Contratos, Itens de controle, Anexos, Fotos): as ações moram no ⋮ do topo (cofre-ativos 1.94.0). Adicionar
-// vira a última linha do card: "+ Adicionar uso", "+ Adicionar item de controle", "+ Adicionar documento",
-// "+ Adicionar fotos".
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.60.0 … v1.60.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.61.0 … v1.61.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '1.65.0'; // v-check (28/09/2026): lido por Dev › Versões — manter igual ao header
+export const VERSAO = '1.66.0'; // v-check (28/09/2026): lido por Dev › Versões — manter igual ao header
 export const ATIVOS_MARKUP = `<style>
     /* v1.94.1 (31/08/2026, pedido explícito: "anexo uma barra de
        rolagem que fica feia... ao rolar os chips não mostrar a barra")
@@ -203,8 +198,9 @@ export const ATIVOS_MARKUP = `<style>
                  Novo ativo · Compartilhar imóveis). (dem fcd3008d) -->
             <div class="rz-topo">
                 <label class="rz-search rz-search-in" id="ativos-busca-btn"><i data-lucide="search"></i><input type="search" id="ativos-busca-q" class="rz-raw" placeholder="Buscar ativo, locatário ou item" enterkeyhint="search" autocomplete="off" aria-label="Buscar ativo"></label>
-                <button data-action="abrir-acoes-ativos" id="btn-toggle-ativo" class="rz-ico-btn rz-primary" title="Adicionar" aria-label="Adicionar">
-                    <i data-lucide="plus"></i>
+                <!-- v1.66.0 (item 43, Nicola 19/10 12:16) — o "+" redondo vira o ⋮ com as mesmas opções -->
+                <button data-action="abrir-acoes-ativos" id="btn-toggle-ativo" class="rz-ico-btn" title="Mais ações" aria-label="Mais ações">
+                    <i data-lucide="more-vertical"></i>
                 </button>
             </div>
 

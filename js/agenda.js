@@ -1,8 +1,11 @@
 // =====================================================================
 // RAIZ PATRIMÔNIO — js/agenda.js
-// VERSÃO: Beta v1.6.0 (19/10/2026 — demanda 9404081c)
+// VERSÃO: Beta v1.7.0 (19/10/2026 — demanda 9404081c)
 // LINHAS: (ver versoes.json)
 // -----------------------------------------------------------------
+// NOVIDADES (Beta v1.7.0) — Nicola 19/10 12:16 (dem 9404081c, item 42; sessão 20261019-1250-carga-silva-patrimonio): a Agenda
+//   abre no Mês e as abas ficam Mês · Semana · Alertas. A escolha da pessoa vale enquanto o app estiver aberto.
+// Versão anterior (Beta v1.6.0):
 // NOVIDADES (Beta v1.6.0) — Nicola 19/10 11:19 (dem 9404081c, itens 35 e 36; sessão 20261019-1125-carga-silva-ajustes):
 //   — volta a lista de alertas de antes como a vista "Alertas", ao lado de Semana e Mês: é o bloco #agenda-lista do index
 //     (busca, severidade, linhas e gestos de sempre, montarAlertasPatrimonio), mostrado logo abaixo das abas;
@@ -63,7 +66,7 @@
 // formatarMoedaBR, abrirSheet, abrirSheetAcoes, rzSheetCabecalho, fecharSheet, abrirAlertaItemControle,
 // abrirFichaContrato, switchTab, mostrarToast, rzDev.
 
-export const VERSAO = '1.6.0';
+export const VERSAO = '1.7.0';
 
 const TIPOS = {
     ocorrencia:   { rotulo: 'Ocorrência',  icone: 'wrench',          dominio: 'ocorrencias' },
@@ -81,7 +84,7 @@ const MES_CURTO = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set'
 const DIA_SEM = ['dom', 'seg', 'ter', 'qua', 'qui', 'sex', 'sáb'];
 const JANELA_ATENCAO = 7; // D7.10
 
-const st = { vista: 'semana', semana: null, mes: null, dia: null, status: new Set(), assuntos: null, dados: [], seq: 0, el: null };
+const st = { vista: 'mes', semana: null, mes: null, dia: null, status: new Set(), assuntos: null, dados: [], seq: 0, el: null };
 
 // ---- datas (data local, ISO yyyy-mm-dd)
 const iso = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
@@ -168,7 +171,7 @@ function intervaloContado() { // o que os números contam (sem as bordas da grad
 export async function montarAgenda(vista, el) {
     st.el = el || st.el;
     if (!st.el) return;
-    st.vista = ['semana', 'mes', 'alertas'].includes(vista) ? vista : (st.vista || 'semana'); // v1.6.0 — + Alertas; sem vista: mantém a atual
+    st.vista = ['semana', 'mes', 'alertas'].includes(vista) ? vista : (st.vista || 'mes'); // v1.6.0 — + Alertas; sem vista: mantém a atual
     if (!st.mes) st.mes = new Date(hoje().getFullYear(), hoje().getMonth(), 1);
     if (!st.dia) st.dia = iso(hoje());
     if (!st.semana) st.semana = inicioSemana(hoje());
@@ -217,7 +220,7 @@ function desenhar(carregando) {
     const todos = st.assuntos.size === ASSUNTOS.length;
     const rotAss = todos ? 'Assunto' : !st.assuntos.size ? 'Nenhum assunto' : st.assuntos.size === 1 ? ASSUNTOS.find(a => st.assuntos.has(a[0]))[1] : `Assunto · ${st.assuntos.size} de ${ASSUNTOS.length}`;
     const abas = `<div class="rz-seg rz-fin-abas" role="tablist" aria-label="Vista da agenda">
-            ${[['semana', 'Semana'], ['mes', 'Mês'], ['alertas', 'Alertas']].map(([k, n]) => `<button type="button" class="${st.vista === k ? 'rz-on' : ''}" data-ag-vista="${k}">${n}</button>`).join('')}
+            ${[['mes', 'Mês'], ['semana', 'Semana'], ['alertas', 'Alertas']].map(([k, n]) => `<button type="button" class="${st.vista === k ? 'rz-on' : ''}" data-ag-vista="${k}">${n}</button>`).join('')}
         </div>`;
     if (st.vista === 'alertas') { // v1.6.0 — título fixo, sem setas de período; a busca e a severidade são as da lista
         st.el.innerHTML = `<div class="rz-fin-topo"><div class="rz-mes-bar rz-mes-titulo"><span class="rz-mes-centro"><b class="rz-mes-label">Alertas</b></span></div></div>${abas}`;
