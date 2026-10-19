@@ -4,6 +4,20 @@ Histórico completo de versões do `index.html`, movido automaticamente pelo `ge
 
 ---
 
+NOVIDADES (Beta v1.439.0) — PATRIMÔNIO POR RAMO (PROTOTIPO_PATRIMONIO_RAMOS_RAIZ v1.0.0, opção A; decisões do Nicola 19/10
+12:44): o rodapé diz Patrimônio; em Todo o patrimônio cada ramo tem o card que estava no Hoje (ícone do ramo, Valor ou
+Vidas, quantidade, alertas) e "Ver só" filtra só esta tela, com "Ver todos"; a linha das áreas liga o ícone do principal
+aos ícones das áreas; o "+" redondo de Patrimônio e do Financeiro vira ⋮; Arquivados no ⋮; a Agenda abre no Mês; no Hoje
+fica a árvore, e tocar num ramo abre Patrimônio filtrado. cofre-ativos.js 1.124.0, cofre-app.js 1.52.0,
+ativos-markup.js 1.66.0, agenda.js 1.7.0.
+Versão anterior (Beta v1.438.2):
+------------------------------------------------------------------
+Versões anteriores (v1.438.2 … v1.438.2): CHANGELOG_APP.md, na raiz do
+repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
+das 5 versões mais recentes deste cabeçalho.
+
+---
+
 NOVIDADES (Beta v1.438.2) — ÍCONES (Nicola 19/10 12:16): criança volta ao ícone de pessoa (idoso a partir de 65 fica);
 os ícones pelo tipo já aparecem na primeira abertura de Ativos. cofre-ativos.js 1.123.0, cofre-validacoes.js 2.13.0. O
 index só muda o import map.

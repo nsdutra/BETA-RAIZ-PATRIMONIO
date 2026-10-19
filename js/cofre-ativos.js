@@ -1,6 +1,10 @@
 // ============================================================================
 // cofre-ativos.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.126.0 · 19/10/2026
+// Versão: 1.127.0 · 19/10/2026
+//
+// v1.127.0 (19/10/2026, sessão 20261019-1716-carga-silva-faixa3, demanda 9404081c, item 50; Nicola 19/10 17:17) — a faixa do ramo
+// não some com chip, busca ou lente de ramo: contador e soma acompanham o filtro.
+// Versão anterior: 1.126.0 · 19/10/2026
 //
 // v1.126.0 (19/10/2026, sessão 20261019-1712-carga-silva-faixa2, demanda 9404081c, itens 47 e 48; Nicola 19/10 17:09–17:10) —
 // a faixa do ramo ganha a setinha ao lado do total; ela e o ícone do ramo recolhem/abrem a lista do ramo.
@@ -20,15 +24,11 @@
 //
 // v1.123.0 (19/10/2026, sessão 20261019-1220-carga-silva-icones2, demanda 9404081c, itens 38 e 39; Nicola 19/10 12:16) — a lista
 // carrega o catálogo de tipos também em Todo o patrimônio e repinta: os ícones pelo tipo já aparecem na 1ª abertura.
-// Versão anterior: 1.122.0 · 19/10/2026
-//
-// v1.122.0 (19/10/2026, sessão 20261019-1140-carga-silva-icones, demanda 9404081c, item 37; Nicola 19/10 11:34) — integrante
-// com ícone de criança, adulto ou idoso pela idade; pet com patinha (iconeHtmlDoAtivo, na lista, nas áreas e na ficha).
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.121.0 … v1.121.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.122.0 … v1.122.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '1.126.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.127.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 import { estado } from './cofre-estado.js';
 import * as api from './cofre-api.js';
 import { mostrarToast, erroInline, refrescarIcones, alternarToggle, abrirModal, fecharModal, modalGenerico, perguntar, avisarComDesfazer, escolher } from './cofre-ui.js';
@@ -559,7 +559,9 @@ export function renderAtivosLista(filtroTipo = '', filtroTexto = '') {
     // v1.124.0 (item 44, opção A do PROTOTIPO_PATRIMONIO_RAMOS_RAIZ v1.0.0, Nicola 19/10 12:44) — em Todo o patrimônio, um grupo
     // por ramo com o card que estava no Hoje: ícone do ramo, nome, "Ver só ›" e Valor (ou Vidas) · quantidade · Alertas; logo
     // abaixo, a lista do ramo (sem moldura nova). Com "Ver só", o mesmo cabeçalho sem o botão. Numa lente do app, só a lista.
-    const comCards = ramoDaLenteApp() === 'tudo' && !verSoRamo && !soArquivados && !termo && !soComAlerta;
+    // v1.127.0 (item 50, Nicola 19/10 17:17) — a faixa do ramo fica também com chip, busca ou numa lente de ramo; quantidade e
+    // soma acompanham o que o filtro deixou. Só os arquivados não têm faixa.
+    const comCards = !soArquivados;
     const blocos = [];
     if (comCards) {
         const ordemRamos = typeof RZ_RAMOS !== 'undefined' ? RZ_RAMOS.map(r => r.codigo) : [];
@@ -578,7 +580,10 @@ export function renderAtivosLista(filtroTipo = '', filtroTexto = '') {
         const ramoDe = (x) => ramoDoAtivoLista(x.ativo_principal_id ? (estado.ativos.find(p => p.id === x.ativo_principal_id) || x) : x);
         const todosDoRamo = estado.ativos.filter(x => (x.status || 'ativo') === 'ativo' && ramoDe(x) === r);
         const valor = itens.reduce((t, x) => t + Number(x.valor_referencia || 0), 0);
-        const direita = soma ? (valor ? compactoRamo(valor) : '') : `${todosDoRamo.length} ${todosDoRamo.length === 1 ? (info.unidade_singular || 'vida') : (info.unidade_plural || 'vidas')}`;
+        // vidas: os grupos que o filtro deixou mais os integrantes deles
+        const ids = new Set(itens.map(x => x.id));
+        const nVidas = todosDoRamo.filter(x => ids.has(x.id) || ids.has(x.ativo_principal_id)).length;
+        const direita = soma ? (valor ? compactoRamo(valor) : '') : `${nVidas} ${nVidas === 1 ? (info.unidade_singular || 'vida') : (info.unidade_plural || 'vidas')}`;
         const cod = r.replace(/[^a-z_]/g, '');
         // v1.126.0 (item 48, Nicola 19/10 17:10) — o ícone do ramo e a setinha ao lado do total recolhem/abrem a lista do ramo
         const fechado = ramosRecolhidos.has(cod);
