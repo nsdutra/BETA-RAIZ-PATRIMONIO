@@ -4,6 +4,18 @@ Histórico completo de versões do `index.html`, movido automaticamente pelo `ge
 
 ---
 
+NOVIDADES (Beta v1.431.0) — RELATÓRIO NOVO "Cadastro da carteira" (de acordo do Nicola 16/10 20:08): em Minha empresa ›
+Relatórios, escolhe o empreendimento (ou todos) e baixa uma planilha .xlsx com imóveis, contratos e locatários, diagnóstico
+por linha e recomendações no fim. Código relatorios.cadastro_carteira (todos os planos com Relatórios). relatorios-executivos.js
+1.5.0. Banco: rel_cadastro_carteira_v1 (fn_relatorio_cadastro_carteira).
+Versão anterior (Beta v1.430.1):
+------------------------------------------------------------------
+Versões anteriores (v1.430.1 … v1.430.1): CHANGELOG_APP.md, na raiz do
+repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
+das 5 versões mais recentes deste cabeçalho.
+
+---
+
 NOVIDADES (Beta v1.430.1) — CORREÇÃO da 1.430.0: a comparação com o ano anterior usa a classe nova .rz-vs (a .rz-cmp já era
 do gráfico Carteira × indicador e ganhava margem e corte). resultados.js 2.11.1.
 Versão anterior (Beta v1.430.0):

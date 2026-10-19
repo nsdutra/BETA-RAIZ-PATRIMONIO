@@ -1,8 +1,15 @@
 // =====================================================================
 // RAIZ PATRIMÔNIO — js/resultados.js
-// VERSÃO: Beta v2.12.0 (18/10/2026 — demanda 63649288)
+// VERSÃO: Beta v2.13.0 (19/10/2026 — demanda 63649288)
 // LINHAS: (ver versoes.json)
 // -----------------------------------------------------------------
+// NOVIDADES (Beta v2.13.0) (19/10/2026, sessão 20261018-2336-usos-lotes, demanda 63649288; FICHA_COCKPIT_METAS_RELATORIO_RAIZ v1.0.0,
+//   de acordo do Nicola 18/10 23:36) — cockpit C2, toque no número: tocar no resultado do herói abre a Composição, com a
+//   trilha Todo o patrimônio › Ramo › Ativo principal › Ativo ("‹" volta um nível) e três vistas: Por grupo (com a variação
+//   sobre o ano anterior; tocar num grupo abre os lançamentos dele), Por mês e Lançamentos (tocar abre o detalhe). Em Todo
+//   o patrimônio, a lista dos ramos desce um nível; na lente, a lista dos ativos (fn_hoje_ramo_indicadores.por_ativo).
+//   Sem função nova: fn_resultado_por_grupo, fn_resultado_mensal e a leitura de lancamentos (RLS da empresa).
+// Versão anterior (Beta v2.12.0):
 // NOVIDADES (Beta v2.12.0) (18/10/2026, sessão 20261018-2336-usos-lotes, demanda 63649288; FICHA_COCKPIT_METAS_RELATORIO_RAIZ v1.0.0,
 //   de acordo do Nicola 18/10 23:36) — cockpit C1, metas do ano: o herói mostra a barra real × meta e "meta até <mês> · faltam"
 //   (lente: fn_hoje_ramo_indicadores.meta; Todo o patrimônio: fn_hoje_por_ramo.consolidado.meta); a margem da lente compara
@@ -70,7 +77,7 @@
 // Versões anteriores (v2.4.0 … v2.4.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '2.12.0';
+export const VERSAO = '2.13.0';
 
 // ---------------------------------------------------------------------
 // Estado do filtro (module-scoped — sobrevive entre renders porque o
@@ -220,6 +227,11 @@ export async function renderResultados(opcoes) {
     filtro.abrangencia = 'carteira'; filtro.alvoId = null; filtro.alvoNome = null;
     const noRamo = filtro.ramo !== 'tudo';
     heroi.innerHTML = noRamo ? montarHeroiRamo(null, true) : montarHeroi(null, null, true);
+    if (!heroi._rzCompo) { // v2.13.0 (cockpit C2) — tocar no resultado do herói abre a composição
+        heroi._rzCompo = true;
+        const abrir = ev => { if (ev.target.closest('[data-rz-compo]') && (ev.type === 'click' || ev.key === 'Enter' || ev.key === ' ')) { ev.preventDefault(); abrirComposicaoHoje(); } };
+        heroi.addEventListener('click', abrir); heroi.addEventListener('keydown', abrir);
+    }
     // v2.7.0 — num ramo, os cards de Resultados ficam em Todo o patrimônio (as funções ainda não recortam por ramo — F23)
     cards.innerHTML = noRamo ? '<div id="resultados-conteudo"></div>'
         : `<h3 class="rz-plain-title">Resultados · ${filtro.ano}</h3><div id="resultados-conteudo">${rzSk('cards', 3)}</div>`;
@@ -291,7 +303,7 @@ function montarHeroi(resumo, perf, carregando, ctx = {}) {
         <b class="rz-heroi-pat">${tem ? formatarPatrimonioCompacto(patrimonio) : traco}</b>
         ${ativosTxt ? `<small>${ativosTxt}</small>` : ''}
         <div class="rz-heroi-res">
-            <div class="rz-heroi-resl"><div><small>${resRotulo}</small><b${resNeg}>${resValor}</b>${resCmp}</div>${spark}</div>${metaHtml}
+            <div class="rz-heroi-resl"><div${tem && !familia ? ' class="rz-tq" role="button" tabindex="0" data-rz-compo aria-label="Ver a composição do resultado"' : ''}><small>${resRotulo}${tem && !familia ? ' <svg data-lucide="chevron-right" class="rz-tq-ic"></svg>' : ''}</small><b${resNeg}>${resValor}</b>${resCmp}</div>${spark}</div>${metaHtml}
             <div class="rz-heroi-3${celulas.length === 1 ? ' rz-um' : celulas.length === 4 ? ' rz-q4' : ''}">${celulas.join('')}</div>
         </div>
         ${seg}
@@ -608,6 +620,170 @@ async function renderizarConteudo() {
         alvo.innerHTML = `<div class="rz-card"><p class="rz-desc">Não deu para carregar os resultados agora.</p><button type="button" class="rz-btn rz-btn-2" id="rz-res-tentar" style="margin-top:10px">Tentar de novo</button></div>`;
         alvo.querySelector('#rz-res-tentar')?.addEventListener('click', () => renderizarConteudo());
     }
+}
+
+// ---------------------------------------------------------------------
+// v2.13.0 (cockpit C2, FICHA_COCKPIT §2) — COMPOSIÇÃO: o detalhe de um número do Hoje.
+// Níveis: tudo (Todo o patrimônio) › ramo › ativo. A trilha guarda o caminho; "‹" volta um nível.
+// ---------------------------------------------------------------------
+let compo = null; // { ano, trilha: [{ nivel, ramo, id, nome }], vista, grupo, cache }
+const COMPO_VISTAS = [['grupo', 'Por grupo'], ['mes', 'Por mês'], ['lanc', 'Lançamentos']];
+
+export function abrirComposicaoHoje() {
+    const trilha = [{ nivel: 'tudo', nome: 'Todo o patrimônio' }];
+    if (filtro.ramo !== 'tudo') trilha.push({ nivel: 'ramo', ramo: filtro.ramo, nome: ramoInfo?.nome || filtro.ramo });
+    compo = { ano: filtro.ano, trilha, vista: 'grupo', grupo: null, cache: {} };
+    desenharComposicao(true);
+}
+
+function compoAtual() { return compo.trilha[compo.trilha.length - 1]; }
+function compoChave(n) { return `${n.nivel}:${n.ramo || ''}:${n.id || ''}`; }
+
+async function compoDados(n) {
+    const k = compoChave(n);
+    if (compo.cache[k]) return compo.cache[k];
+    const base = { p_cliente_id: CLIENTE_ID_SUPABASE, p_nivel: n.nivel === 'ativo' ? 'ativo' : 'carteira', p_id: n.nivel === 'ativo' ? n.id : null, p_uso: null, p_ramo: n.nivel === 'ramo' ? n.ramo : null };
+    const [g, ga, m, filhos] = await Promise.all([
+        dbAuth.rpc('fn_resultado_por_grupo', { ...base, p_ano: compo.ano }),
+        dbAuth.rpc('fn_resultado_por_grupo', { ...base, p_ano: compo.ano - 1 }),
+        dbAuth.rpc('fn_resultado_mensal', { ...base, p_ano: compo.ano }),
+        n.nivel === 'ramo' ? dbAuth.rpc('fn_hoje_ramo_indicadores', { p_cliente_id: CLIENTE_ID_SUPABASE, p_ramo: n.ramo, p_ano: compo.ano }) : Promise.resolve({ data: null }),
+    ]);
+    if (g.error) throw g.error;
+    const d = { grupos: g.data || [], ant: ga.error ? [] : (ga.data || []), mensal: m.error ? [] : (m.data || []),
+        ativos: (filhos.data && Array.isArray(filhos.data.por_ativo)) ? filhos.data.por_ativo : [] };
+    compo.cache[k] = d;
+    return d;
+}
+
+function compoTotais(grupos) {
+    let rec = 0, desp = 0;
+    grupos.forEach(x => { if (x.grupo_resultado === 'fora_resultado') return; if (x.direcao === 'entrada') rec += Number(x.valor) || 0; else desp += Number(x.valor) || 0; });
+    return { rec, desp, res: rec - desp };
+}
+
+async function desenharComposicao(abrirNovo) {
+    const n = compoAtual();
+    const trilhaHtml = compo.trilha.map((t, i) => i === compo.trilha.length - 1 ? `<b>${escR(t.nome)}</b>`
+        : `<button type="button" data-cp-nivel="${i}">${escR(t.nome)}</button>`).join('<span aria-hidden="true">›</span>');
+    const casca = (corpo, sub = '') => `${typeof rzSheetCabecalho === 'function' ? rzSheetCabecalho(`${n.nome} · ${compo.ano}`, sub) : `<h3>${escR(n.nome)}</h3>`}
+        <div class="rz-sh-b"><div class="rz-cp-trilha">${compo.trilha.length > 1 ? `<button type="button" class="rz-cp-volta" data-cp-volta aria-label="Voltar um nível"><svg data-lucide="chevron-left"></svg></button>` : ''}${trilhaHtml}</div>
+        <div class="rz-seg" role="group" aria-label="Vista">${COMPO_VISTAS.map(([v, r]) => `<button type="button" data-cp-vista="${v}" class="${compo.vista === v ? 'rz-on' : ''}">${r}</button>`).join('')}</div>
+        <div id="rz-cp-corpo">${corpo}</div></div>`;
+    let sheet = document.getElementById('rz-sheet');
+    if (abrirNovo || !sheet || !sheet.querySelector('#rz-cp-corpo')) sheet = abrirSheet(casca(rzSk('lista', 4)), { classe: 'rz-cp' });
+    else { sheet.innerHTML = '<div class="rz-grab"></div>' + casca(rzSk('lista', 4)); }
+    let html = '', sub = '';
+    try {
+        const d = await compoDados(n);
+        const t = compoTotais(d.grupos);
+        sub = `Resultado ${moedaCurta(t.res)} · receita ${moedaCurta(t.rec)} · despesa ${moedaCurta(t.desp)}`;
+        if (compo.vista === 'grupo') html = compoPorGrupo(d, n);
+        else if (compo.vista === 'mes') html = compoPorMes(d);
+        else html = await compoLancamentos(n, d);
+    } catch (e) {
+        console.warn('[resultados] composição:', e?.message);
+        html = '<p class="rz-desc">Não deu para carregar agora.</p>';
+    }
+    if (!compo || compoAtual() !== n) return; // trocou de nível enquanto carregava
+    sheet.innerHTML = '<div class="rz-grab"></div>' + casca(html, sub);
+    if (typeof rzIcones === 'function') rzIcones();
+    sheet.querySelectorAll('[data-cp-vista]').forEach(b => b.addEventListener('click', () => { compo.vista = b.dataset.cpVista; if (compo.vista !== 'lanc') compo.grupo = null; desenharComposicao(); }));
+    sheet.querySelectorAll('[data-cp-nivel]').forEach(b => b.addEventListener('click', () => { compo.trilha = compo.trilha.slice(0, Number(b.dataset.cpNivel) + 1); compo.grupo = null; desenharComposicao(); }));
+    sheet.querySelector('[data-cp-volta]')?.addEventListener('click', () => { compo.trilha.pop(); compo.grupo = null; desenharComposicao(); });
+    sheet.querySelectorAll('[data-cp-grupo]').forEach(b => b.addEventListener('click', () => { compo.grupo = { codigo: b.dataset.cpGrupo, nome: b.dataset.cpNome }; compo.vista = 'lanc'; desenharComposicao(); }));
+    sheet.querySelectorAll('[data-cp-ramo]').forEach(b => b.addEventListener('click', () => { compo.trilha.push({ nivel: 'ramo', ramo: b.dataset.cpRamo, nome: b.dataset.cpNome }); compo.grupo = null; desenharComposicao(); }));
+    sheet.querySelectorAll('[data-cp-ativo]').forEach(b => b.addEventListener('click', () => {
+        const pr = b.dataset.cpPrincipal;
+        if (pr && !compo.trilha.some(x => x.id === pr)) compo.trilha.push({ nivel: 'ativo', id: pr, nome: b.dataset.cpPrincipalNome || 'Ativo principal' });
+        compo.trilha.push({ nivel: 'ativo', id: b.dataset.cpAtivo, nome: b.dataset.cpNome }); compo.grupo = null; desenharComposicao();
+    }));
+    sheet.querySelector('[data-cp-semgrupo]')?.addEventListener('click', () => { compo.grupo = null; desenharComposicao(); });
+    sheet.querySelectorAll('[data-cp-lanc]').forEach(b => b.addEventListener('click', () => compoAbrirLancamento(b.dataset.cpLanc)));
+}
+
+function compoPorGrupo(d, n) {
+    const antDe = c => Number((d.ant.find(a => a.grupo_codigo === c) || {}).valor) || 0;
+    const linha = x => {
+        const v = Number(x.valor) || 0, a = antDe(x.grupo_codigo);
+        const bom = x.direcao === 'entrada' ? 'sobe' : 'desce';
+        return `<button type="button" class="rz-row rz-ck-li" data-cp-grupo="${escR(x.grupo_codigo)}" data-cp-nome="${escR(x.grupo_nome)}">
+            <span class="rz-ic"><svg data-lucide="${escR(x.icone || (x.direcao === 'entrada' ? 'trending-up' : 'trending-down'))}"></svg></span>
+            <div class="rz-tx"><b>${escR(x.grupo_nome)}</b><span>${x.qtd} ${Number(x.qtd) === 1 ? 'lançamento' : 'lançamentos'}${a ? ` · ${compo.ano - 1}: ${moedaCurta(a)}` : ''}</span></div>
+            <div class="rz-rt"><b class="${x.direcao === 'entrada' ? 'rz-in' : ''}">${moedaCurta(v)}</b>${a ? comparar(v, a, { bom }) : ''}</div></button>`;
+    };
+    const dentro = d.grupos.filter(x => x.grupo_resultado !== 'fora_resultado');
+    const fora = d.grupos.filter(x => x.grupo_resultado === 'fora_resultado');
+    let html = dentro.length ? `<div class="rz-card rz-list">${dentro.map(linha).join('')}</div>` : '<p class="rz-desc">Sem receita nem despesa no ano.</p>';
+    if (fora.length) html += `<div class="rz-group">Fora do resultado</div><div class="rz-card rz-list">${fora.map(linha).join('')}</div>`;
+    if (n.nivel === 'tudo' && ultimoPorRamo && Array.isArray(ultimoPorRamo.ramos) && ultimoPorRamo.ramos.length && compo.ano === filtro.ano) {
+        html += `<div class="rz-group">Por ramo</div><div class="rz-card rz-list">${ultimoPorRamo.ramos.map(r => `<button type="button" class="rz-row rz-ck-li" data-cp-ramo="${escR(codR(r.codigo))}" data-cp-nome="${escR(r.nome)}">
+            <span class="rz-ck-dot" style="background:var(--ramo-cor-${codR(r.codigo)}, var(--sage))"></span>
+            <div class="rz-tx"><b>${escR(r.nome)}</b><span>receita ${moedaCurta(r.receita)} · despesa ${moedaCurta(r.despesa)}</span></div>
+            <div class="rz-rt"><b class="${Number(r.resultado) < 0 ? 'rz-neg' : ''}">${moedaCurta(r.resultado)}</b></div></button>`).join('')}</div>`;
+    }
+    if (n.nivel === 'ramo' && d.ativos.length) {
+        const nomes = Object.fromEntries(d.ativos.map(a => [a.id, a.nome]));
+        html += `<div class="rz-group">Por ativo</div><div class="rz-card rz-list">${d.ativos.slice(0, 30).map(a => `<button type="button" class="rz-row rz-ck-li" data-cp-ativo="${escR(a.id)}" data-cp-nome="${escR(a.nome)}"${a.principal ? ` data-cp-principal="${escR(a.principal)}" data-cp-principal-nome="${escR(nomes[a.principal] || '')}"` : ''}>
+            <div class="rz-tx"><b>${escR(a.nome)}</b><span>receita ${moedaCurta(a.receita)} · despesa ${moedaCurta(a.despesa)}</span></div>
+            <div class="rz-rt"><b class="${Number(a.resultado) < 0 ? 'rz-neg' : ''}">${moedaCurta(a.resultado)}</b></div></button>`).join('')}</div>`;
+    }
+    return html + '<p class="rz-desc">Toque num grupo para ver os lançamentos.</p>';
+}
+
+function compoPorMes(d) {
+    const ate = compo.ano === ANO_ATUAL ? new Date().getMonth() + 1 : 12;
+    const meses = Array.from({ length: ate }, (_, i) => d.mensal.find(m => Number(m.mes) === i + 1) || { mes: i + 1, recebido: 0, saidas: 0, resultado: 0 });
+    const esc = Math.max(1, ...meses.flatMap(m => [Number(m.recebido) || 0, Number(m.saidas) || 0]));
+    const w = v => Math.max(0, Math.min(100, (Number(v) || 0) / esc * 100)).toFixed(1);
+    return `<div class="rz-rr-leg"><span><i class="rz-rr-rec"></i>receita</span><span><i class="rz-rr-desp"></i>despesa</span></div>` + meses.map(m => {
+        const r = Number(m.resultado) || 0;
+        return `<div class="rz-rr"><span class="rz-rr-pt" style="background:transparent"></span>
+            <span class="rz-rr-nm">${NOMES_MES[m.mes - 1]}<small>receita ${moedaCurta(m.recebido)} · despesa ${moedaCurta(m.saidas)}</small></span>
+            <span class="rz-rr-vl${r < 0 ? ' rz-neg' : ''}">${moedaCurta(r)}</span>
+            <span class="rz-rr-bars"><span><i class="rz-rr-rec" style="width:${w(m.recebido)}%"></i></span><span><i class="rz-rr-desp" style="width:${w(m.saidas)}%"></i></span></span></div>`;
+    }).join('');
+}
+
+let compoLancCache = [];
+async function compoLancamentos(n, d) {
+    let q = dbAuth.from('lancamentos').select('id, descricao, valor, direcao, competencia, data_pagamento, categoria, ativo_id, status')
+        .eq('cliente_id', CLIENTE_ID_SUPABASE).eq('status', 'realizado').in('direcao', ['entrada', 'saida'])
+        .gte('competencia', `${compo.ano}-01-01`).lte('competencia', `${compo.ano}-12-31`);
+    let aviso = '';
+    if (n.nivel === 'ativo') q = q.eq('ativo_id', n.id);
+    else if (n.nivel === 'ramo') {
+        const ids = d.ativos.map(a => a.id);
+        if (!ids.length) return '<p class="rz-desc">Nenhum ativo no ramo com lançamento no ano.</p>';
+        q = q.in('ativo_id', ids);
+        aviso = 'Lançamentos ligados aos ativos do ramo. Os de contrato e os de rateio entram no Por grupo.';
+    }
+    if (compo.grupo) {
+        if (compo.grupo.codigo === 'grp_alugueis') aviso = 'Os aluguéis vêm das mensalidades pagas, em Contratos. Aqui aparecem só os lançados à mão.';
+        const cats = await dbAuth.from('lancamento_categorias').select('codigo').or(`codigo.eq.${compo.grupo.codigo},categoria_pai.eq.${compo.grupo.codigo}`);
+        const cods = (cats.data || []).map(c => c.codigo);
+        q = q.in('categoria', cods.length ? cods : [compo.grupo.codigo]);
+    }
+    const { data, error } = await q.order('valor', { ascending: false }).limit(100);
+    if (error) throw error;
+    compoLancCache = data || [];
+    const filtroTxt = compo.grupo ? `<div class="rz-cp-filtro">Grupo: <b>${escR(compo.grupo.nome)}</b> <button type="button" data-cp-semgrupo aria-label="Tirar o filtro"><svg data-lucide="x"></svg></button></div>` : '';
+    if (!compoLancCache.length) return filtroTxt + `<p class="rz-desc">${aviso || 'Nenhum lançamento no ano.'}</p>`;
+    return filtroTxt + `<div class="rz-card rz-list">${compoLancCache.map(l => `<button type="button" class="rz-row rz-ck-li" data-cp-lanc="${escR(l.id)}">
+            <div class="rz-tx"><b>${escR(l.descricao || l.categoria || 'Lançamento')}</b><span>${escR(competenciaCurta(l.competencia))}${l.data_pagamento ? ' · pago ' + escR(typeof formatarDataBR === 'function' ? formatarDataBR(l.data_pagamento) : l.data_pagamento) : ''}</span></div>
+            <div class="rz-rt"><b class="${l.direcao === 'entrada' ? 'rz-in' : ''}">${l.direcao === 'saida' ? '−' : ''}${moedaInteira(l.valor)}</b></div></button>`).join('')}</div>`
+        + (compoLancCache.length === 100 ? '<p class="rz-desc">Mostrando os 100 maiores.</p>' : '') + (aviso ? `<p class="rz-desc">${escR(aviso)}</p>` : '');
+}
+
+function compoAbrirLancamento(id) {
+    const l = compoLancCache.find(x => x.id === id);
+    if (!l) return;
+    const acoes = [{ icone: 'calendar', titulo: `Competência ${competenciaCurta(l.competencia)}`, sub: l.data_pagamento ? 'Pago em ' + (typeof formatarDataBR === 'function' ? formatarDataBR(l.data_pagamento) : l.data_pagamento) : 'Realizado', aoTocar: () => {}, manterAberto: true }];
+    if (l.ativo_id && l.direcao === 'saida' && typeof window.abrirSaidasFiltradasPorAtivo === 'function') {
+        acoes.push({ icone: 'wallet', titulo: 'Ver no Financeiro', sub: 'Saídas deste ativo', aoTocar: () => { fecharSheet(true); switchTab('tab-financeiro'); setTimeout(() => window.abrirSaidasFiltradasPorAtivo(l.ativo_id, ''), 300); } });
+    }
+    if (l.ativo_id) acoes.push({ icone: 'box', titulo: 'Abrir o ativo', aoTocar: () => { fecharSheet(true); abrirAtivoHoje(l.ativo_id); } });
+    abrirSheetAcoes({ titulo: `${l.direcao === 'saida' ? '−' : ''}${moedaInteira(l.valor)}`, sub: l.descricao || l.categoria || '', acoes, empilhar: true });
 }
 
 // ---------------------------------------------------------------------
