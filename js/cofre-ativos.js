@@ -1,6 +1,13 @@
 // ============================================================================
 // cofre-ativos.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.115.0 · 16/10/2026
+// Versão: 1.116.0 · 18/10/2026
+//
+// v1.116.0 (18/10/2026, sessão 20261018-2343-carga-silva-l4a, demanda 9404081c; FICHA_LOTES_4_5 v1.1.0, de acordo do Nicola
+// 18/10 23:43) — L4-A: lista de Ativos com etiqueta curta (só o nome do uso), "Disponível" na mesma cor fora do imóvel
+// predial, nome em até 2 linhas e recuo menor das áreas, "Sem contrato" só no imóvel predial e ícone do tipo nas fazendas;
+// proprietário opcional (linha vazia não bloqueia o salvar); cabeçalho e menus do sub-ativo com o nome do tipo do catálogo;
+// edição do sub-ativo respeita o contexto do catálogo (sem empreendimento e valor).
+// Versão anterior: 1.115.0 · 16/10/2026
 //
 // v1.115.0 (16/10/2026, sessão 20261016-0105-usos-fatia7-fix, demanda 3022603b; achado do Nicola 16/10 01:03, "Não veio opção
 // de lote pecuária"; "Pode publicar a correção" 01:10) — o 1º seletor do novo ativo ganha as categorias Agro e Pecuária
@@ -27,16 +34,11 @@
 // chips de ramo da lista de ativos só com ramos contratados (rzRamoLiberado); "Adicionar uso" passa a trazer Lavoura
 // (acordo safra), tratada como uso sem contrato até o ciclo da safra (fatia 6b). Obra própria e Operação agro chegam pelo
 // catálogo (migration usos_fatia6a_ramos_v1).
-// Versão anterior: 1.111.0 · 15/10/2026
-//
-// v1.111.0 (15/10/2026, sessão 20261014-2245-ia-integrada, demanda 4a28ad50; FICHA_CONTABILIDADE_ROTINA_CONTADOR_RAIZ v1.1.0, D5) —
-// "Incluir na contabilidade" no ⋮ do ativo com a rotina "Envio ao contador" desligada: inclui e avisa "Ligue o Envio ao
-// contador em Rotinas" (o pacote só sai com a rotina ligada). Com a rotina desligada o ativo novo já nasce fora (banco).
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.110.0 … v1.110.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.111.0 … v1.111.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '1.115.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.116.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 import { estado } from './cofre-estado.js';
 import * as api from './cofre-api.js';
 import { mostrarToast, erroInline, refrescarIcones, alternarToggle, abrirModal, fecharModal, modalGenerico, perguntar, avisarComDesfazer, escolher } from './cofre-ui.js';
@@ -886,7 +888,7 @@ function ativoComSubativosHtml(a) {
         onclick="event.stopPropagation(); window.__rzAlternarSubativos && window.__rzAlternarSubativos('${a.id}', this)"
         style="background:none;border:0;padding:10px 4px 10px 10px;margin:-10px -4px -10px 0;color:inherit;cursor:pointer;display:flex"><svg data-lucide="${aberto ? 'chevron-up' : 'chevron-down'}" class="rz-chev"></svg></button>`;
     if (k >= 0) html = html.slice(0, k) + botao + html.slice(k + '<svg data-lucide="chevron-right" class="rz-chev"></svg>'.length);
-    const filhos = subs.map(x => ativoCardHtml(x).replace('<div class="rz-row rz-link"', `<div class="rz-row rz-link rz-sub-row" style="padding-left:22px;margin-left:20px;--ramo-grupo:${corRamo}"`)).join('');
+    const filhos = subs.map(x => ativoCardHtml(x).replace('<div class="rz-row rz-link"', `<div class="rz-row rz-link rz-sub-row" style="padding-left:12px;margin-left:10px;--ramo-grupo:${corRamo}"`)).join('');
     return html + `<div class="rz-subs${aberto ? '' : ' hidden'}" data-subs-de="${a.id}">${filhos}</div>`;
 }
 window.__rzAlternarSubativos = (id, btn) => {
@@ -964,7 +966,10 @@ function ativoCardHtml(a) {
             : stHoje ? 'Disponível'
             : semStatus || (usoProprio ? 'Em uso' : '');
         const alugado = situacao === 'Alugado';
-        const rsSem = { Alugado: 'ok', Assinando: 'run', 'Disponível': 'warn' }[situacao] || 'neu';
+        // "Disponível" em vinho só onde vago custa (imóvel predial de renda); fazenda, terreno e área ficam em cinza, como no
+        // card genérico — a mesma situação não pode ter duas cores na mesma lista (dem 9404081c, pedido de 18/10)
+        const predial = a.tipo_ativo === 'imovel_predial' || a.tipo_ativo === 'imovel';
+        const rsSem = { Alugado: 'ok', Assinando: 'run', 'Disponível': predial ? 'warn' : 'neu' }[situacao] || 'neu';
         const badgeHtml = !situacao ? '' : (typeof window.renderStatus === 'function') ? window.renderStatus(rsSem, situacao) : `<span class="rz-st rz-${rsSem}">${situacao}</span>`;
 
         // v1.45.0 (17/09/2026, pedido explícito) — a linha "Empreendimento ·
@@ -988,7 +993,8 @@ function ativoCardHtml(a) {
         // diferencia Assinando/Em uso/Vago — não precisa repetir o texto
         // aqui), (4) aluguel — que só aparece quando alugado (senão fica
         // em branco, ou seja, a linha nem é renderizada).
-        const linhaLocatario = alugado ? (principal.locatario || 'Locatário não informado') : 'Sem contrato';
+        // "Sem contrato" só no imóvel predial; fazenda, gleba e terreno sem contrato não ganham linha (dem 9404081c, 18/10)
+        const linhaLocatario = alugado ? (principal.locatario || 'Locatário não informado') : (predial ? 'Sem contrato' : '');
         const aluguelFmt = alugado && principal.valor != null ? `${fmtMoeda(principal.valor)}/mês` : null;
 
         // v1.51.0 — ícone/avatar centralizado na ALTURA da caixa. Imóvel com
@@ -997,10 +1003,10 @@ function ativoCardHtml(a) {
         // propósito, ver nota acima.
         return `<div class="rz-row rz-link" role="button" tabindex="0" data-action="abrir-ativo" data-id="${a.id}" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault(); this.click();}">
             <div class="rz-ic"${resumoImovel.foto ? ' style="overflow:hidden"' : ''}>
-                ${resumoImovel.foto ? `<img src="${resumoImovel.foto}" class="w-full h-full object-cover">` : `<svg data-lucide="home"></svg>`}
+                ${resumoImovel.foto ? `<img src="${resumoImovel.foto}" class="w-full h-full object-cover">` : `<svg data-lucide="${predial ? 'home' : iconeAtivo(a.tipo_ativo)}"></svg>`}
             </div>
             <div class="rz-tx">
-                <b>${escapeHtml(a.nome_exibicao)}</b>
+                <b style="display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;white-space:normal;word-break:break-word">${escapeHtml(a.nome_exibicao)}</b>
                 ${valorFmt ? `<span>${escapeHtml(valorFmt)}</span>` : ''}
                 ${linhaLocatario ? `<span>${escapeHtml(linhaLocatario)}</span>` : ''}
                 ${aluguelFmt ? `<span>${escapeHtml(aluguelFmt)}</span>` : ''}
@@ -1033,13 +1039,14 @@ function ativoCardHtml(a) {
     // v1.97.0 (usos fatia 0) — selo do status de hoje (classe · modelo), o mesmo da ficha e do bot
     const stGen = typeof window.rzStatusDoAtivo === 'function' ? window.rzStatusDoAtivo(a.id) : null;
     const rotSit = { disponivel: ['warn', 'Disponível'], em_uso: ['neu', 'Em uso'], alugado: ['ok', 'Alugado'], assinando: ['run', 'Assinando'] }[a.situacao_uso];
+    // na lista vai só o nome do uso (Lavoura, Disponível, Moradia); "Em produção · Lavoura" fica no topo da ficha (dem 9404081c, 18/10)
     const seloGen = typeof window.renderStatus !== 'function' ? ''
-        : stGen ? window.renderStatus(stGen.sem, stGen.rotulo)
+        : stGen ? window.renderStatus(stGen.sem, stGen.contrato_status === 'assinando' ? stGen.rotulo : stGen.nome)
         : rotSit ? window.renderStatus(rotSit[0], rotSit[1]) : ''; // sem status carregado: a Situação gravada (derivada do uso)
     return `<div class="rz-row rz-link" role="button" tabindex="0" data-action="abrir-ativo" data-id="${a.id}" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault(); this.click();}">
         <div class="rz-ic"><svg data-lucide="${iconeAtivo(a.tipo_ativo)}"></svg></div>
         <div class="rz-tx">
-            <b>${escapeHtml(a.nome_exibicao)}</b>
+            <b style="display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;white-space:normal;word-break:break-word">${escapeHtml(a.nome_exibicao)}</b>
             ${valorFmt ? `<span>${escapeHtml(valorFmt)}</span>` : ''}
             ${modeloAtivo ? `<span>${escapeHtml(modeloAtivo)}</span>` : ''}
             ${identificadorDocumento ? `<span>${escapeHtml(identificadorDocumento)}</span>` : ''}
@@ -1261,8 +1268,12 @@ export async function salvarAtivo() {
     // chip Propriedade usa, agora também na criação (DB também valida
     // via trigger — dupla checagem, nunca confia só no cliente).
     const somaPropriedade = comDivisao ? propriedadeSomaAtual() : 100;
-    if (comDivisao && Math.round(somaPropriedade * 100) / 100 !== 100) {
-        erroInline(statusEl, `⚠️ A soma da divisão societária precisa ser 100% (está em ${somaPropriedade}%).`);
+    // proprietário é opcional (Nicola 16/10, dem 9404081c item 17a): sem nenhuma linha passa; com linhas, a soma tem de dar 100%
+    // linha sem pessoa e sem nome (a que o formulário traz pronta) conta como "sem proprietário", não como erro
+    propriedadeLinhasEmEdicao = (propriedadeLinhasEmEdicao || []).filter(l => l.pessoa_id || (l.nome_externo || '').trim());
+    const temLinhasDono = comDivisao && propriedadeLinhasEmEdicao.length > 0;
+    if (temLinhasDono && Math.round(propriedadeSomaAtual() * 100) / 100 !== 100) {
+        erroInline(statusEl, `⚠️ A soma da divisão societária precisa ser 100% (está em ${propriedadeSomaAtual()}%).`);
         return;
     }
     for (const l of (comDivisao ? propriedadeLinhasEmEdicao : [])) {
@@ -1583,7 +1594,7 @@ export async function abrirAcoesAtivo() {
     let grupoSub = null;
     try { grupoSub = acoesSubativos(a, await carregarEstruturaAtivo(a)); } catch (e) { console.warn('[cofre-ativos] estrutura do ativo:', e?.message || e); }
     if (a.status && a.status !== 'ativo') { // vendido, baixado, arquivado: só a situação (desfazer, reativar)
-        sheetOuAviso({ titulo: a.nome_exibicao, sub: rotuloTipoAtivo(a.tipo_ativo), grupos: [{ titulo: 'Situação', acoes: situacao }].filter(g => g.acoes.length) });
+        sheetOuAviso({ titulo: a.nome_exibicao, sub: tipoDoCatalogo(a.tipo_detalhe_id)?.nome || rotuloTipoAtivo(a.tipo_ativo), grupos: [{ titulo: 'Situação', acoes: situacao }].filter(g => g.acoes.length) });
         return;
     }
     const grupos = [
@@ -1614,7 +1625,7 @@ export async function abrirAcoesAtivo() {
         ] },
         { titulo: 'Situação', acoes: situacao },
     ].filter(g => g.acoes.length);
-    sheetOuAviso({ titulo: a.nome_exibicao, sub: rotuloTipoAtivo(a.tipo_ativo), grupos });
+    sheetOuAviso({ titulo: a.nome_exibicao, sub: tipoDoCatalogo(a.tipo_detalhe_id)?.nome || rotuloTipoAtivo(a.tipo_ativo), grupos });
 }
 
 // ============================================================================
@@ -1775,7 +1786,7 @@ async function montarSubativosAtivo(a) {
     // subativo: contexto no cabeçalho e o caminho de volta ao principal
     if (e.principal) {
         const ctx = document.querySelector('#fa-cabecalho .rz-tx span');
-        if (ctx) ctx.textContent = `${rotuloTipoAtivo(a.tipo_ativo)} · ${sing} de ${e.principal.nome}`;
+        if (ctx) ctx.textContent = `${tipoDoCatalogo(a.tipo_detalhe_id)?.nome || rotuloTipoAtivo(a.tipo_ativo)} · ${sing} de ${e.principal.nome}`;
         card.innerHTML = `<div class="rz-card-h"><h3>${escapeHtml(sing)} de</h3></div>
             <div class="rz-row rz-link" role="button" tabindex="0" data-sub-abrir="${e.principal.id}"><div class="rz-ic"><i data-lucide="corner-left-up"></i></div>
                 <div class="rz-tx"><b>${escapeHtml(e.principal.nome)}</b><span>Ativo principal · toque para abrir</span></div></div>`;
@@ -3117,8 +3128,10 @@ export async function salvarPropriedadeAtivoAtual() {
     const a = estado.ativoEmFoco;
     if (!a) return;
 
+    propriedadeLinhasEmEdicao = (propriedadeLinhasEmEdicao || []).filter(l => l.pessoa_id || (l.nome_externo || '').trim());
     const soma = propriedadeSomaAtual();
-    if (Math.round(soma * 100) / 100 !== 100) {
+    const temLinhas = propriedadeLinhasEmEdicao.length > 0;
+    if (temLinhas && Math.round(soma * 100) / 100 !== 100) {
         mostrarToast(`A soma precisa dar 100% (está em ${soma}%).`, 'erro');
         return;
     }
@@ -3423,7 +3436,12 @@ export async function alternarEditarAtivo() {
     // Achado no teste real, 16/09/2026: empreendimento/valor de
     // referência viraram bloco PRÓPRIO, universal (qualquer tipo de
     // ativo, não só imóvel) — ver renderizarBlocoEmpreendimentoValor.
-    const blocoEmpreendimentoValor = `<div class="rz-campos-imovel grid grid-cols-1 sm:grid-cols-2 gap-3">${renderizarBlocoEmpreendimentoValor('fa-editar-empval-', a, _empreendimentosCache || [], { comFinalidade: !ehCategoriaImovel(a.tipo_ativo) })}</div>`;
+    // sub-ativo (talhão, área, unidade) herda empreendimento e valor do principal: a edição esconde o bloco, como o cadastro
+    // (contexto do catálogo). Sem o bloco, a leitura grava null nos dois — que é o certo para sub-ativo (dem 9404081c, L4-4)
+    const ctxEdicao = a.ativo_principal_id ? 'subativo' : 'ativo';
+    const blocosEdicao = blocosDoFormulario(a.tipo_ativo, a.tipo_detalhe_id, ctxEdicao);
+    const mostraEmpVal = !blocosEdicao || blocosEdicao.has('empreendimento') || blocosEdicao.has('valor_referencia');
+    const blocoEmpreendimentoValor = !mostraEmpVal ? '' : `<div class="rz-campos-imovel grid grid-cols-1 sm:grid-cols-2 gap-3">${renderizarBlocoEmpreendimentoValor('fa-editar-empval-', a, _empreendimentosCache || [], { comFinalidade: !ehCategoriaImovel(a.tipo_ativo) })}</div>`;
     const blocoEndereco = ehCategoriaImovel(a.tipo_ativo)
         ? `<div class="rz-campos-endereco">${renderizarBlocoEndereco('fa-editar-endereco', a, { mostrarBotaoCopiar: false })}</div>`
         : '';
@@ -3453,7 +3471,7 @@ export async function alternarEditarAtivo() {
             `<div class="rz-f"><label>Ramo</label><input type="text" value="${escapeHtml(typeof window.rzNomeRamo === 'function' && a.ramo ? window.rzNomeRamo(a.ramo) : rotuloTipoAtivo(a.tipo_ativo))}" disabled></div>` +
             blocoTipoDetalhe + blocoEmpreendimentoValor +
             `<div class="rz-f"><label>Nome de exibição <i>*</i></label><input type="text" id="fa-editar-nome" value="${escapeHtml(a.nome_exibicao)}"></div>` +
-            `<div class="rz-campos-estruturados" id="fa-editar-campos-estruturados">${renderizarCamposEstruturados(a.tipo_ativo, a.dados_especificos || {}, 'fa-editar-campo-', a.tipo_detalhe_id)}</div>` +
+            `<div class="rz-campos-estruturados" id="fa-editar-campos-estruturados">${renderizarCamposEstruturados(a.tipo_ativo, a.dados_especificos || {}, 'fa-editar-campo-', a.tipo_detalhe_id, ctxEdicao)}</div>` +
             blocoEndereco + blocoImovel;
         window.abrirSheetForm({ titulo: 'Editar campos do ativo', sub: a.nome_exibicao, corpo: campos, rotuloSalvar: 'Salvar',
             aoSalvar: async () => { const ok = await salvarEdicaoAtivo(); return ok !== false; } });
@@ -3487,7 +3505,7 @@ export function aoMudarTipoDetalheEditarAtivo() {
     const sel = document.getElementById('fa-editar-tipo-detalhe');
     const tipoDetalheId = sel && sel.value ? sel.value : null;
     const wrap = document.getElementById('fa-editar-campos-estruturados');
-    if (wrap) wrap.innerHTML = renderizarCamposEstruturados(a.tipo_ativo, a.dados_especificos || {}, 'fa-editar-campo-', tipoDetalheId);
+    if (wrap) wrap.innerHTML = renderizarCamposEstruturados(a.tipo_ativo, a.dados_especificos || {}, 'fa-editar-campo-', tipoDetalheId, a.ativo_principal_id ? 'subativo' : 'ativo');
 }
 
 export async function salvarEdicaoAtivo() {
@@ -3499,7 +3517,7 @@ export async function salvarEdicaoAtivo() {
     // catálogo — ver alternarEditarAtivo, blocoTipoDetalhe fica vazio):
     // mantém o tipo_detalhe_id que o ativo já tinha, não apaga.
     const tipoDetalheId = selDetalhe ? (selDetalhe.value || null) : a.tipo_detalhe_id;
-    const dados = lerCamposEstruturados(a.tipo_ativo, 'fa-editar-campo-', tipoDetalheId);
+    const dados = lerCamposEstruturados(a.tipo_ativo, 'fa-editar-campo-', tipoDetalheId, a.ativo_principal_id ? 'subativo' : 'ativo');
     const patch = { nome_exibicao: nome, tipo_detalhe_id: tipoDetalheId, dados_especificos: dados };
     // Onda 12 (16/09/2026) — empreendimento/valor de referência são
     // universais (qualquer tipo de ativo); entram no mesmo `patch` pra

@@ -4,6 +4,17 @@ Histórico completo de versões do `index.html`, movido automaticamente pelo `ge
 
 ---
 
+NOVIDADES (Beta v1.428.0) — CORREÇÃO (achado do Nicola 16/10 01:03): o novo ativo passa a oferecer as categorias Agro e
+Pecuária no 1º seletor (lote bovino, lote suíno, pasto, lavoura, talhão, máquinas…). cofre-ativos.js 1.115.0 ·
+cofre-validacoes.js 2.8.0.
+Versão anterior (Beta v1.427.0):
+------------------------------------------------------------------
+Versões anteriores (v1.427.0 … v1.427.0): CHANGELOG_APP.md, na raiz do
+repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
+das 5 versões mais recentes deste cabeçalho.
+
+---
+
 NOVIDADES (Beta v1.427.0) — CARGA SILVA CAFÉS, LOTES 1 A 3 (planos de 16/10 00:48, de acordo do Nicola 16/10 00:53): a tela
 de Ativos perde a vista Contratos (contrato e uso pelo ativo); o "Ver o app de" mostra o ícone de cada ramo na sua cor; o
 estado vazio dentro de lista tem uma moldura só; "Comece por aqui" fala em bem, não em imóvel; a situação de cada ativo
