@@ -1,8 +1,14 @@
 // =====================================================================
 // RAIZ PATRIMÔNIO — js/resultados.js
-// VERSÃO: Beta v2.11.1 (16/10/2026 — demanda 3022603b)
+// VERSÃO: Beta v2.12.0 (18/10/2026 — demanda 63649288)
 // LINHAS: (ver versoes.json)
 // -----------------------------------------------------------------
+// NOVIDADES (Beta v2.12.0) (18/10/2026, sessão 20261018-2336-usos-lotes, demanda 63649288; FICHA_COCKPIT_METAS_RELATORIO_RAIZ v1.0.0,
+//   de acordo do Nicola 18/10 23:36) — cockpit C1, metas do ano: o herói mostra a barra real × meta e "meta até <mês> · faltam"
+//   (lente: fn_hoje_ramo_indicadores.meta; Todo o patrimônio: fn_hoje_por_ramo.consolidado.meta); a margem da lente compara
+//   com a da meta; o Resultado por ramo mostra a meta do período de cada ramo e do Consolidado. Exportar ganha "Metas de
+//   <ano>" (js/cockpit-metas.js). Sem meta, nada muda.
+// Versão anterior (Beta v2.11.1):
 // NOVIDADES (Beta v2.11.1) (16/10/2026) — comparação em .rz-vs (a .rz-cmp é do gráfico Carteira × indicador).
 // Versão anterior (Beta v2.11.0):
 // NOVIDADES (Beta v2.11.0) (16/10/2026, sessão 20261016-0945-usos-fatia8, demanda 3022603b; FICHA_FATIA8_HOJE_POR_RAMO_RAIZ v1.2.0 e
@@ -64,7 +70,7 @@
 // Versões anteriores (v2.4.0 … v2.4.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '2.11.1';
+export const VERSAO = '2.12.0';
 
 // ---------------------------------------------------------------------
 // Estado do filtro (module-scoped — sobrevive entre renders porque o
@@ -80,6 +86,7 @@ const CONTEXTO_USO = { tudo: null, comercial: 'comercial', familia: 'nao_comerci
 const CONTEXTO_ROTULO = { tudo: 'Todos', comercial: 'Comercial', familia: 'Uso próprio' }; // v2.6.0 — uso, dentro do ramo
 // v2.7.0 (F21) — o ramo vem da lente do cabeçalho (index.html), com o cadastro dele (ativo_ramos)
 let ramoInfo = null; // { codigo, nome, unidade_singular, unidade_plural, soma_valor, tem_uso }
+let ultimoPorRamo = null; // v2.12.0 — última leitura de fn_hoje_por_ramo (escolha do ramo em Metas)
 const ABRANGENCIA_ROTULO = { carteira: 'Carteira', empreendimento: 'Empreendimento', imovel: 'Imóvel' };
 const NOMES_MES = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
 const NOMES_MES_LONGO = ['janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho', 'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro'];
@@ -262,6 +269,7 @@ function montarHeroi(resumo, perf, carregando, ctx = {}) {
     const resCmp = ant && !familia ? comparar(resultadoAno, ant.resultado_liquido_ano)
         : (ant && familia ? comparar(saidasAno, ant.saidas_ano, { bom: 'desce' }) : '');
     const spark = tem && ctx.mensal ? sparkSvg(ctx.mensal) : '';
+    const metaHtml = tem && !familia ? metaHeroiHtml(resultadoAno, ctx.meta, moeda) : ''; // v2.12.0 (cockpit C1)
     let ativosTxt = totalAtivos == null ? '' : `${totalAtivos} ${Number(totalAtivos) === 1 ? 'ativo' : 'ativos'}`;
     if (filtro.ramo !== 'tudo' && ind && ind.qtd != null) { // v2.11.0 — na lente, a unidade do ramo (lotes, talhões, bens)
         const q = Number(ind.qtd);
@@ -283,11 +291,23 @@ function montarHeroi(resumo, perf, carregando, ctx = {}) {
         <b class="rz-heroi-pat">${tem ? formatarPatrimonioCompacto(patrimonio) : traco}</b>
         ${ativosTxt ? `<small>${ativosTxt}</small>` : ''}
         <div class="rz-heroi-res">
-            <div class="rz-heroi-resl"><div><small>${resRotulo}</small><b${resNeg}>${resValor}</b>${resCmp}</div>${spark}</div>
+            <div class="rz-heroi-resl"><div><small>${resRotulo}</small><b${resNeg}>${resValor}</b>${resCmp}</div>${spark}</div>${metaHtml}
             <div class="rz-heroi-3${celulas.length === 1 ? ' rz-um' : celulas.length === 4 ? ' rz-q4' : ''}">${celulas.join('')}</div>
         </div>
         ${seg}
     </div>`;
+}
+
+// v2.12.0 (cockpit C1, D-CK2) — real × meta do período: barra (real e traço da meta até o mês, na escala da meta do ano)
+// e a frase "meta até <mês>: R$ X · faltam R$ Y". Sem meta, nada.
+function metaHeroiHtml(real, meta, moeda) {
+    if (!meta || meta.ate_mes == null) return '';
+    const r = Number(real) || 0, ate = Number(meta.ate_mes) || 0, noAno = Number(meta.ano) || 0, mes = Number(meta.mes) || 0;
+    const pc = x => Math.max(0, Math.min(100, x)).toFixed(1);
+    const barra = noAno > 0 ? `<div class="rz-mt-bar" aria-hidden="true"><span class="rz-mt-ex" style="width:${pc(r / noAno * 100)}%"></span><span class="rz-mt-mk" style="left:${pc(ate / noAno * 100)}%"></span></div>` : '';
+    if (!mes) return barra + notaCmp(`meta do ano: ${moeda(noAno)}`);
+    const dif = r - ate;
+    return barra + notaCmp(`meta até ${MES_CURTO_IND[mes - 1]}: ${moeda(ate)} · ${dif >= 0 ? 'acima em' : 'faltam'} ${moeda(Math.abs(dif))}`, dif >= 0 ? 'rz-vs-bom' : 'rz-vs-ruim');
 }
 
 // v2.11.0 (fatia 8, D8-2 revista e D8-9) — os números do herói de cada ramo. Imóveis e Todo o patrimônio: margem,
@@ -300,7 +320,9 @@ function celulasHeroiRamo({ tem, resumo, ant, ind, moeda, pctBR, rentabilidade, 
     const resultado = resumo ? Number(resumo.resultado_liquido_ano) || 0 : 0;
     const margem = receita > 0 ? resultado / receita * 100 : null;
     const margemAnt = ant && Number(ant.recebido_ano) > 0 ? Number(ant.resultado_liquido_ano) / Number(ant.recebido_ano) * 100 : null;
-    const cMargem = () => celula('Margem', tem && margem != null ? pctBR(margem) : traco, margem != null && margem < 0, margem != null ? comparar(margem, margemAnt, { pp: true }) : notaCmp(tem ? 'sem receita no ano' : ''));
+    // v2.12.0 (cockpit C1) — com meta de receita no ramo, a margem compara com a da meta
+    const margemMeta = ind && ind.meta && Number(ind.meta.receita_ate) > 0 ? Number(ind.meta.ate_mes) / Number(ind.meta.receita_ate) * 100 : null;
+    const cMargem = () => celula('Margem', tem && margem != null ? pctBR(margem) : traco, margem != null && margem < 0, margem != null ? (margemMeta != null ? comparar(margem, margemMeta, { pp: true, rotulo: 'vs meta' }) : comparar(margem, margemAnt, { pp: true })) : notaCmp(tem ? 'sem receita no ano' : ''));
     const cAPagar = () => celula('A pagar 30 dias', ind ? moeda(ind.a_pagar_30?.valor) : traco, false,
         ind ? notaCmp(`${Number(ind.a_pagar_30?.qtd) || 0} ${Number(ind.a_pagar_30?.qtd) === 1 ? 'conta' : 'contas'}`) : '');
     const cInad = () => celula('Inadimplência', tem ? moeda(inadimplencia) : traco, tem && Number(inadimplencia) > 0, ant ? comparar(inadimplencia, ant.inadimplencia_valor, { bom: 'desce' }) : '');
@@ -424,8 +446,20 @@ export function abrirResultadosExportar() {
             { icone: 'file-text', titulo: 'Resultados analítico', sub: 'PDF com os filtros aplicados', aoTocar: () => { if (typeof baixarRelatorioPdfLocal === 'function') baixarRelatorioPdfLocal(); } },
             { icone: 'users', titulo: 'Distribuição aos sócios', sub: socios.length ? `PDF por sócio · ${socios.length} sócio${socios.length > 1 ? 's' : ''}` : 'PDF por sócio', aoTocar: () => abrirSheetAcoes({ titulo: 'Distribuição aos sócios', sub: 'Escolha o sócio', acoes: socios.length ? socios.map(sc => ({ icone: 'user', titulo: sc, aoTocar: () => { if (typeof exportarRelatorioSocioPDF === 'function') exportarRelatorioSocioPDF(sc); } })) : [{ icone: 'info', titulo: 'Sem distribuição ainda', aoTocar: () => {} }] }) },
             { icone: 'folder-open', titulo: 'Ver todos os relatórios', sub: 'Catálogo completo', aoTocar: () => switchTab('tab-relatorios-catalogo') },
+            // v2.12.0 (cockpit C1) — metas do ramo da lente; em Todo o patrimônio, escolhe o ramo
+            { icone: 'target', titulo: `Metas de ${filtro.ano}`, sub: filtro.ramo === 'tudo' ? 'Por ramo e grupo de resultado' : `Do ramo ${ramoInfo?.nome || ''}`, codigo: 'resultados.metas', aoTocar: () => abrirMetasHoje() },
         ]
     });
+}
+
+// v2.12.0 (cockpit C1) — o sheet mora em js/cockpit-metas.js; ao salvar, o Hoje redesenha com a meta.
+export function abrirMetasHoje() {
+    const ramo = filtro.ramo === 'tudo' ? null : filtro.ramo;
+    import('./cockpit-metas.js').then(m => m.abrirMetasDoAno({
+        ano: filtro.ano, ramo, ramoNome: ramoInfo?.nome || '',
+        ramos: (ultimoPorRamo && Array.isArray(ultimoPorRamo.ramos)) ? ultimoPorRamo.ramos : [],
+        aoSalvar: () => renderResultados(),
+    })).catch(e => { console.warn('[resultados] metas:', e?.message); if (typeof mostrarToast === 'function') mostrarToast('Não deu para abrir as metas', 'danger'); });
 }
 
 // ---------------------------------------------------------------------
@@ -512,6 +546,7 @@ async function renderizarConteudo() {
         [antR, porRamoR, indR].forEach(x => { if (x.error) console.warn('[resultados] fatia 8:', x.error.message); });
         const resumoAnt = antR.error ? null : (Array.isArray(antR.data) ? antR.data[0] : antR.data);
         const porRamo = porRamoR.error ? null : porRamoR.data;
+        if (porRamo) ultimoPorRamo = porRamo; // v2.12.0
         const indRamo = indR.error ? null : indR.data;
         if (resumoR.error) throw resumoR.error;
         if (perfR.error) throw perfR.error;
@@ -533,7 +568,7 @@ async function renderizarConteudo() {
 
         // v2.0.0 (UXR-17) — os números de cima vão para o herói de Hoje; os cards ficam abaixo
         const heroiEl = document.getElementById('hoje-heroi-mount');
-        if (heroiEl) heroiEl.innerHTML = montarHeroi(resumo, perf, false, { ant: resumoAnt, mensal, ind: indRamo });
+        if (heroiEl) heroiEl.innerHTML = montarHeroi(resumo, perf, false, { ant: resumoAnt, mensal, ind: indRamo, meta: p_ramo ? indRamo?.meta : (p_uso ? null : porRamo?.consolidado?.meta) }); // v2.12.0 — meta
         // v2.11.0 (fatia 8, D8-1) — em Todo o patrimônio o Geral vira uma linha do Resultado por ramo
         const cardPorRamo = !p_ramo ? montarResultadoPorRamo(porRamo) : '';
         // v2.9.0 (F23, opção b) — Geral: o que foi lançado sem ativo; só em Todo o patrimônio, nível carteira (agora só sem o card por ramo)
@@ -592,11 +627,12 @@ function montarResultadoPorRamo(pr) {
         const patr = r.soma_valor !== false && Number(r.patrimonio) > 0 ? moedaCurta(r.patrimonio) : '';
         const sub = r.soma_valor === false ? `${r.qtd} ${un(r, r.qtd)} · custo de vida`
             : [r.margem != null ? `margem ${fmtNum(r.margem, 0)}%` : (cod === 'obras' ? 'em construção' : 'sem receita'), patr].filter(Boolean).join(' · ');
-        const vlSub = rec > 0 ? `de ${moedaCurta(rec)}` : (cod === 'obras' ? 'investido' : 'custo');
+        const vlSub = (rec > 0 ? `de ${moedaCurta(rec)}` : (cod === 'obras' ? 'investido' : 'custo'))
+            + (r.meta && r.meta.ate_mes != null ? ` · meta ${moedaCurta(r.meta.ate_mes)}` : ''); // v2.12.0 — meta do período
         return `<button type="button" class="rz-rr" onclick="escolherGeralRamo('${cod}')" aria-label="Abrir ${escR(r.nome)}">
             <span class="rz-rr-pt" style="background:var(--ramo-cor-${cod}, var(--sage))"></span>
             <span class="rz-rr-nm">${escR(r.nome)}<small>${escR(sub)}</small></span>
-            <span class="rz-rr-vl${res < 0 ? ' rz-neg' : ''}">${moedaCurta(res)}<small>${vlSub}</small>${comparar(res, r.anterior?.resultado, { rotulo: 'vs ' + (filtro.ano - 1) })}</span>
+            <span class="rz-rr-vl${res < 0 ? ' rz-neg' : ''}">${moedaCurta(res)}<small>${vlSub}</small>${r.meta && r.meta.ate_mes != null ? comparar(res, r.meta.ate_mes, { rotulo: 'vs meta' }) : comparar(res, r.anterior?.resultado, { rotulo: 'vs ' + (filtro.ano - 1) })}</span>
             <span class="rz-rr-bars"><span><i class="rz-rr-rec" style="width:${larg(r.receita)}%"></i></span><span><i class="rz-rr-desp" style="width:${larg(r.despesa)}%"></i></span></span>
         </button>`;
     }).join('');
@@ -611,7 +647,7 @@ function montarResultadoPorRamo(pr) {
     const linhaTot = `<div class="rz-rr rz-rr-tot">
             <span class="rz-rr-pt" style="background:var(--ink)"></span>
             <span class="rz-rr-nm">Consolidado<small>${escR(cSub)}</small></span>
-            <span class="rz-rr-vl${cRes < 0 ? ' rz-neg' : ''}">${moedaCurta(cRes)}<small>${cRec > 0 ? `de ${moedaCurta(cRec)}` : ''}</small>${comparar(cRes, c.anterior?.resultado)}</span>
+            <span class="rz-rr-vl${cRes < 0 ? ' rz-neg' : ''}">${moedaCurta(cRes)}<small>${[cRec > 0 ? `de ${moedaCurta(cRec)}` : '', c.meta && c.meta.ate_mes != null ? `meta ${moedaCurta(c.meta.ate_mes)}` : ''].filter(Boolean).join(' · ')}</small>${c.meta && c.meta.ate_mes != null ? comparar(cRes, c.meta.ate_mes, { rotulo: 'vs meta' }) : comparar(cRes, c.anterior?.resultado)}</span>
         </div>`;
     const nota = pr.soma_ok ? 'A soma das linhas é igual ao Consolidado e ao resultado do herói.' : 'A soma das linhas não fechou com o Consolidado: avise o suporte.';
     return `<div class="rz-card rz-ck">

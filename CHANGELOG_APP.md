@@ -4,6 +4,16 @@ Histórico completo de versões do `index.html`, movido automaticamente pelo `ge
 
 ---
 
+NOVIDADES (Beta v1.430.1) — CORREÇÃO da 1.430.0: a comparação com o ano anterior usa a classe nova .rz-vs (a .rz-cmp já era
+do gráfico Carteira × indicador e ganhava margem e corte). resultados.js 2.11.1.
+Versão anterior (Beta v1.430.0):
+------------------------------------------------------------------
+Versões anteriores (v1.430.0 … v1.430.0): CHANGELOG_APP.md, na raiz do
+repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
+das 5 versões mais recentes deste cabeçalho.
+
+---
+
 NOVIDADES (Beta v1.430.0) — FATIA 8, HOJE POR RAMO (FICHA_FATIA8_HOJE_POR_RAMO_RAIZ v1.2.0 e PROTOTIPO_HOJE_COCKPIT_RAMOS_RAIZ
 v1.0.0, de acordo do Nicola 16/10 01:09 e 09:43): em Todo o patrimônio, o card Resultado por ramo (receita × despesa,
 margem, patrimônio, Geral e Consolidado; tocar abre a lente). Todo número do herói compara com o ano anterior e o
