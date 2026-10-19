@@ -1,6 +1,10 @@
 // ============================================================================
 // cofre-ativos.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.122.0 · 19/10/2026
+// Versão: 1.123.0 · 19/10/2026
+//
+// v1.123.0 (19/10/2026, sessão 20261019-1220-carga-silva-icones2, demanda 9404081c, itens 38 e 39; Nicola 19/10 12:16) — a lista
+// carrega o catálogo de tipos também em Todo o patrimônio e repinta: os ícones pelo tipo já aparecem na 1ª abertura.
+// Versão anterior: 1.122.0 · 19/10/2026
 //
 // v1.122.0 (19/10/2026, sessão 20261019-1140-carga-silva-icones, demanda 9404081c, item 37; Nicola 19/10 11:34) — integrante
 // com ícone de criança, adulto ou idoso pela idade; pet com patinha (iconeHtmlDoAtivo, na lista, nas áreas e na ficha).
@@ -22,18 +26,11 @@
 // sai o grupo por ramo; empreendimento só agrupa em carteira com mais de 10 ativos; sai a faixa "▾ N áreas": abre e fecha
 // pela seta e pelo ícone com a quantidade; a etiqueta de status vai para baixo do nome (o texto usa a largura toda, sem a
 // coluna da direita vazia em volta da etiqueta).
-// Versão anterior: 1.118.0 · 19/10/2026
-//
-// v1.118.0 (19/10/2026, sessão 20261019-0850-carga-silva-l5a, demanda 9404081c; FICHA_LOTES_4_5 v1.1.0 com D3 e D4 do Nicola
-// 18/10, item 30 escolhido em 19/10 08:50) — L5-A: lista de Ativos agrupada por ramo e empreendimento em Todo o patrimônio
-// (só empreendimento numa lente; empreendimento vale para qualquer ativo); faixa "▾ N áreas" abre e fecha os sub-ativos e a
-// linha volta a entrar na ficha (seta ›); chips de segmento na ordem do catálogo; "Novo bem rural"/"Novo imóvel" pelo ramo
-// (rotuloNovoAtivo, exemplosNovoAtivo); na edição, trocar o tipo também troca os blocos de endereço e dados do imóvel.
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.117.0 … v1.117.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.118.0 … v1.118.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '1.122.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.123.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 import { estado } from './cofre-estado.js';
 import * as api from './cofre-api.js';
 import { mostrarToast, erroInline, refrescarIcones, alternarToggle, abrirModal, fecharModal, modalGenerico, perguntar, avisarComDesfazer, escolher } from './cofre-ui.js';
@@ -455,7 +452,9 @@ export function renderAtivosLista(filtroTipo = '', filtroTexto = '') {
         segmentoChip = null;
     }
     // v1.85.0 (F21) — sem o catálogo de tipos não dá para saber ramo e segmento: carrega uma vez e redesenha
-    if (!_catalogoTiposAtivoCarregado && ramoDaLente() !== 'tudo') {
+    // v1.123.0 (item 39) — também em Todo o patrimônio: o ícone pelo tipo depende do catálogo; sem isto a 1ª pintura saía com o
+    // ícone da categoria (trator com broto) até a pessoa entrar num ativo e voltar
+    if (!_catalogoTiposAtivoCarregado) {
         garantirCatalogoTiposAtivo().then(() => { if (_catalogoTiposAtivoCarregado) redesenharComFiltros(); });
     }
     recalcularGruposChip();

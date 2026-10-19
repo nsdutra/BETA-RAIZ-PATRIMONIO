@@ -4,6 +4,19 @@ Histórico completo de versões do `index.html`, movido automaticamente pelo `ge
 
 ---
 
+NOVIDADES (Beta v1.436.0) — L5-A DA CARGA SILVA CAFÉS (FICHA_LOTES_4_5 v1.1.0, D3 e D4 do Nicola 18/10; item 30 em 19/10
+08:50): Ativos agrupados por ramo e empreendimento em Todo o patrimônio (só empreendimento na lente); faixa "▾ N áreas"
+abre e fecha os sub-ativos e a linha entra na ficha; chips na ordem do catálogo; "Novo bem rural/Novo imóvel" pelo ramo;
+trocar de ramo dentro de uma subtela de Ativos volta para a lista. cofre-ativos.js 1.118.0, cofre-validacoes.js 2.10.0,
+cofre-app.js 1.51.0. Banco: agro_l5a_v1 (só dados).
+Versão anterior (Beta v1.435.0):
+------------------------------------------------------------------
+Versões anteriores (v1.435.0 … v1.435.0): CHANGELOG_APP.md, na raiz do
+repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
+das 5 versões mais recentes deste cabeçalho.
+
+---
+
 NOVIDADES (Beta v1.435.0) — COCKPIT C3, RELATÓRIO EXECUTIVO (FICHA_COCKPIT_METAS_RELATORIO_RAIZ v1.0.0, de acordo do
 Nicola 18/10 23:36): em Relatórios e em Hoje › Exportar, o relatório do ramo (2 páginas: manchete, 3 pontos, 4 números,
 resultado acumulado real × ano anterior × meta, ponte da meta ao real; demonstrativo na ordem da DRE e resultado por
