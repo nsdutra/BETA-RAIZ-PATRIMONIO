@@ -1,6 +1,10 @@
 // ============================================================================
 // js/ativos/ativos-markup.js — Raiz Patrimônio · Módulo Único, fatia frontend 1
-// Versão: 1.66.0 · 19/10/2026
+// Versão: 1.67.0 · 19/10/2026
+//
+// v1.67.0 (19/10/2026, sessão 20261019-1710-carga-silva-menu, demanda 9404081c, item 46) — o ⋮ de Patrimônio vai para a ponta
+// direita da linha dos chips, no padrão da ficha do ativo (rz-more).
+// Versão anterior: 1.66.0 · 19/10/2026
 //
 // v1.66.0 (19/10/2026, sessão 20261019-1250-carga-silva-patrimonio, demanda 9404081c) — item 43: o botão redondo "+" do topo de Patrimônio vira o ⋮ (mesmas opções).
 // Versão anterior: 1.65.0 · 15/10/2026
@@ -17,17 +21,11 @@
 // v1.63.0 (14/10/2026, sessão 20261014-2145-onda9c-textos, demanda a05ad2ee; onda 9c do estudo PROTOTIPO_UX_DENSIDADE_RAMOS_RAIZ
 // v1.2.0, D6 seção 10) — textos no limite: ação até 24 caracteres, descrição até 28, aviso até 40 com o resultado e tela
 // vazia em 1 frase de até 40. A explicação longa fica na confirmação, quando existe. Nada de comportamento mudou.
-// Versão anterior: 1.62.0 · 14/10/2026
-//
-// v1.62.0 (14/10/2026, sessão 20261014-0830-upload-rapido, demanda 7b0d407b; "De acordo" do Nicola 14/10 08:24) —
-// tela "Confira o documento": cartão de confirmação rápida (#uc-rapido) acima do formulário, que passa a morar em
-// #uc-completo; o "Início" do controle ganha id (#uc-ctl-inicio-wrap) para sair da tela quando o controle é de
-// documento; o botão Salvar ganha id (#uc-salvar) para virar "Confirmar e controlar" no modo rápido.
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.61.0 … v1.61.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.62.0 … v1.62.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '1.66.0'; // v-check (28/09/2026): lido por Dev › Versões — manter igual ao header
+export const VERSAO = '1.67.0'; // v-check (28/09/2026): lido por Dev › Versões — manter igual ao header
 export const ATIVOS_MARKUP = `<style>
     /* v1.94.1 (31/08/2026, pedido explícito: "anexo uma barra de
        rolagem que fica feia... ao rolar os chips não mostrar a barra")
@@ -198,10 +196,6 @@ export const ATIVOS_MARKUP = `<style>
                  Novo ativo · Compartilhar imóveis). (dem fcd3008d) -->
             <div class="rz-topo">
                 <label class="rz-search rz-search-in" id="ativos-busca-btn"><i data-lucide="search"></i><input type="search" id="ativos-busca-q" class="rz-raw" placeholder="Buscar ativo, locatário ou item" enterkeyhint="search" autocomplete="off" aria-label="Buscar ativo"></label>
-                <!-- v1.66.0 (item 43, Nicola 19/10 12:16) — o "+" redondo vira o ⋮ com as mesmas opções -->
-                <button data-action="abrir-acoes-ativos" id="btn-toggle-ativo" class="rz-ico-btn" title="Mais ações" aria-label="Mais ações">
-                    <i data-lucide="more-vertical"></i>
-                </button>
             </div>
 
             <!-- v1.5.0 (31/08/2026, pedido explícito, "Fase A" da fusão
@@ -229,7 +223,12 @@ export const ATIVOS_MARKUP = `<style>
                  EXPERIENCIA §7 pede 1 linha com overflow-x:auto sem scrollbar,
                  que é exatamente o que .rz-chips já faz em todo o resto do
                  app — trocado pra ele em vez de reinventar CSS aqui. -->
-            <div id="ativos-chips-tipo" class="rz-chips"></div>
+            <!-- v1.67.0 (item 46, Nicola 19/10 17:06) — o ⋮ de Patrimônio no padrão da ficha do ativo (três pontos simples), na ponta
+                 direita da linha dos chips; antes ficava numa linha do topo que o celular esconde. -->
+            <div class="rz-chips-linha">
+                <div id="ativos-chips-tipo" class="rz-chips"></div>
+                <button type="button" data-action="abrir-acoes-ativos" id="btn-toggle-ativo" class="rz-more" title="Mais ações" aria-label="Mais ações"><i data-lucide="more-vertical"></i></button>
+            </div>
 
             <div id="ativos-lista" class="space-y-2"></div>
             <div id="ativos-estado-vazio" class="hidden">

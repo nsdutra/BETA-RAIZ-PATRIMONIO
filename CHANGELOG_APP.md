@@ -4,6 +4,19 @@ Histórico completo de versões do `index.html`, movido automaticamente pelo `ge
 
 ---
 
+NOVIDADES (Beta v1.438.0) — AJUSTES DO NICOLA 19/10 11:19 (dem 9404081c, itens 31–36; F4 de acordo): chips de Ativos
+sem filtro de ramo; etiqueta "Vida" na Família (sem "0 de 4"); lente de ramo vazia mostra o card de cadastro; ícone por
+tipo (trator, talhão, secador…); Agenda: arrastar troca a semana (para os lados) e o mês (para cima/baixo) e volta a
+lista de alertas como a vista "Alertas". Safra de café só em talhão de café (programas.culturas). cofre-ativos.js
+1.121.0, cofre-validacoes.js 2.11.0, agenda.js 1.6.0. Banco: programas_culturas_v1. O index só muda o import map.
+Versão anterior (Beta v1.437.0):
+------------------------------------------------------------------
+Versões anteriores (v1.437.0 … v1.437.0): CHANGELOG_APP.md, na raiz do
+repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
+das 5 versões mais recentes deste cabeçalho.
+
+---
+
 NOVIDADES (Beta v1.437.0) — L5-B DA CARGA SILVA CAFÉS (FICHA_LOTES_4_5 v1.1.0, ficha F2, de acordo do Nicola 18/10 23:43):
 "Excluir" no ⋮ do ativo apaga de verdade o cadastro feito por engano (sem nada ligado); com vínculo, diz o quê e oferece
 Arquivar. Chip "Arquivados" na lista de Ativos, com Reativar no ⋮ da ficha. cofre-ativos.js 1.120.0, cofre-api.js 1.53.0.
