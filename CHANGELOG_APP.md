@@ -4,6 +4,20 @@ Histórico completo de versões do `index.html`, movido automaticamente pelo `ge
 
 ---
 
+NOVIDADES (Beta v1.432.0) — ROTINAS E ALERTAS POR TEMA (FICHA_ROTINAS_E_ALERTAS_POR_TEMA_RAIZ v1.0.0, de acordo do Nicola 18/10
+23:44): Minha empresa › Rotinas vira "Rotinas e alertas", uma linha por tema (Fiscal, Contador, Cartões, Contratos, Ativos,
+Itens de controle, Programas, Mercado) com o seletor de Alertas da empresa e as rotinas do tema. Alerta desligado na empresa
+some do app, do robô e do convite diário. Avisos da pessoa (Minhas notificações e Pessoas ⋮ Comunicações) agrupados por tema,
+com "Desligado na empresa"; frequência só no convite diário. comum-minha-empresa.js 1.21.0, comum-pessoas.js 1.216.0,
+conta.js 1.3.0. Banco: temas_avisos_b1…b9. O index só muda o import map.
+Versão anterior (Beta v1.431.1):
+------------------------------------------------------------------
+Versões anteriores (v1.431.1 … v1.431.1): CHANGELOG_APP.md, na raiz do
+repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
+das 5 versões mais recentes deste cabeçalho.
+
+---
+
 NOVIDADES (Beta v1.431.1) — L4-A DA CARGA SILVA CAFÉS (FICHA_LOTES_4_5 v1.1.0, de acordo do Nicola 18/10 23:43): lista de
 Ativos mais legível (etiqueta curta, mesma cor, nome em 2 linhas), proprietário opcional, nome do tipo no sub-ativo e
 campos de talhão, gleba, estruturas e identificação rural pelo catálogo; Arrendamento liberado. cofre-ativos.js 1.116.0.

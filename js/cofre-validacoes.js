@@ -1,6 +1,10 @@
 // ============================================================================
 // cofre-validacoes.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 2.9.0 · 18/10/2026
+// Versão: 2.10.0 · 19/10/2026
+//
+// v2.10.0 (19/10/2026, sessão 20261019-0850-carga-silva-l5a, demanda 9404081c, L5-3) — tiposDoCatalogo() devolve a lista de
+// tipos do catálogo, para o "+" de Ativos dizer o que cadastrar no ramo da lente.
+// Versão anterior: 2.9.0 · 18/10/2026
 //
 // v2.9.0 (18/10/2026, sessão 20261018-2343-carga-silva-l4a, demanda 9404081c; FICHA_LOTES_4_5 v1.1.0, de acordo do Nicola 18/10
 // 23:43) — L4-B/L4-C: campo do tipo substitui o da categoria com a mesma chave e 'oculto' tira campo ou bloco (fazenda sem rua);
@@ -21,16 +25,11 @@
 // obterCamposPorTipo(categoria, tipo, contexto) ignora os blocos e entende campo em lista (opcoes); blocosDoFormulario()
 // diz quais blocos fixos aparecem (empreendimento, valor, endereço, dados do imóvel, divisão societária); categoria com
 // catálogo carregado e sem campo devolve lista vazia (Família), em vez dos campos de reserva.
-// Versão anterior: 2.5.0 · 10/10/2026
-//
-// v2.5.0 (10/10/2026, sessão 20261008-1231-pessoas-ativos, demanda f3e6cd27 — fichas F21/F22): o catálogo de tipos traz
-// ramo e segmento (ativo_tipos.ramo/segmento). tipoDoCatalogo(id) devolve o tipo; listarTiposPorCategoria aceita
-// { ramo } para o formulário de novo ativo oferecer só os tipos do ramo da lente e de ramos já ativos.
 // --------------------------------------------------------------------------
-// Versões anteriores (v2.4.1 … v2.4.1): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v2.5.0 … v2.5.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '2.9.0'; // v-check (18/09/2026): lido por Dev › Versões — manter igual ao header
+export const VERSAO = '2.10.0'; // v-check (18/09/2026): lido por Dev › Versões — manter igual ao header
 export function escapeHtml(s) {
     return (s ?? '').toString().replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 }
@@ -290,6 +289,9 @@ function ramoLiberado(r) {
     if (typeof rzRamoLiberado === 'function') return rzRamoLiberado(r);
     return typeof rzRamoInfo !== 'function' || rzRamoInfo(r)?.status === 'ativo';
 }
+
+// v2.10.0 (L5-3) — a lista inteira do catálogo de tipos (ramo, segmento, ordem), [] sem catálogo
+export function tiposDoCatalogo() { return _catalogoAtivoTipos || []; }
 
 // v2.5.0 (F21/F22) — o tipo do catálogo (com ramo e segmento) pelo id; null sem catálogo
 export function tipoDoCatalogo(id) {

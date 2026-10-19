@@ -1,6 +1,13 @@
 // ============================================================================
 // cofre-ativos.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.117.0 · 18/10/2026
+// Versão: 1.118.0 · 19/10/2026
+//
+// v1.118.0 (19/10/2026, sessão 20261019-0850-carga-silva-l5a, demanda 9404081c; FICHA_LOTES_4_5 v1.1.0 com D3 e D4 do Nicola
+// 18/10, item 30 escolhido em 19/10 08:50) — L5-A: lista de Ativos agrupada por ramo e empreendimento em Todo o patrimônio
+// (só empreendimento numa lente; empreendimento vale para qualquer ativo); faixa "▾ N áreas" abre e fecha os sub-ativos e a
+// linha volta a entrar na ficha (seta ›); chips de segmento na ordem do catálogo; "Novo bem rural"/"Novo imóvel" pelo ramo
+// (rotuloNovoAtivo, exemplosNovoAtivo); na edição, trocar o tipo também troca os blocos de endereço e dados do imóvel.
+// Versão anterior: 1.117.0 · 18/10/2026
 //
 // v1.117.0 (18/10/2026, sessão 20261018-2343-carga-silva-l4a, demanda 9404081c; FICHA_LOTES_4_5 v1.1.0, de acordo do Nicola
 // 18/10 23:43) — L4-B/L4-C e ajustes do teste de 18/10: campo "tamanho" (número + unidade: ha, alqueire mineiro, alqueire
@@ -31,17 +38,11 @@
 // Terreno) e o ramo pelo nome; contador de Usos e contratos conta os usos; histórico diz "Uso iniciado"/"Uso excluído" com
 // período e motivo, sem Desfazer na exclusão; sai "Ver todos os contratos"; Compartilhar só com uso Disponível ou Em venda;
 // grupos "Sem empreendimento"/"Outros ativos" sem parênteses.
-// Versão anterior: 1.113.0 · 16/10/2026
-//
-// v1.113.0 (16/10/2026, sessão 20261016-0020-usos-fatia7, demanda 3022603b; FICHA_FATIA7_MEMBROS_RAIZ v1.2.0, de acordo do Nicola
-// 15/10 23:17 e 16/10 00:05) — o Resumo da ficha do ativo ganha o card dos MEMBROS quando o tipo tem membros (lote bovino,
-// lote suíno, equinos, ovinos e caprinos: "Rebanho"/"Plantel"/"Animais"; adega de vinho: "Garrafas"), montado por
-// cofre-membros.js (módulo novo, D7-7). "Adicionar uso" traz Leite e Corte (acordo lote) como uso sem contrato (D7-2).
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.111.0 … v1.112.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.113.0 … v1.113.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '1.117.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.118.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 import { estado } from './cofre-estado.js';
 import * as api from './cofre-api.js';
 import { mostrarToast, erroInline, refrescarIcones, alternarToggle, abrirModal, fecharModal, modalGenerico, perguntar, avisarComDesfazer, escolher } from './cofre-ui.js';
@@ -49,7 +50,8 @@ import { mudarTela } from './cofre-navegacao.js';
 import {
     escapeHtml, formatarDataBR, diasAte, chipVencimento, mascarar,
     rotuloTipoAtivo, iconeAtivo, validarCamposAtivo,
-    obterCamposPorTipo, listarTiposPorCategoria, inicializarCatalogoTiposAtivo, tipoDoCatalogo, categoriasDoRamo, blocosDoFormulario } from './cofre-validacoes.js';
+    obterCamposPorTipo, listarTiposPorCategoria, inicializarCatalogoTiposAtivo, tipoDoCatalogo, categoriasDoRamo, blocosDoFormulario,
+    tiposDoCatalogo as _catalogoAtivoTiposLista } from './cofre-validacoes.js';
 import { montarControlesAtivo, aplicarMotorNoChipControles, reiniciarChipControlesDoMotor } from './cofre-controles.js';
 // E6.2 — retorno usado de forma síncrona em salvarAtivo/salvarEdicaoAtivo
 // (lerBlocoEndereco), por isso import estático (ver nota em technical-
@@ -422,6 +424,25 @@ function lerBlocoImovel(prefixo) {
     };
 }
 
+// v1.118.0 (L5-3, dem 9404081c, D3) — "Novo …" pelo ramo da lente (ativo_ramos.unidade_singular): Novo imóvel, Novo bem rural,
+// Nova obra, Novo lote… Em Todo o patrimônio, "Novo ativo". Também o "o que cadastrar" do + (segmentos do ramo).
+export function rotuloNovoAtivo() {
+    const r = ramoDaLente();
+    const un = r !== 'tudo' && typeof rzRamoInfo === 'function' ? rzRamoInfo(r)?.unidade_singular : null;
+    if (!un) return 'Novo ativo';
+    const fem = /(a|ção|ão)$/i.test(un.split(' ')[0]) && !/^(dia|mapa|sistema)$/i.test(un);
+    return `${fem ? 'Nova' : 'Novo'} ${un}`;
+}
+export function exemplosNovoAtivo() {
+    const r = ramoDaLente();
+    if (r === 'tudo' || !_catalogoAtivoTiposLista().length) return 'Imóvel, veículo, arte…';
+    const segs = [];
+    _catalogoAtivoTiposLista().filter(t => t.ramo === r).sort((x, y) => (x.ordem ?? 999) - (y.ordem ?? 999))
+        .forEach(t => { if (t.segmento && !segs.includes(t.segmento)) segs.push(t.segmento); });
+    return segs.length ? segs.slice(0, 3).join(', ') + (segs.length > 3 ? '…' : '') : 'Imóvel, veículo, arte…';
+}
+if (typeof window !== 'undefined') { window.rzRotuloNovoAtivo = rotuloNovoAtivo; window.rzExemplosNovoAtivo = exemplosNovoAtivo; }
+
 export function renderAtivosLista(filtroTipo = '', filtroTexto = '') {
     const termo = filtroTexto.toLowerCase().trim();
     // v1.5.0 — filtroTipo agora aceita string (comportamento de sempre,
@@ -528,17 +549,28 @@ export function renderAtivosLista(filtroTipo = '', filtroTexto = '') {
     // lista plana, sem agrupar nunca. Grupo sempre ativo agora — com 1
     // empreendimento só, vira 1 cabeçalho ("Capital (8)"), o que já é
     // informação (mostra que a carteira toda está concentrada ali).
-    const grupos = {};
-    lista.forEach(a => {
+    // v1.118.0 (L5-1, dem 9404081c, 22bd8095, 5dd5f88c) — Todo o patrimônio agrupa por RAMO e, dentro, por EMPREENDIMENTO; numa
+    // lente, só por empreendimento. Empreendimento vale para qualquer ativo (empreendimento_id), não só imóvel. "Sem
+    // empreendimento" fica no fim do ramo, e some como cabeçalho quando o ramo não tem nenhum empreendimento.
+    if (_empreendimentosCache === null) garantirEmpreendimentos().then(() => redesenharComFiltros()).catch(() => {});
+    const nomeEmp = (a) => {
         const resumo = ehCategoriaImovel(a.tipo_ativo) ? resumoImoveisPorId.get(a.id) : null;
-        const chave = resumo?.empreendimento || (ehCategoriaImovel(a.tipo_ativo) ? 'Sem empreendimento' : 'Outros ativos');
-        (grupos[chave] = grupos[chave] || []).push(a);
-    });
-    const nomesGrupos = Object.keys(grupos).sort((x, y) => {
-        if (x === 'Outros ativos') return 1;
-        if (y === 'Outros ativos') return -1;
-        return x.localeCompare(y);
-    });
+        return resumo?.empreendimento || (a.empreendimento_id && (_empreendimentosCache || []).find(e => e.id === a.empreendimento_id)?.nome) || '';
+    };
+    const SEM_EMP = 'Sem empreendimento';
+    const porEmp = (l) => {
+        const g = {};
+        l.forEach(a => { const k = nomeEmp(a) || SEM_EMP; (g[k] = g[k] || []).push(a); });
+        return Object.keys(g).sort((x, y) => x === SEM_EMP ? 1 : y === SEM_EMP ? -1 : x.localeCompare(y, 'pt-BR')).map(k => ({ nome: k, itens: g[k] }));
+    };
+    const ordemRamos = typeof RZ_RAMOS !== 'undefined' ? RZ_RAMOS.map(r => r.codigo) : [];
+    const blocos = [];
+    if (ramoLente === 'tudo') {
+        const g = {};
+        lista.forEach(a => { const r = ramoDoAtivoLista(a) || 'outros'; (g[r] = g[r] || []).push(a); });
+        Object.keys(g).sort((x, y) => (ordemRamos.indexOf(x) + 1 || 99) - (ordemRamos.indexOf(y) + 1 || 99))
+            .forEach(r => blocos.push({ ramo: r, itens: g[r], emps: porEmp(g[r]) }));
+    } else blocos.push({ ramo: null, itens: lista, emps: porEmp(lista) });
     // F2.4 (UXR-15) — carteira só com imóveis: um card de convite no FIM da lista (nunca no topo).
     const soImoveis = principais().length > 0 && principais().every(a => ehCategoriaImovel(categoriaDoAtivo(a.tipo_ativo)));
     const cardConvite = soImoveis && chipAtivoAtual === 0 && !termo ? `
@@ -552,10 +584,17 @@ export function renderAtivosLista(filtroTipo = '', filtroTexto = '') {
     // v1.96.0 (UX onda 4, D9) — agrupador com total: a soma do valor de referência dos ativos do grupo, à direita
     const compacto = (v) => (typeof window.formatarValorCompacto === 'function' ? window.formatarValorCompacto(v) : Number(v || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 }));
     const totalGrupo = (l) => { const c = l.filter(a => a.valor_referencia != null); return c.length ? compacto(c.reduce((t, a) => t + Number(a.valor_referencia || 0), 0)) : ''; };
-    container.innerHTML = nomesGrupos.map(nome => `
-        <div class="rz-group rz-group-t"><span>${escapeHtml(nome)} · ${grupos[nome].length}</span>${totalGrupo(grupos[nome]) ? `<b>${totalGrupo(grupos[nome])}</b>` : ''}</div>
-        <div class="rz-card rz-list">${grupos[nome].map(ativoComSubativosHtml).join('')}</div>
-    `).join('') + cardConvite;
+    const nomeRamoTela = (r) => (typeof window.rzNomeRamo === 'function' ? window.rzNomeRamo(r) : r);
+    const grupoHtml = (titulo, itens) => `
+        ${titulo ? `<div class="rz-group rz-group-t"><span>${escapeHtml(titulo)} · ${itens.length}</span>${totalGrupo(itens) ? `<b>${totalGrupo(itens)}</b>` : ''}</div>` : ''}
+        <div class="rz-card rz-list">${itens.map(ativoComSubativosHtml).join('')}</div>`;
+    container.innerHTML = blocos.map(bl => {
+        const soSem = bl.emps.length === 1 && bl.emps[0].nome === SEM_EMP;
+        const corpo = soSem ? grupoHtml(bl.ramo ? '' : null, bl.itens) : bl.emps.map(e => grupoHtml(e.nome, e.itens)).join('');
+        if (!bl.ramo) return corpo;
+        const cor = `var(--ramo-cor-${bl.ramo.replace(/[^a-z_]/g, '')}, var(--sage))`;
+        return `<div class="rz-group rz-group-t rz-group-ramo" style="--ramo-grupo:${cor}"><span><i aria-hidden="true"></i>${escapeHtml(nomeRamoTela(bl.ramo))} · ${bl.itens.length}</span>${totalGrupo(bl.itens) ? `<b>${totalGrupo(bl.itens)}</b>` : ''}</div>` + corpo;
+    }).join('') + cardConvite;
 
     const vazio = document.getElementById('ativos-estado-vazio');
     vazio.classList.toggle('hidden', principais().length !== 0);
@@ -652,9 +691,11 @@ function recalcularGruposChip() {
     if (r === 'tudo') {
         GRUPOS_CHIP_TIPO = base.concat(RZ_RAMOS.filter(x => typeof rzRamoLiberado === 'function' ? rzRamoLiberado(x.codigo) : x.status === 'ativo').map(x => ({ rotulo: x.nome, tipos: [], ramo: x.codigo }))); // v1.112.0: só ramos contratados
     } else {
-        const ordem = [];
-        ativosDoRamo().forEach(a => { const sg = segmentoDoAtivo(a); if (!ordem.includes(sg)) ordem.push(sg); });
-        GRUPOS_CHIP_TIPO = base.concat(ordem.sort((x, y) => x.localeCompare(y, 'pt-BR')).map(sg => ({ rotulo: sg, tipos: [], segmento: sg })));
+        // v1.118.0 (L5-2, D3) — segmentos na ordem do catálogo (menor ativo_tipos.ordem do segmento), não alfabética:
+        // Agro = Propriedades rurais · Lavouras · Máquinas agrícolas · Estruturas
+        const ordem = new Map();
+        ativosDoRamo().forEach(a => { const sg = segmentoDoAtivo(a); const o = tipoDoCatalogo(a.tipo_detalhe_id)?.ordem ?? 999; if (!ordem.has(sg) || o < ordem.get(sg)) ordem.set(sg, o); });
+        GRUPOS_CHIP_TIPO = base.concat([...ordem.keys()].sort((x, y) => (ordem.get(x) - ordem.get(y)) || x.localeCompare(y, 'pt-BR')).map(sg => ({ rotulo: sg, tipos: [], segmento: sg })));
     }
     if (chipAtivoAtual >= GRUPOS_CHIP_TIPO.length) { chipAtivoAtual = 0; segmentoChip = null; }
 }
@@ -890,13 +931,15 @@ function ativoComSubativosHtml(a) {
     html = html.replace(/(<div class="rz-ic rz-ic-grupo"[^>]*>[\s\S]*?)(<\/div>)/, `$1<span class="rz-ic-n">${subs.length}</span>$2`);
     const st = typeof window.rzStatusDoAtivo === 'function' ? window.rzStatusDoAtivo(a.id) : null;
     if (st && st.rotulo && st.classe && st.rotulo !== st.classe) html = html.replace(escapeHtml(st.rotulo), escapeHtml(st.classe)).replace(st.rotulo, st.classe);
-    const k = html.lastIndexOf('<svg data-lucide="chevron-right" class="rz-chev"></svg>');
-    const botao = `<button type="button" class="rz-subs-toggle" data-subs-toggle="${a.id}" aria-expanded="${aberto}" aria-label="${aberto ? 'Fechar' : 'Mostrar'} ${escapeHtml(nomeSub.toLowerCase())}"
+    // v1.118.0 (item 30 da dem 9404081c, Nicola 19/10 08:50) — a linha entra na ficha (seta ›, como qualquer ativo) e a faixa
+    // "▾ N áreas" logo abaixo abre e fecha os sub-ativos. Antes o chevron pequeno no lugar da seta fazia as duas coisas parecerem
+    // a mesma; quem tocava na linha para abrir as áreas caía na ficha.
+    const rotFaixa = `${subs.length} ${nomeSub.toLowerCase()}`;
+    const faixa = `<button type="button" class="rz-subs-faixa" data-subs-toggle="${a.id}" aria-expanded="${aberto}"
         onclick="event.stopPropagation(); window.__rzAlternarSubativos && window.__rzAlternarSubativos('${a.id}', this)"
-        style="background:none;border:0;padding:10px 4px 10px 10px;margin:-10px -4px -10px 0;color:inherit;cursor:pointer;display:flex"><svg data-lucide="${aberto ? 'chevron-up' : 'chevron-down'}" class="rz-chev"></svg></button>`;
-    if (k >= 0) html = html.slice(0, k) + botao + html.slice(k + '<svg data-lucide="chevron-right" class="rz-chev"></svg>'.length);
+        style="--ramo-grupo:${corRamo}"><span><svg data-lucide="${aberto ? 'chevron-up' : 'chevron-down'}"></svg>${escapeHtml(rotFaixa)}</span></button>`;
     const filhos = subs.map(x => ativoCardHtml(x).replace('<div class="rz-row rz-link"', `<div class="rz-row rz-link rz-sub-row" style="padding-left:12px;margin-left:10px;--ramo-grupo:${corRamo}"`)).join('');
-    return html + `<div class="rz-subs${aberto ? '' : ' hidden'}" data-subs-de="${a.id}">${filhos}</div>`;
+    return html + faixa + `<div class="rz-subs${aberto ? '' : ' hidden'}" data-subs-de="${a.id}">${filhos}</div>`;
 }
 window.__rzAlternarSubativos = (id, btn) => {
     const lista = document.querySelector(`[data-subs-de="${id}"]`);
@@ -904,7 +947,7 @@ window.__rzAlternarSubativos = (id, btn) => {
     const abrir = lista.classList.contains('hidden');
     lista.classList.toggle('hidden', !abrir);
     if (abrir) subativosAbertos.add(id); else subativosAbertos.delete(id);
-    if (btn) { btn.setAttribute('aria-expanded', String(abrir)); btn.innerHTML = `<svg data-lucide="${abrir ? 'chevron-up' : 'chevron-down'}" class="rz-chev"></svg>`; }
+    if (btn) { btn.setAttribute('aria-expanded', String(abrir)); const ic = btn.querySelector('svg, i'); if (ic) ic.outerHTML = `<svg data-lucide="${abrir ? 'chevron-up' : 'chevron-down'}"></svg>`; }
     refrescarIcones();
 };
 
@@ -1086,7 +1129,7 @@ export async function abrirFormAtivo(opcoes = {}) {
     await garantirEmpreendimentos(); // E15.2 — pro seletor no bloco imóvel
     popularSelectTipoAtivo(); // v1.85.0 (F21) — categorias do ramo da lente
     const tituloForm = document.querySelector('#form-ativo-wrapper h3');
-    if (tituloForm) tituloForm.textContent = subativoDe ? `${femSubativo(subativoDe.singular) ? 'Nova' : 'Novo'} ${subativoDe.singular.toLowerCase()} · ${subativoDe.nome}` : 'Novo ativo';
+    if (tituloForm) tituloForm.textContent = subativoDe ? `${femSubativo(subativoDe.singular) ? 'Nova' : 'Novo'} ${subativoDe.singular.toLowerCase()} · ${subativoDe.nome}` : rotuloNovoAtivo();
     abrirModal('form-ativo-wrapper');
     aoMudarTipoAtivo();
 
@@ -3525,11 +3568,11 @@ export async function alternarEditarAtivo() {
         ? { ...de0, municipio_sede: de0.municipio_sede || a.endereco_cidade || '', uf_sede: de0.uf_sede || a.uf || '', cep: de0.cep || a.cep || '',
             area: de0.area || (a.area_m2 ? `${Math.round(a.area_m2 / 100) / 100} ha` : '') }
         : de0;
-    const blocoEndereco = ehCategoriaImovel(a.tipo_ativo) && edTemEnd
-        ? `<div class="rz-campos-endereco">${renderizarBlocoEndereco('fa-editar-endereco', a, { mostrarBotaoCopiar: false })}</div>`
+    const blocoEndereco = ehCategoriaImovel(a.tipo_ativo)
+        ? `<div class="rz-campos-endereco${edTemEnd ? '' : ' hidden'}">${renderizarBlocoEndereco('fa-editar-endereco', a, { mostrarBotaoCopiar: false })}</div>`
         : '';
-    const blocoImovel = ehCategoriaImovel(a.tipo_ativo) && edTemImovel
-        ? `<div class="rz-campos-imovel grid grid-cols-1 sm:grid-cols-2 gap-2">${renderizarBlocoImovel('fa-editar-imovel-', a)}</div>`
+    const blocoImovel = ehCategoriaImovel(a.tipo_ativo)
+        ? `<div class="rz-campos-imovel${edTemImovel ? '' : ' hidden'} grid grid-cols-1 sm:grid-cols-2 gap-2">${renderizarBlocoImovel('fa-editar-imovel-', a)}</div>`
         : '';
     // E5 — tipo específico (dentro da categoria, que continua somente-
     // leitura — ver nota abaixo) é editável: corrige um ativo classificado
@@ -3589,6 +3632,10 @@ export function aoMudarTipoDetalheEditarAtivo() {
     const tipoDetalheId = sel && sel.value ? sel.value : null;
     const wrap = document.getElementById('fa-editar-campos-estruturados');
     if (wrap) wrap.innerHTML = renderizarCamposEstruturados(a.tipo_ativo, a.dados_especificos || {}, 'fa-editar-campo-', tipoDetalheId, a.ativo_principal_id ? 'subativo' : 'ativo');
+    // v1.118.0 — trocar o tipo também troca os blocos (Terreno urbano → Fazenda esconde rua e número, e o contrário)
+    const bl = blocosDoFormulario(a.tipo_ativo, tipoDetalheId, a.ativo_principal_id ? 'subativo' : 'ativo');
+    document.querySelector('.rz-campos-endereco')?.classList.toggle('hidden', !!bl && !bl.has('endereco'));
+    document.querySelector('.rz-campos-imovel')?.classList.toggle('hidden', !!bl && !bl.has('dados_imovel'));
 }
 
 export async function salvarEdicaoAtivo() {

@@ -1,6 +1,10 @@
 // ============================================================================
 // cofre-app.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.50.0 · 16/10/2026
+// Versão: 1.51.0 · 19/10/2026
+//
+// v1.51.0 (19/10/2026, sessão 20261019-0850-carga-silva-l5a, demanda 9404081c, L5-3; decisão D3 do Nicola 18/10) — no "+" de
+// Ativos, "Novo ativo" vira "Novo <unidade do ramo da lente>" (Novo imóvel, Novo bem rural…) com os segmentos do ramo.
+// Versão anterior: 1.50.0 · 16/10/2026
 //
 // v1.50.0 (16/10/2026, sessão 20261016-0053-carga-silva, demanda 9404081c item 9a; de acordo do Nicola 16/10 00:53) — "+" de
 // Ativos: "Compartilhar imóveis" vira "Compartilhar ativos".
@@ -19,17 +23,11 @@
 // v1.47.0 (UX F2.3b, demanda fcd3008d, sessão 20261003-1707-ux-base; plano F2.3 aprovado pelo Nicola 09/10 20:52 ("Estou de acordo com f2.3 e opcao a")) —
 // "abrir-busca-global" abre a busca universal do app (rzAbrirBuscaUniversal) quando ela existe; no
 // cofre.html avulso continua o popup. Ponte window.rzBuscaCofre: ativos e documentos para a busca do Hoje.
-//
-// Versão anterior: 1.46.0 · 09/10/2026
-//
-// v1.46.0 (UX F2.3a, demanda fcd3008d, sessão 20261003-1707-ux-base; "Estou de acordo com f2.3 e opcao a" do Nicola 09/10 20:52) —
-// "abrir-busca-ativos" abre a busca em Sheet (ativos.abrirBuscaAtivos) quando o app tem Sheet; no
-// cofre.html avulso continua o popup de sempre.
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.45.0 … v1.45.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.46.0 … v1.46.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '1.50.0'; // v-check (28/09/2026): lido por Dev › Versões — manter igual ao header
+export const VERSAO = '1.51.0'; // v-check (28/09/2026): lido por Dev › Versões — manter igual ao header
 import { estado, COFRE_VERSAO } from './cofre-estado.js';
 import * as api from './cofre-api.js';
 import { mostrarToast, fecharModal, abrirModal, refrescarIcones } from './cofre-ui.js';
@@ -141,7 +139,8 @@ document.addEventListener('click', async (ev) => {
                 { icone: 'sparkles', tipo: 'ia', titulo: 'Carregar documento', codigo: 'cofre.upload', sub: 'A IA classifica e vincula', aoTocar: () => docs.abrirUploadHome() },
                 // v1.44.0 (D2) — configuração inicial pelos documentos que a pessoa já tem
                 { icone: 'list-checks', tipo: 'ia', titulo: 'Configuração inicial', codigo: 'cofre.configuracao_inicial', sub: 'Envie o que você já tem', aoTocar: () => abrirConfiguracaoInicialModulo() },
-                { icone: 'plus', titulo: 'Novo ativo', codigo: 'cofre.ativos.criar', sub: 'Imóvel, veículo, arte…', aoTocar: () => ativos.abrirFormAtivo() },
+                // v1.51.0 (L5-3, dem 9404081c) — "Novo …" e os exemplos pelo ramo da lente (Novo bem rural · Propriedades rurais, Lavouras…)
+                { icone: 'plus', titulo: ativos.rotuloNovoAtivo(), codigo: 'cofre.ativos.criar', sub: ativos.exemplosNovoAtivo(), aoTocar: () => ativos.abrirFormAtivo() },
                 { icone: 'share-2', titulo: 'Compartilhar ativos', codigo: 'vitrine.gerar', sub: 'Um link para vários', aoTocar: () => { if (typeof window.switchTab === 'function') window.switchTab('tab-vitrine'); } }
             ]});
             break;
