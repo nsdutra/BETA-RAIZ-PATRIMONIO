@@ -1,6 +1,18 @@
 // ============================================================================
 // relatorios-executivos.js — Raiz Patrimônio · Relatórios no modelo executivo
-// Versão: 1.5.0 · 16/10/2026
+// Versão: 1.6.0 · 19/10/2026
+//
+// v1.6.0 (19/10/2026, sessão 20261018-2336-usos-lotes, demanda 63649288; FICHA_COCKPIT_METAS_RELATORIO_RAIZ v1.0.0 e protótipo
+// v1.0.0, telas 4 a 7, de acordo do Nicola 18/10 23:36) — cockpit C3, relatório novo "Relatório executivo"
+// (relatorios.executivo), lido de fn_relatorio_executivo:
+//   · do ramo, 2 páginas: capa com manchete e 3 pontos montados a partir dos números (D-CK6), os 4 números (resultado,
+//     receita, despesa, margem), o resultado acumulado real × ano anterior × meta e a ponte da meta ao real por grupo
+//     (sem meta: a composição do resultado); página 2 com o demonstrativo na ordem da DRE (real até o mês, ano anterior,
+//     meta, Δ meta) e o resultado por ativo;
+//   · consolidado: uma página-resumo (uma linha por ramo, Geral e Consolidado, a mesma soma do Hoje) e as 2 de cada ramo;
+//   · notação REL-57: real em cor cheia escura, ano anterior em cinza claro, meta em contorno; verde e vermelho só na
+//     variação; filtro de ano e de ramo; abrirRelatorioExecutivo('executivo', { ramo, ramoNome }).
+// Versão anterior: 1.5.0 · 16/10/2026
 //
 // v1.5.0 (16/10/2026, sessão 20261016-2010-rel-cadastro, demanda 91e3516e; de acordo do Nicola 16/10 20:08) — relatório
 // novo "Cadastro da carteira" (relatorios.cadastro_carteira): planilha .xlsx com imóveis, contratos e locatários, uma
@@ -31,19 +43,15 @@
 // v1.2.0 (11/10/2026, sessão 20261011-1315-marca-saidas, demanda 680ee9f8 — marca e ramos, fase 6; plano aprovado pelo
 // Nicola 11/10 11:20): a assinatura "Raiz Patrimônio" do canto do cabeçalho ganha o símbolo da marca (DIRETRIZES_MARCA
 // MAR-06/09). Empresa do cliente continua à esquerda; nada mais muda. Versão anterior: 1.1.2.
-//
-// v1.1.2 (09/10/2026, sessão 20261009-2055-integridade, demanda 0e5618ca): a tela do relatório sai da camada 96
-// (aposentada no DESIGN_SYSTEM §5) para a 80, criada para tela cheia de leitura — acima do cabeçalho (50) e
-// abaixo do véu dos sheets (97), então os filtros continuam abrindo por cima. Versão anterior: 1.1.1.
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.1.1 … v1.1.1): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.1.2 … v1.1.2): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
 import { rzMostrarBloqueio } from './comum-licenca.js';
 import { rzToast } from './raiz-ui.js';
 import RaizDevice from './raiz-device.js';
 
-export const VERSAO = '1.5.0';
+export const VERSAO = '1.6.0';
 
 // ---------------------------------------------------------------------------
 // Formatos (REL-13 a REL-17)
@@ -393,6 +401,173 @@ function montarGerencial(d) {
 }
 
 // ---------------------------------------------------------------------------
+// Relatório executivo (v1.6.0, cockpit C3) — do ramo e consolidado. Notação REL-57: real cheio escuro, ano anterior cinza,
+// meta em contorno. Manchete e pontos montados aqui a partir dos números (D-CK6).
+// ---------------------------------------------------------------------------
+// resultado acumulado: 3 linhas (real até o mês, ano anterior, meta)
+function svgAcumulado(serie, ate, o = {}) {
+    const W = o.w || 320, H = o.h || 170, top = 18, bot = 22, esq = 6, dir = 46;
+    const acc = (campo, n) => { let t = 0; return serie.slice(0, n).map(m => (t += num(m[campo]))); };
+    const ac = acc('ac', ate), py = acc('py', 12), pl = o.temMeta ? acc('pl', 12) : [];
+    const todos = [...ac, ...py, ...pl, 0];
+    const mx = Math.max(...todos), mn = Math.min(...todos), sc = (H - top - bot) / ((mx - mn) || 1);
+    const X = i => esq + i * (W - esq - dir) / 11, Y = v => top + (mx - v) * sc;
+    const linha = (vals, cor, extra = '') => vals.length ? `<polyline points="${vals.map((v, i) => `${X(i).toFixed(1)},${Y(v).toFixed(1)}`).join(' ')}" fill="none" stroke="${cor}" stroke-width="${o.sw || 2}" ${extra}/>` : '';
+    let s = `<line class="zl" x1="0" x2="${W - dir}" y1="${Y(0)}" y2="${Y(0)}" stroke="${C.ink}" stroke-width=".6"/>`;
+    s += linha(py, C.cinza) + linha(pl, C.sprout, 'stroke-dasharray="4 3"') + linha(ac, C.pine, 'stroke-width="2.6"');
+    const fim = (vals, cor, rot, i = vals.length - 1) => vals.length ? txt(X(i) + 4, Y(vals[i]) + 3, `${rot} ${mil(vals[i] * 1000)}`, { a: 'start', fs: 8, f: cor, fw: 600 }) : '';
+    s += fim(py, C.mut, String(o.anoAnt || '')) + fim(pl, C.sprout, 'meta') + fim(ac, C.pine, String(o.ano || ''));
+    MESES.forEach((m, i) => { if (i % 2 === 0 || i === 11) s += txt(X(i), H - 6, m, { f: C.mut, c: 'mu', fs: 8 }); });
+    return `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(o.aria || '')}">${s}</svg>`;
+}
+
+function blocoExecutivo(b, d) {
+    const ate = num(d.mes_ate), ano = num(d.ano), mesTxt = MESES[ate - 1];
+    const serie = b.serie || [];
+    const soma = (campo, n = ate) => serie.slice(0, n).reduce((t, m) => t + num(m[campo]), 0);
+    const rec = soma('ac_receita'), desp = soma('ac_despesa'), res = soma('ac');
+    const recPy = soma('py_receita'), despPy = soma('py_despesa'), resPy = soma('py');
+    const temMeta = !!b.tem_meta, resPl = temMeta ? soma('pl') : null;
+    const margem = rec > 0 ? res / rec * 100 : null, margemPy = recPy > 0 ? resPy / recPy * 100 : null;
+    const dRes = variacao(res, resPy), dRec = variacao(rec, recPy), dDesp = variacao(desp, despPy);
+    const dPl = temMeta ? variacao(res, resPl) : null;
+    const grupos = (b.grupos || []).filter(g => g.grupo_resultado !== 'fora_resultado');
+    const rec_g = grupos.filter(g => g.direcao === 'entrada'), desp_g = grupos.filter(g => g.direcao === 'saida');
+    const periodo = ate === 12 ? String(ano) : `jan–${mesTxt} ${ano}`;
+    // manchete (REL-49) e pontos — fatos destes números, frase montada aqui
+    let manchete = `${b.nome}: resultado de ${compacto(res)} ${ate === 12 ? 'em ' + ano : 'até ' + mesLongo(ano + '-' + String(ate).padStart(2, '0') + '-01')}`;
+    if (temMeta && dPl != null) manchete += `, ${pct(Math.abs(dPl))} ${res >= resPl ? 'acima' : 'abaixo'} da meta`;
+    else if (dRes != null) manchete += `, ${pct(Math.abs(dRes))} ${res >= resPy ? 'acima' : 'abaixo'} de ${ano - 1}`;
+    manchete += '.';
+    // grupo que mais explica: contra a meta, quando há; senão, o maior grupo de despesa
+    const efeito = g => (g.direcao === 'entrada' ? 1 : -1) * (num(g.ac) - num(g.pl));
+    const gExplica = temMeta ? grupos.filter(g => g.pl != null).sort((x, y) => Math.abs(efeito(y)) - Math.abs(efeito(x)))[0] : null;
+    const gMaiorDesp = desp_g.slice().sort((x, y) => num(y.ac) - num(x.ac))[0];
+    const ativos = (b.por_ativo || []).slice().sort((x, y) => Math.abs(num(y.resultado)) - Math.abs(num(x.resultado)));
+    const aTop = ativos[0];
+    const pontos = [
+        { a: `Receita de ${compacto(rec)}${dRec != null ? ', ' + pct(dRec, true) + ' contra ' + (ano - 1) : ''}.`, b: `Despesa de ${compacto(desp)}${dDesp != null ? ', ' + pct(dDesp, true) + ' contra ' + (ano - 1) : ''}.` },
+        gExplica && Math.abs(efeito(gExplica)) >= 1
+            ? { a: `${gExplica.nome} é o grupo que mais ${efeito(gExplica) >= 0 ? 'ajuda' : 'pesa'} contra a meta.`, b: `${compacto(gExplica.ac)} no real contra ${compacto(gExplica.pl)} de meta até ${mesTxt}.` }
+            : gMaiorDesp ? { a: `${gMaiorDesp.nome} é a maior despesa: ${compacto(gMaiorDesp.ac)}.`, b: desp ? `${pct(num(gMaiorDesp.ac) / desp * 100)} das despesas do ${b.nome.toLowerCase() === 'geral' ? 'período' : 'ramo'}.` : '' }
+            : { a: 'Nenhuma despesa no período.', b: 'Toda a receita virou resultado.' },
+        aTop ? { a: `${aTop.nome} é o ativo de maior peso: ${compacto(aTop.resultado)}.`, b: res ? `Equivale a ${pct(Math.abs(num(aTop.resultado) / res) * 100)} do resultado do ramo.` : 'O ramo não tem resultado no período.' }
+             : { a: 'Nenhum ativo com lançamento.', b: 'O resultado vem de contratos e rateios do ramo.' }
+    ];
+    const vsTxt = (v, rot) => v == null ? '' : seta(v) + pct(v, true) + ' ' + rot;
+    const kpis = `<div class="kpis">${
+        kpi('Resultado', compacto(res), temMeta ? vsTxt(dPl, 'vs meta') : vsTxt(dRes, 'vs ' + (ano - 1)), deltaClasse(temMeta ? dPl : dRes)) +
+        kpi('Receita', compacto(rec), vsTxt(dRec, 'vs ' + (ano - 1)), deltaClasse(dRec)) +
+        kpi('Despesa', compacto(desp), vsTxt(dDesp, 'vs ' + (ano - 1)), deltaClasse(dDesp, false)) +
+        kpi('Margem', margem != null ? pct(margem) : '—', margem != null && margemPy != null ? (margem - margemPy >= 0 ? '+' : '−') + nf(Math.abs(margem - margemPy), 1) + ' p.p. vs ' + (ano - 1) : 'resultado ÷ receita', margem != null && margemPy != null ? deltaClasse(margem - margemPy) : 'mut')
+    }</div>`;
+    const tituloAcum = temMeta ? (res >= resPl ? `Resultado acima da meta até ${mesTxt}` : `Resultado abaixo da meta até ${mesTxt}`)
+        : (res >= resPy ? `Resultado à frente de ${ano - 1} até ${mesTxt}` : `Resultado atrás de ${ano - 1} até ${mesTxt}`);
+    const figAcum = figura(tituloAcum, `Resultado acumulado no ano · R$ mil · escuro = ${ano}, cinza = ${ano - 1}${temMeta ? ', tracejado = meta' : ''}`,
+        svgAcumulado(serie.map(m => ({ ac: num(m.ac) / 1000, py: num(m.py) / 1000, pl: num(m.pl) / 1000 })), ate, { temMeta, ano, anoAnt: ano - 1, aria: 'Resultado acumulado' }),
+        `Raiz · fn_relatorio_executivo · ${periodo}`);
+    let fig2;
+    if (temMeta) {
+        const passos = [{ l: 'Meta', v: resPl / 1000, t: 'tot' }];
+        grupos.filter(g => g.pl != null || num(g.ac)).forEach(g => { const e = efeito({ ...g, pl: num(g.pl) }); if (Math.abs(e) >= 1) passos.push({ l: rotulo2(g.nome), v: Math.abs(e) / 1000, t: e >= 0 ? 'up' : 'down' }); });
+        passos.push({ l: 'Real', v: res / 1000, t: 'tot' });
+        fig2 = figura(`Da meta de ${compacto(resPl)} ao real de ${compacto(res)}`, `Efeito de cada grupo no resultado · ${periodo} · R$ mil`, svgPonte(passos.slice(0, 9), { aria: 'Ponte da meta ao real' }), 'Raiz · fn_relatorio_executivo · ramo_metas');
+    } else {
+        const top = grupos.slice().sort((x, y) => num(y.ac) - num(x.ac)).slice(0, 6);
+        fig2 = figura(top[0] ? `${top[0].nome} é o maior grupo do ${periodo.length > 4 ? 'período' : 'ano'}` : 'Sem grupos no período', `Receitas e despesas por grupo · ${periodo} · R$ · sem meta definida`, '',
+            'Raiz · fn_relatorio_executivo', `<div style="margin-top:12px">${barrasH(top.map(g => ({ l: g.nome, v: num(g.ac), g: g.direcao === 'saida' })), x => compacto(x.v), 120)}</div>`);
+    }
+    const capa = `
+      <div class="acao">${esc(manchete)}</div>
+      <div class="acao-sub"><i>Leitura</i>gerada a partir dos números deste relatório</div>
+      ${kpis}${pontosHtml(pontos)}
+      <div class="g2">${figAcum}${fig2}</div>`;
+    // página 2 — demonstrativo (REL-29/59): real até o mês, ano anterior (ano inteiro), meta até o mês, Δ meta
+    const linG = g => {
+        const dv = g.pl != null ? num(g.ac) - num(g.pl) : null, bomSobe = g.direcao === 'entrada';
+        const cls = dv == null || dv === 0 ? '' : ((dv > 0) === bomSobe ? 'pos' : 'neg');
+        return `<tr><td>${g.direcao === 'saida' ? '(−) ' : ''}${esc(g.nome)}</td><td class="n">${tab(g.ac)}</td><td class="n hm">${tab(g.py)}</td><td class="n">${g.pl == null ? '—' : tab(g.pl)}</td><td class="n ${cls}">${dv == null ? '—' : (dv > 0 ? '+' : '') + tab(dv)}</td></tr>`;
+    };
+    const tot = (lista, k) => lista.reduce((t, g) => t + num(g[k]), 0);
+    const plRec = temMeta ? tot(rec_g, 'pl') : null, plDesp = temMeta ? tot(desp_g, 'pl') : null;
+    const linT = (rot, ac, py, pl, cls, bomSobe = true) => {
+        const dv = pl != null ? ac - pl : null, c = dv == null || dv === 0 ? '' : ((dv > 0) === bomSobe ? 'pos' : 'neg');
+        return `<tr class="${cls}"><td>${rot}</td><td class="n">${tab(ac)}</td><td class="n hm">${tab(py)}</td><td class="n">${pl == null ? '—' : tab(pl)}</td><td class="n ${c}">${dv == null ? '—' : (dv > 0 ? '+' : '') + tab(dv)}</td></tr>`;
+    };
+    const ativosTab = ativos.slice(0, 12);
+    const p2 = `
+      ${secao(`1. Demonstrativo · ${temMeta ? (res >= resPl ? 'resultado ' + compacto(res - resPl) + ' acima da meta' : 'faltam ' + compacto(resPl - res) + ' para a meta') : 'resultado de ' + compacto(res)}`, `Ordem da DRE · ${periodo} · R$ · ${ano - 1} = ano inteiro · Δ = real − meta`)}
+      <table><thead><tr><th style="width:42%">Linha</th><th class="n">${ano} (até ${mesTxt})</th><th class="n hm">${ano - 1}</th><th class="n">Meta</th><th class="n">Δ meta</th></tr></thead><tbody>
+        ${rec_g.map(linG).join('')}
+        ${linT('(=) Receita', rec, tot(rec_g, 'py'), plRec, 'sub')}
+        ${desp_g.map(linG).join('')}
+        ${linT('(=) Despesa', desp, tot(desp_g, 'py'), plDesp, 'sub', false)}
+        ${linT('(=) Resultado', res, tot(rec_g, 'py') - tot(desp_g, 'py'), resPl, 'tot')}
+      </tbody></table>
+      <div class="box"><b>Contra ${ano - 1} no mesmo período (jan–${mesTxt}):</b> receita ${compacto(recPy)} (${dRec == null ? 'sem base' : pct(dRec, true)}), despesa ${compacto(despPy)} (${dDesp == null ? 'sem base' : pct(dDesp, true)}), resultado ${compacto(resPy)} (${dRes == null ? 'sem base' : pct(dRes, true)}).</div>
+      ${ativosTab.length ? secao(`2. Por ativo · ${esc(aTop.nome)} tem o maior peso`, `${periodo} · R$ · ordem pelo tamanho do resultado`) +
+        `<table><thead><tr><th>Ativo</th><th class="n">Receita</th><th class="n">Despesa</th><th class="n">Resultado</th></tr></thead><tbody>${
+          ativosTab.map(a => `<tr><td>${esc(a.nome)}</td><td class="n">${tab(a.receita)}</td><td class="n">${tab(a.despesa)}</td><td class="n ${num(a.resultado) < 0 ? 'neg' : ''}">${tab(a.resultado)}</td></tr>`).join('')
+        }</tbody></table>${ativos.length > 12 ? `<div class="fs">Mais ${ativos.length - 12} ativos no Hoje › ${esc(b.nome)}.</div>` : ''}` : secao('2. Por ativo', 'Nenhum ativo com lançamento no período.')}
+      <div class="notes">
+        <p><b>Notas.</b></p>
+        <p><b>Visão competência:</b> receita e despesa pelo mês a que se referem, só o que foi recebido ou pago; as mesmas contas do Hoje (resultado por ramo).</p>
+        <p><b>Ramo:</b> o lançamento vai para o ramo do ativo; o do contrato, para o ramo do uso na data. O que foi lançado sem ativo fica no Geral.</p>
+        <p><b>Meta:</b> ${temMeta ? 'a do ano proporcional aos meses que passaram (ou a soma mês a mês, se a meta foi feita por mês).' : 'este ramo não tem meta para ' + ano + '; defina em Hoje › Exportar › Metas.'}</p>
+        <p><b>${ano - 1}:</b> na tabela, o ano inteiro por grupo; a comparação no mesmo período está no quadro acima da tabela.</p>
+        <p><b>Origem:</b> fn_relatorio_executivo v${d.versao || 1} · ${periodo}.</p>
+      </div>`;
+    return {
+        capa, p2, manchete, res, rec, desp, resPl, linhas: [`Relatório executivo · ${b.nome} · ${periodo}`, `Resultado ${compacto(res)}${temMeta ? ' · meta ' + compacto(resPl) : ''}`, manchete]
+    };
+}
+
+function montarExecutivo(d) {
+    const ate = num(d.mes_ate), ano = num(d.ano), mesTxt = MESES[ate - 1];
+    const periodo = ate === 12 ? String(ano) : `jan–${mesTxt} ${ano}`;
+    const blocos = (d.blocos || []).map(b => ({ b, m: blocoExecutivo(b, d) }));
+    const cons = d.consolidado;
+    const cfg = { nome: 'Relatório executivo', medida: cons ? 'Relatório executivo · consolidado' : `Relatório executivo · ${blocos[0]?.b.nome || ''}`,
+        subtitulo: `${periodo} · visão competência · ${cons ? 'todos os ramos' : 'ramo ' + (blocos[0]?.b.nome || '')}` };
+    const paginas = [];
+    if (cons) {
+        const t = cons.total || {}, g = cons.geral || {};
+        const ramos = cons.ramos || [];
+        const tm = t.meta, res = num(t.resultado);
+        const melhor = ramos.slice().sort((x, y) => num(y.resultado) - num(x.resultado))[0];
+        let manchete = `Consolidado: resultado de ${compacto(res)} ${ate === 12 ? 'em ' + ano : 'até ' + MESES_LONGO[ate - 1]}`;
+        if (tm && tm.ate_mes != null) manchete += `, ${pct(Math.abs(variacao(res, tm.ate_mes) || 0))} ${res >= num(tm.ate_mes) ? 'acima' : 'abaixo'} da meta`;
+        else if (variacao(res, t.anterior?.resultado) != null) manchete += `; em ${ano - 1} inteiro foram ${compacto(t.anterior.resultado)}`;
+        manchete += melhor ? `; ${melhor.nome} lidera com ${compacto(melhor.resultado)}.` : '.';
+        const lin = (nome, x, cls = '') => {
+            const mt = x.meta && x.meta.ate_mes != null ? num(x.meta.ate_mes) : null, dv = mt != null ? num(x.resultado) - mt : null;
+            return `<tr class="${cls}"><td>${esc(nome)}</td><td class="n">${tab(x.receita)}</td><td class="n">${tab(x.despesa)}</td><td class="n ${num(x.resultado) < 0 ? 'neg' : ''}">${tab(x.resultado)}</td><td class="n hm">${x.margem != null ? pct(x.margem) : '—'}</td><td class="n">${mt == null ? '—' : tab(mt)}</td><td class="n ${dv == null || dv === 0 ? '' : dv > 0 ? 'pos' : 'neg'}">${dv == null ? '—' : (dv > 0 ? '+' : '') + tab(dv)}</td></tr>`;
+        };
+        const resumo = `
+          <div class="acao">${esc(manchete)}</div>
+          <div class="acao-sub"><i>Leitura</i>gerada a partir dos números deste relatório</div>
+          <div class="kpis">${kpi('Resultado consolidado', compacto(res), tm && tm.ate_mes != null ? 'meta ' + compacto(tm.ate_mes) : '', tm && tm.ate_mes != null ? deltaClasse(res - num(tm.ate_mes)) : 'mut') +
+            kpi('Receita', compacto(t.receita), '') + kpi('Despesa', compacto(t.despesa), '') + kpi('Margem', t.margem != null ? pct(t.margem) : '—', 'resultado ÷ receita')}</div>
+          ${secao(`Por ramo · ${melhor ? melhor.nome + ' tem o maior resultado' : 'nenhum ramo com movimento'}`, `${periodo} · R$ · a soma das linhas é o Consolidado (o mesmo do Hoje)`)}
+          <table><thead><tr><th>Ramo</th><th class="n">Receita</th><th class="n">Despesa</th><th class="n">Resultado</th><th class="n hm">Margem</th><th class="n">Meta</th><th class="n">Δ meta</th></tr></thead><tbody>
+            ${ramos.map(r => lin(r.nome, r)).join('')}
+            ${(num(g.receita) || num(g.despesa) || num(g.resultado)) ? lin('Geral · sem ativo', g) : ''}
+            ${lin('Consolidado', t, 'tot')}
+          </tbody></table>
+          ${cons.soma_ok === false ? '<div class="box">A soma das linhas não fechou com o Consolidado. Avise o suporte.</div>' : ''}
+          <div class="notes"><p><b>Meta do consolidado:</b> a soma das metas dos ramos; o ramo sem meta entra pelo próprio real (não pesa na variação).</p>
+          <p><b>A seguir:</b> as 2 páginas de cada ramo, na ordem do resultado.</p></div>`;
+        paginas.push([resumo, ['Resumo']]);
+        blocos.forEach(({ m }) => { paginas.push([m.capa, ['Resumo']]); paginas.push([m.p2, ['Composição', 'Detalhe', 'Notas']]); });
+        return { cfg, linhas3: [`Relatório executivo · consolidado · ${periodo}`, `Resultado ${compacto(res)}${tm && tm.ate_mes != null ? ' · meta ' + compacto(tm.ate_mes) : ''}`, manchete], paginas };
+    }
+    const um = blocos[0];
+    if (!um) return { cfg, linhas3: ['Relatório executivo', '', ''], paginas: [['<div class="acao">Sem dados para o ramo.</div>', ['Resumo']]] };
+    paginas.push([um.m.capa, ['Resumo']]); paginas.push([um.m.p2, ['Composição', 'Detalhe', 'Notas']]);
+    return { cfg, linhas3: um.m.linhas, paginas };
+}
+
+// ---------------------------------------------------------------------------
 // Tela: o documento em si (REL-36) — topo com período, rodapé PDF | Compartilhar
 // ---------------------------------------------------------------------------
 const CSS = `
@@ -584,7 +759,8 @@ async function quemGera() {
 const RELATORIOS = {
     fluxo: { codigo: 'relatorios.fluxo_caixa', nome: 'Fluxo de caixa', arquivo: 'fluxo_caixa', montar: montarFluxo },
     gerencial: { codigo: 'relatorios.gerencial', nome: 'Visão gerencial', arquivo: 'gerencial', montar: montarGerencial },
-    retiradas: { codigo: 'relatorios.retiradas_extraordinarias', nome: 'Retiradas extraordinárias', arquivo: 'retiradas_extraordinarias', montar: montarRetiradas } // v1.3.0 — F13.8
+    retiradas: { codigo: 'relatorios.retiradas_extraordinarias', nome: 'Retiradas extraordinárias', arquivo: 'retiradas_extraordinarias', montar: montarRetiradas }, // v1.3.0 — F13.8
+    executivo: { codigo: 'relatorios.executivo', nome: 'Relatório executivo', arquivo: 'executivo', montar: montarExecutivo } // v1.6.0 — cockpit C3
 };
 let estado = null; // { tipo, filtro, dados, montado }
 
@@ -593,6 +769,7 @@ function somaMeses(base, n) { const d = new Date(base.getFullYear(), base.getMon
 function filtroPadrao(tipo, opcoes = {}) {
     const hoje = new Date(), m0 = new Date(hoje.getFullYear(), hoje.getMonth(), 1);
     if (tipo === 'retiradas') return { ano: hoje.getFullYear(), pessoaId: opcoes.pessoaId || null, pessoaNome: opcoes.pessoaNome || null }; // v1.3.0
+    if (tipo === 'executivo') return { ano: opcoes.ano || hoje.getFullYear(), ramo: opcoes.ramo || null, ramoNome: opcoes.ramoNome || null }; // v1.6.0
     if (tipo === 'fluxo') return { de: iso(somaMeses(m0, -3)), ate: iso(somaMeses(m0, 2)), conta: null, contaNome: null, rotulo: 'Últimos 3 meses e próximos 2' };
     return { competencia: iso(somaMeses(m0, -1)) };
 }
@@ -600,6 +777,7 @@ function rotuloFiltro() {
     if (!estado) return '';
     if (estado.tipo === 'fluxo') return `${comp(estado.filtro.de)} a ${comp(estado.filtro.ate)}`;
     if (estado.tipo === 'retiradas') return estado.filtro.ano ? String(estado.filtro.ano) : 'Todos os anos';
+    if (estado.tipo === 'executivo') return String(estado.filtro.ano); // v1.6.0
     return comp(estado.filtro.competencia);
 }
 
@@ -614,6 +792,13 @@ async function buscar() {
         return { ...data, empresa: data.cabecalho.empresa, gerado_em: new Date().toISOString(), gerado_por: quem,
                  relatorio: 'relatorios.retiradas_extraordinarias', versao: 1, visao: 'caixa', pessoa_nome: f.pessoaNome || null };
     }
+    if (estado.tipo === 'executivo') { // v1.6.0 — cockpit C3
+        const [{ data, error }, quem] = await Promise.all([
+            dbAuth.rpc('fn_relatorio_executivo', { p_cliente_id: CLIENTE_ID_SUPABASE, p_ramo: f.ramo || null, p_ano: f.ano, p_mes_ate: null }), quemGera()]);
+        if (error) throw new Error(error.message);
+        if (!data?.ok) throw new Error(data?.mensagem || 'O relatório não veio.');
+        return { ...data.dados, gerado_por: quem };
+    }
     const rpc = estado.tipo === 'fluxo'
         ? dbAuth.rpc('fn_contas_fluxo_caixa', { p_cliente_id: CLIENTE_ID_SUPABASE, p_de: f.de, p_ate: f.ate, p_conta_id: f.conta || null })
         : dbAuth.rpc('fn_contas_visao_gerencial', { p_cliente_id: CLIENTE_ID_SUPABASE, p_competencia: f.competencia });
@@ -626,7 +811,8 @@ async function buscar() {
 function telaHtml() {
     const r = RELATORIOS[estado.tipo];
     const contaChip = estado.tipo === 'fluxo' ? `<button type="button" data-rx="conta"><svg data-lucide="wallet"></svg>${esc(estado.filtro.contaNome || 'Todas as contas')}<svg data-lucide="chevron-down"></svg></button>`
-        : estado.tipo === 'retiradas' && estado.filtro.pessoaId ? `<button type="button" data-rx="pessoa" aria-label="Ver todas as pessoas"><svg data-lucide="user"></svg>${esc(estado.filtro.pessoaNome || 'Pessoa')}<svg data-lucide="x"></svg></button>` : ''; // v1.3.0: recorte por pessoa; tocar volta a todas
+        : estado.tipo === 'retiradas' && estado.filtro.pessoaId ? `<button type="button" data-rx="pessoa" aria-label="Ver todas as pessoas"><svg data-lucide="user"></svg>${esc(estado.filtro.pessoaNome || 'Pessoa')}<svg data-lucide="x"></svg></button>` // v1.3.0: recorte por pessoa; tocar volta a todas
+        : estado.tipo === 'executivo' ? `<button type="button" data-rx="ramo"><svg data-lucide="layers"></svg>${esc(estado.filtro.ramoNome || 'Consolidado')}<svg data-lucide="chevron-down"></svg></button>` : ''; // v1.6.0
     return `<div class="rx-top">
         <button type="button" class="rx-voltar" data-rx="fechar" aria-label="Voltar para Relatórios"><svg data-lucide="chevron-left"></svg>Relatórios</button>
         <span class="rx-sp"></span>
@@ -669,6 +855,7 @@ function ligar(el) {
         if (acao === 'fechar') fecharRelatorioExecutivo();
         else if (acao === 'periodo') escolherPeriodo();
         else if (acao === 'conta') escolherConta();
+        else if (acao === 'ramo') escolherRamo(); // v1.6.0
         else if (acao === 'pessoa') { Object.assign(estado.filtro, { pessoaId: null, pessoaNome: null }); carregar(); }
         else if (acao === 'pdf') imprimir();
         else if (acao === 'compartilhar') compartilhar();
@@ -685,6 +872,10 @@ function escolherPeriodo() {
         abrirSheetAcoes({ titulo: 'Período', sub: 'Fluxo de caixa', acoes: ops.map(([t, a, b]) => ({
             icone: 'calendar', titulo: t, sub: `${comp(iso(somaMeses(m0, a)))} a ${comp(iso(somaMeses(m0, b)))}`,
             aoTocar: () => { Object.assign(estado.filtro, { de: iso(somaMeses(m0, a)), ate: iso(somaMeses(m0, b)), rotulo: t }); carregar(); } })) });
+    } else if (estado.tipo === 'executivo') { // v1.6.0 — o ano (até o mês corrente no ano atual)
+        const a0 = hoje.getFullYear();
+        abrirSheetAcoes({ titulo: 'Ano', sub: 'Relatório executivo', acoes: [a0, a0 - 1, a0 - 2].map(a => ({
+            icone: 'calendar', titulo: String(a), sub: a === a0 ? 'até o mês atual' : 'ano inteiro', aoTocar: () => { estado.filtro.ano = a; carregar(); } })) });
     } else if (estado.tipo === 'retiradas') { // v1.3.0 — ano ou todos
         const a0 = hoje.getFullYear();
         const anos = [...new Set([a0, a0 - 1, ...((estado.dados && estado.dados.por_ano) || []).map(x => num(x.ano))])].sort((a, b) => b - a);
@@ -697,6 +888,18 @@ function escolherPeriodo() {
             icone: 'calendar', titulo: comp(c), sub: c === iso(m0) ? 'mês atual · prévia' : '',
             aoTocar: () => { estado.filtro.competencia = c; carregar(); } })) });
     }
+}
+
+// v1.6.0 — consolidado ou um ramo da empresa
+async function escolherRamo() {
+    let ramos = [];
+    try { const { data } = await dbAuth.rpc('fn_cliente_ramos', { p_cliente_id: CLIENTE_ID_SUPABASE }); ramos = Array.isArray(data) ? data.map(x => typeof x === 'string' ? x : (x.fn_cliente_ramos || x)) : []; } catch (e) { ramos = []; }
+    let nomes = {};
+    try { const { data } = await dbAuth.from('ativo_ramos').select('codigo, nome, ordem').order('ordem'); (data || []).forEach(r => { nomes[r.codigo] = r.nome; }); } catch (e) { /* sem nomes */ }
+    abrirSheetAcoes({ titulo: 'Ramo', sub: 'Relatório executivo', acoes: [
+        { icone: 'layers', titulo: 'Consolidado', sub: 'todos os ramos', aoTocar: () => { Object.assign(estado.filtro, { ramo: null, ramoNome: null }); carregar(); } },
+        ...ramos.map(r => ({ icone: 'circle', titulo: nomes[r] || r, aoTocar: () => { Object.assign(estado.filtro, { ramo: r, ramoNome: nomes[r] || r }); carregar(); } }))
+    ] });
 }
 
 async function escolherConta() {
@@ -716,7 +919,9 @@ function imprimir() {
     const tituloAntes = document.title;
     const empresa = String(estado.dados.empresa || 'empresa').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '');
     const quando = estado.tipo === 'fluxo' ? estado.filtro.ate.slice(0, 7)
-        : estado.tipo === 'retiradas' ? (estado.filtro.ano ? String(estado.filtro.ano) : 'todos') : estado.filtro.competencia.slice(0, 7);
+        : estado.tipo === 'retiradas' ? (estado.filtro.ano ? String(estado.filtro.ano) : 'todos')
+        : estado.tipo === 'executivo' ? `${estado.filtro.ramo || 'consolidado'}_${estado.filtro.ano}` // v1.6.0
+        : estado.filtro.competencia.slice(0, 7);
     document.title = `raiz_${RELATORIOS[estado.tipo].arquivo}_${empresa}_${quando}`; // REL-38: nome do arquivo
     doc?.classList.remove('m');
     document.body.classList.add('rz-imprimindo-rel');
@@ -1067,4 +1272,4 @@ export async function abrirRelatorioCadastroCarteira() {
 }
 
 // usados por testes e pelo protótipo
-export const _interno = { montarFluxo, montarGerencial, montarRetiradas, compacto, comp, montarPlanilhaCadastro };
+export const _interno = { montarFluxo, montarGerencial, montarRetiradas, montarExecutivo, compacto, comp, montarPlanilhaCadastro };

@@ -1,8 +1,12 @@
 // =====================================================================
 // RAIZ PATRIMÔNIO — js/resultados.js
-// VERSÃO: Beta v2.13.0 (19/10/2026 — demanda 63649288)
+// VERSÃO: Beta v2.14.0 (19/10/2026 — demanda 63649288)
 // LINHAS: (ver versoes.json)
 // -----------------------------------------------------------------
+// NOVIDADES (Beta v2.14.0) (19/10/2026, sessão 20261018-2336-usos-lotes, demanda 63649288; FICHA_COCKPIT_METAS_RELATORIO_RAIZ v1.0.0,
+//   de acordo do Nicola 18/10 23:36) — cockpit C3: Exportar ganha "Relatório executivo" do ramo da lente e do consolidado
+//   (js/relatorios-executivos.js 1.6.0, código relatorios.executivo).
+// Versão anterior (Beta v2.13.0):
 // NOVIDADES (Beta v2.13.0) (19/10/2026, sessão 20261018-2336-usos-lotes, demanda 63649288; FICHA_COCKPIT_METAS_RELATORIO_RAIZ v1.0.0,
 //   de acordo do Nicola 18/10 23:36) — cockpit C2, toque no número: tocar no resultado do herói abre a Composição, com a
 //   trilha Todo o patrimônio › Ramo › Ativo principal › Ativo ("‹" volta um nível) e três vistas: Por grupo (com a variação
@@ -77,7 +81,7 @@
 // Versões anteriores (v2.4.0 … v2.4.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '2.13.0';
+export const VERSAO = '2.14.0';
 
 // ---------------------------------------------------------------------
 // Estado do filtro (module-scoped — sobrevive entre renders porque o
@@ -458,6 +462,11 @@ export function abrirResultadosExportar() {
             { icone: 'file-text', titulo: 'Resultados analítico', sub: 'PDF com os filtros aplicados', aoTocar: () => { if (typeof baixarRelatorioPdfLocal === 'function') baixarRelatorioPdfLocal(); } },
             { icone: 'users', titulo: 'Distribuição aos sócios', sub: socios.length ? `PDF por sócio · ${socios.length} sócio${socios.length > 1 ? 's' : ''}` : 'PDF por sócio', aoTocar: () => abrirSheetAcoes({ titulo: 'Distribuição aos sócios', sub: 'Escolha o sócio', acoes: socios.length ? socios.map(sc => ({ icone: 'user', titulo: sc, aoTocar: () => { if (typeof exportarRelatorioSocioPDF === 'function') exportarRelatorioSocioPDF(sc); } })) : [{ icone: 'info', titulo: 'Sem distribuição ainda', aoTocar: () => {} }] }) },
             { icone: 'folder-open', titulo: 'Ver todos os relatórios', sub: 'Catálogo completo', aoTocar: () => switchTab('tab-relatorios-catalogo') },
+            // v2.14.0 (cockpit C3) — relatório executivo do ramo da lente e do consolidado
+            ...(filtro.ramo !== 'tudo' ? [{ icone: 'file-bar-chart', titulo: `Executivo · ${ramoInfo?.nome || 'ramo'}`.slice(0, 24), sub: 'PDF de 2 páginas', codigo: 'relatorios.executivo',
+                aoTocar: () => { if (typeof abrirRelatorioExecutivo === 'function') abrirRelatorioExecutivo('executivo', { ano: filtro.ano, ramo: filtro.ramo, ramoNome: ramoInfo?.nome || '' }); } }] : []),
+            { icone: 'layers', titulo: 'Executivo · consolidado', sub: 'Uma página por ramo', codigo: 'relatorios.executivo',
+                aoTocar: () => { if (typeof abrirRelatorioExecutivo === 'function') abrirRelatorioExecutivo('executivo', { ano: filtro.ano }); } },
             // v2.12.0 (cockpit C1) — metas do ramo da lente; em Todo o patrimônio, escolhe o ramo
             { icone: 'target', titulo: `Metas de ${filtro.ano}`, sub: filtro.ramo === 'tudo' ? 'Por ramo e grupo de resultado' : `Do ramo ${ramoInfo?.nome || ''}`, codigo: 'resultados.metas', aoTocar: () => abrirMetasHoje() },
         ]

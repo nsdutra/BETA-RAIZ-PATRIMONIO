@@ -4,6 +4,18 @@ Histórico completo de versões do `index.html`, movido automaticamente pelo `ge
 
 ---
 
+NOVIDADES (Beta v1.431.1) — L4-A DA CARGA SILVA CAFÉS (FICHA_LOTES_4_5 v1.1.0, de acordo do Nicola 18/10 23:43): lista de
+Ativos mais legível (etiqueta curta, mesma cor, nome em 2 linhas), proprietário opcional, nome do tipo no sub-ativo e
+campos de talhão, gleba, estruturas e identificação rural pelo catálogo; Arrendamento liberado. cofre-ativos.js 1.116.0.
+Banco: agro_cadastro_l4a_v1. O index só muda o import map.
+Versão anterior (Beta v1.431.0):
+------------------------------------------------------------------
+Versões anteriores (v1.431.0 … v1.431.0): CHANGELOG_APP.md, na raiz do
+repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
+das 5 versões mais recentes deste cabeçalho.
+
+---
+
 NOVIDADES (Beta v1.431.0) — RELATÓRIO NOVO "Cadastro da carteira" (de acordo do Nicola 16/10 20:08): em Minha empresa ›
 Relatórios, escolhe o empreendimento (ou todos) e baixa uma planilha .xlsx com imóveis, contratos e locatários, diagnóstico
 por linha e recomendações no fim. Código relatorios.cadastro_carteira (todos os planos com Relatórios). relatorios-executivos.js

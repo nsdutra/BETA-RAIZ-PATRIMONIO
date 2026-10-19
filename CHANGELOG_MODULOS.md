@@ -791,6 +791,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/cofre-api.js`
 
 //
@@ -1442,6 +1444,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/cofre-app.js`
 
 //
@@ -1865,6 +1869,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 // cofre-ativos.js). Prefere addEventListener a onclick inline em todo
 // código novo (Diretriz Arquitetural — Passo 2).
 // ============================================================================
+
+---
 
 ---
 
@@ -3619,6 +3625,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/cofre-controles.js`
 
 // Versão anterior: 1.57.0 · 14/10/2026
@@ -4371,6 +4379,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 // não está implementado (geração automática de ocorrências recorrentes,
 // Central de Alertas consolidada).
 // ============================================================================
+
+---
 
 ---
 
@@ -5409,6 +5419,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/cofre-estado.js`
 
 //
@@ -5554,6 +5566,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 // v1.21.6 (Arquivar/RLS, sessão paralela) nem esta entrega — fechado
 // agora. Ver changelog completo em cofre.html v1.22.0 (merge das 2
 // sessões paralelas + badge fix + form fix + função Vendido).
+
+---
 
 ---
 
@@ -6086,6 +6100,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/cofre-ui.js`
 
 //
@@ -6117,6 +6133,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 // genérica, template de card, indicador de "liga/desliga" (Design System
 // v1.43.0 §2). Não importa cofre-api.js — não sabe nada de Supabase.
 // ============================================================================
+
+---
 
 ---
 
@@ -6663,6 +6681,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/comum-licenca.js`
 
 //
@@ -6805,6 +6825,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 // hospeda (index.html, cofre.html, ou um módulo futuro) é quem decide
 // COMO obtém esse client; este arquivo só usa o que recebe.
 // ============================================================================
+
+---
 
 ---
 
@@ -7213,6 +7235,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 // `dbAuth` já autenticado do host, por parâmetro (ver nota completa em
 // comum-licenca.js).
 // ============================================================================
+
+---
 
 ---
 
@@ -7975,6 +7999,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/comum-renovacao.js`
 
 //
@@ -8017,6 +8043,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 // jsdelivr (mesma origem já usada pelo app); se não carregar, o "copia e cola"
 // continua funcionando sozinho.
 // ============================================================================
+
+---
 
 ---
 
@@ -8286,6 +8314,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 // dados de conta — recebe `dbAuth` já autenticado do host, por
 // parâmetro (ver nota completa em comum-licenca.js).
 // ============================================================================
+
+---
 
 ---
 
@@ -9568,6 +9598,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/fechamento.js`
 
 // Versão anterior: 1.12.0.
@@ -9898,6 +9930,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 // window.jspdf, CONFIG_CLIENTE (todos já globais no index.html clássico —
 // mesmo acesso que financeiro.js já faz).
 // ============================================================================
+
+---
 
 ---
 
@@ -11657,6 +11691,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/fiscal.js`
 
 //
@@ -11753,6 +11789,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 // abrirSheet, abrirSheetAcoes, abrirSheetForm, rzSheetCabecalho, fecharSheet,
 // mostrarToast, switchTab, rzIcones, podeUsar, window.fechamentoAbrirChecklistFiscalAtualizado.
 // ============================================================================
+
+---
 
 ---
 
@@ -12253,6 +12291,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/minutas.js`
 
 //
@@ -12357,6 +12397,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/raiz-ui.js`
 
 //
@@ -12418,7 +12460,18 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/relatorios-executivos.js`
+
+//
+// v1.1.2 (09/10/2026, sessão 20261009-2055-integridade, demanda 0e5618ca): a tela do relatório sai da camada 96
+// (aposentada no DESIGN_SYSTEM §5) para a 80, criada para tela cheia de leitura — acima do cabeçalho (50) e
+// abaixo do véu dos sheets (97), então os filtros continuam abrindo por cima. Versão anterior: 1.1.1.
+// --------------------------------------------------------------------------
+// Versões anteriores (v1.1.1 … v1.1.1): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
+// mais recentes deste cabeçalho (VER-06).
 
 //
 // v1.1.1 (07/10/2026, sessão 20261007-1845-financeiro, demanda f3e6cd27 — P5a.2): o filtro "Conta" do Fluxo de
@@ -12460,6 +12513,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 // que o bot usa); aqui só se monta o texto e o desenho — nunca se recalcula
 // (REL-02). Protótipo: raiz\docs\PROTOTIPO_RELATORIOS_FLUXO_GERENCIAL v1.1.0.
 // ============================================================================
+
+---
 
 ---
 
@@ -13027,6 +13082,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/vitrine.js`
 
 //
@@ -13147,6 +13204,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 // CLIENTE_ID_SUPABASE, dbAuth. Exclusivo (4) virou nível de módulo.
 // Indentação de origem mantida. Strict verificado.
 // ============================================================================
+
+---
 
 ---
 
