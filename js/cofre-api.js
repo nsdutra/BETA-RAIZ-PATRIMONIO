@@ -1,6 +1,10 @@
 // ============================================================================
 // cofre-api.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.52.0 · 18/10/2026
+// Versão: 1.53.0 · 19/10/2026
+//
+// v1.53.0 (19/10/2026, sessão 20261019-0935-carga-silva-l5b, demanda 9404081c, L5-B; ficha F2 com de acordo do Nicola 18/10
+// 23:43) — listarAtivosArquivados (chip Arquivados) e excluirAtivoDeVerdade (fn_ativo_excluir).
+// Versão anterior: 1.52.0 · 18/10/2026
 //
 // v1.52.0 (18/10/2026, sessão 20261018-2343-carga-silva-l4a, demanda 9404081c, L4-C) — listarTiposAtivo devolve, por tipo,
 // os ramos dos usos próprios de ramo que o tipo aceita (ramos_uso), o uso a iniciar em cada ramo (usos_por_ramo) e se o tipo
@@ -21,17 +25,11 @@
 // v1.49.0 (demanda a30da78b, item 2, sessão 20261007-2025-controles-empresa; plano aprovado pelo Nicola 07/10 20:14) —
 // listarItensControleEmpresa (itens com empresa_id, sem ativo/contrato, fora 'sistema') e
 // listarSubtiposControleEmpresa (regra de aplicabilidade vínculo:empresa).
-//
-// Versão anterior: 1.48.2 · 07/10/2026
-//
-// v1.48.1 (07/10/2026, sessão 20261007-1721-rolo-changelog, demanda 2507d554 — VER-06, "de acordo" do Nicola 07/10 17:21) — SÓ
-// CABEÇALHO: as versões além das 5 mais recentes rolaram para o CHANGELOG_MODULOS.md.
-// Nenhuma linha de código mudou — conferido token a token contra o publicado.
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.48.0 … v1.48.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.48.1 … v1.48.1): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '1.52.0'; // v-check (22/09/2026): lido por Dev › Versões — manter igual ao header
+export const VERSAO = '1.53.0'; // v-check (22/09/2026): lido por Dev › Versões — manter igual ao header
 const SUPABASE_URL = 'https://oduwpttbbemypiypjsux.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9kdXdwdHRiYmVteXBpeXBqc3V4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODUyODEyOTcsImV4cCI6MjEwMDg1NzI5N30.9-cu1CV1wPbo5UH1G2eAsWqsvS54AWNuQZOlifc9a7w';
 
@@ -525,6 +523,18 @@ export async function listarAtivos(clienteId) {
     const { data, error } = await dbAuth.from('cofre_ativos').select('*').eq('cliente_id', clienteId).eq('status', 'ativo').order('criado_em', { ascending: false });
     if (error) throw error;
     return data || [];
+}
+
+// v1.53.0 (L5-B, dem 9404081c) — ativos arquivados (chip "Arquivados" da lista) e exclusão de verdade (fn_ativo_excluir, F2)
+export async function listarAtivosArquivados(clienteId) {
+    const { data, error } = await dbAuth.from('cofre_ativos').select('*').eq('cliente_id', clienteId).eq('status', 'arquivado').order('atualizado_em', { ascending: false });
+    if (error) throw error;
+    return data || [];
+}
+export async function excluirAtivoDeVerdade(id, motivo) {
+    const { data, error } = await dbAuth.rpc('fn_ativo_excluir', { p_ativo_id: id, p_motivo: motivo, p_canal: 'app' });
+    if (error) throw error;
+    return data;
 }
 
 export async function buscarAtivoPorId(id) {

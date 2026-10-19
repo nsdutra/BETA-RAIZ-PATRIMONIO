@@ -4,6 +4,19 @@ Histórico completo de versões do `index.html`, movido automaticamente pelo `ge
 
 ---
 
+NOVIDADES (Beta v1.433.0) — COCKPIT C1, METAS DO ANO (FICHA_COCKPIT_METAS_RELATORIO_RAIZ v1.0.0, de acordo do Nicola
+18/10 23:36): Hoje › Exportar › "Metas de <ano>" define a meta de cada ramo por grupo de resultado, no ano inteiro ou
+mês a mês (Copiar do ano anterior, +N%, Limpar). O herói mostra a barra real × meta e "meta até <mês> · faltam"; a
+margem da lente compara com a da meta; o Resultado por ramo mostra a meta de cada ramo e do Consolidado. Sem meta, nada
+muda. resultados.js 2.12.0 · cockpit-metas.js 1.0.0 (novo). Banco: usos_cockpit_metas_v1 (ramo_metas).
+Versão anterior (Beta v1.432.1):
+------------------------------------------------------------------
+Versões anteriores (v1.432.1 … v1.432.1): CHANGELOG_APP.md, na raiz do
+repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
+das 5 versões mais recentes deste cabeçalho.
+
+---
+
 NOVIDADES (Beta v1.432.1) — L4-B/L4-C DA CARGA SILVA CAFÉS (FICHA_LOTES_4_5 v1.1.0, de acordo do Nicola 18/10 23:43):
 área com unidade (ha, alqueire mineiro e paulista, m²), fazenda/sítio/chácara/terreno rural com sede (município, UF,
 coordenadas, como chegar, CEP opcional) no lugar de rua e número; Aluguel esperado só em tipo com uso de renda; Casa

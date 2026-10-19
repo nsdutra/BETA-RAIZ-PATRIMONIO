@@ -1,6 +1,12 @@
 // ============================================================================
 // cofre-ativos.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.119.0 · 19/10/2026
+// Versão: 1.120.0 · 19/10/2026
+//
+// v1.120.0 (19/10/2026, sessão 20261019-0935-carga-silva-l5b, demanda 9404081c; FICHA_LOTES_4_5 v1.1.0, ficha F2, de acordo
+// do Nicola 18/10 23:43) — L5-B: "Excluir" no fim da Situação do ⋮ apaga de verdade (fn_ativo_excluir) o ativo sem nada
+// ligado, com motivo; com vínculo, o banco diz o quê e a tela oferece Arquivar. Chip "Arquivados" no fim da fileira (só
+// com arquivado), com a etiqueta "Arquivado"; a ficha abre e o ⋮ traz Reativar. Arquivar/reativar relê a lista.
+// Versão anterior: 1.119.0 · 19/10/2026
 //
 // v1.119.0 (19/10/2026, sessão 20261019-0920-carga-silva-l5a2, demanda 9404081c; ajustes do Nicola 19/10 09:17 sobre o L5-A) —
 // sai o grupo por ramo; empreendimento só agrupa em carteira com mais de 10 ativos; sai a faixa "▾ N áreas": abre e fecha
@@ -29,17 +35,11 @@
 // predial, nome em até 2 linhas e recuo menor das áreas, "Sem contrato" só no imóvel predial e ícone do tipo nas fazendas;
 // proprietário opcional (linha vazia não bloqueia o salvar); cabeçalho e menus do sub-ativo com o nome do tipo do catálogo;
 // edição do sub-ativo respeita o contexto do catálogo (sem empreendimento e valor).
-// Versão anterior: 1.115.0 · 16/10/2026
-//
-// v1.115.0 (16/10/2026, sessão 20261016-0105-usos-fatia7-fix, demanda 3022603b; achado do Nicola 16/10 01:03, "Não veio opção
-// de lote pecuária"; "Pode publicar a correção" 01:10) — o 1º seletor do novo ativo ganha as categorias Agro e Pecuária
-// (CATEGORIAS_ATIVO era fixa sem elas: na lente Pecuária o filtro ficava vazio e caía na lista inteira; no Agro faltavam
-// lavoura, talhão e máquinas). Nada mais muda.
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.113.0 … v1.114.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.113.0 … v1.115.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '1.119.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.120.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 import { estado } from './cofre-estado.js';
 import * as api from './cofre-api.js';
 import { mostrarToast, erroInline, refrescarIcones, alternarToggle, abrirModal, fecharModal, modalGenerico, perguntar, avisarComDesfazer, escolher } from './cofre-ui.js';
@@ -515,7 +515,10 @@ export function renderAtivosLista(filtroTipo = '', filtroTexto = '') {
 
     const soComAlerta = !!GRUPOS_CHIP_TIPO[chipAtivoAtual]?.alerta; // v1.75.0 (F2.2)
     const comAlerta = soComAlerta ? ativosComAlerta(ocorrenciasPorAtivo) : null;
-    const lista = principais().filter(a => {
+    // v1.120.0 (L5-5) — chip Arquivados: a lista vira a dos arquivados da lente (tocar abre a ficha; Reativar no ⋮)
+    const soArquivados = !!GRUPOS_CHIP_TIPO[chipAtivoAtual]?.arquivados;
+    const lista = (soArquivados ? arquivadosDaLente() : principais()).filter(a => {
+        if (soArquivados) return ativoBateComBusca(a, null);
         if (ramoLente !== 'tudo' && ramoDoAtivoLista(a) !== ramoLente) return false; // v1.85.0 (F21)
         if (segmentoChip && segmentoDoAtivo(a) !== segmentoChip) return false; // v1.85.0 (F22)
         if (tiposFiltro && tiposFiltro.length && !tiposFiltro.includes(a.tipo_ativo)) return false;
@@ -554,7 +557,7 @@ export function renderAtivosLista(filtroTipo = '', filtroTexto = '') {
         return resumo?.empreendimento || (a.empreendimento_id && (_empreendimentosCache || []).find(e => e.id === a.empreendimento_id)?.nome) || '';
     };
     const SEM_EMP = 'Sem empreendimento';
-    const agrupar = principais().length > 10;
+    const agrupar = principais().length > 10 && !soArquivados;
     const emps = (() => {
         if (!agrupar) return [{ nome: null, itens: lista }];
         const g = {};
@@ -577,7 +580,7 @@ export function renderAtivosLista(filtroTipo = '', filtroTexto = '') {
     const totalGrupo = (l) => { const c = l.filter(a => a.valor_referencia != null); return c.length ? compacto(c.reduce((t, a) => t + Number(a.valor_referencia || 0), 0)) : ''; };
     container.innerHTML = emps.map(e => `
         ${e.nome ? `<div class="rz-group rz-group-t"><span>${escapeHtml(e.nome)} · ${e.itens.length}</span>${totalGrupo(e.itens) ? `<b>${totalGrupo(e.itens)}</b>` : ''}</div>` : ''}
-        <div class="rz-card rz-list">${e.itens.map(ativoComSubativosHtml).join('')}</div>`).join('') + cardConvite;
+        <div class="rz-card rz-list">${e.itens.map(soArquivados ? ativoCardArquivadoHtml : ativoComSubativosHtml).join('')}</div>`).join('') + (soArquivados ? '' : cardConvite);
 
     const vazio = document.getElementById('ativos-estado-vazio');
     vazio.classList.toggle('hidden', principais().length !== 0);
@@ -654,6 +657,19 @@ let GRUPOS_CHIP_TIPO = [
 // filtros independentes, o dropdown fino não tem chip correspondente 1:1).
 let chipAtivoAtual = 0;
 let segmentoChip = null; // v1.85.0 (F22) — segmento do chip aceso, num ramo
+// v1.120.0 (L5-5, dem 9404081c) — ativos arquivados: lidos uma vez (chip "Arquivados" no fim da fileira) e relidos quando
+// um ativo é arquivado, reativado ou excluído. null = ainda não lidos.
+let ativosArquivados = null;
+let lendoArquivados = false;
+function garantirArquivados() {
+    if (ativosArquivados !== null || lendoArquivados || !estado.clienteId) return;
+    lendoArquivados = true;
+    api.listarAtivosArquivados(estado.clienteId).then(l => { ativosArquivados = l; })
+        .catch(e => { console.warn('[cofre-ativos] arquivados:', e?.message || e); ativosArquivados = []; })
+        .finally(() => { lendoArquivados = false; if (document.getElementById('ativos-lista')) renderChipsAtivos(); });
+}
+if (typeof window !== 'undefined') window.addEventListener('cofre:recarregar-ativos', () => { ativosArquivados = null; });
+const arquivadosDaLente = () => (ativosArquivados || []).filter(a => ramoDaLente() === 'tudo' || ramoDoAtivoLista(a) === ramoDaLente());
 
 // ---- Ramo da lente (F21) -------------------------------------------------------------------------
 const ramoDaLente = () => (typeof window !== 'undefined' && typeof window.rzRamoAtual === 'function') ? window.rzRamoAtual() : 'tudo';
@@ -680,6 +696,7 @@ function recalcularGruposChip() {
         ativosDoRamo().forEach(a => { const sg = segmentoDoAtivo(a); const o = tipoDoCatalogo(a.tipo_detalhe_id)?.ordem ?? 999; if (!ordem.has(sg) || o < ordem.get(sg)) ordem.set(sg, o); });
         GRUPOS_CHIP_TIPO = base.concat([...ordem.keys()].sort((x, y) => (ordem.get(x) - ordem.get(y)) || x.localeCompare(y, 'pt-BR')).map(sg => ({ rotulo: sg, tipos: [], segmento: sg })));
     }
+    GRUPOS_CHIP_TIPO = GRUPOS_CHIP_TIPO.concat([{ rotulo: 'Arquivados', tipos: [], arquivados: true }]); // v1.120.0 (L5-5)
     if (chipAtivoAtual >= GRUPOS_CHIP_TIPO.length) { chipAtivoAtual = 0; segmentoChip = null; }
 }
 if (typeof window !== 'undefined') {
@@ -723,16 +740,18 @@ function renderChipsAtivos() {
     const wrap = document.getElementById('ativos-chips-tipo');
     if (!wrap) return; // cofre.html standalone não tem este container ainda — no-op seguro
     const comAlerta = ativosComAlerta(); // v1.75.0 (F2.2)
+    garantirArquivados();
     const base = ativosDaBusca(); // dem 1f98c359 — o contador conta o que a busca deixou
     // F2.4 (UXR-13/14/15) — Todos → ação (com ponto) → recorte (só grupos com ativo) → convite.
     const pt = piorSeveridadeAtivos();
     const chips = GRUPOS_CHIP_TIPO.map((g, i) => {
-        const qtd = g.alerta ? base.filter(a => comAlerta.has(a.id)).length
+        const qtd = g.arquivados ? arquivadosDaLente().length // v1.120.0 (L5-5) — só aparece com arquivado
+            : g.alerta ? base.filter(a => comAlerta.has(a.id)).length
             : g.ramo ? principais().filter(a => ramoDoAtivoLista(a) === g.ramo).length // v1.85.0 (F21) — chip de ramo
             : g.segmento ? base.filter(a => segmentoDoAtivo(a) === g.segmento).length // v1.85.0 (F22) — chip de segmento
             : (g.tipos ? base.filter(a => g.tipos.includes(a.tipo_ativo)).length : base.length);
         const ativo = i === chipAtivoAtual;
-        if (g.alerta && !qtd && !ativo) return ''; // chip de ação só aparece com contador > 0 (UXR-15)
+        if ((g.alerta || g.arquivados) && !qtd && !ativo) return ''; // chip de ação só aparece com contador > 0 (UXR-15)
         if (g.tipos && g.tipos.length && !qtd && !ativo) return ''; // recorte vazio vira convite (abaixo)
         if ((g.ramo || g.segmento) && !qtd && !ativo) return ''; // v1.85.0 — ramo/segmento vazio não aparece
         const ponto = g.alerta && qtd ? `<span class="rz-pt ${pt}" aria-hidden="true"></span>` : '';
@@ -924,6 +943,11 @@ function ativoComSubativosHtml(a) {
     if (k >= 0) html = html.slice(0, k) + botao + html.slice(k + '<svg data-lucide="chevron-right" class="rz-chev"></svg>'.length);
     const filhos = subs.map(x => ativoCardHtml(x).replace('<div class="rz-row rz-link"', `<div class="rz-row rz-link rz-sub-row" style="padding-left:12px;margin-left:10px;--ramo-grupo:${corRamo}"`)).join('');
     return html + `<div class="rz-subs${aberto ? '' : ' hidden'}" data-subs-de="${a.id}">${filhos}</div>`;
+}
+// v1.120.0 (L5-5) — linha do arquivado: o card de sempre com a etiqueta "Arquivado" no lugar do uso
+function ativoCardArquivadoHtml(a) {
+    const etq = typeof window.renderStatus === 'function' ? window.renderStatus('neu', 'Arquivado') : '<span class="rz-st rz-neu">Arquivado</span>';
+    return ativoCardHtml(a).replace(/<div class="rz-tx-st">[\s\S]*?<\/div>/, '').replace(/(<b [^>]*>[\s\S]*?<\/b>)/, `$1<div class="rz-tx-st">${etq}</div>`);
 }
 window.__rzAlternarSubativos = (id, btn) => {
     const lista = document.querySelector(`[data-subs-de="${id}"]`);
@@ -1686,6 +1710,10 @@ export async function abrirAcoesAtivo() {
     // dos cards saíram). Situação (vender, excluir) por último.
     const situacaoAntiga = acoes.filter(x => x.titulo === 'Marcar como vendido' || x.titulo === 'Excluir ativo');
     const situacao = maquina ? maquina.map(m => acaoDaMaquinaAtivo(a, m)) : situacaoAntiga;
+    // v1.120.0 (L5-4, F2) — Excluir de verdade, no fim da Situação: só passa sem nada ligado; senão a tela oferece Arquivar
+    if (maquina && (a.status || 'ativo') === 'ativo')
+        situacao.push({ icone: 'trash-2', titulo: 'Excluir', codigo: 'cofre.excluir', tipo: 'bad', sub: 'Cadastro errado, sem nada ligado',
+            aoTocar: () => excluirAtivoAtual(maquina.find(m => m.acao === 'arquivar') || null) });
     const fora = a.registro_contabil === 'fora';
     // v1.102.0 (usos fatia 3) — unidades, áreas, integrantes: do fn_ativo_estrutura (já lido pelo card do Resumo)
     let grupoSub = null;
@@ -1801,7 +1829,7 @@ async function abrirTransicaoAtivo(a, m) {
             mostrarToast(data?.mensagem || 'Feito.', 'sucesso');
             a.status = data?.para || a.status;
             estruturaAtual = null; // v1.102.0 — os subativos podem ter mudado junto
-            if (dados.subativos) window.dispatchEvent(new CustomEvent('cofre:recarregar-ativos'));
+            if (dados.subativos || m.acao === 'arquivar' || m.acao === 'reativar') window.dispatchEvent(new CustomEvent('cofre:recarregar-ativos')); // v1.120.0 (L5-5)
             await aposMudarUso(a);
             window.dispatchEvent(new CustomEvent('cofre:recarregar-eventos'));
             return true;
@@ -3476,17 +3504,42 @@ function documentosDoAtivo(ativoId) {
     return estado.documentos.filter(d => (d.cofre_documento_vinculos || []).some(v => v.entidade_tipo === 'ativo' && v.entidade_id === ativoId));
 }
 
-export async function excluirAtivoAtual() {
+// v1.120.0 (L5-4, ficha F2 do Nicola 18/10) — excluir é apagar de verdade (fn_ativo_excluir): só o ativo cadastrado por
+// engano, sem uso, contrato, item, lançamento, documento, foto, sub-ativo ou parte (o repouso e os proprietários vão junto).
+// Com vínculo, o banco recusa e diz o quê; a tela oferece Arquivar (que mantém o histórico). Antes "Excluir" arquivava.
+export async function excluirAtivoAtual(mArquivar = null) {
     const a = estado.ativoEmFoco;
     if (!a) return;
-    if (!await perguntar({ titulo: `Excluir ${a.nome_exibicao}?`, impacto: 'A exclusão fica registrada e não dá para desfazer pelo app.', destrutivo: true, rotuloConfirmar: 'Excluir ativo' })) return;
-    try {
-        await api.arquivarAtivo(a.id);
-        await api.registrarLogAcessos(estado.clienteId, estado.pessoa.id, 'cofre.excluir', { ativoId: a.id, nome: a.nome_exibicao });
-        mostrarToast('Ativo excluído.');
-        fecharFichaAtivo();
-        window.dispatchEvent(new CustomEvent('cofre:recarregar-eventos')); // BUG FIX 25/08/2026 — itens/ocorrências do ativo excluído continuavam nos alertas da Visão Geral
-    } catch (err) { mostrarToast('Erro: ' + err.message, 'erro'); }
+    if (typeof window.abrirSheetForm !== 'function') { mostrarToast('Abra pelo app principal.', 'erro'); return; }
+    window.abrirSheetForm({
+        titulo: 'Excluir ' + a.nome_exibicao, sub: 'Some do sistema; não dá para desfazer', rotuloSalvar: 'Excluir',
+        corpo: `<p class="rz-desc" style="margin:0 0 8px">Use para cadastro feito por engano. Com histórico (uso, contrato, item, lançamento, documento), arquive.</p>
+            <div class="rz-f" style="margin-bottom:0"><label for="fa-exc-motivo">Motivo</label><input type="text" id="fa-exc-motivo" maxlength="200" placeholder="Ex.: cadastrado em duplicidade"></div>`,
+        aoSalvar: async () => {
+            const motivo = (document.getElementById('fa-exc-motivo')?.value || '').trim();
+            if (!motivo) { mostrarToast('Diga o motivo.', 'erro'); return false; }
+            try {
+                const r = await api.excluirAtivoDeVerdade(a.id, motivo);
+                mostrarToast(r?.mensagem || 'Ativo excluído.', 'sucesso');
+                fecharFichaAtivo();
+                estado.ativos = (estado.ativos || []).filter(x => x.id !== a.id);
+                window.dispatchEvent(new CustomEvent('cofre:recarregar-ativos'));
+                window.dispatchEvent(new CustomEvent('cofre:recarregar-eventos'));
+                recarregarFuncionalidadesLiberadas().catch(() => {}); // cota de ativos mudou
+                return true;
+            } catch (err) {
+                const msg = err?.message || 'Não foi possível excluir.';
+                if (err?.hint === 'arquivar' && mArquivar) {
+                    setTimeout(async () => {
+                        if (await perguntar({ titulo: 'Arquivar em vez de excluir?', impacto: msg, rotuloConfirmar: 'Arquivar' })) abrirTransicaoAtivo(a, mArquivar);
+                    }, 50);
+                    return true;
+                }
+                mostrarToast(msg, 'erro');
+                return false;
+            }
+        },
+    });
 }
 
 // NOVO (29/08/2026, pedido explícito) — "Marcar como vendido": diferente
