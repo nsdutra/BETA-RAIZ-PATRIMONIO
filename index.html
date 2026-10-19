@@ -6,9 +6,12 @@
    (base derivada do RUMO v7.4.2 — histórico de versões anteriores
    preservado abaixo para referência técnica)
 
-   VERSÃO: Beta v1.439.3
-   LINHAS: 17180
-   DATA: 19/10/2026 (sessão 20261019-1712-carga-silva-faixa2, demanda 9404081c)
+   VERSÃO: Beta v1.439.4
+   LINHAS: 17179
+   DATA: 19/10/2026 (sessão 20261019-1716-carga-silva-faixa3, demanda 9404081c)
+   NOVIDADES (Beta v1.439.4) — FAIXA DO RAMO (Nicola 19/10 17:15): sem o fio forte embaixo e com o fundo um pouco mais forte.
+   Só CSS.
+   Versão anterior (Beta v1.439.3):
    NOVIDADES (Beta v1.439.3) — FAIXA DO RAMO MAIS SUTIL (Nicola 19/10 17:09): a faixa vira o topo do card da lista do ramo
    (mesma largura e cantos), fundo claro na cor do ramo com um fio embaixo, letras no tamanho de antes e o ícone do ramo
    alinhado aos ícones dos ativos; o ícone e a setinha ao lado do total recolhem os
@@ -28,12 +31,8 @@
    fica a árvore, e tocar num ramo abre Patrimônio filtrado. cofre-ativos.js 1.124.0, cofre-app.js 1.52.0,
    ativos-markup.js 1.66.0, agenda.js 1.7.0.
    Versão anterior (Beta v1.438.2):
-   NOVIDADES (Beta v1.438.2) — ÍCONES (Nicola 19/10 12:16): criança volta ao ícone de pessoa (idoso a partir de 65 fica);
-   os ícones pelo tipo já aparecem na primeira abertura de Ativos. cofre-ativos.js 1.123.0, cofre-validacoes.js 2.13.0. O
-   index só muda o import map.
-   Versão anterior (Beta v1.438.1):
    ------------------------------------------------------------------
-   Versões anteriores (v1.438.1 … v1.438.1): CHANGELOG_APP.md, na raiz do
+   Versões anteriores (v1.438.2 … v1.438.2): CHANGELOG_APP.md, na raiz do
    repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
    das 5 versões mais recentes deste cabeçalho.
 
@@ -471,7 +470,7 @@
            ativos") — a faixa vira o topo do card da lista do ramo: mesma largura e cantos do card, fundo claro na cor do ramo e
            um fio na cor do ramo embaixo; o ícone (38px, sólido na cor do ramo) fica centrado na coluna dos ícones dos ativos (34px, escala compacta) */
         .rz-ramo-faixa{display:flex;align-items:center;gap:10px;margin:18px 0 0;padding:6px 14px;border-radius:var(--r-card) var(--r-card) 0 0;
-            background:var(--tile);background:color-mix(in srgb,var(--ramo-grupo,var(--sage)) 12%,var(--card));border:1px solid var(--line);border-bottom:2px solid var(--ramo-grupo,var(--sage));color:var(--ink)}
+            background:var(--tile);background:color-mix(in srgb,var(--ramo-grupo,var(--sage)) 18%,var(--card));border:1px solid var(--line);color:var(--ink)} /* v1.439.4 (item 49): sem o fio forte, fundo 12%→18% */
         .rz-ramo-faixa:first-child{margin-top:4px}
         #ativos-lista > .rz-ramo-faixa + .rz-card{margin-top:0;border-top:0;border-top-left-radius:0;border-top-right-radius:0}
         .rz-ramo-faixa h3{font-family:var(--font-title);font-size:16px;font-weight:600;flex:1;min-width:0;margin:0;color:inherit}
@@ -4507,7 +4506,7 @@
         // texto certo toda vez (esqueci 5 versões seguidas, de v1.37.1 até
         // v1.38.3). Agora só precisa mudar UMA linha aqui a cada release;
         // window.onload aplica nos dois lugares automaticamente.
-        const APP_VERSAO = "Beta v1.439.3"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
+        const APP_VERSAO = "Beta v1.439.4"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
 
         // ====================================================================
         // v1.105.0 — HELPERS DE SUPERFÍCIE DA GRAMÁTICA ÚNICA
