@@ -6,9 +6,12 @@
    (base derivada do RUMO v7.4.2 — histórico de versões anteriores
    preservado abaixo para referência técnica)
 
-   VERSÃO: Beta v1.439.5
-   LINHAS: 17175
-   DATA: 19/10/2026 (sessão 20261019-1716-carga-silva-faixa3, demanda 9404081c)
+   VERSÃO: Beta v1.439.6
+   LINHAS: 17178
+   DATA: 19/10/2026 (sessão 20261019-1741-carga-silva-chips, demanda 9404081c)
+   NOVIDADES (Beta v1.439.6) — ⋮ E CHIPS DE PATRIMÔNIO (Nicola 19/10 17:40): o ⋮ fica centrado na altura dos chips; os chips
+   param antes dele, com um esmaecido na ponta, e ficam um pouco mais curtos. Só CSS.
+   Versão anterior (Beta v1.439.5):
    NOVIDADES (Beta v1.439.5) — FAIXA DO RAMO COM FILTRO (Nicola 19/10 17:17): a faixa fica também ao filtrar por chip, busca ou
    lente de ramo, com contador e soma do que o filtro deixou. cofre-ativos.js 1.127.0. O index só muda o import map.
    Versão anterior (Beta v1.439.4):
@@ -23,12 +26,8 @@
    NOVIDADES (Beta v1.439.2) — ⋮ NO PADRÃO DA FICHA (Nicola 19/10 17:06): em Patrimônio o ⋮ fica na ponta direita da linha
    dos chips; no Financeiro ele perde a caixa e vira os três pontos simples da ficha do ativo. ativos-markup.js 1.67.0.
    Versão anterior (Beta v1.439.1):
-   NOVIDADES (Beta v1.439.1) — FAIXA DO RAMO (Nicola 19/10 17:02): em Patrimônio o ramo vira uma faixa na cor dele, de ponta a
-   ponta, com o ícone maior e o contador de ativos, o nome e a soma à direita; saem as 3 caixas e o Ver só/Ver todos. A árvore
-   do Hoje abre Patrimônio na faixa do ramo. cofre-ativos.js 1.125.0.
-   Versão anterior (Beta v1.439.0):
    ------------------------------------------------------------------
-   Versões anteriores (v1.439.0 … v1.439.0): CHANGELOG_APP.md, na raiz do
+   Versões anteriores (v1.439.1 … v1.439.1): CHANGELOG_APP.md, na raiz do
    repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
    das 5 versões mais recentes deste cabeçalho.
 
@@ -484,9 +483,13 @@
         .rz-subs>.rz-sub-row::after{left:-23px;width:21px}
         .rz-ramo-faixa-n{position:absolute;right:-6px;bottom:-5px;min-width:18px;height:18px;padding:0 4px;border-radius:9px;background:var(--card);color:var(--ramo-grupo,var(--sage));font:700 11px/18px var(--font-body);text-align:center;box-shadow:0 0 0 1.5px var(--ramo-grupo,var(--sage))}
         /* v1.439.2 (item 46) — ⋮ de Patrimônio na ponta direita da linha dos chips (padrão da ficha do ativo) */
-        .rz-chips-linha{display:flex;align-items:center;gap:4px}
-        .rz-chips-linha>.rz-chips{flex:1;min-width:0}
-        .rz-chips-linha>.rz-more{margin:0 -6px 0 0}
+        /* v1.439.6 (item 51) — a margem de baixo sai dos chips e vai para a linha (o ⋮ fica no meio da altura dos chips); os
+           chips param antes do ⋮, com um esmaecido na ponta, e ficam um pouco mais curtos nesta linha */
+        .rz-chips-linha{display:flex;align-items:center;gap:6px;margin-bottom:12px}
+        .rz-chips-linha>.rz-chips{flex:1;min-width:0;margin:0 0 0 -16px;padding:2px 10px 2px 16px;gap:5px;
+            -webkit-mask-image:linear-gradient(to right,black calc(100% - 18px),transparent);mask-image:linear-gradient(to right,black calc(100% - 18px),transparent)}
+        .rz-chips-linha .rz-chip{padding:0 10px;gap:5px}
+        .rz-chips-linha>.rz-more{margin:0 -8px 0 0;align-self:center}
         .rz-ramo-ic{width:28px;height:28px;border-radius:9px;display:inline-flex;align-items:center;justify-content:center;color:var(--card);flex:none}
         .rz-ramo-ic svg{width:15px;height:15px}
         /* v1.436.1 (dem 9404081c, ajuste do Nicola 19/10 09:17) — na lista de Ativos a etiqueta de status fica embaixo do nome */
@@ -4502,7 +4505,7 @@
         // texto certo toda vez (esqueci 5 versões seguidas, de v1.37.1 até
         // v1.38.3). Agora só precisa mudar UMA linha aqui a cada release;
         // window.onload aplica nos dois lugares automaticamente.
-        const APP_VERSAO = "Beta v1.439.5"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
+        const APP_VERSAO = "Beta v1.439.6"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
 
         // ====================================================================
         // v1.105.0 — HELPERS DE SUPERFÍCIE DA GRAMÁTICA ÚNICA

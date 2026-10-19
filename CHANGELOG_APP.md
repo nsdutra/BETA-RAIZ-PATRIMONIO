@@ -4,6 +4,17 @@ Histórico completo de versões do `index.html`, movido automaticamente pelo `ge
 
 ---
 
+NOVIDADES (Beta v1.439.1) — FAIXA DO RAMO (Nicola 19/10 17:02): em Patrimônio o ramo vira uma faixa na cor dele, de ponta a
+ponta, com o ícone maior e o contador de ativos, o nome e a soma à direita; saem as 3 caixas e o Ver só/Ver todos. A árvore
+do Hoje abre Patrimônio na faixa do ramo. cofre-ativos.js 1.125.0.
+Versão anterior (Beta v1.439.0):
+------------------------------------------------------------------
+Versões anteriores (v1.439.0 … v1.439.0): CHANGELOG_APP.md, na raiz do
+repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
+das 5 versões mais recentes deste cabeçalho.
+
+---
+
 NOVIDADES (Beta v1.439.0) — PATRIMÔNIO POR RAMO (PROTOTIPO_PATRIMONIO_RAMOS_RAIZ v1.0.0, opção A; decisões do Nicola 19/10
 12:44): o rodapé diz Patrimônio; em Todo o patrimônio cada ramo tem o card que estava no Hoje (ícone do ramo, Valor ou
 Vidas, quantidade, alertas) e "Ver só" filtra só esta tela, com "Ver todos"; a linha das áreas liga o ícone do principal
