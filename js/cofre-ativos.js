@@ -1,6 +1,12 @@
 // ============================================================================
 // cofre-ativos.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.120.0 · 19/10/2026
+// Versão: 1.121.0 · 19/10/2026
+//
+// v1.121.0 (19/10/2026, sessão 20261019-1125-carga-silva-ajustes, demanda 9404081c, itens 31–34 pedidos pelo Nicola 19/10 11:19)
+// — em Todo o patrimônio os chips não filtram ramo (Todos, Com alerta, Arquivados); a etiqueta do principal com sub-ativos
+// mostra a classe do uso (Vida, Disponível…) e não "0 de 4 integrantes"; lente de ramo sem ativo mostra o card de cadastro do
+// ramo; ícone pelo tipo do catálogo (iconeDoAtivo: trator, talhão, secador…).
+// Versão anterior: 1.120.0 · 19/10/2026
 //
 // v1.120.0 (19/10/2026, sessão 20261019-0935-carga-silva-l5b, demanda 9404081c; FICHA_LOTES_4_5 v1.1.0, ficha F2, de acordo
 // do Nicola 18/10 23:43) — L5-B: "Excluir" no fim da Situação do ⋮ apaga de verdade (fn_ativo_excluir) o ativo sem nada
@@ -28,18 +34,11 @@
 // area_m2; edição respeita os blocos do catálogo; "Aluguel esperado" só em tipo com uso de renda; casa cadastrada na lente
 // Família já nasce com Moradia (D2); etiqueta curta no card de áreas (só o nome do uso); ficha e "Adicionar uso" esperam o
 // catálogo (Arrendamento aparecia só depois de abrir o cadastro).
-// Versão anterior: 1.116.0 · 18/10/2026
-//
-// v1.116.0 (18/10/2026, sessão 20261018-2343-carga-silva-l4a, demanda 9404081c; FICHA_LOTES_4_5 v1.1.0, de acordo do Nicola
-// 18/10 23:43) — L4-A: lista de Ativos com etiqueta curta (só o nome do uso), "Disponível" na mesma cor fora do imóvel
-// predial, nome em até 2 linhas e recuo menor das áreas, "Sem contrato" só no imóvel predial e ícone do tipo nas fazendas;
-// proprietário opcional (linha vazia não bloqueia o salvar); cabeçalho e menus do sub-ativo com o nome do tipo do catálogo;
-// edição do sub-ativo respeita o contexto do catálogo (sem empreendimento e valor).
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.113.0 … v1.115.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.116.0 … v1.116.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '1.120.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.121.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 import { estado } from './cofre-estado.js';
 import * as api from './cofre-api.js';
 import { mostrarToast, erroInline, refrescarIcones, alternarToggle, abrirModal, fecharModal, modalGenerico, perguntar, avisarComDesfazer, escolher } from './cofre-ui.js';
@@ -48,7 +47,7 @@ import {
     escapeHtml, formatarDataBR, diasAte, chipVencimento, mascarar,
     rotuloTipoAtivo, iconeAtivo, validarCamposAtivo,
     obterCamposPorTipo, listarTiposPorCategoria, inicializarCatalogoTiposAtivo, tipoDoCatalogo, categoriasDoRamo, blocosDoFormulario,
-    tiposDoCatalogo as _catalogoAtivoTiposLista } from './cofre-validacoes.js';
+    tiposDoCatalogo as _catalogoAtivoTiposLista, iconeDoAtivo } from './cofre-validacoes.js';
 import { montarControlesAtivo, aplicarMotorNoChipControles, reiniciarChipControlesDoMotor } from './cofre-controles.js';
 // E6.2 — retorno usado de forma síncrona em salvarAtivo/salvarEdicaoAtivo
 // (lerBlocoEndereco), por isso import estático (ver nota em technical-
@@ -582,10 +581,15 @@ export function renderAtivosLista(filtroTipo = '', filtroTexto = '') {
         ${e.nome ? `<div class="rz-group rz-group-t"><span>${escapeHtml(e.nome)} · ${e.itens.length}</span>${totalGrupo(e.itens) ? `<b>${totalGrupo(e.itens)}</b>` : ''}</div>` : ''}
         <div class="rz-card rz-list">${e.itens.map(soArquivados ? ativoCardArquivadoHtml : ativoComSubativosHtml).join('')}</div>`).join('') + (soArquivados ? '' : cardConvite);
 
+    // v1.121.0 (item 33, Nicola 19/10 11:19) — lente de um ramo sem nenhum ativo mostra o card de cadastro daquele ramo (antes:
+    // "Todos 0" e um card vazio). Com ativo mas sem resultado na busca/chip, uma linha de texto, nunca um card em branco.
+    const semNadaNaLente = principais().length === 0 || (ramoLente !== 'tudo' && !ativosDoRamo().length && !soArquivados);
+    if (!semNadaNaLente && !lista.length) container.innerHTML = '<p class="rz-desc" style="padding:12px 4px">Nenhum ativo com esse filtro.</p>';
     const vazio = document.getElementById('ativos-estado-vazio');
-    vazio.classList.toggle('hidden', principais().length !== 0);
-    container.classList.toggle('hidden', principais().length === 0);
-    if (principais().length === 0) desenharVazioAtivos(vazio);
+    vazio.classList.toggle('hidden', !semNadaNaLente);
+    container.classList.toggle('hidden', semNadaNaLente);
+    document.getElementById('ativos-chips-tipo')?.classList.toggle('hidden', semNadaNaLente && !(ativosArquivados || []).length);
+    if (semNadaNaLente) desenharVazioAtivos(vazio);
     renderChipsAtivos();
     refrescarIcones();
 }
@@ -598,6 +602,21 @@ function desenharVazioAtivos(el) {
     const gate = window.podeUsar ? window.podeUsar('cofre.ver') : { ok: true };
     if (!gate.ok) { explicarListaVazia(el); return; }
     if (typeof window.rzVazio !== 'function') return;
+    // v1.121.0 (item 33) — numa lente de ramo, o convite fala do ramo ("Comece pelo primeiro bem rural") e o cadastro abre
+    // com as categorias do ramo
+    const r = ramoDaLente();
+    const un = r !== 'tudo' && typeof rzRamoInfo === 'function' ? rzRamoInfo(r)?.unidade_singular : null;
+    if (un && r !== 'imoveis') {
+        const fem = /^Nova/.test(rotuloNovoAtivo());
+        el.innerHTML = window.rzVazio({
+            dominio: 'ativos', id: 'ativos-lista',
+            titulo: `Comece pel${fem ? 'a primeira' : 'o primeiro'} ${un}`,
+            beneficio: `Cadastre ${fem ? 'a primeira' : 'o primeiro'} ${un} — ou envie um documento e a Raiz IA preenche por você. Depois você acompanha usos, itens de controle e resultado.`,
+            acaoIA: { rotulo: 'Enviar documento', codigo: 'cofre.analisar_ia', aoTocar: () => window.dispatchEvent(new CustomEvent('cofre:abrir-upload-home')) },
+            acaoManual: { rotulo: `Cadastrar ${un}`, codigo: 'cofre.ativos.criar', aoTocar: () => abrirFormAtivo() },
+        });
+        return;
+    }
     el.innerHTML = window.rzVazio({
         dominio: 'ativos', id: 'ativos-lista',
         titulo: 'Comece pelo primeiro imóvel',
@@ -688,7 +707,9 @@ function recalcularGruposChip() {
     const r = ramoDaLente();
     const base = [{ rotulo: 'Todos', tipos: null }, { rotulo: 'Com alerta', tipos: [], alerta: true }];
     if (r === 'tudo') {
-        GRUPOS_CHIP_TIPO = base.concat(RZ_RAMOS.filter(x => typeof rzRamoLiberado === 'function' ? rzRamoLiberado(x.codigo) : x.status === 'ativo').map(x => ({ rotulo: x.nome, tipos: [], ramo: x.codigo }))); // v1.112.0: só ramos contratados
+        // v1.121.0 (item 31, Nicola 19/10 11:19: "não quero que os chips filtrem os ramos") — em Todo o patrimônio, sem chip
+        // de ramo (o ramo se escolhe na lente do cabeçalho): Todos, Com alerta e Arquivados
+        GRUPOS_CHIP_TIPO = base;
     } else {
         // v1.118.0 (L5-2, D3) — segmentos na ordem do catálogo (menor ativo_tipos.ordem do segmento), não alfabética:
         // Agro = Propriedades rurais · Lavouras · Máquinas agrícolas · Estruturas
@@ -825,7 +846,7 @@ export function buscarAtivosTexto(termoBruto) {
     }).map(a => {
         const resumo = ehCategoriaImovel(a.tipo_ativo) ? resumoImoveisPorId.get(a.id) : null;
         const sub = [resumo?.empreendimento, resumo?.contratoPrincipal?.locatario].filter(Boolean).join(' · ') || rotuloTipoAtivo(a.tipo_ativo);
-        return { id: a.id, nome: a.nome_exibicao || 'Ativo', sub, icone: iconeAtivo(a.tipo_ativo) };
+        return { id: a.id, nome: a.nome_exibicao || 'Ativo', sub, icone: iconeDoAtivo(a) };
     });
 }
 
@@ -933,6 +954,9 @@ function ativoComSubativosHtml(a) {
     html = html.replace(/(<div class="rz-ic rz-ic-grupo"[^>]*>[\s\S]*?)(<\/div>)/, `$1<span class="rz-ic-n">${subs.length}</span>$2`);
     const st = typeof window.rzStatusDoAtivo === 'function' ? window.rzStatusDoAtivo(a.id) : null;
     if (st && st.rotulo && st.classe && st.rotulo !== st.classe) html = html.replace(escapeHtml(st.rotulo), escapeHtml(st.classe)).replace(st.rotulo, st.classe);
+    // v1.121.0 (item 32, Nicola 19/10 11:19: "o que é 0 de 4? já tem 4 no ícone") — o resumo "N de M integrantes/áreas" sai da
+    // etiqueta: fica a classe do uso (Vida, Disponível, Em produção…); a quantidade já está no ícone
+    if (st && st.subativos && st.nome && st.classe && st.nome !== st.classe) html = html.replace(escapeHtml(st.nome), escapeHtml(st.classe));
     // v1.119.0 (item 30, Nicola 19/10 09:17: a faixa "▾ N áreas" aumentou demais a altura) — abre e fecha pela seta (▾ no lugar
     // da ›) e também pelo ícone com a quantidade; o resto da linha entra na ficha.
     const toggle = `onclick="event.stopPropagation(); window.__rzAlternarSubativos && window.__rzAlternarSubativos('${a.id}')"`;
@@ -1062,7 +1086,7 @@ function ativoCardHtml(a) {
         // propósito, ver nota acima.
         return `<div class="rz-row rz-link" role="button" tabindex="0" data-action="abrir-ativo" data-id="${a.id}" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault(); this.click();}">
             <div class="rz-ic"${resumoImovel.foto ? ' style="overflow:hidden"' : ''}>
-                ${resumoImovel.foto ? `<img src="${resumoImovel.foto}" class="w-full h-full object-cover">` : `<svg data-lucide="${predial ? 'home' : iconeAtivo(a.tipo_ativo)}"></svg>`}
+                ${resumoImovel.foto ? `<img src="${resumoImovel.foto}" class="w-full h-full object-cover">` : `<svg data-lucide="${iconeDoAtivo(a)}"></svg>`}
             </div>
             <div class="rz-tx">
                 <b style="display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;white-space:normal;word-break:break-word">${escapeHtml(a.nome_exibicao)}</b>
@@ -1101,7 +1125,7 @@ function ativoCardHtml(a) {
         : stGen ? window.renderStatus(stGen.sem, stGen.contrato_status === 'assinando' ? stGen.rotulo : stGen.nome)
         : rotSit ? window.renderStatus(rotSit[0], rotSit[1]) : ''; // sem status carregado: a Situação gravada (derivada do uso)
     return `<div class="rz-row rz-link" role="button" tabindex="0" data-action="abrir-ativo" data-id="${a.id}" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault(); this.click();}">
-        <div class="rz-ic"><svg data-lucide="${iconeAtivo(a.tipo_ativo)}"></svg></div>
+        <div class="rz-ic"><svg data-lucide="${iconeDoAtivo(a)}"></svg></div>
         <div class="rz-tx">
             <b style="display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;white-space:normal;word-break:break-word">${escapeHtml(a.nome_exibicao)}</b>
             ${seloGen ? `<div class="rz-tx-st">${seloGen}</div>` : ''}
@@ -1508,7 +1532,7 @@ export async function abrirFichaAtivo(id, chipInicial = 'resumo') {
     // renderStatus() (index.html v1.106.0) — antes ficava dentro do box
     // Dados, longe do nome.
     document.getElementById('fa-cabecalho').innerHTML = `
-        <div class="rz-ic"><i data-lucide="${iconeAtivo(a.tipo_ativo)}"></i></div>
+        <div class="rz-ic"><i data-lucide="${iconeDoAtivo(a)}"></i></div>
         <div class="rz-tx">
             <b>${escapeHtml(a.nome_exibicao)}</b>
             <span>${escapeHtml(tipoDoCatalogo(a.tipo_detalhe_id)?.nome || rotuloTipoAtivo(a.tipo_ativo))}</span>
@@ -1922,7 +1946,7 @@ async function montarSubativosAtivo(a) {
         const emUso = subs.filter(x => x.status && x.status.repouso === false).length;
         const linhas = subs.map(x => {
             const st = rotuloStatusSubativo(x.status);
-            return `<div class="rz-row rz-link" role="button" tabindex="0" data-sub-abrir="${x.id}"><div class="rz-ic"><i data-lucide="${iconeAtivo(estado.ativos.find(y => y.id === x.id)?.tipo_ativo || a.tipo_ativo)}"></i></div>
+            return `<div class="rz-row rz-link" role="button" tabindex="0" data-sub-abrir="${x.id}"><div class="rz-ic"><i data-lucide="${iconeDoAtivo(estado.ativos.find(y => y.id === x.id) || a)}"></i></div>
                 <div class="rz-tx"><b>${escapeHtml(x.nome)}</b><span>${escapeHtml(x.tipo || '')}</span></div><div class="rz-rt">${r(st.sem, st.rotulo)}</div>
                 <button type="button" class="rz-more" data-sub-menu="${x.id}" aria-label="Ações de ${escapeHtml(x.nome)}"><i data-lucide="ellipsis-vertical"></i></button></div>`; // v1.108.0 (3c) — ⋮ como nas outras linhas
         }).join('');

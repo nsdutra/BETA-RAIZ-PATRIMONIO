@@ -1,6 +1,10 @@
 // ============================================================================
 // cofre-validacoes.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 2.10.0 · 19/10/2026
+// Versão: 2.11.0 · 19/10/2026
+//
+// v2.11.0 (19/10/2026, sessão 20261019-1125-carga-silva-ajustes, demanda 9404081c, item 34) — iconeDoAtivo(a): ícone pelo
+// tipo do catálogo (trator com trator, talhão com broto, secador com chama…), a categoria fica de reserva.
+// Versão anterior: 2.10.0 · 19/10/2026
 //
 // v2.10.0 (19/10/2026, sessão 20261019-0850-carga-silva-l5a, demanda 9404081c, L5-3) — tiposDoCatalogo() devolve a lista de
 // tipos do catálogo, para o "+" de Ativos dizer o que cadastrar no ramo da lente.
@@ -18,18 +22,11 @@
 // v2.7.0 (15/10/2026, sessão 20261015-1615-usos-fatia6a, demanda 3022603b; de acordo do Nicola 15/10 16:10, item 4) — o
 // seletor de tipos do novo ativo (categorias e tipos do ramo) passa a mostrar só ramos ativos E contratados pelo cliente
 // (rzRamoLiberado, lido da fn_cliente_ramos), não só os ativos no catálogo: Agro e Obras abrem só para quem tem o ramo.
-// Versão anterior: 2.6.0 · 14/10/2026
-//
-// v2.6.0 (14/10/2026, sessão 20261014-2220-usos-fatia4, frente usos-fatia3b, demanda 3022603b; FICHA_FATIA3B v1.1.0, de
-// acordo do Nicola 14/10 22:38–22:58) — o formulário do ativo vem do catálogo por contexto (ativo solto ou subativo):
-// obterCamposPorTipo(categoria, tipo, contexto) ignora os blocos e entende campo em lista (opcoes); blocosDoFormulario()
-// diz quais blocos fixos aparecem (empreendimento, valor, endereço, dados do imóvel, divisão societária); categoria com
-// catálogo carregado e sem campo devolve lista vazia (Família), em vez dos campos de reserva.
 // --------------------------------------------------------------------------
-// Versões anteriores (v2.5.0 … v2.5.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v2.6.0 … v2.6.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '2.10.0'; // v-check (18/09/2026): lido por Dev › Versões — manter igual ao header
+export const VERSAO = '2.11.0'; // v-check (18/09/2026): lido por Dev › Versões — manter igual ao header
 export function escapeHtml(s) {
     return (s ?? '').toString().replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 }
@@ -288,6 +285,27 @@ function ramoLiberado(r) {
     if (!r) return true;
     if (typeof rzRamoLiberado === 'function') return rzRamoLiberado(r);
     return typeof rzRamoInfo !== 'function' || rzRamoInfo(r)?.status === 'ativo';
+}
+
+// v2.11.0 (item 34 da dem 9404081c, Nicola 19/10 11:19: "o trator está com ícone de planta") — ícone pelo TIPO do catálogo
+// (codigo); a categoria fica de reserva. Nomes do Lucide.
+const ICONE_POR_TIPO = {
+    casa: 'home', apartamento: 'building', cobertura: 'building-2', sala: 'briefcase', conjunto: 'building-2', loja: 'store',
+    galpao: 'warehouse', vaga: 'square-parking', terreno: 'map', lote: 'map-pin',
+    fazenda: 'map', sitio: 'trees', chacara: 'trees', terreno_rural: 'map', gleba: 'land-plot', talhao: 'sprout', lavoura: 'sprout',
+    trator: 'tractor', colheitadeira: 'tractor', colhedora_cafe: 'tractor', plantadeira: 'tractor', pulverizador: 'spray-can',
+    implemento: 'wrench', terreiro: 'sun', secador: 'flame', armazem: 'warehouse',
+    lote_bovino: 'beef', lote_suino: 'piggy-bank', equinos: 'fence', ovinos_caprinos: 'fence', pasto: 'fence', piquete: 'fence',
+    curral: 'fence', galpao_rural: 'warehouse',
+    empreendimento: 'building-2', obra: 'hard-hat', loteamento: 'map', area_comum: 'trees',
+    carro: 'car', carro_blindado: 'shield', moto: 'bike', caminhao: 'truck', onibus: 'bus', reboque: 'truck',
+    lancha: 'sailboat', iate: 'sailboat', veleiro: 'sailboat', jet_ski: 'waves', aviao: 'plane', helicoptero: 'plane',
+    obra_de_arte: 'image', joia: 'gem', relogio: 'watch', vinho: 'wine', antiguidade: 'landmark', instrumento: 'music', livre: 'package',
+    familia: 'users', pessoa: 'user', pet: 'paw-print',
+};
+export function iconeDoAtivo(a) {
+    const t = a && a.tipo_detalhe_id ? tipoDoCatalogo(a.tipo_detalhe_id) : null;
+    return (t && ICONE_POR_TIPO[t.codigo]) || iconeAtivo(a?.tipo_ativo);
 }
 
 // v2.10.0 (L5-3) — a lista inteira do catálogo de tipos (ramo, segmento, ordem), [] sem catálogo

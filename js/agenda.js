@@ -1,8 +1,14 @@
 // =====================================================================
 // RAIZ PATRIMÔNIO — js/agenda.js
-// VERSÃO: Beta v1.5.0 (16/10/2026 — demanda 3022603b)
+// VERSÃO: Beta v1.6.0 (19/10/2026 — demanda 9404081c)
 // LINHAS: (ver versoes.json)
 // -----------------------------------------------------------------
+// NOVIDADES (Beta v1.6.0) — Nicola 19/10 11:19 (dem 9404081c, itens 35 e 36; sessão 20261019-1125-carga-silva-ajustes):
+//   — volta a lista de alertas de antes como a vista "Alertas", ao lado de Semana e Mês: é o bloco #agenda-lista do index
+//     (busca, severidade, linhas e gestos de sempre, montarAlertasPatrimonio), mostrado logo abaixo das abas;
+//   — na Semana, arrastar a faixa dos dias para os lados troca a semana; no Mês, arrastar a grade para cima/baixo troca o mês
+//     (para cima = próximo). As setas ‹ › continuam.
+// Versão anterior (Beta v1.5.0):
 // NOVIDADES (Beta v1.5.0) — usos fatia 7 (FICHA_FATIA7_MEMBROS_RAIZ v1.2.0 §2A, de acordo do Nicola 16/10 00:05): entra o que
 //   o relógio prevê para os animais (fn_agenda_periodo, tipo 'membro': parto previsto, diagnóstico, secagem, desmame), no
 //   assunto Ativos; o toque abre a ficha do animal (cofre-membros.js). Sessão 20261016-0020-usos-fatia7.
@@ -57,7 +63,7 @@
 // formatarMoedaBR, abrirSheet, abrirSheetAcoes, rzSheetCabecalho, fecharSheet, abrirAlertaItemControle,
 // abrirFichaContrato, switchTab, mostrarToast, rzDev.
 
-export const VERSAO = '1.5.0';
+export const VERSAO = '1.6.0';
 
 const TIPOS = {
     ocorrencia:   { rotulo: 'Ocorrência',  icone: 'wrench',          dominio: 'ocorrencias' },
@@ -162,7 +168,7 @@ function intervaloContado() { // o que os números contam (sem as bordas da grad
 export async function montarAgenda(vista, el) {
     st.el = el || st.el;
     if (!st.el) return;
-    st.vista = ['semana', 'mes'].includes(vista) ? vista : (st.vista || 'semana'); // v1.4.0 — sem a Lista; sem vista: mantém a atual
+    st.vista = ['semana', 'mes', 'alertas'].includes(vista) ? vista : (st.vista || 'semana'); // v1.6.0 — + Alertas; sem vista: mantém a atual
     if (!st.mes) st.mes = new Date(hoje().getFullYear(), hoje().getMonth(), 1);
     if (!st.dia) st.dia = iso(hoje());
     if (!st.semana) st.semana = inicioSemana(hoje());
@@ -171,8 +177,18 @@ export async function montarAgenda(vista, el) {
     await carregar();
 }
 
+// v1.6.0 (item 36) — a vista Alertas é a lista de alertas de sempre (#agenda-lista do index), logo abaixo das abas
+function mostrarListaAlertas(mostrar) {
+    const lista = document.getElementById('agenda-lista');
+    if (!lista || !st.el) return;
+    if (lista.previousElementSibling !== st.el) st.el.after(lista);
+    lista.hidden = !mostrar;
+}
+
 async function carregar() {
     const meu = ++st.seq;
+    mostrarListaAlertas(st.vista === 'alertas');
+    if (st.vista === 'alertas') { desenhar(false); return; } // a lista vem do index (montarAlertasPatrimonio)
     const [de, ate] = periodo();
     desenhar(true);
     let dados = [];
@@ -200,6 +216,13 @@ function desenhar(carregando) {
     const conta = (s) => base.filter(it => it.status === s).length;
     const todos = st.assuntos.size === ASSUNTOS.length;
     const rotAss = todos ? 'Assunto' : !st.assuntos.size ? 'Nenhum assunto' : st.assuntos.size === 1 ? ASSUNTOS.find(a => st.assuntos.has(a[0]))[1] : `Assunto · ${st.assuntos.size} de ${ASSUNTOS.length}`;
+    const abas = `<div class="rz-seg rz-fin-abas" role="tablist" aria-label="Vista da agenda">
+            ${[['semana', 'Semana'], ['mes', 'Mês'], ['alertas', 'Alertas']].map(([k, n]) => `<button type="button" class="${st.vista === k ? 'rz-on' : ''}" data-ag-vista="${k}">${n}</button>`).join('')}
+        </div>`;
+    if (st.vista === 'alertas') { // v1.6.0 — título fixo, sem setas de período; a busca e a severidade são as da lista
+        st.el.innerHTML = `<div class="rz-fin-topo"><div class="rz-mes-bar rz-mes-titulo"><span class="rz-mes-centro"><b class="rz-mes-label">Alertas</b></span></div></div>${abas}`;
+        ligar(); rzIcones(); return;
+    }
     st.el.innerHTML = `
         <div class="rz-fin-topo">
             <div class="rz-mes-bar rz-mes-titulo">
@@ -209,9 +232,7 @@ function desenhar(carregando) {
             </div>
             <button type="button" class="rz-ico-btn rz-fin-lupa" data-ag-mais aria-label="Mais ações"><svg data-lucide="more-vertical"></svg></button>
         </div>
-        <div class="rz-seg rz-fin-abas" role="tablist" aria-label="Vista da agenda">
-            ${[['semana', 'Semana'], ['mes', 'Mês']].map(([k, n]) => `<button type="button" class="${st.vista === k ? 'rz-on' : ''}" data-ag-vista="${k}">${n}</button>`).join('')}
-        </div>
+        ${abas}
         <div class="rz-chips rz-ag-chips">
             ${STATUS.map(([k, n]) => `<button type="button" class="rz-chip${st.status.has(k) ? ' rz-on' : ''}" data-ag-st="${k}"><span class="rz-ag-pt rz-ag-${k}"></span>${n}${carregando ? '' : ` <span class="rz-n">${conta(k)}</span>`}</button>`).join('')}
             <button type="button" class="rz-chip rz-ag-ass${todos ? '' : ' rz-on'}" data-ag-ass>${rzEsc(rotAss)} <svg data-lucide="chevron-down"></svg></button>
@@ -292,7 +313,7 @@ function semanaHtml() {
             <small>${DIA_SEM[d.getDay()]}</small><b>${d.getDate()}</b>${pontosDe(its, di)}</button>`;
     }
     const crit = its.filter(it => it.status === 'critico').length;
-    return `<div class="rz-ag-grade">${faixa}</div>
+    return `<div class="rz-ag-grade" style="touch-action:pan-y">${faixa}</div>
         <p class="rz-ag-resumo"><b>${its.length}</b> na semana${crit ? ` · <span class="rz-ag-txt-critico"><b>${crit}</b> crítico${crit > 1 ? 's' : ''}</span>` : ''}</p>${listaDoDia(its)}`;
 }
 
@@ -308,7 +329,7 @@ function mesHtml() {
         grade += `<button type="button" class="rz-ag-cel${d.getMonth() !== mesAtual ? ' rz-ag-fora' : ''}${di === st.dia ? ' rz-on' : ''}${di === iso(hoje()) ? ' rz-ag-cel-hoje' : ''}" data-ag-dia="${di}">
             <b>${d.getDate()}</b>${pontosDe(its, di)}</button>`;
     }
-    return `<div class="rz-ag-grade">${grade}</div>${listaDoDia(its)}`;
+    return `<div class="rz-ag-grade" style="touch-action:pan-x">${grade}</div>${listaDoDia(its)}`;
 }
 
 // ---- eventos
@@ -317,21 +338,23 @@ function ligar() {
         const v = b.dataset.agVista;
         if (v === st.vista) return;
         if (v === 'semana') { st.semana = inicioSemana(deIso(st.dia)); }
-        else { const d = deIso(st.dia); st.mes = new Date(d.getFullYear(), d.getMonth(), 1); }
+        else if (v === 'mes') { const d = deIso(st.dia); st.mes = new Date(d.getFullYear(), d.getMonth(), 1); }
         st.vista = v;
         carregar();
     }));
-    st.el.querySelectorAll('[data-ag-nav]').forEach(b => b.addEventListener('click', () => {
-        const n = Number(b.dataset.agNav);
-        if (st.vista === 'semana') {
-            st.semana = somaDias(st.semana, 7 * n);
-            const h = iso(hoje()); st.dia = (h >= iso(st.semana) && h <= iso(somaDias(st.semana, 6))) ? h : iso(st.semana);
-        } else {
-            st.mes = new Date(st.mes.getFullYear(), st.mes.getMonth() + n, 1);
-            st.dia = mesTemHoje() ? iso(hoje()) : iso(st.mes);
-        }
-        carregar();
-    }));
+    st.el.querySelectorAll('[data-ag-nav]').forEach(b => b.addEventListener('click', () => navegar(Number(b.dataset.agNav))));
+    // v1.6.0 (item 35) — arrastar: Semana para os lados, Mês para cima/baixo (para cima/esquerda = próximo)
+    const grade = st.el.querySelector('.rz-ag-grade');
+    if (grade) {
+        let x0 = null, y0 = null;
+        grade.addEventListener('touchstart', (e) => { const t = e.touches[0]; x0 = t.clientX; y0 = t.clientY; }, { passive: true });
+        grade.addEventListener('touchend', (e) => {
+            if (x0 === null) return;
+            const t = e.changedTouches[0], dx = t.clientX - x0, dy = t.clientY - y0; x0 = y0 = null;
+            if (st.vista === 'semana' && Math.abs(dx) > 40 && Math.abs(dx) > Math.abs(dy) * 1.3) navegar(dx < 0 ? 1 : -1);
+            else if (st.vista === 'mes' && Math.abs(dy) > 40 && Math.abs(dy) > Math.abs(dx) * 1.3) navegar(dy < 0 ? 1 : -1);
+        }, { passive: true });
+    }
     st.el.querySelectorAll('[data-ag-st]').forEach(b => b.addEventListener('click', () => {
         const k = b.dataset.agSt; st.status.has(k) ? st.status.delete(k) : st.status.add(k); desenhar(false);
     }));
@@ -343,6 +366,17 @@ function ligar() {
     if (mais) mais.addEventListener('click', () => abrirSheetAcoes({ titulo: 'Agenda', sub: tituloPeriodo(), acoes: [
         { icone: 'send', titulo: 'Enviar a semana', sub: 'Compartilhar com uma pessoa', aoTocar: enviarSemana },
     ] }));
+}
+
+function navegar(n) {
+    if (st.vista === 'semana') {
+        st.semana = somaDias(st.semana, 7 * n);
+        const h = iso(hoje()); st.dia = (h >= iso(st.semana) && h <= iso(somaDias(st.semana, 6))) ? h : iso(st.semana);
+    } else if (st.vista === 'mes') {
+        st.mes = new Date(st.mes.getFullYear(), st.mes.getMonth() + n, 1);
+        st.dia = mesTemHoje() ? iso(hoje()) : iso(st.mes);
+    } else return;
+    carregar();
 }
 
 // Assunto (D7.11; v1.2.0 lógica do Nicola 14/10: abre com TODOS marcados, desmarca o que não quer ver)

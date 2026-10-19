@@ -4,6 +4,18 @@ Histórico completo de versões do `index.html`, movido automaticamente pelo `ge
 
 ---
 
+NOVIDADES (Beta v1.434.0) — COCKPIT C2, TOQUE NO NÚMERO (FICHA_COCKPIT_METAS_RELATORIO_RAIZ v1.0.0, de acordo do Nicola
+18/10 23:36): tocar no resultado do herói abre a Composição, com a trilha Todo o patrimônio › Ramo › Ativo principal ›
+Ativo ("‹" volta) e as vistas Por grupo (variação sobre o ano anterior; o grupo abre os lançamentos), Por mês e
+Lançamentos (o lançamento abre o detalhe, com Ver no Financeiro e Abrir o ativo). resultados.js 2.13.0. Sem banco novo.
+Versão anterior (Beta v1.433.0):
+------------------------------------------------------------------
+Versões anteriores (v1.433.0 … v1.433.0): CHANGELOG_APP.md, na raiz do
+repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
+das 5 versões mais recentes deste cabeçalho.
+
+---
+
 NOVIDADES (Beta v1.433.0) — COCKPIT C1, METAS DO ANO (FICHA_COCKPIT_METAS_RELATORIO_RAIZ v1.0.0, de acordo do Nicola
 18/10 23:36): Hoje › Exportar › "Metas de <ano>" define a meta de cada ramo por grupo de resultado, no ano inteiro ou
 mês a mês (Copiar do ano anterior, +N%, Limpar). O herói mostra a barra real × meta e "meta até <mês> · faltam"; a
