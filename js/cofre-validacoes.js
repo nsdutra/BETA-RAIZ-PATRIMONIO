@@ -1,6 +1,10 @@
 // ============================================================================
 // cofre-validacoes.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 2.11.0 · 19/10/2026
+// Versão: 2.12.0 · 19/10/2026
+//
+// v2.12.0 (19/10/2026, sessão 20261019-1140-carga-silva-icones, demanda 9404081c, item 37) — pessoa com ícone pela idade
+// (criança < 18, adulto, idoso ≥ 65; desenhos próprios para criança e idoso); iconeHtmlDoAtivo devolve o HTML pronto.
+// Versão anterior: 2.11.0 · 19/10/2026
 //
 // v2.11.0 (19/10/2026, sessão 20261019-1125-carga-silva-ajustes, demanda 9404081c, item 34) — iconeDoAtivo(a): ícone pelo
 // tipo do catálogo (trator com trator, talhão com broto, secador com chama…), a categoria fica de reserva.
@@ -17,16 +21,11 @@
 //
 // v2.8.0 (16/10/2026, sessão 20261016-0105-usos-fatia7-fix, demanda 3022603b; achado do Nicola 16/10 01:03) — rótulo e ícone
 // das categorias Agro e Pecuária (rotuloTipoAtivo, iconeAtivo), que o novo ativo passa a oferecer (cofre-ativos.js 1.115.0).
-// Versão anterior: 2.7.0 · 15/10/2026
-//
-// v2.7.0 (15/10/2026, sessão 20261015-1615-usos-fatia6a, demanda 3022603b; de acordo do Nicola 15/10 16:10, item 4) — o
-// seletor de tipos do novo ativo (categorias e tipos do ramo) passa a mostrar só ramos ativos E contratados pelo cliente
-// (rzRamoLiberado, lido da fn_cliente_ramos), não só os ativos no catálogo: Agro e Obras abrem só para quem tem o ramo.
 // --------------------------------------------------------------------------
-// Versões anteriores (v2.6.0 … v2.6.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v2.7.0 … v2.7.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '2.11.0'; // v-check (18/09/2026): lido por Dev › Versões — manter igual ao header
+export const VERSAO = '2.12.0'; // v-check (18/09/2026): lido por Dev › Versões — manter igual ao header
 export function escapeHtml(s) {
     return (s ?? '').toString().replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 }
@@ -303,9 +302,30 @@ const ICONE_POR_TIPO = {
     obra_de_arte: 'image', joia: 'gem', relogio: 'watch', vinho: 'wine', antiguidade: 'landmark', instrumento: 'music', livre: 'package',
     familia: 'users', pessoa: 'user', pet: 'paw-print',
 };
+// v2.12.0 (Nicola 19/10 11:34: "ajuste ícone de adulto, criança, idoso (maior 65) e pet") — a pessoa ganha o ícone pela
+// idade (dados_especificos.data_nascimento): menor de 18 = criança, 65 ou mais = idoso, senão adulto; sem data, adulto.
+function idadeDe(a) {
+    const dn = a?.dados_especificos?.data_nascimento;
+    if (!dn || !/^\d{4}-\d{2}-\d{2}/.test(dn)) return null;
+    const [y, m, d] = dn.slice(0, 10).split('-').map(Number), h = new Date();
+    let id = h.getFullYear() - y; if (h.getMonth() + 1 < m || (h.getMonth() + 1 === m && h.getDate() < d)) id--;
+    return id;
+}
 export function iconeDoAtivo(a) {
     const t = a && a.tipo_detalhe_id ? tipoDoCatalogo(a.tipo_detalhe_id) : null;
+    if (t && t.codigo === 'pessoa') { const i = idadeDe(a); return i === null ? 'user' : i < 18 ? 'rz-crianca' : i >= 65 ? 'rz-idoso' : 'user'; }
     return (t && ICONE_POR_TIPO[t.codigo]) || iconeAtivo(a?.tipo_ativo);
+}
+// Lucide não tem criança nem idoso: dois desenhos próprios no mesmo traço (24×24, stroke 2, currentColor)
+const SVG_PROPRIO = {
+    'rz-crianca': '<circle cx="12" cy="5.5" r="3"/><path d="M12 9.5v6"/><path d="M7 11.5l5 1 5-1"/><path d="M12 15.5l-3 5.5"/><path d="M12 15.5l3 5.5"/>',
+    'rz-idoso': '<circle cx="10" cy="4.5" r="2.5"/><path d="M10 8c-1.2 2.5-1.2 5 0 8l-2 5"/><path d="M10 16l2.5 5"/><path d="M9.6 10.5l5.4 2"/><path d="M16 12.5V21"/><path d="M16 12.5c0-1.3 1.8-1.3 1.8 0"/>',
+};
+// HTML do ícone do ativo: <svg data-lucide> (ou <i>) para o Lucide; o SVG pronto para os desenhos próprios
+export function iconeHtmlDoAtivo(a, tag = 'svg') {
+    const n = iconeDoAtivo(a);
+    if (SVG_PROPRIO[n]) return `<svg class="lucide rz-ic-proprio" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${SVG_PROPRIO[n]}</svg>`;
+    return tag === 'i' ? `<i data-lucide="${n}"></i>` : `<svg data-lucide="${n}"></svg>`;
 }
 
 // v2.10.0 (L5-3) — a lista inteira do catálogo de tipos (ramo, segmento, ordem), [] sem catálogo

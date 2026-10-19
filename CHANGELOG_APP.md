@@ -4,6 +4,19 @@ Histórico completo de versões do `index.html`, movido automaticamente pelo `ge
 
 ---
 
+NOVIDADES (Beta v1.435.0) — COCKPIT C3, RELATÓRIO EXECUTIVO (FICHA_COCKPIT_METAS_RELATORIO_RAIZ v1.0.0, de acordo do
+Nicola 18/10 23:36): em Relatórios e em Hoje › Exportar, o relatório do ramo (2 páginas: manchete, 3 pontos, 4 números,
+resultado acumulado real × ano anterior × meta, ponte da meta ao real; demonstrativo na ordem da DRE e resultado por
+ativo) e o consolidado (uma página-resumo por ramo e as do ramo), em tela e PDF. relatorios-executivos.js 1.6.0 ·
+resultados.js 2.14.0. Banco: usos_cockpit_relatorio_v1 (fn_relatorio_executivo).
+Versão anterior (Beta v1.434.0):
+------------------------------------------------------------------
+Versões anteriores (v1.434.0 … v1.434.0): CHANGELOG_APP.md, na raiz do
+repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
+das 5 versões mais recentes deste cabeçalho.
+
+---
+
 NOVIDADES (Beta v1.434.0) — COCKPIT C2, TOQUE NO NÚMERO (FICHA_COCKPIT_METAS_RELATORIO_RAIZ v1.0.0, de acordo do Nicola
 18/10 23:36): tocar no resultado do herói abre a Composição, com a trilha Todo o patrimônio › Ramo › Ativo principal ›
 Ativo ("‹" volta) e as vistas Por grupo (variação sobre o ano anterior; o grupo abre os lançamentos), Por mês e

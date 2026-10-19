@@ -1,6 +1,10 @@
 // ============================================================================
 // cofre-ativos.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.121.0 · 19/10/2026
+// Versão: 1.122.0 · 19/10/2026
+//
+// v1.122.0 (19/10/2026, sessão 20261019-1140-carga-silva-icones, demanda 9404081c, item 37; Nicola 19/10 11:34) — integrante
+// com ícone de criança, adulto ou idoso pela idade; pet com patinha (iconeHtmlDoAtivo, na lista, nas áreas e na ficha).
+// Versão anterior: 1.121.0 · 19/10/2026
 //
 // v1.121.0 (19/10/2026, sessão 20261019-1125-carga-silva-ajustes, demanda 9404081c, itens 31–34 pedidos pelo Nicola 19/10 11:19)
 // — em Todo o patrimônio os chips não filtram ramo (Todos, Com alerta, Arquivados); a etiqueta do principal com sub-ativos
@@ -25,20 +29,11 @@
 // (só empreendimento numa lente; empreendimento vale para qualquer ativo); faixa "▾ N áreas" abre e fecha os sub-ativos e a
 // linha volta a entrar na ficha (seta ›); chips de segmento na ordem do catálogo; "Novo bem rural"/"Novo imóvel" pelo ramo
 // (rotuloNovoAtivo, exemplosNovoAtivo); na edição, trocar o tipo também troca os blocos de endereço e dados do imóvel.
-// Versão anterior: 1.117.0 · 18/10/2026
-//
-// v1.117.0 (18/10/2026, sessão 20261018-2343-carga-silva-l4a, demanda 9404081c; FICHA_LOTES_4_5 v1.1.0, de acordo do Nicola
-// 18/10 23:43) — L4-B/L4-C e ajustes do teste de 18/10: campo "tamanho" (número + unidade: ha, alqueire mineiro, alqueire
-// paulista, m²) e "coordenadas" (latitude e longitude) no cadastro e na edição; fazenda, sítio, chácara e terreno rural sem
-// rua/número e sem "dados do imóvel": sede (município, UF, CEP) vai também para as colunas de endereço e a área total para
-// area_m2; edição respeita os blocos do catálogo; "Aluguel esperado" só em tipo com uso de renda; casa cadastrada na lente
-// Família já nasce com Moradia (D2); etiqueta curta no card de áreas (só o nome do uso); ficha e "Adicionar uso" esperam o
-// catálogo (Arrendamento aparecia só depois de abrir o cadastro).
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.116.0 … v1.116.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.117.0 … v1.117.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '1.121.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.122.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 import { estado } from './cofre-estado.js';
 import * as api from './cofre-api.js';
 import { mostrarToast, erroInline, refrescarIcones, alternarToggle, abrirModal, fecharModal, modalGenerico, perguntar, avisarComDesfazer, escolher } from './cofre-ui.js';
@@ -47,7 +42,7 @@ import {
     escapeHtml, formatarDataBR, diasAte, chipVencimento, mascarar,
     rotuloTipoAtivo, iconeAtivo, validarCamposAtivo,
     obterCamposPorTipo, listarTiposPorCategoria, inicializarCatalogoTiposAtivo, tipoDoCatalogo, categoriasDoRamo, blocosDoFormulario,
-    tiposDoCatalogo as _catalogoAtivoTiposLista, iconeDoAtivo } from './cofre-validacoes.js';
+    tiposDoCatalogo as _catalogoAtivoTiposLista, iconeDoAtivo, iconeHtmlDoAtivo } from './cofre-validacoes.js';
 import { montarControlesAtivo, aplicarMotorNoChipControles, reiniciarChipControlesDoMotor } from './cofre-controles.js';
 // E6.2 — retorno usado de forma síncrona em salvarAtivo/salvarEdicaoAtivo
 // (lerBlocoEndereco), por isso import estático (ver nota em technical-
@@ -846,7 +841,7 @@ export function buscarAtivosTexto(termoBruto) {
     }).map(a => {
         const resumo = ehCategoriaImovel(a.tipo_ativo) ? resumoImoveisPorId.get(a.id) : null;
         const sub = [resumo?.empreendimento, resumo?.contratoPrincipal?.locatario].filter(Boolean).join(' · ') || rotuloTipoAtivo(a.tipo_ativo);
-        return { id: a.id, nome: a.nome_exibicao || 'Ativo', sub, icone: iconeDoAtivo(a) };
+        return { id: a.id, nome: a.nome_exibicao || 'Ativo', sub, icone: (n => n.startsWith('rz-') ? 'user' : n)(iconeDoAtivo(a)) };
     });
 }
 
@@ -1086,7 +1081,7 @@ function ativoCardHtml(a) {
         // propósito, ver nota acima.
         return `<div class="rz-row rz-link" role="button" tabindex="0" data-action="abrir-ativo" data-id="${a.id}" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault(); this.click();}">
             <div class="rz-ic"${resumoImovel.foto ? ' style="overflow:hidden"' : ''}>
-                ${resumoImovel.foto ? `<img src="${resumoImovel.foto}" class="w-full h-full object-cover">` : `<svg data-lucide="${iconeDoAtivo(a)}"></svg>`}
+                ${resumoImovel.foto ? `<img src="${resumoImovel.foto}" class="w-full h-full object-cover">` : iconeHtmlDoAtivo(a)}
             </div>
             <div class="rz-tx">
                 <b style="display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;white-space:normal;word-break:break-word">${escapeHtml(a.nome_exibicao)}</b>
@@ -1125,7 +1120,7 @@ function ativoCardHtml(a) {
         : stGen ? window.renderStatus(stGen.sem, stGen.contrato_status === 'assinando' ? stGen.rotulo : stGen.nome)
         : rotSit ? window.renderStatus(rotSit[0], rotSit[1]) : ''; // sem status carregado: a Situação gravada (derivada do uso)
     return `<div class="rz-row rz-link" role="button" tabindex="0" data-action="abrir-ativo" data-id="${a.id}" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault(); this.click();}">
-        <div class="rz-ic"><svg data-lucide="${iconeDoAtivo(a)}"></svg></div>
+        <div class="rz-ic">${iconeHtmlDoAtivo(a)}</div>
         <div class="rz-tx">
             <b style="display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;white-space:normal;word-break:break-word">${escapeHtml(a.nome_exibicao)}</b>
             ${seloGen ? `<div class="rz-tx-st">${seloGen}</div>` : ''}
@@ -1532,7 +1527,7 @@ export async function abrirFichaAtivo(id, chipInicial = 'resumo') {
     // renderStatus() (index.html v1.106.0) — antes ficava dentro do box
     // Dados, longe do nome.
     document.getElementById('fa-cabecalho').innerHTML = `
-        <div class="rz-ic"><i data-lucide="${iconeDoAtivo(a)}"></i></div>
+        <div class="rz-ic">${iconeHtmlDoAtivo(a, 'i')}</div>
         <div class="rz-tx">
             <b>${escapeHtml(a.nome_exibicao)}</b>
             <span>${escapeHtml(tipoDoCatalogo(a.tipo_detalhe_id)?.nome || rotuloTipoAtivo(a.tipo_ativo))}</span>
@@ -1946,7 +1941,7 @@ async function montarSubativosAtivo(a) {
         const emUso = subs.filter(x => x.status && x.status.repouso === false).length;
         const linhas = subs.map(x => {
             const st = rotuloStatusSubativo(x.status);
-            return `<div class="rz-row rz-link" role="button" tabindex="0" data-sub-abrir="${x.id}"><div class="rz-ic"><i data-lucide="${iconeDoAtivo(estado.ativos.find(y => y.id === x.id) || a)}"></i></div>
+            return `<div class="rz-row rz-link" role="button" tabindex="0" data-sub-abrir="${x.id}"><div class="rz-ic">${iconeHtmlDoAtivo(estado.ativos.find(y => y.id === x.id) || a, 'i')}</div>
                 <div class="rz-tx"><b>${escapeHtml(x.nome)}</b><span>${escapeHtml(x.tipo || '')}</span></div><div class="rz-rt">${r(st.sem, st.rotulo)}</div>
                 <button type="button" class="rz-more" data-sub-menu="${x.id}" aria-label="Ações de ${escapeHtml(x.nome)}"><i data-lucide="ellipsis-vertical"></i></button></div>`; // v1.108.0 (3c) — ⋮ como nas outras linhas
         }).join('');
