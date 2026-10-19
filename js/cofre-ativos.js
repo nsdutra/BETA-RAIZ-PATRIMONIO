@@ -1,6 +1,11 @@
 // ============================================================================
 // cofre-ativos.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.124.0 · 19/10/2026
+// Versão: 1.125.0 · 19/10/2026
+//
+// v1.125.0 (19/10/2026, sessão 20261019-1705-carga-silva-faixa, demanda 9404081c, item 45; Nicola 19/10 17:02) — cabeçalho do
+// ramo vira faixa na cor do ramo, de ponta a ponta (ícone maior com o contador, nome e a soma à direita); saem as 3 caixas e o
+// "Ver só"/"Ver todos". Tocar no ramo da árvore do Hoje abre Patrimônio na faixa daquele ramo.
+// Versão anterior: 1.124.0 · 19/10/2026
 //
 // v1.124.0 (19/10/2026, sessão 20261019-1250-carga-silva-patrimonio, demanda 9404081c, itens 40, 43 e 44; PROTOTIPO_PATRIMONIO_RAMOS
 // v1.0.0 opção A, decisões do Nicola 19/10 12:44) — em Todo o patrimônio, um grupo por ramo com o card que estava no Hoje
@@ -21,17 +26,11 @@
 // — em Todo o patrimônio os chips não filtram ramo (Todos, Com alerta, Arquivados); a etiqueta do principal com sub-ativos
 // mostra a classe do uso (Vida, Disponível…) e não "0 de 4 integrantes"; lente de ramo sem ativo mostra o card de cadastro do
 // ramo; ícone pelo tipo do catálogo (iconeDoAtivo: trator, talhão, secador…).
-// Versão anterior: 1.120.0 · 19/10/2026
-//
-// v1.120.0 (19/10/2026, sessão 20261019-0935-carga-silva-l5b, demanda 9404081c; FICHA_LOTES_4_5 v1.1.0, ficha F2, de acordo
-// do Nicola 18/10 23:43) — L5-B: "Excluir" no fim da Situação do ⋮ apaga de verdade (fn_ativo_excluir) o ativo sem nada
-// ligado, com motivo; com vínculo, o banco diz o quê e a tela oferece Arquivar. Chip "Arquivados" no fim da fileira (só
-// com arquivado), com a etiqueta "Arquivado"; a ficha abre e o ⋮ traz Reativar. Arquivar/reativar relê a lista.
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.119.0 … v1.119.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.120.0 … v1.120.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '1.124.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.125.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 import { estado } from './cofre-estado.js';
 import * as api from './cofre-api.js';
 import { mostrarToast, erroInline, refrescarIcones, alternarToggle, abrirModal, fecharModal, modalGenerico, perguntar, avisarComDesfazer, escolher } from './cofre-ui.js';
@@ -572,19 +571,20 @@ export function renderAtivosLista(filtroTipo = '', filtroTexto = '') {
             .forEach(r => blocos.push({ ramo: r, itens: g[r] }));
     } else blocos.push({ ramo: null, itens: lista });
     const comAlertaTodos = ativosComAlerta(ocorrenciasPorAtivo);
+    // v1.125.0 (item 45, Nicola 19/10 17:02) — o cabeçalho do ramo é uma FAIXA na cor do ramo, de ponta a ponta: ícone do ramo maior
+    // com o contador dos ativos (como o principal com sub-ativos), o nome e, à direita, a soma do patrimônio do ramo, alinhada com
+    // a coluna dos ativos. Saem as 3 caixas (valor, quantidade, alertas) e o "Ver só".
     const cardRamo = (r, itens) => {
         const info = (typeof rzRamoInfo === 'function' && rzRamoInfo(r)) || { nome: r, unidade_singular: 'ativo', unidade_plural: 'ativos' };
         const soma = info.soma_valor !== false;
         const ramoDe = (x) => ramoDoAtivoLista(x.ativo_principal_id ? (estado.ativos.find(p => p.id === x.ativo_principal_id) || x) : x);
         const todosDoRamo = estado.ativos.filter(x => (x.status || 'ativo') === 'ativo' && ramoDe(x) === r);
         const valor = itens.reduce((t, x) => t + Number(x.valor_referencia || 0), 0);
-        const nAl = todosDoRamo.filter(x => comAlertaTodos.has(x.id)).length;
-        const plural = String(info.unidade_plural || 'ativos');
-        const k2 = soma ? `<div><small>${escapeHtml(plural.charAt(0).toUpperCase() + plural.slice(1))}</small><b>${itens.length}</b></div>`
-            : `<div><small>Grupos</small><b>${itens.length}</b></div>`;
-        return `<section class="rz-ramo-sec"><div class="rz-ramo-cab"><span class="rz-ramo-ic" style="background:var(--ramo-cor-${r.replace(/[^a-z_]/g, '')}, var(--sage))"><svg data-lucide="${escapeHtml(info.icone || 'circle')}"></svg></span><h3>${escapeHtml(info.nome)}</h3>` +
-            (verSoRamo ? '' : `<button type="button" onclick="window.rzPatrimonioVerSo && window.rzPatrimonioVerSo('${r}')">Ver só ›</button>`) + `</div>` +
-            `<div class="rz-ramo-k3"><div><small>${soma ? 'Valor' : 'Vidas'}</small><b>${soma ? escapeHtml(compactoRamo(valor)) : todosDoRamo.length}</b></div>${k2}<div><small>Alertas</small><b>${nAl}</b></div></div></section>`;
+        const direita = soma ? (valor ? compactoRamo(valor) : '') : `${todosDoRamo.length} ${todosDoRamo.length === 1 ? (info.unidade_singular || 'vida') : (info.unidade_plural || 'vidas')}`;
+        const cod = r.replace(/[^a-z_]/g, '');
+        return `<div class="rz-ramo-faixa" id="rz-ramo-faixa-${cod}" style="--ramo-grupo:var(--ramo-cor-${cod}, var(--sage))">` +
+            `<span class="rz-ramo-faixa-ic"><svg data-lucide="${escapeHtml(info.icone || 'circle')}"></svg><span class="rz-ramo-faixa-n">${itens.length}</span></span>` +
+            `<h3>${escapeHtml(info.nome)}</h3>${direita ? `<b>${escapeHtml(direita)}</b>` : ''}</div>`;
     };
     // F2.4 (UXR-15) — carteira só com imóveis: um card de convite no FIM da lista (nunca no topo).
     const soImoveis = principais().length > 0 && principais().every(a => ehCategoriaImovel(categoriaDoAtivo(a.tipo_ativo)));
@@ -603,8 +603,7 @@ export function renderAtivosLista(filtroTipo = '', filtroTexto = '') {
     const listaHtml = (itens) => porEmp(itens).map(e => `
         ${e.nome ? `<div class="rz-group rz-group-t"><span>${escapeHtml(e.nome)} · ${e.itens.length}</span>${totalGrupo(e.itens) ? `<b>${totalGrupo(e.itens)}</b>` : ''}</div>` : ''}
         <div class="rz-card rz-list">${e.itens.map(soArquivados ? ativoCardArquivadoHtml : ativoComSubativosHtml).join('')}</div>`).join('');
-    const cabVerSo = verSoRamo && ramoDaLenteApp() === 'tudo' && !soArquivados ? cardRamo(verSoRamo, lista) : '';
-    container.innerHTML = cabVerSo + blocos.map(bl => (bl.ramo ? cardRamo(bl.ramo, bl.itens) : '') + listaHtml(bl.itens)).join('') + (soArquivados ? '' : cardConvite);
+    container.innerHTML = blocos.map(bl => (bl.ramo ? cardRamo(bl.ramo, bl.itens) : '') + listaHtml(bl.itens)).join('') + (soArquivados ? '' : cardConvite);
 
     // v1.121.0 (item 33, Nicola 19/10 11:19) — lente de um ramo sem nenhum ativo mostra o card de cadastro daquele ramo (antes:
     // "Todos 0" e um card vazio). Com ativo mas sem resultado na busca/chip, uma linha de texto, nunca um card em branco.
@@ -723,7 +722,12 @@ const ramoDaLenteApp = () => (typeof window !== 'undefined' && typeof window.rzR
 let verSoRamo = null;
 let modoArquivados = false; // v1.124.0 — Arquivados abre pelo ⋮ (sai dos chips)
 const ramoDaLente = () => { const l = ramoDaLenteApp(); return l !== 'tudo' ? l : (verSoRamo || 'tudo'); };
-export function verSoRamoPatrimonio(r) { verSoRamo = r || null; modoArquivados = false; chipAtivoAtual = 0; segmentoChip = null; redesenharComFiltros(); }
+// v1.125.0 (item 45, Nicola 19/10 17:02) — sem "Ver só"/"Ver todos": quem chega do Hoje (árvore) cai em Todo o patrimônio na
+// faixa daquele ramo (rola até ela). verSoRamo fica sempre null.
+export function verSoRamoPatrimonio(r) {
+    verSoRamo = null; modoArquivados = false; chipAtivoAtual = 0; segmentoChip = null; redesenharComFiltros();
+    if (r) setTimeout(() => document.getElementById('rz-ramo-faixa-' + String(r).replace(/[^a-z_]/g, ''))?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 60);
+}
 export function verArquivados() { modoArquivados = true; chipAtivoAtual = 0; segmentoChip = null; garantirArquivados(); redesenharComFiltros(); }
 if (typeof window !== 'undefined') { window.rzPatrimonioVerSo = verSoRamoPatrimonio; window.rzPatrimonioArquivados = verArquivados; }
 function ramoDoAtivoLista(a) {

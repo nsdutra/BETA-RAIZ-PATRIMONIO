@@ -4,6 +4,18 @@ Histórico completo de versões do `index.html`, movido automaticamente pelo `ge
 
 ---
 
+NOVIDADES (Beta v1.437.0) — L5-B DA CARGA SILVA CAFÉS (FICHA_LOTES_4_5 v1.1.0, ficha F2, de acordo do Nicola 18/10 23:43):
+"Excluir" no ⋮ do ativo apaga de verdade o cadastro feito por engano (sem nada ligado); com vínculo, diz o quê e oferece
+Arquivar. Chip "Arquivados" na lista de Ativos, com Reativar no ⋮ da ficha. cofre-ativos.js 1.120.0, cofre-api.js 1.53.0.
+Banco: ativos_excluir_v1 (fn_ativo_excluir). O index só muda o import map.
+Versão anterior (Beta v1.436.1):
+------------------------------------------------------------------
+Versões anteriores (v1.436.1 … v1.436.1): CHANGELOG_APP.md, na raiz do
+repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
+das 5 versões mais recentes deste cabeçalho.
+
+---
+
 NOVIDADES (Beta v1.436.1) — AJUSTES DO L5-A (Nicola 19/10 09:17): sem grupo por ramo; empreendimento só agrupa com mais
 de 10 ativos; áreas abrem e fecham pela seta e pelo ícone com a quantidade (sai a faixa); etiqueta de status embaixo do
 nome, com o texto usando a largura toda. cofre-ativos.js 1.119.0.
