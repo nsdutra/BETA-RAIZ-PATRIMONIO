@@ -6,9 +6,14 @@
    (base derivada do RUMO v7.4.2 — histórico de versões anteriores
    preservado abaixo para referência técnica)
 
-   VERSÃO: Beta v1.439.2
-   LINHAS: 17167
-   DATA: 19/10/2026 (sessão 20261019-1710-carga-silva-menu, demanda 9404081c)
+   VERSÃO: Beta v1.439.3
+   LINHAS: 17180
+   DATA: 19/10/2026 (sessão 20261019-1712-carga-silva-faixa2, demanda 9404081c)
+   NOVIDADES (Beta v1.439.3) — FAIXA DO RAMO MAIS SUTIL (Nicola 19/10 17:09): a faixa vira o topo do card da lista do ramo
+   (mesma largura e cantos), fundo claro na cor do ramo com um fio embaixo, letras no tamanho de antes e o ícone do ramo
+   alinhado aos ícones dos ativos; o ícone e a setinha ao lado do total recolhem os
+   ativos do ramo. cofre-ativos.js 1.126.0.
+   Versão anterior (Beta v1.439.2):
    NOVIDADES (Beta v1.439.2) — ⋮ NO PADRÃO DA FICHA (Nicola 19/10 17:06): em Patrimônio o ⋮ fica na ponta direita da linha
    dos chips; no Financeiro ele perde a caixa e vira os três pontos simples da ficha do ativo. ativos-markup.js 1.67.0.
    Versão anterior (Beta v1.439.1):
@@ -27,12 +32,8 @@
    os ícones pelo tipo já aparecem na primeira abertura de Ativos. cofre-ativos.js 1.123.0, cofre-validacoes.js 2.13.0. O
    index só muda o import map.
    Versão anterior (Beta v1.438.1):
-   NOVIDADES (Beta v1.438.1) — ÍCONES DAS PESSOAS (Nicola 19/10 11:34): integrante com ícone de criança (menos de 18 anos),
-   adulto ou idoso (65 ou mais) pela data de nascimento; pet com patinha. cofre-ativos.js 1.122.0, cofre-validacoes.js
-   2.12.0. O index só muda o import map.
-   Versão anterior (Beta v1.438.0):
    ------------------------------------------------------------------
-   Versões anteriores (v1.438.0 … v1.438.0): CHANGELOG_APP.md, na raiz do
+   Versões anteriores (v1.438.1 … v1.438.1): CHANGELOG_APP.md, na raiz do
    repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
    das 5 versões mais recentes deste cabeçalho.
 
@@ -60,7 +61,7 @@
          O navegador aplica o mapa também aos imports estáticos dentro dos
          módulos (cofre-app.js → ./cofre-api.js etc.). -->
     <!-- RZ-IMPORTMAP:INICIO -->
-    <script type="importmap">{"imports":{"./js/cadastros.js":"./js/cadastros.js?v=1.3.0","./js/financeiro.js":"./js/financeiro.js?v=1.68.0","./js/fechamento.js":"./js/fechamento.js?v=1.15.0","./js/contratos.js":"./js/contratos.js?v=1.60.0","./js/minutas.js":"./js/minutas.js?v=1.6.0","./js/vitrine.js":"./js/vitrine.js?v=1.6.0","./js/imoveis.js":"./js/imoveis.js?v=1.8.0","./js/cofre-api.js":"./js/cofre-api.js?v=1.53.0","./js/cofre-app.js":"./js/cofre-app.js?v=1.52.0","./js/cofre-ativos.js":"./js/cofre-ativos.js?v=1.125.0","./js/cofre-controles.js":"./js/cofre-controles.js?v=1.62.0","./js/cofre-documentos.js":"./js/cofre-documentos.js?v=2.38.0","./js/cofre-imagem.js":"./js/cofre-imagem.js?v=1.1.0","./js/cofre-estado.js":"./js/cofre-estado.js?v=1.5.2","./js/cofre-navegacao.js":"./js/cofre-navegacao.js?v=1.10.0","./js/cofre-ui.js":"./js/cofre-ui.js?v=1.7.2","./js/cofre-validacoes.js":"./js/cofre-validacoes.js?v=2.13.0","./js/comum-licenca.js":"./js/comum-licenca.js?v=1.9.0","./js/comum-renovacao.js":"./js/comum-renovacao.js?v=1.3.5","./js/comum-minha-empresa.js":"./js/comum-minha-empresa.js?v=1.21.0","./js/comum-pessoas.js":"./js/comum-pessoas.js?v=1.216.0","./js/comum-sobre.js":"./js/comum-sobre.js?v=1.5.0","./js/comum-endereco.js":"./js/comum-endereco.js?v=1.2.0","./js/comum-partes.js":"./js/comum-partes.js?v=1.0.0","./js/resultados.js":"./js/resultados.js?v=2.14.0","./js/indicadores.js":"./js/indicadores.js?v=1.2.0","./js/configuracao-inicial.js":"./js/configuracao-inicial.js?v=1.1.0","./js/relatorios-executivos.js":"./js/relatorios-executivos.js?v=1.6.0","./js/raiz-eventos.js":"./js/raiz-eventos.js?v=1.0.0","./js/raiz-device.js":"./js/raiz-device.js?v=1.1.0","./js/raiz-ui.js":"./js/raiz-ui.js?v=1.5.0","./js/fiscal.js":"./js/fiscal.js?v=1.7.0","./js/ativos/ativos-boot.js":"./js/ativos/ativos-boot.js?v=1.4.0","./js/ativos/ativos-markup.js":"./js/ativos/ativos-markup.js?v=1.67.0","./js/nucleo/porta.js":"./js/nucleo/porta.js?v=1.5.0","./js/partes.js":"./js/partes.js?v=1.1.0","./js/conta.js":"./js/conta.js?v=1.3.0","./js/grupo-visao.js":"./js/grupo-visao.js?v=1.0.0","./js/agenda.js":"./js/agenda.js?v=1.7.0","./js/cofre-membros.js":"./js/cofre-membros.js?v=1.0.0","./js/cockpit-metas.js":"./js/cockpit-metas.js?v=1.0.0"}}</script>
+    <script type="importmap">{"imports":{"./js/cadastros.js":"./js/cadastros.js?v=1.3.0","./js/financeiro.js":"./js/financeiro.js?v=1.68.0","./js/fechamento.js":"./js/fechamento.js?v=1.15.0","./js/contratos.js":"./js/contratos.js?v=1.60.0","./js/minutas.js":"./js/minutas.js?v=1.6.0","./js/vitrine.js":"./js/vitrine.js?v=1.6.0","./js/imoveis.js":"./js/imoveis.js?v=1.8.0","./js/cofre-api.js":"./js/cofre-api.js?v=1.53.0","./js/cofre-app.js":"./js/cofre-app.js?v=1.52.0","./js/cofre-ativos.js":"./js/cofre-ativos.js?v=1.126.0","./js/cofre-controles.js":"./js/cofre-controles.js?v=1.62.0","./js/cofre-documentos.js":"./js/cofre-documentos.js?v=2.38.0","./js/cofre-imagem.js":"./js/cofre-imagem.js?v=1.1.0","./js/cofre-estado.js":"./js/cofre-estado.js?v=1.5.2","./js/cofre-navegacao.js":"./js/cofre-navegacao.js?v=1.10.0","./js/cofre-ui.js":"./js/cofre-ui.js?v=1.7.2","./js/cofre-validacoes.js":"./js/cofre-validacoes.js?v=2.13.0","./js/comum-licenca.js":"./js/comum-licenca.js?v=1.9.0","./js/comum-renovacao.js":"./js/comum-renovacao.js?v=1.3.5","./js/comum-minha-empresa.js":"./js/comum-minha-empresa.js?v=1.21.0","./js/comum-pessoas.js":"./js/comum-pessoas.js?v=1.216.0","./js/comum-sobre.js":"./js/comum-sobre.js?v=1.5.0","./js/comum-endereco.js":"./js/comum-endereco.js?v=1.2.0","./js/comum-partes.js":"./js/comum-partes.js?v=1.0.0","./js/resultados.js":"./js/resultados.js?v=2.14.0","./js/indicadores.js":"./js/indicadores.js?v=1.2.0","./js/configuracao-inicial.js":"./js/configuracao-inicial.js?v=1.1.0","./js/relatorios-executivos.js":"./js/relatorios-executivos.js?v=1.6.0","./js/raiz-eventos.js":"./js/raiz-eventos.js?v=1.0.0","./js/raiz-device.js":"./js/raiz-device.js?v=1.1.0","./js/raiz-ui.js":"./js/raiz-ui.js?v=1.5.0","./js/fiscal.js":"./js/fiscal.js?v=1.7.0","./js/ativos/ativos-boot.js":"./js/ativos/ativos-boot.js?v=1.4.0","./js/ativos/ativos-markup.js":"./js/ativos/ativos-markup.js?v=1.67.0","./js/nucleo/porta.js":"./js/nucleo/porta.js?v=1.5.0","./js/partes.js":"./js/partes.js?v=1.1.0","./js/conta.js":"./js/conta.js?v=1.3.0","./js/grupo-visao.js":"./js/grupo-visao.js?v=1.0.0","./js/agenda.js":"./js/agenda.js?v=1.7.0","./js/cofre-membros.js":"./js/cofre-membros.js?v=1.0.0","./js/cockpit-metas.js":"./js/cockpit-metas.js?v=1.0.0"}}</script>
     <!-- RZ-IMPORTMAP:FIM -->
 
     <!-- ===== PWA: permite "instalar" o app no celular (Android e iPhone) ===== -->
@@ -466,15 +467,27 @@
         .rz-subs>.rz-sub-row::before{content:"";position:absolute;left:-19px;top:-12px;bottom:0;border-left:2px solid var(--ramo-grupo,var(--line))}
         .rz-subs>.rz-sub-row:last-child::before{bottom:auto;height:calc(50% + 12px)}
         .rz-subs>.rz-sub-row::after{content:"";position:absolute;left:-19px;top:50%;width:17px;border-top:2px solid var(--ramo-grupo,var(--line))}
-        /* v1.439.1 (item 45) — faixa do ramo em Patrimônio: cor do ramo de ponta a ponta (sai do gutter de 16px do main); o ícone
-           (42px) alinha com os ícones dos ativos e a soma, à direita, com a coluna da direita da lista (padding 32px) */
-        .rz-ramo-faixa{display:flex;align-items:center;gap:12px;margin:18px -16px 8px;padding:10px 32px;background:var(--ramo-grupo,var(--sage));color:var(--card)}
+        /* v1.439.3 (item 47, Nicola 19/10 17:09: "mais fina, mais sutil, sem mudar o tamanho das letras, seguindo a moldura dos
+           ativos") — a faixa vira o topo do card da lista do ramo: mesma largura e cantos do card, fundo claro na cor do ramo e
+           um fio na cor do ramo embaixo; o ícone (38px, sólido na cor do ramo) fica centrado na coluna dos ícones dos ativos (34px, escala compacta) */
+        .rz-ramo-faixa{display:flex;align-items:center;gap:10px;margin:18px 0 0;padding:6px 14px;border-radius:var(--r-card) var(--r-card) 0 0;
+            background:var(--tile);background:color-mix(in srgb,var(--ramo-grupo,var(--sage)) 12%,var(--card));border:1px solid var(--line);border-bottom:2px solid var(--ramo-grupo,var(--sage));color:var(--ink)}
         .rz-ramo-faixa:first-child{margin-top:4px}
-        .rz-ramo-faixa h3{font-family:var(--font-title);font-size:17px;font-weight:700;flex:1;min-width:0;margin:0;color:inherit}
-        .rz-ramo-faixa>b{font-family:var(--font-title);font-size:16px;font-weight:700;white-space:nowrap;font-variant-numeric:tabular-nums}
-        .rz-ramo-faixa-ic{position:relative;width:42px;height:42px;border-radius:12px;background:rgba(255,255,255,.18);display:inline-flex;align-items:center;justify-content:center;flex:none}
-        .rz-ramo-faixa-ic svg{width:22px;height:22px}
-        .rz-ramo-faixa-n{position:absolute;right:-6px;bottom:-6px;min-width:20px;height:20px;padding:0 5px;border-radius:10px;background:var(--card);color:var(--ramo-grupo,var(--sage));font:700 11.5px/20px var(--font-body);text-align:center}
+        #ativos-lista > .rz-ramo-faixa + .rz-card{margin-top:0;border-top:0;border-top-left-radius:0;border-top-right-radius:0}
+        .rz-ramo-faixa h3{font-family:var(--font-title);font-size:16px;font-weight:600;flex:1;min-width:0;margin:0;color:inherit}
+        .rz-ramo-faixa>b{font-size:14px;font-weight:600;white-space:nowrap;font-variant-numeric:tabular-nums}
+        .rz-ramo-faixa-ic{position:relative;width:38px;height:38px;margin:0 -2px;border-radius:11px;background:var(--ramo-grupo,var(--sage));color:var(--card);display:inline-flex;align-items:center;justify-content:center;flex:none}
+        .rz-ramo-faixa-ic svg{width:19px;height:19px}
+        /* item 48 — o ícone e a setinha recolhem/abrem a lista do ramo; recolhido, a faixa fica com os 4 cantos do card */
+        .rz-ramo-faixa-ic{cursor:pointer}
+        .rz-ramo-faixa-tg{display:inline-flex;align-items:center;justify-content:center;width:32px;height:32px;margin:0 -8px 0 -4px;border:0;border-radius:50%;background:none;color:var(--muted);cursor:pointer;flex:none}
+        .rz-ramo-faixa-tg svg{width:18px;height:18px}
+        .rz-ramo-faixa.rz-ramo-fechado{border-radius:var(--r-card)}
+        /* a linha das áreas, refeita para a escala compacta (ícone 34px, centro a 17px; linha com 9px de respiro) */
+        .rz-subs>.rz-sub-row::before{left:-23px;top:-9px}
+        .rz-subs>.rz-sub-row:last-child::before{height:calc(50% + 9px)}
+        .rz-subs>.rz-sub-row::after{left:-23px;width:21px}
+        .rz-ramo-faixa-n{position:absolute;right:-6px;bottom:-5px;min-width:18px;height:18px;padding:0 4px;border-radius:9px;background:var(--card);color:var(--ramo-grupo,var(--sage));font:700 11px/18px var(--font-body);text-align:center;box-shadow:0 0 0 1.5px var(--ramo-grupo,var(--sage))}
         /* v1.439.2 (item 46) — ⋮ de Patrimônio na ponta direita da linha dos chips (padrão da ficha do ativo) */
         .rz-chips-linha{display:flex;align-items:center;gap:4px}
         .rz-chips-linha>.rz-chips{flex:1;min-width:0}
@@ -4494,7 +4507,7 @@
         // texto certo toda vez (esqueci 5 versões seguidas, de v1.37.1 até
         // v1.38.3). Agora só precisa mudar UMA linha aqui a cada release;
         // window.onload aplica nos dois lugares automaticamente.
-        const APP_VERSAO = "Beta v1.439.2"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
+        const APP_VERSAO = "Beta v1.439.3"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
 
         // ====================================================================
         // v1.105.0 — HELPERS DE SUPERFÍCIE DA GRAMÁTICA ÚNICA

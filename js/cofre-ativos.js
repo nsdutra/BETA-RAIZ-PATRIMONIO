@@ -1,6 +1,10 @@
 // ============================================================================
 // cofre-ativos.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.125.0 · 19/10/2026
+// Versão: 1.126.0 · 19/10/2026
+//
+// v1.126.0 (19/10/2026, sessão 20261019-1712-carga-silva-faixa2, demanda 9404081c, itens 47 e 48; Nicola 19/10 17:09–17:10) —
+// a faixa do ramo ganha a setinha ao lado do total; ela e o ícone do ramo recolhem/abrem a lista do ramo.
+// Versão anterior: 1.125.0 · 19/10/2026
 //
 // v1.125.0 (19/10/2026, sessão 20261019-1705-carga-silva-faixa, demanda 9404081c, item 45; Nicola 19/10 17:02) — cabeçalho do
 // ramo vira faixa na cor do ramo, de ponta a ponta (ícone maior com o contador, nome e a soma à direita); saem as 3 caixas e o
@@ -20,17 +24,11 @@
 //
 // v1.122.0 (19/10/2026, sessão 20261019-1140-carga-silva-icones, demanda 9404081c, item 37; Nicola 19/10 11:34) — integrante
 // com ícone de criança, adulto ou idoso pela idade; pet com patinha (iconeHtmlDoAtivo, na lista, nas áreas e na ficha).
-// Versão anterior: 1.121.0 · 19/10/2026
-//
-// v1.121.0 (19/10/2026, sessão 20261019-1125-carga-silva-ajustes, demanda 9404081c, itens 31–34 pedidos pelo Nicola 19/10 11:19)
-// — em Todo o patrimônio os chips não filtram ramo (Todos, Com alerta, Arquivados); a etiqueta do principal com sub-ativos
-// mostra a classe do uso (Vida, Disponível…) e não "0 de 4 integrantes"; lente de ramo sem ativo mostra o card de cadastro do
-// ramo; ícone pelo tipo do catálogo (iconeDoAtivo: trator, talhão, secador…).
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.120.0 … v1.120.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.121.0 … v1.121.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '1.125.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.126.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 import { estado } from './cofre-estado.js';
 import * as api from './cofre-api.js';
 import { mostrarToast, erroInline, refrescarIcones, alternarToggle, abrirModal, fecharModal, modalGenerico, perguntar, avisarComDesfazer, escolher } from './cofre-ui.js';
@@ -582,9 +580,13 @@ export function renderAtivosLista(filtroTipo = '', filtroTexto = '') {
         const valor = itens.reduce((t, x) => t + Number(x.valor_referencia || 0), 0);
         const direita = soma ? (valor ? compactoRamo(valor) : '') : `${todosDoRamo.length} ${todosDoRamo.length === 1 ? (info.unidade_singular || 'vida') : (info.unidade_plural || 'vidas')}`;
         const cod = r.replace(/[^a-z_]/g, '');
-        return `<div class="rz-ramo-faixa" id="rz-ramo-faixa-${cod}" style="--ramo-grupo:var(--ramo-cor-${cod}, var(--sage))">` +
-            `<span class="rz-ramo-faixa-ic"><svg data-lucide="${escapeHtml(info.icone || 'circle')}"></svg><span class="rz-ramo-faixa-n">${itens.length}</span></span>` +
-            `<h3>${escapeHtml(info.nome)}</h3>${direita ? `<b>${escapeHtml(direita)}</b>` : ''}</div>`;
+        // v1.126.0 (item 48, Nicola 19/10 17:10) — o ícone do ramo e a setinha ao lado do total recolhem/abrem a lista do ramo
+        const fechado = ramosRecolhidos.has(cod);
+        const tg = `onclick="window.__rzAlternarRamo && window.__rzAlternarRamo('${cod}')"`;
+        return `<div class="rz-ramo-faixa${fechado ? ' rz-ramo-fechado' : ''}" id="rz-ramo-faixa-${cod}" style="--ramo-grupo:var(--ramo-cor-${cod}, var(--sage))">` +
+            `<span class="rz-ramo-faixa-ic" role="button" tabindex="0" aria-expanded="${!fechado}" aria-label="${fechado ? 'Mostrar' : 'Recolher'} ${escapeHtml(info.nome)}" ${tg}><svg data-lucide="${escapeHtml(info.icone || 'circle')}"></svg><span class="rz-ramo-faixa-n">${itens.length}</span></span>` +
+            `<h3>${escapeHtml(info.nome)}</h3>${direita ? `<b>${escapeHtml(direita)}</b>` : ''}` +
+            `<button type="button" class="rz-ramo-faixa-tg" aria-expanded="${!fechado}" aria-label="${fechado ? 'Mostrar' : 'Recolher'} ${escapeHtml(info.nome)}" ${tg}><svg data-lucide="${fechado ? 'chevron-down' : 'chevron-up'}"></svg></button></div>`;
     };
     // F2.4 (UXR-15) — carteira só com imóveis: um card de convite no FIM da lista (nunca no topo).
     const soImoveis = principais().length > 0 && principais().every(a => ehCategoriaImovel(categoriaDoAtivo(a.tipo_ativo)));
@@ -603,7 +605,7 @@ export function renderAtivosLista(filtroTipo = '', filtroTexto = '') {
     const listaHtml = (itens) => porEmp(itens).map(e => `
         ${e.nome ? `<div class="rz-group rz-group-t"><span>${escapeHtml(e.nome)} · ${e.itens.length}</span>${totalGrupo(e.itens) ? `<b>${totalGrupo(e.itens)}</b>` : ''}</div>` : ''}
         <div class="rz-card rz-list">${e.itens.map(soArquivados ? ativoCardArquivadoHtml : ativoComSubativosHtml).join('')}</div>`).join('');
-    container.innerHTML = blocos.map(bl => (bl.ramo ? cardRamo(bl.ramo, bl.itens) : '') + listaHtml(bl.itens)).join('') + (soArquivados ? '' : cardConvite);
+    container.innerHTML = blocos.map(bl => (bl.ramo ? cardRamo(bl.ramo, bl.itens) + (ramosRecolhidos.has(bl.ramo.replace(/[^a-z_]/g, '')) ? '' : listaHtml(bl.itens)) : listaHtml(bl.itens))).join('') + (soArquivados ? '' : cardConvite);
 
     // v1.121.0 (item 33, Nicola 19/10 11:19) — lente de um ramo sem nenhum ativo mostra o card de cadastro daquele ramo (antes:
     // "Todos 0" e um card vazio). Com ativo mas sem resultado na busca/chip, uma linha de texto, nunca um card em branco.
@@ -720,6 +722,9 @@ const arquivadosDaLente = () => (ativosArquivados || []).filter(a => ramoDaLente
 // app pura é ramoDaLenteApp(). Trocar a lente do app desfaz o "Ver só".
 const ramoDaLenteApp = () => (typeof window !== 'undefined' && typeof window.rzRamoAtual === 'function') ? window.rzRamoAtual() : 'tudo';
 let verSoRamo = null;
+// v1.126.0 (item 48) — ramos recolhidos na lista (só nesta sessão do app)
+const ramosRecolhidos = new Set();
+if (typeof window !== 'undefined') window.__rzAlternarRamo = (cod) => { ramosRecolhidos.has(cod) ? ramosRecolhidos.delete(cod) : ramosRecolhidos.add(cod); redesenharComFiltros(); };
 let modoArquivados = false; // v1.124.0 — Arquivados abre pelo ⋮ (sai dos chips)
 const ramoDaLente = () => { const l = ramoDaLenteApp(); return l !== 'tudo' ? l : (verSoRamo || 'tudo'); };
 // v1.125.0 (item 45, Nicola 19/10 17:02) — sem "Ver só"/"Ver todos": quem chega do Hoje (árvore) cai em Todo o patrimônio na

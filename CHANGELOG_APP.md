@@ -4,6 +4,17 @@ Histórico completo de versões do `index.html`, movido automaticamente pelo `ge
 
 ---
 
+NOVIDADES (Beta v1.438.1) — ÍCONES DAS PESSOAS (Nicola 19/10 11:34): integrante com ícone de criança (menos de 18 anos),
+adulto ou idoso (65 ou mais) pela data de nascimento; pet com patinha. cofre-ativos.js 1.122.0, cofre-validacoes.js
+2.12.0. O index só muda o import map.
+Versão anterior (Beta v1.438.0):
+------------------------------------------------------------------
+Versões anteriores (v1.438.0 … v1.438.0): CHANGELOG_APP.md, na raiz do
+repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
+das 5 versões mais recentes deste cabeçalho.
+
+---
+
 NOVIDADES (Beta v1.438.0) — AJUSTES DO NICOLA 19/10 11:19 (dem 9404081c, itens 31–36; F4 de acordo): chips de Ativos
 sem filtro de ramo; etiqueta "Vida" na Família (sem "0 de 4"); lente de ramo vazia mostra o card de cadastro; ícone por
 tipo (trator, talhão, secador…); Agenda: arrastar troca a semana (para os lados) e o mês (para cima/baixo) e volta a
