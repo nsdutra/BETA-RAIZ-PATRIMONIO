@@ -2,7 +2,11 @@
 // conta.js — Raiz Patrimônio · Conta e preferências: menu da conta, seção Sobre,
 //            licença, preferências de comunicação e de alerta, atalhos de
 //            configuração (Cofre, configuração inicial, cadastro do contador)
-// Versão: 1.2.0 · 14/10/2026
+// Versão: 1.3.0 · 19/10/2026
+//
+// v1.3.0 (19/10/2026, sessão 20261018-2344-temas, demanda 91a30125; FICHA_ROTINAS_E_ALERTAS_POR_TEMA_RAIZ v1.0.0, de acordo do Nicola 18/10 23:44) — Minhas notificações: avisos agrupados por tema; o que está desligado na empresa aparece
+// apagado (quem liga é o administrador em Minha empresa › Rotinas); a frequência só no convite diário.
+// Versão anterior: 1.2.0 · 14/10/2026
 //
 // v1.2.0 (14/10/2026, sessão 20261014-2215-ajustes-9d, demanda a05ad2ee; Nicola 14/10 22:12: "ao sair da tela do contador
 // apareceu a tela estranha") — abrirCadastroContador abre o formulário de contador como sheet por cima da tela atual, sem
@@ -42,7 +46,7 @@
 //    por 345 bytes — é a mesma classe de armadilha do montarBoxDivisaoSocietaria.
 // ============================================================================
 
-export const VERSAO = '1.2.0';  // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.3.0';  // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 
 // v1.71.0 — LGPD: tela de preferências de comunicação, 1 toggle por
 // mensagem que permite opt-out (permite_opt_out=true) — substitui o
@@ -80,7 +84,7 @@ export async function abrirPreferenciasComunicacao() {
     abrirSheet(rzSheetCabecalho('Minhas notificações', 'O que você recebe automaticamente da Raiz') + `<div class="rz-sh-b">
         <div class="rz-card">
             <div class="rz-card-h"><h3>Alertas e avisos automáticos</h3></div>
-            <p class="rz-desc">Pelo WhatsApp, pela manhã. Semanais saem às segundas; mensais, no dia 5.</p>
+            <p class="rz-desc">Vale para o app e o WhatsApp.</p>
             <div id="lista-preferencias-alertas">${typeof rzSkeletonSeguro === 'function' ? rzSkeletonSeguro('linhas', 2) : ''}</div>
         </div>
         <div class="rz-card">
@@ -93,7 +97,7 @@ export async function abrirPreferenciasComunicacao() {
     // não uma pessoa escolhida numa lista — esta tela é sempre sobre
     // "eu mesmo").
     try {
-        const { buscarProativasDisponiveis, buscarPreferenciasComunicacao, FREQUENCIA_OPCOES } = await import('./comum-pessoas.js');
+        const { buscarProativasDisponiveis, buscarPreferenciasComunicacao, FREQUENCIA_OPCOES, htmlAvisosPorTema } = await import('./comum-pessoas.js');
         const [proativas, preferenciasMap] = await Promise.all([
             buscarProativasDisponiveis(dbAuth, CLIENTE_ID_SUPABASE),
             buscarPreferenciasComunicacao(dbAuth, CLIENTE_ID_SUPABASE),
@@ -107,18 +111,20 @@ export async function abrirPreferenciasComunicacao() {
             // hora ao ligar/desligar (ou trocar a frequência), sem
             // botão de salvar em lote (o botão saiu — pedido do
             // Nicola, "já que tera o componente de ligar ou desligar").
-            listaAlertas.innerHTML = proativas.map(f => {
+            listaAlertas.innerHTML = htmlAvisosPorTema(proativas, f => {
+                if (!f.empresaLigada) return `<div class="rz-row rz-pref" style="opacity:.5">
+                    <div class="rz-tx"><b>${rzEsc(f.descricao)}</b><span>Desligado na empresa</span></div></div>`; // v1.3.0
                 const pref = preferenciasMap.get(`${pessoaIdLogada}|${f.codigo}`);
                 const habilitado = pref ? pref.habilitado : true;
                 const frequencia = pref ? pref.frequencia : 'semanal';
                 const opcoesHtml = FREQUENCIA_OPCOES.map(o => `<option value="${o.valor}" ${frequencia === o.valor ? 'selected' : ''}>${o.rotulo}</option>`).join('');
-                return `<div class="rz-row rz-pref rz-pref-2l">
+                return `<div class="rz-row rz-pref${f.temFrequencia ? ' rz-pref-2l' : ''}">
                     <div class="rz-tx"><b>${rzEsc(f.descricao)}</b></div>
-                    <select class="pref-alerta-frequencia" data-codigo="${f.codigo}" aria-label="Frequência" ${habilitado ? '' : 'disabled'}>${opcoesHtml}</select>
+                    ${f.temFrequencia ? `<select class="pref-alerta-frequencia" data-codigo="${f.codigo}" aria-label="Frequência" ${habilitado ? '' : 'disabled'}>${opcoesHtml}</select>` : ''}
                     <button type="button" role="switch" class="rz-switch pref-alerta-toggle" data-codigo="${f.codigo}" data-habilitado="${habilitado ? '1' : '0'}"
                         aria-checked="${habilitado ? 'true' : 'false'}" aria-label="${rzEsc(f.descricao)}" onclick="alternarPreferenciaAlerta(this)"></button>
                 </div>`;
-            }).join('');
+            });
             listaAlertas.querySelectorAll('.pref-alerta-frequencia').forEach(sel => {
                 sel.onchange = () => salvarPreferenciaAlerta(sel.dataset.codigo, listaAlertas.querySelector(`.pref-alerta-toggle[data-codigo="${sel.dataset.codigo}"]`)?.dataset.habilitado === '1', sel.value, sel);
             });

@@ -4,6 +4,17 @@ Histórico completo de versões do `index.html`, movido automaticamente pelo `ge
 
 ---
 
+NOVIDADES (Beta v1.429.0) — CORREÇÃO (Nicola 16/10 09:30): em Ativos o botão "+" voltou ao lugar (desde a 1.427.0, sem a vista
+Contratos, ele subia para baixo do cabeçalho e sumia); no computador o conteúdo ocupa a área central toda, até 1280 px
+(era 820 px).
+Versão anterior (Beta v1.428.0):
+------------------------------------------------------------------
+Versões anteriores (v1.428.0 … v1.428.0): CHANGELOG_APP.md, na raiz do
+repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
+das 5 versões mais recentes deste cabeçalho.
+
+---
+
 NOVIDADES (Beta v1.428.0) — CORREÇÃO (achado do Nicola 16/10 01:03): o novo ativo passa a oferecer as categorias Agro e
 Pecuária no 1º seletor (lote bovino, lote suíno, pasto, lavoura, talhão, máquinas…). cofre-ativos.js 1.115.0 ·
 cofre-validacoes.js 2.8.0.

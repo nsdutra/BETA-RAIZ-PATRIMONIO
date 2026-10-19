@@ -1,6 +1,13 @@
 // ============================================================================
 // comum-minha-empresa.js — Raiz Patrimônio · Administração compartilhada
-// Versão: 1.20.0 · 15/10/2026
+// Versão: 1.21.0 · 19/10/2026
+//
+// v1.21.0 (19/10/2026, sessão 20261018-2344-temas, demanda 91a30125; FICHA_ROTINAS_E_ALERTAS_POR_TEMA_RAIZ v1.0.0, de acordo
+// do Nicola 18/10 23:44) — chip Rotinas vira "Rotinas e alertas": uma linha por TEMA (Fiscal, Contador, Cartões, Contratos,
+// Ativos, Itens de controle, Programas, Mercado), só os que o plano libera, lidos de fn_empresa_temas_listar. Cada tema tem o
+// seletor de Alertas (liga/desliga os avisos do tema para a empresa inteira — app, robô e convite diário) e, quando tem,
+// o de Rotina (as mesmas de antes). Alertas só o administrador muda; rotinas, administrador e operador (o banco confere).
+// Versão anterior: 1.20.0 · 15/10/2026
 //
 // v1.20.0 (15/10/2026, sessão 20261014-2245-ia-integrada, demanda 4a28ad50; FICHA_CONTABILIDADE_ROTINA_CONTADOR_RAIZ v1.1.0, de
 // acordo do Nicola 14/10 22:43 e 23:00) — ao ligar a rotina "Envio ao contador", a folha "Quais ativos entram?" lista os
@@ -24,17 +31,11 @@
 // principal (fechamento e vencimento são os dele) e a conta em que o adicional cai — o padrão é a conta de quem usa
 // (R4: dívida dela no Balanço; trocando para a conta do titular do principal, vira despesa dela sem cobrança). Na lista,
 // o adicional mostra "adicional do <principal>".
-// Versão anterior: 1.16.0 · 13/10/2026
-//
-// v1.16.0 (13/10/2026, sessão 20261013-2320-conta-via-item, demanda 47eed96b; de acordo do Nicola 13/10 23:17: "retirar.
-// deixar apenas pelos ativos") — Minha empresa › Contas perde o "+": conta e cartão novos nascem pelo item de controle
-// (cofre-controles.js 1.55.0). A lista continua (editar, encerrar, excluir). abrirFichaConta ganha fixarEmpresa (titular
-// Empresa preso, usado pelos Controles da empresa).
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.15.0 … v1.15.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.16.0 … v1.16.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '1.20.0'; // v-check (20/09/2026): lido por Dev › Versões — manter igual ao header
+export const VERSAO = '1.21.0'; // v-check (20/09/2026): lido por Dev › Versões — manter igual ao header
 import { perguntar } from './cofre-ui.js'; // v1.9.0 (F0.2b) — sem diálogo nativo
 import { rzMostrarBloqueio as rzBloqueio, podeUsar as podeUsarMod } from './comum-licenca.js'; // v1.10.0 — porta de licença (contas)
 export const COMUM_MINHA_EMPRESA_VERSAO = '1.0.0';
@@ -590,80 +591,88 @@ export async function montarAbaMinhaEmpresa(mountEl, ctx) {
     async function renderRotinasCard() {
         const alvo = document.getElementById('cme-rotinas-card');
         if (!alvo) return;
-        let rotinas;
+        let temas;
         try {
-            rotinas = await buscarRotinasEmpresa(dbAuth, clienteId);
+            const { data, error } = await dbAuth.rpc('fn_empresa_temas_listar', { p_cliente_id: clienteId }); // v1.21.0
+            if (error) throw error;
+            temas = (data || []).filter(t => t.controle_empresa && t.liberado);
         } catch (err) {
-            console.warn('[comum-minha-empresa] Falha ao carregar rotinas:', err.message);
+            console.warn('[comum-minha-empresa] Falha ao carregar rotinas e alertas:', err.message);
             alvo.innerHTML = '';
             return;
         }
-        rotinas = rotinas || [];
         const partesRet = await buscarPartesRetiradas(dbAuth, clienteId); // v1.15.0 — F13.8
-        if (!rotinas.length && !partesRet) { alvo.innerHTML = '<div class="rz-card"><p class="rz-desc">Nenhuma rotina disponível.</p></div>'; return; }
+        if (!temas.length && !partesRet) { alvo.innerHTML = '<div class="rz-card"><p class="rz-desc">Nenhuma rotina disponível.</p></div>'; return; }
 
         const r = typeof window.renderStatus === 'function' ? window.renderStatus : (c, t) => `<span class="rz-st rz-${esc(c)}">${esc(t || c)}</span>`;
+        const resumoRotinas = (t) => {
+            const rs = t.rotinas || [];
+            if (!rs.length) return 'Só alertas';
+            const lig = rs.filter(x => x.ligada).length;
+            if (rs.length === 1) return lig ? 'Rotina ligada' : 'Rotina desligada';
+            return `${lig} de ${rs.length} rotinas ligadas`;
+        };
         alvo.innerHTML = `
-            <div class="rz-card"><div class="rz-card-h"><h3>Rotinas</h3></div>
+            <div class="rz-card"><div class="rz-card-h"><h3>Rotinas e alertas</h3></div>
                 <div class="rz-list">
-                    ${rotinas.map(rt => `
-                        <div class="rz-row" data-rotina-codigo="${esc(rt.codigo)}" data-rotina-item="${rt.item_id || ''}" style="cursor:pointer">
-                            <div class="rz-ic${rt.ligada ? '' : ' rz-neu'}"><i data-lucide="${ICONES_ROTINA_EMPRESA[rt.codigo] || 'repeat'}"></i></div>
-                            <div class="rz-tx">
-                                <b>${esc(rt.nome)}</b>
-                                <span>${rt.ligada ? 'Mensal · aviso ' + (rt.antecedencia_alerta_dias ?? 5) + ' dias antes' : 'Desligada'}</span>
-                            </div>
-                            <div class="rz-rt">${rt.ligada ? r('ok', 'Ligada') : r('neu', 'Desligada')}</div>
+                    ${temas.map(t => `
+                        <div class="rz-row" data-tema="${esc(t.tema)}" style="cursor:pointer">
+                            <div class="rz-ic${t.alertas_ligados ? '' : ' rz-neu'}"><i data-lucide="${esc(t.icone || 'bell')}"></i></div>
+                            <div class="rz-tx"><b>${esc(t.nome)}</b><span>${esc(resumoRotinas(t))}</span></div>
+                            <div class="rz-rt">${t.alertas_ligados ? r('ok', 'Alertas on') : r('neu', 'Alertas off')}</div>
                             <button type="button" class="rz-more" aria-label="Mais ações"><i data-lucide="ellipsis-vertical"></i></button>
                         </div>`).join('')}
                     ${partesLinhaHtml(partesRet)}
                 </div>
-                <span class="rz-hint" style="display:block;margin-top:8px">Rotinas ligadas viram itens de controle da empresa e aparecem em Controles perto do prazo.</span>
+                <span class="rz-hint" style="display:block;margin-top:8px">Alertas desligados não aparecem no app nem no WhatsApp. Rotina ligada vira controle da empresa.</span>
             </div>`;
         if (typeof window !== 'undefined' && window.lucide) window.lucide.createIcons();
         alvo.querySelector('[data-partes-ret]')?.addEventListener('click', () => abrirAcoesPartesRetiradas({ dbAuth, clienteId, pt: partesRet, onToast, aoMudar: renderRotinasCard }));
 
-        alvo.querySelectorAll('[data-rotina-codigo]').forEach(row => row.addEventListener('click', () => {
-            const codigo = row.getAttribute('data-rotina-codigo');
-            const itemId = row.getAttribute('data-rotina-item');
-            const rt = rotinas.find(x => x.codigo === codigo);
-            if (!rt) return;
+        alvo.querySelectorAll('[data-tema]').forEach(row => row.addEventListener('click', () => {
+            const t = temas.find(x => x.tema === row.getAttribute('data-tema'));
+            if (!t) return;
             const abrirSheet = typeof window.abrirSheetAcoes === 'function' ? window.abrirSheetAcoes : null;
             if (!abrirSheet) { onToast?.('Ação só disponível dentro do app principal.', 'danger'); return; }
-
-            if (rt.ligada) {
-                abrirSheet({
-                    titulo: rt.nome, sub: 'Rotina da empresa',
-                    acoes: [{
-                        titulo: 'Desligar rotina', sub: 'Para o controle mensal', icone: 'power-off',
-                        aoTocar: async () => {
-                            try {
-                                await desligarRotinaEmpresa(dbAuth, itemId, 'Desligada pelo usuário em Minha Empresa');
-                                onToast?.('Rotina desligada.', 'success');
-                                registrarLog?.('cofre.controles.desativar', { subtipo: codigo });
-                                renderRotinasCard();
-                            } catch (err) { onToast?.('Falha ao desligar: ' + err.message, 'danger'); }
-                        }
-                    }]
-                });
-            } else {
-                abrirSheet({
-                    titulo: rt.nome, sub: 'Rotina da empresa',
-                    acoes: [{
-                        titulo: 'Ligar rotina', sub: 'Cria o controle mensal', icone: 'power', codigo: 'cofre.controles.criar',
-                        aoTocar: async () => {
-                            try {
-                                await ligarRotinaEmpresa(dbAuth, clienteId, codigo);
-                                onToast?.('Rotina ligada.', 'success');
-                                registrarLog?.('cofre.controles.criar', { subtipo: codigo, origem: 'rotina' });
-                                renderRotinasCard();
-                                // v1.20.0 — ligou o Envio ao contador: quais ativos (hoje fora) entram na contabilidade
-                                if (codigo === 'envio_contador') perguntarAtivosContabilidade(dbAuth, clienteId, onToast);
-                            } catch (err) { onToast?.('Falha ao ligar: ' + err.message, 'danger'); }
-                        }
-                    }]
-                });
-            }
+            const acoes = [{
+                titulo: t.alertas_ligados ? 'Desligar alertas' : 'Ligar alertas',
+                sub: t.alertas_ligados ? 'Some do app e do WhatsApp' : 'Volta ao app e ao WhatsApp',
+                icone: t.alertas_ligados ? 'bell-off' : 'bell',
+                aoTocar: async () => {
+                    if (!t.pode_alertas) { onToast?.('Só o administrador muda os alertas.', 'danger'); return; }
+                    const { error } = await dbAuth.rpc('fn_empresa_tema_alertas_definir', { p_cliente_id: clienteId, p_tema: t.tema, p_ligado: !t.alertas_ligados });
+                    if (error) { onToast?.('Falha: ' + error.message, 'danger'); return; }
+                    onToast?.(t.alertas_ligados ? 'Alertas desligados.' : 'Alertas ligados.', 'success');
+                    registrarLog?.('empresa.temas.alertas', { tema: t.tema, ligado: !t.alertas_ligados });
+                    renderRotinasCard();
+                },
+            }];
+            (t.rotinas || []).forEach(rt => acoes.push(rt.ligada ? {
+                titulo: rt.nome, sub: 'Ligada · tocar desliga', icone: 'power-off',
+                aoTocar: async () => {
+                    if (!t.pode_rotinas) { onToast?.('Só administrador ou operador.', 'danger'); return; }
+                    try {
+                        await desligarRotinaEmpresa(dbAuth, rt.item_id, 'Desligada pelo usuário em Minha Empresa');
+                        onToast?.('Rotina desligada.', 'success');
+                        registrarLog?.('cofre.controles.desativar', { subtipo: rt.codigo });
+                        renderRotinasCard();
+                    } catch (err) { onToast?.('Falha ao desligar: ' + err.message, 'danger'); }
+                },
+            } : {
+                titulo: rt.nome, sub: 'Desligada · tocar liga', icone: 'power', codigo: 'cofre.controles.criar',
+                aoTocar: async () => {
+                    if (!t.pode_rotinas) { onToast?.('Só administrador ou operador.', 'danger'); return; }
+                    try {
+                        await ligarRotinaEmpresa(dbAuth, clienteId, rt.codigo);
+                        onToast?.('Rotina ligada.', 'success');
+                        registrarLog?.('cofre.controles.criar', { subtipo: rt.codigo, origem: 'rotina' });
+                        renderRotinasCard();
+                        // v1.20.0 — ligou o Envio ao contador: quais ativos (hoje fora) entram na contabilidade
+                        if (rt.codigo === 'envio_contador') perguntarAtivosContabilidade(dbAuth, clienteId, onToast);
+                    } catch (err) { onToast?.('Falha ao ligar: ' + err.message, 'danger'); }
+                },
+            }));
+            abrirSheet({ titulo: t.nome, sub: 'Rotinas e alertas da empresa', acoes });
         }));
     }
 }

@@ -1,6 +1,13 @@
 // ============================================================================
 // comum-pessoas.js — Raiz Patrimônio · Administração compartilhada
-// Versão: 1.215.0 · 16/10/2026
+// Versão: 1.216.0 · 19/10/2026
+//
+// v1.216.0 (19/10/2026, sessão 20261018-2344-temas, demanda 91a30125; FICHA_ROTINAS_E_ALERTAS_POR_TEMA_RAIZ v1.0.0, de acordo do Nicola 18/10 23:44) — avisos AGRUPADOS POR TEMA (Fiscal, Contador, Cartões…). buscarProativasDisponiveis
+// passa a listar os avisos de verdade: toda funcionalidade de um tipo de alerta ativo (entra o índice publicado, que não
+// era 'proativa') + os avisos da Raiz (convite diário, andamento de solicitação); recurso que não é aviso (NFS-e automática)
+// sai. Cada aviso traz o tema e se o tema está LIGADO NA EMPRESA (Minha empresa › Rotinas): desligado na empresa aparece
+// apagado, sem interruptor. A frequência só aparece no convite diário (é o único envio que ela muda).
+// Versão anterior: 1.215.0 · 16/10/2026
 //
 // v1.215.0 (16/10/2026, sessão 20261016-0053-carga-silva, demanda 9404081c; pedido do Nicola 16/10 00:57) — Perfil de acesso,
 // Criar acesso e Vincular login existente voltam a funcionar: a escolha do perfil pedia a coluna "nome", que a tabela perfis
@@ -21,16 +28,11 @@
 // v1.212.0 (14/10/2026, sessão 20261014-0010-ativo-pessoa, demanda d6a6f577; de acordo do Nicola 14/10 00:08) — ações da
 // pessoa ganham "Ativo da pessoa": abre o ativo vida ligado a ela; sem ativo, oferece ligar a um ativo vida que ainda
 // não tem pessoa (fn_ativo_pessoa_vincular) ou criar o ativo dela já ligado (fn_ativo_pessoa_garantir). Não cria pessoa.
-// Versão anterior: 1.211.0 · 13/10/2026
-//
-// v1.211.0 (13/10/2026, sessão 20261013-2320-conta-via-item, demanda 47eed96b; de acordo do Nicola 13/10 23:17) —
-// Pessoas › Contas perde o "+": conta e cartão da pessoa nascem no ativo dela › Controles › + › "Conta ou cartão"
-// (cofre-controles.js 1.55.0). Ficam a lista (editar/encerrar) e o "Quem ela vê".
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.210.0 … v1.210.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.211.0 … v1.211.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '1.215.0'; // v-check (18/09/2026): lido por Dev › Versões — manter igual ao header
+export const VERSAO = '1.216.0'; // v-check (18/09/2026): lido por Dev › Versões — manter igual ao header
 import { perguntar, avisarComDesfazer } from './cofre-ui.js'; // v1.203.0 (F0.2b) — sem diálogo nativo
 import { buscarContas, contasListaHtml, abrirFichaConta, abrirAcoesConta } from './comum-minha-empresa.js'; // v1.204.0 — contas da pessoa (P4a)
 import { rzMostrarBloqueio as rzBloqueio } from './comum-licenca.js'; // v1.204.0
@@ -114,29 +116,57 @@ async function buscarModulosPorPerfil(dbAuth) {
 export async function buscarProativasDisponiveis(dbAuth, clienteId) {
     try {
         const agora = new Date().toISOString();
-        const [{ data: licencas, error: e1 }, { data: planoFunc, error: e2 }, { data: funcs, error: e3 }] = await Promise.all([
+        const [r1, r2, r3, r4, r5, r6] = await Promise.all([
             dbAuth.from('licencas').select('plano_codigo, data_expiracao').eq('cliente_id', clienteId).eq('status', 'ativo'),
             dbAuth.from('plano_funcionalidade').select('plano_codigo, funcionalidade_codigo'),
-            dbAuth.from('funcionalidades').select('codigo, descricao, area').eq('tipo', 'proativa').eq('ativo', true),
+            dbAuth.from('funcionalidades').select('codigo, descricao, area, tipo').eq('ativo', true),
+            dbAuth.from('alerta_tipos').select('funcionalidade_codigo, tema').eq('ativo', true),
+            dbAuth.from('aviso_temas').select('codigo, nome, ordem, controle_empresa'),
+            dbAuth.rpc('fn_empresa_temas_listar', { p_cliente_id: clienteId }),
         ]);
-        if (e1 || e2 || e3) throw (e1 || e2 || e3);
+        const erro = [r1, r2, r3, r4, r5].find(r => r.error);
+        if (erro) throw erro.error;
 
         // Só licenças vigentes (sem data de expiração, ou expirando no futuro).
-        const planosVigentes = new Set((licencas || [])
+        const planosVigentes = new Set((r1.data || [])
             .filter(l => !l.data_expiracao || l.data_expiracao > agora)
             .map(l => l.plano_codigo));
-
-        const codigosLiberados = new Set((planoFunc || [])
+        const codigosLiberados = new Set((r2.data || [])
             .filter(pf => planosVigentes.has(pf.plano_codigo))
             .map(pf => pf.funcionalidade_codigo));
+        // v1.216.0 — tema de cada aviso (catálogo de alertas) e estado do tema na empresa (Minha empresa › Rotinas)
+        const temaDaFunc = new Map((r4.data || []).filter(a => a.funcionalidade_codigo).map(a => [a.funcionalidade_codigo, a.tema]));
+        const temas = new Map((r5.data || []).map(t => [t.codigo, t]));
+        const ligadoEmpresa = new Map(((r6 && !r6.error && r6.data) || []).map(t => [t.tema, t.alertas_ligados]));
 
-        return (funcs || [])
+        return (r3.data || [])
             .filter(f => codigosLiberados.has(f.codigo))
-            .sort((a, b) => a.descricao.localeCompare(b.descricao));
+            .filter(f => temaDaFunc.has(f.codigo) || (f.tipo === 'proativa' && f.codigo.startsWith('alertar.')))
+            .map(f => {
+                const tema = temaDaFunc.get(f.codigo) || 'raiz';
+                const t = temas.get(tema) || { nome: 'Raiz', ordem: 999, controle_empresa: false };
+                return { ...f, tema, temaNome: t.nome, temaOrdem: t.ordem,
+                         empresaLigada: !t.controle_empresa || ligadoEmpresa.get(tema) !== false,
+                         temFrequencia: f.codigo === 'alertar.consolidado_carteira' };
+            })
+            .sort((x, y) => x.temaOrdem - y.temaOrdem || x.descricao.localeCompare(y.descricao));
     } catch (err) {
         console.warn('[comum-pessoas] Falha ao calcular proativas disponíveis por licença (seção de comunicações fica oculta):', err.message);
         return [];
     }
+}
+
+// v1.216.0 — lista de avisos agrupada por tema. `linhaHtml(f)` desenha cada aviso (cada tela tem as suas classes).
+export function htmlAvisosPorTema(lista, linhaHtml) {
+    const grupos = [];
+    for (const f of lista) {
+        let g = grupos.find(x => x.tema === f.tema);
+        if (!g) { g = { tema: f.tema, nome: f.temaNome, itens: [] }; grupos.push(g); }
+        g.itens.push(f);
+    }
+    const escT = (v) => String(v ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+    return grupos.map(g => `<p class="rz-desc" style="margin:14px 0 2px;font-weight:700;color:var(--ink)">${escT(g.nome)}</p>`
+        + g.itens.map(linhaHtml).join('')).join('');
 }
 
 export async function buscarPreferenciasComunicacao(dbAuth, clienteId) {
@@ -718,10 +748,14 @@ export async function montarAbaPessoas(mountEl, ctx) {
             const habilitado = pref ? pref.habilitado : true; // sem linha salva = padrão do sistema
             const frequencia = pref ? pref.frequencia : 'semanal';
             const opcoesHtml = FREQUENCIA_OPCOES.map(o => `<option value="${o.valor}" ${frequencia === o.valor ? 'selected' : ''}>${o.rotulo}</option>`).join('');
+            if (!f.empresaLigada) return `
+                <div class="rz-row rz-pref" style="opacity:.5" data-linha-codigo="${esc(f.codigo)}">
+                    <div class="rz-tx"><b>${esc(f.descricao)}</b><span>Desligado na empresa</span></div>
+                </div>`; // v1.216.0
             return `
-                <div class="rz-row rz-pref rz-pref-2l" data-linha-codigo="${esc(f.codigo)}">
+                <div class="rz-row rz-pref${f.temFrequencia ? ' rz-pref-2l' : ''}" data-linha-codigo="${esc(f.codigo)}">
                     <div class="rz-tx"><b>${esc(f.descricao)}</b></div>
-                    <select class="pc-frequencia" data-codigo="${esc(f.codigo)}" aria-label="Frequência" ${habilitado ? '' : 'disabled'}>${opcoesHtml}</select>
+                    ${f.temFrequencia ? `<select class="pc-frequencia" data-codigo="${esc(f.codigo)}" aria-label="Frequência" ${habilitado ? '' : 'disabled'}>${opcoesHtml}</select>` : ''}
                     <button type="button" role="switch" class="rz-switch pc-toggle" data-codigo="${esc(f.codigo)}" data-habilitado="${habilitado ? '1' : '0'}" aria-checked="${habilitado ? 'true' : 'false'}" aria-label="${esc(f.descricao)}"></button>
                 </div>`;
         };
@@ -729,9 +763,9 @@ export async function montarAbaPessoas(mountEl, ctx) {
             titulo: 'Comunicações', sub: p.nome, semRodape: true,
             corpo: (elCorpo) => {
                 elCorpo.innerHTML = `
-                    <p class="rz-desc">Pelo WhatsApp, pela manhã. Semanais saem às segundas; mensais, no dia 5.</p>
+                    <p class="rz-desc">Vale para o app e o WhatsApp.</p>
                     ${semWhatsapp ? '<p class="rz-desc" style="color:var(--warning);margin-top:6px">Sem WhatsApp: os avisos não chegam.</p>' : ''}
-                    <div>${proativasDisponiveis.length ? proativasDisponiveis.map(linhaHtml).join('') : '<p class="rz-desc" style="margin-top:8px">Nenhum aviso disponível no plano atual.</p>'}</div>
+                    <div>${proativasDisponiveis.length ? htmlAvisosPorTema(proativasDisponiveis, linhaHtml) : '<p class="rz-desc" style="margin-top:8px">Nenhum aviso disponível no plano atual.</p>'}</div>
                 `;
                 elCorpo.querySelectorAll('.pc-toggle').forEach(btn => {
                     btn.addEventListener('click', async () => {
