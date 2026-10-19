@@ -4,6 +4,19 @@ Histórico completo de versões do `index.html`, movido automaticamente pelo `ge
 
 ---
 
+NOVIDADES (Beta v1.432.1) — L4-B/L4-C DA CARGA SILVA CAFÉS (FICHA_LOTES_4_5 v1.1.0, de acordo do Nicola 18/10 23:43):
+área com unidade (ha, alqueire mineiro e paulista, m²), fazenda/sítio/chácara/terreno rural com sede (município, UF,
+coordenadas, como chegar, CEP opcional) no lugar de rua e número; Aluguel esperado só em tipo com uso de renda; Casa
+cadastrada na lente Família já nasce com Moradia; Arrendamento e etiqueta das áreas corrigidos. cofre-ativos.js 1.117.0,
+cofre-validacoes.js 2.9.0, cofre-api.js 1.52.0. Banco: agro_cadastro_l4b_v1. O index só muda o import map.
+Versão anterior (Beta v1.432.0):
+------------------------------------------------------------------
+Versões anteriores (v1.432.0 … v1.432.0): CHANGELOG_APP.md, na raiz do
+repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
+das 5 versões mais recentes deste cabeçalho.
+
+---
+
 NOVIDADES (Beta v1.432.0) — ROTINAS E ALERTAS POR TEMA (FICHA_ROTINAS_E_ALERTAS_POR_TEMA_RAIZ v1.0.0, de acordo do Nicola 18/10
 23:44): Minha empresa › Rotinas vira "Rotinas e alertas", uma linha por tema (Fiscal, Contador, Cartões, Contratos, Ativos,
 Itens de controle, Programas, Mercado) com o seletor de Alertas da empresa e as rotinas do tema. Alerta desligado na empresa

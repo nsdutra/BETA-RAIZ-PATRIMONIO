@@ -1,6 +1,12 @@
 // ============================================================================
 // cofre-ativos.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.118.0 · 19/10/2026
+// Versão: 1.119.0 · 19/10/2026
+//
+// v1.119.0 (19/10/2026, sessão 20261019-0920-carga-silva-l5a2, demanda 9404081c; ajustes do Nicola 19/10 09:17 sobre o L5-A) —
+// sai o grupo por ramo; empreendimento só agrupa em carteira com mais de 10 ativos; sai a faixa "▾ N áreas": abre e fecha
+// pela seta e pelo ícone com a quantidade; a etiqueta de status vai para baixo do nome (o texto usa a largura toda, sem a
+// coluna da direita vazia em volta da etiqueta).
+// Versão anterior: 1.118.0 · 19/10/2026
 //
 // v1.118.0 (19/10/2026, sessão 20261019-0850-carga-silva-l5a, demanda 9404081c; FICHA_LOTES_4_5 v1.1.0 com D3 e D4 do Nicola
 // 18/10, item 30 escolhido em 19/10 08:50) — L5-A: lista de Ativos agrupada por ramo e empreendimento em Todo o patrimônio
@@ -29,20 +35,11 @@
 // de lote pecuária"; "Pode publicar a correção" 01:10) — o 1º seletor do novo ativo ganha as categorias Agro e Pecuária
 // (CATEGORIAS_ATIVO era fixa sem elas: na lente Pecuária o filtro ficava vazio e caía na lista inteira; no Agro faltavam
 // lavoura, talhão e máquinas). Nada mais muda.
-// Versão anterior: 1.114.0 · 16/10/2026
-//
-// v1.114.0 (16/10/2026, sessão 20261016-0053-carga-silva, demanda 9404081c; planos dos lotes 1–3 aprovados pelo Nicola 16/10 00:53)
-// — Adicionar uso segue a lente "Ver o app de" (Moradia aparece na Casa em Família e em Todo o patrimônio); a situação é
-// relida depois de cadastrar (lista sem "Disponível" falso e sub-ativos com etiqueta), com a Situação gravada como reserva;
-// Situação e Finalidade de uso saem do formulário de edição (vêm do uso); ficha mostra o tipo do catálogo (Fazenda, não
-// Terreno) e o ramo pelo nome; contador de Usos e contratos conta os usos; histórico diz "Uso iniciado"/"Uso excluído" com
-// período e motivo, sem Desfazer na exclusão; sai "Ver todos os contratos"; Compartilhar só com uso Disponível ou Em venda;
-// grupos "Sem empreendimento"/"Outros ativos" sem parênteses.
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.113.0 … v1.113.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.113.0 … v1.114.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '1.118.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.119.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 import { estado } from './cofre-estado.js';
 import * as api from './cofre-api.js';
 import { mostrarToast, erroInline, refrescarIcones, alternarToggle, abrirModal, fecharModal, modalGenerico, perguntar, avisarComDesfazer, escolher } from './cofre-ui.js';
@@ -549,28 +546,22 @@ export function renderAtivosLista(filtroTipo = '', filtroTexto = '') {
     // lista plana, sem agrupar nunca. Grupo sempre ativo agora — com 1
     // empreendimento só, vira 1 cabeçalho ("Capital (8)"), o que já é
     // informação (mostra que a carteira toda está concentrada ali).
-    // v1.118.0 (L5-1, dem 9404081c, 22bd8095, 5dd5f88c) — Todo o patrimônio agrupa por RAMO e, dentro, por EMPREENDIMENTO; numa
-    // lente, só por empreendimento. Empreendimento vale para qualquer ativo (empreendimento_id), não só imóvel. "Sem
-    // empreendimento" fica no fim do ramo, e some como cabeçalho quando o ramo não tem nenhum empreendimento.
+    // v1.119.0 (L5-1 revisto, Nicola 19/10 09:17: "ficou muito grupo") — sem grupo por ramo. Empreendimento (de qualquer ativo,
+    // empreendimento_id) só agrupa em carteira com mais de 10 ativos; até 10, lista única sem cabeçalho. "Sem empreendimento" no fim.
     if (_empreendimentosCache === null) garantirEmpreendimentos().then(() => redesenharComFiltros()).catch(() => {});
     const nomeEmp = (a) => {
         const resumo = ehCategoriaImovel(a.tipo_ativo) ? resumoImoveisPorId.get(a.id) : null;
         return resumo?.empreendimento || (a.empreendimento_id && (_empreendimentosCache || []).find(e => e.id === a.empreendimento_id)?.nome) || '';
     };
     const SEM_EMP = 'Sem empreendimento';
-    const porEmp = (l) => {
+    const agrupar = principais().length > 10;
+    const emps = (() => {
+        if (!agrupar) return [{ nome: null, itens: lista }];
         const g = {};
-        l.forEach(a => { const k = nomeEmp(a) || SEM_EMP; (g[k] = g[k] || []).push(a); });
-        return Object.keys(g).sort((x, y) => x === SEM_EMP ? 1 : y === SEM_EMP ? -1 : x.localeCompare(y, 'pt-BR')).map(k => ({ nome: k, itens: g[k] }));
-    };
-    const ordemRamos = typeof RZ_RAMOS !== 'undefined' ? RZ_RAMOS.map(r => r.codigo) : [];
-    const blocos = [];
-    if (ramoLente === 'tudo') {
-        const g = {};
-        lista.forEach(a => { const r = ramoDoAtivoLista(a) || 'outros'; (g[r] = g[r] || []).push(a); });
-        Object.keys(g).sort((x, y) => (ordemRamos.indexOf(x) + 1 || 99) - (ordemRamos.indexOf(y) + 1 || 99))
-            .forEach(r => blocos.push({ ramo: r, itens: g[r], emps: porEmp(g[r]) }));
-    } else blocos.push({ ramo: null, itens: lista, emps: porEmp(lista) });
+        lista.forEach(a => { const k = nomeEmp(a) || SEM_EMP; (g[k] = g[k] || []).push(a); });
+        const ks = Object.keys(g).sort((x, y) => x === SEM_EMP ? 1 : y === SEM_EMP ? -1 : x.localeCompare(y, 'pt-BR'));
+        return ks.length === 1 && ks[0] === SEM_EMP ? [{ nome: null, itens: lista }] : ks.map(k => ({ nome: k, itens: g[k] }));
+    })();
     // F2.4 (UXR-15) — carteira só com imóveis: um card de convite no FIM da lista (nunca no topo).
     const soImoveis = principais().length > 0 && principais().every(a => ehCategoriaImovel(categoriaDoAtivo(a.tipo_ativo)));
     const cardConvite = soImoveis && chipAtivoAtual === 0 && !termo ? `
@@ -584,17 +575,9 @@ export function renderAtivosLista(filtroTipo = '', filtroTexto = '') {
     // v1.96.0 (UX onda 4, D9) — agrupador com total: a soma do valor de referência dos ativos do grupo, à direita
     const compacto = (v) => (typeof window.formatarValorCompacto === 'function' ? window.formatarValorCompacto(v) : Number(v || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 }));
     const totalGrupo = (l) => { const c = l.filter(a => a.valor_referencia != null); return c.length ? compacto(c.reduce((t, a) => t + Number(a.valor_referencia || 0), 0)) : ''; };
-    const nomeRamoTela = (r) => (typeof window.rzNomeRamo === 'function' ? window.rzNomeRamo(r) : r);
-    const grupoHtml = (titulo, itens) => `
-        ${titulo ? `<div class="rz-group rz-group-t"><span>${escapeHtml(titulo)} · ${itens.length}</span>${totalGrupo(itens) ? `<b>${totalGrupo(itens)}</b>` : ''}</div>` : ''}
-        <div class="rz-card rz-list">${itens.map(ativoComSubativosHtml).join('')}</div>`;
-    container.innerHTML = blocos.map(bl => {
-        const soSem = bl.emps.length === 1 && bl.emps[0].nome === SEM_EMP;
-        const corpo = soSem ? grupoHtml(bl.ramo ? '' : null, bl.itens) : bl.emps.map(e => grupoHtml(e.nome, e.itens)).join('');
-        if (!bl.ramo) return corpo;
-        const cor = `var(--ramo-cor-${bl.ramo.replace(/[^a-z_]/g, '')}, var(--sage))`;
-        return `<div class="rz-group rz-group-t rz-group-ramo" style="--ramo-grupo:${cor}"><span><i aria-hidden="true"></i>${escapeHtml(nomeRamoTela(bl.ramo))} · ${bl.itens.length}</span>${totalGrupo(bl.itens) ? `<b>${totalGrupo(bl.itens)}</b>` : ''}</div>` + corpo;
-    }).join('') + cardConvite;
+    container.innerHTML = emps.map(e => `
+        ${e.nome ? `<div class="rz-group rz-group-t"><span>${escapeHtml(e.nome)} · ${e.itens.length}</span>${totalGrupo(e.itens) ? `<b>${totalGrupo(e.itens)}</b>` : ''}</div>` : ''}
+        <div class="rz-card rz-list">${e.itens.map(ativoComSubativosHtml).join('')}</div>`).join('') + cardConvite;
 
     const vazio = document.getElementById('ativos-estado-vazio');
     vazio.classList.toggle('hidden', principais().length !== 0);
@@ -931,15 +914,16 @@ function ativoComSubativosHtml(a) {
     html = html.replace(/(<div class="rz-ic rz-ic-grupo"[^>]*>[\s\S]*?)(<\/div>)/, `$1<span class="rz-ic-n">${subs.length}</span>$2`);
     const st = typeof window.rzStatusDoAtivo === 'function' ? window.rzStatusDoAtivo(a.id) : null;
     if (st && st.rotulo && st.classe && st.rotulo !== st.classe) html = html.replace(escapeHtml(st.rotulo), escapeHtml(st.classe)).replace(st.rotulo, st.classe);
-    // v1.118.0 (item 30 da dem 9404081c, Nicola 19/10 08:50) — a linha entra na ficha (seta ›, como qualquer ativo) e a faixa
-    // "▾ N áreas" logo abaixo abre e fecha os sub-ativos. Antes o chevron pequeno no lugar da seta fazia as duas coisas parecerem
-    // a mesma; quem tocava na linha para abrir as áreas caía na ficha.
-    const rotFaixa = `${subs.length} ${nomeSub.toLowerCase()}`;
-    const faixa = `<button type="button" class="rz-subs-faixa" data-subs-toggle="${a.id}" aria-expanded="${aberto}"
-        onclick="event.stopPropagation(); window.__rzAlternarSubativos && window.__rzAlternarSubativos('${a.id}', this)"
-        style="--ramo-grupo:${corRamo}"><span><svg data-lucide="${aberto ? 'chevron-up' : 'chevron-down'}"></svg>${escapeHtml(rotFaixa)}</span></button>`;
+    // v1.119.0 (item 30, Nicola 19/10 09:17: a faixa "▾ N áreas" aumentou demais a altura) — abre e fecha pela seta (▾ no lugar
+    // da ›) e também pelo ícone com a quantidade; o resto da linha entra na ficha.
+    const toggle = `onclick="event.stopPropagation(); window.__rzAlternarSubativos && window.__rzAlternarSubativos('${a.id}')"`;
+    html = html.replace(/<div class="rz-ic rz-ic-grupo"/, `<div class="rz-ic rz-ic-grupo" role="button" tabindex="0" aria-label="${aberto ? 'Fechar' : 'Mostrar'} ${escapeHtml(nomeSub.toLowerCase())}" style="cursor:pointer" ${toggle}`);
+    const k = html.lastIndexOf('<svg data-lucide="chevron-right" class="rz-chev"></svg>');
+    const botao = `<button type="button" class="rz-subs-toggle" data-subs-toggle="${a.id}" aria-expanded="${aberto}" aria-label="${aberto ? 'Fechar' : 'Mostrar'} ${escapeHtml(nomeSub.toLowerCase())}" ${toggle}
+        style="background:none;border:0;padding:10px 4px 10px 10px;margin:-10px -4px -10px 0;color:inherit;cursor:pointer;display:flex"><svg data-lucide="${aberto ? 'chevron-up' : 'chevron-down'}" class="rz-chev"></svg></button>`;
+    if (k >= 0) html = html.slice(0, k) + botao + html.slice(k + '<svg data-lucide="chevron-right" class="rz-chev"></svg>'.length);
     const filhos = subs.map(x => ativoCardHtml(x).replace('<div class="rz-row rz-link"', `<div class="rz-row rz-link rz-sub-row" style="padding-left:12px;margin-left:10px;--ramo-grupo:${corRamo}"`)).join('');
-    return html + faixa + `<div class="rz-subs${aberto ? '' : ' hidden'}" data-subs-de="${a.id}">${filhos}</div>`;
+    return html + `<div class="rz-subs${aberto ? '' : ' hidden'}" data-subs-de="${a.id}">${filhos}</div>`;
 }
 window.__rzAlternarSubativos = (id, btn) => {
     const lista = document.querySelector(`[data-subs-de="${id}"]`);
@@ -947,7 +931,8 @@ window.__rzAlternarSubativos = (id, btn) => {
     const abrir = lista.classList.contains('hidden');
     lista.classList.toggle('hidden', !abrir);
     if (abrir) subativosAbertos.add(id); else subativosAbertos.delete(id);
-    if (btn) { btn.setAttribute('aria-expanded', String(abrir)); const ic = btn.querySelector('svg, i'); if (ic) ic.outerHTML = `<svg data-lucide="${abrir ? 'chevron-up' : 'chevron-down'}"></svg>`; }
+    const btnSeta = btn || document.querySelector(`[data-subs-toggle="${id}"]`); // a seta muda também quando o toque foi no ícone
+    if (btnSeta) { btnSeta.setAttribute('aria-expanded', String(abrir)); btnSeta.innerHTML = `<svg data-lucide="${abrir ? 'chevron-up' : 'chevron-down'}" class="rz-chev"></svg>`; }
     refrescarIcones();
 };
 
@@ -1057,14 +1042,12 @@ function ativoCardHtml(a) {
             </div>
             <div class="rz-tx">
                 <b style="display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;white-space:normal;word-break:break-word">${escapeHtml(a.nome_exibicao)}</b>
+                ${badgeHtml ? `<div class="rz-tx-st">${badgeHtml}</div>` : ''}
                 ${valorFmt ? `<span>${escapeHtml(valorFmt)}</span>` : ''}
                 ${linhaLocatario ? `<span>${escapeHtml(linhaLocatario)}</span>` : ''}
                 ${aluguelFmt ? `<span>${escapeHtml(aluguelFmt)}</span>` : ''}
             </div>
-            <div class="rz-rt">
-                ${badgeHtml}
-                ${chip ? chip.html : ''}
-            </div>
+            ${chip ? `<div class="rz-rt">${chip.html}</div>` : ''}
             <svg data-lucide="chevron-right" class="rz-chev"></svg>
         </div>`;
     }
@@ -1097,11 +1080,12 @@ function ativoCardHtml(a) {
         <div class="rz-ic"><svg data-lucide="${iconeAtivo(a.tipo_ativo)}"></svg></div>
         <div class="rz-tx">
             <b style="display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;white-space:normal;word-break:break-word">${escapeHtml(a.nome_exibicao)}</b>
+            ${seloGen ? `<div class="rz-tx-st">${seloGen}</div>` : ''}
             ${valorFmt ? `<span>${escapeHtml(valorFmt)}</span>` : ''}
             ${modeloAtivo ? `<span>${escapeHtml(modeloAtivo)}</span>` : ''}
             ${identificadorDocumento ? `<span>${escapeHtml(identificadorDocumento)}</span>` : ''}
         </div>
-        ${(seloGen || chip) ? `<div class="rz-rt">${seloGen}${chip ? chip.html : ''}</div>` : ''}
+        ${chip ? `<div class="rz-rt">${chip.html}</div>` : ''}
         <svg data-lucide="chevron-right" class="rz-chev"></svg>
     </div>`;
 }
