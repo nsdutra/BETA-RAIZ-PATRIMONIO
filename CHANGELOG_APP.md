@@ -4,6 +4,16 @@ Histórico completo de versões do `index.html`, movido automaticamente pelo `ge
 
 ---
 
+NOVIDADES (Beta v1.439.2) — ⋮ NO PADRÃO DA FICHA (Nicola 19/10 17:06): em Patrimônio o ⋮ fica na ponta direita da linha
+dos chips; no Financeiro ele perde a caixa e vira os três pontos simples da ficha do ativo. ativos-markup.js 1.67.0.
+Versão anterior (Beta v1.439.1):
+------------------------------------------------------------------
+Versões anteriores (v1.439.1 … v1.439.1): CHANGELOG_APP.md, na raiz do
+repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
+das 5 versões mais recentes deste cabeçalho.
+
+---
+
 NOVIDADES (Beta v1.439.1) — FAIXA DO RAMO (Nicola 19/10 17:02): em Patrimônio o ramo vira uma faixa na cor dele, de ponta a
 ponta, com o ícone maior e o contador de ativos, o nome e a soma à direita; saem as 3 caixas e o Ver só/Ver todos. A árvore
 do Hoje abre Patrimônio na faixa do ramo. cofre-ativos.js 1.125.0.

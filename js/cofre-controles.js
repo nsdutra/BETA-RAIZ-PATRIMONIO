@@ -1,6 +1,15 @@
 // ============================================================================
 // cofre-controles.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.62.0 · 16/10/2026
+// Versão: 1.63.0 · 19/10/2026
+//
+// v1.63.0 (19/10/2026, sessão 20261019-1931-carga-silva-correcoes, demanda 9404081c item 53, de acordo do Nicola 19:31) —
+// CORRIGIR o que foi cadastrado errado na execução do programa: botão "Corrigir" na safra (ou ciclo) com Editar a safra
+// (início, fim previsto, nome e, se fechada, a data do fechamento — fn_ciclo_editar) e Excluir a safra (fn_ciclo_excluir:
+// antes mostra os vínculos de fn_ciclo_vinculos — lançamentos, ocorrências tratadas, documentos, rateios — e diz o que
+// desfazer; sem vínculo, apaga com as fases e os itens). Na fase concluída ou em andamento, "Corrigir datas"
+// (fn_fase_datas), também com a safra fechada. "Abrir a safra" ganha a data de referência (p_inicio): uma safra já em
+// curso abre no ano e na fase certos. "Excluir item de vez" recusa item com lançamento no Financeiro.
+// Versão anterior: 1.62.0 · 16/10/2026
 //
 // v1.62.0 (16/10/2026, sessão 20261016-0020-usos-fatia7, demanda 3022603b; FICHA_FATIA7_MEMBROS_RAIZ v1.2.0, de acordo do Nicola
 // 15/10 23:17 e 16/10 00:05, D7-4, D7-11, D7-12) — CICLO DO ANIMAL na tela da execução: o programa por animal (Reprodução
@@ -31,17 +40,11 @@
 // v1.59.0 (14/10/2026, sessão 20261014-2145-onda9c-textos, demanda a05ad2ee; onda 9c do estudo PROTOTIPO_UX_DENSIDADE_RAMOS_RAIZ
 // v1.2.0, D6 seção 10) — textos no limite: ação até 24 caracteres, descrição até 28, aviso até 40 com o resultado e tela
 // vazia em 1 frase de até 40. A explicação longa fica na confirmação, quando existe. Nada de comportamento mudou.
-// Versão anterior: 1.58.0 · 14/10/2026
-//
-// v1.58.0 (14/10/2026, sessão 20261014-1445-onda9a-textos, demanda a05ad2ee; onda 9 do estudo PROTOTIPO_UX_DENSIDADE_RAMOS_RAIZ v1.2.0,
-// D6 seção 10) — textos no limite: ação até 24 caracteres, descrição até 28 (só quando muda a decisão), aviso até 40 e
-// com o resultado (sem processo nem emoji). Fora do app principal, um aviso só: "Abra pelo app principal.". A explicação
-// longa fica na confirmação, que já existia. Nada de comportamento mudou.
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.57.0 … v1.57.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.58.0 … v1.58.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '1.62.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.63.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 import { estado } from './cofre-estado.js';
 import * as api from './cofre-api.js';
 import { mostrarToast, refrescarIcones, abrirModal, fecharModal, modalGenerico, perguntar, escolher, avisarComDesfazer } from './cofre-ui.js';
@@ -563,7 +566,8 @@ function linhaFaseHtml(f, d) {
     const custo = Number(f.realizado || 0) + Number(f.a_pagar || 0);
     const sub = [rot, quando, f.situacao === 'pulada' && f.motivo ? f.motivo : '', custo ? moedaBR(custo) + (f.custo_previsto ? ' de ' + moedaBR(f.custo_previsto) : '') : (f.custo_previsto ? 'previsto ' + moedaBR(f.custo_previsto) : '')]
         .filter(Boolean).join(' · ');
-    const mexe = d.pode_gerir && d.ciclo?.situacao !== 'fechado' && f.situacao !== 'atual';
+    // v1.63.0 — na fase em andamento e (safra fechada) na concluída, o ⋮ traz "Corrigir datas"
+    const mexe = d.pode_gerir && (d.ciclo?.situacao !== 'fechado' || f.situacao === 'concluida');
     return `<div class="rz-exec-f rz-exec-${f.situacao}"><span class="rz-exec-ic"><i data-lucide="${ic}"></i></span>
         <div class="rz-tx"><b>${escapeHtml(f.nome)}</b><span>${escapeHtml(sub)}</span></div>
         ${mexe ? `<button type="button" class="rz-more" data-exec-fase="${f.id}" aria-label="Ações de ${escapeHtml(f.nome)}"><i data-lucide="ellipsis-vertical"></i></button>` : ''}</div>`;
@@ -609,6 +613,7 @@ export async function abrirExecucao(apId, cicloId = null) {
     }
     if (C?.situacao === 'fechado' && d.pode_reabrir && !(d.ciclos || []).some(c => c.situacao !== 'fechado'))
         acoes.push(`<button type="button" class="rz-btn rz-btn-3" data-exec-reabrir>Reabrir ${escapeHtml(C.nome)}</button>`);
+    if (C && d.pode_gerir) acoes.push(`<button type="button" class="rz-btn rz-btn-3" data-exec-corrigir>Corrigir ${escapeHtml(C.nome)}</button>`); // v1.63.0
     const corpo = ciclosChips + custoHtml
         + (d.aberta ? `<div class="rz-exec-fases">${(d.fases || []).map(f => linhaFaseHtml(f, d)).join('')}</div>`
             : `<p class="rz-desc">${P.tem_etapas ? 'Escolha as etapas desta obra a partir do modelo. Cada uma terá os seus itens e o seu custo.'
@@ -626,6 +631,7 @@ export async function abrirExecucao(apId, cicloId = null) {
     sheet.querySelector('[data-exec-concluir]')?.addEventListener('click', () => abrirFolhaConcluirObra(d));
     sheet.querySelector('[data-exec-incluir]')?.addEventListener('click', () => abrirFolhaIncluirItens(d));
     sheet.querySelector('[data-exec-reabrir]')?.addEventListener('click', () => abrirFolhaReabrirCiclo(d));
+    sheet.querySelector('[data-exec-corrigir]')?.addEventListener('click', () => abrirAcoesCorrigirCiclo(d));
 }
 window.__rzAbrirExecucao = (apId, cicloId) => abrirExecucao(apId, cicloId);
 
@@ -821,10 +827,13 @@ function abrirFolhaAbrirCiclo(d) {
     window.abrirSheetForm({
         titulo: 'Abrir a ' + R.exec, sub: d.programa.nome, rotuloSalvar: 'Abrir', empilhar: true,
         corpo: `<p class="rz-desc">A ${escapeHtml(R.exec)} começa na fase do mês e já traz os itens marcados por padrão. As fases que já passaram ficam como puladas.</p>
-            <div class="rz-f"><label for="ex-nome">Nome <small>(opcional)</small></label><input type="text" id="ex-nome" maxlength="60" placeholder="Pelo padrão: ${escapeHtml(R.Exec)} 26/27"></div>`,
+            <div class="rz-f"><label for="ex-ref">Data de referência</label><input type="date" id="ex-ref" value="${hojeLocalISO()}" max="${hojeLocalISO()}">
+            <span class="rz-hint">${escapeHtml(R.Exec)} e ${escapeHtml(R.fase)} saem desta data. Para ${ehFem(R) ? 'uma' : 'um'} já em curso, use a data em que estava.</span></div>
+            <div class="rz-f"><label for="ex-nome">Nome <small>(opcional)</small></label><input type="text" id="ex-nome" maxlength="60" placeholder="Pelo padrão, a partir da data"></div>`,
         aoSalvar: async (el) => {
             const nome = (el.querySelector('#ex-nome')?.value || '').trim() || null;
-            const { data, error } = await api.dbAuth.rpc('fn_execucao_abrir', { p_ativo_programa_id: d.programa.id, p_nome: nome, p_canal: 'app' });
+            const ref = el.querySelector('#ex-ref')?.value || null; // v1.63.0 (item 53): p_inicio já existia no banco
+            const { data, error } = await api.dbAuth.rpc('fn_execucao_abrir', { p_ativo_programa_id: d.programa.id, p_nome: nome, p_inicio: ref, p_canal: 'app' });
             if (error) { mostrarToast(error.message || 'Não foi possível abrir.', 'erro'); return false; }
             mostrarToast(R.Exec + ' aberta.', 'sucesso');
             setTimeout(() => aposMudarExecucao(d.programa.id, data?.ciclo_id || null), 0);
@@ -862,6 +871,10 @@ function abrirAcoesFase(d, faseId) {
     const f = (d.fases || []).find(x => x.id === faseId); if (!f) return;
     const R = execRot(d);
     const acoes = [];
+    const fechado = d.ciclo?.situacao === 'fechado';
+    if (!d.membro && (f.situacao === 'concluida' || f.situacao === 'atual'))
+        acoes.push({ icone: 'calendar-cog', titulo: 'Corrigir datas', codigo: 'ciclos.gerir', sub: f.situacao === 'atual' ? 'Início desta ' + R.fase : 'Início e fim', aoTocar: () => abrirFolhaDatasFase(d, f) });
+    if (fechado) { if (acoes.length) sheetAcoes({ titulo: f.nome, sub: d.programa.nome, acoes }); return; }
     if (f.situacao === 'pendente') acoes.push({ icone: 'skip-forward', titulo: 'Pular ' + R.fase, codigo: 'ciclos.gerir', sub: 'Com o motivo', aoTocar: () => moverFase(d, f, 'pular') });
     if (f.situacao === 'pulada') acoes.push({ icone: 'undo-2', titulo: 'Retomar ' + R.fase, codigo: 'ciclos.gerir', sub: 'Volta para a lista', aoTocar: () => moverFase(d, f, 'retomar') });
     if (f.situacao === 'concluida') acoes.push({ icone: 'rotate-ccw', titulo: 'Voltar para esta', codigo: 'ciclos.gerir', sub: 'A atual volta para a lista', aoTocar: () => moverFase(d, f, 'voltar') });
@@ -879,6 +892,104 @@ function moverFase(d, f, acao) {
             const { error } = await api.dbAuth.rpc('fn_fase_mover', { p_fase_id: f.id, p_acao: acao, p_motivo: motivo, p_canal: 'app' });
             if (error) { mostrarToast(error.message || 'Não foi possível.', 'erro'); return false; }
             mostrarToast('Feito.', 'sucesso');
+            setTimeout(() => aposMudarExecucao(d.programa.id, d.ciclo?.id || null), 0);
+            return true;
+        },
+    });
+}
+// ---------------------------------------------------------------------------------------------------------------------------
+// v1.63.0 (item 53) — CORRIGIR: editar a safra, excluir a safra criada errada (só sem vínculo) e corrigir as datas da fase.
+// Regra no banco: fn_ciclo_editar, fn_ciclo_excluir, fn_ciclo_vinculos e fn_fase_datas; aqui só a folha e o aviso.
+// ---------------------------------------------------------------------------------------------------------------------------
+const ehFem = (R) => /a$/.test(R.exec);
+function abrirAcoesCorrigirCiclo(d) {
+    const R = execRot(d), C = d.ciclo; if (!C) return;
+    sheetAcoes({ titulo: 'Corrigir ' + C.nome, sub: d.programa.nome, acoes: [
+        { icone: 'pencil', titulo: 'Editar ' + (ehFem(R) ? 'a ' : 'o ') + R.exec, codigo: 'ciclos.gerir', sub: 'Início, fim e nome', aoTocar: () => abrirFolhaEditarCiclo(d) },
+        { icone: 'list-checks', titulo: 'Ver vínculos', codigo: 'ciclos.gerir', sub: 'O que está ligado', aoTocar: () => mostrarVinculosCiclo(d, false) },
+        { icone: 'trash-2', titulo: 'Excluir ' + (ehFem(R) ? 'a ' : 'o ') + R.exec, codigo: 'ciclos.gerir', sub: 'Só sem vínculo', tipo: 'bad', aoTocar: () => mostrarVinculosCiclo(d, true) },
+    ] });
+}
+function abrirFolhaEditarCiclo(d) {
+    const R = execRot(d), C = d.ciclo, hoje = hojeLocalISO();
+    const fechado = C.situacao === 'fechado';
+    window.abrirSheetForm({
+        titulo: 'Editar ' + C.nome, sub: d.programa.nome, rotuloSalvar: 'Salvar', empilhar: true,
+        corpo: `<div class="rz-f"><label for="cc-inicio">Início</label><input type="date" id="cc-inicio" value="${escapeHtml(C.inicio || '')}"></div>
+            <div class="rz-f"><label for="cc-fim-prev">Fim previsto</label><input type="date" id="cc-fim-prev" value="${escapeHtml(C.fim_previsto || '')}"></div>
+            ${fechado ? `<div class="rz-f"><label for="cc-fim">Fechad${ehFem(R) ? 'a' : 'o'} em</label><input type="date" id="cc-fim" value="${escapeHtml(C.fim || '')}" max="${hoje}"></div>` : ''}
+            <div class="rz-f"><label for="cc-nome">Nome <small>(opcional)</small></label><input type="text" id="cc-nome" maxlength="60" placeholder="Pelo padrão, a partir do início">
+            <span class="rz-hint">Hoje: ${escapeHtml(C.nome)}. Em branco, o nome segue o início.</span></div>
+            <div class="rz-f"><label for="cc-motivo">Motivo</label><input type="text" id="cc-motivo" maxlength="200" placeholder="Ex.: cadastrei com o ano errado"></div>
+            <p class="rz-desc">As datas das fases não mudam sozinhas: se ficarem fora, corrija cada uma pelo ⋮ da fase.</p>`,
+        aoSalvar: async (el) => {
+            const v = (id) => (el.querySelector('#' + id)?.value || '').trim();
+            if (!v('cc-motivo')) { mostrarToast('Diga o motivo.', 'erro'); return false; }
+            const { data, error } = await api.dbAuth.rpc('fn_ciclo_editar', { p_ciclo_id: C.id, p_inicio: v('cc-inicio') || null,
+                p_fim_previsto: v('cc-fim-prev') || null, p_nome: v('cc-nome') || null, p_fim: fechado ? (v('cc-fim') || null) : null,
+                p_motivo: v('cc-motivo'), p_canal: 'app' });
+            if (error) { mostrarToast(error.message || 'Não foi possível corrigir.', 'erro'); return false; }
+            mostrarToast(data?.mensagem || 'Corrigido.', (data?.fases_fora || []).length ? 'aviso' : 'sucesso');
+            setTimeout(() => aposMudarExecucao(d.programa.id, C.id), 0);
+            return true;
+        },
+    });
+}
+async function mostrarVinculosCiclo(d, excluir) {
+    const R = execRot(d), C = d.ciclo;
+    const { data: v, error } = await api.dbAuth.rpc('fn_ciclo_vinculos', { p_ciclo_id: C.id });
+    if (error) { mostrarToast(error.message || 'Não consegui ler os vínculos.', 'erro'); return; }
+    const linha = (ic, t, s) => `<div class="rz-row"><span class="rz-ic"><i data-lucide="${ic}"></i></span><div class="rz-tx"><b>${escapeHtml(t)}</b>${s ? `<span>${escapeHtml(s)}</span>` : ''}</div></div>`;
+    const blocos = [
+        ['Lançamentos no Financeiro', (v.lancamentos || []).map(l => linha('receipt', l.descricao, [l.data ? formatarDataBR(l.data) : '', l.valor != null ? moedaBR(l.valor) : ''].filter(Boolean).join(' · ')))],
+        ['Ocorrências tratadas', (v.ocorrencias_tratadas || []).map(o => linha('check-check', o.item, o.data ? formatarDataBR(o.data) : ''))],
+        ['Documentos', (v.documentos || []).map(x => linha('file-text', x.nome, ''))],
+        ['Rateios', (v.rateios || []).map(x => linha('users-round', x.item, ''))],
+    ].filter(([, l]) => l.length);
+    const lista = blocos.map(([t, l]) => `<div class="rz-group rz-group-t"><span>${escapeHtml(t)} · ${l.length}</span></div><div class="rz-list">${l.join('')}</div>`).join('');
+    const como = '<p class="rz-desc">Para excluir, desfaça antes: desaloque ou exclua o lançamento no Financeiro, reabra a ocorrência no item, desvincule o documento no Cofre e reabra o rateio.</p>';
+    const resumo = `${v.fases} ${R.fase}s e ${v.itens} ${v.itens === 1 ? 'item' : 'itens'}`;
+    if (!excluir || v.total > 0) {
+        window.abrirSheetForm({
+            titulo: (v.total ? 'Vínculos de ' : 'Sem vínculos em ') + C.nome, sub: d.programa.nome, rotuloSalvar: 'Entendi', empilhar: true,
+            corpo: v.total ? lista + como : `<p class="rz-desc">Nada no Financeiro, no Cofre ou em rateio está ligado ${ehFem(R) ? 'a esta' : 'a este'} ${escapeHtml(R.exec)} (${escapeHtml(resumo)}). Dá para editar ou excluir.</p>`,
+            aoSalvar: async () => true,
+        });
+        return;
+    }
+    window.abrirSheetForm({
+        titulo: 'Excluir ' + C.nome, sub: d.programa.nome, rotuloSalvar: 'Excluir', empilhar: true,
+        corpo: `<p class="rz-desc">Sai ${ehFem(R) ? 'a' : 'o'} ${escapeHtml(R.exec)} com ${escapeHtml(resumo)} e as ocorrências em aberto. Não há vínculos. Não dá para desfazer.</p>
+            ${C.situacao === 'fechado' ? '' : '<p class="rz-desc">Se houver ' + (ehFem(R) ? 'uma' : 'um') + ' ' + escapeHtml(R.exec) + ' fechad' + (ehFem(R) ? 'a' : 'o') + ' antes, ' + (ehFem(R) ? 'ela pode ser reaberta' : 'ele pode ser reaberto') + ' depois.</p>'}
+            <div class="rz-f"><label for="cc-motivo-x">Motivo</label><input type="text" id="cc-motivo-x" maxlength="200" placeholder="Ex.: abri por engano"></div>`,
+        aoSalvar: async (el) => {
+            const motivo = (el.querySelector('#cc-motivo-x')?.value || '').trim();
+            if (!motivo) { mostrarToast('Diga o motivo.', 'erro'); return false; }
+            const { data, error } = await api.dbAuth.rpc('fn_ciclo_excluir', { p_ciclo_id: C.id, p_motivo: motivo, p_canal: 'app' });
+            if (error) { mostrarToast(error.message || 'Não foi possível excluir.', 'erro'); return false; }
+            mostrarToast(data?.mensagem || 'Excluído.', 'sucesso');
+            const outro = (d.ciclos || []).filter(c => c.id !== C.id).slice(-1)[0];
+            setTimeout(() => aposMudarExecucao(d.programa.id, outro?.id || null), 0);
+            return true;
+        },
+    });
+}
+function abrirFolhaDatasFase(d, f) {
+    const R = execRot(d), hoje = hojeLocalISO();
+    const conc = f.situacao === 'concluida';
+    window.abrirSheetForm({
+        titulo: 'Datas de ' + f.nome, sub: d.programa.nome + (d.ciclo ? ' · ' + d.ciclo.nome : ''), rotuloSalvar: 'Salvar', empilhar: true,
+        corpo: `<div class="rz-f"><label for="fd-inicio">Começou em</label><input type="date" id="fd-inicio" value="${escapeHtml(f.inicio || '')}" max="${hoje}"></div>
+            ${conc ? `<div class="rz-f"><label for="fd-fim">Terminou em</label><input type="date" id="fd-fim" value="${escapeHtml(f.fim || '')}" max="${hoje}"></div>` : ''}
+            <div class="rz-f"><label for="fd-motivo">Motivo</label><input type="text" id="fd-motivo" maxlength="200" placeholder="Ex.: avancei antes da hora"></div>
+            <p class="rz-desc">As datas ficam dentro ${ehFem(R) ? 'da' : 'do'} ${escapeHtml(R.exec)} e na ordem das ${escapeHtml(R.fase)}s vizinhas. Para desfazer o avanço, use "Voltar para esta" na ${escapeHtml(R.fase)} anterior.</p>`,
+        aoSalvar: async (el) => {
+            const v = (id) => (el.querySelector('#' + id)?.value || '').trim();
+            if (!v('fd-motivo')) { mostrarToast('Diga o motivo.', 'erro'); return false; }
+            const { data, error } = await api.dbAuth.rpc('fn_fase_datas', { p_fase_id: f.id, p_inicio: v('fd-inicio') || null,
+                p_fim: conc ? (v('fd-fim') || null) : null, p_motivo: v('fd-motivo'), p_canal: 'app' });
+            if (error) { mostrarToast(error.message || 'Não foi possível corrigir.', 'erro'); return false; }
+            mostrarToast(data?.mensagem || 'Datas corrigidas.', 'sucesso');
             setTimeout(() => aposMudarExecucao(d.programa.id, d.ciclo?.id || null), 0);
             return true;
         },
@@ -2533,6 +2644,11 @@ export async function excluirItemControleAtual() {
     if ((item.cofre_ocorrencias_controle || []).some(o => o.status_execucao === 'concluido')) {
         mostrarToast('Tem ocorrência tratada. Use Encerrar.', 'erro'); return;
     }
+    // v1.63.0 (item 53) — com lançamento no Financeiro o vínculo se perderia em silêncio: avisa o que desfazer
+    try {
+        const { count } = await api.dbAuth.from('lancamentos').select('id', { count: 'exact', head: true }).eq('item_controle_id', item.id);
+        if (count) { mostrarToast(`Tem ${count} ${count === 1 ? 'lançamento' : 'lançamentos'} no Financeiro: desvincule ou use Encerrar.`, 'erro'); return; }
+    } catch (e) { console.warn('[cofre-controles] lançamentos do item:', e?.message || e); }
     if (!await perguntar({ titulo: `Excluir ${item.titulo} de vez?`, impacto: 'Ele some com as ocorrências em aberto e as despesas previstas delas. Não dá para desfazer. Para só parar os alertas e manter o histórico, use "Encerrar item".', destrutivo: true, rotuloConfirmar: 'Excluir item de vez' })) return;
 
     // Documentos vinculados a este item (pedido explícito, 25/08/2026) —

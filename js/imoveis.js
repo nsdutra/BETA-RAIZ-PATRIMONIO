@@ -1,7 +1,12 @@
 // ============================================================================
 // imoveis.js — Raiz Patrimônio · Imóveis (lista · ficha · formulário ·
 //               fotos do Cofre · seletor · status/step do cadastro)
-// Versão: 1.8.0 · 14/10/2026
+// Versão: 1.9.0 · 19/10/2026
+//
+// v1.9.0 (19/10/2026, sessão 20261019-1931-carga-silva-correcoes, demanda 9404081c item 52, de acordo do Nicola 19:31) — a
+// lista de Imóveis (renderImoveis: cards, filtro de empreendimento e os números) ignora as áreas rurais que o boot passou
+// a trazer em `imoveis` só para o contrato (areaRural, nucleo/porta.js v1.6.0). O seletor do contrato continua com elas.
+// Versão anterior: 1.8.0 · 14/10/2026
 //
 // v1.8.0 (14/10/2026, sessão 20261014-2145-onda9c-textos, demanda a05ad2ee; onda 9c do estudo PROTOTIPO_UX_DENSIDADE_RAMOS_RAIZ
 // v1.2.0, D6 seção 10) — textos no limite: ação até 24 caracteres, descrição até 28, aviso até 40 com o resultado e tela
@@ -23,21 +28,11 @@
 //
 // v1.6.1 (F0.3, demanda 29bed5eb, sessão 20261003-1707-ux-base, "de acordo" do Nicola 03/10 23:57) — imóvel sem cidade deixa de ganhar "Belo Horizonte" por padrão — era
 // esse valor inventado que aparecia no recibo quando a cidade vem do imóvel.
-//
-// Versão anterior: 1.6.0 · 02/10/2026
-//
-// v1.6.0 (demanda 5ca973d6, achado do Nicola em 02/10/2026 00:27 ao ativar um
-// contrato, sessão 20261002-0030-seletor-imovel) — o seletor de imóvel
-// ("Escolher imóvel", usado no formulário de contrato, minutas e filtros)
-// tinha o visual antigo: cards com borda, selo de status do cadastro legado
-// ("Assinando") e "R$ 0". Agora as linhas seguem a gramática .rz-row (ícone,
-// nome do ativo em negrito, empreendimento · endereço embaixo), sem status nem
-// valor. A busca também procura pelo nome do ativo.
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.5.2 … v1.5.2): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.6.0 … v1.6.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '1.8.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.9.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 
 
         export function abrirSeletorImovel(callback, permiteTodos) {
@@ -910,6 +905,8 @@ export const VERSAO = '1.8.0'; // v-check: lido por ⚙️ › Conta › Versõe
 
             
 
+            // v1.9.0 (item 52) — gleba/talhão vêm em `imoveis` só para o contrato: fora da lista e dos números
+            const imoveisLista = imoveis.filter(i => !i.areaRural);
             logScreen(`Disparada renderImoveis(). Array possui ${imoveis.length} registros em memória.`);
 
             // CORRIGIDO — "con-imovel" e "filtro-imovel" deixaram de ser <select>
@@ -926,7 +923,7 @@ export const VERSAO = '1.8.0'; // v-check: lido por ⚙️ › Conta › Versõe
 
             const selFilVal = selectFiltro ? selectFiltro.value : 'todos';
 
-            popularFiltroSelect('imoveis-filtro-emp', imoveis.map(i => i.empreendimento));
+            popularFiltroSelect('imoveis-filtro-emp', imoveisLista.map(i => i.empreendimento));
 
             const fEmpImo = document.getElementById('imoveis-filtro-emp')?.value || 'todos';
 
@@ -976,7 +973,7 @@ export const VERSAO = '1.8.0'; // v-check: lido por ⚙️ › Conta › Versõe
 
             // v7.3.3 — Os números-resumo agora refletem os filtros ativos
             // (empreendimento/status), e não mais o total geral de imóveis.
-            const imoveisFiltradosParaContagem = imoveis.filter(imo =>
+            const imoveisFiltradosParaContagem = imoveisLista.filter(imo =>
                 (fEmpImo === 'todos' || imo.empreendimento === fEmpImo) &&
                 (fStatusImo === 'todos' || imo.status === fStatusImo) &&
                 (fImovelIdImo === 'todos' || imo.id === fImovelIdImo) &&
@@ -997,7 +994,7 @@ export const VERSAO = '1.8.0'; // v-check: lido por ⚙️ › Conta › Versõe
             // todos os cards já foram montados.
             const cardsImovelPorEmpreendimento = {};
 
-            imoveis.slice().sort((a, b) => (a.empreendimento || '').localeCompare(b.empreendimento || '')).forEach((imo, index) => {
+            imoveisLista.slice().sort((a, b) => (a.empreendimento || '').localeCompare(b.empreendimento || '')).forEach((imo, index) => {
 
                 const passaFiltroImovel = (fEmpImo === 'todos' || imo.empreendimento === fEmpImo) &&
 
@@ -1070,7 +1067,7 @@ export const VERSAO = '1.8.0'; // v-check: lido por ⚙️ › Conta › Versõe
             // plana, como sempre foi.
             const nomesGrupos = Object.keys(cardsImovelPorEmpreendimento).sort((a, b) => a.localeCompare(b));
 
-            if (imoveis.length > 10) {
+            if (imoveisLista.length > 10) {
 
                 container.innerHTML = nomesGrupos.map(nome => `
                     <div class="mb-1">

@@ -1,7 +1,13 @@
 // ============================================================================
 // contratos.js — Raiz Patrimônio · Contratos (lista · ficha · formulário ·
 //                 status/reajuste/detalhes · fiadores · documentos · histórico)
-// Versão: 1.60.0 · 14/10/2026
+// Versão: 1.61.0 · 19/10/2026
+//
+// v1.61.0 (19/10/2026, sessão 20261019-1931-carga-silva-correcoes, demanda 9404081c item 52, de acordo do Nicola 19:31) — no
+// contrato de Arrendamento (modelo 'arrendamento', aberto pela gleba ou pela fazenda) o formulário fala a língua do campo:
+// Imóvel → Área arrendada, Locatário → Arrendatário, Aluguel → Valor do arrendamento. Nos outros modelos volta o texto de
+// sempre (rotularFormContratoPorModelo, chamada por prepararCampoTipoContrato).
+// Versão anterior: 1.60.0 · 14/10/2026
 //
 // v1.60.0 (14/10/2026, sessão 20261014-2215-ajustes-9d, demanda a05ad2ee; teste do Nicola 14/10 22:12 — "no menu ativos achei
 // uns itens ainda grandinhos") — textos dentro de condição (sub/titulo com ? :) e dicionários de descrição também no limite
@@ -23,14 +29,8 @@
 // modelo; vem do "Adicionar uso"); o tipo preenche a revisional (típico longo: 36 meses), esconde no atípico e avisa
 // quando o prazo não combina (não bloqueia); depois de salvar um contrato novo abre "Itens sugeridos" com caixas
 // (fn_catalogo_sugestoes → fn_contrato_itens_sugeridos_criar, só os marcados); o tipo aparece no cabeçalho e nos Dados.
-//
-// Versão anterior: 1.56.0 · 13/10/2026
-//
-// v1.56.0 (13/10/2026, sessão 20261013-2245-raiz-ia-ajustes2, demanda a2f4980a; Nicola 13/10 22:44) — ocorrência do
-// contrato ganha Cancelar (em aberto), Reabrir (cancelada, no rodapé do detalhe) e Excluir (só as criadas à mão ou pela
-// Raiz IA e não concluídas; as do histórico do contrato só se cancelam). Sem banco.
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.55.0 … v1.55.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.56.0 … v1.56.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
 import { avaliarProntidaoContratoParaMinuta } from './minutas.js'; // v1.0.1
@@ -42,7 +42,7 @@ import { emitirEscrita, aoEscrever } from './raiz-eventos.js'; // v1.18.0 — Fa
 import { renderizarBlocoEndereco, lerBlocoEndereco } from './comum-endereco.js';
 import { formatarEnderecoParte } from './comum-partes.js';
 
-export const VERSAO = '1.60.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.61.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 
 /** Ponto de entrada do switchTab('tab-contratos'). */
 export function montarAbaContratos() {
@@ -3999,6 +3999,24 @@ if (!window.__rzListenerEscritaParteContratoLigado) {
             sel.dataset.modelo = modelo || 'aluguel';
             if (tipoAtual && tipos.some(t => t.codigo === tipoAtual)) sel.value = tipoAtual;
             aplicarTipoNoFormContrato(!!aplicarPadrao);
+            rotularFormContratoPorModelo(modelo || 'aluguel');
+        }
+        // v1.61.0 (item 52) — textos do formulário pelo modelo; guarda o original de cada nó para voltar nos outros modelos
+        const _rotulosOriginaisContrato = new WeakMap();
+        function rotularFormContratoPorModelo(modelo) {
+            const form = document.getElementById('form-contrato'); if (!form) return;
+            const arr = modelo === 'arrendamento';
+            const TROCAS = [[/^Im[óo]vel$/, 'Área arrendada'], [/Escolha o Im[óo]vel/, 'Escolha a área'], [/^Aluguel \(R\$\)$/, 'Valor do arrendamento (R$)'],
+                [/^Aluguel Antecipado\?$/, 'Pagamento antecipado?'], [/Locat[áa]rio/g, 'Arrendatário'], [/locat[áa]rio/g, 'arrendatário']];
+            const w = document.createTreeWalker(form, NodeFilter.SHOW_TEXT);
+            for (let n = w.nextNode(); n; n = w.nextNode()) {
+                if (!n.parentElement || !n.parentElement.closest('label, p, button, h3, h4')) continue;
+                if (!_rotulosOriginaisContrato.has(n)) _rotulosOriginaisContrato.set(n, n.nodeValue);
+                const orig = _rotulosOriginaisContrato.get(n);
+                let novo = orig;
+                if (arr) { const t = orig.trim(); TROCAS.forEach(([re, por]) => { novo = re.global ? novo.replace(re, por) : (re.test(t) ? novo.replace(t, t.replace(re, por)) : novo); }); }
+                if (n.nodeValue !== novo) n.nodeValue = novo;
+            }
         }
         function aplicarTipoNoFormContrato(aplicarPadrao) {
             const sel = document.getElementById('con-tipo-contrato'); if (!sel) return;

@@ -1,6 +1,12 @@
 // ============================================================================
 // cofre-ativos.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.127.0 · 19/10/2026
+// Versão: 1.128.0 · 19/10/2026
+//
+// v1.128.0 (19/10/2026, sessão 20261019-1931-carga-silva-correcoes, demanda 9404081c item 52, de acordo do Nicola 19:31) — o
+// contrato pela ficha do ativo deixa de ser só de imóvel: aceita também o tipo que o catálogo libera para um uso com contrato
+// (gleba e talhão com Arrendamento rural; operacao_modelo_tipos de modelo com acordo 'contrato'). Antes, a gleba dava
+// "Contrato de locação é só de imóvel." em vermelho. O card Contratos aparece nesses tipos também.
+// Versão anterior: 1.127.0 · 19/10/2026
 //
 // v1.127.0 (19/10/2026, sessão 20261019-1716-carga-silva-faixa3, demanda 9404081c, item 50; Nicola 19/10 17:17) — a faixa do ramo
 // não some com chip, busca ou lente de ramo: contador e soma acompanham o filtro.
@@ -20,15 +26,11 @@
 // (ícone do ramo, Valor ou Vidas, quantidade, alertas) e "Ver só ›", que filtra só esta tela (verSoRamoPatrimonio; o chip
 // "Ver todos" desfaz; trocar a lente do app também); Arquivados abre pelo ⋮ (verArquivados) e sai dos chips; as áreas ficam
 // ligadas ao ícone do principal por uma linha (CSS .rz-subs no index); empreendimento só agrupa com mais de 10 ativos.
-// Versão anterior: 1.123.0 · 19/10/2026
-//
-// v1.123.0 (19/10/2026, sessão 20261019-1220-carga-silva-icones2, demanda 9404081c, itens 38 e 39; Nicola 19/10 12:16) — a lista
-// carrega o catálogo de tipos também em Todo o patrimônio e repinta: os ícones pelo tipo já aparecem na 1ª abertura.
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.122.0 … v1.122.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.123.0 … v1.123.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '1.127.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.128.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 import { estado } from './cofre-estado.js';
 import * as api from './cofre-api.js';
 import { mostrarToast, erroInline, refrescarIcones, alternarToggle, abrirModal, fecharModal, modalGenerico, perguntar, avisarComDesfazer, escolher } from './cofre-ui.js';
@@ -66,6 +68,26 @@ import { rzMostrarBloqueio, recarregarFuncionalidadesLiberadas } from './comum-l
 // categorias entram na checagem agora.
 function ehCategoriaImovel(tipo) {
     return tipo === 'imovel_predial' || tipo === 'imovel_territorial';
+}
+
+// v1.128.0 (item 52) — tipos de ativo que recebem contrato pelo catálogo (além dos imóveis): os ligados a um modelo com
+// acordo 'contrato' (ex.: gleba e talhão → Arrendamento rural). Lido uma vez; falha = só imóvel, como antes.
+let _tiposComContrato = null;
+async function carregarTiposComContrato() {
+    if (_tiposComContrato) return _tiposComContrato;
+    try {
+        const { data: mods } = await api.dbAuth.from('operacao_modelos').select('codigo').eq('acordo', 'contrato');
+        const cods = (mods || []).map(m => m.codigo);
+        const { data: omt } = cods.length ? await api.dbAuth.from('operacao_modelo_tipos').select('tipo').in('modelo', cods).eq('permite_uso', true) : { data: [] };
+        _tiposComContrato = new Set((omt || []).map(x => x.tipo));
+    } catch (e) { console.warn('[cofre-ativos] tipos com contrato:', e?.message || e); return new Set(); }
+    return _tiposComContrato;
+}
+function aceitaContrato(a) {
+    if (!a) return false;
+    if (ehCategoriaImovel(a.tipo_ativo)) return true;
+    const cod = tipoDoCatalogo(a.tipo_detalhe_id)?.codigo;
+    return !!(cod && _tiposComContrato && _tiposComContrato.has(cod));
 }
 
 // Vinculado a uma linha real de `imoveis` — write-target dos blocos de
@@ -2219,8 +2241,9 @@ async function montarContratosAtivo(a) {
     // (criado após a Onda 12, sem esse vínculo) caía sempre aqui, mesmo
     // sendo genuinamente do tipo imóvel.
     // v1.86.0 (F25) — fora de imóvel o card Contratos some; o chip mostra só os Usos.
-    document.getElementById('fa-card-contratos')?.classList.toggle('hidden', !ehCategoriaImovel(a.tipo_ativo));
-    if (!ehCategoriaImovel(a.tipo_ativo)) return;
+    if (!ehCategoriaImovel(a.tipo_ativo)) { await garantirCatalogoTiposAtivo(); await carregarTiposComContrato(); } // v1.128.0 (item 52)
+    document.getElementById('fa-card-contratos')?.classList.toggle('hidden', !aceitaContrato(a));
+    if (!aceitaContrato(a)) return;
 
     try {
         // v1.17.2 — BUG (print 03/09 12:32): "0 vigentes · 1 encerrado" com
@@ -2736,7 +2759,7 @@ export function abrirNovoContratoDoAtivo() {
     // v1.41.0 — ehCategoriaImovel() no lugar de entidade_origem_tipo,
     // mesma correção do resto desta rodada (consistência; ver nota em
     // montarContratosAtivo acima).
-    if (!ehCategoriaImovel(a?.tipo_ativo)) { mostrarToast('Contrato de locação é só de imóvel.', 'erro'); return; }
+    if (!aceitaContrato(a)) { mostrarToast('Este bem não recebe contrato.', 'erro'); return; } // v1.128.0 (item 52)
     if (typeof window.switchTab === 'function' && typeof window.criarContratoParaImovel === 'function') {
         window.fichaContratoOrigem = { tipo: 'ativo', id: a.id };
         // v1.31.1 (E0.1 / A6) — switchTab('tab-contratos') saiu: o formulario
@@ -2759,7 +2782,7 @@ export function abrirNovoContratoDoAtivo() {
 // Tipo B antigo — vira sheet na fatia 9.
 export function iniciarContratacaoDoAtivo() {
     const a = estado.ativoEmFoco;
-    if (!ehCategoriaImovel(a?.tipo_ativo)) { mostrarToast('Contrato de locação é só de imóvel.', 'erro'); return; }
+    if (!aceitaContrato(a)) { mostrarToast('Este bem não recebe contrato.', 'erro'); return; } // v1.128.0 (item 52)
     if (typeof window.iniciarProcessoContratacao !== 'function') { abrirNovoContratoDoAtivo(); return; }
     window.fichaContratoOrigem = { tipo: 'ativo', id: a.id };
     // v1.41.0 — mesma correção acima: a.id, não a.entidade_origem_id.
@@ -2769,11 +2792,11 @@ export function iniciarContratacaoDoAtivo() {
 // os 3 caminhos lado a lado, um passo antes de qualquer formulário.
 export function abrirEscolhaNovoContratoDoAtivo() {
     const a = estado.ativoEmFoco;
-    if (!ehCategoriaImovel(a?.tipo_ativo)) { mostrarToast('Contrato de locação é só de imóvel.', 'erro'); return; }
+    if (!aceitaContrato(a)) { mostrarToast('Este bem não recebe contrato.', 'erro'); return; } // v1.128.0 (item 52)
     const escM = window.rzContratoModeloNovo && window.rzContratoModeloNovo.ativo_id === a.id ? window.rzContratoModeloNovo.nome : ''; // F25c
     sheetOuAviso({ titulo: escM ? 'Contrato de ' + escM.toLowerCase() : 'Novo contrato', sub: a.nome_exibicao, acoes: [
         { icone: 'sparkles', tipo: 'ia', titulo: 'Carregar documento', codigo: 'cofre.analisar_ia', sub: 'A IA lê o contrato', aoTocar: () => window.__rzUploadAtivo?.(true) },
-        { icone: 'plus', titulo: 'Novo contrato', codigo: 'contratos.criar', sub: 'Já com este imóvel', aoTocar: () => abrirNovoContratoDoAtivo() },
+        { icone: 'plus', titulo: 'Novo contrato', codigo: 'contratos.criar', sub: ehCategoriaImovel(a.tipo_ativo) ? 'Já com este imóvel' : 'Já com esta área', aoTocar: () => abrirNovoContratoDoAtivo() },
         { icone: 'link', titulo: 'Pedir dados do locatário', codigo: 'contratos.criar', sub: 'Link, WhatsApp e minuta', aoTocar: () => iniciarContratacaoDoAtivo() },
     ] });
 }
@@ -2784,6 +2807,7 @@ if (typeof window !== 'undefined') window.__rzNovoContratoAtivo = abrirEscolhaNo
 export async function abrirAdicionarModeloAtivo() {
     const a = estado.ativoEmFoco; if (!a) return;
     await garantirCatalogoTiposAtivo();
+    await carregarTiposComContrato(); // v1.128.0 (item 52): o contrato pela gleba (Arrendamento rural) passa pela guarda
     // sem o tipo, a lista caía só no Aluguel (sem Arrendamento): se o catálogo falhou, lê o código do tipo direto
     const tipo = tipoDoCatalogo(a.tipo_detalhe_id)?.codigo
         || (a.tipo_detalhe_id ? (await api.dbAuth.from('ativo_tipos').select('codigo').eq('id', a.tipo_detalhe_id).maybeSingle()).data?.codigo : null);

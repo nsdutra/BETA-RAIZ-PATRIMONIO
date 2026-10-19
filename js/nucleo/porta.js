@@ -4,7 +4,14 @@
 //                   o estado do app (ativos, contratos, mensalidades, repasses,
 //                   lançamentos, prestadores, pessoas, empreendimentos, tipos,
 //                   minutas, links da vitrine, logs e a vitrine pública)
-// Versão: 1.5.0 · 14/10/2026
+// Versão: 1.6.0 · 19/10/2026
+//
+// v1.6.0 (19/10/2026, sessão 20261019-1931-carga-silva-correcoes, demanda 9404081c item 52, de acordo do Nicola 19:31) — o
+// leitor de imóveis do boot (carregarImoveisSupabase) traz também as ÁREAS RURAIS que recebem contrato pelo catálogo (gleba
+// e talhão com Arrendamento rural: operacao_modelo_tipos de um modelo com acordo 'contrato'), marcadas areaRural: true. É o
+// que deixa o formulário de contrato abrir pela gleba. Quem lista ou conta imóveis (aba Imóveis, Visão geral, limite do
+// plano, alerta de finalidade) ignora as marcadas.
+// Versão anterior: 1.5.0 · 14/10/2026
 //
 // v1.5.0 (14/10/2026, sessão 20261014-0045-usos-fatia2, demanda 3022603b; FICHA_FATIA2_CONTRATOS_POR_TIPO_RAIZ v1.0.0) — o
 // contrato carrega e grava o tipo (contratos.tipo_contrato): o leitor traz modelo e tipoContrato; a escrita manda o tipo
@@ -68,7 +75,7 @@
 // duplicar seria violação da CAN-03. Entram aqui por injeção.
 // ============================================================================
 
-export const VERSAO = '1.5.0';  // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.6.0';  // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 
 // ----------------------------------------------------------------------------
 // Injeção do host (index.html ou cofre.html). Os leitores abaixo usam estes
@@ -204,6 +211,28 @@ export async function carregarImoveisSupabase() {
 
     if (errAtivos) throw errAtivos;
 
+    // v1.6.0 (item 52) — áreas rurais que recebem contrato pelo catálogo (ex.: gleba arrendada). Falha aqui não derruba o boot.
+    let areasRurais = [];
+    try {
+        const { data: modsC } = await dbAuth.from('operacao_modelos').select('codigo').eq('acordo', 'contrato');
+        const codMods = (modsC || []).map(function(m) { return m.codigo; });
+        if (codMods.length) {
+            const { data: omt } = await dbAuth.from('operacao_modelo_tipos').select('tipo').in('modelo', codMods).eq('permite_uso', true);
+            const codTipos = [...new Set((omt || []).map(function(x) { return x.tipo; }))];
+            if (codTipos.length) {
+                const { data: rurais } = await dbAuth
+                    .from('cofre_ativos')
+                    .select('*, empreendimentos(nome), ativo_tipos!inner(nome, codigo)')
+                    .eq('cliente_id', CLIENTE_ID_SUPABASE)
+                    .eq('status', 'ativo')
+                    .not('tipo_ativo', 'in', '(imovel_predial,imovel_territorial)')
+                    .in('ativo_tipos.codigo', codTipos);
+                areasRurais = (rurais || []).map(function(r) { return Object.assign(r, { __areaRural: true }); });
+            }
+        }
+    } catch (e) { console.warn('[porta] áreas rurais com contrato:', e && e.message ? e.message : e); }
+    (ativosRows || []).push.apply(ativosRows || [], areasRurais);
+
     const idsAtivos = (ativosRows || []).map(function(r) { return r.id; });
 
     let propriedades = [];
@@ -292,7 +321,8 @@ export async function carregarImoveisSupabase() {
             parteRumo: { [CONFIG_CLIENTE.nomeEmpresa || SOCIO_PADRAO]: 100 }, // ver nota de simplificação acima
             status: mapStatusSupabaseParaAntigo(row.situacao_uso),
             sindicoId: vinculoSindico ? vinculoSindico.prestador_id : '',
-            manutencistaId: vinculoManutencista ? vinculoManutencista.prestador_id : ''
+            manutencistaId: vinculoManutencista ? vinculoManutencista.prestador_id : '',
+            areaRural: !!row.__areaRural // v1.6.0 — gleba/talhão: só para o contrato; fora das listas e contagens de imóveis
         };
 
     });
