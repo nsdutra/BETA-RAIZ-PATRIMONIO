@@ -1,6 +1,11 @@
 // ============================================================================
 // cofre-api.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.51.0 · 14/10/2026
+// Versão: 1.52.0 · 18/10/2026
+//
+// v1.52.0 (18/10/2026, sessão 20261018-2343-carga-silva-l4a, demanda 9404081c, L4-C) — listarTiposAtivo devolve, por tipo,
+// os ramos dos usos próprios de ramo que o tipo aceita (ramos_uso), o uso a iniciar em cada ramo (usos_por_ramo) e se o tipo
+// aceita uso de renda (tem_uso_renda: aluguel, temporada, arrendamento), que decide o "Aluguel esperado".
+// Versão anterior: 1.51.0 · 14/10/2026
 //
 // v1.51.0 (usos fatia 3 · subativos, demanda 3022603b, sessão 20261014-1020-usos-fatia3; de acordo do Nicola 14/10) —
 // criarImovelEAtivo aceita imovelDados.ativo_principal_id: a unidade nasce dentro do principal.
@@ -22,18 +27,11 @@
 // v1.48.1 (07/10/2026, sessão 20261007-1721-rolo-changelog, demanda 2507d554 — VER-06, "de acordo" do Nicola 07/10 17:21) — SÓ
 // CABEÇALHO: as versões além das 5 mais recentes rolaram para o CHANGELOG_MODULOS.md.
 // Nenhuma linha de código mudou — conferido token a token contra o publicado.
-//
-// Versão anterior: 1.48.0 · 07/10/2026
-//
-// v1.48.0 (demanda 9ddb9f34, U2, sessão 20261007-0129-upload-ia-b; "De acordo" do Nicola 07/10 01:29) —
-// analisarArquivoComIA aceita opcoes.leituraId (vai como leitura_id: o cofre-extrair-documento 1.11
-// guarda o resultado em <cliente>/tmp-ia/<leituraId>.leitura.json). Novas: baixarArquivoDocumento()
-// e lerLeituraGuardada() — para retomar a leitura quando o app foi recarregado no meio.
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.47.0 … v1.47.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.48.0 … v1.48.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '1.51.0'; // v-check (22/09/2026): lido por Dev › Versões — manter igual ao header
+export const VERSAO = '1.52.0'; // v-check (22/09/2026): lido por Dev › Versões — manter igual ao header
 const SUPABASE_URL = 'https://oduwpttbbemypiypjsux.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9kdXdwdHRiYmVteXBpeXBqc3V4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODUyODEyOTcsImV4cCI6MjEwMDg1NzI5N30.9-cu1CV1wPbo5UH1G2eAsWqsvS54AWNuQZOlifc9a7w';
 
@@ -496,6 +494,30 @@ export async function listarTiposAtivo(clienteId) {
     ]);
     if (tipos.error) throw tipos.error;
     if (campos.error) throw campos.error;
+    // v1.52.0 (L4-C, dem 9404081c, decisão D2) — cada tipo traz os ramos dos usos próprios de ramo (não universais) que ele
+    // aceita: ramos_uso ['familia'] na Casa (por Moradia) e usos_por_ramo {familia: 'moradia'}. A lente Família oferece a
+    // Casa no "Novo ativo" e o cadastro já inicia esse uso. Falha aqui não derruba o catálogo (lente fica como antes).
+    try {
+        const [mt, ms] = await Promise.all([
+            dbAuth.from('operacao_modelo_tipos').select('modelo, tipo, permite_uso').eq('permite_uso', true),
+            dbAuth.from('operacao_modelos').select('codigo, ramo, universal, status, classe_status').eq('status', 'ativo'),
+        ]);
+        if (!mt.error && !ms.error) {
+            const modelo = new Map((ms.data || []).filter(m => !m.universal && m.ramo).map(m => [m.codigo, m.ramo]));
+            // L4-6 — uso de renda = classe Ocupado/Locado no catálogo (aluguel, temporada, arrendamento)
+            const renda = new Set((ms.data || []).filter(m => ['Ocupado', 'Locado'].includes(m.classe_status)).map(m => m.codigo));
+            const tiposRenda = new Set((mt.data || []).filter(l => renda.has(l.modelo)).map(l => l.tipo));
+            const porTipo = new Map();
+            for (const l of (mt.data || [])) {
+                const ramo = modelo.get(l.modelo); if (!ramo) continue;
+                const r = porTipo.get(l.tipo) || {}; if (!r[ramo]) r[ramo] = l.modelo; porTipo.set(l.tipo, r);
+            }
+            for (const t of (tipos.data || [])) {
+                const r = porTipo.get(t.codigo) || {};
+                t.usos_por_ramo = r; t.ramos_uso = Object.keys(r).filter(x => x !== t.ramo); t.tem_uso_renda = tiposRenda.has(t.codigo);
+            }
+        }
+    } catch (e) { console.warn('[cofre-api] usos por tipo indisponíveis', e); }
     return { tipos: tipos.data || [], campos: campos.data || [] };
 }
 

@@ -1,6 +1,15 @@
 // ============================================================================
 // cofre-ativos.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.116.0 · 18/10/2026
+// Versão: 1.117.0 · 18/10/2026
+//
+// v1.117.0 (18/10/2026, sessão 20261018-2343-carga-silva-l4a, demanda 9404081c; FICHA_LOTES_4_5 v1.1.0, de acordo do Nicola
+// 18/10 23:43) — L4-B/L4-C e ajustes do teste de 18/10: campo "tamanho" (número + unidade: ha, alqueire mineiro, alqueire
+// paulista, m²) e "coordenadas" (latitude e longitude) no cadastro e na edição; fazenda, sítio, chácara e terreno rural sem
+// rua/número e sem "dados do imóvel": sede (município, UF, CEP) vai também para as colunas de endereço e a área total para
+// area_m2; edição respeita os blocos do catálogo; "Aluguel esperado" só em tipo com uso de renda; casa cadastrada na lente
+// Família já nasce com Moradia (D2); etiqueta curta no card de áreas (só o nome do uso); ficha e "Adicionar uso" esperam o
+// catálogo (Arrendamento aparecia só depois de abrir o cadastro).
+// Versão anterior: 1.116.0 · 18/10/2026
 //
 // v1.116.0 (18/10/2026, sessão 20261018-2343-carga-silva-l4a, demanda 9404081c; FICHA_LOTES_4_5 v1.1.0, de acordo do Nicola
 // 18/10 23:43) — L4-A: lista de Ativos com etiqueta curta (só o nome do uso), "Disponível" na mesma cor fora do imóvel
@@ -28,17 +37,11 @@
 // 15/10 23:17 e 16/10 00:05) — o Resumo da ficha do ativo ganha o card dos MEMBROS quando o tipo tem membros (lote bovino,
 // lote suíno, equinos, ovinos e caprinos: "Rebanho"/"Plantel"/"Animais"; adega de vinho: "Garrafas"), montado por
 // cofre-membros.js (módulo novo, D7-7). "Adicionar uso" traz Leite e Corte (acordo lote) como uso sem contrato (D7-2).
-// Versão anterior: 1.112.0 · 15/10/2026
-//
-// v1.112.0 (15/10/2026, sessão 20261015-1615-usos-fatia6a, demanda 3022603b; de acordo do Nicola 15/10 16:10, itens 4 e 5) —
-// chips de ramo da lista de ativos só com ramos contratados (rzRamoLiberado); "Adicionar uso" passa a trazer Lavoura
-// (acordo safra), tratada como uso sem contrato até o ciclo da safra (fatia 6b). Obra própria e Operação agro chegam pelo
-// catálogo (migration usos_fatia6a_ramos_v1).
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.111.0 … v1.111.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.111.0 … v1.112.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '1.116.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.117.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 import { estado } from './cofre-estado.js';
 import * as api from './cofre-api.js';
 import { mostrarToast, erroInline, refrescarIcones, alternarToggle, abrirModal, fecharModal, modalGenerico, perguntar, avisarComDesfazer, escolher } from './cofre-ui.js';
@@ -328,7 +331,11 @@ function renderizarBlocoImovel(prefixo, v = {}, opcoes = {}) {
     // v1.107.0 (fatia 3b, F3b-5) — no cadastro, Finalidade e Situação de uso saem (vêm do uso; demanda 091b87d4) e o
     // aluguel esperado fica sempre à vista
     const cadastro = !!opcoes.cadastro;
-    const aluguelVisivel = cadastro || finalidadeInfo?.comercial ? '' : ' hidden';
+    // v1.117.0 (L4-6, dem 9404081c) — só aparece em tipo que aceita uso de renda no catálogo (tem_uso_renda); tipo sem catálogo
+    // carregado segue como antes. Valor já gravado continua à vista na edição (nunca esconder dado preenchido).
+    const tipoBloco = tipoDoCatalogo(opcoes.tipoDetalheId ?? v.tipo_detalhe_id);
+    const rendaOk = !tipoBloco || tipoBloco.tem_uso_renda !== false || v.dados_especificos?.aluguel_desejado != null;
+    const aluguelVisivel = (cadastro || finalidadeInfo?.comercial) && rendaOk ? '' : ' hidden';
     // v1.66.0 — editando um ativo que já tem situação de uso, destinação
     // ou CIB preenchidos, o bloco "mais campos" nasce ABERTO (nunca
     // esconde dado que a pessoa já preencheu antes). Só nasce escondido
@@ -1198,7 +1205,7 @@ export function atualizarCamposEstruturadosAtivo() {
     const wrapImovel = document.getElementById('at-imovel-wrapper');
     if (wrapImovel) {
         wrapImovel.classList.toggle('hidden', !tem('dados_imovel'));
-        wrapImovel.innerHTML = tem('dados_imovel') ? renderizarBlocoImovel('at-imovel-', {}, { cadastro: true }) : '';
+        wrapImovel.innerHTML = tem('dados_imovel') ? renderizarBlocoImovel('at-imovel-', {}, { cadastro: true, tipoDetalheId }) : '';
     }
     // divisão societária (wrapper no markup)
     document.getElementById('naf-pe-wrapper')?.classList.toggle('hidden', !tem('divisao_societaria'));
@@ -1218,6 +1225,21 @@ export function aoMudarTipoDetalheAtivo() {
     atualizarCamposEstruturadosAtivo();
 }
 
+// v1.117.0 (L4-B, dem 9404081c) — tipo_dado 'tamanho' (número + unidade, gravado "186 ha") e 'coordenadas' (latitude e
+// longitude, gravado "-21.2500, -45.0000"). A área em ha/alqueire também vira m² na coluna area_m2 (areaM2DoTamanho), para o
+// Resultado e os relatórios continuarem lendo um número só. Alqueire mineiro = 4,84 ha; paulista = 2,42 ha.
+const M2_POR_UNIDADE = { 'ha': 10000, 'alqueire mineiro': 48400, 'alqueire paulista': 24200, 'm²': 1 };
+function separarTamanho(v, unidades) {
+    const m = String(v ?? '').trim().match(/^(-?[\d.,]+)\s*(.*)$/);
+    if (!m) return { valor: '', unidade: unidades[0] || '' };
+    const un = unidades.includes(m[2]) ? m[2] : (unidades[0] || m[2]);
+    return { valor: m[1].replace(',', '.'), unidade: un };
+}
+export function areaM2DoTamanho(texto) {
+    const m = String(texto ?? '').trim().match(/^(-?[\d.]+)\s*(.*)$/);
+    if (!m || !(m[2] in M2_POR_UNIDADE)) return null;
+    return Math.round(parseFloat(m[1]) * M2_POR_UNIDADE[m[2]] * 100) / 100;
+}
 function renderizarCamposEstruturados(tipo, valores, prefixoId = 'at-campo-', tipoDetalheId = null, contexto = 'ativo') {
     const campos = obterCamposPorTipo(tipo, tipoDetalheId, contexto);
     // v1.107.0 (fatia 3b) — campo em lista (catálogo, opcoes); valor antigo fora da lista continua aparecendo
@@ -1226,6 +1248,17 @@ function renderizarCamposEstruturados(tipo, valores, prefixoId = 'at-campo-', ti
         if (c.tipo === 'lista' && Array.isArray(c.opcoes)) {
             const ops = v && !c.opcoes.includes(v) ? [...c.opcoes, v] : c.opcoes;
             return `<select id="${prefixoId}${c.chave}"><option value="">—</option>${ops.map(o => `<option${o === v ? ' selected' : ''}>${escapeHtml(o)}</option>`).join('')}</select>`;
+        }
+        if (c.tipo === 'tamanho') {
+            const uns = Array.isArray(c.opcoes) && c.opcoes.length ? c.opcoes : ['m²'];
+            const t = separarTamanho(v, uns);
+            return `<div style="display:flex;gap:8px"><input type="number" step="any" min="0" inputmode="decimal" id="${prefixoId}${c.chave}" value="${escapeHtml(t.valor)}" style="flex:1;min-width:0">` +
+                `<select id="${prefixoId}${c.chave}-un" aria-label="Unidade" style="flex:0 0 auto;width:auto">${uns.map(u => `<option${u === t.unidade ? ' selected' : ''}>${escapeHtml(u)}</option>`).join('')}</select></div>`;
+        }
+        if (c.tipo === 'coordenadas') {
+            const [la, ln] = String(v).split(',').map(x => (x || '').trim());
+            return `<div style="display:flex;gap:8px"><input type="text" inputmode="decimal" id="${prefixoId}${c.chave}-lat" value="${escapeHtml(la || '')}" placeholder="Latitude (ex.: -21.2510)" style="flex:1;min-width:0">` +
+                `<input type="text" inputmode="decimal" id="${prefixoId}${c.chave}-lng" value="${escapeHtml(ln || '')}" placeholder="Longitude (ex.: -45.0012)" style="flex:1;min-width:0"></div>`;
         }
         return `<input type="${c.tipo === 'number' ? 'number' : c.tipo === 'date' ? 'date' : 'text'}" id="${prefixoId}${c.chave}" value="${escapeHtml(v)}">`;
     };
@@ -1240,10 +1273,29 @@ function lerCamposEstruturados(tipo, prefixoId = 'at-campo-', tipoDetalheId = nu
     const campos = obterCamposPorTipo(tipo, tipoDetalheId, contexto);
     const dados = {};
     for (const c of campos) {
+        if (c.tipo === 'tamanho') {
+            const n = (document.getElementById(`${prefixoId}${c.chave}`)?.value || '').trim().replace(',', '.');
+            const un = document.getElementById(`${prefixoId}${c.chave}-un`)?.value || '';
+            if (n) dados[c.chave] = `${n} ${un}`.trim();
+            continue;
+        }
+        if (c.tipo === 'coordenadas') {
+            const la = (document.getElementById(`${prefixoId}${c.chave}-lat`)?.value || '').trim().replace(',', '.');
+            const ln = (document.getElementById(`${prefixoId}${c.chave}-lng`)?.value || '').trim().replace(',', '.');
+            if (la || ln) dados[c.chave] = `${la}, ${ln}`;
+            continue;
+        }
         const el = document.getElementById(`${prefixoId}${c.chave}`);
         if (el && el.value.trim()) dados[c.chave] = el.value.trim();
     }
     return dados;
+}
+// v1.117.0 (L4-B) — imóvel rural sem o bloco de endereço: município, UF e CEP da sede vão também para as colunas de endereço
+// (lista, relatórios e busca por cidade seguem funcionando); a área total vai para area_m2.
+function enderecoDaSedeRural(dados) {
+    if (!dados || !(dados.municipio_sede || dados.uf_sede || dados.cep)) return null;
+    return { endereco_cidade: dados.municipio_sede || null, uf: (dados.uf_sede || '').toUpperCase() || null,
+             cep: (dados.cep || '').replace(/\D/g, '') || null };
 }
 
 export async function salvarAtivo() {
@@ -1298,8 +1350,11 @@ export async function salvarAtivo() {
     const empvalLido = await lerBlocoEmpreendimentoValor('at-empval-', estado.clienteId);
     let enderecoLido = null, camposImovelLido = null, aluguelDesejado = null;
     if (ehImovel) {
-        enderecoLido = lerBlocoEndereco('at-endereco');
-        const lidoImovel = lerBlocoImovel('at-imovel-');
+        // v1.117.0 (L4-B) — tipo rural esconde o endereço urbano e os dados do imóvel (catálogo, linha 'oculto'): lê da sede
+        const temEnd = blocosFormAtual ? blocosFormAtual.tem('endereco') || blocosFormAtual.tem('endereco_complemento') : true;
+        const temImovel = blocosFormAtual ? blocosFormAtual.tem('dados_imovel') : true;
+        enderecoLido = temEnd ? lerBlocoEndereco('at-endereco') : enderecoDaSedeRural(dadosEspecificos);
+        const lidoImovel = temImovel ? lerBlocoImovel('at-imovel-') : { camposImovel: { area_m2: areaM2DoTamanho(dadosEspecificos.area) }, aluguelDesejado: null };
         camposImovelLido = lidoImovel.camposImovel;
         aluguelDesejado = lidoImovel.aluguelDesejado;
         if (aluguelDesejado !== null) payload.dados_especificos.aluguel_desejado = aluguelDesejado;
@@ -1344,7 +1399,19 @@ export async function salvarAtivo() {
             if (doPrincipal && doPrincipal.length) await api.salvarPropriedadeAtivo(novoAtivo.ativo_id || novoAtivo.id, paraApi(doPrincipal));
         }
 
-        mostrarToast(principal ? `${principal.singular} cadastrad${femSubativo(principal.singular) ? 'a' : 'o'} em ${principal.nome} ✅` : ehImovel ? 'Imóvel cadastrado ✅' : 'Ativo cadastrado ✅');
+        // v1.117.0 (L4-C, decisão D2) — cadastrado pela lente de outro ramo (Casa na lente Família): o ativo fica no ramo do tipo
+        // e já nasce com o uso daquele ramo (Moradia, hoje); é o uso que o mostra na lente. Falha no uso não desfaz o cadastro.
+        let usoLente = null;
+        const lenteCad = ramoDaLente();
+        const detCad = tipoDoCatalogo(tipoDetalheId);
+        if (!principal && lenteCad !== 'tudo' && detCad && detCad.ramo !== lenteCad && detCad.usos_por_ramo?.[lenteCad]) {
+            usoLente = detCad.usos_por_ramo[lenteCad];
+            const hoje = new Date(); const iso = new Date(hoje.getTime() - hoje.getTimezoneOffset() * 60000).toISOString().slice(0, 10);
+            const { error: eUso } = await api.dbAuth.rpc('fn_ativo_uso_iniciar', { p_ativo_id: novoAtivo.ativo_id || novoAtivo.id, p_modelo: usoLente,
+                p_inicio: iso, p_fim: null, p_observacao: null, p_canal: 'app' });
+            if (eUso) { console.warn('[cofre-ativos] uso da lente:', eUso.message); mostrarToast('Cadastrado, mas o uso não foi iniciado: ' + eUso.message, 'aviso'); usoLente = false; }
+        }
+        if (usoLente !== false) mostrarToast(principal ? `${principal.singular} cadastrad${femSubativo(principal.singular) ? 'a' : 'o'} em ${principal.nome} ✅` : ehImovel ? 'Imóvel cadastrado ✅' : 'Ativo cadastrado ✅');
         document.getElementById('at-nome').value = '';
         fecharFormAtivo();
         // o ativo nasce com uso (repouso do tipo): relê o status antes de repintar, senão a lista mostra o ativo novo sem
@@ -1372,6 +1439,9 @@ export async function salvarAtivo() {
 export async function abrirFichaAtivo(id, chipInicial = 'resumo') {
     const a = estado.ativos.find(x => x.id === id) || await api.buscarAtivoPorId(id);
     if (!a) { mostrarToast('Ativo não encontrado.', 'erro'); return; }
+    // a ficha lê o tipo do catálogo (cabeçalho, usos permitidos, campos): sem esperar o catálogo, quem abre a ficha direto
+    // via "Terreno" e só os usos do ramo, sem Arrendamento (dem 9404081c, 18/10)
+    await garantirCatalogoTiposAtivo();
     ativoAtualId = id;
     estado.ativoEmFoco = a;
 
@@ -1754,7 +1824,8 @@ function rotuloStatusSubativo(st) {
     if (!st) return { sem: 'neu', rotulo: 'Sem uso' };
     const classe = st.classe || 'Sem uso', nome = st.nome || classe;
     const semFn = typeof window.rzSemantica === 'function' ? window.rzSemantica : (typeof rzSemantica === 'function' ? rzSemantica : null);
-    return { sem: semFn ? semFn(classe) : 'neu', rotulo: classe === nome ? classe : classe + ' · ' + nome };
+    // card de áreas mostra só o nome do uso (Lavoura, Disponível), como a lista; classe + nome não cabe ao lado do nome (dem 9404081c, 18/10)
+    return { sem: semFn ? semFn(classe) : 'neu', rotulo: nome };
 }
 // v1.113.0 (usos fatia 7, D7-3/D7-14) — card "Rebanho · N" ou "Garrafas · N" quando o tipo tem membros
 // (ativo_tipos.modo_membro); o card, a ficha do membro e as folhas moram em cofre-membros.js (carregado só aqui).
@@ -2578,7 +2649,10 @@ if (typeof window !== 'undefined') window.__rzNovoContratoAtivo = abrirEscolhaNo
 // quem é cadastrado é o contrato, que grava o modelo (nucleo/porta.js lê window.rzContratoModeloNovo).
 export async function abrirAdicionarModeloAtivo() {
     const a = estado.ativoEmFoco; if (!a) return;
-    const tipo = tipoDoCatalogo(a.tipo_detalhe_id)?.codigo;
+    await garantirCatalogoTiposAtivo();
+    // sem o tipo, a lista caía só no Aluguel (sem Arrendamento): se o catálogo falhou, lê o código do tipo direto
+    const tipo = tipoDoCatalogo(a.tipo_detalhe_id)?.codigo
+        || (a.tipo_detalhe_id ? (await api.dbAuth.from('ativo_tipos').select('codigo').eq('id', a.tipo_detalhe_id).maybeSingle()).data?.codigo : null);
     const ramoAtivo = ramoDoAtivoLista(a);
     let lista = [], tiposContrato = [];
     // v1.112.0 (fatia 6a) — Lavoura (acordo safra) inicia como uso sem contrato; o ciclo da safra vem na fatia 6b
@@ -3442,10 +3516,19 @@ export async function alternarEditarAtivo() {
     const blocosEdicao = blocosDoFormulario(a.tipo_ativo, a.tipo_detalhe_id, ctxEdicao);
     const mostraEmpVal = !blocosEdicao || blocosEdicao.has('empreendimento') || blocosEdicao.has('valor_referencia');
     const blocoEmpreendimentoValor = !mostraEmpVal ? '' : `<div class="rz-campos-imovel grid grid-cols-1 sm:grid-cols-2 gap-3">${renderizarBlocoEmpreendimentoValor('fa-editar-empval-', a, _empreendimentosCache || [], { comFinalidade: !ehCategoriaImovel(a.tipo_ativo) })}</div>`;
-    const blocoEndereco = ehCategoriaImovel(a.tipo_ativo)
+    // v1.117.0 (L4-B) — o catálogo decide os blocos também na edição (imóvel rural sem rua e número, sem "dados do imóvel")
+    const edTemEnd = !blocosEdicao || blocosEdicao.has('endereco');
+    const edTemImovel = !blocosEdicao || blocosEdicao.has('dados_imovel');
+    // ativo rural cadastrado antes do L4-B: a sede e a área vêm das colunas até a pessoa salvar
+    const de0 = a.dados_especificos || {};
+    const valoresEdicao = (!edTemEnd && ehCategoriaImovel(a.tipo_ativo))
+        ? { ...de0, municipio_sede: de0.municipio_sede || a.endereco_cidade || '', uf_sede: de0.uf_sede || a.uf || '', cep: de0.cep || a.cep || '',
+            area: de0.area || (a.area_m2 ? `${Math.round(a.area_m2 / 100) / 100} ha` : '') }
+        : de0;
+    const blocoEndereco = ehCategoriaImovel(a.tipo_ativo) && edTemEnd
         ? `<div class="rz-campos-endereco">${renderizarBlocoEndereco('fa-editar-endereco', a, { mostrarBotaoCopiar: false })}</div>`
         : '';
-    const blocoImovel = ehCategoriaImovel(a.tipo_ativo)
+    const blocoImovel = ehCategoriaImovel(a.tipo_ativo) && edTemImovel
         ? `<div class="rz-campos-imovel grid grid-cols-1 sm:grid-cols-2 gap-2">${renderizarBlocoImovel('fa-editar-imovel-', a)}</div>`
         : '';
     // E5 — tipo específico (dentro da categoria, que continua somente-
@@ -3471,7 +3554,7 @@ export async function alternarEditarAtivo() {
             `<div class="rz-f"><label>Ramo</label><input type="text" value="${escapeHtml(typeof window.rzNomeRamo === 'function' && a.ramo ? window.rzNomeRamo(a.ramo) : rotuloTipoAtivo(a.tipo_ativo))}" disabled></div>` +
             blocoTipoDetalhe + blocoEmpreendimentoValor +
             `<div class="rz-f"><label>Nome de exibição <i>*</i></label><input type="text" id="fa-editar-nome" value="${escapeHtml(a.nome_exibicao)}"></div>` +
-            `<div class="rz-campos-estruturados" id="fa-editar-campos-estruturados">${renderizarCamposEstruturados(a.tipo_ativo, a.dados_especificos || {}, 'fa-editar-campo-', a.tipo_detalhe_id, ctxEdicao)}</div>` +
+            `<div class="rz-campos-estruturados" id="fa-editar-campos-estruturados">${renderizarCamposEstruturados(a.tipo_ativo, valoresEdicao, 'fa-editar-campo-', a.tipo_detalhe_id, ctxEdicao)}</div>` +
             blocoEndereco + blocoImovel;
         window.abrirSheetForm({ titulo: 'Editar campos do ativo', sub: a.nome_exibicao, corpo: campos, rotuloSalvar: 'Salvar',
             aoSalvar: async () => { const ok = await salvarEdicaoAtivo(); return ok !== false; } });
@@ -3492,7 +3575,7 @@ export async function alternarEditarAtivo() {
         (tiposDetalhe.length ? `<div class="sm:col-span-2"><label class="text-xs font-semibold block mb-1">Tipo específico</label><select id="fa-editar-tipo-detalhe" data-action-change="ativo-tipo-detalhe-editar-mudou" class="w-full border-2 border-slate-300 rounded-xl p-2 text-sm">${tiposDetalhe.map(t => `<option value="${t.id}"${t.id === a.tipo_detalhe_id ? ' selected' : ''}>${escapeHtml(t.nome)}</option>`).join('')}</select></div>` : '') +
         blocoEmpreendimentoValor +
         `<div class="sm:col-span-2"><label class="text-xs font-semibold block mb-1">Nome de exibição</label><input type="text" id="fa-editar-nome" value="${escapeHtml(a.nome_exibicao)}" class="w-full border-2 border-slate-300 rounded-xl p-2 text-sm"></div>` +
-        `<div id="fa-editar-campos-estruturados" class="sm:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-3">${renderizarCamposEstruturados(a.tipo_ativo, a.dados_especificos || {}, 'fa-editar-campo-', a.tipo_detalhe_id)}</div>` +
+        `<div id="fa-editar-campos-estruturados" class="sm:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-3">${renderizarCamposEstruturados(a.tipo_ativo, valoresEdicao, 'fa-editar-campo-', a.tipo_detalhe_id, ctxEdicao)}</div>` +
         blocoEndereco + blocoImovel;
     document.getElementById('fa-editar-wrapper').classList.remove('hidden');
 }
@@ -3518,6 +3601,8 @@ export async function salvarEdicaoAtivo() {
     // mantém o tipo_detalhe_id que o ativo já tinha, não apaga.
     const tipoDetalheId = selDetalhe ? (selDetalhe.value || null) : a.tipo_detalhe_id;
     const dados = lerCamposEstruturados(a.tipo_ativo, 'fa-editar-campo-', tipoDetalheId, a.ativo_principal_id ? 'subativo' : 'ativo');
+    const errosEd = validarCamposAtivo(a.tipo_ativo, nome, dados, tipoDetalheId, a.ativo_principal_id ? 'subativo' : 'ativo').filter(e => !/obrigatório/.test(e));
+    if (errosEd.length) { mostrarToast(errosEd[0], 'erro'); return false; } // v1.117.0 — coordenadas e tamanho também na edição
     const patch = { nome_exibicao: nome, tipo_detalhe_id: tipoDetalheId, dados_especificos: dados };
     // Onda 12 (16/09/2026) — empreendimento/valor de referência são
     // universais (qualquer tipo de ativo); entram no mesmo `patch` pra
@@ -3533,7 +3618,12 @@ export async function salvarEdicaoAtivo() {
     // cofre_ativos; sem escrita em imoveis, ele nunca mais dispara —
     // fica dormente, não precisa ser removido. Aluguel esperado é
     // SEMPRE dados_especificos.
-    if (ehCategoriaImovel(a.tipo_ativo)) {
+    // v1.117.0 (L4-B) — só lê o que a edição mostrou: tipo rural grava a sede nas colunas de endereço e a área em area_m2
+    const blocosSalvar = blocosDoFormulario(a.tipo_ativo, tipoDetalheId, a.ativo_principal_id ? 'subativo' : 'ativo');
+    if (ehCategoriaImovel(a.tipo_ativo) && blocosSalvar && !blocosSalvar.has('endereco') && !blocosSalvar.has('dados_imovel')) {
+        const area = areaM2DoTamanho(dados.area);
+        Object.assign(patch, enderecoDaSedeRural(dados) || {}, empValLido, area !== null ? { area_m2: area } : {});
+    } else if (ehCategoriaImovel(a.tipo_ativo)) {
         const enderecoLido = lerBlocoEndereco('fa-editar-endereco');
         const { camposImovel, aluguelDesejado, destinacao } = lerBlocoImovel('fa-editar-imovel-');
         if (aluguelDesejado !== null) dados.aluguel_desejado = aluguelDesejado;

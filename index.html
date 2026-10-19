@@ -6,9 +6,15 @@
    (base derivada do RUMO v7.4.2 — histórico de versões anteriores
    preservado abaixo para referência técnica)
 
-   VERSÃO: Beta v1.432.0
-   LINHAS: 17102
-   DATA: 19/10/2026 (sessão 20261018-2344-temas, demanda 91a30125)
+   VERSÃO: Beta v1.432.1
+   LINHAS: 17100
+   DATA: 19/10/2026 (sessão 20261018-2343-carga-silva-l4a, demanda 9404081c)
+   NOVIDADES (Beta v1.432.1) — L4-B/L4-C DA CARGA SILVA CAFÉS (FICHA_LOTES_4_5 v1.1.0, de acordo do Nicola 18/10 23:43):
+   área com unidade (ha, alqueire mineiro e paulista, m²), fazenda/sítio/chácara/terreno rural com sede (município, UF,
+   coordenadas, como chegar, CEP opcional) no lugar de rua e número; Aluguel esperado só em tipo com uso de renda; Casa
+   cadastrada na lente Família já nasce com Moradia; Arrendamento e etiqueta das áreas corrigidos. cofre-ativos.js 1.117.0,
+   cofre-validacoes.js 2.9.0, cofre-api.js 1.52.0. Banco: agro_cadastro_l4b_v1. O index só muda o import map.
+   Versão anterior (Beta v1.432.0):
    NOVIDADES (Beta v1.432.0) — ROTINAS E ALERTAS POR TEMA (FICHA_ROTINAS_E_ALERTAS_POR_TEMA_RAIZ v1.0.0, de acordo do Nicola 18/10
    23:44): Minha empresa › Rotinas vira "Rotinas e alertas", uma linha por tema (Fiscal, Contador, Cartões, Contratos, Ativos,
    Itens de controle, Programas, Mercado) com o seletor de Alertas da empresa e as rotinas do tema. Alerta desligado na empresa
@@ -29,16 +35,8 @@
    NOVIDADES (Beta v1.430.1) — CORREÇÃO da 1.430.0: a comparação com o ano anterior usa a classe nova .rz-vs (a .rz-cmp já era
    do gráfico Carteira × indicador e ganhava margem e corte). resultados.js 2.11.1.
    Versão anterior (Beta v1.430.0):
-   NOVIDADES (Beta v1.430.0) — FATIA 8, HOJE POR RAMO (FICHA_FATIA8_HOJE_POR_RAMO_RAIZ v1.2.0 e PROTOTIPO_HOJE_COCKPIT_RAMOS_RAIZ
-   v1.0.0, de acordo do Nicola 16/10 01:09 e 09:43): em Todo o patrimônio, o card Resultado por ramo (receita × despesa,
-   margem, patrimônio, Geral e Consolidado; tocar abre a lente). Todo número do herói compara com o ano anterior e o
-   resultado tem a linha do ano. Cada ramo tem os seus números: Família (por vida), Outros bens (custo por bem), Agro (safras,
-   sacas, custo por saca e por hectare), Obras (avanço físico × financeiro), Pecuária (rebanho, prenhez, partos, vendas). Os
-   avisos dos animais viram alertas do Motor (Todos e a lente) e abrem a ficha do animal; o anel da Pecuária diz "N animais
-   em M lotes". resultados.js 2.11.0. Banco: usos_fatia8_alertas_v1, usos_fatia8_funcoes_v1.
-   Versão anterior (Beta v1.429.0):
    ------------------------------------------------------------------
-   Versões anteriores (v1.429.0 … v1.429.0): CHANGELOG_APP.md, na raiz do
+   Versões anteriores (v1.430.0 … v1.430.0): CHANGELOG_APP.md, na raiz do
    repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
    das 5 versões mais recentes deste cabeçalho.
 
@@ -66,7 +64,7 @@
          O navegador aplica o mapa também aos imports estáticos dentro dos
          módulos (cofre-app.js → ./cofre-api.js etc.). -->
     <!-- RZ-IMPORTMAP:INICIO -->
-    <script type="importmap">{"imports":{"./js/cadastros.js":"./js/cadastros.js?v=1.3.0","./js/financeiro.js":"./js/financeiro.js?v=1.68.0","./js/fechamento.js":"./js/fechamento.js?v=1.15.0","./js/contratos.js":"./js/contratos.js?v=1.60.0","./js/minutas.js":"./js/minutas.js?v=1.6.0","./js/vitrine.js":"./js/vitrine.js?v=1.6.0","./js/imoveis.js":"./js/imoveis.js?v=1.8.0","./js/cofre-api.js":"./js/cofre-api.js?v=1.51.0","./js/cofre-app.js":"./js/cofre-app.js?v=1.50.0","./js/cofre-ativos.js":"./js/cofre-ativos.js?v=1.116.0","./js/cofre-controles.js":"./js/cofre-controles.js?v=1.62.0","./js/cofre-documentos.js":"./js/cofre-documentos.js?v=2.38.0","./js/cofre-imagem.js":"./js/cofre-imagem.js?v=1.1.0","./js/cofre-estado.js":"./js/cofre-estado.js?v=1.5.2","./js/cofre-navegacao.js":"./js/cofre-navegacao.js?v=1.10.0","./js/cofre-ui.js":"./js/cofre-ui.js?v=1.7.2","./js/cofre-validacoes.js":"./js/cofre-validacoes.js?v=2.8.0","./js/comum-licenca.js":"./js/comum-licenca.js?v=1.9.0","./js/comum-renovacao.js":"./js/comum-renovacao.js?v=1.3.5","./js/comum-minha-empresa.js":"./js/comum-minha-empresa.js?v=1.21.0","./js/comum-pessoas.js":"./js/comum-pessoas.js?v=1.216.0","./js/comum-sobre.js":"./js/comum-sobre.js?v=1.5.0","./js/comum-endereco.js":"./js/comum-endereco.js?v=1.2.0","./js/comum-partes.js":"./js/comum-partes.js?v=1.0.0","./js/resultados.js":"./js/resultados.js?v=2.11.1","./js/indicadores.js":"./js/indicadores.js?v=1.2.0","./js/configuracao-inicial.js":"./js/configuracao-inicial.js?v=1.1.0","./js/relatorios-executivos.js":"./js/relatorios-executivos.js?v=1.5.0","./js/raiz-eventos.js":"./js/raiz-eventos.js?v=1.0.0","./js/raiz-device.js":"./js/raiz-device.js?v=1.1.0","./js/raiz-ui.js":"./js/raiz-ui.js?v=1.5.0","./js/fiscal.js":"./js/fiscal.js?v=1.7.0","./js/ativos/ativos-boot.js":"./js/ativos/ativos-boot.js?v=1.4.0","./js/ativos/ativos-markup.js":"./js/ativos/ativos-markup.js?v=1.65.0","./js/nucleo/porta.js":"./js/nucleo/porta.js?v=1.5.0","./js/partes.js":"./js/partes.js?v=1.1.0","./js/conta.js":"./js/conta.js?v=1.3.0","./js/grupo-visao.js":"./js/grupo-visao.js?v=1.0.0","./js/agenda.js":"./js/agenda.js?v=1.5.0","./js/cofre-membros.js":"./js/cofre-membros.js?v=1.0.0"}}</script>
+    <script type="importmap">{"imports":{"./js/cadastros.js":"./js/cadastros.js?v=1.3.0","./js/financeiro.js":"./js/financeiro.js?v=1.68.0","./js/fechamento.js":"./js/fechamento.js?v=1.15.0","./js/contratos.js":"./js/contratos.js?v=1.60.0","./js/minutas.js":"./js/minutas.js?v=1.6.0","./js/vitrine.js":"./js/vitrine.js?v=1.6.0","./js/imoveis.js":"./js/imoveis.js?v=1.8.0","./js/cofre-api.js":"./js/cofre-api.js?v=1.52.0","./js/cofre-app.js":"./js/cofre-app.js?v=1.50.0","./js/cofre-ativos.js":"./js/cofre-ativos.js?v=1.117.0","./js/cofre-controles.js":"./js/cofre-controles.js?v=1.62.0","./js/cofre-documentos.js":"./js/cofre-documentos.js?v=2.38.0","./js/cofre-imagem.js":"./js/cofre-imagem.js?v=1.1.0","./js/cofre-estado.js":"./js/cofre-estado.js?v=1.5.2","./js/cofre-navegacao.js":"./js/cofre-navegacao.js?v=1.10.0","./js/cofre-ui.js":"./js/cofre-ui.js?v=1.7.2","./js/cofre-validacoes.js":"./js/cofre-validacoes.js?v=2.9.0","./js/comum-licenca.js":"./js/comum-licenca.js?v=1.9.0","./js/comum-renovacao.js":"./js/comum-renovacao.js?v=1.3.5","./js/comum-minha-empresa.js":"./js/comum-minha-empresa.js?v=1.21.0","./js/comum-pessoas.js":"./js/comum-pessoas.js?v=1.216.0","./js/comum-sobre.js":"./js/comum-sobre.js?v=1.5.0","./js/comum-endereco.js":"./js/comum-endereco.js?v=1.2.0","./js/comum-partes.js":"./js/comum-partes.js?v=1.0.0","./js/resultados.js":"./js/resultados.js?v=2.11.1","./js/indicadores.js":"./js/indicadores.js?v=1.2.0","./js/configuracao-inicial.js":"./js/configuracao-inicial.js?v=1.1.0","./js/relatorios-executivos.js":"./js/relatorios-executivos.js?v=1.5.0","./js/raiz-eventos.js":"./js/raiz-eventos.js?v=1.0.0","./js/raiz-device.js":"./js/raiz-device.js?v=1.1.0","./js/raiz-ui.js":"./js/raiz-ui.js?v=1.5.0","./js/fiscal.js":"./js/fiscal.js?v=1.7.0","./js/ativos/ativos-boot.js":"./js/ativos/ativos-boot.js?v=1.4.0","./js/ativos/ativos-markup.js":"./js/ativos/ativos-markup.js?v=1.65.0","./js/nucleo/porta.js":"./js/nucleo/porta.js?v=1.5.0","./js/partes.js":"./js/partes.js?v=1.1.0","./js/conta.js":"./js/conta.js?v=1.3.0","./js/grupo-visao.js":"./js/grupo-visao.js?v=1.0.0","./js/agenda.js":"./js/agenda.js?v=1.5.0","./js/cofre-membros.js":"./js/cofre-membros.js?v=1.0.0"}}</script>
     <!-- RZ-IMPORTMAP:FIM -->
 
     <!-- ===== PWA: permite "instalar" o app no celular (Android e iPhone) ===== -->
@@ -4451,7 +4449,7 @@
         // texto certo toda vez (esqueci 5 versões seguidas, de v1.37.1 até
         // v1.38.3). Agora só precisa mudar UMA linha aqui a cada release;
         // window.onload aplica nos dois lugares automaticamente.
-        const APP_VERSAO = "Beta v1.432.0"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
+        const APP_VERSAO = "Beta v1.432.1"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
 
         // ====================================================================
         // v1.105.0 — HELPERS DE SUPERFÍCIE DA GRAMÁTICA ÚNICA

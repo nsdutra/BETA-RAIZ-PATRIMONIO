@@ -4,6 +4,21 @@ Histórico completo de versões do `index.html`, movido automaticamente pelo `ge
 
 ---
 
+NOVIDADES (Beta v1.430.0) — FATIA 8, HOJE POR RAMO (FICHA_FATIA8_HOJE_POR_RAMO_RAIZ v1.2.0 e PROTOTIPO_HOJE_COCKPIT_RAMOS_RAIZ
+v1.0.0, de acordo do Nicola 16/10 01:09 e 09:43): em Todo o patrimônio, o card Resultado por ramo (receita × despesa,
+margem, patrimônio, Geral e Consolidado; tocar abre a lente). Todo número do herói compara com o ano anterior e o
+resultado tem a linha do ano. Cada ramo tem os seus números: Família (por vida), Outros bens (custo por bem), Agro (safras,
+sacas, custo por saca e por hectare), Obras (avanço físico × financeiro), Pecuária (rebanho, prenhez, partos, vendas). Os
+avisos dos animais viram alertas do Motor (Todos e a lente) e abrem a ficha do animal; o anel da Pecuária diz "N animais
+em M lotes". resultados.js 2.11.0. Banco: usos_fatia8_alertas_v1, usos_fatia8_funcoes_v1.
+Versão anterior (Beta v1.429.0):
+------------------------------------------------------------------
+Versões anteriores (v1.429.0 … v1.429.0): CHANGELOG_APP.md, na raiz do
+repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
+das 5 versões mais recentes deste cabeçalho.
+
+---
+
 NOVIDADES (Beta v1.429.0) — CORREÇÃO (Nicola 16/10 09:30): em Ativos o botão "+" voltou ao lugar (desde a 1.427.0, sem a vista
 Contratos, ele subia para baixo do cabeçalho e sumia); no computador o conteúdo ocupa a área central toda, até 1280 px
 (era 820 px).

@@ -1,6 +1,11 @@
 // ============================================================================
 // cofre-validacoes.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 2.8.0 · 16/10/2026
+// Versão: 2.9.0 · 18/10/2026
+//
+// v2.9.0 (18/10/2026, sessão 20261018-2343-carga-silva-l4a, demanda 9404081c; FICHA_LOTES_4_5 v1.1.0, de acordo do Nicola 18/10
+// 23:43) — L4-B/L4-C: campo do tipo substitui o da categoria com a mesma chave e 'oculto' tira campo ou bloco (fazenda sem rua);
+// na lente de um ramo entram os tipos ligados a um uso desse ramo (ramos_uso, montado por cofre-api.js).
+// Versão anterior: 2.8.0 · 16/10/2026
 //
 // v2.8.0 (16/10/2026, sessão 20261016-0105-usos-fatia7-fix, demanda 3022603b; achado do Nicola 16/10 01:03) — rótulo e ícone
 // das categorias Agro e Pecuária (rotuloTipoAtivo, iconeAtivo), que o novo ativo passa a oferecer (cofre-ativos.js 1.115.0).
@@ -21,16 +26,11 @@
 // v2.5.0 (10/10/2026, sessão 20261008-1231-pessoas-ativos, demanda f3e6cd27 — fichas F21/F22): o catálogo de tipos traz
 // ramo e segmento (ativo_tipos.ramo/segmento). tipoDoCatalogo(id) devolve o tipo; listarTiposPorCategoria aceita
 // { ramo } para o formulário de novo ativo oferecer só os tipos do ramo da lente e de ramos já ativos.
-// Versão anterior: 2.4.2.
-//
-// v2.4.1 (07/10/2026, sessão 20261007-1721-rolo-changelog, demanda 2507d554 — VER-06, "de acordo" do Nicola 07/10 17:21) — SÓ
-// CABEÇALHO: as versões além das 5 mais recentes rolaram para o CHANGELOG_MODULOS.md.
-// Nenhuma linha de código mudou — conferido token a token contra o publicado.
 // --------------------------------------------------------------------------
-// Versões anteriores (v2.4.0 … v2.4.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v2.4.1 … v2.4.1): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '2.8.0'; // v-check (18/09/2026): lido por Dev › Versões — manter igual ao header
+export const VERSAO = '2.9.0'; // v-check (18/09/2026): lido por Dev › Versões — manter igual ao header
 export function escapeHtml(s) {
     return (s ?? '').toString().replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 }
@@ -279,7 +279,7 @@ export function listarTiposPorCategoria(categoria, opcoes = null) {
     const ramo = opcoes && opcoes.ramo;
     const ramoAtivo = ramoLiberado; // v2.7.0 (fatia 6a): ativo e contratado
     return _catalogoAtivoTipos
-        .filter(t => t.categoria === categoria && (!opcoes || ((ramo === 'tudo' || !ramo || t.ramo === ramo) && ramoAtivo(t.ramo))))
+        .filter(t => t.categoria === categoria && (!opcoes || ((ramo === 'tudo' || !ramo || t.ramo === ramo || (t.ramos_uso || []).includes(ramo)) && ramoAtivo(t.ramo))))
         .map(t => ({ id: t.id, codigo: t.codigo, nome: t.nome }));
 }
 
@@ -304,7 +304,8 @@ export function categoriasDoRamo(ramo) {
 }
 function listarTiposPorCategoriaTodas(ramo) {
     const ramoAtivo = ramoLiberado; // v2.7.0 (fatia 6a): ativo e contratado
-    return _catalogoAtivoTipos.filter(t => (ramo === 'tudo' || !ramo || t.ramo === ramo) && ramoAtivo(t.ramo)).map(t => t.categoria);
+    // v2.9.0 (L4-C, D2) — na lente de um ramo entram também os tipos ligados a um uso desse ramo (Casa na lente Família, por Moradia)
+    return _catalogoAtivoTipos.filter(t => (ramo === 'tudo' || !ramo || t.ramo === ramo || (t.ramos_uso || []).includes(ramo)) && ramoAtivo(t.ramo)).map(t => t.categoria);
 }
 
 // Campos estruturados: categoria sempre, + os específicos do tipo_detalhe
@@ -313,11 +314,23 @@ function listarTiposPorCategoriaTodas(ramo) {
 // comportamento de antes de existir o 2º seletor).
 // v2.6.0 (fatia 3b) — contexto 'ativo' (solto) ou 'subativo' (unidade, área, integrante); linha 'ambos' vale nos dois
 const noContexto = (c, contexto) => !c.contexto || c.contexto === 'ambos' || c.contexto === (contexto || 'ativo');
+// v2.9.0 (L4-B, dem 9404081c) — linha do TIPO com a mesma chave substitui a da categoria (rótulo, opções, tipo de dado), e
+// tipo_dado 'oculto' tira o campo/bloco da categoria para aquele tipo (ex.: fazenda sem rua e número). Armadilha: sem a
+// substituição, a soma de categoria + tipo duplicava a chave e o formulário lia o mesmo id duas vezes.
+function linhasResolvidas(categoria, tipoDetalheId, contexto) {
+    const doTipo = new Map();
+    const base = [];
+    _catalogoAtivoCampos
+        .filter(c => c.categoria === categoria && (c.tipo_detalhe_id === null || c.tipo_detalhe_id === tipoDetalheId) && noContexto(c, contexto))
+        .forEach(c => { if (c.tipo_detalhe_id) doTipo.set(c.chave, c); else base.push(c); });
+    const out = base.filter(c => !doTipo.has(c.chave)).concat([...doTipo.values()]);
+    return out.filter(c => c.tipo_dado !== 'oculto');
+}
 export function obterCamposPorTipo(categoria, tipoDetalheId = null, contexto = 'ativo') {
     if (!_catalogoAtivoCampos) return CAMPOS_POR_TIPO_ATIVO_FALLBACK[categoria] || [];
     const daCategoria = _catalogoAtivoCampos.filter(c => c.categoria === categoria);
-    const campos = daCategoria
-        .filter(c => c.tipo_dado !== 'bloco' && (c.tipo_detalhe_id === null || c.tipo_detalhe_id === tipoDetalheId) && noContexto(c, contexto))
+    const campos = linhasResolvidas(categoria, tipoDetalheId, contexto)
+        .filter(c => c.tipo_dado !== 'bloco')
         .sort((a, b) => (a.ordem ?? 0) - (b.ordem ?? 0))
         .map(c => ({ chave: c.chave, label: c.label, obrigatorio: !!c.obrigatorio, ...(c.tipo_dado && c.tipo_dado !== 'text' ? { tipo: c.tipo_dado } : {}),
                      ...(c.mascarar ? { mascarar: true } : {}), ...(Array.isArray(c.opcoes) ? { opcoes: c.opcoes } : {}) }));
@@ -326,14 +339,11 @@ export function obterCamposPorTipo(categoria, tipoDetalheId = null, contexto = '
     return daCategoria.length ? campos : (CAMPOS_POR_TIPO_ATIVO_FALLBACK[categoria] || []);
 }
 // v2.6.0 (fatia 3b) — blocos fixos do formulário (linhas tipo_dado = 'bloco'): Set de chaves, ou null sem catálogo de
-// blocos (quem chama mantém o formulário de antes).
+// blocos (quem chama mantém o formulário de antes). v2.9.0 — a linha 'oculto' do tipo tira o bloco.
 export function blocosDoFormulario(categoria, tipoDetalheId = null, contexto = 'ativo') {
     if (!_catalogoAtivoCampos || !_catalogoAtivoCampos.some(c => c.tipo_dado === 'bloco')) return null;
-    return new Set(_catalogoAtivoCampos
-        .filter(c => c.tipo_dado === 'bloco' && c.categoria === categoria && (c.tipo_detalhe_id === null || c.tipo_detalhe_id === tipoDetalheId) && noContexto(c, contexto))
-        .map(c => c.chave));
+    return new Set(linhasResolvidas(categoria, tipoDetalheId, contexto).filter(c => c.tipo_dado === 'bloco').map(c => c.chave));
 }
-
 
 // Retorna lista de mensagens de erro (vazia = válido). Não lança exceção —
 // quem chama decide como mostrar (mesmo padrão dos indicadores inline do
@@ -346,6 +356,14 @@ export function validarCamposAtivo(tipoAtivo, nomeExibicao, dadosEspecificos, ti
         if (campo.obrigatorio && !(dadosEspecificos && dadosEspecificos[campo.chave])) {
             erros.push(`${campo.label} é obrigatório para este tipo de ativo.`);
         }
+        // v2.9.0 (L4-B) — coordenadas: as duas partes, latitude entre -90 e 90 e longitude entre -180 e 180
+        const v = dadosEspecificos && dadosEspecificos[campo.chave];
+        if (campo.tipo === 'coordenadas' && v) {
+            const [la, ln] = String(v).split(',').map(x => parseFloat((x || '').trim()));
+            if (!(Number.isFinite(la) && Number.isFinite(ln) && Math.abs(la) <= 90 && Math.abs(ln) <= 180))
+                erros.push(`${campo.label}: informe latitude e longitude em graus (ex.: -21.2510 e -45.0012).`);
+        }
+        if (campo.tipo === 'tamanho' && v && !(parseFloat(v) >= 0)) erros.push(`${campo.label}: informe um número.`);
     }
     return erros;
 }
