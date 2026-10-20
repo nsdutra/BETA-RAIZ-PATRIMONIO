@@ -1,6 +1,10 @@
 // ============================================================================
 // cofre-ativos.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.128.0 · 19/10/2026
+// Versão: 1.129.0 · 19/10/2026
+//
+// v1.129.0 (19/10/2026, sessão 20261019-2217-carga-silva-arrend, demanda 9404081c item 59; print do Nicola 22:19 — "1981-08-29")
+// — Dados do ativo: campo de data (ex.: Data de nascimento) aparece como dd/mm/aaaa, não no formato do banco.
+// Versão anterior: 1.128.0 · 19/10/2026
 //
 // v1.128.0 (19/10/2026, sessão 20261019-1931-carga-silva-correcoes, demanda 9404081c item 52, de acordo do Nicola 19:31) — o
 // contrato pela ficha do ativo deixa de ser só de imóvel: aceita também o tipo que o catálogo libera para um uso com contrato
@@ -19,18 +23,11 @@
 // v1.125.0 (19/10/2026, sessão 20261019-1705-carga-silva-faixa, demanda 9404081c, item 45; Nicola 19/10 17:02) — cabeçalho do
 // ramo vira faixa na cor do ramo, de ponta a ponta (ícone maior com o contador, nome e a soma à direita); saem as 3 caixas e o
 // "Ver só"/"Ver todos". Tocar no ramo da árvore do Hoje abre Patrimônio na faixa daquele ramo.
-// Versão anterior: 1.124.0 · 19/10/2026
-//
-// v1.124.0 (19/10/2026, sessão 20261019-1250-carga-silva-patrimonio, demanda 9404081c, itens 40, 43 e 44; PROTOTIPO_PATRIMONIO_RAMOS
-// v1.0.0 opção A, decisões do Nicola 19/10 12:44) — em Todo o patrimônio, um grupo por ramo com o card que estava no Hoje
-// (ícone do ramo, Valor ou Vidas, quantidade, alertas) e "Ver só ›", que filtra só esta tela (verSoRamoPatrimonio; o chip
-// "Ver todos" desfaz; trocar a lente do app também); Arquivados abre pelo ⋮ (verArquivados) e sai dos chips; as áreas ficam
-// ligadas ao ícone do principal por uma linha (CSS .rz-subs no index); empreendimento só agrupa com mais de 10 ativos.
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.123.0 … v1.123.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.124.0 … v1.124.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '1.128.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.129.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 import { estado } from './cofre-estado.js';
 import * as api from './cofre-api.js';
 import { mostrarToast, erroInline, refrescarIcones, alternarToggle, abrirModal, fecharModal, modalGenerico, perguntar, avisarComDesfazer, escolher } from './cofre-ui.js';
@@ -3524,7 +3521,9 @@ async function montarDadosAtivo(a) {
     } else if (camposPreenchidos.length === 0) {
         resumo.innerHTML = `<p class="rz-desc${ehImovelVinculado ? ' mt-2' : ''}">Nenhum campo específico ainda.</p>`;
     } else {
-        const kv = camposPreenchidos.map(c => `<div><small>${escapeHtml(c.label)}</small><b>${c.mascarar ? mascarar(dados[c.chave]) : escapeHtml(dados[c.chave])}</b></div>`).join('');
+        // v1.129.0 (item 59) — data no padrão do app (dd/mm/aaaa)
+        const dataBR = (v) => /^\d{4}-\d{2}-\d{2}$/.test(String(v)) ? String(v).slice(8, 10) + '/' + String(v).slice(5, 7) + '/' + String(v).slice(0, 4) : v;
+        const kv = camposPreenchidos.map(c => `<div><small>${escapeHtml(c.label)}</small><b>${c.mascarar ? mascarar(dados[c.chave]) : escapeHtml(dataBR(dados[c.chave]))}</b></div>`).join('');
         resumo.innerHTML = `<div class="rz-kv${ehImovelVinculado ? ' mt-2' : ''}">${kv}</div>`;
     }
     if (a.tipo_ativo === 'vida') { resumo.insertAdjacentHTML('beforeend', '<div id="fa-pessoa-cad" class="mt-2"></div>'); desenharPessoaDoAtivo(a); } // v1.100.0 (d6a6f577)

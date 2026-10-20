@@ -1,6 +1,13 @@
 // ============================================================================
 // cofre-controles.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.63.1 · 19/10/2026
+// Versão: 1.64.0 · 19/10/2026
+//
+// v1.64.0 (19/10/2026, sessão 20261019-2217-carga-silva-arrend, demanda 9404081c item 56; pedido do Nicola 22:17, print do Lili Dog
+// › "Saúde do pet · 0 itens") — o ⋮ do programa ganha "Excluir programa" (fn_programa_excluir): sem vínculo, sai com os itens
+// que ele criou, as safras/etapas e as ocorrências em aberto; o item que já existia no ativo antes do aceite só sai do programa.
+// Com vínculo (lançamento, ocorrência tratada, documento, rateio), o banco recusa com a lista e a dica de usar Concluir.
+// Depois o programa volta a aparecer como sugerido.
+// Versão anterior: 1.63.1 · 19/10/2026
 //
 // v1.63.1 (19/10/2026, sessão 20261019-2141-carga-silva-safra2, demanda 9404081c item 54; print do Nicola 19/10 21:38) — na tela
 // da safra: os itens (Agora, Da safra inteira, Do programa) voltam a ocupar a largura toda, alinhados à esquerda (a linha
@@ -32,20 +39,11 @@
 // itens de agora, da safra e do programa, e as folhas Abrir, Avançar (levar ou concluir cada item aberto; itens da próxima
 // marcados), Pular/Retomar/Voltar fase com motivo, Fechar a safra (resultado e "abrir a próxima"), Reabrir, Concluir a obra
 // (o lote pode virar Casa) e "+ Do catálogo". Regra no banco (fn_execucao_*, fn_fase_*, fn_ciclo_*).
-// Versão anterior: 1.60.0 · 15/10/2026
-//
-// v1.60.0 (15/10/2026, sessão 20261014-2345-usos-fatia4, demanda 3022603b; FICHA_FATIA4_PROGRAMAS_RAIZ v1.2.0, de acordo do
-// Nicola 14/10 21:42 e 23:34) — PROGRAMAS no chip Controles: "Programa sugerido" com Aceitar e Agora não (fn_ativo_programas);
-// os itens agrupados sob o programa (nome, quantos itens, o próximo e o ⋮ com Pausar, Retomar e Concluir pela porta única
-// fn_status_transicionar) e o resto em "Outros itens"; a folha "Aceitar <programa>" com caixas e a data que o item pede
-// (vence em, última vez em, 1ª data e valor de pagamento; próxima nos demais), que grava por fn_programa_aceitar (o item que
-// já existe no ativo entra no programa, sem duplicar); "Programas" lista todos os que servem ao ativo
-// (window.__rzAbrirProgramas, chamado pelo ⋮ do ativo e pelo "Adicionar item de controle").
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.59.0 … v1.59.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.60.0 … v1.60.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '1.63.1'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.64.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 import { estado } from './cofre-estado.js';
 import * as api from './cofre-api.js';
 import { mostrarToast, refrescarIcones, abrirModal, fecharModal, modalGenerico, perguntar, escolher, avisarComDesfazer } from './cofre-ui.js';
@@ -492,7 +490,30 @@ function abrirAcoesPrograma(id) {
         titulo: `${ex.aberta ? 'Ver' : 'Abrir'} a ${ex.tem_etapas ? 'obra' : (ex.ciclo_rotulo || 'ciclo').toLowerCase()}`,
         sub: ex.aberta ? `${ex.fase_atual || ''} (${ex.posicao} de ${ex.total})` : (ex.tem_etapas ? 'Etapas e custo' : 'Fases e custo'), aoTocar: () => abrirExecucao(p.id) }] : [];
     sheetAcoes({ titulo: p.nome, sub: estado.ativoEmFoco?.nome_exibicao || '', acoes: [...exAcao, ...(p.acoes || []).map(m => ({
-        icone: ICONE[m.acao] || 'circle-dot', titulo: m.rotulo + ' programa', codigo: m.codigo, sub: SUB[m.acao] || '', aoTocar: () => transicionarPrograma(p, m) }))] });
+        icone: ICONE[m.acao] || 'circle-dot', titulo: m.rotulo + ' programa', codigo: m.codigo, sub: SUB[m.acao] || '', aoTocar: () => transicionarPrograma(p, m) })),
+        { icone: 'trash-2', titulo: 'Excluir programa', codigo: 'programas.aceitar', sub: 'Só sem vínculo', tipo: 'bad', aoTocar: () => excluirPrograma(p) }] }); // v1.64.0
+}
+// v1.64.0 (item 56) — excluir o programa aceito por engano (ou sem uso). A regra (vínculos, item que já existia) fica no banco.
+function excluirPrograma(p) {
+    if (typeof window.abrirSheetForm !== 'function') { mostrarToast('Abra pelo app principal.', 'erro'); return; }
+    const n = Number(p.qtd_itens ?? p.itens ?? 0) || 0;
+    window.abrirSheetForm({
+        titulo: 'Excluir ' + p.nome, sub: estado.ativoEmFoco?.nome_exibicao || '', rotuloSalvar: 'Excluir',
+        corpo: `<p class="rz-desc">Sai o programa${n ? ' com os itens que ele criou' : ''}, as safras ou etapas e as ocorrências em aberto. Item que já existia no ativo continua, só fora do programa. Não dá para desfazer.</p>
+            <p class="rz-desc">Com lançamento, ocorrência tratada, documento ou rateio, o app mostra o que desfazer. Para guardar o histórico, use Concluir.</p>
+            <div class="rz-f"><label for="prog-x-motivo">Motivo</label><input type="text" id="prog-x-motivo" maxlength="200" placeholder="Ex.: aceitei por engano"></div>`,
+        aoSalvar: async (el) => {
+            const motivo = (el.querySelector('#prog-x-motivo')?.value || '').trim();
+            if (!motivo) { mostrarToast('Diga o motivo.', 'erro'); return false; }
+            const { data, error } = await api.dbAuth.rpc('fn_programa_excluir', { p_ativo_programa_id: p.id, p_motivo: motivo, p_canal: 'app' });
+            if (error) { mostrarToast(error.message || 'Não foi possível excluir.', 'erro'); return false; }
+            mostrarToast(data?.mensagem || 'Programa excluído.', 'sucesso');
+            emitirEscrita('controle', { ativo: estado.ativoEmFoco?.id, acao: 'programa_excluir' });
+            window.dispatchEvent(new CustomEvent('cofre:recarregar-eventos'));
+            await recarregarControlesDoAtivo();
+            return true;
+        },
+    });
 }
 async function transicionarPrograma(p, m) {
     const executar = async (motivo) => {

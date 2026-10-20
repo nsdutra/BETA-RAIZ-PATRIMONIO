@@ -1,7 +1,17 @@
 // ============================================================================
 // contratos.js — Raiz Patrimônio · Contratos (lista · ficha · formulário ·
 //                 status/reajuste/detalhes · fiadores · documentos · histórico)
-// Versão: 1.61.0 · 19/10/2026
+// Versão: 1.62.0 · 19/10/2026
+//
+// v1.62.0 (19/10/2026, sessão 20261019-2217-carga-silva-arrend, demanda 9404081c item 55; ficha aprovada pelo Nicola 21:54 e 22:17)
+// — CONTRATO DE ARRENDAMENTO RURAL com os campos do tipo (contratos.dados_modelo): Atividade (define o prazo mínimo do
+// Decreto 59.566/66: 3, 5 ou 7 anos — aviso, não bloqueia), Área arrendada (ha, vem da área do bem), Pagamento (anual, na
+// colheita ou mensal, com mês e dia: o anual e o da colheita geram um recebimento por ano no banco), Equivalente em produto
+// (só referência; o preço segue em R$), ITR e CCIR (quem paga), Benfeitorias e bens incluídos e Valor cadastral (VTN, opcional:
+// avisa quando o valor passa de 15%). Saem do formulário: Encargos (IPTU/condomínio), Aluguel antecipado e Desconto de
+// energia; o Dia de vencimento vem do Pagamento. Reajuste e revisional seguem o caminho de sempre (o reajuste "pelo produto"
+// ficou no backlog).
+// Versão anterior: 1.61.0 · 19/10/2026
 //
 // v1.61.0 (19/10/2026, sessão 20261019-1931-carga-silva-correcoes, demanda 9404081c item 52, de acordo do Nicola 19:31) — no
 // contrato de Arrendamento (modelo 'arrendamento', aberto pela gleba ou pela fazenda) o formulário fala a língua do campo:
@@ -22,15 +32,8 @@
 // v1.58.0 (14/10/2026, sessão 20261014-2130-ajustes-9b, demanda a05ad2ee; onda 9b do estudo PROTOTIPO_UX_DENSIDADE_RAMOS_RAIZ
 // v1.2.0, D6 seção 10) — textos no limite: ação até 24 caracteres, descrição até 28 (só quando muda a decisão), aviso até
 // 40 com o resultado. A explicação longa fica na confirmação, que já existia. Nada de comportamento mudou.
-// Versão anterior: 1.57.0 · 14/10/2026
-//
-// v1.57.0 (14/10/2026, sessão 20261014-0045-usos-fatia2, demanda 3022603b; FICHA_FATIA2_CONTRATOS_POR_TIPO_RAIZ v1.0.0, "De
-// acordo nas opções dadas" do Nicola 14/10 00:40) — contratos por tipo: campo "Tipo de contrato" no formulário (só tipos do
-// modelo; vem do "Adicionar uso"); o tipo preenche a revisional (típico longo: 36 meses), esconde no atípico e avisa
-// quando o prazo não combina (não bloqueia); depois de salvar um contrato novo abre "Itens sugeridos" com caixas
-// (fn_catalogo_sugestoes → fn_contrato_itens_sugeridos_criar, só os marcados); o tipo aparece no cabeçalho e nos Dados.
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.56.0 … v1.56.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.57.0 … v1.57.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
 import { avaliarProntidaoContratoParaMinuta } from './minutas.js'; // v1.0.1
@@ -42,7 +45,7 @@ import { emitirEscrita, aoEscrever } from './raiz-eventos.js'; // v1.18.0 — Fa
 import { renderizarBlocoEndereco, lerBlocoEndereco } from './comum-endereco.js';
 import { formatarEnderecoParte } from './comum-partes.js';
 
-export const VERSAO = '1.61.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.62.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 
 /** Ponto de entrada do switchTab('tab-contratos'). */
 export function montarAbaContratos() {
@@ -3550,7 +3553,8 @@ if (!window.__rzListenerEscritaParteContratoLigado) {
 
                 cpf: docVal,
 
-                vencimentoDia: parseInt(document.getElementById('con-vencimento-dia').value),
+                vencimentoDia: lerDadosModeloContrato() ? (parseInt(document.getElementById('con-arr-dia')?.value, 10) || 15) : parseInt(document.getElementById('con-vencimento-dia').value), // v1.62.0: no arrendamento, o dia do Pagamento
+                dadosModelo: lerDadosModeloContrato(), // v1.62.0 (item 55) — null fora do arrendamento
 
                 alugelAntecipado: document.getElementById('con-antecipado').value,
 
@@ -4017,6 +4021,103 @@ if (!window.__rzListenerEscritaParteContratoLigado) {
                 if (arr) { const t = orig.trim(); TROCAS.forEach(([re, por]) => { novo = re.global ? novo.replace(re, por) : (re.test(t) ? novo.replace(t, t.replace(re, por)) : novo); }); }
                 if (n.nodeValue !== novo) n.nodeValue = novo;
             }
+            aplicarBlocoArrendamento(arr); // v1.62.0 (item 55)
+        }
+
+        // ---------------------------------------------------------------------------------------------------------------
+        // v1.62.0 (item 55) — campos do Arrendamento rural (contratos.dados_modelo). Prazo mínimo: Decreto 59.566/66, art. 13.
+        // ---------------------------------------------------------------------------------------------------------------
+        let _dadosModeloEmEdicao = null;
+        const ARR_ATIVIDADES = [
+            ['lavoura_permanente', 'Lavoura permanente (ex.: café)', 5], ['lavoura_temporaria', 'Lavoura temporária (ex.: soja, milho)', 3],
+            ['pecuaria_pequena', 'Pecuária de pequeno ou médio porte', 3], ['pecuaria_grande', 'Pecuária de grande porte', 5], ['florestal', 'Exploração florestal', 7]];
+        const ARR_MESES = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez'];
+        function arrEl(id) { return document.getElementById(id); }
+        function garantirBlocoArrendamento() {
+            let b = arrEl('con-arr-bloco'); if (b) return b;
+            const ref = arrEl('con-card-encargos'); if (!ref) return null;
+            ref.insertAdjacentHTML('beforebegin', `<div class="rz-card hidden" id="con-arr-bloco">
+                <p class="rz-group" style="margin-top:0">Arrendamento rural</p>
+                <div class="rz-f"><label for="con-arr-atividade">Atividade</label><select id="con-arr-atividade">${ARR_ATIVIDADES.map(([v, l, a]) => `<option value="${v}">${escapeHtmlSaidas(l)} · mín. ${a} anos</option>`).join('')}</select></div>
+                <div class="rz-f2 rz-f2-curto">
+                    <div class="rz-f"><label for="con-arr-area">Área arrendada (ha)</label><input type="number" step="0.01" min="0" inputmode="decimal" id="con-arr-area"></div>
+                    <div class="rz-f"><label for="con-arr-itr">ITR e CCIR: quem paga</label><select id="con-arr-itr"><option value="arrendador">Arrendador</option><option value="arrendatario">Arrendatário</option></select></div>
+                </div>
+                <div class="rz-f2 rz-f2-curto">
+                    <div class="rz-f"><label for="con-arr-pagamento">Pagamento</label><select id="con-arr-pagamento"><option value="anual">Anual</option><option value="colheita">Na colheita</option><option value="mensal">Mensal</option></select></div>
+                    <div class="rz-f" id="con-arr-mes-box"><label for="con-arr-mes">Mês</label><select id="con-arr-mes">${ARR_MESES.map((m, i) => `<option value="${i + 1}">${m}</option>`).join('')}</select></div>
+                    <div class="rz-f"><label for="con-arr-dia">Dia</label><input type="number" min="1" max="31" id="con-arr-dia" value="15"></div>
+                </div>
+                <span class="rz-hint" id="con-arr-hint-pg">Anual ou na colheita: um recebimento por ano, com o valor do ano.</span>
+                <p class="rz-group">Equivalente em produto <small>(opcional, só referência)</small></p>
+                <div class="rz-f2 rz-f2-curto">
+                    <div class="rz-f"><label for="con-arr-qtd">Quantidade</label><input type="number" step="0.01" min="0" inputmode="decimal" id="con-arr-qtd" placeholder="Ex.: 18"></div>
+                    <div class="rz-f"><label for="con-arr-unidade">Unidade e produto</label><input type="text" maxlength="60" id="con-arr-unidade" placeholder="Ex.: sacas de 60 kg de café"></div>
+                </div>
+                <span class="rz-hint">O preço do contrato fica em R$: fixar o preço só em produto pode ser anulado.</span>
+                <div class="rz-f"><label for="con-arr-benf">Benfeitorias e bens incluídos</label><textarea id="con-arr-benf" rows="2" maxlength="600" placeholder="Ex.: terreiro, tulha, casa de colono"></textarea></div>
+                <div class="rz-f"><label for="con-arr-vtn">Valor cadastral do imóvel (VTN, R$) <small>(opcional)</small></label><input type="number" step="0.01" min="0" inputmode="decimal" id="con-arr-vtn">
+                    <span class="rz-hint">Com ele, o app avisa quando o valor passa de 15% (Estatuto da Terra, art. 95).</span></div>
+                <p class="rz-desc" id="con-arr-aviso" style="color:var(--warning)"></p>
+            </div>`);
+            b = arrEl('con-arr-bloco');
+            ['con-arr-atividade', 'con-arr-pagamento', 'con-arr-vtn', 'con-inicio', 'con-fim', 'con-valor'].forEach(id => arrEl(id)?.addEventListener('change', avisosArrendamento));
+            arrEl('con-arr-pagamento')?.addEventListener('change', () => { arrEl('con-arr-mes-box')?.classList.toggle('hidden', arrEl('con-arr-pagamento').value === 'mensal'); });
+            return b;
+        }
+        function aplicarBlocoArrendamento(arr) {
+            const b = arr ? garantirBlocoArrendamento() : arrEl('con-arr-bloco');
+            if (b) b.classList.toggle('hidden', !arr);
+            arrEl('con-card-encargos')?.classList.toggle('hidden', arr);
+            ['con-antecipado', 'con-desconto-energia', 'con-vencimento-dia'].forEach(id => arrEl(id)?.closest('.rz-f')?.classList.toggle('hidden', arr));
+            const venc = arrEl('con-vencimento-dia'); if (venc) { if (arr) venc.removeAttribute('required'); else venc.setAttribute('required', ''); }
+            if (!arr) return;
+            const dm = _dadosModeloEmEdicao || {};
+            const pg = dm.pagamento || {};
+            const pr = dm.produto || {};
+            const imo = (typeof imoveis !== 'undefined' ? imoveis : []).find(i => i.id === arrEl('con-imovel')?.value);
+            const pôr = (id, v) => { const e = arrEl(id); if (e && v !== undefined && v !== null && v !== '') e.value = v; };
+            pôr('con-arr-atividade', dm.atividade || 'lavoura_permanente');
+            pôr('con-arr-area', dm.area_ha ?? (imo && imo.tamanho ? Math.round(imo.tamanho / 100) / 100 : ''));
+            pôr('con-arr-itr', dm.itr_paga || 'arrendador');
+            pôr('con-arr-pagamento', pg.periodicidade || 'anual');
+            pôr('con-arr-mes', pg.mes || 7);
+            pôr('con-arr-dia', pg.dia || 15);
+            pôr('con-arr-qtd', pr.quantidade); pôr('con-arr-unidade', pr.unidade);
+            pôr('con-arr-benf', dm.benfeitorias); pôr('con-arr-vtn', dm.vtn);
+            arrEl('con-arr-mes-box')?.classList.toggle('hidden', arrEl('con-arr-pagamento')?.value === 'mensal');
+            avisosArrendamento();
+        }
+        function avisosArrendamento() {
+            const aviso = arrEl('con-arr-aviso'); if (!aviso || arrEl('con-arr-bloco')?.classList.contains('hidden')) return;
+            const msgs = [];
+            const at = ARR_ATIVIDADES.find(a => a[0] === arrEl('con-arr-atividade')?.value);
+            const ini = arrEl('con-inicio')?.value, fim = arrEl('con-fim')?.value;
+            if (at && ini && fim && fim > ini) {
+                const a = new Date(ini + 'T00:00:00'), b = new Date(fim + 'T00:00:00');
+                const meses = (b.getFullYear() - a.getFullYear()) * 12 + (b.getMonth() - a.getMonth()) + (b.getDate() >= a.getDate() ? 0 : -1);
+                if (meses < at[2] * 12) msgs.push(`Prazo de ${Math.floor(meses / 12)} ano(s) e ${meses % 12} mês(es): o mínimo para ${at[1].toLowerCase()} é ${at[2]} anos.`);
+            }
+            const vtn = parseFloat(arrEl('con-arr-vtn')?.value || ''), val = parseFloat(arrEl('con-valor')?.value || '');
+            const anual = arrEl('con-arr-pagamento')?.value === 'mensal' ? val * 12 : val;
+            if (vtn > 0 && anual > 0 && anual > vtn * 0.15) msgs.push(`O valor anual passa de 15% do valor cadastral (${formatarMoedaBR(vtn * 0.15)}).`);
+            aviso.textContent = msgs.join(' ');
+        }
+        function lerDadosModeloContrato() {
+            const b = arrEl('con-arr-bloco');
+            if (!b || b.classList.contains('hidden')) return null;
+            const num = (id) => { const v = parseFloat(arrEl(id)?.value || ''); return Number.isFinite(v) ? v : null; };
+            const txt = (id) => (arrEl(id)?.value || '').trim() || null;
+            const per = arrEl('con-arr-pagamento')?.value || 'anual';
+            return {
+                atividade: arrEl('con-arr-atividade')?.value || null,
+                area_ha: num('con-arr-area'),
+                pagamento: { periodicidade: per, mes: per === 'mensal' ? null : (parseInt(arrEl('con-arr-mes')?.value, 10) || 1), dia: parseInt(arrEl('con-arr-dia')?.value, 10) || 15 },
+                produto: (num('con-arr-qtd') || txt('con-arr-unidade')) ? { quantidade: num('con-arr-qtd'), unidade: txt('con-arr-unidade') } : null,
+                itr_paga: arrEl('con-arr-itr')?.value || 'arrendador',
+                benfeitorias: txt('con-arr-benf'),
+                vtn: num('con-arr-vtn'),
+            };
         }
         function aplicarTipoNoFormContrato(aplicarPadrao) {
             const sel = document.getElementById('con-tipo-contrato'); if (!sel) return;
@@ -4363,6 +4464,7 @@ if (!window.__rzListenerEscritaParteContratoLigado) {
             document.getElementById('con-historico-bloco')?.classList.remove('hidden');
 
             document.getElementById('form-contrato-titulo').innerText = "Editar contrato";
+            _dadosModeloEmEdicao = con.dadosModelo || null; // v1.62.0 (item 55)
             prepararCampoTipoContrato(con.modelo || 'aluguel', con.tipoContrato || '', false).catch(err => console.warn('[contratos] tipo:', err.message)); // v1.57.0
 
             // v1.28.0 (demanda 11afd25f) — fiadores na mesma tela e endereço
@@ -4563,6 +4665,7 @@ if (!window.__rzListenerEscritaParteContratoLigado) {
         }
 
         export function cancelarEdicaoContrato() {
+            _dadosModeloEmEdicao = null; // v1.62.0
 
             activeConId = null;
 

@@ -1,7 +1,13 @@
 // ============================================================================
 // financeiro.js — Raiz Patrimônio · Financeiro (Recebimentos · Atrasados · Saídas
 //                  · conciliação de extrato · recibo · detalhe do recebimento)
-// Versão: 1.68.0 · 15/10/2026
+// Versão: 1.69.0 · 19/10/2026
+//
+// v1.69.0 (19/10/2026, sessão 20261019-2217-carga-silva-arrend, demanda 9404081c item 57; pedido do Nicola 22:17, print das Saídas
+// da Rumo) — tocar numa despesa mostra, como 1ª linha do sheet, o ATIVO a que ela está ligada (ou "Da empresa") e o destino
+// (programa, safra, fase ou item), sem precisar abrir o formulário; tocar na linha do ativo abre a ficha dele. Antes o
+// ativo só aparecia no fim do subtítulo, que cortava em nomes longos.
+// Versão anterior: 1.68.0 · 15/10/2026
 //
 // v1.68.0 (15/10/2026, sessão 20261015-2220-usos-fatia6b, demanda 3022603b; FICHA_FATIA6 F6-7 v1.3 e D6-4c, de acordo do Nicola
 // 15/10 22:16 e 22:27) — no ⋮ da despesa: "Destino" (o lançamento inteiro vai para a obra, a safra, a etapa ou o item;
@@ -24,16 +30,11 @@
 // v1.65.0 (14/10/2026, sessão 20261014-2145-onda9c-textos, demanda a05ad2ee; onda 9c do estudo PROTOTIPO_UX_DENSIDADE_RAMOS_RAIZ
 // v1.2.0, D6 seção 10) — textos no limite: ação até 24 caracteres, descrição até 28, aviso até 40 com o resultado e tela
 // vazia em 1 frase de até 40. A explicação longa fica na confirmação, quando existe. Nada de comportamento mudou.
-// Versão anterior: 1.64.0 · 14/10/2026
-//
-// v1.64.0 (14/10/2026, sessão 20261014-2130-ajustes-9b, demanda a05ad2ee; onda 9b do estudo PROTOTIPO_UX_DENSIDADE_RAMOS_RAIZ
-// v1.2.0, D6 seção 10) — textos no limite: ação até 24 caracteres, descrição até 28 (só quando muda a decisão), aviso até
-// 40 com o resultado. A explicação longa fica na confirmação, que já existia. Nada de comportamento mudou.
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.63.0 … v1.63.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.64.0 … v1.64.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '1.68.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.69.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 
 // v1.17.0 (Fase 1 do wrapper de escrita, rollout Financeiro) — emitirEscrita
 // é o evento padrão pra "algo mudou que módulos DE FORA deste arquivo podem
@@ -1152,6 +1153,10 @@ function financeiroRenderCabecalho(aba) {
             if (d.faturaId) { financeiroAbrirFatura(d.faturaId); return; } // compra de cartão se paga pela fatura, nunca sozinha
             const [urlComprovante, origem, extras] = await Promise.all([comprovanteDaDespesa(d), origemDaDespesa(d), lancExtrasDestino(id)]); // v1.68.0: destino e divisão
             // v1.29.0 (RF-18.22) — 1ª ação mostra de onde a despesa veio e abre o item.
+            // v1.69.0 (item 57) — o ativo da despesa à vista, como 1ª linha (abre a ficha); sem ativo, "Da empresa"
+            const acaoAtivo = [{ icone: d.ativoId ? 'building-2' : 'briefcase', titulo: d.ativoId ? 'Ativo: ' + (d.ativoNome || 'sem nome') : 'Da empresa',
+                sub: extras?.destinoNome ? 'Destino: ' + extras.destinoNome : (d.ativoId ? 'Abrir a ficha do ativo' : 'Sem ativo ligado'),
+                aoTocar: () => { if (d.ativoId && typeof window.abrirFichaAtivoNoChip === 'function') window.abrirFichaAtivoNoChip(d.ativoId, 'resumo'); } }];
             const acaoOrigem = origem ? [{ icone: 'link-2', titulo: `Origem: ${origem.titulo}`,
                 sub: `Ocorrência de ${formatarDataBR(origem.data)}${origem.daEmpresa ? ' · da empresa' : ''}`,
                 aoTocar: () => { if (typeof abrirAlertaItemControle === 'function') abrirAlertaItemControle(origem.itemId, origem.ativoId); } }] : [];
@@ -1166,6 +1171,7 @@ function financeiroRenderCabecalho(aba) {
             const sub = `${rotuloCategoriaSaida(d.categoria)}${d.parteNome ? ' · ' + escapeHtmlSaidas(d.parteNome) : ''}${d.ativoNome ? ' · ' + escapeHtmlSaidas(d.ativoNome) : ' · da empresa'}${d.reembolsavel ? ' · reembolsável' : ''}`;
             if (d.status === 'realizado') {
                 const acoesRealizado = [
+                    ...acaoAtivo,
                     ...acaoOrigem,
                     { icone: 'eye', titulo: 'Ver detalhe', aoTocar: () => abrirEditarDespesa(id) },
                 ];
@@ -1201,6 +1207,7 @@ function financeiroRenderCabecalho(aba) {
                 return;
             }
             abrirSheetAcoes({ titulo: estaAtrasadaDespesa(d) ? 'Em atraso' : 'A pagar', sub, acoes: [
+                ...acaoAtivo,
                 ...acaoOrigem,
                 ...financeiroAcaoConta('lancamento', id, d.contaId, (v) => { d.contaId = v; renderSaidas(); }), // v1.33.0
                 ...financeiroAcaoDivisao('lancamento', id, d.valor, d.divisaoAjustada, (aj) => { d.divisaoAjustada = aj; renderSaidas(); }), // v1.35.0

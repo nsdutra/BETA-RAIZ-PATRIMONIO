@@ -843,6 +843,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/cofre-api.js`
 
 //
@@ -1304,6 +1306,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 // supabase-js diretamente (Diretriz Arquitetural — Passo 2: responsabilidade
 // única por módulo).
 // ============================================================================
+
+---
 
 ---
 
@@ -2207,7 +2211,21 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/cofre-ativos.js`
+
+// Versão anterior: 1.124.0 · 19/10/2026
+//
+// v1.124.0 (19/10/2026, sessão 20261019-1250-carga-silva-patrimonio, demanda 9404081c, itens 40, 43 e 44; PROTOTIPO_PATRIMONIO_RAMOS
+// v1.0.0 opção A, decisões do Nicola 19/10 12:44) — em Todo o patrimônio, um grupo por ramo com o card que estava no Hoje
+// (ícone do ramo, Valor ou Vidas, quantidade, alertas) e "Ver só ›", que filtra só esta tela (verSoRamoPatrimonio; o chip
+// "Ver todos" desfaz; trocar a lente do app também); Arquivados abre pelo ⋮ (verArquivados) e sai dos chips; as áreas ficam
+// ligadas ao ícone do principal por uma linha (CSS .rz-subs no index); empreendimento só agrupa com mais de 10 ativos.
+// --------------------------------------------------------------------------
+// Versões anteriores (v1.123.0 … v1.123.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
+// mais recentes deste cabeçalho (VER-06).
 
 // Versão anterior: 1.123.0 · 19/10/2026
 //
@@ -3905,7 +3923,23 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/cofre-controles.js`
+
+// Versão anterior: 1.60.0 · 15/10/2026
+//
+// v1.60.0 (15/10/2026, sessão 20261014-2345-usos-fatia4, demanda 3022603b; FICHA_FATIA4_PROGRAMAS_RAIZ v1.2.0, de acordo do
+// Nicola 14/10 21:42 e 23:34) — PROGRAMAS no chip Controles: "Programa sugerido" com Aceitar e Agora não (fn_ativo_programas);
+// os itens agrupados sob o programa (nome, quantos itens, o próximo e o ⋮ com Pausar, Retomar e Concluir pela porta única
+// fn_status_transicionar) e o resto em "Outros itens"; a folha "Aceitar <programa>" com caixas e a data que o item pede
+// (vence em, última vez em, 1ª data e valor de pagamento; próxima nos demais), que grava por fn_programa_aceitar (o item que
+// já existe no ativo entra no programa, sem duplicar); "Programas" lista todos os que servem ao ativo
+// (window.__rzAbrirProgramas, chamado pelo ⋮ do ativo e pelo "Adicionar item de controle").
+// --------------------------------------------------------------------------
+// Versões anteriores (v1.59.0 … v1.59.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
+// mais recentes deste cabeçalho (VER-06).
 
 // Versão anterior: 1.58.0 · 14/10/2026
 //
@@ -4668,6 +4702,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 // não está implementado (geração automática de ocorrências recorrentes,
 // Central de Alertas consolidada).
 // ============================================================================
+
+---
 
 ---
 
@@ -5762,6 +5798,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/cofre-estado.js`
 
 //
@@ -5907,6 +5945,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 // v1.21.6 (Arquivar/RLS, sessão paralela) nem esta entrega — fechado
 // agora. Ver changelog completo em cofre.html v1.22.0 (merge das 2
 // sessões paralelas + badge fix + form fix + função Vendido).
+
+---
 
 ---
 
@@ -6495,6 +6535,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/cofre-ui.js`
 
 //
@@ -6526,6 +6568,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 // genérica, template de card, indicador de "liga/desliga" (Design System
 // v1.43.0 §2). Não importa cofre-api.js — não sabe nada de Supabase.
 // ============================================================================
+
+---
 
 ---
 
@@ -7169,6 +7213,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/comum-licenca.js`
 
 //
@@ -7311,6 +7357,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 // hospeda (index.html, cofre.html, ou um módulo futuro) é quem decide
 // COMO obtém esse client; este arquivo só usa o que recebe.
 // ============================================================================
+
+---
 
 ---
 
@@ -7747,6 +7795,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 // `dbAuth` já autenticado do host, por parâmetro (ver nota completa em
 // comum-licenca.js).
 // ============================================================================
+
+---
 
 ---
 
@@ -8565,6 +8615,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/comum-renovacao.js`
 
 //
@@ -8607,6 +8659,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 // jsdelivr (mesma origem já usada pelo app); se não carregar, o "copia e cola"
 // continua funcionando sozinho.
 // ============================================================================
+
+---
 
 ---
 
@@ -9133,7 +9187,21 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/contratos.js`
+
+// Versão anterior: 1.57.0 · 14/10/2026
+//
+// v1.57.0 (14/10/2026, sessão 20261014-0045-usos-fatia2, demanda 3022603b; FICHA_FATIA2_CONTRATOS_POR_TIPO_RAIZ v1.0.0, "De
+// acordo nas opções dadas" do Nicola 14/10 00:40) — contratos por tipo: campo "Tipo de contrato" no formulário (só tipos do
+// modelo; vem do "Adicionar uso"); o tipo preenche a revisional (típico longo: 36 meses), esconde no atípico e avisa
+// quando o prazo não combina (não bloqueia); depois de salvar um contrato novo abre "Itens sugeridos" com caixas
+// (fn_catalogo_sugestoes → fn_contrato_itens_sugeridos_criar, só os marcados); o tipo aparece no cabeçalho e nos Dados.
+// --------------------------------------------------------------------------
+// Versões anteriores (v1.56.0 … v1.56.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
+// mais recentes deste cabeçalho (VER-06).
 
 //
 // Versão anterior: 1.56.0 · 13/10/2026
@@ -10253,6 +10321,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/fechamento.js`
 
 // Versão anterior: 1.12.0.
@@ -10812,7 +10882,19 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/financeiro.js`
+
+// Versão anterior: 1.64.0 · 14/10/2026
+//
+// v1.64.0 (14/10/2026, sessão 20261014-2130-ajustes-9b, demanda a05ad2ee; onda 9b do estudo PROTOTIPO_UX_DENSIDADE_RAMOS_RAIZ
+// v1.2.0, D6 seção 10) — textos no limite: ação até 24 caracteres, descrição até 28 (só quando muda a decisão), aviso até
+// 40 com o resultado. A explicação longa fica na confirmação, que já existia. Nada de comportamento mudou.
+// --------------------------------------------------------------------------
+// Versões anteriores (v1.63.0 … v1.63.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
+// mais recentes deste cabeçalho (VER-06).
 
 // Versão anterior: 1.63.0 · 14/10/2026
 //
@@ -12398,6 +12480,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/fiscal.js`
 
 //
@@ -12494,6 +12578,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 // abrirSheet, abrirSheetAcoes, abrirSheetForm, rzSheetCabecalho, fecharSheet,
 // mostrarToast, switchTab, rzIcones, podeUsar, window.fechamentoAbrirChecklistFiscalAtualizado.
 // ============================================================================
+
+---
 
 ---
 
@@ -13065,6 +13151,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/minutas.js`
 
 //
@@ -13197,6 +13285,60 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
+## `js/nucleo/porta.js`
+
+// Versão anterior: 1.2.0.
+//
+// v1.2.0 (10/10/2026, sessão 20261010-1115-onda1b-escrita, demanda 6b11c602 — Onda 1b-1) — a porta
+// ganha a ESCRITA: os 9 sincronizar* (5 de item + 4 de lista, mais os 3 atalhos de prestador) saíram
+// do index.html pelo mesmo caminho da 1a, SEM UMA LINHA REESCRITA. Nenhum deles escreve em global do
+// index — foi medido função a função, e a única suspeita (SOCIO_PADRAO em sincronizarImovelSupabase)
+// era menção em comentário. O que eles PRECISAM são 5 arrays de estado vivo do index (contratos,
+// mensalidades, pessoas, repasses, empreendimentosCadastrados), que o index reatribui a cada
+// carregarTudo(): vêm por atualizarContexto() a cada chamada, pelo mesmo motivo de dbAuth — injetar
+// por valor uma vez deixaria o módulo com a lista velha.
+//
+// NÃO vieram nesta onda, de propósito: carregarAtivosParaSelectSupabase e carregarPartesParaSelect-
+// Supabase. Os caches deles (ativosParaSelect/partesParaSelect) têm 4 pontos de invalidação, e DOIS
+// estão dentro do js/financeiro.js, que faz `partesParaSelect = null` direto. Mover o cache para cá
+// sem mover a invalidação faria o seletor de partes nunca mais ver uma parte nova — falha silenciosa,
+// sem erro na tela. Pede ficha própria (1b-2).
+//// v1.1.0 (10/10/2026, sessão 20261010-0155-onda1-nucleo, demanda 6b11c602) — CORREÇÃO DE DEFEITO MEU,
+// achado pelo Nicola no teste 5 da v1.0.0: a VITRINE PÚBLICA parou de abrir, com a mensagem genérica
+// "Este link não abre mais: ele foi revogado, expirou ou está incompleto". Causa: instalarPorta()
+// exigia clienteId, e a vitrine pública roda ANTES de qualquer login (index.html, ramo
+// `ehVitrinePublica`) — ali CLIENTE_ID_SUPABASE ainda é null. O throw da instalação subia pela ponte e
+// caía no catch do js/vitrine.js, que mostra a mensagem de link expirado para QUALQUER erro. O link
+// estava perfeito; a porta é que se recusava a abrir. A guarda era mais rígida do que qualquer leitor
+// precisa: dos 14, só resolverVitrinePublicaSupabase dispensa cliente_id — e é exatamente o único que
+// roda sem sessão. Agora instalarPorta() exige só o db, e a exigência de cliente_id virou guarda POR
+// CHAMADA, em chamar(): quem precisa de cliente_id e não tem falha com erro nomeado, em vez de
+// consultar com null e devolver lista vazia em silêncio (que era o comportamento do index antigo).
+//// v1.0.0 (10/10/2026, sessão 20261010-0155-onda1-nucleo, demanda 6b11c602 — Onda 1a da
+// fragmentação, plano aprovado pelo Nicola 09/10 21:15) — primeiro módulo do núcleo.
+// Os 13 leitores saíram do index.html SEM UMA LINHA REESCRITA: o corpo de cada um veio
+// byte a byte, e o que mudou foi só ganhar "export" na frente e passar a resolver
+// dbAuth / CLIENTE_ID_SUPABASE / CONFIG_CLIENTE / SOCIO_PADRAO e os 5 ajudantes de
+// tradução pelas variáveis deste módulo, preenchidas uma vez por instalarPorta() —
+// mesma convenção de injeção do comum-licenca.js. Os nomes das funções NÃO mudaram,
+// então os 18 sítios de chamada do index seguem chamando carregarImoveisSupabase()
+// como antes, pela ponte window[nome] (ver "PORTA DE LEITURA" no index.html).
+//
+// Por que estes 13 e não os outros: são os leitores PUROS — consultam e devolvem, sem
+// escrever em nenhuma global do index. Os dois leitores com cache próprio
+// (carregarAtivosParaSelectSupabase, carregarPartesParaSelectSupabase) e os 9
+// sincronizar* (escrita) ficaram no index de propósito, para a Onda 1b: cache e
+// escrita mexem em estado e pedem ficha própria.
+//
+// Os 5 ajudantes de tradução (converterDataISOparaBR, dataParaCompetencia,
+// mapStatus*ParaAntigo) ficaram no index porque os sincronizar* também os usam —
+// duplicar seria violação da CAN-03. Entram aqui por injeção.
+// ============================================================================
+
+---
+
 ## `js/raiz-ui.js`
 
 //
@@ -13223,6 +13365,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 // 'warning' (UXR-35). Também publica window.rzToast/rzConfirmar/rzEscolher/
 // rzAviso para código inline do index.html.
 // ============================================================================
+
+---
 
 ---
 
@@ -13337,6 +13481,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 // que o bot usa); aqui só se monta o texto e o desenho — nunca se recalcula
 // (REL-02). Protótipo: raiz\docs\PROTOTIPO_RELATORIOS_FLUXO_GERENCIAL v1.1.0.
 // ============================================================================
+
+---
 
 ---
 
@@ -13960,6 +14106,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/vitrine.js`
 
 //
@@ -14080,6 +14228,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 // CLIENTE_ID_SUPABASE, dbAuth. Exclusivo (4) virou nível de módulo.
 // Indentação de origem mantida. Strict verificado.
 // ============================================================================
+
+---
 
 ---
 

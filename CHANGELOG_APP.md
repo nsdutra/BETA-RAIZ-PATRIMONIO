@@ -4,6 +4,16 @@ Histórico completo de versões do `index.html`, movido automaticamente pelo `ge
 
 ---
 
+NOVIDADES (Beta v1.439.4) — FAIXA DO RAMO (Nicola 19/10 17:15): sem o fio forte embaixo e com o fundo um pouco mais forte.
+Só CSS.
+Versão anterior (Beta v1.439.3):
+------------------------------------------------------------------
+Versões anteriores (v1.439.3 … v1.439.3): CHANGELOG_APP.md, na raiz do
+repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
+das 5 versões mais recentes deste cabeçalho.
+
+---
+
 NOVIDADES (Beta v1.439.3) — FAIXA DO RAMO MAIS SUTIL (Nicola 19/10 17:09): a faixa vira o topo do card da lista do ramo
 (mesma largura e cantos), fundo claro na cor do ramo com um fio embaixo, letras no tamanho de antes e o ícone do ramo
 alinhado aos ícones dos ativos; o ícone e a setinha ao lado do total recolhem os

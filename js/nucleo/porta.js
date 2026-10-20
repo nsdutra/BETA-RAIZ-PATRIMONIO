@@ -4,7 +4,12 @@
 //                   o estado do app (ativos, contratos, mensalidades, repasses,
 //                   lançamentos, prestadores, pessoas, empreendimentos, tipos,
 //                   minutas, links da vitrine, logs e a vitrine pública)
-// Versão: 1.6.0 · 19/10/2026
+// Versão: 1.7.0 · 19/10/2026
+//
+// v1.7.0 (19/10/2026, sessão 20261019-2217-carga-silva-arrend, demanda 9404081c item 55) — o contrato lê e grava
+// contratos.dados_modelo (campos do tipo; no arrendamento: atividade, área, pagamento anual/colheita, produto, ITR,
+// benfeitorias, VTN). Só grava quando o formulário manda (fora do arrendamento, o que já estava fica).
+// Versão anterior: 1.6.0 · 19/10/2026
 //
 // v1.6.0 (19/10/2026, sessão 20261019-1931-carga-silva-correcoes, demanda 9404081c item 52, de acordo do Nicola 19:31) — o
 // leitor de imóveis do boot (carregarImoveisSupabase) traz também as ÁREAS RURAIS que recebem contrato pelo catálogo (gleba
@@ -27,55 +32,12 @@
 // v1.3.0 (10/10/2026, sessão 20261008-1231-pessoas-ativos, demanda a3f4c73f — F25c, Nicola 10/10 21:19) — contrato NOVO
 // grava contratos.modelo quando o "Adicionar" da ficha do ativo escolheu um (window.rzContratoModeloNovo, válido só
 // para aquele ativo e por 30 min). Sem escolha, o banco põe 'aluguel'. Edição não mexe no modelo.
-// Versão anterior: 1.2.0.
-//
-// v1.2.0 (10/10/2026, sessão 20261010-1115-onda1b-escrita, demanda 6b11c602 — Onda 1b-1) — a porta
-// ganha a ESCRITA: os 9 sincronizar* (5 de item + 4 de lista, mais os 3 atalhos de prestador) saíram
-// do index.html pelo mesmo caminho da 1a, SEM UMA LINHA REESCRITA. Nenhum deles escreve em global do
-// index — foi medido função a função, e a única suspeita (SOCIO_PADRAO em sincronizarImovelSupabase)
-// era menção em comentário. O que eles PRECISAM são 5 arrays de estado vivo do index (contratos,
-// mensalidades, pessoas, repasses, empreendimentosCadastrados), que o index reatribui a cada
-// carregarTudo(): vêm por atualizarContexto() a cada chamada, pelo mesmo motivo de dbAuth — injetar
-// por valor uma vez deixaria o módulo com a lista velha.
-//
-// NÃO vieram nesta onda, de propósito: carregarAtivosParaSelectSupabase e carregarPartesParaSelect-
-// Supabase. Os caches deles (ativosParaSelect/partesParaSelect) têm 4 pontos de invalidação, e DOIS
-// estão dentro do js/financeiro.js, que faz `partesParaSelect = null` direto. Mover o cache para cá
-// sem mover a invalidação faria o seletor de partes nunca mais ver uma parte nova — falha silenciosa,
-// sem erro na tela. Pede ficha própria (1b-2).
-//// v1.1.0 (10/10/2026, sessão 20261010-0155-onda1-nucleo, demanda 6b11c602) — CORREÇÃO DE DEFEITO MEU,
-// achado pelo Nicola no teste 5 da v1.0.0: a VITRINE PÚBLICA parou de abrir, com a mensagem genérica
-// "Este link não abre mais: ele foi revogado, expirou ou está incompleto". Causa: instalarPorta()
-// exigia clienteId, e a vitrine pública roda ANTES de qualquer login (index.html, ramo
-// `ehVitrinePublica`) — ali CLIENTE_ID_SUPABASE ainda é null. O throw da instalação subia pela ponte e
-// caía no catch do js/vitrine.js, que mostra a mensagem de link expirado para QUALQUER erro. O link
-// estava perfeito; a porta é que se recusava a abrir. A guarda era mais rígida do que qualquer leitor
-// precisa: dos 14, só resolverVitrinePublicaSupabase dispensa cliente_id — e é exatamente o único que
-// roda sem sessão. Agora instalarPorta() exige só o db, e a exigência de cliente_id virou guarda POR
-// CHAMADA, em chamar(): quem precisa de cliente_id e não tem falha com erro nomeado, em vez de
-// consultar com null e devolver lista vazia em silêncio (que era o comportamento do index antigo).
-//// v1.0.0 (10/10/2026, sessão 20261010-0155-onda1-nucleo, demanda 6b11c602 — Onda 1a da
-// fragmentação, plano aprovado pelo Nicola 09/10 21:15) — primeiro módulo do núcleo.
-// Os 13 leitores saíram do index.html SEM UMA LINHA REESCRITA: o corpo de cada um veio
-// byte a byte, e o que mudou foi só ganhar "export" na frente e passar a resolver
-// dbAuth / CLIENTE_ID_SUPABASE / CONFIG_CLIENTE / SOCIO_PADRAO e os 5 ajudantes de
-// tradução pelas variáveis deste módulo, preenchidas uma vez por instalarPorta() —
-// mesma convenção de injeção do comum-licenca.js. Os nomes das funções NÃO mudaram,
-// então os 18 sítios de chamada do index seguem chamando carregarImoveisSupabase()
-// como antes, pela ponte window[nome] (ver "PORTA DE LEITURA" no index.html).
-//
-// Por que estes 13 e não os outros: são os leitores PUROS — consultam e devolvem, sem
-// escrever em nenhuma global do index. Os dois leitores com cache próprio
-// (carregarAtivosParaSelectSupabase, carregarPartesParaSelectSupabase) e os 9
-// sincronizar* (escrita) ficaram no index de propósito, para a Onda 1b: cache e
-// escrita mexem em estado e pedem ficha própria.
-//
-// Os 5 ajudantes de tradução (converterDataISOparaBR, dataParaCompetencia,
-// mapStatus*ParaAntigo) ficaram no index porque os sincronizar* também os usam —
-// duplicar seria violação da CAN-03. Entram aqui por injeção.
-// ============================================================================
+// --------------------------------------------------------------------------
+// Versões anteriores (v1.2.0 … v1.2.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
+// mais recentes deste cabeçalho (VER-06).
 
-export const VERSAO = '1.6.0';  // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.7.0';  // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 
 // ----------------------------------------------------------------------------
 // Injeção do host (index.html ou cofre.html). Os leitores abaixo usam estes
@@ -396,6 +358,7 @@ export async function carregarContratosSupabase() {
             // v1.5.0 (fatia 2) — modelo de uso e tipo de contrato (contrato_tipos)
             modelo: row.modelo || 'aluguel',
             tipoContrato: row.tipo_contrato || '',
+            dadosModelo: row.dados_modelo || null, // v1.7.0 (item 55)
             iptuValor: row.iptu || 0,
             condominioValor: row.condominio || 0,
             locatarioEnderecoAtual: row.locatario_endereco_atual || '',
@@ -955,6 +918,7 @@ export async function sincronizarContratoSupabase(con) {
     };
     // v1.5.0 (fatia 2) — tipo de contrato escolhido no formulário; vazio = o banco põe o padrão do modelo (trg_contrato_tipo)
     if (con.tipoContrato) linha.tipo_contrato = con.tipoContrato;
+    if (con.dadosModelo) linha.dados_modelo = con.dadosModelo; // v1.7.0 (item 55) — só quando o formulário manda
 
     const idEhUuidValido = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(con.id || '');
 
