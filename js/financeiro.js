@@ -1,7 +1,15 @@
 // ============================================================================
 // financeiro.js — Raiz Patrimônio · Financeiro (Recebimentos · Atrasados · Saídas
 //                  · conciliação de extrato · recibo · detalhe do recebimento)
-// Versão: 1.70.0 · 19/10/2026
+// Versão: 1.71.0 · 20/10/2026
+//
+// v1.71.0 (20/10/2026, sessão 20261019-2331-fatura-analise, demanda c36b09b2 — de acordo do Nicola 19/10 23:50 e 23:55) —
+// importação de fatura: compra de cartão virtual aparece como "Cartão virtual ··final · do titular" (não pede mais
+// cadastro de adicional) e o aviso de final divergente ignora o final de um virtual; a compra parcelada mostra
+// "parcela 3/10 · faltam 7 · R$ X a vencer" e diz que a classificação vale para as outras parcelas da mesma compra;
+// a regra PARC ganha nome no resumo da conciliação. Leitura da fatura e do extrato (PDF/foto) com o progresso por
+// etapas da leitura de documento (rzProgressoLeitura, raiz-ui 1.6.0) no lugar do "Lendo…".
+// Versão anterior: 1.70.0 · 19/10/2026
 //
 // v1.70.0 (19/10/2026, sessão 20261019-2244-carga-silva-ajustes2, demanda 9404081c item 60; Nicola 22:44 — "apenas na segunda
 // vez que vinculado e salvo é que aparece o vínculo correto") — "✓ Confirmar pagamento" no formulário da despesa gravava só
@@ -27,16 +35,11 @@
 // do Nicola 14/10 22:43, fatia I3) — "Receita sem contrato" (abrirReceitaAvulsa) aceita as sugestões da Raiz IA (valor,
 // descrição, data, categoria de entrada e bem) e abre preenchida para conferir. Antes a receita lida pela Raiz IA abria o
 // recebimento de contrato, vazio.
-// Versão anterior: 1.66.0 · 14/10/2026
-//
-// v1.66.0 (14/10/2026, sessão 20261014-2215-ajustes-9d, demanda a05ad2ee; teste do Nicola 14/10 22:12) — (1) o chip Contador da faixa
-// de rotinas segue a rotina "Envio ao contador": desligada, aparece com cadeado ("Contador desligado") e leva a Empresa ›
-// Rotinas, como o Fiscal; (2) textos dentro de condição no limite da D6 ("Mês fechado: reabra", "Reclassificar" etc.).
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.65.0 … v1.65.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.66.0 … v1.66.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '1.70.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.71.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 
 // v1.17.0 (Fase 1 do wrapper de escrita, rollout Financeiro) — emitirEscrita
 // é o evento padrão pra "algo mudou que módulos DE FORA deste arquivo podem
@@ -1461,7 +1464,14 @@ function financeiroRenderCabecalho(aba) {
             const nomeCat = (c) => categoriaDoCatalogo(c)?.nome || rotuloCategoriaSaida(c);
             const icCat = (c) => c === 'a_classificar' ? 'circle-help' : (categoriaDoCatalogo(c)?.icone || ICONE_POR_CATEGORIA_SAIDA[c] || 'circle-dollar-sign');
             const compra = (i) => i.compra ? 'Compra ' + formatarDataBR(i.compra) : '';
-            const parcela = (i) => { const m = /parcela ([0-9]+\/[0-9]+)/.exec(i.observacao || ''); return m ? ' · parcela ' + m[1] : ''; };
+            const parcela = (i) => {
+                const m = /parcela ([0-9]+)\/([0-9]+)/.exec(i.observacao || '');
+                const v = /virtual(?: ··([0-9]{4}))?/.exec(i.observacao || '');
+                const virt = v ? ` · cartão virtual${v[1] ? ' ··' + v[1] : ''}` : '';
+                if (!m) return virt;
+                const falta = Number(m[2]) - Number(m[1]);
+                return ` · parcela ${Number(m[1])}/${Number(m[2])}` + (falta > 0 ? ` · faltam ${falta} · ${formatarMoedaBR(Math.abs(Number(i.valor)) * falta)} a vencer` : ' · última') + virt;
+            };
             const linha = (i, pend) => {
                 const s = i.sugestao || {};
                 const temSug = pend && s.categoria;
@@ -1654,7 +1664,9 @@ function financeiroRenderCabecalho(aba) {
             const podeContab = typeof podeUsar !== 'function' || podeUsar('financeiro.contabilidade_ajustar').ok;
             const parteAtual = um ? (um.parte_id || sug.parte_id || '') : '';
             const est = [...new Set(lista.map(i => i.estabelecimento).filter(Boolean))];
+            const temParcela = lista.some(i => /parcela [0-9]+\/[0-9]+/.test(i.observacao || ''));
             const corpo = `
+                ${temParcela ? '<p class="rz-hint" style="margin:0 0 10px">Compra parcelada: a classificação vale para as outras parcelas desta compra, as que já estão no Raiz e as próximas faturas.</p>' : ''}
                 <div class="rz-f"><label>Ativo (opcional)</label><select id="fat-ativo"><option value="">${um ? 'Empresa' : 'Manter como está'}</option>${ativosOpts.map(a => optAtivo(a, ativoAtual)).join('')}</select>
                     <span class="rz-hint">O ativo escolhido mostra só as categorias do tipo dele.</span></div>
                 <div class="rz-f"><label>Categoria <i>*</i></label><select id="fat-cat-grupo">${optsGrupos(tipoInicial, grupoAtual)}</select></div>
@@ -1797,19 +1809,21 @@ function financeiroRenderCabecalho(aba) {
             if (!cart || !novos.some(i => i.final)) return '';
             const ads = (financeiroContasInfo.adicionais || []).filter(a => a.cartao_principal_id === cartaoId);
             const u4 = (v) => String(v || '').replace(/\D/g, '').slice(-4);
-            const grupos = new Map(); const soltos = new Map();
+            const grupos = new Map(); const soltos = new Map(); const virtuais = new Map();
             for (const i of novos) {
                 const f = u4(i.final); const ad = f ? ads.find(a => u4(a.final_identificador) === f) : null;
                 if (ad) { const g = grupos.get(ad.id) || { n: 0, v: 0, ad }; g.n++; g.v += Number(i.valor || 0); grupos.set(ad.id, g); }
+                else if (i.virtual) { const g = virtuais.get(f) || { n: 0, v: 0 }; g.n++; g.v += Number(i.valor || 0); virtuais.set(f, g); } // virtual é do titular
                 else if (f && f !== u4(cart.final_identificador)) { const g = soltos.get(f) || { n: 0, v: 0 }; g.n++; g.v += Number(i.valor || 0); soltos.set(f, g); }
             }
-            if (!grupos.size && !soltos.size) return '';
-            const nAd = [...grupos.values()].reduce((t, g) => t + g.n, 0) + [...soltos.values()].reduce((t, g) => t + g.n, 0);
-            const vAd = [...grupos.values()].reduce((t, g) => t + g.v, 0) + [...soltos.values()].reduce((t, g) => t + g.v, 0);
+            if (!grupos.size && !soltos.size && !virtuais.size) return '';
+            const nAd = [...grupos.values()].reduce((t, g) => t + g.n, 0) + [...soltos.values()].reduce((t, g) => t + g.n, 0) + [...virtuais.values()].reduce((t, g) => t + g.n, 0);
+            const vAd = [...grupos.values()].reduce((t, g) => t + g.v, 0) + [...soltos.values()].reduce((t, g) => t + g.v, 0) + [...virtuais.values()].reduce((t, g) => t + g.v, 0);
             const linha = (ic, t, sub, n, v) => `<div class="rz-row"><div class="rz-ic"><svg data-lucide="${ic}"></svg></div><div class="rz-tx"><b>${escapeHtmlSaidas(t)}</b><span>${escapeHtmlSaidas(sub)}</span></div><div class="rz-rt"><b>${formatarMoedaBR(v)}</b><small style="display:block;text-align:right;color:var(--muted)">${n} ${n === 1 ? 'compra' : 'compras'}</small></div></div>`;
             return `<div class="rz-group">Por cartão</div><div class="rz-card rz-list">
                 ${linha('credit-card', `${cart.nome}${cart.final_identificador ? ' ·· ' + cart.final_identificador : ''}`, 'Principal', novos.length - nAd, novos.reduce((t, i) => t + Number(i.valor || 0), 0) - vAd)}
                 ${[...grupos.values()].map(g => linha('credit-card', `${g.ad.nome} ·· ${g.ad.final_identificador}`, `Adicional · ${g.ad.titular_nome || ''}`, g.n, g.v)).join('')}
+                ${[...virtuais.entries()].map(([f, g]) => linha('credit-card', `Cartão virtual${f ? ' ·· ' + f : ''}`, 'Do titular · entra na fatura do principal', g.n, g.v)).join('')}
                 ${[...soltos.entries()].map(([f, g]) => linha('circle-help', `Final ${f}`, 'Não é adicional cadastrado: fica no principal', g.n, g.v)).join('')}
             </div>${soltos.size ? '<span class="rz-hint">Para separar o final que não é adicional cadastrado, cadastre o adicional no ativo de quem usa (Controles › + › "Conta ou cartão" › Cartão adicional) e mova as compras na fatura.</span>' : ''}`;
         }
@@ -1839,16 +1853,20 @@ function financeiroRenderCabecalho(aba) {
                 el.querySelector('#fi-escolher').addEventListener('click', () => el.querySelector('#fi-arquivo').click());
                 el.querySelector('#fi-arquivo').addEventListener('change', async (ev) => {
                     const file = ev.target.files?.[0]; if (!file) return;
-                    mostrarCarregamentoGlobal('Lendo a fatura com IA...');
+                    el.querySelector('#fi-escolher').style.display = 'none';
+                    const prog = window.rzProgressoLeitura({ alvo: el.querySelector('#fi-conf'), arquivo: file, passoIa: 1, tempoTipicoS: 40,
+                        passos: ['Enviando a fatura', 'Raiz IA lendo as compras', 'Conferindo com o que já está no Raiz', 'Pronto'] });
                     try {
                         const base64 = await arquivoParaBase64(file);
+                        prog.passo(1);
                         const { data, error } = await dbAuth.functions.invoke('extrato-extrair-transacoes', { body: { arquivo_base64: base64, mime_type: file.type || 'application/pdf', cliente_id: CLIENTE_ID_SUPABASE, tipo: 'fatura_cartao' } });
-                        esconderCarregamentoGlobal();
                         if (error) throw new Error(error.message || 'Falha ao ler a fatura.');
-                        if (!data?.extraido) { rzToast(data?.motivo || data?.erro || 'Não consegui ler essa fatura.', { tipo: 'danger' }); return; }
+                        if (!data?.extraido) { prog.fim(); el.querySelector('#fi-escolher').style.display = ''; ev.target.value = ''; rzToast(data?.motivo || data?.erro || 'Não consegui ler essa fatura.', { tipo: 'danger' }); return; }
+                        prog.passo(2);
                         lido = data.resultado;
+                        prog.fim();
                         conferir(el);
-                    } catch (e) { esconderCarregamentoGlobal(); rzToast(e.message, { tipo: 'danger' }); }
+                    } catch (e) { prog.fim(); el.querySelector('#fi-escolher').style.display = ''; ev.target.value = ''; rzToast(e.message, { tipo: 'danger' }); }
                 });
             };
             let sim = null; // v1.38.0 — resultado da simulação (fn_fatura_importar com simular)
@@ -1857,11 +1875,11 @@ function financeiroRenderCabecalho(aba) {
                 box.innerHTML = '<p class="rz-hint">Comparando com o que já está na fatura…</p>';
                 const { data, error } = await dbAuth.rpc('fn_fatura_importar', {
                     p_cliente_id: CLIENTE_ID_SUPABASE, p_cartao_id: el.querySelector('#fi-cartao').value, p_competencia: el.querySelector('#fi-comp').value,
-                    p_cabecalho: { simular: true }, p_itens: lido.itens.map(i => ({ data: i.data, descricao: i.descricao, valor: i.valor, parcela: i.parcela, final: i.final ?? null })), // v1.62.0 — final do cartão de cada compra
+                    p_cabecalho: { simular: true }, p_itens: lido.itens.map(i => ({ data: i.data, descricao: i.descricao, valor: i.valor, parcela: i.parcela, final: i.final ?? null, virtual: !!i.virtual })), // final e cartão virtual de cada compra
                 });
                 if (error || !data?.ok) { box.innerHTML = `<p class="rz-hint" style="color:var(--danger)">${escapeHtmlSaidas(error?.message || data?.mensagem || 'Não consegui comparar.')}</p>`; sim = null; return; }
                 sim = data.dados;
-                const linhaLida = (i) => `<div class="rz-row"><div class="rz-tx"><b>${escapeHtmlSaidas(i.descricao)}</b><span>${formatarDataBR(i.data)}${i.parcela ? ' · parcela ' + escapeHtmlSaidas(i.parcela) : ''}${i.final ? ' · final ' + escapeHtmlSaidas(i.final) : ''}</span></div><div class="rz-rt">${Number(i.valor) < 0 ? `<b class="rz-in">+ ${formatarMoedaBR(Math.abs(i.valor))}</b>` : `<b class="rz-out">− ${formatarMoedaBR(i.valor)}</b>`}</div></div>`;
+                const linhaLida = (i) => `<div class="rz-row"><div class="rz-tx"><b>${escapeHtmlSaidas(i.descricao)}</b><span>${formatarDataBR(i.data)}${i.parcela ? ' · parcela ' + escapeHtmlSaidas(i.parcela) : ''}${i.virtual ? ' · cartão virtual' : ''}${i.final ? ' · final ' + escapeHtmlSaidas(i.final) : ''}</span></div><div class="rz-rt">${Number(i.valor) < 0 ? `<b class="rz-in">+ ${formatarMoedaBR(Math.abs(i.valor))}</b>` : `<b class="rz-out">− ${formatarMoedaBR(i.valor)}</b>`}</div></div>`;
                 const novos = (sim.novos || []).map(k => lido.itens[k]).filter(Boolean);
                 const nRep = (sim.repetidos || []).length;
                 const falt = sim.faltando || [];
@@ -1888,7 +1906,8 @@ function financeiroRenderCabecalho(aba) {
                 const meses = [-1, 0, 1].map(d => { const x = new Date(comp + 'T00:00:00'); x.setMonth(x.getMonth() + d); return x.toISOString().slice(0, 7) + '-01'; });
                 const soma = lido.itens.reduce((t, i) => t + Number(i.valor || 0), 0);
                 const cart = cartoes.find(c => c.id === el.querySelector('#fi-cartao').value);
-                const finalDiverge = lido.finalCartao && cart?.final_identificador && lido.finalCartao !== cart.final_identificador;
+                const finalDiverge = lido.finalCartao && cart?.final_identificador && lido.finalCartao !== cart.final_identificador
+                    && !(lido.itens || []).some(i => i.virtual && i.final === lido.finalCartao); // final do cabeçalho de um virtual não é outro cartão
                 el.querySelector('#fi-escolher').style.display = 'none';
                 el.querySelector('#fi-conf').innerHTML = `
                     ${finalDiverge ? `<p class="rz-hint" style="color:var(--danger);margin:0 0 8px">A fatura é do final ${escapeHtmlSaidas(lido.finalCartao)} e o cartão escolhido é ${escapeHtmlSaidas(cart.final_identificador)}. Confira o cartão.</p>` : ''}
@@ -1923,7 +1942,7 @@ function financeiroRenderCabecalho(aba) {
                         p_cliente_id: CLIENTE_ID_SUPABASE, p_cartao_id: cartaoId, p_competencia: el.querySelector('#fi-comp').value,
                         p_cabecalho: { data_vencimento: lido.dataVencimento, data_fechamento: lido.dataFechamento, valor_total: lido.valorTotal, confirmar_paga: confirmarPaga,
                             ja_paga: jaPaga, data_pagamento: jaPaga ? (el.querySelector('#fi-paga-data')?.value || null) : null },
-                        p_itens: lido.itens.map(i => ({ data: i.data, descricao: i.descricao, valor: i.valor, parcela: i.parcela, final: i.final ?? null })), // v1.62.0 — final do cartão de cada compra
+                        p_itens: lido.itens.map(i => ({ data: i.data, descricao: i.descricao, valor: i.valor, parcela: i.parcela, final: i.final ?? null, virtual: !!i.virtual })), // final e cartão virtual de cada compra
                     });
                     if (error || !data?.ok) { rzToast(error?.message || data?.mensagem || 'Não consegui importar.', { tipo: 'danger' }); return false; }
                     for (const id of excluir) {
@@ -3001,11 +3020,13 @@ function financeiroRenderCabecalho(aba) {
 
         export async function processarExtratoViaIA(file, inputElement) {
 
-            mostrarCarregamentoGlobal("Lendo extrato bancário com IA...");
+            const prog = window.rzProgressoLeitura({ titulo: 'Lendo o extrato', arquivo: file, passoIa: 1, tempoTipicoS: 40,
+                passos: ['Enviando o extrato', 'Raiz IA lendo os lançamentos', 'Conferindo com o que já está no Raiz', 'Pronto'] });
 
             try {
 
                 const base64 = await arquivoParaBase64(file);
+                prog.passo(1);
 
                 const { data, error } = await dbAuth.functions.invoke('extrato-extrair-transacoes', {
                     body: { arquivo_base64: base64, mime_type: file.type || 'application/pdf', cliente_id: CLIENTE_ID_SUPABASE },
@@ -3014,7 +3035,7 @@ function financeiroRenderCabecalho(aba) {
                 if (error) throw new Error(error.message || 'Falha ao chamar a extração por IA.');
 
                 if (!data?.extraido) {
-                    esconderCarregamentoGlobal();
+                    prog.fim();
                     rzToast(data?.motivo || 'Não consegui ler as transações desse arquivo.', { tipo: 'danger' });
                     inputElement.value = '';
                     return;
@@ -3034,9 +3055,10 @@ function financeiroRenderCabecalho(aba) {
                     documento: t.documento || '',
                 }));
 
-                esconderCarregamentoGlobal();
+                prog.passo(2);
 
                 if (transacoes.length === 0) {
+                    prog.fim();
                     rzToast('Nenhum lançamento no arquivo.', { tipo: 'danger' });
                     inputElement.value = '';
                     return;
@@ -3050,11 +3072,12 @@ function financeiroRenderCabecalho(aba) {
                     ? `📥 Extrato do ${data.resultado.banco} lido via IA!`
                     : '📥 Extrato lido via IA!';
 
+                prog.fim(); // a conciliação abre a própria tela de resultado
                 await conciliarTransacoes(transacoes, tituloResumo, bancoDetectado);
 
             } catch (err) {
 
-                esconderCarregamentoGlobal();
+                prog.fim();
 
                 rzToast('Não consegui ler o arquivo: ' + err.message, { tipo: 'danger' });
 
@@ -3832,7 +3855,7 @@ function financeiroRenderCabecalho(aba) {
             } catch (e) { console.warn('[financeiro] regras de conciliação:', e.message); }
             return mapa;
         }
-        const CERTEZA_TOTAL = { CT01: 'Certeza total', CT02: 'Certeza total' };
+        const CERTEZA_TOTAL = { CT01: 'Certeza total', CT02: 'Certeza total', PARC: 'Mesma classificação da parcela anterior da compra' };
         function nomeRegraConc(codigo) {
             if (!codigo) return '';
             return regrasConcCache?.[codigo]?.nome || CERTEZA_TOTAL[codigo] || codigo;

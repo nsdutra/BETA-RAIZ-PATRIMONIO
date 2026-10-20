@@ -1,6 +1,14 @@
 // ============================================================================
 // raiz-ui.js — Raiz Patrimônio · Diálogos sem diálogo nativo (UXR-29/30)
-// Versão: 1.5.0 · 14/10/2026
+// Versão: 1.6.0 · 20/10/2026
+//
+// v1.6.0 (20/10/2026, sessão 20261019-2331-fatura-analise, demanda c36b09b2 — de acordo do Nicola 19/10 23:50) —
+// rzProgressoLeitura, NOVO: o progresso por etapas da leitura de documento (cartão do arquivo, passos com ✓, barra,
+// tempo decorrido com o tempo típico, "mantenha o app aberto") vira componente único, para importar fatura e extrato
+// com a mesma experiência. Desenha dentro de um elemento (sheet já aberto) ou numa camada própria por cima da tela.
+// Mantém a tela acesa e avisa antes de sair enquanto lê. Também em window.rzProgressoLeitura.
+//
+// Versão anterior: 1.5.0 · 14/10/2026
 //
 // v1.5.0 (14/10/2026, sessão 20261014-2145-onda9c-textos, demanda a05ad2ee; onda 9c do estudo PROTOTIPO_UX_DENSIDADE_RAMOS_RAIZ
 // v1.2.0, D6 seção 10) — textos no limite: ação até 24 caracteres, descrição até 28, aviso até 40 com o resultado e tela
@@ -32,19 +40,11 @@
 // nome (e o que é: sócio, parte externa ou o valor) · campo % · remover; "Adicionar pessoa"
 // (pessoas cadastradas ou nome livre, quando permitido); soma ao vivo com o que falta; rodapé
 // Cancelar | Salvar, Salvar só liga em 100% com todos os nomes. Também em window.rzEditarDivisao.
-//
-// Versão anterior: 1.1.0 · 04/10/2026
-//
-// v1.1.0 (F1.1 do PLANO_UX, demanda c5d844a4, sessão 20261003-1707-ux-base, "Aprovado.
-// Siga" do Nicola 04/10 08:09; DIRETRIZES UXR-28) — rzConfirmar, rzEscolher e rzAviso
-// abrem com { empilhar: true }: com um sheet já aberto, vão para o NÍVEL 2 da pilha
-// (index.html 1.298.0) e o sheet de baixo volta intacto ao responder ou fechar. Sem sheet
-// aberto, nada muda. Assinaturas iguais.
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.0.0 … v1.0.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.1.0 … v1.1.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '1.5.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.6.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 
 const esc = (v) => String(v ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 const g = (nome) => (typeof window !== 'undefined' && typeof window[nome] === 'function') ? window[nome] : null;
@@ -303,7 +303,88 @@ export function rzEditarDivisao({ titulo = 'Editar divisão', sub = '', nota = '
     return sheet;
 }
 
+// ============================================================================
+// rzProgressoLeitura — progresso por etapas de uma leitura (documento, fatura, extrato)
+// passos: textos na ordem; passoIa: índice do passo em que a Raiz IA trabalha (a barra anda por tempo nele).
+// Devolve { passo(i), fim() }. fim() SEMPRE precisa ser chamado (inclusive no erro): solta a trava de saída.
+// ============================================================================
+const CSS_PROGRESSO = `
+.rz-lp-camada{position:fixed;inset:0;z-index:400;background:rgba(23,33,30,.45);display:flex;align-items:flex-end;justify-content:center}
+.rz-lp-camada .rz-lp{background:var(--card,#fff);border-radius:18px 18px 0 0;width:100%;max-width:520px;padding:18px 16px calc(18px + env(safe-area-inset-bottom))}
+@media (min-width:768px){.rz-lp-camada{align-items:center}.rz-lp-camada .rz-lp{border-radius:var(--r-card,14px)}}
+.rz-lp h3{font-family:var(--font-title,inherit);font-size:17px;margin:0 0 12px}
+.rz-lp .rz-lp-arq{display:flex;gap:10px;align-items:center;background:var(--tile,#e9ece5);border-radius:10px;padding:9px 11px;font-size:13px;margin:0 0 14px;overflow-wrap:anywhere}
+.rz-lp .rz-lp-arq small{display:block;color:var(--muted,#6f7a76)}
+.rz-lp ol{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:10px}
+.rz-lp li{display:flex;gap:10px;align-items:center;font-size:14px;color:var(--muted,#6f7a76)}
+.rz-lp .rz-lp-bola{width:22px;height:22px;border-radius:50%;border:2px solid var(--line,#e6e3da);flex:none;display:grid;place-items:center;font-size:12px}
+.rz-lp li.feito{color:var(--ink,#17211e)}
+.rz-lp li.feito .rz-lp-bola{background:var(--pine);border-color:var(--pine);color:#fff}
+.rz-lp li.agora{color:var(--ink,#17211e);font-weight:600}
+.rz-lp li.agora .rz-lp-bola{border-color:var(--brass,#c68a3b);border-top-color:transparent;animation:rzLpGira .9s linear infinite}
+.rz-lp li.ia.agora{color:var(--brass-deep,#a86f27)}
+@keyframes rzLpGira{to{transform:rotate(360deg)}}
+@media (prefers-reduced-motion:reduce){.rz-lp li.agora .rz-lp-bola{animation:none;border-top-color:var(--brass,#c68a3b)}}
+.rz-lp .rz-lp-barra{height:6px;background:var(--tile,#e9ece5);border-radius:3px;margin:16px 0 8px;overflow:hidden}
+.rz-lp .rz-lp-barra i{display:block;height:100%;width:0;background:var(--brass,#c68a3b);transition:width .6s}
+.rz-lp .rz-lp-tempo{font-size:12.5px;color:var(--muted,#6f7a76)}
+.rz-lp .rz-lp-aviso{margin-top:14px;background:var(--brass-bg,#fbf1e2);border-radius:10px;padding:10px 12px;font-size:12.5px;color:var(--brass-deep,#a86f27)}
+`;
+function rzLpEsc(t) { return String(t ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
+function rzLpBytes(n) { n = Number(n) || 0; return n >= 1048576 ? (n / 1048576).toFixed(1).replace('.', ',') + ' MB' : Math.max(1, Math.round(n / 1024)) + ' KB'; }
+export function rzProgressoLeitura({ alvo = null, titulo = 'Lendo o arquivo', arquivo = null, passos = [], passoIa = 1, tempoTipicoS = 40 } = {}) {
+    if (!document.getElementById('rz-lp-css')) {
+        const st = document.createElement('style'); st.id = 'rz-lp-css'; st.textContent = CSS_PROGRESSO; document.head.appendChild(st);
+    }
+    let camada = null, caixa = alvo;
+    if (!caixa) {
+        camada = document.createElement('div'); camada.className = 'rz-lp-camada'; camada.setAttribute('role', 'dialog'); camada.setAttribute('aria-modal', 'true');
+        caixa = document.createElement('div'); camada.appendChild(caixa); document.body.appendChild(camada);
+    }
+    const inicio = Date.now(); let inicioIa = null, atual = 0, wake = null, vivo = true;
+    const bloquear = (e) => { e.preventDefault(); e.returnValue = ''; };
+    window.addEventListener('beforeunload', bloquear);
+    if (typeof window.rzSheetTravar === 'function' && alvo) window.rzSheetTravar(true);
+    if ('wakeLock' in navigator) navigator.wakeLock.request('screen').then(w => { wake = w; if (!vivo) w.release?.(); }).catch(() => {});
+    const relogio = () => {
+        if (!vivo) return;
+        const s = Math.round((Date.now() - inicio) / 1000);
+        const t = caixa.querySelector('.rz-lp-tempo');
+        if (t) t.textContent = atual === passoIa ? (s < tempoTipicoS * 1.5 ? `${s} s · costuma levar até ${tempoTipicoS < 60 ? tempoTipicoS + ' s' : Math.round(tempoTipicoS / 60) + ' min'}` : `${s} s · arquivo longo: ainda lendo, pode levar até 2 min`) : `${s} s`;
+        const b = caixa.querySelector('.rz-lp-barra i');
+        if (b) {
+            const fatia = 90 / Math.max(1, passos.length - 1);
+            let pct = 6 + atual * fatia;
+            if (atual === passoIa && inicioIa) pct += Math.min(fatia * 0.95, ((Date.now() - inicioIa) / 1000) / tempoTipicoS * fatia);
+            b.style.width = Math.min(97, pct) + '%';
+        }
+    };
+    const desenhar = () => {
+        caixa.innerHTML = `<div class="rz-lp" aria-busy="true" aria-live="polite">
+            ${camada ? `<h3>${rzLpEsc(titulo)}</h3>` : ''}
+            ${arquivo ? `<div class="rz-lp-arq"><svg data-lucide="file-text" style="width:22px;height:22px;flex:none;color:var(--pine)"></svg><div><b>${rzLpEsc(arquivo.name || arquivo.nome || 'arquivo')}</b><small>${rzLpBytes(arquivo.size ?? arquivo.tamanho)}</small></div></div>` : ''}
+            <ol>${passos.map((p, k) => `<li class="${k < atual ? 'feito' : (k === atual ? 'agora' : '')}${k === passoIa ? ' ia' : ''}"><span class="rz-lp-bola">${k < atual ? '✓' : ''}</span>${rzLpEsc(p)}</li>`).join('')}</ol>
+            <div class="rz-lp-barra"><i></i></div><div class="rz-lp-tempo"></div>
+            <div class="rz-lp-aviso">Mantenha o app aberto até terminar.</div></div>`;
+        if (typeof window.rzIcones === 'function') window.rzIcones();
+        relogio();
+    };
+    const timer = setInterval(relogio, 1000);
+    desenhar();
+    return {
+        passo(i) { if (!vivo) return; atual = i; if (i === passoIa && !inicioIa) inicioIa = Date.now(); desenhar(); },
+        fim() {
+            if (!vivo) return; vivo = false; clearInterval(timer);
+            window.removeEventListener('beforeunload', bloquear);
+            if (typeof window.rzSheetTravar === 'function' && alvo) window.rzSheetTravar(false);
+            try { wake?.release?.(); } catch (e) { /* segue */ }
+            if (camada) camada.remove(); else caixa.innerHTML = '';
+        },
+    };
+}
+
 if (typeof window !== 'undefined') {
+    window.rzProgressoLeitura = rzProgressoLeitura;
     window.rzEditarDivisao = rzEditarDivisao;
     window.rzToast = rzToast;
     window.rzConfirmar = rzConfirmar;

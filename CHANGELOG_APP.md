@@ -4,6 +4,16 @@ Histórico completo de versões do `index.html`, movido automaticamente pelo `ge
 
 ---
 
+NOVIDADES (Beta v1.439.6) — ⋮ E CHIPS DE PATRIMÔNIO (Nicola 19/10 17:40): o ⋮ fica centrado na altura dos chips; os chips
+param antes dele, com um esmaecido na ponta, e ficam um pouco mais curtos. Só CSS.
+Versão anterior (Beta v1.439.5):
+------------------------------------------------------------------
+Versões anteriores (v1.439.5 … v1.439.5): CHANGELOG_APP.md, na raiz do
+repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
+das 5 versões mais recentes deste cabeçalho.
+
+---
+
 NOVIDADES (Beta v1.439.5) — FAIXA DO RAMO COM FILTRO (Nicola 19/10 17:17): a faixa fica também ao filtrar por chip, busca ou
 lente de ramo, com contador e soma do que o filtro deixou. cofre-ativos.js 1.127.0. O index só muda o import map.
 Versão anterior (Beta v1.439.4):
