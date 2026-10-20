@@ -4,6 +4,16 @@ Histórico completo de versões do `index.html`, movido automaticamente pelo `ge
 
 ---
 
+NOVIDADES (Beta v1.445.0) — HOJE › OBRAS: o box de entrega vira "Falta pagar" (saldo e parcelas que faltam dos planos de
+pagamento, somados); a data de entrega fica em Obras em andamento (Nicola 13:38, de acordo 14:01). resultados.js 2.16.0.
+Versão anterior (Beta v1.444.1):
+------------------------------------------------------------------
+Versões anteriores (v1.444.1 … v1.444.1): CHANGELOG_APP.md, na raiz do
+repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
+das 5 versões mais recentes deste cabeçalho.
+
+---
+
 NOVIDADES (Beta v1.444.1) — ÍCONE DE PESSOA (Nicola 20/10 13:17): o ícone de idoso sai e a pessoa volta a ter o mesmo
 ícone em qualquer idade (cofre-validacoes.js 2.14.0). Aqui, só cabeçalho e import map.
 Versão anterior (Beta v1.444.0):

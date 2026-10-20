@@ -1,8 +1,13 @@
 // =====================================================================
 // RAIZ PATRIMÔNIO — js/agenda.js
-// VERSÃO: Beta v1.9.0 (20/10/2026 — demanda b3aeefaf)
+// VERSÃO: Beta v1.9.1 (20/10/2026 — demanda b3aeefaf)
 // LINHAS: (ver versoes.json)
 // -----------------------------------------------------------------
+// NOVIDADES (Beta v1.9.1) (20/10/2026, sessão 20261020-1926-importar-ajustes, demanda b3aeefaf; achado do Nicola 19:26 "ainda
+//   sem aparecer o menu 3 pontos na agenda") — CORRIGIDO: o ⋮ da Agenda usava a classe rz-fin-lupa, que o index esconde em todo
+//   o #main-content desde que a busca subiu para o topo — o botão existia, mas nunca aparecia (nem "Enviar a semana"). Ganha
+//   classe própria (rz-ag-mais) com o mesmo visual.
+// Versão anterior (Beta v1.9.0):
 // NOVIDADES (Beta v1.9.0) (20/10/2026, sessão 20261020-1900-calendario-escolar, demanda b3aeefaf; FICHA_FAMILIA_CALENDARIO_E_FERIADOS_RAIZ v1.0.0, E3, de acordo do Nicola 20/10 18:34) — IMPORTAR
 //   CALENDÁRIO ESCOLAR: ⋮ da Agenda › "Importar calendário escolar". Tela única: escolhe o PDF/foto (ou o que chegou pelo
 //   WhatsApp e está no Cofre); a Edge calendario-escolar-ler sugere cada linha (filho pela série, lembrete de 3 dias em prova,
@@ -78,7 +83,7 @@
 // formatarMoedaBR, abrirSheet, abrirSheetAcoes, rzSheetCabecalho, fecharSheet, abrirAlertaItemControle,
 // abrirFichaContrato, switchTab, mostrarToast, rzDev.
 
-export const VERSAO = '1.9.0';
+export const VERSAO = '1.9.1';
 
 const TIPOS = {
     ocorrencia:   { rotulo: 'Ocorrência',  icone: 'wrench',          dominio: 'ocorrencias' },
@@ -247,7 +252,7 @@ function desenhar(carregando) {
                 <span class="rz-mes-centro"><b class="rz-mes-label">${rzEsc(tituloPeriodo())}</b></span>
                 <button type="button" class="rz-ico-btn" data-ag-nav="1" aria-label="Próximo"><svg data-lucide="chevron-right"></svg></button>
             </div>
-            <button type="button" class="rz-ico-btn rz-fin-lupa" data-ag-mais aria-label="Mais ações"><svg data-lucide="more-vertical"></svg></button>
+            <button type="button" class="rz-ico-btn rz-ag-mais" data-ag-mais aria-label="Mais ações" style="background:none;box-shadow:none;border:0;color:var(--ink)"><svg data-lucide="more-vertical"></svg></button>
         </div>
         ${abas}
         <div class="rz-chips rz-ag-chips">
