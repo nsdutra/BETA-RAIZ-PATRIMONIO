@@ -1,8 +1,13 @@
 // =====================================================================
 // RAIZ PATRIMÔNIO — js/agenda.js
-// VERSÃO: Beta v1.7.0 (19/10/2026 — demanda 9404081c)
+// VERSÃO: Beta v1.8.0 (20/10/2026 — demanda bf1c1ba7)
 // LINHAS: (ver versoes.json)
 // -----------------------------------------------------------------
+// NOVIDADES (Beta v1.8.0) (20/10/2026, sessão 20261020-1834-feriados, demanda bf1c1ba7; FICHA_FAMILIA_CALENDARIO_E_FERIADOS_RAIZ v1.0.0, de acordo do Nicola 20/10 18:34) — FERIADOS: a Agenda
+//   traz o tipo 'feriado' de fn_agenda_periodo (rotina Feriados ligada em Minha empresa › Rotinas e alertas; nacionais e os das
+//   UFs/cidades dos imóveis). Ícone party-popper, assunto novo "Feriados" no filtro, sempre Informativo (não pede ação) e o
+//   toque mostra o feriado e a abrangência num aviso — não há tela para abrir.
+// Versão anterior (Beta v1.7.0):
 // NOVIDADES (Beta v1.7.0) — Nicola 19/10 12:16 (dem 9404081c, item 42; sessão 20261019-1250-carga-silva-patrimonio): a Agenda
 //   abre no Mês e as abas ficam Mês · Semana · Alertas. A escolha da pessoa vale enquanto o app estiver aberto.
 // Versão anterior (Beta v1.6.0):
@@ -66,7 +71,7 @@
 // formatarMoedaBR, abrirSheet, abrirSheetAcoes, rzSheetCabecalho, fecharSheet, abrirAlertaItemControle,
 // abrirFichaContrato, switchTab, mostrarToast, rzDev.
 
-export const VERSAO = '1.7.0';
+export const VERSAO = '1.8.0';
 
 const TIPOS = {
     ocorrencia:   { rotulo: 'Ocorrência',  icone: 'wrench',          dominio: 'ocorrencias' },
@@ -76,8 +81,9 @@ const TIPOS = {
     reajuste:     { rotulo: 'Reajuste',    icone: 'trending-up',     dominio: 'contratos' },
     documento:    { rotulo: 'Documento',   icone: 'file-clock',      dominio: 'documentos' },
     membro:       { rotulo: 'Rebanho',     icone: 'beef',            dominio: 'ativos' }, // v1.5.0 (fatia 7)
+    feriado:      { rotulo: 'Feriado',     icone: 'party-popper',    dominio: 'feriados' }, // v1.8.0 (bf1c1ba7)
 };
-const ASSUNTOS = [['ativos', 'Ativos'], ['itens', 'Itens de controle'], ['contratos', 'Contratos e usos'], ['ocorrencias', 'Ocorrências'], ['financeiro', 'Financeiro'], ['documentos', 'Documentos']];
+const ASSUNTOS = [['ativos', 'Ativos'], ['itens', 'Itens de controle'], ['contratos', 'Contratos e usos'], ['ocorrencias', 'Ocorrências'], ['financeiro', 'Financeiro'], ['documentos', 'Documentos'], ['feriados', 'Feriados']]; // v1.8.0 — feriados
 const STATUS = [['critico', 'Crítico'], ['atencao', 'Atenção'], ['informativo', 'Informativo']];
 const MESES = ['janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho', 'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro'];
 const MES_CURTO = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez'];
@@ -96,6 +102,7 @@ const moeda = (v) => (v == null ? '' : (typeof formatarMoedaBR === 'function' ? 
 
 // ---- status e assunto
 function statusCompromisso(r) { // D7.10 — só para o compromisso da Agenda
+    if (r.tipo === 'feriado') return 'informativo'; // v1.8.0 — feriado não pede ação
     if (r.severidade) return r.severidade;
     if (r.atrasado) return 'critico';
     return deIso(r.data) <= somaDias(hoje(), JANELA_ATENCAO) ? 'atencao' : 'informativo';
@@ -411,6 +418,7 @@ function abrirAssunto() {
 // Toque no compromisso: abre o lugar dele pelos caminhos que já existem.
 function abrirCompromisso(r) {
     if (!r) return;
+    if (r.tipo === 'feriado') { if (typeof mostrarToast === 'function') mostrarToast(`${r.titulo} · ${r.sub || 'Nacional'}`); return; } // v1.8.0
     if (r.entidade_tipo === 'item_controle') { abrirAlertaItemControle(r.entidade_id, r.ativo_id || ''); return; }
     if (r.entidade_tipo === 'contrato') { abrirFichaContrato(r.entidade_id); return; }
     if (r.entidade_tipo === 'membro') { import('./cofre-membros.js').then(m => m.abrirFichaMembro(r.entidade_id)).catch(() => mostrarToast('Não consegui abrir.')); return; } // v1.5.0

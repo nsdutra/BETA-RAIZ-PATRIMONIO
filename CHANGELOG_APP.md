@@ -4,6 +4,16 @@ Histórico completo de versões do `index.html`, movido automaticamente pelo `ge
 
 ---
 
+NOVIDADES (Beta v1.443.0) — PATRIMÔNIO: ALUGUEL À FRENTE DO LOCATÁRIO (Nicola 20/10 11:25): na lista de Ativos, o aluguel/mês
+fica na linha do locatário, à direita, na coluna do valor. cofre-ativos.js 1.134.0. Banco: nada muda.
+Versão anterior (Beta v1.442.0):
+------------------------------------------------------------------
+Versões anteriores (v1.442.0 … v1.442.0): CHANGELOG_APP.md, na raiz do
+repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
+das 5 versões mais recentes deste cabeçalho.
+
+---
+
 NOVIDADES (Beta v1.442.0) — PATRIMÔNIO: VALORES NO PADRÃO E À DIREITA (pedidos do Nicola 20/10 09:07 e 11:06): na lista de
 Ativos o valor de cada item sai compacto como a faixa do ramo e o total do grupo (R$ 5,0 mi · R$ 420 mil; o exato no
 title), no alto da linha, na altura do nome; o aluguel /mês vai para a direita, inteiro; sem valor cadastrado, "Sem valor"; item,
