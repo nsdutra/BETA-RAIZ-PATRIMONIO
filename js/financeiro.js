@@ -1,7 +1,12 @@
 // ============================================================================
 // financeiro.js — Raiz Patrimônio · Financeiro (Recebimentos · Atrasados · Saídas
 //                  · conciliação de extrato · recibo · detalhe do recebimento)
-// Versão: 1.72.0 · 20/10/2026
+// Versão: 1.73.0 · 20/10/2026
+//
+// v1.73.0 (20/10/2026, sessão 20261020-1013-planta-ajustes, demanda 83968339; de acordo do Nicola 10:13) — o card "Simulação
+// de venda" sai de Saídas (Financeiro geral): a simulação, com o Excel, passa a ser ação do ⋮ do plano de pagamento no
+// próprio ativo (cofre-ativos 1.132.0).
+// Versão anterior: 1.72.0 · 20/10/2026
 //
 // v1.72.0 (20/10/2026, sessão 20261020-0027-compra-planta, demanda 83968339; de acordo do Nicola 01:12) — card "Simulação de
 // venda" em Saídas, para cada imóvel com plano de pagamento (Construção coletiva ou Na planta): preço mínimo de venda para o
@@ -29,18 +34,11 @@
 // da Rumo) — tocar numa despesa mostra, como 1ª linha do sheet, o ATIVO a que ela está ligada (ou "Da empresa") e o destino
 // (programa, safra, fase ou item), sem precisar abrir o formulário; tocar na linha do ativo abre a ficha dele. Antes o
 // ativo só aparecia no fim do subtítulo, que cortava em nomes longos.
-// Versão anterior: 1.68.0 · 15/10/2026
-//
-// v1.68.0 (15/10/2026, sessão 20261015-2220-usos-fatia6b, demanda 3022603b; FICHA_FATIA6 F6-7 v1.3 e D6-4c, de acordo do Nicola
-// 15/10 22:16 e 22:27) — no ⋮ da despesa: "Destino" (o lançamento inteiro vai para a obra, a safra, a etapa ou o item;
-// fn_lancamento_destinar) e, na despesa paga, "Dividir em partes" / "Refazer a divisão" / "Unir as partes" no padrão da
-// retirada: a parte 1 fica no lançamento original (mesmo id e conciliação), as outras ganham categoria e destino próprios e
-// a soma é sempre o total (fn_lancamento_dividir / fn_lancamento_unir). Nada soma em dobro.
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.67.0 … v1.67.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.68.0 … v1.68.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '1.72.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.73.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 
 // v1.17.0 (Fase 1 do wrapper de escrita, rollout Financeiro) — emitirEscrita
 // é o evento padrão pra "algo mudou que módulos DE FORA deste arquivo podem
@@ -819,7 +817,7 @@ function financeiroRenderCabecalho(aba) {
     financeiroRenderCadeadoCompetencia(); // v1.20.0 (demanda 7bdcb8d4)
     financeiroVerificarRotinaFechamento(); // v1.30.1 — a função decide se precisa ir ao banco
     if (aba === 'mensal' || aba === 'saidas') financeiroAtualizarKpis(aba);
-    if (aba === 'saidas') { financeiroRecarregarSaidas(); financeiroSimulacaoVendaMontar(); } // v1.27.2; v1.72.0 card Simulação de venda
+    if (aba === 'saidas') financeiroRecarregarSaidas(); // v1.27.2 (v1.73.0: a Simulação de venda foi para o ⋮ do plano no ativo)
     // Entrega F.2 — card de Fechar/Reabrir dentro do chip Fechamento
     // (REGRAS §11.1). Ponte global pra js/fechamento.js, módulo isolado
     // (mesmo padrão de mostrarToast/abrirSheetAcoes usados aqui).
@@ -6691,162 +6689,4 @@ function fcAtalho(st, k) {
     }
     if (k === 'conciliar' && typeof switchTab === 'function') return switchTab('tab-conciliacao');
     if (k === 'atraso' && typeof switchTab === 'function') return switchTab('tab-inadimplencia');
-}
-
-// ============================================================================
-// SIMULAÇÃO DE VENDA (dem 83968339) — card em Saídas para cada imóvel com plano de pagamento (Construção coletiva ou Na
-// planta): por quanto vender para o dinheiro pago render pelo menos o índice escolhido, já tirando a comissão e o IR sobre o
-// lucro. A conta mora no banco (fn_simulacao_venda_imovel, CAN-01); aqui só os campos, o resultado e a exportação para Excel.
-// ============================================================================
-const SIM_REF = [['ipca', 'IPCA'], ['igpm', 'IGP-M'], ['selic', 'Selic'], ['fixo', '% fixo']];
-let simVenda = { ativo_id: null, referencia: 'ipca', spread_am: 0, taxa_fixa_am: 1, mes_venda: '', comissao_pct: 6, ir_pct: 15, preco: '' };
-let simVendaUltimo = null;
-const simEsc = (t) => String(t ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;');
-const simMoeda = (v) => (typeof formatarMoedaBR === 'function' ? formatarMoedaBR(Number(v || 0)) : Number(v || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }));
-const simPct = (v, casas = 2) => Number(v || 0).toLocaleString('pt-BR', { minimumFractionDigits: casas, maximumFractionDigits: casas }) + '%';
-const simMes = (iso) => { if (!iso) return '—'; const [y, m] = String(iso).slice(0, 7).split('-'); return ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez'][Number(m) - 1] + '/' + y.slice(2); };
-// Texto da referência no formato brasileiro (o rótulo do banco usa ponto decimal)
-function simRefTexto(d) {
-    const n = (v) => Number(v || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-    if (d.referencia === 'fixo') return { nome: `${n(d.taxa_fixa_am)}% ao mês`, por: `a ${n(d.taxa_fixa_am)}% ao mês`, de: `da taxa de ${n(d.taxa_fixa_am)}% ao mês` };
-    const base = { ipca: 'IPCA', igpm: 'IGP-M', selic: 'Selic' }[d.referencia] || 'IPCA', fem = d.referencia === 'selic';
-    const nome = base + (Number(d.spread_am) ? ` + ${n(d.spread_am)}% a.m.` : '');
-    return { nome, por: `pel${fem ? 'a' : 'o'} ${nome}`, de: `d${fem ? 'a' : 'o'} ${nome}` };
-}
-function simDados() {
-    const d = { referencia: simVenda.referencia, spread_am: Number(simVenda.spread_am) || 0, taxa_fixa_am: Number(simVenda.taxa_fixa_am) || 0,
-        comissao_pct: Number(simVenda.comissao_pct), ir_pct: Number(simVenda.ir_pct) };
-    if (simVenda.mes_venda) d.mes_venda = simVenda.mes_venda + '-01';
-    if (Number(simVenda.preco) > 0) d.preco = Number(simVenda.preco);
-    return d;
-}
-async function simBuscar() {
-    const { data, error } = await dbAuth.rpc('fn_simulacao_venda_imovel', { p_cliente_id: CLIENTE_ID_SUPABASE, p_ativo_id: simVenda.ativo_id, p_dados: simDados() });
-    if (error) throw error;
-    simVendaUltimo = data;
-    if (data?.simulacao && !simVenda.ativo_id) simVenda.ativo_id = data.simulacao.ativo_id;
-    return data;
-}
-async function financeiroSimulacaoVendaMontar() {
-    const ancora = document.getElementById('fin-rotinas-saidas'); if (!ancora) return;
-    let el = document.getElementById('fin-sim-venda');
-    if (typeof podeUsar === 'function' && !podeUsar('planta.simulacao').ok) { el?.remove(); return; }
-    let r;
-    try { r = await simBuscar(); } catch (e) { console.warn('[financeiro] simulação de venda:', e?.message || e); el?.remove(); return; }
-    if (!r?.simulacao) { el?.remove(); return; }
-    if (!el) { el = document.createElement('div'); el.id = 'fin-sim-venda'; el.className = 'rz-card'; ancora.insertAdjacentElement('afterend', el); }
-    const s = r.simulacao, ref = simRefTexto(simDados());
-    el.innerHTML = `<div class="rz-card-h" style="justify-content:space-between"><h3>Simulação de venda</h3><span class="rz-desc" style="margin:0">${simEsc(s.ativo_nome)}</span></div>
-        <div class="rz-kv">
-          <div class="rz-full"><small>Preço mínimo de venda em ${simMes(s.mes_venda)}</small><b style="font-size:20px">${simMoeda(s.preco_minimo)}</b></div>
-          <div><small>Pago até a venda</small><b>${simMoeda(s.pago)}</b></div>
-          <div><small>Reajustado ${simEsc(ref.por)}</small><b>${simMoeda(s.pago_reajustado)}</b></div>
-        </div>
-        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px">
-          <button type="button" class="rz-btn rz-btn-2 rz-sm" data-sim-abrir><svg data-lucide="sliders-horizontal"></svg> Simular</button>
-          <button type="button" class="rz-btn rz-btn-2 rz-sm" data-sim-xlsx><svg data-lucide="download"></svg> Exportar para Excel</button>
-        </div>`;
-    el.querySelector('[data-sim-abrir]').onclick = () => financeiroSimulacaoVendaAbrir();
-    el.querySelector('[data-sim-xlsx]').onclick = () => financeiroSimulacaoVendaExportar();
-    if (typeof lucide !== 'undefined') lucide.createIcons();
-}
-function simResultadoHtml(r) {
-    const s = r?.simulacao; if (!s) return '<p class="rz-desc">Sem plano de pagamento para simular.</p>';
-    const ref = simRefTexto(simDados()), p = s.preco;
-    const linha = (t, v, sub) => `<div class="rz-row"><div class="rz-tx"><b>${t}</b>${sub ? `<span>${sub}</span>` : ''}</div><b style="white-space:nowrap">${v}</b></div>`;
-    return `<div class="rz-kv">
-          <div class="rz-full"><small>Preço mínimo de venda em ${simMes(s.mes_venda)}</small><b style="font-size:20px">${simMoeda(s.preco_minimo)}</b></div>
-          <div><small>Pago até a venda</small><b>${simMoeda(s.pago)}</b></div>
-          <div><small>Reajustado ${simEsc(ref.por)}</small><b>${simMoeda(s.pago_reajustado)}</b></div>
-        </div>
-        <div class="rz-list" style="margin-top:8px">
-          ${linha('Venda', simMoeda(s.preco_minimo))}
-          ${linha(`Comissão (${simPct(s.comissao_pct, 1)})`, '− ' + simMoeda(s.comissao))}
-          ${linha('Lucro antes do IR', simMoeda(s.lucro), 'venda − comissão − pago até a venda')}
-          ${linha(`IR (${simPct(s.ir_pct, 1)} do lucro)`, '− ' + simMoeda(s.ir))}
-          ${linha('Fica com você', simMoeda(s.liquido), 'igual ao pago reajustado')}
-        </div>
-        ${s.pagamentos_previstos ? `<p class="rz-desc">Inclui ${s.pagamentos_previstos} pagamento${s.pagamentos_previstos === 1 ? '' : 's'} ainda previsto${s.pagamentos_previstos === 1 ? '' : 's'} até ${simMes(s.mes_venda)}${s.referencia !== 'fixo' && s.ultimo_indice ? ` e o índice projetado depois de ${simMes(s.ultimo_indice)} (média de 12 meses)` : ''}.</p>` : ''}
-        ${p ? `<h3 style="font-size:14px;margin:12px 0 2px">Se vender por ${simMoeda(p.valor)}</h3><div class="rz-list">
-          ${linha('Fica com você', simMoeda(p.liquido), `venda − comissão − IR de ${simMoeda(p.ir)}`)}
-          ${linha('Lucro líquido sobre o pago', simMoeda(p.lucro_liquido))}
-          ${linha('Rentabilidade equivalente', simPct(p.rentabilidade_am_pct, 2) + ' ao mês')}
-          ${linha(p.acima_referencia >= 0 ? `Acima ${simEsc(ref.de)}` : `Abaixo ${simEsc(ref.de)}`, simMoeda(Math.abs(p.acima_referencia)))}
-        </div>` : ''}
-        <p class="rz-desc">Estimativa: IR sobre venda − comissão − pago, sem fatores de redução nem isenções de pessoa física.</p>`;
-}
-function financeiroSimulacaoVendaAbrir() {
-    if (typeof abrirSheetForm !== 'function') return;
-    const ativos = simVendaUltimo?.ativos || [];
-    abrirSheetForm({ titulo: 'Simulação de venda', sub: simVendaUltimo?.simulacao?.ativo_nome || '', semRodape: true,
-        corpo: (el) => {
-            const op = (lista, v) => lista.map(([c, t]) => `<option value="${c}"${String(c) === String(v) ? ' selected' : ''}>${simEsc(t)}</option>`).join('');
-            if (!simVenda.mes_venda && simVendaUltimo?.simulacao?.mes_venda) simVenda.mes_venda = String(simVendaUltimo.simulacao.mes_venda).slice(0, 7);
-            el.innerHTML = `
-              ${ativos.length > 1 ? `<div class="rz-f"><label for="sim-ativo">Imóvel</label><select id="sim-ativo" data-sim="ativo_id">${op(ativos.map(x => [x.ativo_id, x.ativo_nome]), simVenda.ativo_id)}</select></div>` : ''}
-              <div class="rz-f"><label for="sim-ref">Reajustar o valor pago por</label><select id="sim-ref" data-sim="referencia">${op(SIM_REF, simVenda.referencia)}</select></div>
-              <div class="rz-kv" style="margin-top:0">
-                <div class="rz-f" id="sim-c-spread"><label for="sim-spread">Somar ao índice (% ao mês)</label><input type="number" inputmode="decimal" step="0.05" id="sim-spread" data-sim="spread_am" value="${simVenda.spread_am}"></div>
-                <div class="rz-f" id="sim-c-fixo"><label for="sim-fixo">Taxa fixa (% ao mês)</label><input type="number" inputmode="decimal" step="0.05" id="sim-fixo" data-sim="taxa_fixa_am" value="${simVenda.taxa_fixa_am}"></div>
-                <div class="rz-f"><label for="sim-mes">Mês da venda</label><input type="month" id="sim-mes" data-sim="mes_venda" value="${simVenda.mes_venda}"></div>
-                <div class="rz-f"><label for="sim-com">Comissão na venda (%)</label><input type="number" inputmode="decimal" step="0.5" min="0" max="99" id="sim-com" data-sim="comissao_pct" value="${simVenda.comissao_pct}"></div>
-                <div class="rz-f"><label for="sim-ir">IR sobre o lucro (%)</label><input type="number" inputmode="decimal" step="0.5" min="0" max="99" id="sim-ir" data-sim="ir_pct" value="${simVenda.ir_pct}"></div>
-                <div class="rz-f"><label for="sim-preco">E se vender por (R$)</label><input type="number" inputmode="decimal" step="1000" min="0" id="sim-preco" data-sim="preco" value="${simVenda.preco}"></div>
-              </div>
-              <div id="sim-res">${simResultadoHtml(simVendaUltimo)}</div>
-              <button type="button" class="rz-btn rz-btn-2 rz-wide" data-sim-xlsx style="margin-top:10px"><svg data-lucide="download"></svg> Exportar para Excel (mês a mês)</button>`;
-            const campos = () => { el.querySelector('#sim-c-spread').style.display = simVenda.referencia === 'fixo' ? 'none' : ''; el.querySelector('#sim-c-fixo').style.display = simVenda.referencia !== 'fixo' ? 'none' : ''; };
-            campos();
-            let tmr = null;
-            el.addEventListener('input', (ev) => {
-                const k = ev.target.dataset.sim; if (!k) return;
-                simVenda[k] = ev.target.value;
-                if (k === 'ativo_id') simVenda.mes_venda = '';
-                campos();
-                clearTimeout(tmr);
-                tmr = setTimeout(async () => {
-                    try { const r = await simBuscar(); el.querySelector('#sim-res').innerHTML = simResultadoHtml(r); financeiroSimulacaoVendaMontar(); }
-                    catch (e) { el.querySelector('#sim-res').innerHTML = `<p class="rz-desc">${simEsc(e?.message || 'Não foi possível simular.')}</p>`; }
-                }, 450);
-            });
-            el.querySelector('[data-sim-xlsx]').onclick = () => financeiroSimulacaoVendaExportar();
-            if (typeof lucide !== 'undefined') lucide.createIcons();
-        } });
-}
-// Excel direto do card: Resumo, Mês a mês (saída, pago acumulado, taxa e saldo reajustado) e Premissas
-async function financeiroSimulacaoVendaExportar() {
-    if (typeof XLSX === 'undefined') { mostrarToast('Não foi possível gerar a planilha agora.', 'danger'); return; }
-    let r;
-    try { r = await simBuscar(); } catch (e) { mostrarToast(e?.message || 'Não foi possível simular.', 'danger'); return; }
-    const s = r?.simulacao; if (!s) { mostrarToast('Sem plano de pagamento para exportar.', 'info'); return; }
-    const ref = simRefTexto(simDados());
-    const resumo = [
-        ['Simulação de venda', s.ativo_nome], [],
-        ['Mês da venda', simMes(s.mes_venda)], ['Reajuste do valor pago', ref.nome],
-        ['Comissão na venda (%)', Number(s.comissao_pct)], ['IR sobre o lucro (%)', Number(s.ir_pct)], [],
-        ['Pago até a venda (R$)', Number(s.pago)], ['Pago reajustado (R$)', Number(s.pago_reajustado)],
-        ['Preço mínimo de venda (R$)', Number(s.preco_minimo)], ['Comissão (R$)', Number(s.comissao)], ['Lucro antes do IR (R$)', Number(s.lucro)],
-        ['IR (R$)', Number(s.ir)], ['Fica com você (R$)', Number(s.liquido)],
-    ];
-    if (s.preco) resumo.push([], ['Se vender por (R$)', Number(s.preco.valor)], ['Fica com você (R$)', Number(s.preco.liquido)], ['Lucro líquido sobre o pago (R$)', Number(s.preco.lucro_liquido)],
-        ['Rentabilidade equivalente (% ao mês)', Number(s.preco.rentabilidade_am_pct)], [`Diferença para ${ref.nome} (R$)`, Number(s.preco.acima_referencia)]);
-    const meses = [['Mês', 'Saída no mês (R$)', 'Pago acumulado (R$)', 'Taxa do mês (%)', 'Saldo reajustado (R$)', 'Índice']]
-        .concat((s.meses || []).map(m => { const [y, mm] = String(m.mes).split('-').map(Number); return [new Date(Date.UTC(y, mm - 1, 1)), Number(m.saida), Number(m.pago_acumulado), Number(m.taxa_pct), Number(m.saldo_reajustado), s.referencia === 'fixo' ? 'taxa fixa' : (m.projecao ? 'projetado' : 'publicado')]; }));
-    const premissas = [['Premissas'], ['Cada pagamento é reajustado do mês seguinte ao pagamento até o mês da venda.'],
-        ['Pagamentos ainda previstos entram pelo valor do plano no mês do vencimento.'],
-        ['Meses sem índice publicado usam a média dos últimos 12 meses (marcados como "projetado").'],
-        ['Preço mínimo: venda − comissão − IR = pago reajustado; IR = % do lucro (venda − comissão − pago), sem fatores de redução nem isenções.'],
-        [], ['Gerado em', new Date().toLocaleString('pt-BR')], ['Raiz Patrimônio']];
-    const wb = XLSX.utils.book_new();
-    const w1 = XLSX.utils.aoa_to_sheet(resumo); w1['!cols'] = [{ wch: 38 }, { wch: 22 }];
-    Object.keys(w1).forEach(c => { if (c[0] === 'B' && typeof w1[c]?.v === 'number' && !/%/.test(w1['A' + c.slice(1)]?.v || '')) w1[c].z = '#,##0.00'; });
-    const w2 = XLSX.utils.aoa_to_sheet(meses, { cellDates: true }); w2['!cols'] = [{ wch: 10 }, { wch: 18 }, { wch: 20 }, { wch: 15 }, { wch: 22 }, { wch: 11 }];
-    Object.keys(w2).forEach(c => { const col = c.replace(/\d+/g, ''), lin = Number(c.replace(/\D/g, '')); if (!lin || lin === 1) return;
-        if (col === 'A') w2[c].z = 'mm/yyyy'; else if (['B', 'C', 'E'].includes(col)) w2[c].z = '#,##0.00'; else if (col === 'D') w2[c].z = '0.0000'; });
-    const w3 = XLSX.utils.aoa_to_sheet(premissas); w3['!cols'] = [{ wch: 110 }];
-    XLSX.utils.book_append_sheet(wb, w1, 'Resumo'); XLSX.utils.book_append_sheet(wb, w2, 'Mês a mês'); XLSX.utils.book_append_sheet(wb, w3, 'Premissas');
-    const nome = 'Simulacao_venda_' + String(s.ativo_nome || 'imovel').normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^A-Za-z0-9]+/g, '_').slice(0, 40)
-        + '_' + new Date().toISOString().slice(0, 10).replace(/-/g, '') + '.xlsx';
-    XLSX.writeFile(wb, nome);
-    mostrarToast('Planilha gerada.', 'success');
 }

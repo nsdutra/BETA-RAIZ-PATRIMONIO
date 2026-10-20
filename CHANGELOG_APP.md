@@ -4,6 +4,16 @@ Histórico completo de versões do `index.html`, movido automaticamente pelo `ge
 
 ---
 
+NOVIDADES (Beta v1.440.1) — TELA DA SAFRA (item 54, print do Nicola 19/10 21:38): itens na largura toda e alinhados; as
+opções da fase e de Corrigir abrem por cima da safra, sem fechá-la (cofre-controles.js 1.63.1). Aqui, só cabeçalho e import map.
+Versão anterior (Beta v1.440.0):
+------------------------------------------------------------------
+Versões anteriores (v1.440.0 … v1.440.0): CHANGELOG_APP.md, na raiz do
+repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
+das 5 versões mais recentes deste cabeçalho.
+
+---
+
 NOVIDADES (Beta v1.440.0) — CORRIGIR SAFRA E FASE · ARRENDAMENTO PELA GLEBA (itens 52 e 53, de acordo do Nicola 19/10 19:31):
 na execução do programa, "Corrigir <safra>" edita início, fim e nome, mostra os vínculos e exclui a safra criada errada
 (só sem vínculo); a fase ganha "Corrigir datas"; "Abrir a safra" pede a data de referência; item com lançamento não se
