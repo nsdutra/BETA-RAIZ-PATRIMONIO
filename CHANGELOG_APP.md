@@ -4,6 +4,18 @@ Histórico completo de versões do `index.html`, movido automaticamente pelo `ge
 
 ---
 
+NOVIDADES (Beta v1.446.0) — FERIADOS NA AGENDA (FICHA_FAMILIA_CALENDARIO_E_FERIADOS_RAIZ v1.0.0, de acordo do Nicola 20/10
+18:34): com a rotina Feriados ligada (Minha empresa › Rotinas e alertas, tema Família e agenda), a Agenda mostra os feriados
+nacionais e os das UFs e cidades dos imóveis, aprovados no Gestão. agenda.js 1.8.0. Banco: feriados_catalogo_v1. Aqui, só
+cabeçalho e import map.
+Versão anterior (Beta v1.445.1):
+------------------------------------------------------------------
+Versões anteriores (v1.445.1 … v1.445.1): CHANGELOG_APP.md, na raiz do
+repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
+das 5 versões mais recentes deste cabeçalho.
+
+---
+
 NOVIDADES (Beta v1.445.1) — PLANO DE PAGAMENTO: COMO É PAGO (Nicola 20/10 14:06, de acordo 14:10): conta que paga e acerto
 (pela empresa ou rateio direto entre pessoas) no cadastro do plano e no ⋮ › Forma de pagamento, inclusive nas parcelas já
 pagas; sai o botão "Situação no Financeiro" (cofre-ativos.js 1.135.0). Banco: planta_pagamento_v1. Aqui, só cabeçalho e

@@ -1,8 +1,14 @@
 // =====================================================================
 // RAIZ PATRIMÔNIO — js/agenda.js
-// VERSÃO: Beta v1.9.1 (20/10/2026 — demanda b3aeefaf)
+// VERSÃO: Beta v1.9.2 (20/10/2026 — demanda b3aeefaf)
 // LINHAS: (ver versoes.json)
 // -----------------------------------------------------------------
+// NOVIDADES (Beta v1.9.2) (20/10/2026, sessão 20261020-1943-calendario-rapido, demanda b3aeefaf; Nicola 19:43 após a 1ª
+//   importação real: "lista quebrada e grande… cada compromisso em no máximo 2 linhas · avisar 1 dia antes ou 3 dias · mostre
+//   a data, ano e dia da semana") — a revisão do calendário fica em 2 linhas por compromisso: (1) marcar + título; (2) dia da
+//   semana, data com ano, para quem, tipo e aviso. Tocar no texto abre os ajustes (filho, tipo, turma, Aviso: sem · 1 dia ·
+//   3 dias, A confirmar); linha com data por turma já abre pedindo a turma. Envia lembrete_dias (fn_calendario_escolar_aplicar v2).
+// Versão anterior (Beta v1.9.1):
 // NOVIDADES (Beta v1.9.1) (20/10/2026, sessão 20261020-1926-importar-ajustes, demanda b3aeefaf; achado do Nicola 19:26 "ainda
 //   sem aparecer o menu 3 pontos na agenda") — CORRIGIDO: o ⋮ da Agenda usava a classe rz-fin-lupa, que o index esconde em todo
 //   o #main-content desde que a busca subiu para o topo — o botão existia, mas nunca aparecia (nem "Enviar a semana"). Ganha
@@ -83,7 +89,7 @@
 // formatarMoedaBR, abrirSheet, abrirSheetAcoes, rzSheetCabecalho, fecharSheet, abrirAlertaItemControle,
 // abrirFichaContrato, switchTab, mostrarToast, rzDev.
 
-export const VERSAO = '1.9.1';
+export const VERSAO = '1.9.2';
 
 const TIPOS = {
     ocorrencia:   { rotulo: 'Ocorrência',  icone: 'wrench',          dominio: 'ocorrencias' },
@@ -477,6 +483,10 @@ async function enviarSemana() {
 const CAL_NORM = (t) => String(t ?? '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
 const calChave = (escola, ativo, data, tituloChave) => `calendario:${CAL_NORM(escola).replace(/ /g, '-').slice(0, 40)}:${ativo}:${data}:${tituloChave}`.slice(0, 300);
 const calData = (d) => d ? `${d.slice(8, 10)}/${d.slice(5, 7)}` : '';
+// v1.9.2 — "sex 06/11/2026"; período "seg 19/10 – qui 29/10/2026"
+const calDiaSem = (d) => DIA_SEM[new Date(d + 'T12:00:00').getDay()];
+const calQuando = (ini, fim) => (!fim || fim === ini) ? `${calDiaSem(ini)} ${calData(ini)}/${ini.slice(0, 4)}`
+    : `${calDiaSem(ini)} ${calData(ini)}${ini.slice(0, 4) !== fim.slice(0, 4) ? '/' + ini.slice(0, 4) : ''} – ${calDiaSem(fim)} ${calData(fim)}/${fim.slice(0, 4)}`;
 const CAL_RECOLHIDO = { outra_serie: 'Outras séries', passado: 'Datas que já passaram', feriado_na_agenda: 'Feriados que já estão na agenda' };
 
 export async function abrirImportarCalendario() { // v1.9.0 — exportada também para o atalho de outras telas
@@ -498,7 +508,7 @@ export async function abrirImportarCalendario() { // v1.9.0 — exportada també
     rzIcones();
     const ler = async (body, arquivo) => {
         corpo.querySelectorAll('.rz-act').forEach(b => b.style.display = 'none');
-        const prog = window.rzProgressoLeitura ? window.rzProgressoLeitura({ alvo: corpo.querySelector('#cal-prog'), arquivo, passoIa: 1, tempoTipicoS: 45,
+        const prog = window.rzProgressoLeitura ? window.rzProgressoLeitura({ alvo: corpo.querySelector('#cal-prog'), arquivo, passoIa: 1, tempoTipicoS: 25,
             passos: ['Enviando o calendário', 'Raiz IA lendo as datas', 'Separando por filho', 'Pronto'] }) : { passo() {}, fim() {} };
         try {
             prog.passo(1);
@@ -527,26 +537,36 @@ export async function abrirImportarCalendario() { // v1.9.0 — exportada també
 function revisarCalendario(sh, r) {
     const corpo = sh.querySelector('#cal-corpo');
     const opc = r.opcoes || []; const cats = r.categorias || {};
-    const linhas = (r.sugestoes || []).map(s => ({ ...s }));
+    const linhas = (r.sugestoes || []).map(s => ({ ...s, aviso: s.lembrete ? 3 : 0 })); // v1.9.2 — aviso em dias (0, 1 ou 3)
+    const editando = new Set(linhas.filter(l => l.situacao === 'escolher_turma').map(l => l.id)); // v1.9.2
     const visiveis = () => linhas.filter(l => !CAL_RECOLHIDO[l.situacao]);
     const recolhidas = () => linhas.filter(l => CAL_RECOLHIDO[l.situacao]);
     let abertos = new Set();
+    // v1.9.2 — 2 linhas por compromisso; os ajustes abrem ao tocar no texto
     const linhaHtml = (l) => {
-        const turma = l.situacao === 'escolher_turma' && l.turmas
-            ? `<select data-cal-turma="${l.id}"><option value="">Turma…</option>${l.turmas.map(t => `<option value="${t.data}"${t.data === l.data_inicio && l.marcado ? ' selected' : ''}>${rzEsc(t.turma)} · ${calData(t.data)}</option>`).join('')}</select>` : '';
-        return `<div class="rz-ag-op${l.marcado ? ' rz-on' : ''}" style="display:flex;gap:10px;padding:10px 0;border-bottom:1px solid var(--line)">
-            <button type="button" class="rz-ag-ck" data-cal-ck="${l.id}" aria-label="Importar">${l.marcado ? '<svg data-lucide="check"></svg>' : ''}</button>
-            <div style="flex:1;min-width:0">
-                <b style="display:block">${rzEsc(l.titulo)}</b>
-                <small class="rz-sub">${calData(l.data_inicio)}${l.data_fim && l.data_fim !== l.data_inicio ? ' a ' + calData(l.data_fim) : ''}${l.motivo ? ' · ' + rzEsc(l.motivo) : ''}${l.descricao ? ' · ' + rzEsc(l.descricao) : ''}</small>
-                <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:6px">
-                    <select data-cal-para="${l.id}">${opc.map(o => `<option value="${o.id}"${o.id === l.ativo_id ? ' selected' : ''}>${rzEsc(o.nome)}</option>`).join('')}</select>
-                    <select data-cal-cat="${l.id}">${Object.entries(cats).map(([k, n]) => `<option value="${k}"${k === l.categoria ? ' selected' : ''}>${rzEsc(n)}</option>`).join('')}</select>
-                    ${turma}
-                    <button type="button" class="rz-chip${l.lembrete ? ' rz-on' : ''}" data-cal-lem="${l.id}">Lembrete 3 dias</button>
-                    <button type="button" class="rz-chip${l.a_confirmar ? ' rz-on' : ''}" data-cal-conf="${l.id}">A confirmar</button>
-                </div>
-            </div></div>`;
+        const para = (opc.find(o => o.id === l.ativo_id) || {}).nome || l.para || '—';
+        const det = [calQuando(l.data_inicio, l.data_fim), para, cats[l.categoria] || '',
+            l.situacao === 'escolher_turma' ? 'escolha a turma' : (l.aviso ? `aviso ${l.aviso} dia${l.aviso > 1 ? 's' : ''} antes` : 'sem aviso'),
+            l.a_confirmar ? 'a confirmar' : '', l.motivo && CAL_RECOLHIDO[l.situacao] ? l.motivo : ''].filter(Boolean).join(' · ');
+        const aberto = editando.has(l.id);
+        const turma = l.turmas
+            ? `<select data-cal-turma="${l.id}"><option value="">Turma…</option>${l.turmas.map(t => `<option value="${t.data}"${t.data === l.data_inicio && l.situacao !== 'escolher_turma' ? ' selected' : ''}>${rzEsc(t.turma)} · ${calDiaSem(t.data)} ${calData(t.data)}</option>`).join('')}</select>` : '';
+        const ed = aberto ? `<div style="display:flex;flex-wrap:wrap;gap:6px;margin:8px 0 2px 32px">
+                <select data-cal-para="${l.id}">${opc.map(o => `<option value="${o.id}"${o.id === l.ativo_id ? ' selected' : ''}>${rzEsc(o.nome)}</option>`).join('')}</select>
+                <select data-cal-cat="${l.id}">${Object.entries(cats).map(([k, n]) => `<option value="${k}"${k === l.categoria ? ' selected' : ''}>${rzEsc(n)}</option>`).join('')}</select>
+                ${turma}
+                ${[[0, 'Sem aviso'], [1, '1 dia antes'], [3, '3 dias antes']].map(([n, t]) => `<button type="button" class="rz-chip${l.aviso === n ? ' rz-on' : ''}" data-cal-av="${l.id}" data-n="${n}">${t}</button>`).join('')}
+                <button type="button" class="rz-chip${l.a_confirmar ? ' rz-on' : ''}" data-cal-conf="${l.id}">A confirmar</button>
+            </div>` : '';
+        return `<div class="rz-ag-op${l.marcado ? ' rz-on' : ''}" style="padding:8px 0;border-bottom:1px solid var(--line)">
+            <div style="display:flex;gap:10px;align-items:flex-start">
+                <button type="button" class="rz-ag-ck" data-cal-ck="${l.id}" aria-label="Importar">${l.marcado ? '<svg data-lucide="check"></svg>' : ''}</button>
+                <button type="button" data-cal-ed="${l.id}" style="flex:1;min-width:0;text-align:left;background:none;border:0;padding:0;font:inherit;color:inherit">
+                    <b style="display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${rzEsc(l.titulo)}</b>
+                    <small class="rz-sub" style="display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${rzEsc(det)}</small>
+                </button>
+                <svg data-lucide="${aberto ? 'chevron-up' : 'chevron-down'}" style="width:16px;height:16px;flex:none;margin-top:4px;color:var(--muted)"></svg>
+            </div>${ed}</div>`;
     };
     const desenhar = () => {
         const marcadas = linhas.filter(l => l.marcado && l.ativo_id);
@@ -564,12 +584,13 @@ function revisarCalendario(sh, r) {
     const acha = (id) => linhas.find(l => l.id === id);
     const ligar = () => {
         corpo.querySelectorAll('[data-cal-ck]').forEach(b => b.addEventListener('click', () => { const l = acha(b.dataset.calCk); l.marcado = !l.marcado; desenhar(); }));
-        corpo.querySelectorAll('[data-cal-lem]').forEach(b => b.addEventListener('click', () => { const l = acha(b.dataset.calLem); l.lembrete = !l.lembrete; desenhar(); }));
+        corpo.querySelectorAll('[data-cal-av]').forEach(b => b.addEventListener('click', () => { const l = acha(b.dataset.calAv); l.aviso = Number(b.dataset.n); desenhar(); })); // v1.9.2
+        corpo.querySelectorAll('[data-cal-ed]').forEach(b => b.addEventListener('click', () => { const id = b.dataset.calEd; editando.has(id) ? editando.delete(id) : editando.add(id); desenhar(); }));
         corpo.querySelectorAll('[data-cal-conf]').forEach(b => b.addEventListener('click', () => { const l = acha(b.dataset.calConf); l.a_confirmar = !l.a_confirmar; desenhar(); }));
-        corpo.querySelectorAll('[data-cal-para]').forEach(s => s.addEventListener('change', () => { acha(s.dataset.calPara).ativo_id = s.value; }));
-        corpo.querySelectorAll('[data-cal-cat]').forEach(s => s.addEventListener('change', () => { acha(s.dataset.calCat).categoria = s.value; }));
+        corpo.querySelectorAll('[data-cal-para]').forEach(s => s.addEventListener('change', () => { acha(s.dataset.calPara).ativo_id = s.value; desenhar(); }));
+        corpo.querySelectorAll('[data-cal-cat]').forEach(s => s.addEventListener('change', () => { acha(s.dataset.calCat).categoria = s.value; desenhar(); }));
         corpo.querySelectorAll('[data-cal-turma]').forEach(s => s.addEventListener('change', () => {
-            const l = acha(s.dataset.calTurma); if (!s.value) return; l.data_inicio = s.value; l.data_fim = s.value; l.marcado = true; desenhar();
+            const l = acha(s.dataset.calTurma); if (!s.value) return; l.data_inicio = s.value; l.data_fim = s.value; l.marcado = true; if (l.situacao === 'escolher_turma') l.situacao = 'sugerido'; editando.delete(l.id); desenhar();
         }));
         corpo.querySelectorAll('[data-cal-grupo]').forEach(b => b.addEventListener('click', () => { const k = b.dataset.calGrupo; abertos.has(k) ? abertos.delete(k) : abertos.add(k); desenhar(); }));
         corpo.querySelector('#cal-cancelar').addEventListener('click', () => fecharSheet(true));
@@ -582,7 +603,7 @@ function revisarCalendario(sh, r) {
         const payload = marcadas.map(l => {
             const para = (opc.find(o => o.id === l.ativo_id) || {}).nome || '';
             return { titulo: `${l.titulo}${para ? ' — ' + para : ''}`, data_inicio: l.data_inicio, data_fim: l.data_fim || l.data_inicio,
-                ativo_id: l.ativo_id, lembrete: !!l.lembrete, a_confirmar: !!l.a_confirmar,
+                ativo_id: l.ativo_id, lembrete: l.aviso > 0, lembrete_dias: l.aviso, a_confirmar: !!l.a_confirmar, // v1.9.2
                 descricao: [cats[l.categoria] || '', l.descricao || ''].filter(Boolean).join(' · ') || null,
                 origem_chave: calChave(r.escola || 'Escola', l.ativo_id, l.data_inicio, l.titulo_chave) };
         });

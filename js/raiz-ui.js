@@ -1,6 +1,12 @@
 // ============================================================================
 // raiz-ui.js — Raiz Patrimônio · Diálogos sem diálogo nativo (UXR-29/30)
-// Versão: 1.6.0 · 20/10/2026
+// Versão: 1.6.1 · 20/10/2026
+//
+// v1.6.1 (20/10/2026, sessão 20261020-1943-calendario-rapido, demanda b3aeefaf; Nicola 19:43 "não está atualizando o tempo de
+// carregamento ao passar de 45 s, apenas ao chegar nos 60 s") — rzProgressoLeitura: a barra parava no tempo típico e só
+// mudava o texto em 1,5× esse tempo. Agora a barra segue andando devagar (curva que nunca chega ao fim) e o texto passa por
+// três estados: dentro do tempo típico · "um pouco mais que o normal, ainda lendo" · "arquivo longo… até 2 min".
+// Versão anterior: 1.6.0 · 20/10/2026
 //
 // v1.6.0 (20/10/2026, sessão 20261019-2331-fatura-analise, demanda c36b09b2 — de acordo do Nicola 19/10 23:50) —
 // rzProgressoLeitura, NOVO: o progresso por etapas da leitura de documento (cartão do arquivo, passos com ✓, barra,
@@ -30,21 +36,11 @@
 // v1.3.0 (11/10/2026, sessão 20261008-1231-pessoas-ativos, demanda f3e6cd27; F13 §3.5) — rzEditarDivisao ganha a opção
 // igualar: true, que mostra "Dividir igual entre todos" (percentuais iguais; o arredondamento fica com o primeiro, que é
 // quem pagou). O retorno de aoSalvar passa a trazer igual: true quando a divisão ficou igual. Sem a opção, nada muda.
-//
-// Versão anterior: 1.2.0 · 07/10/2026
-//
-// v1.2.0 (07/10/2026, sessão 20261007-0158-financeiro, demanda f3e6cd27 — pedido do Nicola
-// 01:58: "há 3 telas distintas, padronize"): componente ÚNICO rzEditarDivisao para toda
-// divisão em % entre pessoas — exceção de um lançamento (Financeiro), divisão do contrato e do
-// imóvel (Divisão Societária) e propriedade do ativo (Ativos). Linha compacta numa só altura:
-// nome (e o que é: sócio, parte externa ou o valor) · campo % · remover; "Adicionar pessoa"
-// (pessoas cadastradas ou nome livre, quando permitido); soma ao vivo com o que falta; rodapé
-// Cancelar | Salvar, Salvar só liga em 100% com todos os nomes. Também em window.rzEditarDivisao.
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.1.0 … v1.1.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.2.0 … v1.2.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '1.6.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.6.1'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 
 const esc = (v) => String(v ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 const g = (nome) => (typeof window !== 'undefined' && typeof window[nome] === 'function') ? window[nome] : null;
@@ -350,12 +346,16 @@ export function rzProgressoLeitura({ alvo = null, titulo = 'Lendo o arquivo', ar
         if (!vivo) return;
         const s = Math.round((Date.now() - inicio) / 1000);
         const t = caixa.querySelector('.rz-lp-tempo');
-        if (t) t.textContent = atual === passoIa ? (s < tempoTipicoS * 1.5 ? `${s} s · costuma levar até ${tempoTipicoS < 60 ? tempoTipicoS + ' s' : Math.round(tempoTipicoS / 60) + ' min'}` : `${s} s · arquivo longo: ainda lendo, pode levar até 2 min`) : `${s} s`;
+        if (t) t.textContent = atual === passoIa
+            ? (s <= tempoTipicoS ? `${s} s · costuma levar até ${tempoTipicoS < 60 ? tempoTipicoS + ' s' : Math.round(tempoTipicoS / 60) + ' min'}`
+                : s < tempoTipicoS * 2 ? `${s} s · um pouco mais que o normal, ainda lendo`
+                : `${s} s · arquivo longo: ainda lendo, pode levar até 2 min`)
+            : `${s} s`; // v1.6.1 — três estados, sem "parar" entre o típico e 1,5×
         const b = caixa.querySelector('.rz-lp-barra i');
         if (b) {
             const fatia = 90 / Math.max(1, passos.length - 1);
             let pct = 6 + atual * fatia;
-            if (atual === passoIa && inicioIa) pct += Math.min(fatia * 0.95, ((Date.now() - inicioIa) / 1000) / tempoTipicoS * fatia);
+            if (atual === passoIa && inicioIa) pct += fatia * 0.95 * (1 - Math.exp(-1.6 * ((Date.now() - inicioIa) / 1000) / tempoTipicoS)); // v1.6.1 — nunca para
             b.style.width = Math.min(97, pct) + '%';
         }
     };
