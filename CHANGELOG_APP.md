@@ -4,6 +4,18 @@ Histórico completo de versões do `index.html`, movido automaticamente pelo `ge
 
 ---
 
+NOVIDADES (Beta v1.439.3) — FAIXA DO RAMO MAIS SUTIL (Nicola 19/10 17:09): a faixa vira o topo do card da lista do ramo
+(mesma largura e cantos), fundo claro na cor do ramo com um fio embaixo, letras no tamanho de antes e o ícone do ramo
+alinhado aos ícones dos ativos; o ícone e a setinha ao lado do total recolhem os
+ativos do ramo. cofre-ativos.js 1.126.0.
+Versão anterior (Beta v1.439.2):
+------------------------------------------------------------------
+Versões anteriores (v1.439.2 … v1.439.2): CHANGELOG_APP.md, na raiz do
+repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
+das 5 versões mais recentes deste cabeçalho.
+
+---
+
 NOVIDADES (Beta v1.439.2) — ⋮ NO PADRÃO DA FICHA (Nicola 19/10 17:06): em Patrimônio o ⋮ fica na ponta direita da linha
 dos chips; no Financeiro ele perde a caixa e vira os três pontos simples da ficha do ativo. ativos-markup.js 1.67.0.
 Versão anterior (Beta v1.439.1):

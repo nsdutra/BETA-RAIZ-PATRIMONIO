@@ -1,6 +1,12 @@
 // ============================================================================
 // cofre-controles.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.63.0 · 19/10/2026
+// Versão: 1.63.1 · 19/10/2026
+//
+// v1.63.1 (19/10/2026, sessão 20261019-2141-carga-silva-safra2, demanda 9404081c item 54; print do Nicola 19/10 21:38) — na tela
+// da safra: os itens (Agora, Da safra inteira, Do programa) voltam a ocupar a largura toda, alinhados à esquerda (a linha
+// solta fora de .rz-list ficava estreita e centrada); o ⋮ da fase e "Corrigir <safra>" abrem por cima da safra (empilhar),
+// então escolher Corrigir datas, Voltar, Pular ou Editar não fecha a tela da safra, e ela volta atualizada ao salvar.
+// Versão anterior: 1.63.0 · 19/10/2026
 //
 // v1.63.0 (19/10/2026, sessão 20261019-1931-carga-silva-correcoes, demanda 9404081c item 53, de acordo do Nicola 19:31) —
 // CORRIGIR o que foi cadastrado errado na execução do programa: botão "Corrigir" na safra (ou ciclo) com Editar a safra
@@ -35,16 +41,11 @@
 // (vence em, última vez em, 1ª data e valor de pagamento; próxima nos demais), que grava por fn_programa_aceitar (o item que
 // já existe no ativo entra no programa, sem duplicar); "Programas" lista todos os que servem ao ativo
 // (window.__rzAbrirProgramas, chamado pelo ⋮ do ativo e pelo "Adicionar item de controle").
-// Versão anterior: 1.59.0 · 14/10/2026
-//
-// v1.59.0 (14/10/2026, sessão 20261014-2145-onda9c-textos, demanda a05ad2ee; onda 9c do estudo PROTOTIPO_UX_DENSIDADE_RAMOS_RAIZ
-// v1.2.0, D6 seção 10) — textos no limite: ação até 24 caracteres, descrição até 28, aviso até 40 com o resultado e tela
-// vazia em 1 frase de até 40. A explicação longa fica na confirmação, quando existe. Nada de comportamento mudou.
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.58.0 … v1.58.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.59.0 … v1.59.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '1.63.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.63.1'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 import { estado } from './cofre-estado.js';
 import * as api from './cofre-api.js';
 import { mostrarToast, refrescarIcones, abrirModal, fecharModal, modalGenerico, perguntar, escolher, avisarComDesfazer } from './cofre-ui.js';
@@ -595,7 +596,7 @@ export async function abrirExecucao(apId, cicloId = null) {
         ? `<span><b>${rc.unidade && rc.unidade.startsWith('R$') ? moedaBR(C.resultado[rc.campo]) : escapeHtml(String(C.resultado[rc.campo]))}</b> ${escapeHtml(rc.unidade && !rc.unidade.startsWith('R$') ? rc.unidade : '')} ${escapeHtml(rc.rotulo)}</span>` : '').join('') : '';
     const custoHtml = d.aberta ? `<div class="rz-exec-custo"><span><b>${moedaBR(custo.realizado || 0)}</b> pago</span><span><b>${moedaBR(custo.a_pagar || 0)}</b> a pagar</span>${custo.previsto ? `<span><b>${moedaBR(custo.previsto)}</b> previsto</span>` : ''}${res}</div>` : '';
     const porEscopo = (e) => (d.itens || []).filter(i => i.escopo === e);
-    const grupo = (rot, lista) => lista.length ? `<div class="rz-group rz-group-t"><span>${escapeHtml(rot)} · ${lista.length}</span></div>` + lista.map(linhaItemExecHtml).join('') : '';
+    const grupo = (rot, lista) => lista.length ? `<div class="rz-group rz-group-t"><span>${escapeHtml(rot)} · ${lista.length}</span></div><div class="rz-list" style="padding:0">` + lista.map(linhaItemExecHtml).join('') + '</div>' : ''; // v1.63.1
     const itensHtml = d.aberta && C?.situacao !== 'fechado'
         ? grupo(d.fase_atual ? 'Agora: ' + d.fase_atual.nome : 'Agora', porEscopo('fase')) + grupo('Da ' + R.exec + ' inteira', porEscopo('ciclo')) + grupo('Do programa', porEscopo('programa'))
         : grupo('Do programa', porEscopo('programa'));
@@ -702,7 +703,7 @@ function abrirExecucaoMembro(d) {
         acoes.push(`<button type="button" class="rz-btn rz-btn-3" data-exec-reabrir>Reabrir ${escapeHtml(C.nome)}</button>`);
     const corpo = ciclosChips + (resTxt ? `<div class="rz-exec-custo">${resTxt}</div>` : '')
         + `<div class="rz-exec-fases">${(d.fases || []).map(linhaFase).join('')}</div>`
-        + ((d.itens || []).length ? `<div class="rz-group rz-group-t"><span>Itens · ${d.itens.length}</span></div>` + d.itens.map(linhaItemExecHtml).join('') : '')
+        + ((d.itens || []).length ? `<div class="rz-group rz-group-t"><span>Itens · ${d.itens.length}</span></div><div class="rz-list" style="padding:0">` + d.itens.map(linhaItemExecHtml).join('') + '</div>' : '') // v1.63.1
         + `<button type="button" class="rz-btn rz-btn-3 rz-wide" data-mb-ficha style="margin-top:10px"><i data-lucide="beef"></i> Ficha de ${escapeHtml(M.identificador)}</button>`;
     const sheet = window.abrirSheet(window.rzSheetCabecalho(titulo, sub) + `<div class="rz-sh-b">${corpo}</div>`
         + (acoes.length ? `<div class="rz-sh-f rz-exec-acoes">${acoes.join('')}</div>` : ''));
@@ -874,12 +875,12 @@ function abrirAcoesFase(d, faseId) {
     const fechado = d.ciclo?.situacao === 'fechado';
     if (!d.membro && (f.situacao === 'concluida' || f.situacao === 'atual'))
         acoes.push({ icone: 'calendar-cog', titulo: 'Corrigir datas', codigo: 'ciclos.gerir', sub: f.situacao === 'atual' ? 'Início desta ' + R.fase : 'Início e fim', aoTocar: () => abrirFolhaDatasFase(d, f) });
-    if (fechado) { if (acoes.length) sheetAcoes({ titulo: f.nome, sub: d.programa.nome, acoes }); return; }
+    if (fechado) { if (acoes.length) sheetAcoes({ titulo: f.nome, sub: d.programa.nome, acoes, empilhar: true }); return; }
     if (f.situacao === 'pendente') acoes.push({ icone: 'skip-forward', titulo: 'Pular ' + R.fase, codigo: 'ciclos.gerir', sub: 'Com o motivo', aoTocar: () => moverFase(d, f, 'pular') });
     if (f.situacao === 'pulada') acoes.push({ icone: 'undo-2', titulo: 'Retomar ' + R.fase, codigo: 'ciclos.gerir', sub: 'Volta para a lista', aoTocar: () => moverFase(d, f, 'retomar') });
     if (f.situacao === 'concluida') acoes.push({ icone: 'rotate-ccw', titulo: 'Voltar para esta', codigo: 'ciclos.gerir', sub: 'A atual volta para a lista', aoTocar: () => moverFase(d, f, 'voltar') });
     if (!acoes.length) return;
-    sheetAcoes({ titulo: f.nome, sub: d.programa.nome, acoes });
+    sheetAcoes({ titulo: f.nome, sub: d.programa.nome, acoes, empilhar: true }); // v1.63.1: por cima da safra
 }
 function moverFase(d, f, acao) {
     const ROT = { pular: 'Pular', retomar: 'Retomar', voltar: 'Voltar para' };
@@ -904,7 +905,7 @@ function moverFase(d, f, acao) {
 const ehFem = (R) => /a$/.test(R.exec);
 function abrirAcoesCorrigirCiclo(d) {
     const R = execRot(d), C = d.ciclo; if (!C) return;
-    sheetAcoes({ titulo: 'Corrigir ' + C.nome, sub: d.programa.nome, acoes: [
+    sheetAcoes({ titulo: 'Corrigir ' + C.nome, sub: d.programa.nome, empilhar: true, acoes: [
         { icone: 'pencil', titulo: 'Editar ' + (ehFem(R) ? 'a ' : 'o ') + R.exec, codigo: 'ciclos.gerir', sub: 'Início, fim e nome', aoTocar: () => abrirFolhaEditarCiclo(d) },
         { icone: 'list-checks', titulo: 'Ver vínculos', codigo: 'ciclos.gerir', sub: 'O que está ligado', aoTocar: () => mostrarVinculosCiclo(d, false) },
         { icone: 'trash-2', titulo: 'Excluir ' + (ehFem(R) ? 'a ' : 'o ') + R.exec, codigo: 'ciclos.gerir', sub: 'Só sem vínculo', tipo: 'bad', aoTocar: () => mostrarVinculosCiclo(d, true) },
