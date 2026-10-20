@@ -1,8 +1,15 @@
 // =====================================================================
 // RAIZ PATRIMÔNIO — js/resultados.js
-// VERSÃO: Beta v2.14.0 (19/10/2026 — demanda 63649288)
+// VERSÃO: Beta v2.15.0 (20/10/2026 — demanda 87ff1a11)
 // LINHAS: (ver versoes.json)
 // -----------------------------------------------------------------
+// NOVIDADES (Beta v2.15.0) (20/10/2026, sessão 20261018-2336-usos-lotes, demanda 87ff1a11; de acordo do Nicola 20/10 13:13) —
+//   lente Obras com imóvel em construção por plano de pagamento (Construção coletiva, Compra na planta): Investido no ano soma
+//   as parcelas de aquisição (fn_hoje_ramo_indicadores.investido_ano, migration hoje_obras_plano_v1); Avanço financeiro sem
+//   etapas = pago ÷ total do plano ("N de M pagas"); Avanço físico sem etapas mostra a entrega prevista; o card Obras em
+//   andamento lista os planos (pago × total, entrega); o gráfico vira "Investido por mês"; "Carteira × indicadores" e
+//   Performance saem da lente Obras.
+// Versão anterior (Beta v2.14.0):
 // NOVIDADES (Beta v2.14.0) (19/10/2026, sessão 20261018-2336-usos-lotes, demanda 63649288; FICHA_COCKPIT_METAS_RELATORIO_RAIZ v1.0.0,
 //   de acordo do Nicola 18/10 23:36) — cockpit C3: Exportar ganha "Relatório executivo" do ramo da lente e do consolidado
 //   (js/relatorios-executivos.js 1.6.0, código relatorios.executivo).
@@ -81,7 +88,7 @@
 // Versões anteriores (v2.4.0 … v2.4.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '2.14.0';
+export const VERSAO = '2.15.0';
 
 // ---------------------------------------------------------------------
 // Estado do filtro (module-scoped — sobrevive entre renders porque o
@@ -100,6 +107,11 @@ let ramoInfo = null; // { codigo, nome, unidade_singular, unidade_plural, soma_v
 let ultimoPorRamo = null; // v2.12.0 — última leitura de fn_hoje_por_ramo (escolha do ramo em Metas)
 const ABRANGENCIA_ROTULO = { carteira: 'Carteira', empreendimento: 'Empreendimento', imovel: 'Imóvel' };
 const NOMES_MES = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
+// v2.15.0 — '2027-12-01' → 'dez/27'
+function mesAnoCurto(iso) {
+    const m = /^(\d{4})-(\d{2})/.exec(String(iso || ''));
+    return m ? `${['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez'][Number(m[2]) - 1]}/${m[1].slice(2)}` : '';
+}
 const NOMES_MES_LONGO = ['janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho', 'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro'];
 
 function pctFmt(v) { return v == null ? '—' : `${v}%`; }
@@ -379,13 +391,30 @@ function celulasHeroiRamo({ tem, resumo, ant, ind, moeda, pctBR, rentabilidade, 
         const obras = ind && Array.isArray(ind.obras) ? ind.obras : [];
         const conc = obras.reduce((s, o) => s + (Number(o.concluidas) || 0), 0), tot = obras.reduce((s, o) => s + (Number(o.total) || 0), 0);
         const pago = obras.reduce((s, o) => s + (Number(o.pago) || 0), 0), prev = obras.reduce((s, o) => s + (Number(o.previsto) || 0), 0);
-        const fis = tot > 0 ? conc / tot * 100 : null, fin = prev > 0 ? pago / prev * 100 : null;
-        const dif = fis != null && fin != null ? fin - fis : null;
+        // v2.15.0 (dem 87ff1a11, de acordo do Nicola 20/10 13:13) — imóvel em construção com plano de pagamento (Construção
+        // coletiva, Compra na planta) entra nos números: o investido soma as parcelas de aquisição (fora do resultado), o avanço
+        // financeiro sem etapas é pago ÷ total do plano e o físico sem etapas mostra a entrega prevista.
+        const planos = ind && Array.isArray(ind.planos) ? ind.planos : [];
+        const plPago = planos.reduce((s, o) => s + (Number(o.pago) || 0), 0), plTot = planos.reduce((s, o) => s + (Number(o.total) || 0), 0);
+        const plPagas = planos.reduce((s, o) => s + (Number(o.pagas) || 0), 0), plParc = planos.reduce((s, o) => s + (Number(o.parcelas) || 0), 0);
+        const fis = tot > 0 ? conc / tot * 100 : null;
+        const fin = prev > 0 ? pago / prev * 100 : (plTot > 0 ? plPago / plTot * 100 : null);
+        const dif = tot > 0 && prev > 0 && fis != null && fin != null ? fin - fis : null;
+        const investido = ind && ind.investido_ano != null ? Number(ind.investido_ano) : despesa;
+        const entregas = planos.map(o => o.entrega && o.entrega.prevista).filter(Boolean).sort();
+        const entregaTxt = entregas.length ? `Entrega ${mesAnoCurto(entregas[0])}` : null;
+        const situacaoEnt = planos.find(o => o.entrega && o.entrega.prevista === entregas[0])?.entrega?.situacao;
+        const notaInvest = prev > 0 ? notaCmp(`de ${moedaCurta(prev)} previstos`)
+            : plTot > 0 ? notaCmp(`de ${moedaCurta(plTot)} no total`)
+            : (ant ? comparar(despesa, ant.saidas_ano, { bom: null }) : '');
         return [
-            celula('Investido no ano', tem ? moeda(despesa) : traco, false, prev > 0 ? notaCmp(`de ${moedaCurta(prev)} previstos`) : (ant ? comparar(despesa, ant.saidas_ano, { bom: null }) : '')),
-            celula('Avanço físico', fis != null ? pctBR(fis) : traco, false, notaCmp(tot ? `${conc} de ${tot} etapas` : 'sem obra em andamento')),
+            celula('Investido no ano', (tem || investido) ? moeda(investido) : traco, false, notaInvest),
+            fis != null || !entregaTxt
+                ? celula('Avanço físico', fis != null ? pctBR(fis) : traco, false, notaCmp(tot ? `${conc} de ${tot} etapas` : 'sem obra em andamento'))
+                : celula('Avanço físico', entregaTxt, false, notaCmp(situacaoEnt === 'atrasada' ? 'atrasada' : situacaoEnt === 'tolerancia' ? 'na tolerância' : 'no prazo', situacaoEnt === 'atrasada' ? 'rz-vs-ruim' : '')),
             celula('Avanço financeiro', fin != null ? pctBR(fin) : traco, false,
-                dif == null ? notaCmp(fin != null ? 'pago ÷ previsto' : '') : notaCmp(Math.abs(dif) < 1 ? 'igual ao físico' : `${fmtNum(Math.abs(dif), 0)} p.p. ${dif > 0 ? 'à frente' : 'atrás'} do físico`, dif > 5 ? 'rz-vs-ruim' : '')),
+                dif != null ? notaCmp(Math.abs(dif) < 1 ? 'igual ao físico' : `${fmtNum(Math.abs(dif), 0)} p.p. ${dif > 0 ? 'à frente' : 'atrás'} do físico`, dif > 5 ? 'rz-vs-ruim' : '')
+                : notaCmp(prev > 0 ? 'pago ÷ previsto' : plParc > 0 ? `${plPagas} de ${plParc} pagas` : (fin != null ? 'pago ÷ total' : ''))),
             cAPagar(),
         ];
     }
@@ -607,15 +636,15 @@ async function renderizarConteudo() {
         alvo.innerHTML = [
             cardPorRamo, // v2.11.0 — logo abaixo do herói: "qual ramo dá resultado"
             p_ramo ? montarCardsDoRamo(p_ramo, indRamo) : '', // v2.11.0 — os números da operação do ramo
-            montarGraficoMensal(mensal), // v2.4.0 — Indicadores foi para o Fique por dentro (renderIndicadoresMercado)
+            p_ramo === 'obras' ? montarGraficoInvestido(indRamo) : montarGraficoMensal(mensal), // v2.15.0 (dem 87ff1a11) — Obras: investido por mês
             montarPorGrupo(porGrupo), // v2.3.0
             cardGeral, // v2.9.0 (F23)
             cardsLocacao ? montarContratosPorIndice(indicesR) : '', // v2.5.0
-            montarGraficoIndicador(graficoIndicador),
+            p_ramo === 'obras' ? '' : montarGraficoIndicador(graficoIndicador), // v2.15.0 — não serve para obra
             cardsLocacao ? montarConcentracao(concentracao) : '',
             cardsLocacao ? montarReajustesCalendario(reajustes) : '',
             cardsLocacao ? montarRevisionaisCalendario(revisionais) : '',
-            filtro.contexto !== 'familia' ? montarPerformanceGrid(perf) : '', // v1.8.0
+            filtro.contexto !== 'familia' && p_ramo !== 'obras' ? montarPerformanceGrid(perf) : '', // v1.8.0 · v2.15.0: fora de Obras
         ].filter(Boolean).join('');
 
         if (typeof rzIcones === 'function') rzIcones();
@@ -901,8 +930,18 @@ function montarCardsDoRamo(ramo, ind) {
                     esquerda: `pago ${moedaCurta(o.pago)}${fin != null ? ` (${fmtNum(fin, 0)}%)` : ''}`,
                     direita: `${fis != null ? `físico ${fmtNum(fis, 0)}%` : ''}${prev ? ` · previsto ${moedaCurta(prev)}` : ''}` }) });
         }).join('');
-        cards.push(card('Obras em andamento', '', corpo || '<p class="rz-desc">Nenhuma obra com etapa em andamento.</p>',
-            obras.length ? 'Barra escura = pago; traço = avanço físico. Gasto passando do físico pede atenção.' : ''));
+        // v2.15.0 (dem 87ff1a11) — imóveis com plano de pagamento (Construção coletiva, Compra na planta) entram no card
+        const planos = Array.isArray(ind.planos) ? ind.planos : [];
+        const corpoPl = planos.map(o => {
+            const tot = Number(o.total) || 0, pg = Number(o.pago) || 0, fin = tot ? pg / tot * 100 : null;
+            const ent = o.entrega && o.entrega.prevista ? `entrega ${mesAnoCurto(o.entrega.prevista)}${o.entrega.situacao === 'atrasada' ? ' · atrasada' : o.entrega.situacao === 'tolerancia' ? ' · na tolerância' : ''}` : '';
+            return linha({ ic: 'building-2', tit: `${o.ativo} · ${o.programa || ''}`, sub: [o.parcelas ? `${o.pagas || 0} de ${o.parcelas} parcelas` : '', ent].filter(Boolean).join(' · '),
+                toque: o.ativo_id ? idAtivo(o.ativo_id) : '',
+                extra: barraBala({ pago: pg, previsto: tot, alerta: o.entrega && o.entrega.situacao === 'atrasada',
+                    esquerda: `pago ${moedaCurta(pg)}${fin != null ? ` (${fmtNum(fin, 0)}%)` : ''}`, direita: tot ? `total ${moedaCurta(tot)}` : '' }) });
+        }).join('');
+        cards.push(card('Obras em andamento', '', (corpo + corpoPl) || '<p class="rz-desc">Nenhuma obra em andamento.</p>',
+            obras.length ? 'Barra escura = pago; traço = avanço físico. Gasto passando do físico pede atenção.' : (planos.length ? 'Barra escura = pago do plano de pagamento.' : '')));
     }
 
     // Pecuária: rebanho, próximos avisos e vendas (D8-3, D8-5, D8-9)
@@ -1067,6 +1106,23 @@ function montarGraficoMensal(mensal) {
         ${cabecalhoGrafico(titulo, `Resultado por mês · ${unidade.rotulo} · ${filtro.ano}`, 'abrirInfoResultadoMensal()')}
         ${colunasExecutivasSvg(valores, { destaque: melhor, unidade, rotuloAria: titulo })}
         <p class="rz-res-fonte">Fonte: Raiz · recebimentos e lançamentos realizados</p>
+    </div>`;
+}
+
+// v2.15.0 (dem 87ff1a11) — lente Obras: "Investido por mês" (saídas realizadas dos ativos do ramo, inclusive as parcelas de
+// aquisição, fora do resultado) no lugar do "Resultado por mês", que em obra fica sempre vazio.
+function montarGraficoInvestido(ind) {
+    const meses = ind && Array.isArray(ind.investido_mes) ? ind.investido_mes : [];
+    const valores = Array.from({ length: 12 }, (_, i) => Number((meses.find(m => Number(m.mes) === i + 1) || {}).valor) || 0);
+    const total = valores.reduce((s, v) => s + v, 0);
+    const ate = mesesFechadosNoAno();
+    const corte = filtro.ano === ANO_ATUAL && ate >= 1 ? ` até ${NOMES_MES_LONGO[ate - 1]}` : '';
+    const titulo = total > 0 ? `Investido em ${filtro.ano}: ${formatarPatrimonioCompacto(total)}${corte}` : `Nada investido em ${filtro.ano}`;
+    const unidade = unidadeColunas(valores);
+    return `<div class="rz-card">
+        ${cabecalhoGrafico(titulo, `Investido por mês · ${unidade.rotulo} · ${filtro.ano}`, 'abrirInfoResultadoMensal()')}
+        ${colunasExecutivasSvg(valores, { unidade, rotuloAria: titulo })}
+        <p class="rz-res-fonte">Fonte: Raiz · saídas realizadas dos ativos do ramo, com as parcelas de aquisição</p>
     </div>`;
 }
 

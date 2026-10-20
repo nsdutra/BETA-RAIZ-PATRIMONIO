@@ -4,6 +4,21 @@ Histórico completo de versões do `index.html`, movido automaticamente pelo `ge
 
 ---
 
+NOVIDADES (Beta v1.441.2) — FATURA: CARTÃO VIRTUAL, PARCELAS, CATEGORIAS E PROGRESSO (de acordo do Nicola 19/10 23:50,
+23:52 e 23:55): compra de cartão virtual fica no titular e aparece como "Cartão virtual ··final"; parcela mostra quantas
+faltam e quanto falta pagar, e a classificação vale para as outras parcelas da mesma compra; leitura da fatura e do extrato
+com o progresso por etapas da leitura de documento (financeiro.js 1.71.0, raiz-ui.js 1.6.0). Banco: cartão virtual,
+parcelas e despesa pessoal no ativo de quem usou o cartão (fn_fatura_importar, fn_fatura_item_classificar); catálogo com
+Agro/Pecuária só nos ativos do ramo, "Celulares, computadores e eletrônicos" e "Decoração, quadros e objetos". Aqui, só
+cabeçalho e import map.
+Versão anterior (Beta v1.441.1):
+------------------------------------------------------------------
+Versões anteriores (v1.441.1 … v1.441.1): CHANGELOG_APP.md, na raiz do
+repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
+das 5 versões mais recentes deste cabeçalho.
+
+---
+
 NOVIDADES (Beta v1.441.1) — VALOR À DIREITA, IDADE E PAGAMENTO DA DESPESA (itens 60 a 62, Nicola 19/10 22:44): na lista de
 Patrimônio o valor do ativo vai para a direita da linha (cofre-ativos.js 1.130.0); a data de nascimento mostra a idade; o
 "Confirmar pagamento" da despesa grava junto o ativo e o que mudou no formulário (financeiro.js 1.70.0). Aqui, só cabeçalho
