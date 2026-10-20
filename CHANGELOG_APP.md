@@ -4,6 +4,19 @@ Histórico completo de versões do `index.html`, movido automaticamente pelo `ge
 
 ---
 
+NOVIDADES (Beta v1.441.4) — PLANO DE PAGAMENTO: AJUSTES DO TESTE (teste do Nicola 20/10 09:00, de acordo 10:13): tela de
+dados com campo de data e check no padrão do app; o card do plano no chip Usos vira o resumo do contrato (sem situação);
+a situação vai para o chip Financeiro do ativo; ⋮ com Abatimento numa tela só, Histórico do plano e Simular venda, que sai
+do Financeiro geral (cofre-ativos.js 1.132.0, financeiro.js 1.73.0). Banco: durante a obra o programa do tipo (IPTU,
+seguro) não é sugerido e os programas do plano não sugerem de novo as parcelas. Aqui, só cabeçalho e import map.
+Versão anterior (Beta v1.441.3):
+------------------------------------------------------------------
+Versões anteriores (v1.441.3 … v1.441.3): CHANGELOG_APP.md, na raiz do
+repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
+das 5 versões mais recentes deste cabeçalho.
+
+---
+
 NOVIDADES (Beta v1.441.3) — IMÓVEL EM CONSTRUÇÃO: PLANO DE PAGAMENTO E SIMULAÇÃO DE VENDA (de acordo do Nicola 20/10 01:12):
 "Adicionar uso" › Construção coletiva ou Na planta abre a mesma tela de dados (séries de parcelas, custos, comissão,
 índice e entrega); card Plano de pagamento na ficha com Nova série, Novo custo, Antecipar, Amortizar, Desconto e Chaves

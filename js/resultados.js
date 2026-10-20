@@ -1,8 +1,13 @@
 // =====================================================================
 // RAIZ PATRIMÔNIO — js/resultados.js
-// VERSÃO: Beta v2.15.0 (20/10/2026 — demanda 87ff1a11)
+// VERSÃO: Beta v2.16.0 (20/10/2026 — demanda 87ff1a11)
 // LINHAS: (ver versoes.json)
 // -----------------------------------------------------------------
+// NOVIDADES (Beta v2.16.0) (20/10/2026, sessão 20261018-2336-usos-lotes, demanda 87ff1a11; Nicola 13:38, de acordo 14:01) — lente
+//   Obras: sem obra com etapas, o box "Avanço físico · Entrega dez/27" vira "Falta pagar": saldo somado dos planos de pagamento e
+//   as parcelas que faltam ("6 parcelas"; com mais de um plano, "· N obras"). A data de entrega fica só em Obras em andamento.
+//   Obra com etapas continua com o Avanço físico em %.
+// Versão anterior (Beta v2.15.0):
 // NOVIDADES (Beta v2.15.0) (20/10/2026, sessão 20261018-2336-usos-lotes, demanda 87ff1a11; de acordo do Nicola 20/10 13:13) —
 //   lente Obras com imóvel em construção por plano de pagamento (Construção coletiva, Compra na planta): Investido no ano soma
 //   as parcelas de aquisição (fn_hoje_ramo_indicadores.investido_ano, migration hoje_obras_plano_v1); Avanço financeiro sem
@@ -88,7 +93,7 @@
 // Versões anteriores (v2.4.0 … v2.4.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '2.15.0';
+export const VERSAO = '2.16.0';
 
 // ---------------------------------------------------------------------
 // Estado do filtro (module-scoped — sobrevive entre renders porque o
@@ -401,17 +406,17 @@ function celulasHeroiRamo({ tem, resumo, ant, ind, moeda, pctBR, rentabilidade, 
         const fin = prev > 0 ? pago / prev * 100 : (plTot > 0 ? plPago / plTot * 100 : null);
         const dif = tot > 0 && prev > 0 && fis != null && fin != null ? fin - fis : null;
         const investido = ind && ind.investido_ano != null ? Number(ind.investido_ano) : despesa;
-        const entregas = planos.map(o => o.entrega && o.entrega.prevista).filter(Boolean).sort();
-        const entregaTxt = entregas.length ? `Entrega ${mesAnoCurto(entregas[0])}` : null;
-        const situacaoEnt = planos.find(o => o.entrega && o.entrega.prevista === entregas[0])?.entrega?.situacao;
+        // v2.16.0 (Nicola 20/10 13:38/14:01: "o box de entrega parece estranho… como ficaria com várias obras… a data já aparece
+        // em Obras em andamento") — sem etapas, o box vira "Falta pagar": soma do saldo e das parcelas que faltam de todos os planos
+        const plSaldo = planos.reduce((s, o) => s + (Number(o.saldo) || 0), 0), plFaltam = Math.max(0, plParc - plPagas);
         const notaInvest = prev > 0 ? notaCmp(`de ${moedaCurta(prev)} previstos`)
             : plTot > 0 ? notaCmp(`de ${moedaCurta(plTot)} no total`)
             : (ant ? comparar(despesa, ant.saidas_ano, { bom: null }) : '');
         return [
             celula('Investido no ano', (tem || investido) ? moeda(investido) : traco, false, notaInvest),
-            fis != null || !entregaTxt
+            fis != null || !planos.length
                 ? celula('Avanço físico', fis != null ? pctBR(fis) : traco, false, notaCmp(tot ? `${conc} de ${tot} etapas` : 'sem obra em andamento'))
-                : celula('Avanço físico', entregaTxt, false, notaCmp(situacaoEnt === 'atrasada' ? 'atrasada' : situacaoEnt === 'tolerancia' ? 'na tolerância' : 'no prazo', situacaoEnt === 'atrasada' ? 'rz-vs-ruim' : '')),
+                : celula('Falta pagar', moeda(plSaldo), false, notaCmp(plFaltam ? `${plFaltam} ${plFaltam === 1 ? 'parcela' : 'parcelas'}${planos.length > 1 ? ` · ${planos.length} obras` : ''}` : 'plano quitado')),
             celula('Avanço financeiro', fin != null ? pctBR(fin) : traco, false,
                 dif != null ? notaCmp(Math.abs(dif) < 1 ? 'igual ao físico' : `${fmtNum(Math.abs(dif), 0)} p.p. ${dif > 0 ? 'à frente' : 'atrás'} do físico`, dif > 5 ? 'rz-vs-ruim' : '')
                 : notaCmp(prev > 0 ? 'pago ÷ previsto' : plParc > 0 ? `${plPagas} de ${plParc} pagas` : (fin != null ? 'pago ÷ total' : ''))),
