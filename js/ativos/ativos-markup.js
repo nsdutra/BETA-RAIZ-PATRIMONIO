@@ -1,6 +1,10 @@
 // ============================================================================
 // js/ativos/ativos-markup.js — Raiz Patrimônio · Módulo Único, fatia frontend 1
-// Versão: 1.67.0 · 19/10/2026
+// Versão: 1.68.0 · 20/10/2026
+//
+// v1.68.0 (20/10/2026, sessão 20261020-1943-ficha-menu-cards, demanda 9404081c; UXR-49 v1.5.1) — ficha do ativo: os cards
+// Dados do ativo e Propriedade ganham o ⋮ no cabeçalho (Editar dados; Editar divisão e contabilidade), que saíram do ⋮ do topo.
+// Versão anterior: 1.67.0 · 19/10/2026
 //
 // v1.67.0 (19/10/2026, sessão 20261019-1710-carga-silva-menu, demanda 9404081c, item 46) — o ⋮ de Patrimônio vai para a ponta
 // direita da linha dos chips, no padrão da ficha do ativo (rz-more).
@@ -16,16 +20,11 @@
 // v1.64.0 (14/10/2026, sessão 20261014-2220-usos-fatia4, frente usos-fatia3b, demanda 3022603b; FICHA_FATIA3B v1.1.0,
 // de acordo do Nicola 14/10 22:38–22:58) — Novo ativo: a divisão societária ganha id (#naf-pe-wrapper) para o
 // cofre-ativos.js mostrá-la só quando o catálogo pede (some no subativo e na vida); o botão passa a "Salvar".
-// Versão anterior: 1.63.0 · 14/10/2026
-//
-// v1.63.0 (14/10/2026, sessão 20261014-2145-onda9c-textos, demanda a05ad2ee; onda 9c do estudo PROTOTIPO_UX_DENSIDADE_RAMOS_RAIZ
-// v1.2.0, D6 seção 10) — textos no limite: ação até 24 caracteres, descrição até 28, aviso até 40 com o resultado e tela
-// vazia em 1 frase de até 40. A explicação longa fica na confirmação, quando existe. Nada de comportamento mudou.
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.62.0 … v1.62.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.63.0 … v1.63.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '1.67.0'; // v-check (28/09/2026): lido por Dev › Versões — manter igual ao header
+export const VERSAO = '1.68.0'; // v-check (28/09/2026): lido por Dev › Versões — manter igual ao header
 export const ATIVOS_MARKUP = `<style>
     /* v1.94.1 (31/08/2026, pedido explícito: "anexo uma barra de
        rolagem que fica feia... ao rolar os chips não mostrar a barra")
@@ -409,7 +408,7 @@ export const ATIVOS_MARKUP = `<style>
     <!-- ===== Painel: Resumo (Dados + Propriedade) ===== -->
     <div id="fa-painel-resumo" class="fa-painel">
         <div class="rz-card">
-            <div class="rz-card-h"><h3 id="fa-dados-titulo">Dados do ativo</h3><span id="fa-dados-status"></span></div>
+            <div class="rz-card-h"><h3 id="fa-dados-titulo">Dados do ativo</h3><span id="fa-dados-status"></span><button type="button" class="rz-more" aria-label="Ações dos dados" onclick="window.__rzAcoesDadosAtivo &amp;&amp; window.__rzAcoesDadosAtivo()"><i data-lucide="ellipsis-vertical"></i></button></div>
             <div id="fa-dados-imovel-grid" class="hidden"></div>
             <div id="fa-resumo-dados"></div>
 
@@ -425,14 +424,13 @@ export const ATIVOS_MARKUP = `<style>
                 </div>
             </div>
 
-            <!-- v1.19.0 (Nicola 03/09): sem rodapé — "Editar dados" vive no ⋮
-                 (abrirAcoesAtivo decide imóvel × campos do ativo). Botão
+            <!-- sem rodapé: "Editar dados" vive no ⋮ do cabeçalho deste card (UXR-49). Botão
                  escondido mantido só como alvo do data-action antigo. -->
             <button id="fa-btn-editar-dados" data-action="alternar-editar-ativo" class="hidden"></button>
         </div>
 
         <div class="rz-card">
-            <div class="rz-card-h"><h3>Propriedade</h3><span class="rz-sub">Divisão societária</span></div>
+            <div class="rz-card-h"><h3>Propriedade</h3><span class="rz-sub">Divisão societária</span><button type="button" class="rz-more" aria-label="Ações da propriedade" onclick="window.__rzAcoesPropriedade &amp;&amp; window.__rzAcoesPropriedade()"><i data-lucide="ellipsis-vertical"></i></button></div>
             <div id="fa-propriedade-lista"></div>
         </div>
     </div>

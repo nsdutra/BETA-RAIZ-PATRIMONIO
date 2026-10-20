@@ -1,8 +1,8 @@
 {
   "app": "patrimonio",
-  "gerado_em": "2026-10-20T22:53:04",
+  "gerado_em": "2026-10-20T19:56:07",
   "arquivos": {
-    "index.html": "1.450.0",
+    "index.html": "1.450.1",
     "sw.js": "3.2",
     "js/cadastros.js": "1.3.0",
     "js/financeiro.js": "1.73.0",
@@ -13,7 +13,7 @@
     "js/imoveis.js": "1.9.0",
     "js/cofre-api.js": "1.53.0",
     "js/cofre-app.js": "1.52.0",
-    "js/cofre-ativos.js": "1.137.0",
+    "js/cofre-ativos.js": "1.138.0",
     "js/cofre-controles.js": "1.64.0",
     "js/cofre-documentos.js": "2.38.0",
     "js/cofre-imagem.js": "1.1.0",
@@ -37,7 +37,7 @@
     "js/raiz-ui.js": "1.6.1",
     "js/fiscal.js": "1.7.0",
     "js/ativos/ativos-boot.js": "1.4.0",
-    "js/ativos/ativos-markup.js": "1.67.0",
+    "js/ativos/ativos-markup.js": "1.68.0",
     "js/nucleo/porta.js": "1.7.0",
     "js/partes.js": "1.1.0",
     "js/conta.js": "1.3.0",
@@ -93,7 +93,7 @@
       "funcoes": 13
     },
     "js/cofre-ativos.js": {
-      "linhas": 4848,
+      "linhas": 4828,
       "funcoes": 187
     },
     "js/cofre-controles.js": {
@@ -189,7 +189,7 @@
       "funcoes": 1
     },
     "js/ativos/ativos-markup.js": {
-      "linhas": 1247,
+      "linhas": 1245,
       "funcoes": 0
     },
     "js/nucleo/porta.js": {

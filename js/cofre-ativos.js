@@ -1,6 +1,16 @@
 // ============================================================================
 // cofre-ativos.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.137.0 · 20/10/2026
+// Versão: 1.138.0 · 20/10/2026
+//
+// v1.138.0 (20/10/2026, sessão 20261020-1943-ficha-menu-cards, demanda 9404081c; Nicola 19:10, de acordo 19:16; UXR-49 v1.5.1)
+//   — o ⋮ do topo da ficha fica só com Raiz IA, Compartilhar e a Situação (vender, baixar, arquivar, reativar, desfazer,
+//   Excluir). O resto vai para o ⋮ do card do assunto: Dados do ativo (Editar dados), Propriedade (Editar divisão,
+//   contabilidade), Unidades/Áreas/Integrantes (Vincular existente; no sub-ativo, Tirar do principal) e Balanço pendente
+//   (Novo lançamento, Ver no Financeiro, Ver o balanço completo). Saem do topo, sem perder caminho: Adicionar fotos,
+//   Adicionar uso e Novo item de controle (já são o "+ Adicionar" dos cards), Programas (está no "+ Adicionar item de
+//   controle") e Concluir o uso (está no ⋮ da linha do uso). Na Propriedade, a linha do sócio abre direto o Editar divisão
+//   e a linha da contabilidade vira só leitura — as duas ações ficam no ⋮ do card, sem repetir.
+// Versão anterior: 1.137.0 · 20/10/2026
 //
 // v1.137.0 (20/10/2026, sessão 20261020-1846-balanco-ativo, demanda 03eae1d1; de acordo do Nicola 19:12) — plano de
 //   pagamento: sai o ⋮ › Forma de pagamento; no cadastro, "Como é pago" fica só com "Quem paga" (a conta), sem a escolha de
@@ -51,17 +61,11 @@
 //
 // v1.129.0 (19/10/2026, sessão 20261019-2217-carga-silva-arrend, demanda 9404081c item 59; print do Nicola 22:19 — "1981-08-29")
 // — Dados do ativo: campo de data (ex.: Data de nascimento) aparece como dd/mm/aaaa, não no formato do banco.
-// Versão anterior: 1.128.0 · 19/10/2026
-//
-// v1.128.0 (19/10/2026, sessão 20261019-1931-carga-silva-correcoes, demanda 9404081c item 52, de acordo do Nicola 19:31) — o
-// contrato pela ficha do ativo deixa de ser só de imóvel: aceita também o tipo que o catálogo libera para um uso com contrato
-// (gleba e talhão com Arrendamento rural; operacao_modelo_tipos de modelo com acordo 'contrato'). Antes, a gleba dava
-// "Contrato de locação é só de imóvel." em vermelho. O card Contratos aparece nesses tipos também.
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.127.0 … v1.127.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.128.0 … v1.128.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '1.137.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.138.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 import { estado } from './cofre-estado.js';
 import * as api from './cofre-api.js';
 import { mostrarToast, erroInline, refrescarIcones, alternarToggle, abrirModal, fecharModal, modalGenerico, perguntar, avisarComDesfazer, escolher } from './cofre-ui.js';
@@ -1669,7 +1673,7 @@ export async function abrirFichaAtivo(id, chipInicial = 'resumo') {
         </div>
         <span id="fa-status-selo">${statusAtivoHtml(a)}</span>
         <button type="button" data-action="abrir-acoes-ativo" class="rz-more rz-more-topo" aria-label="Ações do ativo"><i data-lucide="ellipsis-vertical"></i></button>
-    `; // v1.94.0 (UX onda 3, D11) — o ⋮ do topo reúne todas as ações do ativo, em grupos
+    `; // o ⋮ do topo traz só Raiz IA, Compartilhar e a Situação (UXR-49)
     document.getElementById('fa-editar-wrapper').classList.add('hidden');
 
     fotosAtivoCache = [];
@@ -1832,21 +1836,8 @@ export async function abrirAcoesAtivo() {
         const { data, error } = await api.dbAuth.rpc('fn_entidade_status', { p_entidade: 'ativo', p_id: a.id, p_cliente_id: null });
         if (!error && Array.isArray(data?.[a.id]?.acoes)) maquina = data[a.id].acoes;
     } catch (e) { console.warn('[cofre-ativos] ações do ativo:', e?.message || e); }
-    // Imóvel (do cadastro antigo ou criado direto como ativo): "Editar" cobre endereço e valores, e
-    // "Compartilhar" manda o link — o link guarda o id do ativo.
     const ehCategoriaImovelAtivo = ehCategoriaImovel(a.tipo_ativo);
     const acoes = [];
-    // E15.2 (15/09/2026, "vamos desligar o form de imóveis") — os 2
-    // itens que existiam aqui pra imóvel ("Editar dados do imóvel" →
-    // abrirGestaoImovel/form legado, e "Editar campos do ativo" →
-    // alternarEditarAtivo) viram UM só: alternarEditarAtivo() agora
-    // cobre os dois mundos (endereço/valor/área/uso/empreendimento +
-    // campos específicos), escrevendo em `imoveis` por baixo quando
-    // vinculado (ver salvarEdicaoAtivo). abrirGestaoImovel() continua
-    // existindo (não removida) só por segurança de rollback — sem
-    // chamador neste menu a partir de agora.
-    acoes.push({ icone: 'pencil', titulo: 'Editar', codigo: 'cofre.editar', sub: ehCategoriaImovelAtivo ? 'Endereço, valores e uso' : 'Campos deste tipo', aoTocar: () => { faTrocarAba('resumo'); alternarEditarAtivo(); } });
-    acoes.push({ icone: 'image-plus', titulo: 'Adicionar fotos', codigo: 'cofre.editar', aoTocar: () => { faTrocarAba('arquivos'); faTrocarSegArquivos('fotos'); document.getElementById('fa-foto-input')?.click(); } });
     // Compartilhar: WhatsApp já com os dados e o link deste imóvel (o link guarda o id do ativo). (dem ed5accfe)
     // vitrine só para o que está em oferta: uso de hoje com classe Disponível ou Em venda (Nicola 15/10 22:39, dem 9404081c item 9b)
     const stOferta = typeof window.rzStatusDoAtivo === 'function' ? window.rzStatusDoAtivo(a.id) : null;
@@ -1860,47 +1851,21 @@ export async function abrirAcoesAtivo() {
     // Programas). abrirIniciarRevisaoAnual() fica sem chamador, guardada só para rollback.
     if (!maquina && a.status !== 'vendido') acoes.push({ icone: 'tag', titulo: 'Marcar como vendido', codigo: 'cofre.editar', sub: 'Desliga os alertas', aoTocar: () => marcarAtivoVendidoAtual() });
     if (!maquina) acoes.push({ icone: 'trash-2', titulo: 'Excluir ativo', codigo: 'cofre.excluir', tipo: 'bad', aoTocar: () => excluirAtivoAtual() });
-    // v1.94.0 (UX onda 3, D11) — é o ⋮ do topo da ficha: todas as ações do ativo em grupos curtos (os ⋮ dos cabeçalhos
-    // dos cards saíram). Situação (vender, excluir) por último.
     const situacaoAntiga = acoes.filter(x => x.titulo === 'Marcar como vendido' || x.titulo === 'Excluir ativo');
     const situacao = maquina ? maquina.map(m => acaoDaMaquinaAtivo(a, m)) : situacaoAntiga;
     // v1.120.0 (L5-4, F2) — Excluir de verdade, no fim da Situação: só passa sem nada ligado; senão a tela oferece Arquivar
     if (maquina && (a.status || 'ativo') === 'ativo')
         situacao.push({ icone: 'trash-2', titulo: 'Excluir', codigo: 'cofre.excluir', tipo: 'bad', sub: 'Cadastro errado, sem vínculo',
             aoTocar: () => excluirAtivoAtual(maquina.find(m => m.acao === 'arquivar') || null) });
-    const fora = a.registro_contabil === 'fora';
-    // v1.102.0 (usos fatia 3) — unidades, áreas, integrantes: do fn_ativo_estrutura (já lido pelo card do Resumo)
-    let grupoSub = null;
-    try { grupoSub = acoesSubativos(a, await carregarEstruturaAtivo(a)); } catch (e) { console.warn('[cofre-ativos] estrutura do ativo:', e?.message || e); }
     if (a.status && a.status !== 'ativo') { // vendido, baixado, arquivado: só a situação (desfazer, reativar)
         sheetOuAviso({ titulo: a.nome_exibicao, sub: tipoDoCatalogo(a.tipo_detalhe_id)?.nome || rotuloTipoAtivo(a.tipo_ativo), grupos: [{ titulo: 'Situação', acoes: situacao }].filter(g => g.acoes.length) });
         return;
     }
+    // UXR-49 v1.5.0 — no topo só o que vale para o ativo inteiro; a ação de um assunto mora no ⋮ do card dele
     const grupos = [
         { titulo: 'Ativo', acoes: [
-            // v1.101.0 (Nicola 14/10 00:40: "Carregar documento e adicionar via IA duplicado… Deixe uma como Raiz IA apenas.
-            // Retire também upload documento") — um item só, que abre a Raiz IA já falando deste ativo
             { icone: 'sparkles', tipo: 'ia', titulo: 'Raiz IA', sub: 'Pergunte ou registre', aoTocar: () => abrirRaizIaDoAtivo(a) },
             ...acoes.filter(x => !situacaoAntiga.includes(x)),
-        ] },
-        ...(grupoSub ? [grupoSub] : []),
-        { titulo: 'Usos e contratos', acoes: [
-            { icone: 'plus', titulo: 'Adicionar uso', codigo: 'ativos.usos.iniciar', sub: 'Aluguel, temporada…', aoTocar: () => abrirAdicionarModeloAtivo() },
-            ...acaoConcluirUsoVigente(a),
-        ] },
-        { titulo: 'Controles', acoes: [
-            { icone: 'plus', titulo: 'Novo item de controle', codigo: 'cofre.controles.criar', sub: 'Seguro, tributo, vistoria', aoTocar: () => window.__rzAbrirFormControle?.() },
-            { icone: 'package', titulo: 'Programas', codigo: 'programas.ver', sub: 'Pacotes prontos de itens', aoTocar: () => abrirProgramasDoAtivo() }, // v1.110.0
-        ] },
-        { titulo: 'Financeiro', acoes: [
-            { icone: 'plus', titulo: 'Novo lançamento', codigo: 'saidas.registrar', sub: 'Saída ligada a este ativo', aoTocar: () => abrirNovoLancamentoDoAtivo() },
-            { icone: 'wallet', titulo: 'Ver no Financeiro', codigo: 'mensal.ver', sub: 'Todas as saídas deste ativo', aoTocar: () => abrirSaidasDoAtivo() },
-            { icone: 'scale', titulo: 'Ver o balanço completo', codigo: 'repasses.ver', sub: 'Pessoas e quitações', aoTocar: () => movAbrirBalanco() },
-        ] },
-        { titulo: 'Propriedade', acoes: [
-            { icone: 'pie-chart', titulo: 'Editar divisão', codigo: 'imoveis.divisao', sub: 'Sócios e percentuais', aoTocar: () => abrirEditarPropriedadeAtivo() },
-            { icone: fora ? 'plus-circle' : 'ban', titulo: fora ? 'Incluir na contabilidade' : 'Tirar da contabilidade', codigo: 'imoveis.divisao',
-              sub: fora ? 'Volta ao pacote do contador' : 'Não vai ao contador', aoTocar: () => alternarRegistroContabilAtivo() },
         ] },
         { titulo: 'Situação', acoes: situacao },
     ].filter(g => g.acoes.length);
@@ -2067,7 +2032,7 @@ async function montarSubativosAtivo(a) {
     if (e.principal) {
         const ctx = document.querySelector('#fa-cabecalho .rz-tx span');
         if (ctx) ctx.textContent = `${tipoDoCatalogo(a.tipo_detalhe_id)?.nome || rotuloTipoAtivo(a.tipo_ativo)} · ${sing} de ${e.principal.nome}`;
-        card.innerHTML = `<div class="rz-card-h"><h3>${escapeHtml(sing)} de</h3></div>
+        card.innerHTML = `<div class="rz-card-h"><h3>${escapeHtml(sing)} de</h3><button type="button" class="rz-more" data-sub-card-menu aria-label="Ações de ${escapeHtml(sing.toLowerCase())}"><i data-lucide="ellipsis-vertical"></i></button></div>
             <div class="rz-row rz-link" role="button" tabindex="0" data-sub-abrir="${e.principal.id}"><div class="rz-ic"><i data-lucide="corner-left-up"></i></div>
                 <div class="rz-tx"><b>${escapeHtml(e.principal.nome)}</b><span>Ativo principal · toque para abrir</span></div></div>`;
         card.classList.remove('hidden');
@@ -2081,7 +2046,7 @@ async function montarSubativosAtivo(a) {
                 <button type="button" class="rz-more" data-sub-menu="${x.id}" aria-label="Ações de ${escapeHtml(x.nome)}"><i data-lucide="ellipsis-vertical"></i></button></div>`; // v1.108.0 (3c) — ⋮ como nas outras linhas
         }).join('');
         const vazio = `<p class="rz-desc" style="margin:4px 0 8px">${femSubativo(sing) ? 'Nenhuma' : 'Nenhum'} ${escapeHtml(sing.toLowerCase())} ainda. Cada ${femSubativo(sing) ? 'uma' : 'um'} tem uso, contratos e itens próprios, e este ativo mostra o resumo.</p>`;
-        card.innerHTML = `<div class="rz-card-h"><h3>${escapeHtml(plur)}</h3><span class="rz-sub">${subs.length ? `${emUso} de ${subs.length} em uso` : ''}</span></div>
+        card.innerHTML = `<div class="rz-card-h"><h3>${escapeHtml(plur)}</h3><span class="rz-sub">${subs.length ? `${emUso} de ${subs.length} em uso` : ''}</span>${e.pode_criar ? `<button type="button" class="rz-more" data-sub-card-menu aria-label="Ações de ${escapeHtml(plur.toLowerCase())}"><i data-lucide="ellipsis-vertical"></i></button>` : ''}</div>
             ${subs.length ? `<div class="rz-list">${linhas}</div>` : vazio}
             ${e.pode_criar ? `<button type="button" class="rz-add" data-sub-novo="1"><i data-lucide="plus"></i>Adicionar ${escapeHtml(sing.toLowerCase())}</button>` : ''}`; // v1.108.0 (3c) — mesmo "+ Adicionar" dos outros cards
         card.classList.remove('hidden');
@@ -2094,6 +2059,13 @@ async function montarSubativosAtivo(a) {
         el.addEventListener('keydown', ev => { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); ir(); } });
     });
     card.querySelector('[data-sub-novo]')?.addEventListener('click', () => abrirNovoSubativo(a, e));
+    // ⋮ do card (UXR-49): o que não é o "+ Adicionar" nem o toque na linha
+    card.querySelector('[data-sub-card-menu]')?.addEventListener('click', (ev) => {
+        ev.stopPropagation();
+        const g = acoesSubativos(a, e); if (!g) return;
+        const acoes = g.acoes.filter(x => x.icone !== 'plus' && x.icone !== 'corner-left-up');
+        if (acoes.length) sheetOuAviso({ titulo: g.titulo, sub: a.nome_exibicao, acoes });
+    });
     // v1.108.0 (fatia 3c) — ⋮ do subativo na ficha do principal: Abrir e Tirar de <principal>
     card.querySelectorAll('[data-sub-menu]').forEach(b => b.addEventListener('click', (ev) => {
         ev.stopPropagation();
@@ -2978,12 +2950,6 @@ function abrirIniciarUsoAtivo(a, m) {
     });
 }
 
-// v1.97.0 — "Concluir <uso>" no ⋮ da ficha: só para o uso de hoje que não é contrato nem repouso
-function acaoConcluirUsoVigente(a) {
-    const u = usoVigenteFicha;
-    if (!u || u.contrato_id || u.repouso || usosAtivoId !== a.id) return [];
-    return [{ icone: 'flag', titulo: 'Concluir ' + u.nome.toLowerCase(), codigo: 'ativos.usos.concluir', sub: 'Desde ' + formatarDataBR(u.inicio) + ' · depois volta ao repouso', aoTocar: () => abrirConcluirUsoAtivo(a, u) }];
-}
 function abrirConcluirUsoAtivo(a, u) {
     if (typeof window.abrirSheetForm !== 'function') { mostrarToast('Abra pelo app principal.', 'erro'); return; }
     const hoje = hojeLocalUso();
@@ -3582,17 +3548,27 @@ async function alternarRegistroContabilAtivo() {
     }
 }
 
-// v1.72.0 — linha de leitura no fim do chip Propriedade (o toque abre o ⋮).
+// v1.72.0 — linha de leitura no fim do card Propriedade; incluir ou tirar da contabilidade fica no ⋮ do card (UXR-49)
 function registroContabilLinhaHtml(a) {
     const fora = a.registro_contabil === 'fora';
-    return `<div class="rz-row rz-link" role="button" tabindex="0" onclick="window.__rzAcoesPropriedade && window.__rzAcoesPropriedade()">
+    return `<div class="rz-row">
             <div class="rz-ic${fora ? ' rz-neu' : ''}"><i data-lucide="${fora ? 'ban' : 'landmark'}"></i></div>
             <div class="rz-tx"><b>Contabilidade da empresa</b><span>${fora ? 'Fora — não vai ao pacote do contador' : 'Entra no pacote do contador'}</span></div>
             <div class="rz-rt"><span class="rz-st rz-${fora ? 'neu' : 'ok'}">${fora ? 'Fora' : 'Entra'}</span></div>
-            <button type="button" class="rz-more" aria-label="Ações da propriedade" onclick="event.stopPropagation(); window.__rzAcoesPropriedade && window.__rzAcoesPropriedade()"><i data-lucide="ellipsis-vertical"></i></button>
         </div>`;
 }
 if (typeof window !== 'undefined') window.__rzAcoesPropriedade = () => abrirAcoesPropriedade();
+
+// ⋮ do card "Dados do ativo" (UXR-49): editar endereço, valores e os campos do tipo
+export function abrirAcoesDadosAtivo() {
+    const a = estado.ativoEmFoco; if (!a) return;
+    const imovel = ehCategoriaImovel(a.tipo_ativo);
+    sheetOuAviso({ titulo: imovel ? 'Dados do imóvel' : 'Dados do ativo', sub: a.nome_exibicao, acoes: [
+        { icone: 'pencil', titulo: 'Editar dados', codigo: 'cofre.editar', sub: imovel ? 'Endereço, valores e uso' : 'Campos deste tipo',
+          aoTocar: () => { faTrocarAba('resumo'); alternarEditarAtivo(); } },
+    ] });
+}
+if (typeof window !== 'undefined') window.__rzAcoesDadosAtivo = () => abrirAcoesDadosAtivo();
 // v1.67.0 (demanda c0d255e3, retorno do piloto — "no botão de cadastro
 // novo... deixe claro que ele pode adicionar um documento-IA ou cadastrar
 // via tela") — "Carregar documento" entra como 1ª opção, igual ao "+" da
@@ -3690,7 +3666,7 @@ function movDesenharTopo(a, pessoaId, bal, ex, contas, resumoAd = {}) {
             <div class="rz-tx"><b>${movEsc(frase)}</b><span>${movEsc(MOV_NATUREZA[l.natureza] || l.natureza)}</span></div>
             <div class="rz-rt"><b>${fmt(Math.abs(v))}</b><small style="display:block;text-align:right;color:var(--pine)">Quitar ›</small></div></div>`;
     };
-    const cardBal = `<div class="rz-card rz-list"><div class="rz-card-h" style="padding-top:10px;margin-bottom:0"><h3>Balanço pendente</h3><span class="rz-sub">${bal.length ? fmt(total) + ' em aberto' : 'nada em aberto'}</span></div>` +
+    const cardBal = `<div class="rz-card rz-list"><div class="rz-card-h" style="padding-top:10px;margin-bottom:0"><h3>Balanço pendente</h3><span class="rz-sub">${bal.length ? fmt(total) + ' em aberto' : 'nada em aberto'}</span><button type="button" class="rz-more" data-action="fa-acoes-financeiro" aria-label="Ações do financeiro"><i data-lucide="ellipsis-vertical"></i></button></div>` +
         (bal.length ? bal.map(linha).join('') : `<p class="rz-desc" style="margin:4px 14px 10px">${pessoaId ? 'Nada em aberto com ' + movEsc(nomeAtivo) : 'Nada em aberto ligado a este ativo'}.</p>`) + '</div>';
     const cardContas = contas.length ? `<div class="rz-card rz-list"><div class="rz-card-h" style="padding-top:10px;margin-bottom:0"><h3>Contas e cartões</h3><span class="rz-sub">${contas.length}</span></div>` +
         contas.map(c => { const cartao = c.tipo === 'cartao_credito'; const r = c.cartao_principal_id ? resumoAd[c.id] : null;
@@ -3819,12 +3795,16 @@ async function montarPropriedadeAtivo(a) {
     // ficha. Pills ficam só pra filtro/sub-navegação (REGRAS §8).
     // v1.108.0 (fatia 3c, Nicola 14/10 23:22: "o sócio não permite clicar e editar") — sócio tocável, com ⋮ (Editar divisão)
     lista.innerHTML = linhas.map(l => `
-        <div class="rz-row rz-link" role="button" tabindex="0" onclick="window.__rzAcoesPropriedade && window.__rzAcoesPropriedade()">
+        <div class="rz-row rz-link" role="button" tabindex="0" data-prop-editar>
             <div class="rz-ic"><i data-lucide="${l.nome_pessoa ? 'user' : 'user-round'}"></i></div>
             <div class="rz-tx"><b>${escapeHtml(l.nome_pessoa || l.nome_externo || 'Sem nome')}</b><span>${l.nome_pessoa ? 'Sócio' : 'Parte externa'}</span></div>
             <div class="rz-rt"><b style="color:var(--sprout)">${Number(l.percentual)}%</b></div>
-            <button type="button" class="rz-more" aria-label="Ações da propriedade" onclick="event.stopPropagation(); window.__rzAcoesPropriedade && window.__rzAcoesPropriedade()"><i data-lucide="ellipsis-vertical"></i></button>
         </div>`).join('') + registroContabilLinhaHtml(a); // v1.72.0 (P2 Ficha 3)
+    // a linha do sócio leva direto ao editor da divisão; as ações do card ficam no ⋮ do cabeçalho (UXR-49)
+    lista.querySelectorAll('[data-prop-editar]').forEach(el => {
+        el.addEventListener('click', () => abrirEditarPropriedadeAtivo());
+        el.addEventListener('keydown', ev => { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); abrirEditarPropriedadeAtivo(); } });
+    });
     refrescarIcones();
 }
 
