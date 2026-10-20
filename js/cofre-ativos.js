@@ -1,6 +1,15 @@
 // ============================================================================
 // cofre-ativos.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.130.0 · 19/10/2026
+// Versão: 1.131.0 · 20/10/2026
+//
+// v1.131.0 (20/10/2026, sessão 20261020-0027-compra-planta, demanda 83968339; de acordo do Nicola 01:12) — imóvel em
+// construção: "Adicionar uso" › Construção coletiva ou Na planta abre a tela de dados ÚNICA do plano de pagamento (o tipo só
+// troca o preenchimento: séries de parcelas, custos, comissão, índice, entrega e "Pagas até"), salva por
+// fn_plano_pagamento_criar; card "Plano de pagamento" na ficha (abaixo de Usos) com falta pagar, pago, correção, custo de
+// aquisição, próximas, séries, entrega e cronograma; ⋮ com Nova série, Novo custo, Antecipar, Amortizar, Desconto numa série
+// (fn_plano_pagamento_abater) e Chaves recebidas (conclui o uso da obra e abre Adicionar uso).
+//
+// Versão anterior: 1.130.0 · 19/10/2026
 //
 // v1.130.0 (19/10/2026, sessão 20261019-2244-carga-silva-ajustes2, demanda 9404081c itens 61 e 62; Nicola 22:44) — (1) na lista
 // de Patrimônio o valor do ativo sai da linha de baixo e vai para a direita da linha, na coluna da soma da faixa do ramo
@@ -20,15 +29,11 @@
 //
 // v1.127.0 (19/10/2026, sessão 20261019-1716-carga-silva-faixa3, demanda 9404081c, item 50; Nicola 19/10 17:17) — a faixa do ramo
 // não some com chip, busca ou lente de ramo: contador e soma acompanham o filtro.
-// Versão anterior: 1.126.0 · 19/10/2026
-//
-// v1.126.0 (19/10/2026, sessão 20261019-1712-carga-silva-faixa2, demanda 9404081c, itens 47 e 48; Nicola 19/10 17:09–17:10) —
-// a faixa do ramo ganha a setinha ao lado do total; ela e o ícone do ramo recolhem/abrem a lista do ramo.
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.125.0 … v1.125.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.126.0 … v1.126.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '1.130.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.131.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 import { estado } from './cofre-estado.js';
 import * as api from './cofre-api.js';
 import { mostrarToast, erroInline, refrescarIcones, alternarToggle, abrirModal, fecharModal, modalGenerico, perguntar, avisarComDesfazer, escolher } from './cofre-ui.js';
@@ -2356,6 +2361,7 @@ export async function montarUsosAtivo(a) {
         console.warn('[cofre-ativos] montarUsosAtivo falhou:', err?.message || err);
     } finally {
         if (!ativoAtualId || ativoAtualId === a.id) montarHistoricoStatusAtivo(a); // v1.99.0 — card Histórico
+        if (!ativoAtualId || ativoAtualId === a.id) montarPlanoPagamentoAtivo(a).catch(e => console.warn('[cofre-ativos] plano:', e?.message || e)); // dem 83968339
     }
 }
 
@@ -2892,6 +2898,7 @@ export async function abrirAdicionarModeloAtivo() {
             sub: m.livre ? (m.descricao || 'Sem contrato: só o período de uso') : 'Chega em breve',
             aoTocar: () => {
                 if (!m.livre) { mostrarToast('Este modelo chega em breve.', 'aviso'); return; }
+                if (PLANO_MODELOS[m.codigo]) { abrirPlanoPagamentoNovo(a, m); return; } // dem 83968339 — tela única do plano
                 abrirIniciarUsoAtivo(a, m);
             },
         })),
@@ -2957,6 +2964,293 @@ async function aposMudarUso(a) {
     if (selo) selo.innerHTML = statusAtivoHtml(a);
     await montarUsosAtivo(a); // v1.99.0 — remonta também o card Histórico
     window.dispatchEvent(new CustomEvent('cofre:recarregar-ativos'));
+}
+
+// ============================================================================
+// PLANO DE PAGAMENTO DO IMÓVEL EM CONSTRUÇÃO (dem 83968339) — Construção coletiva e Compra na planta usam a MESMA tela de
+// dados; o tipo só muda o preenchimento. A regra mora no banco (fn_plano_pagamento_criar/abater/resumo, CAN-01): aqui só se
+// monta o pedido e se mostra o resumo. Parcela que venceu antes de "Pagas até" entra como paga, com lançamento realizado.
+// ============================================================================
+const PLANO_MODELOS = { construcao_coletiva: 'construcao_coletiva', na_planta: 'compra_planta' };
+const PLANO_PROGRAMAS = ['construcao_coletiva', 'compra_planta'];
+const PLANO_MESES = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez'];
+const planoMesHoje = () => hojeLocalUso().slice(0, 7);
+const planoSomaMeses = (ym, n) => { const [y, m] = String(ym).split('-').map(Number); return new Date(Date.UTC(y, m - 1 + n, 1)).toISOString().slice(0, 7); };
+const planoMoeda = (v) => Number(v || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+const planoMes = (iso) => { if (!iso) return '—'; const [y, m] = String(iso).slice(0, 7).split('-'); return `${PLANO_MESES[Number(m) - 1]}/${y.slice(2)}`; };
+const planoPct = (v) => Number(v || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + '%';
+const planoNum = (v) => { const n = Number(String(v ?? '').replace(/\./g, '').replace(',', '.')); return Number.isFinite(n) ? n : 0; };
+const PLANO_INDICES = [['nenhum', 'Sem reajuste'], ['inccdi', 'INCC-DI'], ['ipca', 'IPCA'], ['igpm', 'IGP-M']];
+const PLANO_CADA = [[0, 'Única'], [1, 'Todo mês'], [3, 'A cada 3 meses'], [6, 'A cada 6 meses'], [12, 'A cada 12 meses']];
+
+function planoPreenchimento(tipo) {
+    const m0 = planoMesHoje();
+    if (tipo === 'construcao_coletiva') return { tipo, parte_nome: '', preco: '', data_base: m0, indice: 'nenhum', defasagem: 0, entrega: planoSomaMeses(m0, 48),
+        tolerancia_dias: 0, comissao: 0, comissao_sai_entrada: false, dia_vencimento: 10, pagas_ate: hojeLocalUso(),
+        series: [{ nome: 'Mensalidade da obra', quantidade: 60, valor: '', inicio: m0, cada: 1, corrige: false, papel: 'parcela' }],
+        custos: [{ nome: 'ITBI da fração do terreno', valor: '', mes: m0, pago: true }, { nome: 'Escritura e registro da fração', valor: '', mes: m0, pago: true }] };
+    return { tipo, parte_nome: '', preco: '', data_base: m0, indice: 'inccdi', defasagem: 2, entrega: planoSomaMeses(m0, 36), tolerancia_dias: 180,
+        comissao: '', comissao_sai_entrada: true, dia_vencimento: 10, pagas_ate: hojeLocalUso(),
+        series: [{ nome: 'Entrada', quantidade: 1, valor: '', inicio: m0, cada: 1, corrige: true, papel: 'entrada' },
+                 { nome: 'Mensais', quantidade: 36, valor: '', inicio: planoSomaMeses(m0, 1), cada: 1, corrige: true, papel: 'parcela' },
+                 { nome: 'Anuais', quantidade: 3, valor: '', inicio: planoSomaMeses(m0, 12), cada: 12, corrige: true, papel: 'parcela' },
+                 { nome: 'Chaves', quantidade: 1, valor: '', inicio: planoSomaMeses(m0, 36), cada: 0, corrige: true, papel: 'chaves' }],
+        custos: [{ nome: 'ITBI', valor: '', mes: planoSomaMeses(m0, 36), pago: false }, { nome: 'Escritura, registro e certidões', valor: '', mes: planoSomaMeses(m0, 36), pago: false }] };
+}
+
+// Uma linha de série de parcelas (usada no cadastro e em "Nova série")
+function planoSerieHtml(s, i, removivel) {
+    const op = (lista, v) => lista.map(([c, t]) => `<option value="${c}"${String(c) === String(v) ? ' selected' : ''}>${t}</option>`).join('');
+    return `<div class="rz-card" style="padding:10px;margin:0 0 8px;background:var(--paper)">
+        <div class="rz-card-h" style="justify-content:space-between;margin-bottom:6px"><h3 style="font-size:14px">Série ${i + 1}</h3>${removivel ? `<button type="button" class="rz-btn rz-btn-2 rz-sm" data-pl-del-serie="${i}">Remover</button>` : ''}</div>
+        <div class="rz-f"><label for="pl-s${i}-nome">Nome</label><input type="text" id="pl-s${i}-nome" maxlength="80" data-pl-s="${i}.nome" value="${escapeHtml(s.nome)}"></div>
+        <div class="rz-kv" style="margin-top:0">
+          <div class="rz-f"><label for="pl-s${i}-q">Quantas</label><input type="number" inputmode="numeric" min="1" max="600" id="pl-s${i}-q" data-pl-s="${i}.quantidade" value="${s.quantidade}"></div>
+          <div class="rz-f"><label for="pl-s${i}-v">Valor de cada (R$)</label><input type="number" inputmode="decimal" min="0" step="0.01" id="pl-s${i}-v" data-pl-s="${i}.valor" value="${s.valor}"></div>
+          <div class="rz-f"><label for="pl-s${i}-i">1º vencimento</label><input type="month" id="pl-s${i}-i" data-pl-s="${i}.inicio" value="${s.inicio}"></div>
+          <div class="rz-f"><label for="pl-s${i}-c">Repete</label><select id="pl-s${i}-c" data-pl-s="${i}.cada">${op(PLANO_CADA, s.cada)}</select></div>
+        </div>
+        <label class="rz-f" style="display:flex;gap:8px;align-items:center;margin:0"><input type="checkbox" data-pl-s="${i}.corrige"${s.corrige ? ' checked' : ''}> Corrige pelo índice do contrato</label>
+    </div>`;
+}
+
+// v1.131.0 — tela única de dados do plano (Construção coletiva ou Na planta)
+function abrirPlanoPagamentoNovo(a, m) {
+    if (typeof window.abrirSheetForm !== 'function') { mostrarToast('Abra pelo app principal.', 'erro'); return; }
+    let P = planoPreenchimento(PLANO_MODELOS[m.codigo]);
+    const desenhar = (el) => {
+        const op = (lista, v) => lista.map(([c, t]) => `<option value="${c}"${String(c) === String(v) ? ' selected' : ''}>${t}</option>`).join('');
+        const soma = P.series.reduce((t, s) => t + (Number(s.cada) === 0 ? 1 : planoNum(s.quantidade)) * planoNum(s.valor), 0);
+        const preco = planoNum(P.preco);
+        el.innerHTML = `
+        <p class="rz-desc" style="margin:0 0 10px">A mesma tela serve aos dois contratos. Escolher o tipo só troca o preenchimento; depois, tudo pode ser editado.</p>
+        <div class="rz-seg" role="group" aria-label="Preencher como">
+          <button type="button" data-pl-tipo="construcao_coletiva" class="${P.tipo === 'construcao_coletiva' ? 'rz-on' : ''}" aria-pressed="${P.tipo === 'construcao_coletiva'}">Construção coletiva</button>
+          <button type="button" data-pl-tipo="compra_planta" class="${P.tipo === 'compra_planta' ? 'rz-on' : ''}" aria-pressed="${P.tipo === 'compra_planta'}">Compra na planta</button>
+        </div>
+        <div class="rz-f"><label for="pl-parte">Construtora ou incorporadora</label><input type="text" id="pl-parte" maxlength="120" data-pl="parte_nome" value="${escapeHtml(P.parte_nome)}"></div>
+        <div class="rz-kv" style="margin-top:0">
+          <div class="rz-f"><label for="pl-preco">Preço total (R$)</label><input type="number" inputmode="decimal" min="0" step="0.01" id="pl-preco" data-pl="preco" value="${P.preco}"></div>
+          <div class="rz-f"><label for="pl-base">Data-base dos valores</label><input type="month" id="pl-base" data-pl="data_base" value="${P.data_base}"></div>
+          <div class="rz-f"><label for="pl-ind">Índice do contrato</label><select id="pl-ind" data-pl="indice">${op(PLANO_INDICES, P.indice)}</select></div>
+          <div class="rz-f"><label for="pl-def">Defasagem do índice (meses)</label><input type="number" inputmode="numeric" min="0" max="6" id="pl-def" data-pl="defasagem" value="${P.defasagem}"></div>
+          <div class="rz-f"><label for="pl-ent">Previsão de entrega</label><input type="month" id="pl-ent" data-pl="entrega" value="${P.entrega}"></div>
+          <div class="rz-f"><label for="pl-tol">Tolerância (dias)</label><input type="number" inputmode="numeric" min="0" id="pl-tol" data-pl="tolerancia_dias" value="${P.tolerancia_dias}"></div>
+          <div class="rz-f"><label for="pl-com">Comissão de corretagem (R$)</label><input type="number" inputmode="decimal" min="0" step="0.01" id="pl-com" data-pl="comissao" value="${P.comissao}"></div>
+          <div class="rz-f"><label for="pl-dia">Dia do vencimento</label><input type="number" inputmode="numeric" min="1" max="31" id="pl-dia" data-pl="dia_vencimento" value="${P.dia_vencimento}"></div>
+        </div>
+        <label class="rz-f" style="display:flex;gap:8px;align-items:center"><input type="checkbox" data-pl="comissao_sai_entrada"${P.comissao_sai_entrada ? ' checked' : ''}> A comissão sai da 1ª série (entrada)</label>
+        <div class="rz-f"><label for="pl-pagas">Pagas até</label><input type="date" id="pl-pagas" data-pl="pagas_ate" value="${P.pagas_ate}"><span class="rz-hint">Parcelas e custos que venceram antes desta data entram como pagos, com o lançamento no Financeiro.</span></div>
+        <div class="rz-card-h" style="justify-content:space-between;margin:14px 0 6px"><h3>Séries de parcelas</h3><button type="button" class="rz-btn rz-btn-2 rz-sm" data-pl-add="serie">+ Nova série</button></div>
+        ${P.series.map((s, i) => planoSerieHtml(s, i, P.series.length > 1)).join('')}
+        <p class="rz-desc" id="pl-soma" style="margin:0 0 6px">${preco && Math.abs(soma - preco) > 1 ? `As séries somam ${planoMoeda(soma)} e o preço é ${planoMoeda(preco)}. Confira o contrato.` : `As séries somam ${planoMoeda(soma)}.`}</p>
+        <div class="rz-card-h" style="justify-content:space-between;margin:14px 0 6px"><h3>Custos à parte</h3><button type="button" class="rz-btn rz-btn-2 rz-sm" data-pl-add="custo">+ Novo custo</button></div>
+        ${P.custos.map((c, i) => `<div class="rz-card" style="padding:10px;margin:0 0 8px;background:var(--paper)">
+            <div class="rz-f"><label for="pl-c${i}-n">Custo</label><input type="text" id="pl-c${i}-n" maxlength="80" data-pl-c="${i}.nome" value="${escapeHtml(c.nome)}"></div>
+            <div class="rz-kv" style="margin-top:0">
+              <div class="rz-f"><label for="pl-c${i}-v">Valor (R$)</label><input type="number" inputmode="decimal" min="0" step="0.01" id="pl-c${i}-v" data-pl-c="${i}.valor" value="${c.valor}"></div>
+              <div class="rz-f"><label for="pl-c${i}-m">Mês</label><input type="month" id="pl-c${i}-m" data-pl-c="${i}.mes" value="${c.mes}"></div>
+            </div>
+            <div style="display:flex;justify-content:space-between;align-items:center"><label style="display:flex;gap:8px;align-items:center"><input type="checkbox" data-pl-c="${i}.pago"${c.pago ? ' checked' : ''}> Já pago</label>
+            <button type="button" class="rz-btn rz-btn-2 rz-sm" data-pl-del-custo="${i}">Remover</button></div></div>`).join('') || '<p class="rz-desc">Nenhum custo.</p>'}
+        <p class="rz-desc" style="margin-top:10px">Depois de salvo, novas parcelas, custos e abatimentos entram pelo ⋮ do card Plano de pagamento.</p>`;
+        refrescarIcones();
+    };
+    window.abrirSheetForm({
+        titulo: 'Plano de pagamento', sub: a.nome_exibicao, rotuloSalvar: 'Salvar',
+        corpo: (el) => {
+            desenhar(el);
+            el.addEventListener('input', (ev) => {
+                const t = ev.target, v = t.type === 'checkbox' ? t.checked : t.value;
+                if (t.dataset.pl) P[t.dataset.pl] = v;
+                else if (t.dataset.plS) { const [i, c] = t.dataset.plS.split('.'); P.series[Number(i)][c] = v; }
+                else if (t.dataset.plC) { const [i, c] = t.dataset.plC.split('.'); P.custos[Number(i)][c] = v; }
+                const soma = P.series.reduce((tt, s) => tt + (Number(s.cada) === 0 ? 1 : planoNum(s.quantidade)) * planoNum(s.valor), 0), preco = planoNum(P.preco);
+                const aviso = el.querySelector('#pl-soma');
+                if (aviso) aviso.textContent = preco && Math.abs(soma - preco) > 1 ? `As séries somam ${planoMoeda(soma)} e o preço é ${planoMoeda(preco)}. Confira o contrato.` : `As séries somam ${planoMoeda(soma)}.`;
+            });
+            el.addEventListener('click', (ev) => {
+                const b = ev.target.closest('button'); if (!b) return;
+                if (b.dataset.plTipo) { const pre = planoPreenchimento(b.dataset.plTipo); P = { ...pre, parte_nome: P.parte_nome || pre.parte_nome }; desenhar(el); }
+                else if (b.dataset.plAdd === 'serie') { P.series.push({ nome: 'Nova parcela', quantidade: 1, valor: '', inicio: planoMesHoje(), cada: 0, corrige: P.indice !== 'nenhum', papel: 'parcela' }); desenhar(el); }
+                else if (b.dataset.plAdd === 'custo') { P.custos.push({ nome: 'Novo custo', valor: '', mes: planoMesHoje(), pago: false }); desenhar(el); }
+                else if (b.dataset.plDelSerie != null) { P.series.splice(Number(b.dataset.plDelSerie), 1); desenhar(el); }
+                else if (b.dataset.plDelCusto != null) { P.custos.splice(Number(b.dataset.plDelCusto), 1); desenhar(el); }
+            });
+        },
+        aoSalvar: async () => {
+            const series = P.series.filter(s => planoNum(s.valor) > 0).map((s, i) => ({ nome: s.nome, quantidade: Number(s.cada) === 0 ? 1 : planoNum(s.quantidade),
+                valor: planoNum(s.valor), inicio: s.inicio, cada: Number(s.cada), corrige: !!s.corrige,
+                papel: /chave/i.test(s.nome) ? 'chaves' : (i === 0 && P.tipo === 'compra_planta' ? 'entrada' : (s.papel === 'entrada' && i > 0 ? 'parcela' : s.papel || 'parcela')) }));
+            if (!series.length) { mostrarToast('Informe o valor de uma série.', 'erro'); return false; }
+            if (series.some(s => !s.inicio)) { mostrarToast('Informe o 1º vencimento de cada série.', 'erro'); return false; }
+            const dados = { parte_nome: (P.parte_nome || '').trim() || null, preco: planoNum(P.preco) || null, data_base: P.data_base, indice: P.indice,
+                defasagem: planoNum(P.defasagem), entrega: P.entrega || null, tolerancia_dias: planoNum(P.tolerancia_dias), comissao: planoNum(P.comissao),
+                comissao_sai_entrada: !!P.comissao_sai_entrada, dia_vencimento: planoNum(P.dia_vencimento) || 10, pagas_ate: P.pagas_ate || hojeLocalUso(), series,
+                custos: P.custos.filter(c => planoNum(c.valor) > 0).map(c => ({ nome: c.nome, valor: planoNum(c.valor), mes: c.mes, pago: !!c.pago })) };
+            const { data, error } = await api.dbAuth.rpc('fn_plano_pagamento_criar', { p_ativo_id: a.id, p_tipo: P.tipo, p_dados: dados, p_canal: 'app' });
+            if (error) { mostrarToast(error.message || 'Não foi possível salvar o plano.', 'erro'); return false; }
+            mostrarToast(`Plano salvo: ${data?.ocorrencias || 0} parcelas e custos.`, 'sucesso');
+            await aposMudarUso(a);
+            return true;
+        },
+    });
+}
+
+// Card "Plano de pagamento" na ficha do ativo (logo abaixo de Usos)
+async function montarPlanoPagamentoAtivo(a) {
+    const usos = document.getElementById('fa-card-usos'); if (!usos) return;
+    let card = document.getElementById('fa-card-plano');
+    let ap = null;
+    try {
+        const { data, error } = await api.dbAuth.from('ativo_programas').select('id, programa_codigo').eq('ativo_id', a.id)
+            .in('programa_codigo', PLANO_PROGRAMAS).in('situacao', ['ativo', 'pausado']).order('criado_em', { ascending: false }).limit(1);
+        if (error) throw error;
+        ap = (data || [])[0] || null;
+    } catch (e) { console.warn('[cofre-ativos] plano:', e?.message || e); }
+    if (ativoAtualId && ativoAtualId !== a.id) return;
+    if (!ap) { card?.remove(); return; }
+    if (!card) { card = document.createElement('div'); card.className = 'rz-card'; card.id = 'fa-card-plano'; usos.insertAdjacentElement('afterend', card); }
+    const { data: r, error } = await api.dbAuth.rpc('fn_plano_pagamento_resumo', { p_ativo_programa_id: ap.id });
+    if (ativoAtualId && ativoAtualId !== a.id) return;
+    if (error || !r) { card.innerHTML = '<div class="rz-card-h"><h3>Plano de pagamento</h3></div><p class="rz-desc">Não foi possível carregar o plano agora.</p>'; return; }
+    const corrige = (r.campos?.indice || 'nenhum') !== 'nenhum';
+    const pc = (Number(r.pago_parcelas) + Number(r.saldo)) > 0 ? Number(r.pago_parcelas) / (Number(r.pago_parcelas) + Number(r.saldo)) : 0;
+    const ent = r.entrega;
+    const entTxt = ent ? `Entrega prevista ${planoMes(ent.prevista)}${ent.tolerancia_dias ? ` · tolerância até ${formatarDataBR(ent.limite)}` : ''}` : '';
+    const entSt = ent ? (ent.situacao === 'atrasada' ? renderStatusPlano('bad', 'Atrasada') : ent.situacao === 'tolerancia' ? renderStatusPlano('warn', 'Na tolerância') : renderStatusPlano('ok', 'No prazo')) : '';
+    const series = (r.series || []).map(s => `<div class="rz-row"><div class="rz-ic"><i data-lucide="${s.custo ? 'receipt' : 'calendar-range'}"></i></div>
+        <div class="rz-tx"><b>${escapeHtml(s.titulo)}</b><span>${s.quantidade > 1 ? `${s.quantidade} × ${planoMoeda(s.valor_base)} · ${planoMes(s.primeira)} a ${planoMes(s.ultima)}` : `${planoMoeda(s.valor_base)} · ${planoMes(s.primeira)}`}${s.corrige ? ' · corrige pelo índice' : ''} · ${s.pagas} de ${s.quantidade} paga${s.quantidade === 1 ? '' : 's'}</span></div>
+        <b style="white-space:nowrap">${planoMoeda(s.total)}</b></div>`).join('');
+    const prox = (r.proximas || []).map(p => `<div class="rz-row"><div class="rz-ic"><i data-lucide="calendar-clock"></i></div>
+        <div class="rz-tx"><b>${escapeHtml(p.titulo)}</b><span>vence ${formatarDataBR(p.data)}${p.percentual != null ? ` · corrigida ${planoPct(p.percentual)}` : ''}</span></div><b style="white-space:nowrap">${planoMoeda(p.valor)}</b></div>`).join('');
+    card.innerHTML = `<div class="rz-card-h" style="justify-content:space-between"><h3>Plano de pagamento</h3>
+        <button type="button" class="rz-more" data-plano-mais aria-label="Ações do plano"><i data-lucide="ellipsis-vertical"></i></button></div>
+        <p class="rz-desc" style="margin:0 0 6px">${escapeHtml(r.tipo === 'construcao_coletiva' ? 'Construção coletiva' : 'Compra na planta')}${r.parte_nome ? ' · ' + escapeHtml(r.parte_nome) : ''}</p>
+        <div class="rz-kv">
+          <div class="rz-full"><small>Falta pagar${corrige && r.ultimo_indice ? ` (corrigido até ${planoMes(r.ultimo_indice)})` : ''}</small><b style="font-size:20px">${planoMoeda(r.saldo)}</b></div>
+          <div><small>Parcelas pagas</small><b>${planoMoeda(r.pago_parcelas)}</b></div>
+          <div><small>${corrige ? 'Correção paga' : 'Pagas'}</small><b>${corrige ? planoMoeda(r.correcao_paga) : `${r.parcelas_pagas} de ${r.parcelas_total}`}</b></div>
+          <div><small>Custo de aquisição até hoje</small><b>${planoMoeda(r.pago)}</b></div>
+          <div><small>Custo total previsto</small><b>${planoMoeda(r.custo_total_previsto)}</b></div>
+        </div>
+        <div style="height:8px;border-radius:4px;background:var(--line);overflow:hidden;margin:10px 0 4px"><i style="display:block;height:100%;width:${(pc * 100).toFixed(1)}%;background:var(--sprout)"></i></div>
+        <p class="rz-desc" style="margin:0">${planoPct(pc * 100)} das parcelas pagas · ${r.parcelas_pagas} de ${r.parcelas_total}</p>
+        ${ent ? `<div class="rz-row" style="margin-top:6px"><div class="rz-ic"><i data-lucide="key-round"></i></div><div class="rz-tx"><b>${escapeHtml(entTxt)}</b></div>${entSt}</div>` : ''}
+        ${prox ? `<h3 style="font-size:14px;margin:12px 0 2px">Próximas parcelas</h3><div class="rz-list">${prox}</div>` : ''}
+        <h3 style="font-size:14px;margin:12px 0 2px">O que o contrato prevê</h3><div class="rz-list">${series}</div>
+        <button type="button" class="rz-btn rz-btn-2 rz-sm" data-plano-crono style="margin-top:8px"><i data-lucide="list"></i> Ver cronograma</button>`;
+    card.querySelector('[data-plano-mais]')?.addEventListener('click', () => sheetOuAviso({ titulo: 'Plano de pagamento', sub: a.nome_exibicao, acoes: [
+        { icone: 'plus', titulo: 'Nova série de parcelas', codigo: 'planta.plano', sub: 'Chamada extra, renegociação', aoTocar: () => abrirPlanoNovaSerie(a, ap.id, corrige) },
+        { icone: 'receipt', titulo: 'Novo custo', codigo: 'planta.plano', sub: 'ITBI, cartório, certidões…', aoTocar: () => abrirPlanoNovoCusto(a, ap.id) },
+        { icone: 'fast-forward', titulo: 'Antecipar parcelas', codigo: 'planta.plano', sub: 'As últimas, com desconto', aoTocar: () => abrirPlanoAbater(a, ap.id, 'antecipar', corrige) },
+        { icone: 'piggy-bank', titulo: 'Amortizar', codigo: 'planta.plano', sub: 'Das últimas ou das chaves', aoTocar: () => abrirPlanoAbater(a, ap.id, 'amortizar', corrige) },
+        { icone: 'badge-percent', titulo: 'Desconto numa série', codigo: 'planta.plano', sub: 'Novo valor desde uma data', aoTocar: () => abrirPlanoDesconto(a, ap.id, r.series || []) },
+        { icone: 'key-round', titulo: 'Chaves recebidas', codigo: 'ativos.usos.concluir', sub: 'Conclui a obra', aoTocar: () => abrirPlanoChaves(a, r) },
+    ] }));
+    card.querySelector('[data-plano-crono]')?.addEventListener('click', () => abrirPlanoCronograma(a, r));
+    refrescarIcones();
+}
+const renderStatusPlano = (sem, rot) => (typeof window.renderStatus === 'function' ? window.renderStatus(sem, rot) : `<span>${escapeHtml(rot)}</span>`);
+
+function abrirPlanoCronograma(a, r) {
+    if (typeof window.abrirSheetForm !== 'function') return;
+    const nome = { concluido: 'Paga', aberto: 'Aberta' };
+    const linhas = (r.cronograma || []).map(c => `<tr><td>${formatarDataBR(c.data)}</td><td>${escapeHtml(c.titulo)}</td><td style="text-align:right">${c.percentual != null ? planoPct(c.percentual) : '—'}</td><td style="text-align:right;white-space:nowrap">${planoMoeda(c.valor)}</td><td>${renderStatusPlano(c.situacao === 'concluido' ? 'ok' : 'run', nome[c.situacao] || c.situacao)}</td></tr>`).join('');
+    window.abrirSheetForm({ titulo: 'Cronograma', sub: a.nome_exibicao, semRodape: true,
+        corpo: `<div style="overflow-x:auto"><table style="width:100%;min-width:460px;border-collapse:collapse;font-size:13px"><thead><tr style="color:var(--muted);text-align:left"><th>Vence</th><th>Série</th><th style="text-align:right">Corr.</th><th style="text-align:right">Valor</th><th>Situação</th></tr></thead><tbody>${linhas}</tbody></table></div>` });
+}
+
+function abrirPlanoNovaSerie(a, apId, corrige) {
+    if (typeof window.abrirSheetForm !== 'function') return;
+    const s = { nome: 'Chamada extra', quantidade: 1, valor: '', inicio: planoSomaMeses(planoMesHoje(), 1), cada: 0, corrige };
+    window.abrirSheetForm({ titulo: 'Nova série de parcelas', sub: a.nome_exibicao, rotuloSalvar: 'Lançar', corpo: planoSerieHtml(s, 0, false)
+        + '<div class="rz-f"><label for="pl-mot">Motivo <small>(opcional)</small></label><input type="text" id="pl-mot" maxlength="200"></div>',
+        aoSalvar: async (el) => {
+            const g = (k) => el.querySelector(`[data-pl-s="0.${k}"]`);
+            const dados = { nome: g('nome').value, quantidade: planoNum(g('quantidade').value), valor: planoNum(g('valor').value), inicio: g('inicio').value,
+                cada: Number(g('cada').value), corrige: g('corrige').checked, motivo: el.querySelector('#pl-mot')?.value || null };
+            if (dados.valor <= 0 || !dados.inicio) { mostrarToast('Informe valor e 1º vencimento.', 'erro'); return false; }
+            return planoAbaterChamar(a, apId, 'nova_serie', dados);
+        } });
+}
+
+function abrirPlanoNovoCusto(a, apId) {
+    if (typeof window.abrirSheetForm !== 'function') return;
+    window.abrirSheetForm({ titulo: 'Novo custo', sub: a.nome_exibicao, rotuloSalvar: 'Lançar',
+        corpo: `<div class="rz-f"><label for="pl-nc-n">Custo</label><input type="text" id="pl-nc-n" maxlength="80" value="Certidões"></div>
+          <div class="rz-kv" style="margin-top:0"><div class="rz-f"><label for="pl-nc-v">Valor (R$)</label><input type="number" inputmode="decimal" min="0" step="0.01" id="pl-nc-v"></div>
+          <div class="rz-f"><label for="pl-nc-m">Mês</label><input type="month" id="pl-nc-m" value="${planoMesHoje()}"></div></div>
+          <label class="rz-f" style="display:flex;gap:8px;align-items:center"><input type="checkbox" id="pl-nc-p"> Já pago</label>`,
+        aoSalvar: async (el) => {
+            const dados = { nome: el.querySelector('#pl-nc-n').value, valor: planoNum(el.querySelector('#pl-nc-v').value), inicio: el.querySelector('#pl-nc-m').value, pago: el.querySelector('#pl-nc-p').checked };
+            if (dados.valor <= 0) { mostrarToast('Informe o valor.', 'erro'); return false; }
+            return planoAbaterChamar(a, apId, 'novo_custo', dados);
+        } });
+}
+
+function abrirPlanoAbater(a, apId, acao, corrige) {
+    if (typeof window.abrirSheetForm !== 'function') return;
+    const ant = acao === 'antecipar';
+    window.abrirSheetForm({ titulo: ant ? 'Antecipar parcelas' : 'Amortizar', sub: a.nome_exibicao, rotuloSalvar: ant ? 'Antecipar' : 'Amortizar',
+        corpo: `<div class="rz-f"><label for="pl-ab-d">Data do pagamento</label><input type="date" id="pl-ab-d" value="${hojeLocalUso()}"></div>
+          ${ant ? `<div class="rz-kv" style="margin-top:0"><div class="rz-f"><label for="pl-ab-q">Quantas (as últimas)</label><input type="number" inputmode="numeric" min="1" max="120" id="pl-ab-q" value="1"></div>
+            <div class="rz-f"><label for="pl-ab-x">Desconto total (R$)</label><input type="number" inputmode="decimal" min="0" step="0.01" id="pl-ab-x" value="0"></div></div>
+            <span class="rz-hint">As parcelas mensais e anuais mais distantes viram pagas nesta data${corrige ? ', pelo valor corrigido até ela,' : ''} menos o desconto.</span>`
+          : `<div class="rz-f"><label for="pl-ab-v">Valor (R$)</label><input type="number" inputmode="decimal" min="0" step="0.01" id="pl-ab-v"></div>
+            <div class="rz-f"><label for="pl-ab-a">Abater de</label><select id="pl-ab-a"><option value="ultimas">Últimas parcelas (sem as chaves)</option><option value="chaves">Chaves</option></select></div>
+            <span class="rz-hint">Quita as parcelas a partir da última; a que sobrar em parte fica com o valor reduzido.</span>`}
+          <div class="rz-f"><label for="pl-ab-m">Motivo <small>(opcional)</small></label><input type="text" id="pl-ab-m" maxlength="200"></div>`,
+        aoSalvar: async (el) => {
+            const dados = { data: el.querySelector('#pl-ab-d').value, motivo: el.querySelector('#pl-ab-m').value || null };
+            if (ant) { dados.quantidade = planoNum(el.querySelector('#pl-ab-q').value) || 1; dados.desconto = planoNum(el.querySelector('#pl-ab-x').value); }
+            else { dados.valor = planoNum(el.querySelector('#pl-ab-v').value); dados.alvo = el.querySelector('#pl-ab-a').value; if (dados.valor <= 0) { mostrarToast('Informe o valor.', 'erro'); return false; } }
+            return planoAbaterChamar(a, apId, acao, dados);
+        } });
+}
+
+function abrirPlanoDesconto(a, apId, series) {
+    if (typeof window.abrirSheetForm !== 'function') return;
+    const parc = series.filter(s => !s.custo && s.pagas < s.quantidade);
+    if (!parc.length) { mostrarToast('Nenhuma série com parcela aberta.', 'aviso'); return; }
+    window.abrirSheetForm({ titulo: 'Desconto numa série', sub: a.nome_exibicao, rotuloSalvar: 'Aplicar',
+        corpo: `<div class="rz-f"><label for="pl-ds-s">Série</label><select id="pl-ds-s">${parc.map(s => `<option value="${s.item_id}">${escapeHtml(s.titulo)} · ${planoMoeda(s.valor_base)}</option>`).join('')}</select></div>
+          <div class="rz-kv" style="margin-top:0"><div class="rz-f"><label for="pl-ds-v">Novo valor de cada (R$)</label><input type="number" inputmode="decimal" min="0" step="0.01" id="pl-ds-v"></div>
+          <div class="rz-f"><label for="pl-ds-d">A partir de</label><input type="date" id="pl-ds-d" value="${hojeLocalUso()}"></div></div>
+          <div class="rz-f"><label for="pl-ds-m">Motivo</label><input type="text" id="pl-ds-m" maxlength="200"></div>
+          <span class="rz-hint">Valor sem correção; a correção do contrato continua valendo em cima dele.</span>`,
+        aoSalvar: async (el) => {
+            const dados = { item_id: el.querySelector('#pl-ds-s').value, valor: planoNum(el.querySelector('#pl-ds-v').value), data: el.querySelector('#pl-ds-d').value, motivo: el.querySelector('#pl-ds-m').value };
+            if (!dados.motivo.trim()) { mostrarToast('Informe o motivo do desconto.', 'erro'); return false; }
+            return planoAbaterChamar(a, apId, 'desconto', dados);
+        } });
+}
+
+async function planoAbaterChamar(a, apId, acao, dados) {
+    const { error } = await api.dbAuth.rpc('fn_plano_pagamento_abater', { p_ativo_programa_id: apId, p_acao: acao, p_dados: dados, p_canal: 'app' });
+    if (error) { mostrarToast(error.message || 'Não foi possível lançar.', 'erro'); return false; }
+    const txt = { nova_serie: 'Parcelas lançadas.', novo_custo: 'Custo lançado.', antecipar: 'Parcelas antecipadas.', amortizar: 'Amortização lançada.', desconto: 'Novo valor aplicado.' };
+    mostrarToast(txt[acao] || 'Lançado.', 'sucesso');
+    emitirEscrita?.('despesa', { ativo_id: a.id });
+    await montarPlanoPagamentoAtivo(a);
+    return true;
+}
+
+// Chaves recebidas: conclui o uso da obra hoje e abre "Adicionar uso" para escolher o próximo (Revenda, Aluguel…)
+function abrirPlanoChaves(a, r) {
+    if (typeof window.abrirSheetForm !== 'function' || !r.uso_id) return;
+    window.abrirSheetForm({ titulo: 'Chaves recebidas', sub: a.nome_exibicao, rotuloSalvar: 'Concluir a obra',
+        corpo: `<div class="rz-f"><label for="pl-ch-d">Data das chaves</label><input type="date" id="pl-ch-d" value="${hojeLocalUso()}"></div>
+          <span class="rz-hint">O uso ${escapeHtml(r.tipo === 'construcao_coletiva' ? 'Construção coletiva' : 'Na planta')} termina nesta data. As parcelas e custos que faltam continuam no plano. Em seguida, escolha o próximo uso.</span>`,
+        aoSalvar: async (el) => {
+            const fim = el.querySelector('#pl-ch-d').value;
+            const { error } = await api.dbAuth.rpc('fn_ativo_uso_concluir', { p_uso_id: r.uso_id, p_fim: fim, p_motivo: 'Chaves recebidas', p_canal: 'app' });
+            if (error) { mostrarToast(error.message || 'Não foi possível concluir.', 'erro'); return false; }
+            mostrarToast('Obra concluída. Escolha o próximo uso.', 'sucesso');
+            await aposMudarUso(a);
+            setTimeout(() => abrirAdicionarModeloAtivo(), 300);
+            return true;
+        } });
 }
 if (typeof window !== 'undefined') window.__rzAdicionarModeloAtivo = abrirAdicionarModeloAtivo;
 

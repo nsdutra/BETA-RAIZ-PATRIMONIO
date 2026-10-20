@@ -4,6 +4,21 @@ Histórico completo de versões do `index.html`, movido automaticamente pelo `ge
 
 ---
 
+NOVIDADES (Beta v1.440.0) — CORRIGIR SAFRA E FASE · ARRENDAMENTO PELA GLEBA (itens 52 e 53, de acordo do Nicola 19/10 19:31):
+na execução do programa, "Corrigir <safra>" edita início, fim e nome, mostra os vínculos e exclui a safra criada errada
+(só sem vínculo); a fase ganha "Corrigir datas"; "Abrir a safra" pede a data de referência; item com lançamento não se
+exclui (cofre-controles.js 1.63.0; banco: fn_ciclo_vinculos, fn_ciclo_editar, fn_fase_datas, fn_ciclo_excluir). A gleba e
+o talhão recebem o contrato de Arrendamento rural pela ficha (cofre-ativos.js 1.128.0, nucleo/porta.js 1.6.0) com o
+formulário em "Área arrendada / Arrendatário" (contratos.js 1.61.0); essas áreas ficam fora da lista e dos números de
+Imóveis (imoveis.js 1.9.0 e, aqui, Visão geral, limite do plano e alerta de finalidade).
+Versão anterior (Beta v1.439.6):
+------------------------------------------------------------------
+Versões anteriores (v1.439.6 … v1.439.6): CHANGELOG_APP.md, na raiz do
+repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
+das 5 versões mais recentes deste cabeçalho.
+
+---
+
 NOVIDADES (Beta v1.439.6) — ⋮ E CHIPS DE PATRIMÔNIO (Nicola 19/10 17:40): o ⋮ fica centrado na altura dos chips; os chips
 param antes dele, com um esmaecido na ponta, e ficam um pouco mais curtos. Só CSS.
 Versão anterior (Beta v1.439.5):
