@@ -1,6 +1,10 @@
 // ============================================================================
 // cofre-validacoes.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 2.13.0 · 19/10/2026
+// Versão: 2.14.0 · 20/10/2026
+//
+// v2.14.0 (20/10/2026, sessão 20261020-1317-icone-pessoa, demanda 9404081c — pedido do Nicola 20/10 13:17: "altere o ícone
+// de idoso pro de pessoas novamente") — o ícone de idoso sai: pessoa tem o mesmo ícone em qualquer idade.
+// Versão anterior: 2.13.0 · 19/10/2026
 //
 // v2.13.0 (19/10/2026, sessão 20261019-1220-carga-silva-icones2, demanda 9404081c, item 38) — o ícone de criança sai
 // (Nicola 19/10 12:16: "pode deixar o de pessoa mesmo"); fica pessoa para todos e idoso a partir de 65.
@@ -16,16 +20,11 @@
 //
 // v2.10.0 (19/10/2026, sessão 20261019-0850-carga-silva-l5a, demanda 9404081c, L5-3) — tiposDoCatalogo() devolve a lista de
 // tipos do catálogo, para o "+" de Ativos dizer o que cadastrar no ramo da lente.
-// Versão anterior: 2.9.0 · 18/10/2026
-//
-// v2.9.0 (18/10/2026, sessão 20261018-2343-carga-silva-l4a, demanda 9404081c; FICHA_LOTES_4_5 v1.1.0, de acordo do Nicola 18/10
-// 23:43) — L4-B/L4-C: campo do tipo substitui o da categoria com a mesma chave e 'oculto' tira campo ou bloco (fazenda sem rua);
-// na lente de um ramo entram os tipos ligados a um uso desse ramo (ramos_uso, montado por cofre-api.js).
 // --------------------------------------------------------------------------
-// Versões anteriores (v2.8.0 … v2.8.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v2.9.0 … v2.9.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '2.13.0'; // v-check (18/09/2026): lido por Dev › Versões — manter igual ao header
+export const VERSAO = '2.14.0'; // v-check (18/09/2026): lido por Dev › Versões — manter igual ao header
 export function escapeHtml(s) {
     return (s ?? '').toString().replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 }
@@ -302,24 +301,12 @@ const ICONE_POR_TIPO = {
     obra_de_arte: 'image', joia: 'gem', relogio: 'watch', vinho: 'wine', antiguidade: 'landmark', instrumento: 'music', livre: 'package',
     familia: 'users', pessoa: 'user', pet: 'paw-print',
 };
-// v2.12.0 (Nicola 19/10 11:34: "ajuste ícone de adulto, criança, idoso (maior 65) e pet") — a pessoa ganha o ícone pela
-// idade (dados_especificos.data_nascimento): menor de 18 = criança, 65 ou mais = idoso, senão adulto; sem data, adulto.
-function idadeDe(a) {
-    const dn = a?.dados_especificos?.data_nascimento;
-    if (!dn || !/^\d{4}-\d{2}-\d{2}/.test(dn)) return null;
-    const [y, m, d] = dn.slice(0, 10).split('-').map(Number), h = new Date();
-    let id = h.getFullYear() - y; if (h.getMonth() + 1 < m || (h.getMonth() + 1 === m && h.getDate() < d)) id--;
-    return id;
-}
 export function iconeDoAtivo(a) {
     const t = a && a.tipo_detalhe_id ? tipoDoCatalogo(a.tipo_detalhe_id) : null;
-    if (t && t.codigo === 'pessoa') { const i = idadeDe(a); return i !== null && i >= 65 ? 'rz-idoso' : 'user'; } // v2.13.0 — criança volta ao ícone de pessoa (Nicola 19/10 12:16)
     return (t && ICONE_POR_TIPO[t.codigo]) || iconeAtivo(a?.tipo_ativo);
 }
-// Lucide não tem criança nem idoso: dois desenhos próprios no mesmo traço (24×24, stroke 2, currentColor)
-const SVG_PROPRIO = {
-    'rz-idoso': '<circle cx="10" cy="4.5" r="2.5"/><path d="M10 8c-1.2 2.5-1.2 5 0 8l-2 5"/><path d="M10 16l2.5 5"/><path d="M9.6 10.5l5.4 2"/><path d="M16 12.5V21"/><path d="M16 12.5c0-1.3 1.8-1.3 1.8 0"/>',
-};
+// Desenhos próprios no traço do Lucide (24×24, stroke 2, currentColor), para ícone que o Lucide não tem; hoje nenhum
+const SVG_PROPRIO = {};
 // HTML do ícone do ativo: <svg data-lucide> (ou <i>) para o Lucide; o SVG pronto para os desenhos próprios
 export function iconeHtmlDoAtivo(a, tag = 'svg') {
     const n = iconeDoAtivo(a);

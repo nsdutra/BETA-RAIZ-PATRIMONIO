@@ -4,6 +4,21 @@ Histórico completo de versões do `index.html`, movido automaticamente pelo `ge
 
 ---
 
+NOVIDADES (Beta v1.441.3) — IMÓVEL EM CONSTRUÇÃO: PLANO DE PAGAMENTO E SIMULAÇÃO DE VENDA (de acordo do Nicola 20/10 01:12):
+"Adicionar uso" › Construção coletiva ou Na planta abre a mesma tela de dados (séries de parcelas, custos, comissão,
+índice e entrega); card Plano de pagamento na ficha com Nova série, Novo custo, Antecipar, Amortizar, Desconto e Chaves
+recebidas (cofre-ativos.js 1.131.0); card Simulação de venda em Saídas com exportação para Excel (financeiro.js 1.72.0).
+Banco: uso e programa Construção coletiva, Compra na planta ativo, aquisição fora do Resultado, coluna correcao no item de
+controle e as funções fn_plano_pagamento_criar/corrigir/abater/resumo e fn_simulacao_venda_imovel. Aqui, só cabeçalho e
+import map.
+Versão anterior (Beta v1.441.2):
+------------------------------------------------------------------
+Versões anteriores (v1.441.2 … v1.441.2): CHANGELOG_APP.md, na raiz do
+repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
+das 5 versões mais recentes deste cabeçalho.
+
+---
+
 NOVIDADES (Beta v1.441.2) — FATURA: CARTÃO VIRTUAL, PARCELAS, CATEGORIAS E PROGRESSO (de acordo do Nicola 19/10 23:50,
 23:52 e 23:55): compra de cartão virtual fica no titular e aparece como "Cartão virtual ··final"; parcela mostra quantas
 faltam e quanto falta pagar, e a classificação vale para as outras parcelas da mesma compra; leitura da fatura e do extrato
