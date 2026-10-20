@@ -4,6 +4,20 @@ Histórico completo de versões do `index.html`, movido automaticamente pelo `ge
 
 ---
 
+NOVIDADES (Beta v1.441.0) — ARRENDAMENTO RURAL, EXCLUIR PROGRAMA, ATIVO NA DESPESA, DATA (itens 55, 56, 57 e 59; Nicola 19/10
+21:54, 22:17 e 22:25): o contrato de Arrendamento rural ganha os campos do tipo (atividade e prazo mínimo, área, pagamento
+anual/na colheita/mensal, produto equivalente, ITR, benfeitorias, VTN) e perde IPTU/condomínio (contratos.js 1.62.0,
+nucleo/porta.js 1.7.0; banco: contratos.dados_modelo, recebimento anual, lembrete de notificação 6 meses antes do fim);
+"Excluir programa" no ⋮ do programa (cofre-controles.js 1.64.0; fn_programa_excluir); a despesa mostra o ativo ligado
+(financeiro.js 1.69.0); data dos Dados do ativo em dd/mm/aaaa (cofre-ativos.js 1.129.0). Aqui, só cabeçalho e import map.
+Versão anterior (Beta v1.440.1):
+------------------------------------------------------------------
+Versões anteriores (v1.440.1 … v1.440.1): CHANGELOG_APP.md, na raiz do
+repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
+das 5 versões mais recentes deste cabeçalho.
+
+---
+
 NOVIDADES (Beta v1.440.1) — TELA DA SAFRA (item 54, print do Nicola 19/10 21:38): itens na largura toda e alinhados; as
 opções da fase e de Corrigir abrem por cima da safra, sem fechá-la (cofre-controles.js 1.63.1). Aqui, só cabeçalho e import map.
 Versão anterior (Beta v1.440.0):

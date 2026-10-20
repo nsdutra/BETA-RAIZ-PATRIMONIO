@@ -1,7 +1,13 @@
 // ============================================================================
 // cofre-ativos.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.132.0 · 20/10/2026
+// Versão: 1.133.0 · 20/10/2026
 //
+// v1.133.0 (20/10/2026, sessão 20261018-2336-usos-lotes, demanda ce8b1820; pedidos do Nicola 20/10 09:07 e 11:06) — lista de
+//   Ativos: o valor de cada item sai no formato compacto da faixa do ramo e do total do grupo (R$ 5,0 mi · R$ 420 mil; exato
+//   no title), no alto da linha, na altura do nome; o aluguel (/mês) passa para a coluna da direita, abaixo do valor, inteiro; ativo
+//   sem valor cadastrado (menos vida) mostra "Sem valor" em cinza; a seta do item agrupado ocupa a mesma largura da seta das
+//   outras linhas, e o valor dele alinha com os demais. Junto, duas descrições do Excluir encurtadas para o limite de 28 (D6),
+//   que o verificador apontou: "Cadastro errado, sem vínculo" e "Apaga de vez; sem desfazer". Só tela; o banco não muda.
 // v1.132.0 (20/10/2026, sessão 20261020-1013-planta-ajustes, demanda 83968339; teste do Nicola 09:00, de acordo 10:13) — plano
 // de pagamento do imóvel em construção: (1) tela de dados com campo de data padrão (o dia do 1º vencimento é o dia de
 // vencimento da série; sai "Dia do vencimento") e checks no padrão .rz-row.rz-chk; o aviso da soma confere ao sair do
@@ -39,7 +45,7 @@
 // Versões anteriores (v1.127.0 … v1.127.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '1.132.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.133.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 import { estado } from './cofre-estado.js';
 import * as api from './cofre-api.js';
 import { mostrarToast, erroInline, refrescarIcones, alternarToggle, abrirModal, fecharModal, modalGenerico, perguntar, avisarComDesfazer, escolher } from './cofre-ui.js';
@@ -76,9 +82,23 @@ import { rzMostrarBloqueio, recarregarFuncionalidadesLiberadas } from './comum-l
 // "imóvel" genérico e a fatia A da E4.2 os reclassificou certo). As duas
 // categorias entram na checagem agora.
 // v1.130.0 (item 61) — coluna da direita da linha da lista: o valor (na coluna da soma da faixa do ramo) e, embaixo, o chip
-function colunaDireitaLinha(valorFmt, chip) {
-    if (!valorFmt && !chip) return '';
-    return `<div class="rz-rt">${valorFmt ? `<b style="font-size:14px;font-weight:600;font-variant-numeric:tabular-nums;white-space:nowrap">${escapeHtml(valorFmt)}</b>` : ''}${chip ? chip.html : ''}</div>`;
+// v1.133.0 (demanda ce8b1820, Nicola 20/10 09:07 e 11:06: "padrão diferente e desalinhado… o máximo possível no padrão e à
+// direita"; "deixe no formato reduzido"; "o valor alinhado na altura do nome") — o valor sai no MESMO formato compacto da faixa
+// do ramo e do total do grupo (R$ 5,0 mi · R$ 420 mil), com o exato no title; o aluguel (/mês) sobe para esta coluna, abaixo do
+// valor, inteiro; sem valor cadastrado (e o ativo não é vida), "Sem valor" em cinza no lugar, para o vazio não parecer falha da tela.
+// A coluna fica no alto da linha, na altura do nome (CSS #ativos-lista .rz-rt, index).
+function valorCompactoLinha(v) {
+    const n = Number(v || 0);
+    if (Math.abs(n) >= 1000 && typeof window.formatarValorCompacto === 'function') return window.formatarValorCompacto(n);
+    return n.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', minimumFractionDigits: 0, maximumFractionDigits: 0 });
+}
+function colunaDireitaLinha(valorFmt, chip, extra) {
+    if (!valorFmt && !chip && !extra) return '';
+    const vb = !valorFmt ? ''
+        : valorFmt.vazio ? `<small class="rz-rt-x">${escapeHtml(valorFmt.curto)}</small>`
+        : `<b class="rz-rt-v" title="${escapeHtml(valorFmt.exato || '')}">${escapeHtml(valorFmt.curto)}</b>`;
+    const ex = extra ? `<small class="rz-rt-x" title="${escapeHtml(extra.exato || '')}">${escapeHtml(extra.curto)}</small>` : '';
+    return `<div class="rz-rt">${vb}${ex}${chip ? chip.html : ''}</div>`;
 }
 function ehCategoriaImovel(tipo) {
     return tipo === 'imovel_predial' || tipo === 'imovel_territorial';
@@ -1053,7 +1073,7 @@ function ativoComSubativosHtml(a) {
     html = html.replace(/<div class="rz-ic rz-ic-grupo"/, `<div class="rz-ic rz-ic-grupo" role="button" tabindex="0" aria-label="${aberto ? 'Fechar' : 'Mostrar'} ${escapeHtml(nomeSub.toLowerCase())}" style="cursor:pointer" ${toggle}`);
     const k = html.lastIndexOf('<svg data-lucide="chevron-right" class="rz-chev"></svg>');
     const botao = `<button type="button" class="rz-subs-toggle" data-subs-toggle="${a.id}" aria-expanded="${aberto}" aria-label="${aberto ? 'Fechar' : 'Mostrar'} ${escapeHtml(nomeSub.toLowerCase())}" ${toggle}
-        style="background:none;border:0;padding:10px 4px 10px 10px;margin:-10px -4px -10px 0;color:inherit;cursor:pointer;display:flex"><svg data-lucide="${aberto ? 'chevron-up' : 'chevron-down'}" class="rz-chev"></svg></button>`;
+        style="background:none;border:0;padding:10px 4px 10px 10px;margin:-10px -4px -10px -10px;color:inherit;cursor:pointer;display:flex"><svg data-lucide="${aberto ? 'chevron-up' : 'chevron-down'}" class="rz-chev"></svg></button>`;
     if (k >= 0) html = html.slice(0, k) + botao + html.slice(k + '<svg data-lucide="chevron-right" class="rz-chev"></svg>'.length);
     const filhos = subs.map(x => ativoCardHtml(x).replace('<div class="rz-row rz-link"', '<div class="rz-row rz-link rz-sub-row"')).join('');
     // v1.124.0 (item 40) — a linha sai do ícone do principal e chega ao ícone de cada sub-ativo (CSS .rz-subs, index)
@@ -1105,7 +1125,9 @@ function ativoCardHtml(a) {
     // v1.52.0 — valor de mercado (a.valor_referencia) movido pro escopo
     // compartilhado da função: agora usado tanto no ramo de imóvel quanto
     // no card genérico (ver notas abaixo).
-    const valorFmt = a.valor_referencia != null ? fmtMoeda(a.valor_referencia) : null;
+    // v1.133.0 (demanda ce8b1820) — compacto, como a faixa do ramo e o total do grupo; o exato vai no title
+    const valorFmt = a.valor_referencia != null ? { curto: valorCompactoLinha(a.valor_referencia), exato: fmtMoeda(a.valor_referencia) }
+        : (a.tipo_ativo !== 'vida' ? { curto: 'Sem valor', vazio: true } : null);
 
     // v1.7.0 — ativo do tipo imóvel COM resumo carregado: mesma "cara"
     // exata da lista antiga de Imóveis (montarCabecalhoImovelHtml, no
@@ -1169,7 +1191,9 @@ function ativoCardHtml(a) {
         // em branco, ou seja, a linha nem é renderizada).
         // "Sem contrato" só no imóvel predial; fazenda, gleba e terreno sem contrato não ganham linha (dem 9404081c, 18/10)
         const linhaLocatario = alugado ? (principal.locatario || 'Locatário não informado') : (predial ? 'Sem contrato' : '');
-        const aluguelFmt = alugado && principal.valor != null ? `${fmtMoeda(principal.valor)}/mês` : null;
+        // v1.133.0 (demanda ce8b1820) — o aluguel vai para a coluna da direita, abaixo do valor; fica inteiro (R$ 2.500/mês): no
+        // compacto um aluguel de 2.500 viraria "R$ 3 mil", o que não é o valor do contrato
+        const aluguelFmt = alugado && principal.valor != null ? { curto: `${fmtMoeda(principal.valor)}/mês` } : null;
 
         // v1.51.0 — ícone/avatar centralizado na ALTURA da caixa. Imóvel com
         // resumo agora tem até 4 linhas de texto (nome + valor + locatário
@@ -1183,9 +1207,8 @@ function ativoCardHtml(a) {
                 <b style="display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;white-space:normal;word-break:break-word">${escapeHtml(a.nome_exibicao)}</b>
                 ${badgeHtml ? `<div class="rz-tx-st">${badgeHtml}</div>` : ''}
                 ${linhaLocatario ? `<span>${escapeHtml(linhaLocatario)}</span>` : ''}
-                ${aluguelFmt ? `<span>${escapeHtml(aluguelFmt)}</span>` : ''}
             </div>
-            ${colunaDireitaLinha(valorFmt, chip)}
+            ${colunaDireitaLinha(valorFmt, chip, aluguelFmt)}
             <svg data-lucide="chevron-right" class="rz-chev"></svg>
         </div>`;
     }
@@ -1825,7 +1848,7 @@ export async function abrirAcoesAtivo() {
     const situacao = maquina ? maquina.map(m => acaoDaMaquinaAtivo(a, m)) : situacaoAntiga;
     // v1.120.0 (L5-4, F2) — Excluir de verdade, no fim da Situação: só passa sem nada ligado; senão a tela oferece Arquivar
     if (maquina && (a.status || 'ativo') === 'ativo')
-        situacao.push({ icone: 'trash-2', titulo: 'Excluir', codigo: 'cofre.excluir', tipo: 'bad', sub: 'Cadastro errado, sem nada ligado',
+        situacao.push({ icone: 'trash-2', titulo: 'Excluir', codigo: 'cofre.excluir', tipo: 'bad', sub: 'Cadastro errado, sem vínculo',
             aoTocar: () => excluirAtivoAtual(maquina.find(m => m.acao === 'arquivar') || null) });
     const fora = a.registro_contabil === 'fora';
     // v1.102.0 (usos fatia 3) — unidades, áreas, integrantes: do fn_ativo_estrutura (já lido pelo card do Resumo)
@@ -4112,7 +4135,7 @@ export async function excluirAtivoAtual(mArquivar = null) {
     if (!a) return;
     if (typeof window.abrirSheetForm !== 'function') { mostrarToast('Abra pelo app principal.', 'erro'); return; }
     window.abrirSheetForm({
-        titulo: 'Excluir ' + a.nome_exibicao, sub: 'Some do sistema; não dá para desfazer', rotuloSalvar: 'Excluir',
+        titulo: 'Excluir ' + a.nome_exibicao, sub: 'Apaga de vez; sem desfazer', rotuloSalvar: 'Excluir',
         corpo: `<p class="rz-desc" style="margin:0 0 8px">Use para cadastro feito por engano. Com histórico (uso, contrato, item, lançamento, documento), arquive.</p>
             <div class="rz-f" style="margin-bottom:0"><label for="fa-exc-motivo">Motivo</label><input type="text" id="fa-exc-motivo" maxlength="200" placeholder="Ex.: cadastrado em duplicidade"></div>`,
         aoSalvar: async () => {
