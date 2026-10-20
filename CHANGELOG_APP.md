@@ -4,6 +4,18 @@ Histórico completo de versões do `index.html`, movido automaticamente pelo `ge
 
 ---
 
+NOVIDADES (Beta v1.444.0) — HOJE › OBRAS COM PLANO DE PAGAMENTO (de acordo do Nicola 20/10 13:13): imóvel em Construção
+coletiva ou Compra na planta entra nos números da lente Obras — Investido no ano com as parcelas de aquisição, Avanço
+financeiro pago ÷ total do plano, Avanço físico com a entrega prevista, card Obras em andamento com o plano, gráfico
+"Investido por mês"; Carteira × indicadores e Performance saem da lente. resultados.js 2.15.0. Banco: hoje_obras_plano_v1.
+Versão anterior (Beta v1.443.0):
+------------------------------------------------------------------
+Versões anteriores (v1.443.0 … v1.443.0): CHANGELOG_APP.md, na raiz do
+repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
+das 5 versões mais recentes deste cabeçalho.
+
+---
+
 NOVIDADES (Beta v1.443.0) — PATRIMÔNIO: ALUGUEL À FRENTE DO LOCATÁRIO (Nicola 20/10 11:25): na lista de Ativos, o aluguel/mês
 fica na linha do locatário, à direita, na coluna do valor. cofre-ativos.js 1.134.0. Banco: nada muda.
 Versão anterior (Beta v1.442.0):
