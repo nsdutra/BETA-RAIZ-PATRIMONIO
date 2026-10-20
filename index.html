@@ -6,9 +6,14 @@
    (base derivada do RUMO v7.4.2 — histórico de versões anteriores
    preservado abaixo para referência técnica)
 
-   VERSÃO: Beta v1.447.0
-   LINHAS: 17215
-   DATA: 20/10/2026 (sessão 20261020-1900-calendario-escolar, demanda b3aeefaf)
+   VERSÃO: Beta v1.448.0
+   LINHAS: 17221
+   DATA: 20/10/2026 (sessão 20261020-1918-raiz-ia-importar, demanda 27bf9abe)
+   NOVIDADES (Beta v1.448.0) — RAIZ IA › IMPORTAR COM IA (Nicola 20/10 19:18): o sheet da Raiz IA passa a reunir as importações
+   que já existem — Extrato bancário, Fatura do cartão, Calendário escolar e Outro documento (contrato, apólice, boleto, nota,
+   convite) — no lugar do único "Importar extrato". Cada uma abre a tela de sempre (fatura: Financeiro › Importar fatura;
+   calendário: a tela única do agenda.js 1.9.0; documento: leitura do Cofre). Sem banco novo.
+   Versão anterior (Beta v1.447.0):
    NOVIDADES (Beta v1.447.0) — IMPORTAR CALENDÁRIO ESCOLAR (FICHA_FAMILIA_CALENDARIO_E_FERIADOS_RAIZ v1.0.0, E3, de acordo do
    Nicola 20/10 18:34): Agenda › ⋮ › Importar calendário escolar — lê o PDF/foto, separa por filho (escola, série e turma no
    cadastro da pessoa), tela única para marcar e confirmar. agenda.js 1.9.0. Banco: calendario_escolar_v1. Edge:
@@ -27,11 +32,8 @@
    NOVIDADES (Beta v1.445.0) — HOJE › OBRAS: o box de entrega vira "Falta pagar" (saldo e parcelas que faltam dos planos de
    pagamento, somados); a data de entrega fica em Obras em andamento (Nicola 13:38, de acordo 14:01). resultados.js 2.16.0.
    Versão anterior (Beta v1.444.1):
-   NOVIDADES (Beta v1.444.1) — ÍCONE DE PESSOA (Nicola 20/10 13:17): o ícone de idoso sai e a pessoa volta a ter o mesmo
-   ícone em qualquer idade (cofre-validacoes.js 2.14.0). Aqui, só cabeçalho e import map.
-   Versão anterior (Beta v1.444.0):
    ------------------------------------------------------------------
-   Versões anteriores (v1.444.0 … v1.444.0): CHANGELOG_APP.md, na raiz do
+   Versões anteriores (v1.444.1 … v1.444.1): CHANGELOG_APP.md, na raiz do
    repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
    das 5 versões mais recentes deste cabeçalho.
 
@@ -4541,7 +4543,7 @@
         // texto certo toda vez (esqueci 5 versões seguidas, de v1.37.1 até
         // v1.38.3). Agora só precisa mudar UMA linha aqui a cada release;
         // window.onload aplica nos dois lugares automaticamente.
-        const APP_VERSAO = "Beta v1.447.0"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
+        const APP_VERSAO = "Beta v1.448.0"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
 
         // ====================================================================
         // v1.105.0 — HELPERS DE SUPERFÍCIE DA GRAMÁTICA ÚNICA
@@ -9989,7 +9991,11 @@ async function criarLinkVitrineSupabase(token, idsSelecionados) {
                 '<button type="button" data-ia-atalho="lancamento"><svg data-lucide="wallet"></svg>Lançamento</button>' +
                 '<button type="button" data-ia-atalho="documento"><svg data-lucide="file-up"></svg>Documento</button></div>';
             const sheet = abrirSheetAcoes({ titulo: 'Raiz IA', sub: 'Pergunte ou registre', acoes: [
-                { icone: 'sparkles', tipo: 'ia', titulo: 'Importar extrato', codigo: 'conciliacao.importar', sub: 'Concilia os recebimentos', aoTocar: () => { switchTab('tab-mensal'); setTimeout(() => document.getElementById('extrato-file-input')?.click(), 250); } },
+                // v1.448.0 — importar com IA: as quatro telas que já existem, num lugar só
+                { icone: 'file-down', tipo: 'ia', titulo: 'Importar extrato bancário', codigo: 'conciliacao.importar', sub: 'Excel, PDF ou foto · concilia os recebimentos', aoTocar: () => { switchTab('tab-mensal'); setTimeout(() => document.getElementById('extrato-file-input')?.click(), 250); } },
+                { icone: 'credit-card', tipo: 'ia', titulo: 'Importar fatura do cartão', codigo: 'cartao.importar', sub: 'PDF ou foto · você confere antes', aoTocar: () => { if (typeof window.financeiroImportarFatura === 'function') window.financeiroImportarFatura(); else { switchTab('tab-saidas'); setTimeout(() => window.financeiroImportarFatura?.(), 600); } } },
+                { icone: 'backpack', tipo: 'ia', titulo: 'Importar calendário escolar', sub: 'PDF ou foto · separa por filho', aoTocar: () => import('./js/agenda.js').then(m => m.abrirImportarCalendario()).catch(() => mostrarToast('Não consegui abrir a importação.')) },
+                { icone: 'file-search', tipo: 'ia', titulo: 'Ler outro documento', codigo: 'cofre.analisar_ia', sub: 'Contrato, apólice, boleto, nota, convite', aoTocar: () => abrirUploadDocumentoNoApp() },
                 { icone: 'bot', titulo: 'Raiz IA no WhatsApp', sub: 'Consultas e avisos', aoTocar: abrirBotWhatsapp }
             ]});
             const corpo = sheet.querySelector('.rz-sh-b');
