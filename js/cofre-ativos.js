@@ -1,7 +1,14 @@
 // ============================================================================
 // cofre-ativos.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.135.0 · 20/10/2026
+// Versão: 1.137.0 · 20/10/2026
 //
+// v1.137.0 (20/10/2026, sessão 20261020-1846-balanco-ativo, demanda 03eae1d1; de acordo do Nicola 19:12) — plano de
+//   pagamento: sai o ⋮ › Forma de pagamento; no cadastro, "Como é pago" fica só com "Quem paga" (a conta), sem a escolha de
+//   acerto nem o rateio à mão — o acerto entre os donos vem da natureza do imóvel no Balanço. O card mostra só a conta.
+// v1.136.0 (20/10/2026, sessão 20261020-1846-balanco-ativo, demanda 83968339; Nicola 18:43 e 18:46: "Use a mesma forma que
+//   aparece no balanço pra ficar padrão") — chip Financeiro do ativo, card Balanço pendente: o rateio entre duas pessoas
+//   aparece como no Balanço › Grupos, uma linha por pessoa com "R$ X a receber" ou "deve R$ X" (antes, a mesma frase "Nicola
+//   deve a Claudia" saía duas vezes); o total em aberto soma o rateio uma vez. Tocar na linha continua abrindo o Quitar.
 // v1.135.0 (20/10/2026, sessão 20261020-1406-planta-pagamento, demanda 83968339; Nicola 14:06, de acordo 14:10) — plano de
 //   pagamento: (1) sai o botão "Situação no Financeiro" do card; (2) "Como é pago" no cadastro do plano — conta que paga e
 //   acerto: pela empresa (divisão pela propriedade) ou rateio direto entre pessoas (divisão no lançamento, o formato do rateio
@@ -54,7 +61,7 @@
 // Versões anteriores (v1.127.0 … v1.127.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '1.135.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.137.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 import { estado } from './cofre-estado.js';
 import * as api from './cofre-api.js';
 import { mostrarToast, erroInline, refrescarIcones, alternarToggle, abrirModal, fecharModal, modalGenerico, perguntar, avisarComDesfazer, escolher } from './cofre-ui.js';
@@ -3094,97 +3101,30 @@ function planoPagamentoInicial(op, atual) {
     return { conta_id: pg.conta_id || contaEmp, modo: div ? 'rateio' : 'empresa', divisao: div || op.donos.map(d => ({ ...d })) };
 }
 const planoContaNome = (c) => c ? `${c.nome}${c.final_identificador ? ' ··' + c.final_identificador : ''}` : '—';
+// v1.137.0 — "Quem paga" só escolhe a conta. O acerto entre os donos sai sozinho da natureza do imóvel (Balanço, A7 da
+// ARQUITETURA_USOS_E_ACORDOS): fora da contabilidade, quem não pagou acerta direto com quem pagou; da empresa, pelo caixa.
 function planoPagamentoHtml(G, op) {
     const contas = op.contas.map(c => `<option value="${c.id}"${c.id === G.conta_id ? ' selected' : ''}>${escapeHtml(planoContaNome(c))}${c.titular_tipo === 'empresa' ? ' (empresa)' : ''}</option>`).join('');
-    const pesOp = (sel) => op.pessoas.map(p => `<option value="${p.id}"${p.id === sel ? ' selected' : ''}>${escapeHtml(p.nome)}</option>`).join('');
-    const soma = Math.round(G.divisao.reduce((t, d) => t + (Number(d.percentual) || 0), 0) * 100) / 100;
-    const rateio = G.modo === 'rateio' ? `${G.divisao.map((d, i) => `<div class="rz-row" style="gap:8px">
-            <div class="rz-tx" style="flex:1;min-width:0"><select data-pg-pessoa="${i}" aria-label="Pessoa">${pesOp(d.pessoa_id)}</select></div>
-            <input type="number" inputmode="decimal" min="0" max="100" step="0.01" data-pg-pct="${i}" value="${d.percentual}" aria-label="Percentual" style="width:72px;text-align:right"><span>%</span>
-            <button type="button" class="rz-btn rz-btn-2 rz-sm" data-pg-del="${i}" aria-label="Tirar da divisão"><i data-lucide="trash-2"></i></button></div>`).join('')}
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-top:6px"><span class="rz-desc" data-pg-soma style="margin:0;color:${Math.abs(soma - 100) < 0.01 ? 'var(--success)' : 'var(--danger)'}">Soma ${soma.toLocaleString('pt-BR')}%</span>
-        <button type="button" class="rz-btn rz-btn-2 rz-sm" data-pg-add>+ Pessoa</button></div>
-        <p class="rz-hint">Quem não pagou fica devendo a sua parte direto a quem pagou (rateio no Balanço).</p>`
-        : '<p class="rz-hint">A divisão segue a propriedade do imóvel e o acerto passa pela empresa.</p>';
-    return `<div class="rz-f"><label for="pg-conta">Conta que paga</label><select id="pg-conta" data-pg-conta>${contas}</select></div>
-        <div class="rz-seg" role="group" aria-label="Acerto">
-          <button type="button" data-pg-modo="empresa" class="${G.modo === 'empresa' ? 'rz-on' : ''}" aria-pressed="${G.modo === 'empresa'}">Acerto pela empresa</button>
-          <button type="button" data-pg-modo="rateio" class="${G.modo === 'rateio' ? 'rz-on' : ''}" aria-pressed="${G.modo === 'rateio'}">Rateio direto</button>
-        </div>${rateio}`;
+    return `<div class="rz-f"><label for="pg-conta">Quem paga</label><select id="pg-conta" data-pg-conta>${contas}</select>
+        <span class="rz-hint">A divisão segue a propriedade do imóvel. Se o imóvel está fora da contabilidade, quem não pagou acerta direto com quem pagou.</span></div>`;
 }
 // Trata os eventos do bloco; devolve true quando precisa redesenhar
-function planoPagamentoEvento(ev, G, op, root) {
-    const t = ev.target;
-    if (ev.type === 'click') {
-        const b = t.closest('button'); if (!b) return false;
-        if (b.dataset.pgModo) { G.modo = b.dataset.pgModo; if (G.modo === 'rateio' && !G.divisao.length) G.divisao = op.donos.map(d => ({ ...d })); return true; }
-        if (b.dataset.pgAdd != null) { const livre = op.pessoas.find(p => !G.divisao.some(d => d.pessoa_id === p.id)); if (livre) G.divisao.push({ pessoa_id: livre.id, percentual: 0 }); return true; }
-        if (b.dataset.pgDel != null) { G.divisao.splice(Number(b.dataset.pgDel), 1); return true; }
-        return false;
-    }
-    if (t.dataset.pgConta != null) G.conta_id = t.value;
-    else if (t.dataset.pgPessoa != null) G.divisao[Number(t.dataset.pgPessoa)].pessoa_id = t.value;
-    else if (t.dataset.pgPct != null) {
-        G.divisao[Number(t.dataset.pgPct)].percentual = planoNum(t.value);
-        const el = root?.querySelector('[data-pg-soma]');
-        const soma = Math.round(G.divisao.reduce((s, d) => s + (Number(d.percentual) || 0), 0) * 100) / 100;
-        if (el) { el.textContent = `Soma ${soma.toLocaleString('pt-BR')}%`; el.style.color = Math.abs(soma - 100) < 0.01 ? 'var(--success)' : 'var(--danger)'; }
-    }
+function planoPagamentoEvento(ev, G) {
+    if (ev.type !== 'click' && ev.target.dataset.pgConta != null) G.conta_id = ev.target.value;
     return false;
 }
-// Monta o pedido do banco; null quando o rateio não fecha (o toast já foi dado)
+// Monta o pedido do banco; null quando falta a conta (o toast já foi dado)
 function planoPagamentoPedido(G) {
-    if (!G.conta_id) { mostrarToast('Escolha a conta que paga.', 'erro'); return null; }
-    if (G.modo !== 'rateio') return { conta_id: G.conta_id, divisao: null };
-    const div = G.divisao.filter(d => d.pessoa_id && Number(d.percentual) > 0);
-    const soma = div.reduce((s, d) => s + Number(d.percentual), 0);
-    if (!div.length || Math.abs(soma - 100) > 0.01) { mostrarToast('O rateio precisa somar 100%.', 'erro'); return null; }
-    if (new Set(div.map(d => d.pessoa_id)).size !== div.length) { mostrarToast('Pessoa repetida no rateio.', 'erro'); return null; }
-    return { conta_id: G.conta_id, divisao: div.map(d => ({ modo: 'percentual', pessoa_id: d.pessoa_id, percentual: Number(d.percentual) })) };
+    if (!G.conta_id) { mostrarToast('Escolha quem paga.', 'erro'); return null; }
+    return { conta_id: G.conta_id, divisao: null };
 }
-// Texto do card: "Claudia Itau · rateio Claudia 50%, Nicola 50%"
+// Texto do card: "Claudia Itau" (ou o rateio gravado antes da v1.137.0)
 function planoPagamentoTexto(pg, op) {
-    if (!pg?.conta_id) return 'Conta padrão da empresa · acerto pela empresa';
+    if (!pg?.conta_id) return 'Conta padrão da empresa';
     const conta = planoContaNome(op.contas.find(c => c.id === pg.conta_id));
-    if (!Array.isArray(pg.divisao) || !pg.divisao.length) return `${conta} · acerto pela empresa`;
+    if (!Array.isArray(pg.divisao) || !pg.divisao.length) return conta;
     const nome = (id) => String((op.pessoas.find(p => p.id === id) || {}).nome || 'Pessoa').split(' ')[0];
     return `${conta} · rateio ${pg.divisao.map(d => `${nome(d.pessoa_id)} ${Number(d.percentual).toLocaleString('pt-BR')}%`).join(', ')}`;
-}
-
-// ⋮ Forma de pagamento: muda a conta e o acerto a partir de uma data (vencimento), opcionalmente nas já pagas
-async function abrirPlanoFormaPagamento(a, apId, campos) {
-    if (typeof window.abrirSheetForm !== 'function') return;
-    let op;
-    try { op = await planoPagamentoOpcoes(a); } catch (e) { mostrarToast('Não foi possível ler as contas.', 'erro'); return; }
-    const G = planoPagamentoInicial(op, campos?.pagamento);
-    let desde = '1900-01-01', pagas = true;
-    const desenhar = (el) => {
-        el.innerHTML = planoPagamentoHtml(G, op) + `
-          <div class="rz-f" style="margin-top:10px"><label for="pg-desde">Vale para parcelas que vencem a partir de</label><input type="date" id="pg-desde" value="${desde === '1900-01-01' ? '' : desde}"><span class="rz-hint">Em branco: desde a primeira parcela.</span></div>
-          <div class="rz-list">${planoChk('id="pg-pagas"', pagas, 'Incluir as já pagas', 'Muda a conta e o acerto delas também')}</div>
-          <p class="rz-hint">Lançamento conciliado com extrato ou de mês fechado não muda.</p>`;
-        refrescarIcones();
-    };
-    window.abrirSheetForm({ titulo: 'Forma de pagamento', sub: a.nome_exibicao, rotuloSalvar: 'Aplicar',
-        corpo: (el) => {
-            desenhar(el);
-            el.addEventListener('click', (ev) => { if (planoPagamentoEvento(ev, G, op, el)) desenhar(el); });
-            el.addEventListener('input', (ev) => {
-                if (ev.target.id === 'pg-desde') { desde = ev.target.value || '1900-01-01'; return; }
-                if (ev.target.id === 'pg-pagas') { pagas = ev.target.checked; return; }
-                planoPagamentoEvento(ev, G, op, el);
-            });
-        },
-        aoSalvar: async () => {
-            const pagamento = planoPagamentoPedido(G); if (!pagamento) return false;
-            const { data, error } = await api.dbAuth.rpc('fn_plano_pagamento_abater', { p_ativo_programa_id: apId, p_acao: 'forma_pagamento',
-                p_dados: { pagamento, desde, incluir_pagas: pagas }, p_canal: 'app' });
-            if (error) { mostrarToast(error.message || 'Não foi possível aplicar.', 'erro'); return false; }
-            mostrarToast(`${data?.parcelas || 0} lançamentos atualizados.`, 'sucesso');
-            emitirEscrita?.('despesa', { ativo_id: a.id });
-            await montarPlanoPagamentoAtivo(a);
-            return true;
-        } });
 }
 
 // v1.131.0 — tela única de dados do plano (Construção coletiva ou Na planta); v1.133.0 — bloco "Como é pago"
@@ -3237,7 +3177,7 @@ async function abrirPlanoPagamentoNovo(a, m) {
             desenhar(el);
             el.addEventListener('input', (ev) => {
                 const t = ev.target, v = t.type === 'checkbox' ? t.checked : t.value;
-                if (t.dataset.pgConta != null || t.dataset.pgPessoa != null || t.dataset.pgPct != null) { planoPagamentoEvento(ev, G, op, el); return; }
+                if (t.dataset.pgConta != null) { planoPagamentoEvento(ev, G); return; }
                 if (t.dataset.pl) P[t.dataset.pl] = v;
                 else if (t.dataset.plS) { const [i, c] = t.dataset.plS.split('.'); P.series[Number(i)][c] = v; }
                 else if (t.dataset.plC) { const [i, c] = t.dataset.plC.split('.'); P.custos[Number(i)][c] = v; }
@@ -3245,7 +3185,6 @@ async function abrirPlanoPagamentoNovo(a, m) {
             // v1.132.0 — o aviso da soma confere ao sair do campo (enquanto digita, "229" ainda não é o preço)
             el.addEventListener('change', () => { const aviso = el.querySelector('#pl-soma'); if (aviso) aviso.textContent = planoAvisoSoma(P); });
             el.addEventListener('click', (ev) => {
-                if (planoPagamentoEvento(ev, G, op, el)) { desenhar(el); return; }
                 const b = ev.target.closest('button'); if (!b) return;
                 if (b.dataset.plTipo) { const pre = planoPreenchimento(b.dataset.plTipo); P = { ...pre, parte_nome: P.parte_nome || pre.parte_nome }; desenhar(el); }
                 else if (b.dataset.plAdd === 'serie') { P.series.push({ nome: 'Nova parcela', quantidade: 1, valor: '', inicio: planoDia10(), cada: 0, corrige: P.indice !== 'nenhum', papel: 'parcela' }); desenhar(el); }
@@ -3330,7 +3269,6 @@ async function montarPlanoPagamentoAtivo(a) {
         { icone: 'piggy-bank', titulo: 'Abatimento', codigo: 'planta.plano', sub: 'Antecipar, amortizar…', aoTocar: () => abrirPlanoAbatimento(a, ap.id, corrige, r.series || []) },
         { icone: 'receipt', titulo: 'Novo custo', codigo: 'planta.plano', sub: 'ITBI, cartório, certidões', aoTocar: () => abrirPlanoNovoCusto(a, ap.id) },
         { icone: 'calculator', titulo: 'Simular venda', codigo: 'planta.simulacao', sub: 'Preço mínimo e Excel', aoTocar: () => abrirSimulacaoVendaAtivo(a) },
-        { icone: 'wallet', titulo: 'Forma de pagamento', codigo: 'planta.plano', sub: 'Conta que paga e rateio', aoTocar: () => abrirPlanoFormaPagamento(a, ap.id, c) },
         { icone: 'history', titulo: 'Histórico do plano', codigo: 'planta.plano', sub: 'O que foi lançado e quando', aoTocar: () => abrirPlanoHistorico(a, ap.id) },
         { icone: 'key-round', titulo: 'Chaves recebidas', codigo: 'ativos.usos.concluir', sub: 'Conclui a obra', aoTocar: () => abrirPlanoChaves(a, r) },
     ] }));
@@ -3730,8 +3668,21 @@ function movDesenharTopo(a, pessoaId, bal, ex, contas, resumoAd = {}) {
     const t = document.getElementById('fa-mov-topo'); if (!t) return;
     const fmt = fmtMoedaAtivo, nomeAtivo = a.nome_exibicao || 'Pessoa';
     const pn = (x) => String(x || '').split(' ')[0]; // primeiro nome: a frase cabe na linha
-    const total = bal.reduce((s, l) => s + Math.abs(Number(l.valor || 0)), 0);
+    // v1.136.0 — no ativo (não pessoa), o rateio entre duas pessoas vem do banco nos dois lados (+ quem tem a receber, − quem
+    // deve). Mostra como o Balanço › Grupos: uma linha por pessoa com "a receber" ou "deve"; o total em aberto soma o rateio
+    // uma vez (o lado a receber). As linhas com a empresa seguem na frase "X deve à Empresa".
+    const ehRateio = (l) => !pessoaId && l.contraparte_tipo === 'pessoa';
+    const total = bal.reduce((s, l) => s + (ehRateio(l) ? Math.max(Number(l.valor || 0), 0) : Math.abs(Number(l.valor || 0))), 0);
+    const stBal = (sem, rot) => (typeof window.renderStatus === 'function' ? window.renderStatus(sem, rot) : movEsc(rot));
+    const linhaRateio = (l, i) => {
+        const v = Number(l.valor || 0);
+        return `<div class="rz-row rz-link" role="button" tabindex="0" data-mov-bal="${i}">
+            <div class="rz-ic"><i data-lucide="user"></i></div>
+            <div class="rz-tx"><b>${movEsc(l.nome || nomeAtivo)}</b><span>rateio com ${movEsc(pn(l.contraparte_nome))}</span></div>
+            <div class="rz-rt">${v > 0 ? stBal('run', `${fmt(v)} a receber`) : stBal('warn', `deve ${fmt(-v)}`)}</div></div>`;
+    };
     const linha = (l, i) => {
+        if (ehRateio(l)) return linhaRateio(l, i);
         const v = Number(l.valor || 0), quem = pn(l.nome || nomeAtivo), contra = l.contraparte_tipo === 'caixa' ? 'Empresa' : pn(l.contraparte_nome);
         const frase = v > 0 ? `${contra} deve a ${quem}` : `${quem} deve ${l.contraparte_tipo === 'caixa' ? 'à' : 'a'} ${contra}`;
         return `<div class="rz-row rz-link" role="button" tabindex="0" data-mov-bal="${i}">

@@ -1,6 +1,12 @@
 // ============================================================================
 // relatorios-executivos.js — Raiz Patrimônio · Relatórios no modelo executivo
-// Versão: 1.6.0 · 19/10/2026
+// Versão: 1.6.1 · 20/10/2026
+//
+// v1.6.1 (20/10/2026, sessão 20261020-1846-balanco-ativo, demanda b8ff7e8d; prints do Nicola 18:37, de acordo 19:12) — no
+//   celular o relatório não corta mais a lateral: o texto das células quebra linha (descrição longa como
+//   "MERCADOLIVRE*MERCADOLIV" empurrava o valor para fora), a coluna Δ % da tabela "Por conta" fica só no PDF (classe hm,
+//   como as outras colunas secundárias) e, se ainda passar da tela, a página rola de lado em vez de cortar. O PDF não muda.
+// Versão anterior: 1.6.0 · 19/10/2026
 //
 // v1.6.0 (19/10/2026, sessão 20261018-2336-usos-lotes, demanda 63649288; FICHA_COCKPIT_METAS_RELATORIO_RAIZ v1.0.0 e protótipo
 // v1.0.0, telas 4 a 7, de acordo do Nicola 18/10 23:36) — cockpit C3, relatório novo "Relatório executivo"
@@ -37,21 +43,15 @@
 //     com sinal), traço da parte no gráfico por pessoa e "Pessoas sem parte definida"; aviso quando a soma ≠ 100%;
 //   · filtro por ano ou "Todos os anos"; aberto a partir do ativo pessoa, chip com o nome (recorte por pessoa, REL-46);
 //   · abrirRelatorioExecutivo(tipo, opcoes) aceita { pessoaId, pessoaNome }.
-//
-// Versão anterior: 1.2.0 · 11/10/2026
-//
-// v1.2.0 (11/10/2026, sessão 20261011-1315-marca-saidas, demanda 680ee9f8 — marca e ramos, fase 6; plano aprovado pelo
-// Nicola 11/10 11:20): a assinatura "Raiz Patrimônio" do canto do cabeçalho ganha o símbolo da marca (DIRETRIZES_MARCA
-// MAR-06/09). Empresa do cliente continua à esquerda; nada mais muda. Versão anterior: 1.1.2.
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.1.2 … v1.1.2): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.2.0 … v1.2.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
 import { rzMostrarBloqueio } from './comum-licenca.js';
 import { rzToast } from './raiz-ui.js';
 import RaizDevice from './raiz-device.js';
 
-export const VERSAO = '1.6.0';
+export const VERSAO = '1.6.1';
 
 // ---------------------------------------------------------------------------
 // Formatos (REL-13 a REL-17)
@@ -368,9 +368,9 @@ function montarGerencial(d) {
         ${lin('(=) Resultado', 'resultado', 'tot')}
       </tbody></table>
       ${secao(`2. Por conta · ${contas.filter(c => !c.incorpora_contabil).length ? contas.filter(c => !c.incorpora_contabil).map(c => c.nome).join(', ') + ' fica fora da contabilidade' : 'Todas as contas entram na contabilidade'}`, `Competência ${comp(d.competencia)} · R$ · Δ contra ${comp(d.anterior)}`)}
-      <table><thead><tr><th>Conta</th><th class="hm">Contabilidade</th><th class="n">Entradas</th><th class="n">Saídas</th><th class="n">Resultado</th><th class="n">Δ %</th></tr></thead><tbody>${
-        contas.map(c => { const dv = variacao(c.resultado, c.resultado_anterior); return `<tr><td>${esc(c.nome)}</td><td class="hm">${c.incorpora_contabil ? 'Entra' : '<span class="tag">fora</span>'}</td><td class="n">${tab(c.entradas)}</td><td class="n">${tab(c.saidas)}</td><td class="n">${tab(c.resultado)}</td><td class="n ${deltaClasse(dv)}">${dv == null ? '—' : pct(dv, true)}</td></tr>`; }).join('')
-      }<tr class="tot"><td>Total gerencial</td><td class="hm"></td><td class="n">${tab(contas.reduce((s, c) => s + num(c.entradas), 0))}</td><td class="n">${tab(contas.reduce((s, c) => s + num(c.saidas), 0))}</td><td class="n">${tab(totRes)}</td><td class="n"></td></tr></tbody></table>
+      <table><thead><tr><th>Conta</th><th class="hm">Contabilidade</th><th class="n">Entradas</th><th class="n">Saídas</th><th class="n">Resultado</th><th class="n hm">Δ %</th></tr></thead><tbody>${
+        contas.map(c => { const dv = variacao(c.resultado, c.resultado_anterior); return `<tr><td>${esc(c.nome)}</td><td class="hm">${c.incorpora_contabil ? 'Entra' : '<span class="tag">fora</span>'}</td><td class="n">${tab(c.entradas)}</td><td class="n">${tab(c.saidas)}</td><td class="n">${tab(c.resultado)}</td><td class="n hm ${deltaClasse(dv)}">${dv == null ? '—' : pct(dv, true)}</td></tr>`; }).join('')
+      }<tr class="tot"><td>Total gerencial</td><td class="hm"></td><td class="n">${tab(contas.reduce((s, c) => s + num(c.entradas), 0))}</td><td class="n">${tab(contas.reduce((s, c) => s + num(c.saidas), 0))}</td><td class="n">${tab(totRes)}</td><td class="n hm"></td></tr></tbody></table>
       <div class="box"><b>Contábil × gerencial.</b> Resultado gerencial ${brl(cxg.resultado_gerencial)} · (−) resultado fora da contabilidade ${brl(cxg.fora_contabilidade)} · <b>(=) resultado contábil ${brl(cxg.resultado_contabil)}</b>.</div>
       ${temDist && pessoas.length ? secao(`3. Por pessoa · ${pessoas.slice(0, 2).map(x => x.nome.split(' ')[0] + ' ' + (num(x.a_repassar) >= 0 ? 'tem ' + compacto(x.a_repassar) + ' a receber' : 'recebeu ' + compacto(Math.abs(x.a_repassar)) + ' a mais')).join('; ')}`, `Parte de cada pessoa em ${comp(d.competencia)}, pela divisão do contrato e pela propriedade do imóvel · R$`) +
         `<table><thead><tr><th>Pessoa</th><th class="n hm">Entradas</th><th class="n hm">Saídas</th><th class="n">Parte do resultado</th><th class="n hm">(+) Reembolso</th><th class="n hm">Já repassado</th><th class="n">A repassar</th></tr></thead><tbody>${
@@ -618,6 +618,7 @@ const CSS = `
 .rzrel.m .page h4{font-size:15px;color:var(--ink,#17211e)}.rzrel.m .page .hu{font-size:12px}
 .rzrel.m .page table{font-size:13px}.rzrel.m .page th{font-size:12px;border-bottom-color:var(--ink,#17211e)}.rzrel.m .page td{padding:7px 4px;border-bottom-color:var(--line,#e6e3da)}.rzrel.m .page tbody tr:nth-child(even) td{background:none}
 .rzrel.m .page .hm{display:none}
+.rzrel.m .page{overflow-x:auto}.rzrel.m .page td:not(.n){overflow-wrap:anywhere;word-break:break-word}
 .rzrel.m .page .hbar{font-size:13px}.rzrel.m .page .hbar span{width:120px!important}
 .rzrel.m .page .notes{font-size:12px;border-top-color:var(--line,#e6e3da)}.rzrel.m .page .notes b{color:var(--ink,#17211e)}
 .rzrel.m .page .pf{position:static;margin-top:12px;font-size:11px;flex-wrap:wrap;gap:6px;border-top-color:var(--line,#e6e3da)}
