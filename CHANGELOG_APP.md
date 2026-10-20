@@ -4,6 +4,18 @@ Histórico completo de versões do `index.html`, movido automaticamente pelo `ge
 
 ---
 
+NOVIDADES (Beta v1.441.1) — VALOR À DIREITA, IDADE E PAGAMENTO DA DESPESA (itens 60 a 62, Nicola 19/10 22:44): na lista de
+Patrimônio o valor do ativo vai para a direita da linha (cofre-ativos.js 1.130.0); a data de nascimento mostra a idade; o
+"Confirmar pagamento" da despesa grava junto o ativo e o que mudou no formulário (financeiro.js 1.70.0). Aqui, só cabeçalho
+e import map.
+Versão anterior (Beta v1.441.0):
+------------------------------------------------------------------
+Versões anteriores (v1.441.0 … v1.441.0): CHANGELOG_APP.md, na raiz do
+repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
+das 5 versões mais recentes deste cabeçalho.
+
+---
+
 NOVIDADES (Beta v1.441.0) — ARRENDAMENTO RURAL, EXCLUIR PROGRAMA, ATIVO NA DESPESA, DATA (itens 55, 56, 57 e 59; Nicola 19/10
 21:54, 22:17 e 22:25): o contrato de Arrendamento rural ganha os campos do tipo (atividade e prazo mínimo, área, pagamento
 anual/na colheita/mensal, produto equivalente, ITR, benfeitorias, VTN) e perde IPTU/condomínio (contratos.js 1.62.0,

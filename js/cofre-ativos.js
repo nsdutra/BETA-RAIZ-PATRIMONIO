@@ -1,7 +1,11 @@
 // ============================================================================
 // cofre-ativos.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.133.0 · 20/10/2026
+// Versão: 1.134.0 · 20/10/2026
 //
+// v1.134.0 (20/10/2026, sessão 20261018-2336-usos-lotes, demanda ce8b1820; Nicola 11:25: "coloque o valor do aluguel à frente
+//   do locatário, alinhado à direita como está") — a linha do imóvel com resumo vira grade (data-grade): o aluguel/mês fica na
+//   mesma linha do locatário, à direita, na coluna do valor; o chip fica na linha da etiqueta. "Sem valor" ganha classe
+//   própria (rz-rt-vazio) e fica na linha do nome.
 // v1.133.0 (20/10/2026, sessão 20261018-2336-usos-lotes, demanda ce8b1820; pedidos do Nicola 20/10 09:07 e 11:06) — lista de
 //   Ativos: o valor de cada item sai no formato compacto da faixa do ramo e do total do grupo (R$ 5,0 mi · R$ 420 mil; exato
 //   no title), no alto da linha, na altura do nome; o aluguel (/mês) passa para a coluna da direita, abaixo do valor, inteiro; ativo
@@ -45,7 +49,7 @@
 // Versões anteriores (v1.127.0 … v1.127.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '1.133.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.134.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 import { estado } from './cofre-estado.js';
 import * as api from './cofre-api.js';
 import { mostrarToast, erroInline, refrescarIcones, alternarToggle, abrirModal, fecharModal, modalGenerico, perguntar, avisarComDesfazer, escolher } from './cofre-ui.js';
@@ -95,9 +99,9 @@ function valorCompactoLinha(v) {
 function colunaDireitaLinha(valorFmt, chip, extra) {
     if (!valorFmt && !chip && !extra) return '';
     const vb = !valorFmt ? ''
-        : valorFmt.vazio ? `<small class="rz-rt-x">${escapeHtml(valorFmt.curto)}</small>`
+        : valorFmt.vazio ? `<small class="rz-rt-vazio">${escapeHtml(valorFmt.curto)}</small>`
         : `<b class="rz-rt-v" title="${escapeHtml(valorFmt.exato || '')}">${escapeHtml(valorFmt.curto)}</b>`;
-    const ex = extra ? `<small class="rz-rt-x" title="${escapeHtml(extra.exato || '')}">${escapeHtml(extra.curto)}</small>` : '';
+    const ex = extra ? `<small class="rz-rt-x rz-rt-al" title="${escapeHtml(extra.exato || '')}">${escapeHtml(extra.curto)}</small>` : '';
     return `<div class="rz-rt">${vb}${ex}${chip ? chip.html : ''}</div>`;
 }
 function ehCategoriaImovel(tipo) {
@@ -1199,7 +1203,9 @@ function ativoCardHtml(a) {
         // resumo agora tem até 4 linhas de texto (nome + valor + locatário
         // + aluguel) — mais alto que o card genérico (nome + 1 linha) de
         // propósito, ver nota acima.
-        return `<div class="rz-row rz-link" role="button" tabindex="0" data-action="abrir-ativo" data-id="${a.id}" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault(); this.click();}">
+        // v1.134.0 (Nicola 20/10 11:25: "coloque o valor do aluguel à frente do locatário, alinhado à direita como está") — a
+        // linha do imóvel vira grade (data-grade, CSS no index): nome ↔ valor, etiqueta ↔ chip, locatário ↔ aluguel/mês
+        return `<div class="rz-row rz-link" data-grade="1" role="button" tabindex="0" data-action="abrir-ativo" data-id="${a.id}" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault(); this.click();}">
             <div class="rz-ic"${resumoImovel.foto ? ' style="overflow:hidden"' : ''}>
                 ${resumoImovel.foto ? `<img src="${resumoImovel.foto}" class="w-full h-full object-cover">` : iconeHtmlDoAtivo(a)}
             </div>
