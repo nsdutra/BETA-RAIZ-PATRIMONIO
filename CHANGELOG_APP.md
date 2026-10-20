@@ -4,6 +4,19 @@ Histórico completo de versões do `index.html`, movido automaticamente pelo `ge
 
 ---
 
+NOVIDADES (Beta v1.442.0) — PATRIMÔNIO: VALORES NO PADRÃO E À DIREITA (pedidos do Nicola 20/10 09:07 e 11:06): na lista de
+Ativos o valor de cada item sai compacto como a faixa do ramo e o total do grupo (R$ 5,0 mi · R$ 420 mil; o exato no
+title), no alto da linha, na altura do nome; o aluguel /mês vai para a direita, inteiro; sem valor cadastrado, "Sem valor"; item,
+item agrupado, total do grupo e faixa terminam na mesma coluna; letra um pouco menor na lista. Splash: o botão da IA só
+aparece na escolha de empresa. cofre-ativos.js 1.133.0. Banco: nada muda.
+Versão anterior (Beta v1.441.4):
+------------------------------------------------------------------
+Versões anteriores (v1.441.4 … v1.441.4): CHANGELOG_APP.md, na raiz do
+repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
+das 5 versões mais recentes deste cabeçalho.
+
+---
+
 NOVIDADES (Beta v1.441.4) — PLANO DE PAGAMENTO: AJUSTES DO TESTE (teste do Nicola 20/10 09:00, de acordo 10:13): tela de
 dados com campo de data e check no padrão do app; o card do plano no chip Usos vira o resumo do contrato (sem situação);
 a situação vai para o chip Financeiro do ativo; ⋮ com Abatimento numa tela só, Histórico do plano e Simular venda, que sai
