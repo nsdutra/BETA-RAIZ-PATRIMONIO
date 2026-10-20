@@ -1,6 +1,12 @@
 // ============================================================================
 // cofre-ativos.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.129.0 · 19/10/2026
+// Versão: 1.130.0 · 19/10/2026
+//
+// v1.130.0 (19/10/2026, sessão 20261019-2244-carga-silva-ajustes2, demanda 9404081c itens 61 e 62; Nicola 22:44) — (1) na lista
+// de Patrimônio o valor do ativo sai da linha de baixo e vai para a direita da linha, na coluna da soma da faixa do ramo
+// (uma linha a menos por ativo); (2) Dados do ativo: a data de nascimento ganha a idade entre parênteses — "29/08/1981 (45
+// anos)"; abaixo de 1 ano, em meses (pet).
+// Versão anterior: 1.129.0 · 19/10/2026
 //
 // v1.129.0 (19/10/2026, sessão 20261019-2217-carga-silva-arrend, demanda 9404081c item 59; print do Nicola 22:19 — "1981-08-29")
 // — Dados do ativo: campo de data (ex.: Data de nascimento) aparece como dd/mm/aaaa, não no formato do banco.
@@ -18,16 +24,11 @@
 //
 // v1.126.0 (19/10/2026, sessão 20261019-1712-carga-silva-faixa2, demanda 9404081c, itens 47 e 48; Nicola 19/10 17:09–17:10) —
 // a faixa do ramo ganha a setinha ao lado do total; ela e o ícone do ramo recolhem/abrem a lista do ramo.
-// Versão anterior: 1.125.0 · 19/10/2026
-//
-// v1.125.0 (19/10/2026, sessão 20261019-1705-carga-silva-faixa, demanda 9404081c, item 45; Nicola 19/10 17:02) — cabeçalho do
-// ramo vira faixa na cor do ramo, de ponta a ponta (ícone maior com o contador, nome e a soma à direita); saem as 3 caixas e o
-// "Ver só"/"Ver todos". Tocar no ramo da árvore do Hoje abre Patrimônio na faixa daquele ramo.
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.124.0 … v1.124.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.125.0 … v1.125.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '1.129.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.130.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 import { estado } from './cofre-estado.js';
 import * as api from './cofre-api.js';
 import { mostrarToast, erroInline, refrescarIcones, alternarToggle, abrirModal, fecharModal, modalGenerico, perguntar, avisarComDesfazer, escolher } from './cofre-ui.js';
@@ -63,6 +64,11 @@ import { rzMostrarBloqueio, recarregarFuncionalidadesLiberadas } from './comum-l
 // 104 ativos vinculados são imovel_territorial (foram cadastrados como
 // "imóvel" genérico e a fatia A da E4.2 os reclassificou certo). As duas
 // categorias entram na checagem agora.
+// v1.130.0 (item 61) — coluna da direita da linha da lista: o valor (na coluna da soma da faixa do ramo) e, embaixo, o chip
+function colunaDireitaLinha(valorFmt, chip) {
+    if (!valorFmt && !chip) return '';
+    return `<div class="rz-rt">${valorFmt ? `<b style="font-size:14px;font-weight:600;font-variant-numeric:tabular-nums;white-space:nowrap">${escapeHtml(valorFmt)}</b>` : ''}${chip ? chip.html : ''}</div>`;
+}
 function ehCategoriaImovel(tipo) {
     return tipo === 'imovel_predial' || tipo === 'imovel_territorial';
 }
@@ -1165,11 +1171,10 @@ function ativoCardHtml(a) {
             <div class="rz-tx">
                 <b style="display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;white-space:normal;word-break:break-word">${escapeHtml(a.nome_exibicao)}</b>
                 ${badgeHtml ? `<div class="rz-tx-st">${badgeHtml}</div>` : ''}
-                ${valorFmt ? `<span>${escapeHtml(valorFmt)}</span>` : ''}
                 ${linhaLocatario ? `<span>${escapeHtml(linhaLocatario)}</span>` : ''}
                 ${aluguelFmt ? `<span>${escapeHtml(aluguelFmt)}</span>` : ''}
             </div>
-            ${chip ? `<div class="rz-rt">${chip.html}</div>` : ''}
+            ${colunaDireitaLinha(valorFmt, chip)}
             <svg data-lucide="chevron-right" class="rz-chev"></svg>
         </div>`;
     }
@@ -1203,11 +1208,10 @@ function ativoCardHtml(a) {
         <div class="rz-tx">
             <b style="display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;white-space:normal;word-break:break-word">${escapeHtml(a.nome_exibicao)}</b>
             ${seloGen ? `<div class="rz-tx-st">${seloGen}</div>` : ''}
-            ${valorFmt ? `<span>${escapeHtml(valorFmt)}</span>` : ''}
             ${modeloAtivo ? `<span>${escapeHtml(modeloAtivo)}</span>` : ''}
             ${identificadorDocumento ? `<span>${escapeHtml(identificadorDocumento)}</span>` : ''}
         </div>
-        ${chip ? `<div class="rz-rt">${chip.html}</div>` : ''}
+        ${colunaDireitaLinha(valorFmt, chip)}
         <svg data-lucide="chevron-right" class="rz-chev"></svg>
     </div>`;
 }
@@ -3523,7 +3527,16 @@ async function montarDadosAtivo(a) {
     } else {
         // v1.129.0 (item 59) — data no padrão do app (dd/mm/aaaa)
         const dataBR = (v) => /^\d{4}-\d{2}-\d{2}$/.test(String(v)) ? String(v).slice(8, 10) + '/' + String(v).slice(5, 7) + '/' + String(v).slice(0, 4) : v;
-        const kv = camposPreenchidos.map(c => `<div><small>${escapeHtml(c.label)}</small><b>${c.mascarar ? mascarar(dados[c.chave]) : escapeHtml(dataBR(dados[c.chave]))}</b></div>`).join('');
+        // v1.130.0 (item 62) — idade junto da data de nascimento: anos; abaixo de 1 ano, meses
+        const idade = (v) => {
+            if (!/^\d{4}-\d{2}-\d{2}$/.test(String(v))) return '';
+            const n = new Date(String(v) + 'T00:00:00'), h = new Date();
+            let m = (h.getFullYear() - n.getFullYear()) * 12 + (h.getMonth() - n.getMonth()) - (h.getDate() < n.getDate() ? 1 : 0);
+            if (m < 0) return '';
+            return m < 12 ? ` (${m} ${m === 1 ? 'mês' : 'meses'})` : ` (${Math.floor(m / 12)} ${Math.floor(m / 12) === 1 ? 'ano' : 'anos'})`;
+        };
+        const ehNasc = (c) => /nasc/i.test(c.chave || '') || /nascimento/i.test(c.label || '');
+        const kv = camposPreenchidos.map(c => `<div><small>${escapeHtml(c.label)}</small><b>${c.mascarar ? mascarar(dados[c.chave]) : escapeHtml(dataBR(dados[c.chave]) + (ehNasc(c) ? idade(dados[c.chave]) : ''))}</b></div>`).join('');
         resumo.innerHTML = `<div class="rz-kv${ehImovelVinculado ? ' mt-2' : ''}">${kv}</div>`;
     }
     if (a.tipo_ativo === 'vida') { resumo.insertAdjacentHTML('beforeend', '<div id="fa-pessoa-cad" class="mt-2"></div>'); desenharPessoaDoAtivo(a); } // v1.100.0 (d6a6f577)

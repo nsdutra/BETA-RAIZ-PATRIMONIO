@@ -1,7 +1,14 @@
 // ============================================================================
 // financeiro.js — Raiz Patrimônio · Financeiro (Recebimentos · Atrasados · Saídas
 //                  · conciliação de extrato · recibo · detalhe do recebimento)
-// Versão: 1.69.0 · 19/10/2026
+// Versão: 1.70.0 · 19/10/2026
+//
+// v1.70.0 (19/10/2026, sessão 20261019-2244-carga-silva-ajustes2, demanda 9404081c item 60; Nicola 22:44 — "apenas na segunda
+// vez que vinculado e salvo é que aparece o vínculo correto") — "✓ Confirmar pagamento" no formulário da despesa gravava só
+// status, data e forma do pagamento: o ativo (e o resto que tivesse sido mudado na mesma tela) se perdia, e só um 2º Salvar
+// gravava. Agora o pagamento grava junto o que está no formulário (ativo, categoria, descrição, valor, datas, fornecedor
+// escolhido, reembolsável e observação). Fornecedor novo continua pedindo Salvar antes.
+// Versão anterior: 1.69.0 · 19/10/2026
 //
 // v1.69.0 (19/10/2026, sessão 20261019-2217-carga-silva-arrend, demanda 9404081c item 57; pedido do Nicola 22:17, print das Saídas
 // da Rumo) — tocar numa despesa mostra, como 1ª linha do sheet, o ATIVO a que ela está ligada (ou "Da empresa") e o destino
@@ -25,16 +32,11 @@
 // v1.66.0 (14/10/2026, sessão 20261014-2215-ajustes-9d, demanda a05ad2ee; teste do Nicola 14/10 22:12) — (1) o chip Contador da faixa
 // de rotinas segue a rotina "Envio ao contador": desligada, aparece com cadeado ("Contador desligado") e leva a Empresa ›
 // Rotinas, como o Fiscal; (2) textos dentro de condição no limite da D6 ("Mês fechado: reabra", "Reclassificar" etc.).
-// Versão anterior: 1.65.0 · 14/10/2026
-//
-// v1.65.0 (14/10/2026, sessão 20261014-2145-onda9c-textos, demanda a05ad2ee; onda 9c do estudo PROTOTIPO_UX_DENSIDADE_RAMOS_RAIZ
-// v1.2.0, D6 seção 10) — textos no limite: ação até 24 caracteres, descrição até 28, aviso até 40 com o resultado e tela
-// vazia em 1 frase de até 40. A explicação longa fica na confirmação, quando existe. Nada de comportamento mudou.
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.64.0 … v1.64.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.65.0 … v1.65.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '1.69.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.70.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 
 // v1.17.0 (Fase 1 do wrapper de escrita, rollout Financeiro) — emitirEscrita
 // é o evento padrão pra "algo mudou que módulos DE FORA deste arquivo podem
@@ -2443,8 +2445,20 @@ function financeiroRenderCabecalho(aba) {
 
             mostrarCarregamentoGlobal('Salvando...');
             try {
+                // v1.70.0 (item 60) — o que foi mudado no formulário vai junto com o pagamento (antes só o 2º Salvar gravava o ativo)
+                const extra = {};
+                const val = (eid) => document.getElementById(eid)?.value;
+                if (document.getElementById('desp-ativo')) extra.ativo_id = val('desp-ativo') || null;
+                if (val('desp-categoria')) extra.categoria = val('desp-categoria');
+                if ((val('desp-descricao') || '').trim()) extra.descricao = val('desp-descricao').trim();
+                const vNum = parseFloat(val('desp-valor')); if (!isNaN(vNum)) extra.valor = vNum;
+                if (val('desp-vencimento')) extra.vencimento = val('desp-vencimento');
+                if (val('desp-competencia')) extra.competencia = competenciaParaData(val('desp-competencia'));
+                const forn = val('desp-fornecedor'); if (forn !== undefined && forn !== '__novo__') extra.parte_id = forn || null;
+                const chkReemb = document.getElementById('desp-reembolsavel'); if (chkReemb) extra.reembolsavel = chkReemb.checked;
+                if (document.getElementById('desp-observacao')) extra.observacao = (val('desp-observacao') || '').trim() || null;
                 const { error } = await dbAuth.from('lancamentos').update({
-                    status: 'realizado', data_pagamento: dataPgto, forma_pagamento: formaPgto
+                    ...extra, status: 'realizado', data_pagamento: dataPgto, forma_pagamento: formaPgto
                 }).eq('id', id);
                 if (error) throw error;
                 lancamentos = await carregarLancamentosSupabase();
