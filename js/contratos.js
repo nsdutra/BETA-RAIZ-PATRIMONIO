@@ -1,7 +1,12 @@
 // ============================================================================
 // contratos.js — Raiz Patrimônio · Contratos (lista · ficha · formulário ·
 //                 status/reajuste/detalhes · fiadores · documentos · histórico)
-// Versão: 1.62.0 · 19/10/2026
+// Versão: 1.63.0 · 20/10/2026
+//
+// v1.63.0 (20/10/2026, sessão 20261020-2245-contratos-lista, demanda a871b47d; de acordo do Nicola 22:45) — a lista de
+// contratos (Patrimônio › Contratos) saiu. A edição aberta da ficha não troca mais de aba; o Voltar da ficha sem origem vai
+// para o ativo do contrato (ou para o Hoje, se não houver ativo) e o botão diz "Ativo" ou "Hoje", nunca "Contratos".
+// Versão anterior: 1.62.0 · 19/10/2026
 //
 // v1.62.0 (19/10/2026, sessão 20261019-2217-carga-silva-arrend, demanda 9404081c item 55; ficha aprovada pelo Nicola 21:54 e 22:17)
 // — CONTRATO DE ARRENDAMENTO RURAL com os campos do tipo (contratos.dados_modelo): Atividade (define o prazo mínimo do
@@ -45,7 +50,7 @@ import { emitirEscrita, aoEscrever } from './raiz-eventos.js'; // v1.18.0 — Fa
 import { renderizarBlocoEndereco, lerBlocoEndereco } from './comum-endereco.js';
 import { formatarEnderecoParte } from './comum-partes.js';
 
-export const VERSAO = '1.62.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.63.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 
 /** Ponto de entrada do switchTab('tab-contratos'). */
 export function montarAbaContratos() {
@@ -596,7 +601,7 @@ if (!window.__rzListenerEscritaParteContratoLigado) {
 
         export function abrirEdicaoContratoContextual(contratoId, origemTipo, origemId) {
             contextoRetornoEdicaoContrato = { tipo: origemTipo, id: origemId };
-            switchTab('tab-contratos');
+            // v1.63.0 — sem switchTab('tab-contratos'): o formulário vive no <body> e abre por cima de onde se está
             editarContrato(contratoId);
         }
 
@@ -1815,7 +1820,7 @@ if (!window.__rzListenerEscritaParteContratoLigado) {
                     </div>
                 </div>`;
             const btnVoltar = document.getElementById('fc-voltar');
-            if (btnVoltar) btnVoltar.innerHTML = `<svg data-lucide="chevron-left"></svg> ${window.fichaContratoOrigem?.tipo === 'ativo' ? 'Ativo' : 'Contratos'}`;
+            if (btnVoltar) btnVoltar.innerHTML = `<svg data-lucide="chevron-left"></svg> ${window.fichaContratoOrigem?.tipo === 'ativo' || (Array.isArray(contratos) && contratos.find(c => c.id === con.id)?.imovelId) ? 'Ativo' : 'Hoje'}`;
             switchTab('tab-contrato-ficha');
             if (typeof lucide !== 'undefined') lucide.createIcons();
             if (abreArquivos) montarDocumentosContrato(con.id);
@@ -3073,6 +3078,7 @@ if (!window.__rzListenerEscritaParteContratoLigado) {
         }
 
         export function voltarDaFichaContrato() {
+            const idSaindo = fichaContratoAtualId; // v1.63.0
             fichaContratoAtualId = null;
             // v1.111.0 — Nicola 03/09: "ao chegar num contrato a partir de um
             // ativo, ao voltar aparece a lista de contratos". cofre-ativos.js
@@ -3084,7 +3090,10 @@ if (!window.__rzListenerEscritaParteContratoLigado) {
                 window.abrirFichaAtivoNoChip(origem.id, 'contratos');
                 return;
             }
-            switchTab('tab-contratos');
+            // v1.63.0 (dem a871b47d) — a lista de contratos saiu: sem origem, volta ao ativo do contrato; sem ativo, ao Hoje
+            const ativoId = (Array.isArray(contratos) ? contratos : []).find(c => c.id === idSaindo)?.imovelId;
+            if (ativoId && typeof window.abrirFichaAtivoNoChip === 'function') { switchTab('tab-ativos'); window.abrirFichaAtivoNoChip(ativoId, 'contratos'); return; }
+            switchTab('tab-geral');
         }
 
         // v1.41.0 (be7cdd7c) — contrato aberto a partir de um documento lido pela Raiz IA.

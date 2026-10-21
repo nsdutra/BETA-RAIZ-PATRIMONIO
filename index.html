@@ -6,7 +6,15 @@
    (base derivada do RUMO v7.4.2 — histórico de versões anteriores
    preservado abaixo para referência técnica)
 
-   VERSÃO: Beta v1.453.0
+   VERSÃO: Beta v1.454.0
+   LINHAS: 17290
+   DATA: 20/10/2026 (sessão 20261020-2245-contratos-lista, demanda a871b47d)
+   NOVIDADES (Beta v1.454.0) — SAI A LISTA DE CONTRATOS; FINANCEIRO DO CONTRATO NO PADRÃO DO ATIVO (de acordo do Nicola 20/10
+   22:45): sai a aba Patrimônio › Contratos (e a vista Ativos | Contratos); quem pedia a aba cai em Patrimônio, o atalho
+   "contratos" também, e a busca do Hoje deixa de oferecer "ver todos" de contratos. contratos.js 1.63.0 — o Voltar da ficha
+   vai ao ativo do contrato (ou ao Hoje). imoveis.js 1.10.0 — alerta de contrato leva ao Hoje. financeiro.js 1.75.0 — o
+   Financeiro da ficha do contrato com o gráfico que filtra o mês, os quatro valores e a lista com etiqueta padrão.
+   Versão anterior (Beta v1.453.0):
    LINHAS: 17287
    DATA: 20/10/2026 (sessão 20261020-2202-financeiro-ativo, demanda 9359f50f)
    NOVIDADES (Beta v1.453.0) — FINANCEIRO DO ATIVO NO PADRÃO DA TELA FINANCEIRO (protótipo PROTOTIPO_FINANCEIRO_DO_ATIVO_RAIZ
@@ -35,13 +43,8 @@
    Aqui, só cabeçalho e import map.
    Versão anterior (Beta v1.450.1):
    DATA: 20/10/2026 (sessão 20261020-1943-ficha-menu-cards, demanda 9404081c)
-   NOVIDADES (Beta v1.450.1) — FICHA DO ATIVO: CADA AÇÃO NO CARD DO ASSUNTO (Nicola 20/10 19:10, de acordo 19:16; UXR-49
-   v1.5.1): o ⋮ do topo fica com Raiz IA, Compartilhar e a Situação; Editar dados, Editar divisão, contabilidade,
-   sub-ativos e o financeiro vão para o ⋮ do card de cada um (cofre-ativos.js 1.138.0, ativos-markup.js 1.68.0). Aqui, só
-   cabeçalho e import map.
-   Versão anterior (Beta v1.450.0):
    ------------------------------------------------------------------
-   Versões anteriores (v1.450.0 … v1.450.0): CHANGELOG_APP.md, na raiz do
+   Versões anteriores (v1.450.1 … v1.450.1): CHANGELOG_APP.md, na raiz do
    repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
    das 5 versões mais recentes deste cabeçalho.
 
@@ -69,7 +72,7 @@
          O navegador aplica o mapa também aos imports estáticos dentro dos
          módulos (cofre-app.js → ./cofre-api.js etc.). -->
     <!-- RZ-IMPORTMAP:INICIO -->
-    <script type="importmap">{"imports":{"./js/cadastros.js":"./js/cadastros.js?v=1.3.0","./js/financeiro.js":"./js/financeiro.js?v=1.74.0","./js/fechamento.js":"./js/fechamento.js?v=1.15.0","./js/contratos.js":"./js/contratos.js?v=1.62.0","./js/minutas.js":"./js/minutas.js?v=1.6.0","./js/vitrine.js":"./js/vitrine.js?v=1.6.0","./js/imoveis.js":"./js/imoveis.js?v=1.9.0","./js/cofre-api.js":"./js/cofre-api.js?v=1.53.0","./js/cofre-app.js":"./js/cofre-app.js?v=1.52.0","./js/cofre-ativos.js":"./js/cofre-ativos.js?v=1.139.0","./js/cofre-controles.js":"./js/cofre-controles.js?v=1.64.0","./js/cofre-documentos.js":"./js/cofre-documentos.js?v=2.38.0","./js/cofre-imagem.js":"./js/cofre-imagem.js?v=1.1.0","./js/cofre-estado.js":"./js/cofre-estado.js?v=1.5.2","./js/cofre-navegacao.js":"./js/cofre-navegacao.js?v=1.10.0","./js/cofre-ui.js":"./js/cofre-ui.js?v=1.7.2","./js/cofre-validacoes.js":"./js/cofre-validacoes.js?v=2.14.0","./js/comum-licenca.js":"./js/comum-licenca.js?v=1.9.0","./js/comum-minha-empresa.js":"./js/comum-minha-empresa.js?v=1.21.0","./js/comum-pessoas.js":"./js/comum-pessoas.js?v=1.216.0","./js/comum-sobre.js":"./js/comum-sobre.js?v=1.5.0","./js/comum-endereco.js":"./js/comum-endereco.js?v=1.2.0","./js/comum-partes.js":"./js/comum-partes.js?v=1.0.0","./js/resultados.js":"./js/resultados.js?v=2.16.0","./js/raiz-eventos.js":"./js/raiz-eventos.js?v=1.0.0","./js/fiscal.js":"./js/fiscal.js?v=1.7.0","./js/ativos/ativos-boot.js":"./js/ativos/ativos-boot.js?v=1.4.0","./js/ativos/ativos-markup.js":"./js/ativos/ativos-markup.js?v=1.68.0"}}</script>
+    <script type="importmap">{"imports":{"./js/cadastros.js":"./js/cadastros.js?v=1.3.0","./js/financeiro.js":"./js/financeiro.js?v=1.75.0","./js/fechamento.js":"./js/fechamento.js?v=1.15.0","./js/contratos.js":"./js/contratos.js?v=1.63.0","./js/minutas.js":"./js/minutas.js?v=1.6.0","./js/vitrine.js":"./js/vitrine.js?v=1.6.0","./js/imoveis.js":"./js/imoveis.js?v=1.10.0","./js/cofre-api.js":"./js/cofre-api.js?v=1.53.0","./js/cofre-app.js":"./js/cofre-app.js?v=1.52.0","./js/cofre-ativos.js":"./js/cofre-ativos.js?v=1.139.0","./js/cofre-controles.js":"./js/cofre-controles.js?v=1.64.0","./js/cofre-documentos.js":"./js/cofre-documentos.js?v=2.38.0","./js/cofre-imagem.js":"./js/cofre-imagem.js?v=1.1.0","./js/cofre-estado.js":"./js/cofre-estado.js?v=1.5.2","./js/cofre-navegacao.js":"./js/cofre-navegacao.js?v=1.10.0","./js/cofre-ui.js":"./js/cofre-ui.js?v=1.7.2","./js/cofre-validacoes.js":"./js/cofre-validacoes.js?v=2.14.0","./js/comum-licenca.js":"./js/comum-licenca.js?v=1.9.0","./js/comum-minha-empresa.js":"./js/comum-minha-empresa.js?v=1.21.0","./js/comum-pessoas.js":"./js/comum-pessoas.js?v=1.216.0","./js/comum-sobre.js":"./js/comum-sobre.js?v=1.5.0","./js/comum-endereco.js":"./js/comum-endereco.js?v=1.2.0","./js/comum-partes.js":"./js/comum-partes.js?v=1.0.0","./js/resultados.js":"./js/resultados.js?v=2.16.0","./js/raiz-eventos.js":"./js/raiz-eventos.js?v=1.0.0","./js/fiscal.js":"./js/fiscal.js?v=1.7.0","./js/ativos/ativos-boot.js":"./js/ativos/ativos-boot.js?v=1.4.0","./js/ativos/ativos-markup.js":"./js/ativos/ativos-markup.js?v=1.68.0"}}</script>
     <!-- RZ-IMPORTMAP:FIM -->
 
     <!-- ===== PWA: permite "instalar" o app no celular (Android e iPhone) ===== -->
@@ -1585,6 +1588,8 @@
         .rz-saldo small::before{content:"";width:7px;height:7px;border-radius:50%;background:currentColor}
         .rz-saldo b{font:700 15px var(--font-title);letter-spacing:-.01em;font-variant-numeric:tabular-nums}
         .rz-saldo.rz-run{color:var(--info)}.rz-saldo.rz-warn{color:var(--warning)}.rz-saldo.rz-ok{color:var(--success)}
+        /* v1.454.0 — Financeiro da ficha do contrato: as três partes como blocos do card que já existe */
+        .rz-fc-bloco + .rz-fc-bloco{border-top:1px solid var(--line);margin-top:12px;padding-top:10px}
 
         /* ============================================================================================================
            v1.386.0 — UX ONDA 4b: CONTROLES (PROTOTIPO_UX_DENSIDADE_RAMOS_RAIZ v1.2.0 §6, D9).
@@ -3304,11 +3309,8 @@
                  busca padrão (modal-busca-contratos, mesmo componente de
                  Recebimentos/Atrasados/Saídas) — mesmos ids de campo,
                  renderContratos() não precisou mudar nada de lógica. -->
-            <!-- v1.381.0 (UX onda 2, D10) — Contratos mora dentro de Ativos: as duas telas são vistas da mesma aba -->
-            <div class="rz-vista" role="tablist" aria-label="Ativos e contratos">
-                <button type="button" role="tab" data-rz-codigo="cofre.ver" aria-selected="false" onclick="irParaAbaRodape('tab-ativos')">Ativos</button>
-                <button type="button" role="tab" data-rz-codigo="contratos.ver" aria-selected="true" class="rz-on" onclick="irParaAbaRodape('tab-contratos')">Contratos</button>
-            </div>
+            <!-- v1.454.0 (dem a871b47d, de acordo do Nicola 20/10 22:45) — sai a vista Ativos | Contratos: a lista de contratos foi
+                 retirada (contrato se abre pelo ativo, pela busca ou pelo alerta). A seção fica só como casca histórica. -->
             <!-- Topo (F2.3): barra de busca + "+"; os chips da F2.4 vêm logo abaixo. (dem fcd3008d) -->
             <div class="rz-topo">
                 <!-- dem 28aa5ce1 — barra digitável (rzBuscaInline); sem ícone de filtros (teste do Nicola 10/10 21:43: os chips já filtram) -->
@@ -4576,7 +4578,7 @@
         // texto certo toda vez (esqueci 5 versões seguidas, de v1.37.1 até
         // v1.38.3). Agora só precisa mudar UMA linha aqui a cada release;
         // window.onload aplica nos dois lugares automaticamente.
-        const APP_VERSAO = "Beta v1.453.0"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
+        const APP_VERSAO = "Beta v1.454.0"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
 
         // ====================================================================
         // v1.105.0 — HELPERS DE SUPERFÍCIE DA GRAMÁTICA ÚNICA
@@ -9216,6 +9218,7 @@ async function criarLinkVitrineSupabase(token, idsSelecionados) {
 
         function switchTab(tabId) {
             if (tabId === 'tab-sobre') { abrirSuporte(); return; }
+            if (tabId === 'tab-contratos') tabId = 'tab-ativos'; // v1.454.0 (dem a871b47d) — a lista de contratos saiu; quem pedia a aba cai em Patrimônio
             if (rzNavPorRodape) rzMenuOrigemTab = null; // F2.5a — trocou de aba pelo rodapé: o voltar não reabre mais o menu
             const anterior = document.querySelector('.tab-content.active')?.id || null;
             rzRolagemGuardar(anterior); // v1.299.0 (UX F1.3) — cada aba guarda onde estava
@@ -11475,7 +11478,7 @@ async function criarLinkVitrineSupabase(token, idsSelecionados) {
             'ativos': () => irParaAbaRodape('tab-ativos'),
             'ler-documento': () => abrirUploadDocumentoNoApp(),
             'configuracao-inicial': () => abrirConfiguracaoInicial(),
-            'contratos': () => irParaAbaRodape('tab-contratos'),
+            'contratos': () => irParaAbaRodape('tab-ativos'), // v1.454.0 — a lista de contratos saiu (dem a871b47d)
             'minutas': () => switchTab('tab-minutas'),
             'financeiro': () => irParaAbaRodape('tab-mensal'),
             'importar-extrato': () => { irParaAbaRodape('tab-mensal'); setTimeout(() => document.getElementById('extrato-file-input')?.click(), 250); },
@@ -16388,7 +16391,7 @@ async function criarLinkVitrineSupabase(token, idsSelecionados) {
                 let itens = []; try { itens = (await window.buscarContratosTexto(t)) || []; } catch (e) { console.warn('[busca] contratos:', e.message); }
                 grupos.push({ chave: 'contratos', titulo: 'Contratos', nomes: ['contrato', 'contratos'], itens,
                     abrir: (id) => abrirFichaContrato(id),
-                    verTodos: () => { switchTab('tab-contratos'); window.verContratosComTexto(t); } });
+                    verTodos: null }); // v1.454.0 — sem "ver todos": a lista de contratos saiu (dem a871b47d)
             }
             if (pode('partes.ver')) {
                 if (!partesCarregadas) { try { await lerPartesDoBanco(); } catch (e) { console.warn('[busca] partes:', e.message); } }

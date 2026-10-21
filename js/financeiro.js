@@ -1,7 +1,14 @@
 // ============================================================================
 // financeiro.js — Raiz Patrimônio · Financeiro (Recebimentos · Atrasados · Saídas
 //                  · conciliação de extrato · recibo · detalhe do recebimento)
-// Versão: 1.74.0 · 20/10/2026
+// Versão: 1.75.0 · 20/10/2026
+//
+// v1.75.0 (20/10/2026, sessão 20261020-2245-contratos-lista; de acordo do Nicola 22:45) — o Financeiro da ficha do CONTRATO
+// passa ao mesmo padrão do ativo (1.74.0): gráfico do Hoje que filtra o mês, Previsto · Recebido · Vencido · Em aberto, lista
+// direta com etiqueta padrão (Recebido, A receber, Atrasado, Isento), sem a lista de meses → categorias → lançamentos e sem
+// os atalhos "a classificar"/"sem conciliação". O ano vem inteiro (as mensalidades futuras já existem). Dentro do card da
+// ficha, as partes viram blocos do mesmo card.
+// Versão anterior: 1.74.0 · 20/10/2026
 //
 // v1.74.0 (20/10/2026, sessão 20261020-2202-financeiro-ativo, demanda 9359f50f; protótipo PROTOTIPO_FINANCEIRO_DO_ATIVO_RAIZ v1.1.0,
 // de acordo do Nicola 22:02) — Financeiro da ficha do ativo no padrão da tela Financeiro: gráfico do Hoje mais baixo com o valor em
@@ -47,7 +54,7 @@
 // Versões anteriores (v1.68.0 … v1.68.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '1.74.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.75.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 
 // v1.17.0 (Fase 1 do wrapper de escrita, rollout Financeiro) — emitirEscrita
 // é o evento padrão pra "algo mudou que módulos DE FORA deste arquivo podem
@@ -6561,7 +6568,7 @@ async function fcCarregar(e, ano) {
     const cli = CLIENTE_ID_SUPABASE, hoje = fcHojeComp();
     const de = ano === 'todos' ? '2000-01-01' : `${ano}-01-01`;
     // v1.74.0 — no ativo o ano vem inteiro (o que está por vencer entra no gráfico e no A pagar); no contrato, até o mês atual
-    const ate = ano === 'todos' ? hoje : (!e.contratoId || `${ano}-12-01` < hoje ? `${ano}-12-01` : hoje);
+    const ate = ano === 'todos' ? hoje : `${ano}-12-01`; // v1.75.0 — ativo e contrato: o ano inteiro (o que está por vencer entra)
     const ok = (r, nome) => { if (r?.error) throw new Error(`${nome}: ${r.error.message || r.error}`); return r?.data || []; };
     let contas = [];
     if (e.pessoaId) contas = ok(await dbAuth.from('conta_controle').select('id, nome, final_identificador').eq('cliente_id', cli).eq('titular_tipo', 'pessoa').eq('pessoa_id', e.pessoaId), 'contas');
@@ -6616,7 +6623,7 @@ async function fcCarregar(e, ano) {
 
 function fcDesenhar(el) {
     const st = fcEstado[el.id]; if (!st) return;
-    if (!st.escopo.contratoId) return fcDesenharAtivo(el); // v1.74.0 — ficha do ativo: gráfico que filtra o mês
+    return fcDesenharAtivo(el); // v1.74.0 ativo; v1.75.0 também o contrato — a vista por competência abaixo fica sem uso
     const it = st.itens;
     // v1.56.0 (UX onda 4) — sai o card "Pendências": o atraso vira um número do resumo (toque leva aos atrasados) e
     // "a classificar" / "sem conciliação" viram uma linha de atalhos curta, só quando existem.
@@ -6719,7 +6726,7 @@ function fcDesenharAtivo(el) {
     const previsto = ab(base), pago = ab(base.filter(i => !aberto(i))), venc = ab(base.filter(vencido)), falta = ab(base.filter(i => aberto(i) && !vencido(i)));
     const rot = st.sel === null ? `Ano de ${anoN}` : `${FC_MESES_L[st.sel]} de ${anoN}`;
     const cardKpi = `<div class="rz-card"><div class="rz-card-h"><h3>${rot}</h3><span class="rz-sub">${lista.length} ${lista.length === 1 ? 'lançamento' : 'lançamentos'}</span></div>
-        <div class="rz-kv"><div><small>Previsto</small><b>${formatarMoedaBR(previsto)}</b></div><div><small>${temEntrada ? 'Realizado' : 'Pago'}</small><b>${formatarMoedaBR(pago)}</b></div>
+        <div class="rz-kv"><div><small>Previsto</small><b>${formatarMoedaBR(previsto)}</b></div><div><small>${st.escopo.contratoId ? 'Recebido' : temEntrada ? 'Realizado' : 'Pago'}</small><b>${formatarMoedaBR(pago)}</b></div>
         <div><small>Vencido</small><b style="color:${venc > 0.004 ? 'var(--danger)' : 'inherit'}">${formatarMoedaBR(venc)}</b></div><div><small>${temEntrada ? 'Em aberto' : 'A pagar'}</small><b>${formatarMoedaBR(falta)}</b></div></div></div>`;
     const rs = (c, r) => (typeof renderStatus === 'function') ? renderStatus(c, r) : fcEsc(r);
     const etiqueta = (i) => i.aClassificar ? rs('warn', 'A classificar') : i.isento ? rs('neu', 'Isento') : i.grupo === 'quitacao' ? (i.status ? rs('neu', i.status) : '')
@@ -6737,7 +6744,10 @@ function fcDesenharAtivo(el) {
         return (xs.length > 1 ? `<div class="rz-fc-gh">${fcEsc(g.cat)} · ${xs.length}</div>` : '') + xs.map(linha).join('');
     }).join('');
     const cardLista = `<div class="rz-card rz-list rz-fc-lista">${corpoLista || `<p class="rz-desc" style="margin:4px 0">Nada ${st.sel === null ? 'em ' + anoN : 'neste mês'}.</p>`}</div>`;
-    el.innerHTML = cardGraf + cardKpi + cardLista;
+    // v1.75.0 — dentro de um card que já existe (ficha do contrato), as três partes viram blocos do mesmo card, sem moldura nova
+    el.innerHTML = el.closest('.rz-card')
+        ? [cardGraf, cardKpi, cardLista].map(h => h.replace(/^<div class="rz-card( rz-list rz-fc-lista)?">/, (m, l) => `<div class="rz-fc-bloco${l ? ' rz-fc-lista' : ''}">`)).join('')
+        : cardGraf + cardKpi + cardLista;
     fcLigar(el);
     if (typeof lucide !== 'undefined') lucide.createIcons();
 }

@@ -4,6 +4,18 @@ Histórico completo de versões do `index.html`, movido automaticamente pelo `ge
 
 ---
 
+NOVIDADES (Beta v1.450.1) — FICHA DO ATIVO: CADA AÇÃO NO CARD DO ASSUNTO (Nicola 20/10 19:10, de acordo 19:16; UXR-49
+v1.5.1): o ⋮ do topo fica com Raiz IA, Compartilhar e a Situação; Editar dados, Editar divisão, contabilidade,
+sub-ativos e o financeiro vão para o ⋮ do card de cada um (cofre-ativos.js 1.138.0, ativos-markup.js 1.68.0). Aqui, só
+cabeçalho e import map.
+Versão anterior (Beta v1.450.0):
+------------------------------------------------------------------
+Versões anteriores (v1.450.0 … v1.450.0): CHANGELOG_APP.md, na raiz do
+repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
+das 5 versões mais recentes deste cabeçalho.
+
+---
+
 NOVIDADES (Beta v1.450.0) — AGENDA: ALERTAS PELO RAMO E CALENDÁRIO MAIS ENXUTO (Nicola 20/10 19:43 e 19:47): (1) a lista de
 alertas da Agenda passa o ramo escolhido para fn_alertas_listar (antes vinha tudo) e a Agenda recarrega ao trocar de ramo;
 o que não tem ramo (feriados, rotinas, cartão) aparece em todos (banco: alertas_ramo_v1). (2) agenda.js 1.9.2: revisão do

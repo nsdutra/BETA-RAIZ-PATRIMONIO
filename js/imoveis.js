@@ -1,7 +1,11 @@
 // ============================================================================
 // imoveis.js — Raiz Patrimônio · Imóveis (lista · ficha · formulário ·
 //               fotos do Cofre · seletor · status/step do cadastro)
-// Versão: 1.9.0 · 19/10/2026
+// Versão: 1.10.0 · 20/10/2026
+//
+// v1.10.0 (20/10/2026, sessão 20261020-2245-contratos-lista, demanda a871b47d; de acordo do Nicola 22:45) — o atalho de alerta
+// de contrato deixa de abrir a lista de contratos (retirada) e vai para o Hoje, onde o alerta se trata.
+// Versão anterior: 1.9.0 · 19/10/2026
 //
 // v1.9.0 (19/10/2026, sessão 20261019-1931-carga-silva-correcoes, demanda 9404081c item 52, de acordo do Nicola 19:31) — a
 // lista de Imóveis (renderImoveis: cards, filtro de empreendimento e os números) ignora as áreas rurais que o boot passou
@@ -32,7 +36,7 @@
 // Versões anteriores (v1.6.0 … v1.6.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '1.9.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.10.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 
 
         export function abrirSeletorImovel(callback, permiteTodos) {
@@ -885,7 +889,7 @@ export const VERSAO = '1.9.0'; // v-check: lido por ⚙️ › Conta › Versõe
             // v1.108.0 — lista de imóveis desligada: alerta de contrato leva
             // pra aba Contratos (onde o alerta é tratado).
             imoveisFiltroAlertaContrato = tipo;
-            switchTab('tab-contratos');
+            switchTab('tab-geral'); // v1.10.0 (dem a871b47d) — a lista de contratos saiu: o alerta se trata no Hoje
         }
 
 
