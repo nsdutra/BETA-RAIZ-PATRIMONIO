@@ -4,6 +4,19 @@ Histórico completo de versões do `index.html`, movido automaticamente pelo `ge
 
 ---
 
+NOVIDADES (Beta v1.449.1) — BALANÇO DO ATIVO, PLANO SEM "FORMA DE PAGAMENTO" E RELATÓRIO NO CELULAR (Nicola 20/10 18:46 e
+19:12): o card Balanço pendente do ativo mostra o rateio entre pessoas como o Balanço › Grupos (uma linha por pessoa, "a
+receber" ou "deve"), com o total somado uma vez; sai o ⋮ › Forma de pagamento e o cadastro do plano fica só com "Quem paga"
+(cofre-ativos.js 1.137.0); relatório no celular sem cortar a lateral (relatorios-executivos.js 1.6.1). Aqui, só cabeçalho e
+import map.
+Versão anterior (Beta v1.449.0):
+------------------------------------------------------------------
+Versões anteriores (v1.449.0 … v1.449.0): CHANGELOG_APP.md, na raiz do
+repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
+das 5 versões mais recentes deste cabeçalho.
+
+---
+
 NOVIDADES (Beta v1.449.0) — RAIZ IA › UMA LINHA "IMPORTAR COM IA" (Nicola 20/10 19:26: "a lista ficou grande… Ler outro
 documento não é o mesmo que Documento?"): as importações viram uma linha só, que abre Extrato bancário · Fatura do cartão ·
 Calendário escolar; "Ler outro documento" sai (é o atalho Documento). agenda.js 1.9.1: o ⋮ da Agenda volta a aparecer.

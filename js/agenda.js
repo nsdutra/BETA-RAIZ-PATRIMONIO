@@ -1,8 +1,13 @@
 // =====================================================================
 // RAIZ PATRIMÔNIO — js/agenda.js
-// VERSÃO: Beta v1.9.3 (20/10/2026 — demanda b3aeefaf)
+// VERSÃO: Beta v1.9.4 (20/10/2026 — demanda b3aeefaf)
 // LINHAS: (ver versoes.json)
 // -----------------------------------------------------------------
+// NOVIDADES (Beta v1.9.4) (20/10/2026, sessão 20261020-2149-calendario-ja, demanda b3aeefaf; Nicola 21:49 "não vi
+//   nenhuma menção de já está na agenda. Destaque… ao clicar na setinha pra abrir a cortina não funciona") — linha já
+//   importada ganha o selo verde "✓ Já está na agenda" na 2ª linha (marcada de novo, vira aviso "vai repetir"); a seta
+//   também abre e fecha os ajustes; a chave de origem não leva mais o nome da escola (igual à Edge, sugestoes.ts 1.1.0).
+// Versão anterior (Beta v1.9.3):
 // NOVIDADES (Beta v1.9.3) (20/10/2026, sessão 20261020-2117-calendario-lista, demanda b3aeefaf; Nicola 21:17 "os
 //   componentes ao abrir a cortina ficam grandes. Murilo e Tomás · Evento na escola pode ficar numa linha só menor. A sala
 //   também… e a confirmar. Abaixo as opções de alerta") — os ajustes da linha viram chips pequenos: 1ª linha Para quem ·
@@ -95,7 +100,7 @@
 // formatarMoedaBR, abrirSheet, abrirSheetAcoes, rzSheetCabecalho, fecharSheet, abrirAlertaItemControle,
 // abrirFichaContrato, switchTab, mostrarToast, rzDev.
 
-export const VERSAO = '1.9.3';
+export const VERSAO = '1.9.4';
 
 const TIPOS = {
     ocorrencia:   { rotulo: 'Ocorrência',  icone: 'wrench',          dominio: 'ocorrencias' },
@@ -487,7 +492,7 @@ async function enviarSemana() {
 // confirma — fn_calendario_escolar_aplicar grava só o que foi marcado e a tela fecha. Reimportar = refazer (o que já está
 // na agenda vem desmarcado, "já na agenda"). Nada fica pendente entre uma vez e outra.
 const CAL_NORM = (t) => String(t ?? '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
-const calChave = (escola, ativo, data, tituloChave) => `calendario:${CAL_NORM(escola).replace(/ /g, '-').slice(0, 40)}:${ativo}:${data}:${tituloChave}`.slice(0, 300);
+const calChave = (_escola, ativo, data, tituloChave) => `calendario:${ativo}:${data}:${tituloChave}`.slice(0, 300); // v1.9.4 — sem a escola (o nome lido varia)
 const calData = (d) => d ? `${d.slice(8, 10)}/${d.slice(5, 7)}` : '';
 // v1.9.2 — "sex 06/11/2026"; período "seg 19/10 – qui 29/10/2026"
 const calDiaSem = (d) => DIA_SEM[new Date(d + 'T12:00:00').getDay()];
@@ -557,6 +562,9 @@ function revisarCalendario(sh, r) {
             l.situacao === 'escolher_turma' ? 'escolha a turma' : (l.aviso ? `aviso ${l.aviso} dia${l.aviso > 1 ? 's' : ''} antes` : 'sem aviso'),
             l.a_confirmar ? 'a confirmar' : '', l.motivo && CAL_RECOLHIDO[l.situacao] ? l.motivo : ''].filter(Boolean).join(' · ');
         const aberto = editando.has(l.id);
+        // v1.9.4 — destaque do que já foi importado; marcado de novo, avisa que repete
+        const ja = l.situacao === 'ja_na_agenda'
+            ? `<span style="color:${l.marcado ? 'var(--warning,#b45309)' : 'var(--success,#2f7a55)'};font-weight:700">${l.marcado ? '⚠ Já está na agenda — vai repetir' : '✓ Já está na agenda'}</span> · ` : '';
         // v1.9.3 — ajustes em chips pequenos: Para · Tipo · Turma · A confirmar numa linha; Aviso na linha de baixo
         const CH = 'height:28px;padding:0 8px;font-size:12px;gap:2px';
         const seta = '<span style="font-size:9px;opacity:.6">▼</span>';
@@ -581,9 +589,9 @@ function revisarCalendario(sh, r) {
                 <button type="button" class="rz-ag-ck" data-cal-ck="${l.id}" aria-label="Importar">${l.marcado ? '<svg data-lucide="check"></svg>' : ''}</button>
                 <button type="button" data-cal-ed="${l.id}" style="flex:1;min-width:0;text-align:left;background:none;border:0;padding:0;font:inherit;color:inherit">
                     <b style="display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${rzEsc(l.titulo)}</b>
-                    <small class="rz-sub" style="display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${rzEsc(det)}</small>
+                    <small class="rz-sub" style="display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${ja}${rzEsc(det)}</small>
                 </button>
-                <svg data-lucide="${aberto ? 'chevron-up' : 'chevron-down'}" style="width:16px;height:16px;flex:none;margin-top:4px;color:var(--muted)"></svg>
+                <button type="button" data-cal-ed="${l.id}" aria-label="${aberto ? 'Fechar ajustes' : 'Abrir ajustes'}" style="flex:none;background:none;border:0;padding:2px 0 8px 8px;color:var(--muted)"><svg data-lucide="${aberto ? 'chevron-up' : 'chevron-down'}" style="width:16px;height:16px"></svg></button>
             </div>${ed}</div>`;
     };
     const desenhar = () => {
