@@ -1,6 +1,12 @@
 // ============================================================================
 // cofre-ativos.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.138.0 · 20/10/2026
+// Versão: 1.139.0 · 20/10/2026
+//
+// v1.139.0 (20/10/2026, sessão 20261020-2202-financeiro-ativo, demanda 9359f50f; protótipo PROTOTIPO_FINANCEIRO_DO_ATIVO_RAIZ
+//   v1.1.0, de acordo do Nicola 22:02) — chip Financeiro do ativo: o Balanço pendente mostra o saldo partido (rótulo "a receber"
+//   ou "deve" em cima, valor embaixo, sugestão do Splitwise), o nome não aperta mais; o card do plano de pagamento fica com
+//   Falta pagar, Pago, a barra e "x de y parcelas pagas · custo total previsto". A lista e o gráfico vêm de financeiro 1.74.0.
+// Versão anterior: 1.138.0 · 20/10/2026
 //
 // v1.138.0 (20/10/2026, sessão 20261020-1943-ficha-menu-cards, demanda 9404081c; Nicola 19:10, de acordo 19:16; UXR-49 v1.5.1)
 //   — o ⋮ do topo da ficha fica só com Raiz IA, Compartilhar e a Situação (vender, baixar, arquivar, reativar, desfazer,
@@ -65,7 +71,7 @@
 // Versões anteriores (v1.128.0 … v1.128.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '1.138.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.139.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 import { estado } from './cofre-estado.js';
 import * as api from './cofre-api.js';
 import { mostrarToast, erroInline, refrescarIcones, alternarToggle, abrirModal, fecharModal, modalGenerico, perguntar, avisarComDesfazer, escolher } from './cofre-ui.js';
@@ -3252,16 +3258,15 @@ async function montarPlanoFinanceiroAtivo(a) {
     const base = Number(r.pago_parcelas) + Number(r.saldo), pc = base > 0 ? Number(r.pago_parcelas) / base : 0;
     const ent = r.entrega;
     const entSt = ent ? (ent.situacao === 'atrasada' ? renderStatusPlano('bad', 'Entrega atrasada') : ent.situacao === 'tolerancia' ? renderStatusPlano('warn', 'Na tolerância') : renderStatusPlano('ok', 'Entrega no prazo')) : '';
+    // v1.139.0 (protótipo PROTOTIPO_FINANCEIRO_DO_ATIVO_RAIZ v1.1.0, de acordo do Nicola 20/10 22:02) — card resumido:
+    // Falta pagar e Pago (custo de aquisição até hoje), a barra e as parcelas; o custo total previsto vai para a linha de baixo.
     alvo.innerHTML = `<div class="rz-card"><div class="rz-card-h" style="justify-content:space-between"><h3>Plano de pagamento</h3>${entSt}</div>
         <div class="rz-kv">
-          <div class="rz-full"><small>Falta pagar${corrige && r.ultimo_indice ? ` (corrigido até ${planoMes(r.ultimo_indice)})` : ''}</small><b style="font-size:20px">${planoMoeda(r.saldo)}</b></div>
-          <div><small>Parcelas pagas</small><b>${planoMoeda(r.pago_parcelas)}</b></div>
-          <div><small>${corrige ? 'Correção paga' : 'Pagas'}</small><b>${corrige ? planoMoeda(r.correcao_paga) : `${r.parcelas_pagas} de ${r.parcelas_total}`}</b></div>
-          <div><small>Custo de aquisição até hoje</small><b>${planoMoeda(r.pago)}</b></div>
-          <div><small>Custo total previsto</small><b>${planoMoeda(r.custo_total_previsto)}</b></div>
+          <div><small>Falta pagar${corrige && r.ultimo_indice ? ` (corrigido até ${planoMes(r.ultimo_indice)})` : ''}</small><b style="font-size:19px">${planoMoeda(r.saldo)}</b></div>
+          <div><small>Pago</small><b style="font-size:19px">${planoMoeda(r.pago)}</b></div>
         </div>
         <div style="height:8px;border-radius:4px;background:var(--line);overflow:hidden;margin:10px 0 4px"><i style="display:block;height:100%;width:${(pc * 100).toFixed(1)}%;background:var(--sprout)"></i></div>
-        <p class="rz-desc" style="margin:0">${planoPct(pc * 100)} das parcelas pagas · ${r.parcelas_pagas} de ${r.parcelas_total}. As parcelas estão na lista abaixo.</p></div>`;
+        <p class="rz-desc" style="margin:0">${r.parcelas_pagas} de ${r.parcelas_total} parcelas pagas${corrige ? ` · correção paga ${planoMoeda(r.correcao_paga)}` : ''} · custo total previsto ${planoMoeda(r.custo_total_previsto)}</p></div>`;
     refrescarIcones();
 }
 const renderStatusPlano = (sem, rot) => (typeof window.renderStatus === 'function' ? window.renderStatus(sem, rot) : `<span>${escapeHtml(rot)}</span>`);
@@ -3649,13 +3654,14 @@ function movDesenharTopo(a, pessoaId, bal, ex, contas, resumoAd = {}) {
     // uma vez (o lado a receber). As linhas com a empresa seguem na frase "X deve à Empresa".
     const ehRateio = (l) => !pessoaId && l.contraparte_tipo === 'pessoa';
     const total = bal.reduce((s, l) => s + (ehRateio(l) ? Math.max(Number(l.valor || 0), 0) : Math.abs(Number(l.valor || 0))), 0);
-    const stBal = (sem, rot) => (typeof window.renderStatus === 'function' ? window.renderStatus(sem, rot) : movEsc(rot));
+    // v1.139.0 (Nicola 20/10 22:02, sugestão do Splitwise) — saldo partido: rótulo pequeno em cima, valor embaixo (.rz-saldo)
+    const saldoPartido = (v) => v > 0 ? `<span class="rz-saldo rz-run"><small>a receber</small><b>${movEsc(fmt(v))}</b></span>` : `<span class="rz-saldo rz-warn"><small>deve</small><b>${movEsc(fmt(-v))}</b></span>`;
     const linhaRateio = (l, i) => {
         const v = Number(l.valor || 0);
         return `<div class="rz-row rz-link" role="button" tabindex="0" data-mov-bal="${i}">
             <div class="rz-ic"><i data-lucide="user"></i></div>
             <div class="rz-tx"><b>${movEsc(l.nome || nomeAtivo)}</b><span>rateio com ${movEsc(pn(l.contraparte_nome))}</span></div>
-            <div class="rz-rt">${v > 0 ? stBal('run', `${fmt(v)} a receber`) : stBal('warn', `deve ${fmt(-v)}`)}</div></div>`;
+            <div class="rz-rt">${saldoPartido(v)}</div></div>`; // v1.139.0 — saldo partido, igual ao Balanço do Financeiro
     };
     const linha = (l, i) => {
         if (ehRateio(l)) return linhaRateio(l, i);

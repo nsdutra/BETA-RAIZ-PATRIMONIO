@@ -1,11 +1,11 @@
 {
   "app": "patrimonio",
-  "gerado_em": "2026-10-21T01:04:59",
+  "gerado_em": "2026-10-21T01:08:19",
   "arquivos": {
-    "index.html": "1.452.0",
+    "index.html": "1.453.0",
     "sw.js": "3.2",
     "js/cadastros.js": "1.3.0",
-    "js/financeiro.js": "1.73.0",
+    "js/financeiro.js": "1.74.0",
     "js/fechamento.js": "1.15.0",
     "js/contratos.js": "1.62.0",
     "js/minutas.js": "1.6.0",
@@ -13,7 +13,7 @@
     "js/imoveis.js": "1.9.0",
     "js/cofre-api.js": "1.53.0",
     "js/cofre-app.js": "1.52.0",
-    "js/cofre-ativos.js": "1.138.0",
+    "js/cofre-ativos.js": "1.139.0",
     "js/cofre-controles.js": "1.64.0",
     "js/cofre-documentos.js": "2.38.0",
     "js/cofre-imagem.js": "1.1.0",
@@ -22,34 +22,20 @@
     "js/cofre-ui.js": "1.7.2",
     "js/cofre-validacoes.js": "2.14.0",
     "js/comum-licenca.js": "1.9.0",
-    "js/comum-renovacao.js": "1.3.5",
     "js/comum-minha-empresa.js": "1.21.0",
     "js/comum-pessoas.js": "1.216.0",
     "js/comum-sobre.js": "1.5.0",
     "js/comum-endereco.js": "1.2.0",
     "js/comum-partes.js": "1.0.0",
     "js/resultados.js": "2.16.0",
-    "js/indicadores.js": "1.2.0",
-    "js/configuracao-inicial.js": "1.1.0",
-    "js/relatorios-executivos.js": "1.6.1",
     "js/raiz-eventos.js": "1.0.0",
-    "js/raiz-device.js": "1.1.0",
-    "js/raiz-ui.js": "1.6.1",
     "js/fiscal.js": "1.7.0",
     "js/ativos/ativos-boot.js": "1.4.0",
-    "js/ativos/ativos-markup.js": "1.68.0",
-    "js/nucleo/porta.js": "1.7.0",
-    "js/partes.js": "1.1.0",
-    "js/conta.js": "1.3.0",
-    "grupo.html": "1.0.0",
-    "js/grupo-visao.js": "1.0.0",
-    "js/agenda.js": "1.9.4",
-    "js/cofre-membros.js": "1.0.0",
-    "js/cockpit-metas.js": "1.0.0"
+    "js/ativos/ativos-markup.js": "1.68.0"
   },
   "detalhes": {
     "index.html": {
-      "linhas": 17266,
+      "linhas": 17293,
       "funcoes": 71
     },
     "sw.js": {
@@ -61,8 +47,8 @@
       "funcoes": 7
     },
     "js/financeiro.js": {
-      "linhas": 6692,
-      "funcoes": 256
+      "linhas": 6775,
+      "funcoes": 257
     },
     "js/fechamento.js": {
       "linhas": 974,
@@ -93,7 +79,7 @@
       "funcoes": 13
     },
     "js/cofre-ativos.js": {
-      "linhas": 4828,
+      "linhas": 4834,
       "funcoes": 187
     },
     "js/cofre-controles.js": {
@@ -128,10 +114,6 @@
       "linhas": 522,
       "funcoes": 25
     },
-    "js/comum-renovacao.js": {
-      "linhas": 388,
-      "funcoes": 15
-    },
     "js/comum-minha-empresa.js": {
       "linhas": 1082,
       "funcoes": 24
@@ -156,29 +138,9 @@
       "linhas": 1597,
       "funcoes": 72
     },
-    "js/indicadores.js": {
-      "linhas": 207,
-      "funcoes": 9
-    },
-    "js/configuracao-inicial.js": {
-      "linhas": 261,
-      "funcoes": 14
-    },
-    "js/relatorios-executivos.js": {
-      "linhas": 1276,
-      "funcoes": 41
-    },
     "js/raiz-eventos.js": {
       "linhas": 85,
       "funcoes": 3
-    },
-    "js/raiz-device.js": {
-      "linhas": 252,
-      "funcoes": 12
-    },
-    "js/raiz-ui.js": {
-      "linhas": 393,
-      "funcoes": 10
     },
     "js/fiscal.js": {
       "linhas": 914,
@@ -191,38 +153,6 @@
     "js/ativos/ativos-markup.js": {
       "linhas": 1245,
       "funcoes": 0
-    },
-    "js/nucleo/porta.js": {
-      "linhas": 1391,
-      "funcoes": 31
-    },
-    "js/partes.js": {
-      "linhas": 857,
-      "funcoes": 30
-    },
-    "js/conta.js": {
-      "linhas": 497,
-      "funcoes": 13
-    },
-    "grupo.html": {
-      "linhas": 115,
-      "funcoes": 0
-    },
-    "js/grupo-visao.js": {
-      "linhas": 244,
-      "funcoes": 10
-    },
-    "js/agenda.js": {
-      "linhas": 655,
-      "funcoes": 26
-    },
-    "js/cofre-membros.js": {
-      "linhas": 486,
-      "funcoes": 22
-    },
-    "js/cockpit-metas.js": {
-      "linhas": 180,
-      "funcoes": 8
     }
   }
 }

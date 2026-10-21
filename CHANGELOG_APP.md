@@ -4,6 +4,19 @@ Histórico completo de versões do `index.html`, movido automaticamente pelo `ge
 
 ---
 
+NOVIDADES (Beta v1.450.0) — AGENDA: ALERTAS PELO RAMO E CALENDÁRIO MAIS ENXUTO (Nicola 20/10 19:43 e 19:47): (1) a lista de
+alertas da Agenda passa o ramo escolhido para fn_alertas_listar (antes vinha tudo) e a Agenda recarrega ao trocar de ramo;
+o que não tem ramo (feriados, rotinas, cartão) aparece em todos (banco: alertas_ramo_v1). (2) agenda.js 1.9.2: revisão do
+calendário escolar em 2 linhas por compromisso, com dia da semana e ano, e aviso sem · 1 dia · 3 dias. (3) raiz-ui.js
+1.6.1: a barra de leitura continua andando depois do tempo típico. Edge calendario-escolar-ler 1.0.2 (leitura mais rápida).
+Versão anterior (Beta v1.449.1):
+------------------------------------------------------------------
+Versões anteriores (v1.449.1 … v1.449.1): CHANGELOG_APP.md, na raiz do
+repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
+das 5 versões mais recentes deste cabeçalho.
+
+---
+
 NOVIDADES (Beta v1.449.1) — BALANÇO DO ATIVO, PLANO SEM "FORMA DE PAGAMENTO" E RELATÓRIO NO CELULAR (Nicola 20/10 18:46 e
 19:12): o card Balanço pendente do ativo mostra o rateio entre pessoas como o Balanço › Grupos (uma linha por pessoa, "a
 receber" ou "deve"), com o total somado uma vez; sai o ⋮ › Forma de pagamento e o cadastro do plano fica só com "Quem paga"

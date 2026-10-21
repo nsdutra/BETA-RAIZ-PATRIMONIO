@@ -1,7 +1,16 @@
 // ============================================================================
 // financeiro.js — Raiz Patrimônio · Financeiro (Recebimentos · Atrasados · Saídas
 //                  · conciliação de extrato · recibo · detalhe do recebimento)
-// Versão: 1.73.0 · 20/10/2026
+// Versão: 1.74.0 · 20/10/2026
+//
+// v1.74.0 (20/10/2026, sessão 20261020-2202-financeiro-ativo, demanda 9359f50f; protótipo PROTOTIPO_FINANCEIRO_DO_ATIVO_RAIZ v1.1.0,
+// de acordo do Nicola 22:02) — Financeiro da ficha do ativo no padrão da tela Financeiro: gráfico do Hoje mais baixo com o valor em
+// cima de cada coluna, que filtra o mês (toque de novo ou "Ano todo" volta ao ano, que agora vem inteiro, com o que está por
+// vencer); Previsto · Pago · Vencido · A pagar do recorte; lista com ícone, valor e etiqueta padrão (Pago, A vencer, Atrasado),
+// sem os chips de atalho e sem a origem. O grupo só vira título com dois ou mais lançamentos. O contrato segue na vista por
+// competência. Balanço › Pessoas e Grupos: saldo partido (rótulo "a receber"/"deve" em cima, valor embaixo — sugestão do
+// Splitwise), o nome deixa de ser apertado pela etiqueta.
+// Versão anterior: 1.73.0 · 20/10/2026
 //
 // v1.73.0 (20/10/2026, sessão 20261020-1013-planta-ajustes, demanda 83968339; de acordo do Nicola 10:13) — o card "Simulação
 // de venda" sai de Saídas (Financeiro geral): a simulação, com o Excel, passa a ser ação do ⋮ do plano de pagamento no
@@ -38,7 +47,7 @@
 // Versões anteriores (v1.68.0 … v1.68.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '1.73.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.74.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 
 // v1.17.0 (Fase 1 do wrapper de escrita, rollout Financeiro) — emitirEscrita
 // é o evento padrão pra "algo mudou que módulos DE FORA deste arquivo podem
@@ -6029,6 +6038,10 @@ let balancoDados = null;             // { pessoas: [{chave, pessoaId, nome, tota
 const BAL_NATUREZA = { distribuicao: 'distribuição', reembolso: 'reembolso', adiantamento: 'adiantamento', rateio: 'rateio', extraordinaria: 'retirada extraordinária' }; // v1.50.0
 const balEsc = (t) => String(t ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;');
 const balSt = (cod, rot) => (typeof renderStatus === 'function') ? renderStatus(cod, rot) : balEsc(rot);
+// v1.74.0 (Nicola 20/10 22:02, sugestão do Splitwise) — saldo partido: o rótulo pequeno em cima e o valor embaixo, na cor do
+// status (classe .rz-saldo do index). A etiqueta larga apertava o nome; assim sobra espaço à esquerda e nada quebra.
+export const balSaldo = (v) => v > 0.004 ? `<span class="rz-saldo rz-run"><small>a receber</small><b>${balEsc(formatarMoedaBR(v))}</b></span>`
+    : v < -0.004 ? `<span class="rz-saldo rz-warn"><small>deve</small><b>${balEsc(formatarMoedaBR(-v))}</b></span>` : `<span class="rz-saldo rz-ok"><small>em dia</small></span>`;
 
 function balancoAte() { // último dia do mês escolhido
     const c = financeiroCompetenciaAtual || financeiroCompetenciaHojeISO();
@@ -6080,7 +6093,7 @@ async function balancoRender() {
         <div class="rz-kpi"><small>A pagar</small><b>${formatarMoedaBR(aPagar)}</b></div>
     </div>`;
     const resumo = (p) => p.linhas.map(l => `${BAL_NATUREZA[l.natureza] || l.natureza} ${moedaSinal(l.valor)}`).join(' · ');
-    const status = (v) => v > 0.004 ? balSt('run', `${formatarMoedaBR(v)} a receber`) : v < -0.004 ? balSt('warn', `deve ${formatarMoedaBR(-v)}`) : balSt('ok', 'Em dia');
+    const status = (v) => balSaldo(v); // v1.74.0 — saldo partido
     const html = lista.length
         ? `<div class="rz-card rz-list"><div class="rz-card-h" style="padding-top:10px;margin-bottom:0"><h3>Quem deve a quem</h3><span class="rz-sub">até ${balEsc(formatarDataBR(balancoDados.ate))}</span></div>` +
           lista.map(p => `<div class="rz-row rz-link" role="button" tabindex="0" onclick="balancoAbrirPessoa('${balEsc(p.chave)}')">
@@ -6116,7 +6129,7 @@ async function balancoRenderGrupos() {
     } catch (e) { console.error('[financeiro] grupos', e); }
     const html = grupos.length
         ? grupos.map(g => `<div class="rz-card"><div class="rz-card-h"><h3>${balEsc(g.nome)}</h3><span class="rz-sub">gasto ${formatarMoedaBR([...g.gasto.values()].reduce((t, v) => t + v, 0))}</span></div>` +
-            [...g.saldo.entries()].map(([nome, v]) => `<div class="rz-row"><div class="rz-ic"><svg data-lucide="user"></svg></div><div class="rz-tx"><b>${balEsc(nome)}</b></div><div class="rz-rt">${v > 0.004 ? balSt('run', `${formatarMoedaBR(v)} a receber`) : v < -0.004 ? balSt('warn', `deve ${formatarMoedaBR(-v)}`) : balSt('ok', 'Em dia')}</div></div>`).join('') + '</div>').join('')
+            [...g.saldo.entries()].map(([nome, v]) => `<div class="rz-row"><div class="rz-ic"><svg data-lucide="user"></svg></div><div class="rz-tx"><b>${balEsc(nome)}</b></div><div class="rz-rt">${balSaldo(v)}</div></div>`).join('') + '</div>').join('')
         : `<div class="rz-card"><div class="rz-empty"><div class="rz-ic"><svg data-lucide="users"></svg></div><p>Nenhum grupo com despesa dividida.</p></div></div>`;
     corpo.innerHTML = balancoChipsVista() + (await balancoRateiosGrupoHtml()) + html; // v1.60.0 — F13.10
     if (typeof lucide !== 'undefined') lucide.createIcons();
@@ -6515,7 +6528,7 @@ export async function rzFinCompetencias(alvo, escopo = {}) {
     if (!el.id) el.id = 'fc-comp-' + Math.random().toString(36).slice(2, 8);
     const ant = fcEstado[el.id];
     const mesmo = ant && JSON.stringify(ant.escopo) === JSON.stringify(escopo);
-    const st = fcEstado[el.id] = { escopo, ano: mesmo && ant.ano !== 'todos' ? ant.ano : String(new Date().getFullYear()), aberto: mesmo ? ant.aberto : {}, itens: [] };
+    const st = fcEstado[el.id] = { escopo, ano: mesmo && ant.ano !== 'todos' ? ant.ano : String(new Date().getFullYear()), aberto: mesmo ? ant.aberto : {}, sel: mesmo ? ant.sel : undefined, itens: [] };
     fcEnvolver(el, st, `<p class="text-xs text-center py-3" style="color:var(--sage)">Carregando…</p>`);
     fcLigar(el);
     try {
@@ -6547,7 +6560,8 @@ function fcChipsAno(st) {
 async function fcCarregar(e, ano) {
     const cli = CLIENTE_ID_SUPABASE, hoje = fcHojeComp();
     const de = ano === 'todos' ? '2000-01-01' : `${ano}-01-01`;
-    const ate = ano === 'todos' ? hoje : (`${ano}-12-01` < hoje ? `${ano}-12-01` : hoje);
+    // v1.74.0 — no ativo o ano vem inteiro (o que está por vencer entra no gráfico e no A pagar); no contrato, até o mês atual
+    const ate = ano === 'todos' ? hoje : (!e.contratoId || `${ano}-12-01` < hoje ? `${ano}-12-01` : hoje);
     const ok = (r, nome) => { if (r?.error) throw new Error(`${nome}: ${r.error.message || r.error}`); return r?.data || []; };
     let contas = [];
     if (e.pessoaId) contas = ok(await dbAuth.from('conta_controle').select('id, nome, final_identificador').eq('cliente_id', cli).eq('titular_tipo', 'pessoa').eq('pessoa_id', e.pessoaId), 'contas');
@@ -6602,6 +6616,7 @@ async function fcCarregar(e, ano) {
 
 function fcDesenhar(el) {
     const st = fcEstado[el.id]; if (!st) return;
+    if (!st.escopo.contratoId) return fcDesenharAtivo(el); // v1.74.0 — ficha do ativo: gráfico que filtra o mês
     const it = st.itens;
     // v1.56.0 (UX onda 4) — sai o card "Pendências": o atraso vira um número do resumo (toque leva aos atrasados) e
     // "a classificar" / "sem conciliação" viram uma linha de atalhos curta, só quando existem.
@@ -6661,12 +6676,80 @@ function fcDesenhar(el) {
     if (typeof lucide !== 'undefined') lucide.createIcons();
 }
 
+// ============================================================================
+// v1.74.0 (20/10/2026, demanda 9359f50f; protótipo PROTOTIPO_FINANCEIRO_DO_ATIVO_RAIZ v1.1.0, de acordo do Nicola 22:02) —
+// Financeiro da ficha do ATIVO no padrão da tela Financeiro: gráfico do Hoje mais baixo, com o valor em cima de cada coluna,
+// que FILTRA o mês (toque de novo ou "Ano todo" volta ao ano); os quatro valores do recorte (Previsto · Pago · Vencido ·
+// A pagar) e a lista com ícone, valor e etiqueta padrão (Pago, A vencer, Atrasado). Sem chips de atalho e sem a origem de
+// cada lançamento; o grupo só vira título quando junta dois ou mais lançamentos. O contrato segue na vista por competência.
+// ============================================================================
+const FC_MESES_L = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
+function fcDesenharAtivo(el) {
+    const st = fcEstado[el.id]; if (!st) return;
+    const agora = new Date(), anoN = Number(st.ano) || agora.getFullYear(), anoAtual = agora.getFullYear();
+    const hojeIso = `${anoAtual}-${String(agora.getMonth() + 1).padStart(2, '0')}-${String(agora.getDate()).padStart(2, '0')}`;
+    const mesHoje = anoN === anoAtual ? agora.getMonth() : (anoN < anoAtual ? 11 : -1); // último mês já vivido do ano
+    if (st.sel === undefined) st.sel = anoN === anoAtual ? agora.getMonth() : null;
+    const it = st.itens;
+    const mi = (i) => Number(String(i.comp).slice(5, 7)) - 1;
+    const conta = (i) => i.grupo !== 'quitacao' && !i.isento; // quitação entre pessoas não é receita nem despesa do ativo
+    const aberto = (i) => (i.k === 'lanc' && i.status === 'Previsto') || (i.k === 'mens' && !i.pago && !i.isento);
+    const vencido = (i) => aberto(i) && (i.k === 'mens' ? !!i.atraso : String(i.data || '') < hojeIso);
+    const mov = it.filter(conta), temEntrada = mov.some(i => i.grupo === 'receita');
+    const serie = FC_MESES.map((_, m) => { const s = mov.filter(i => mi(i) === m).reduce((t, i) => t + i.valor, 0); return temEntrada ? s : -s; });
+    const max = Math.max(1, ...serie.map(Math.abs));
+    const kmil = (v) => { const a = Math.abs(v) / 1000; return (v < -0.004 ? '−' : '') + (a >= 10 ? Math.round(a).toLocaleString('pt-BR') : a.toLocaleString('pt-BR', { maximumFractionDigits: 1 })); };
+    const vivido = serie.slice(0, mesHoje + 1), acum = vivido.reduce((t, v) => t + v, 0);
+    const ateTxt = mesHoje >= 0 ? FC_MESES_L[mesHoje].toLowerCase() : '';
+    let titulo;
+    if (!mov.length) titulo = `Nenhum movimento em ${anoN}`;
+    else if (mesHoje < 0) titulo = `R$ ${kmil(serie.reduce((t, v) => t + v, 0))} mil previstos em ${anoN}`;
+    else if (temEntrada) { const melhor = vivido.indexOf(Math.max(...vivido)); titulo = `${FC_MESES_L[melhor]} foi o melhor mês; o ano soma R$ ${kmil(acum)} mil até ${ateTxt}`; }
+    else titulo = `R$ ${kmil(acum)} mil em saídas até ${ateTxt}`;
+    const barras = serie.map((v, m) => `<button type="button" data-fc-bar="${m}" class="${m > mesHoje ? 'fut' : ''}" aria-pressed="${st.sel === m}" aria-label="${FC_MESES_L[m]}: R$ ${kmil(v)} mil">
+        <span class="v">${Math.abs(v) > 0.004 ? kmil(v) : ''}</span><i style="height:${Math.max(Math.abs(v) / max * 58, Math.abs(v) > 0.004 ? 2 : 0).toFixed(1)}px"></i></button>`).join('');
+    const rotMes = FC_MESES.map((s, m) => `<span class="${st.sel === m ? 'on' : ''}">${s.charAt(0).toUpperCase() + s.slice(1)}</span>`).join('');
+    const cardGraf = `<div class="rz-card"><div class="rz-card-h"><h3>Financeiro</h3><span class="rz-sub">${fcChipsAno(st)}</span></div>
+        <p class="rz-fc-tit">${fcEsc(titulo)}</p><span class="rz-fc-sub">${temEntrada ? 'Resultado' : 'Saídas'} por mês · R$ mil · ${anoN}</span>
+        <div class="rz-fc-chart" role="group" aria-label="Meses de ${anoN}; toque para filtrar">${barras}</div><div class="rz-fc-mes">${rotMes}</div>
+        <div class="rz-fc-pe"><span>Toque num mês para filtrar</span>${st.sel === null ? '' : '<button type="button" data-fc-anotodo>Ano todo</button>'}</div></div>`;
+    const lista = st.sel === null ? it : it.filter(i => mi(i) === st.sel);
+    const ab = (l) => l.reduce((t, i) => t + Math.abs(i.valor), 0);
+    const base = lista.filter(conta);
+    const previsto = ab(base), pago = ab(base.filter(i => !aberto(i))), venc = ab(base.filter(vencido)), falta = ab(base.filter(i => aberto(i) && !vencido(i)));
+    const rot = st.sel === null ? `Ano de ${anoN}` : `${FC_MESES_L[st.sel]} de ${anoN}`;
+    const cardKpi = `<div class="rz-card"><div class="rz-card-h"><h3>${rot}</h3><span class="rz-sub">${lista.length} ${lista.length === 1 ? 'lançamento' : 'lançamentos'}</span></div>
+        <div class="rz-kv"><div><small>Previsto</small><b>${formatarMoedaBR(previsto)}</b></div><div><small>${temEntrada ? 'Realizado' : 'Pago'}</small><b>${formatarMoedaBR(pago)}</b></div>
+        <div><small>Vencido</small><b style="color:${venc > 0.004 ? 'var(--danger)' : 'inherit'}">${formatarMoedaBR(venc)}</b></div><div><small>${temEntrada ? 'Em aberto' : 'A pagar'}</small><b>${formatarMoedaBR(falta)}</b></div></div></div>`;
+    const rs = (c, r) => (typeof renderStatus === 'function') ? renderStatus(c, r) : fcEsc(r);
+    const etiqueta = (i) => i.aClassificar ? rs('warn', 'A classificar') : i.isento ? rs('neu', 'Isento') : i.grupo === 'quitacao' ? (i.status ? rs('neu', i.status) : '')
+        : vencido(i) ? rs('bad', 'Atrasado') : aberto(i) ? rs('run', i.valor > 0 ? 'A receber' : 'A vencer') : rs('ok', i.valor > 0 ? 'Recebido' : 'Pago');
+    const icone = (i) => i.faturaId ? 'credit-card' : i.grupo === 'quitacao' ? 'handshake' : i.valor > 0 ? 'arrow-down-left' : 'arrow-up-right';
+    const linha = (i) => `<div class="rz-row rz-link" role="button" tabindex="0" data-fc-item="${it.indexOf(i)}">
+        <div class="rz-ic${i.valor > 0 ? '' : ' rz-neu'}"><svg data-lucide="${icone(i)}"></svg></div>
+        <div class="rz-tx"><b>${fcEsc(i.titulo)}</b><span>${formatarDataBR(i.data)}${i.sub ? ' · ' + fcEsc(i.sub) : ''}</span></div>
+        <div class="rz-rt"><b class="${i.valor > 0 ? 'rz-in' : ''}">${moedaSinal(i.valor)}</b>${etiqueta(i)}</div></div>`;
+    const grupos = new Map();
+    lista.forEach(i => { const ch = i.grupo + '|' + i.cat; const g = grupos.get(ch) || { grupo: i.grupo, cat: i.cat, itens: [] }; g.itens.push(i); grupos.set(ch, g); });
+    const ordem = { receita: 0, despesa: 1, quitacao: 2 };
+    const corpoLista = [...grupos.values()].sort((a, b) => ordem[a.grupo] - ordem[b.grupo] || ab(b.itens) - ab(a.itens)).map(g => {
+        const xs = g.itens.sort((x, y) => String(y.data).localeCompare(String(x.data)));
+        return (xs.length > 1 ? `<div class="rz-fc-gh">${fcEsc(g.cat)} · ${xs.length}</div>` : '') + xs.map(linha).join('');
+    }).join('');
+    const cardLista = `<div class="rz-card rz-list rz-fc-lista">${corpoLista || `<p class="rz-desc" style="margin:4px 0">Nada ${st.sel === null ? 'em ' + anoN : 'neste mês'}.</p>`}</div>`;
+    el.innerHTML = cardGraf + cardKpi + cardLista;
+    fcLigar(el);
+    if (typeof lucide !== 'undefined') lucide.createIcons();
+}
+
 function fcLigar(el) {
     const st = fcEstado[el.id]; if (!st) return;
-    el.querySelectorAll('[data-fc-ano]').forEach(b => b.addEventListener('click', (ev) => { ev.stopPropagation(); st.ano = b.dataset.fcAno; st.aberto = {}; rzFinCompetencias(el, st.escopo); }));
+    el.querySelectorAll('[data-fc-ano]').forEach(b => b.addEventListener('click', (ev) => { ev.stopPropagation(); st.ano = b.dataset.fcAno; st.aberto = {}; st.sel = undefined; rzFinCompetencias(el, st.escopo); }));
     el.querySelectorAll('[data-fc-mes]').forEach(b => b.addEventListener('click', (ev) => { ev.stopPropagation(); st.aberto = st.aberto.mes === b.dataset.fcMes ? {} : { mes: b.dataset.fcMes }; fcDesenhar(el); }));
     el.querySelectorAll('[data-fc-cat]').forEach(b => b.addEventListener('click', (ev) => { ev.stopPropagation(); st.aberto.cat = st.aberto.cat === b.dataset.fcCat ? null : b.dataset.fcCat; fcDesenhar(el); }));
     el.querySelectorAll('[data-fc-item]').forEach(b => b.addEventListener('click', (ev) => { ev.stopPropagation(); fcAbrirItem(st.itens[Number(b.dataset.fcItem)]); }));
+    el.querySelectorAll('[data-fc-bar]').forEach(b => b.addEventListener('click', (ev) => { ev.stopPropagation(); const m = Number(b.dataset.fcBar); st.sel = st.sel === m ? null : m; fcDesenhar(el); })); // v1.74.0
+    el.querySelector('[data-fc-anotodo]')?.addEventListener('click', (ev) => { ev.stopPropagation(); st.sel = null; fcDesenhar(el); });
     el.querySelectorAll('[data-fc-atalho]').forEach(b => b.addEventListener('click', (ev) => { ev.stopPropagation(); fcAtalho(st, b.dataset.fcAtalho); }));
 }
 
