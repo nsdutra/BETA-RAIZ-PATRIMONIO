@@ -4,6 +4,18 @@ Histórico completo de versões do `index.html`, movido automaticamente pelo `ge
 
 ---
 
+NOVIDADES (Beta v1.457.0) — CONTROLES EM GRUPOS (Nicola 20/10 23:28 e 23:37; PROTOTIPO_CONTROLES_GRUPOS_RAIZ v1.0.0): no
+chip Controles da ficha, os itens fora de programa ficam em grupos pela categoria do catálogo, no desenho do item
+agrupado de Ativos (ícone com a quantidade, etiqueta, seta e a linha que liga os itens); ícone por subtipo; título curto
+(cofre-controles.js 1.65.0, cofre-api.js 1.54.0; banco: controles_icones_v1). Aqui: CSS dos grupos (sai o .rz-prog-h).
+Versão anterior (Beta v1.456.0):
+------------------------------------------------------------------
+Versões anteriores (v1.456.0 … v1.456.0): CHANGELOG_APP.md, na raiz do
+repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
+das 5 versões mais recentes deste cabeçalho.
+
+---
+
 NOVIDADES (Beta v1.456.0) — FICHA DO CONTRATO: CADA AÇÃO NO CARD DO ASSUNTO (de acordo do Nicola 20/10 23:02; mesmo critério
 da ficha do ativo): contratos.js 1.64.0 — o ⋮ do topo fica com a Situação e Gerar minuta; Condições ganha ⋮ (Dados, Editar,
 Renovar), Distribuição (Editar divisão), Reajuste › Pelo contrato (Reajustar) e o Financeiro a linha "Ver no Financeiro".

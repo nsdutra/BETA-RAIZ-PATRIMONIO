@@ -1,6 +1,9 @@
 /* ============================================================================
    raiz.css — Raiz Patrimônio · estilos do app (index.html)
-   Versão: 1.2.0 · 21/10/2026
+   Versão: 1.3.0 · 21/10/2026
+
+   v1.3.0 (21/10/2026, sessão 20261021-1040-ux-subativos, demanda 15146a34; Nicola 21/10 10:35) — sub-ativos: recuo de 40 → 24 px e ícone de 34 → 26 px; a linha
+   sai do centro do ícone do principal e chega encostada no ícone do sub-ativo. O nome ganha ~26 px. Bloco no fim.
 
    v1.2.0 (21/10/2026, sessão 20261021-1005-ux-onda1, demanda 15146a34; Nicola 21/10 10:02, "pode avançar") — ONDA 1 da revisão de usabilidade: escala de
    texto em 6 tamanhos (24 · 17 · 15 · 14 · 12,5 · 12, tokens --fs-*), um preto só para o texto (o body herdava #3d4e47),
@@ -1726,3 +1729,14 @@ body{color:var(--ink)}
 /* Menu das iniciais sem o ✕: o cartão verde ocupa a largura toda */
 .rz-menu-conta .rz-sh-h.rz-mc-h{padding:8px 14px 4px}
 .rz-menu-conta .rz-mc-id{padding:12px 14px}
+
+/* Sub-ativos mais compactos (raiz.css 1.3.0, dem 15146a34). A linha vertical continua no centro do ícone do principal
+   (17 px da borda, ícone de 34): com o recuo de 24 px ela fica a -7 px do sub-ativo, e o traço horizontal tem 7 px.
+   ARMADILHA: mudar o recuo exige mudar o left das duas linhas junto, ou a linha descola do ícone do principal. */
+.rz-subs{padding-left:24px}
+.rz-subs>.rz-sub-row{gap:8px}
+.rz-subs>.rz-sub-row::before{left:-7px}
+.rz-subs>.rz-sub-row::after{left:-7px;width:7px}
+.rz-subs>.rz-sub-row .rz-ic{width:26px;height:26px;border-radius:8px}
+.rz-subs>.rz-sub-row .rz-ic svg{width:14px;height:14px}
+#ativos-lista .rz-subs>.rz-sub-row[data-grade]{grid-template-columns:26px minmax(0,1fr) auto auto;column-gap:8px}

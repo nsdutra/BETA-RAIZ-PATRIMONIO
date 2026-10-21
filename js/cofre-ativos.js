@@ -1,6 +1,10 @@
 // ============================================================================
 // cofre-ativos.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.142.0 · 21/10/2026
+// Versão: 1.143.0 · 21/10/2026
+//
+// v1.143.0 (21/10/2026, sessão 20261021-1040-ux-subativos, demanda 15146a34; Nicola 21/10 10:35: "prefiro o número nos ícones") — a quantidade volta para o
+//   ícone, no ramo e no ativo com sub-ativos (selo no canto do ícone); a linha dos sub-ativos fica mais curta (raiz.css 1.3.0).
+// Versão anterior: 1.142.0 · 21/10/2026
 //
 // v1.142.0 (21/10/2026, sessão 20261021-1005-ux-onda1, demanda 15146a34; Nicola 21/10 10:02) — ativo com sub-ativos (ex.: Família Maia Dutra): a quantidade
 //   sai de cima do ícone e vai para depois do nome, como na faixa do ramo. A borda do ícone e a linha até os sub-ativos ficam.
@@ -19,21 +23,11 @@
 //   v1.1.0, de acordo do Nicola 22:02) — chip Financeiro do ativo: o Balanço pendente mostra o saldo partido (rótulo "a receber"
 //   ou "deve" em cima, valor embaixo, sugestão do Splitwise), o nome não aperta mais; o card do plano de pagamento fica com
 //   Falta pagar, Pago, a barra e "x de y parcelas pagas · custo total previsto". A lista e o gráfico vêm de financeiro 1.74.0.
-// Versão anterior: 1.138.0 · 20/10/2026
-//
-// v1.138.0 (20/10/2026, sessão 20261020-1943-ficha-menu-cards, demanda 9404081c; Nicola 19:10, de acordo 19:16; UXR-49 v1.5.1)
-//   — o ⋮ do topo da ficha fica só com Raiz IA, Compartilhar e a Situação (vender, baixar, arquivar, reativar, desfazer,
-//   Excluir). O resto vai para o ⋮ do card do assunto: Dados do ativo (Editar dados), Propriedade (Editar divisão,
-//   contabilidade), Unidades/Áreas/Integrantes (Vincular existente; no sub-ativo, Tirar do principal) e Balanço pendente
-//   (Novo lançamento, Ver no Financeiro, Ver o balanço completo). Saem do topo, sem perder caminho: Adicionar fotos,
-//   Adicionar uso e Novo item de controle (já são o "+ Adicionar" dos cards), Programas (está no "+ Adicionar item de
-//   controle") e Concluir o uso (está no ⋮ da linha do uso). Na Propriedade, a linha do sócio abre direto o Editar divisão
-//   e a linha da contabilidade vira só leitura — as duas ações ficam no ⋮ do card, sem repetir.
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.137.0 … v1.137.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.138.0 … v1.138.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '1.142.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.143.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 import { estado } from './cofre-estado.js';
 import { carregarBiblioteca } from './nucleo/bibliotecas.js'; // bibliotecas pesadas, sob demanda (dem 6b11c602)
 import * as api from './cofre-api.js';
@@ -616,7 +610,7 @@ export function renderAtivosLista(filtroTipo = '', filtroTexto = '') {
             .forEach(r => blocos.push({ ramo: r, itens: g[r] }));
     } else blocos.push({ ramo: null, itens: lista });
     const comAlertaTodos = ativosComAlerta(ocorrenciasPorAtivo);
-    // Cabeçalho do ramo: ícone na cor do ramo, nome com a quantidade ao lado e, à direita, a soma do patrimônio do ramo,
+    // Cabeçalho do ramo: ícone na cor do ramo com a quantidade no canto, o nome e, à direita, a soma do patrimônio do ramo,
     // alinhada com a coluna de valores dos ativos (dem 15146a34).
     const cardRamo = (r, itens) => {
         const info = (typeof rzRamoInfo === 'function' && rzRamoInfo(r)) || { nome: r, unidade_singular: 'ativo', unidade_plural: 'ativos' };
@@ -633,8 +627,8 @@ export function renderAtivosLista(filtroTipo = '', filtroTexto = '') {
         const fechado = ramosRecolhidos.has(cod);
         const tg = `onclick="window.__rzAlternarRamo && window.__rzAlternarRamo('${cod}')"`;
         return `<div class="rz-ramo-faixa${fechado ? ' rz-ramo-fechado' : ''}" id="rz-ramo-faixa-${cod}" style="--ramo-grupo:var(--ramo-cor-${cod}, var(--sage))">` +
-            `<span class="rz-ramo-faixa-ic" role="button" tabindex="0" aria-expanded="${!fechado}" aria-label="${fechado ? 'Mostrar' : 'Recolher'} ${escapeHtml(info.nome)}" ${tg}><svg data-lucide="${escapeHtml(info.icone || 'circle')}"></svg></span>` +
-            `<h3>${escapeHtml(info.nome)}<small class="rz-ramo-faixa-q">${itens.length}</small></h3>${direita ? `<b>${escapeHtml(direita)}</b>` : ''}` +
+            `<span class="rz-ramo-faixa-ic" role="button" tabindex="0" aria-expanded="${!fechado}" aria-label="${fechado ? 'Mostrar' : 'Recolher'} ${escapeHtml(info.nome)}" ${tg}><svg data-lucide="${escapeHtml(info.icone || 'circle')}"></svg><span class="rz-ramo-faixa-n">${itens.length}</span></span>` +
+            `<h3>${escapeHtml(info.nome)}</h3>${direita ? `<b>${escapeHtml(direita)}</b>` : ''}` +
             `<button type="button" class="rz-ramo-faixa-tg" aria-expanded="${!fechado}" aria-label="${fechado ? 'Mostrar' : 'Recolher'} ${escapeHtml(info.nome)}" ${tg}><svg data-lucide="${fechado ? 'chevron-down' : 'chevron-up'}"></svg></button></div>`;
     };
     // F2.4 (UXR-15) — carteira só com imóveis: um card de convite no FIM da lista (nunca no topo).
@@ -1044,12 +1038,12 @@ function ativoComSubativosHtml(a) {
     const nomeSub = (subs.length === 1 ? info?.nome_subativo_singular : info?.nome_subativo_plural) || (subs.length === 1 ? 'subativo' : 'subativos');
     const aberto = subativosAbertos.has(a.id);
     let html = ativoCardHtml(a);
-    // O grupo aparece na borda do ícone (cor do ramo) e na quantidade depois do nome; o selo fica só com a classe
+    // O grupo aparece no ícone: borda na cor do ramo e a quantidade no canto; o selo fica só com a classe
     // ("Disponível"), sem o resumo "0 de 1…" (dem 15146a34).
     const corRamo = `var(--ramo-cor-${(a.ramo || 'outros').replace(/[^a-z_]/g, '')})`;
     html = html.replace('<div class="rz-row rz-link"', `<div class="rz-row rz-link" style="--ramo-grupo:${corRamo}"`);
     html = html.replace(/<div class="rz-ic"([^>]*)>/, (m0, at) => `<div class="rz-ic rz-ic-grupo"${at.replace(' style="overflow:hidden"', '')} title="${subs.length} ${escapeHtml(nomeSub.toLowerCase())}">`);
-    html = html.replace(/(<b [^>]*>[\s\S]*?)(<\/b>)/, `$1<small class="rz-ramo-faixa-q">${subs.length}</small>$2`);
+    html = html.replace(/(<div class="rz-ic rz-ic-grupo"[^>]*>[\s\S]*?)(<\/div>)/, `$1<span class="rz-ic-n">${subs.length}</span>$2`);
     const st = typeof window.rzStatusDoAtivo === 'function' ? window.rzStatusDoAtivo(a.id) : null;
     if (st && st.rotulo && st.classe && st.rotulo !== st.classe) html = html.replace(escapeHtml(st.rotulo), escapeHtml(st.classe)).replace(st.rotulo, st.classe);
     // v1.121.0 (item 32, Nicola 19/10 11:19: "o que é 0 de 4? já tem 4 no ícone") — o resumo "N de M integrantes/áreas" sai da
