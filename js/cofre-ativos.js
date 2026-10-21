@@ -1,6 +1,10 @@
 // ============================================================================
 // cofre-ativos.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.141.0 · 21/10/2026
+// Versão: 1.142.0 · 21/10/2026
+//
+// v1.142.0 (21/10/2026, sessão 20261021-1005-ux-onda1, demanda 15146a34; Nicola 21/10 10:02) — ativo com sub-ativos (ex.: Família Maia Dutra): a quantidade
+//   sai de cima do ícone e vai para depois do nome, como na faixa do ramo. A borda do ícone e a linha até os sub-ativos ficam.
+// Versão anterior: 1.141.0 · 21/10/2026
 //
 // v1.141.0 (21/10/2026, sessão 20261021-0905-ux-ramo-menu, demanda 15146a34; de acordo do Nicola 21/10 09:01) — faixa do ramo
 //   na lista do Patrimônio: o número sai de cima do ícone e vai para depois do nome ("Imóveis 9"); o fundo deixa de ser a
@@ -25,43 +29,11 @@
 //   Adicionar uso e Novo item de controle (já são o "+ Adicionar" dos cards), Programas (está no "+ Adicionar item de
 //   controle") e Concluir o uso (está no ⋮ da linha do uso). Na Propriedade, a linha do sócio abre direto o Editar divisão
 //   e a linha da contabilidade vira só leitura — as duas ações ficam no ⋮ do card, sem repetir.
-// Versão anterior: 1.137.0 · 20/10/2026
-//
-// v1.137.0 (20/10/2026, sessão 20261020-1846-balanco-ativo, demanda 03eae1d1; de acordo do Nicola 19:12) — plano de
-//   pagamento: sai o ⋮ › Forma de pagamento; no cadastro, "Como é pago" fica só com "Quem paga" (a conta), sem a escolha de
-//   acerto nem o rateio à mão — o acerto entre os donos vem da natureza do imóvel no Balanço. O card mostra só a conta.
-// v1.136.0 (20/10/2026, sessão 20261020-1846-balanco-ativo, demanda 83968339; Nicola 18:43 e 18:46: "Use a mesma forma que
-//   aparece no balanço pra ficar padrão") — chip Financeiro do ativo, card Balanço pendente: o rateio entre duas pessoas
-//   aparece como no Balanço › Grupos, uma linha por pessoa com "R$ X a receber" ou "deve R$ X" (antes, a mesma frase "Nicola
-//   deve a Claudia" saía duas vezes); o total em aberto soma o rateio uma vez. Tocar na linha continua abrindo o Quitar.
-// v1.135.0 (20/10/2026, sessão 20261020-1406-planta-pagamento, demanda 83968339; Nicola 14:06, de acordo 14:10) — plano de
-//   pagamento: (1) sai o botão "Situação no Financeiro" do card; (2) "Como é pago" no cadastro do plano — conta que paga e
-//   acerto: pela empresa (divisão pela propriedade) ou rateio direto entre pessoas (divisão no lançamento, o formato do rateio
-//   do aluguel e do cartão); o card mostra a forma; (3) ⋮ › Forma de pagamento muda a conta e o acerto a partir de uma data,
-//   com a opção de incluir as parcelas já pagas (fn_plano_pagamento_abater, ação forma_pagamento).
-// v1.134.0 (20/10/2026, sessão 20261018-2336-usos-lotes, demanda ce8b1820; Nicola 11:25: "coloque o valor do aluguel à frente
-//   do locatário, alinhado à direita como está") — a linha do imóvel com resumo vira grade (data-grade): o aluguel/mês fica na
-//   mesma linha do locatário, à direita, na coluna do valor; o chip fica na linha da etiqueta. "Sem valor" ganha classe
-//   própria (rz-rt-vazio) e fica na linha do nome.
-// v1.133.0 (20/10/2026, sessão 20261018-2336-usos-lotes, demanda ce8b1820; pedidos do Nicola 20/10 09:07 e 11:06) — lista de
-//   Ativos: o valor de cada item sai no formato compacto da faixa do ramo e do total do grupo (R$ 5,0 mi · R$ 420 mil; exato
-//   no title), no alto da linha, na altura do nome; o aluguel (/mês) passa para a coluna da direita, abaixo do valor, inteiro; ativo
-//   sem valor cadastrado (menos vida) mostra "Sem valor" em cinza; a seta do item agrupado ocupa a mesma largura da seta das
-//   outras linhas, e o valor dele alinha com os demais. Junto, duas descrições do Excluir encurtadas para o limite de 28 (D6),
-//   que o verificador apontou: "Cadastro errado, sem vínculo" e "Apaga de vez; sem desfazer". Só tela; o banco não muda.
-// v1.132.0 (20/10/2026, sessão 20261020-1013-planta-ajustes, demanda 83968339; teste do Nicola 09:00, de acordo 10:13) — plano
-// de pagamento do imóvel em construção: (1) tela de dados com campo de data padrão (o dia do 1º vencimento é o dia de
-// vencimento da série; sai "Dia do vencimento") e checks no padrão .rz-row.rz-chk; o aviso da soma confere ao sair do
-// campo; (2) o card do chip Usos vira o resumo do contrato, como o de aluguel — início, fim, entrega prevista, tolerância,
-// valor total, índice, parcelas e custos —, sem pago, falta pagar, próximas nem cronograma; (3) a situação (falta pagar,
-// pago, correção, custo de aquisição, % pago e entrega) vai para o chip Financeiro do ativo, acima da lista de lançamentos;
-// (4) ⋮ do card: Nova parcela ou série, Abatimento (Antecipar, Amortizar ou Desconto numa tela só), Novo custo, Simular
-// venda (veio do Financeiro geral, com o Excel), Histórico do plano e Chaves recebidas.
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.131.0 … v1.131.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.137.0 … v1.137.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '1.141.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.142.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 import { estado } from './cofre-estado.js';
 import { carregarBiblioteca } from './nucleo/bibliotecas.js'; // bibliotecas pesadas, sob demanda (dem 6b11c602)
 import * as api from './cofre-api.js';
@@ -1072,12 +1044,12 @@ function ativoComSubativosHtml(a) {
     const nomeSub = (subs.length === 1 ? info?.nome_subativo_singular : info?.nome_subativo_plural) || (subs.length === 1 ? 'subativo' : 'subativos');
     const aberto = subativosAbertos.has(a.id);
     let html = ativoCardHtml(a);
-    // v1.109.0 (3c, Nicola 23:34: "o item agrupado ficou ruim… borda do ícone na cor do ramo") — o grupo aparece no ícone
-    // (borda na cor do ramo + o número de subativos); o selo fica só com a classe ("Disponível"), sem o resumo "0 de 1…"
+    // O grupo aparece na borda do ícone (cor do ramo) e na quantidade depois do nome; o selo fica só com a classe
+    // ("Disponível"), sem o resumo "0 de 1…" (dem 15146a34).
     const corRamo = `var(--ramo-cor-${(a.ramo || 'outros').replace(/[^a-z_]/g, '')})`;
     html = html.replace('<div class="rz-row rz-link"', `<div class="rz-row rz-link" style="--ramo-grupo:${corRamo}"`);
     html = html.replace(/<div class="rz-ic"([^>]*)>/, (m0, at) => `<div class="rz-ic rz-ic-grupo"${at.replace(' style="overflow:hidden"', '')} title="${subs.length} ${escapeHtml(nomeSub.toLowerCase())}">`);
-    html = html.replace(/(<div class="rz-ic rz-ic-grupo"[^>]*>[\s\S]*?)(<\/div>)/, `$1<span class="rz-ic-n">${subs.length}</span>$2`);
+    html = html.replace(/(<b [^>]*>[\s\S]*?)(<\/b>)/, `$1<small class="rz-ramo-faixa-q">${subs.length}</small>$2`);
     const st = typeof window.rzStatusDoAtivo === 'function' ? window.rzStatusDoAtivo(a.id) : null;
     if (st && st.rotulo && st.classe && st.rotulo !== st.classe) html = html.replace(escapeHtml(st.rotulo), escapeHtml(st.classe)).replace(st.rotulo, st.classe);
     // v1.121.0 (item 32, Nicola 19/10 11:19: "o que é 0 de 4? já tem 4 no ícone") — o resumo "N de M integrantes/áreas" sai da

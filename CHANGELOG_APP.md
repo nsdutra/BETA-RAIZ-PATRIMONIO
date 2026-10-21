@@ -4,6 +4,19 @@ Histórico completo de versões do `index.html`, movido automaticamente pelo `ge
 
 ---
 
+NOVIDADES (Beta v1.456.0) — FICHA DO CONTRATO: CADA AÇÃO NO CARD DO ASSUNTO (de acordo do Nicola 20/10 23:02; mesmo critério
+da ficha do ativo): contratos.js 1.64.0 — o ⋮ do topo fica com a Situação e Gerar minuta; Condições ganha ⋮ (Dados, Editar,
+Renovar), Distribuição (Editar divisão), Reajuste › Pelo contrato (Reajustar) e o Financeiro a linha "Ver no Financeiro".
+Aqui, só cabeçalho, import map e as pontes dos novos ⋮.
+Versão anterior (Beta v1.455.0):
+DATA: 20/10/2026 (sessão 20261020-2249-raiz-ia-voltar, demanda 27bf9abe)
+------------------------------------------------------------------
+Versões anteriores (v1.455.0 … v1.455.0): CHANGELOG_APP.md, na raiz do
+repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
+das 5 versões mais recentes deste cabeçalho.
+
+---
+
 NOVIDADES (Beta v1.455.0) — RAIZ IA VOLTA AS TELAS E NÃO ABRE O TECLADO (Nicola 20/10 22:49: "após entrar na opção
 escolhida e fechar, sair do Raiz IA. Volte as telas ao sair de um item… não posicione o cursor… está abrindo sempre o
 teclado"): fechar a Fatura do cartão ou o Calendário escolar volta para "Importar com IA", e fechar esta volta para a

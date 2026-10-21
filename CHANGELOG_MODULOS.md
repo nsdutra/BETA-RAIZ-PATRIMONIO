@@ -881,6 +881,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/cofre-api.js`
 
 //
@@ -1353,6 +1355,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 // supabase-js diretamente (Diretriz Arquitetural — Passo 2: responsabilidade
 // única por módulo).
 // ============================================================================
+
+---
 
 ---
 
@@ -2312,7 +2316,46 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/cofre-ativos.js`
+
+// Versão anterior: 1.137.0 · 20/10/2026
+//
+// v1.137.0 (20/10/2026, sessão 20261020-1846-balanco-ativo, demanda 03eae1d1; de acordo do Nicola 19:12) — plano de
+//   pagamento: sai o ⋮ › Forma de pagamento; no cadastro, "Como é pago" fica só com "Quem paga" (a conta), sem a escolha de
+//   acerto nem o rateio à mão — o acerto entre os donos vem da natureza do imóvel no Balanço. O card mostra só a conta.
+// v1.136.0 (20/10/2026, sessão 20261020-1846-balanco-ativo, demanda 83968339; Nicola 18:43 e 18:46: "Use a mesma forma que
+//   aparece no balanço pra ficar padrão") — chip Financeiro do ativo, card Balanço pendente: o rateio entre duas pessoas
+//   aparece como no Balanço › Grupos, uma linha por pessoa com "R$ X a receber" ou "deve R$ X" (antes, a mesma frase "Nicola
+//   deve a Claudia" saía duas vezes); o total em aberto soma o rateio uma vez. Tocar na linha continua abrindo o Quitar.
+// v1.135.0 (20/10/2026, sessão 20261020-1406-planta-pagamento, demanda 83968339; Nicola 14:06, de acordo 14:10) — plano de
+//   pagamento: (1) sai o botão "Situação no Financeiro" do card; (2) "Como é pago" no cadastro do plano — conta que paga e
+//   acerto: pela empresa (divisão pela propriedade) ou rateio direto entre pessoas (divisão no lançamento, o formato do rateio
+//   do aluguel e do cartão); o card mostra a forma; (3) ⋮ › Forma de pagamento muda a conta e o acerto a partir de uma data,
+//   com a opção de incluir as parcelas já pagas (fn_plano_pagamento_abater, ação forma_pagamento).
+// v1.134.0 (20/10/2026, sessão 20261018-2336-usos-lotes, demanda ce8b1820; Nicola 11:25: "coloque o valor do aluguel à frente
+//   do locatário, alinhado à direita como está") — a linha do imóvel com resumo vira grade (data-grade): o aluguel/mês fica na
+//   mesma linha do locatário, à direita, na coluna do valor; o chip fica na linha da etiqueta. "Sem valor" ganha classe
+//   própria (rz-rt-vazio) e fica na linha do nome.
+// v1.133.0 (20/10/2026, sessão 20261018-2336-usos-lotes, demanda ce8b1820; pedidos do Nicola 20/10 09:07 e 11:06) — lista de
+//   Ativos: o valor de cada item sai no formato compacto da faixa do ramo e do total do grupo (R$ 5,0 mi · R$ 420 mil; exato
+//   no title), no alto da linha, na altura do nome; o aluguel (/mês) passa para a coluna da direita, abaixo do valor, inteiro; ativo
+//   sem valor cadastrado (menos vida) mostra "Sem valor" em cinza; a seta do item agrupado ocupa a mesma largura da seta das
+//   outras linhas, e o valor dele alinha com os demais. Junto, duas descrições do Excluir encurtadas para o limite de 28 (D6),
+//   que o verificador apontou: "Cadastro errado, sem vínculo" e "Apaga de vez; sem desfazer". Só tela; o banco não muda.
+// v1.132.0 (20/10/2026, sessão 20261020-1013-planta-ajustes, demanda 83968339; teste do Nicola 09:00, de acordo 10:13) — plano
+// de pagamento do imóvel em construção: (1) tela de dados com campo de data padrão (o dia do 1º vencimento é o dia de
+// vencimento da série; sai "Dia do vencimento") e checks no padrão .rz-row.rz-chk; o aviso da soma confere ao sair do
+// campo; (2) o card do chip Usos vira o resumo do contrato, como o de aluguel — início, fim, entrega prevista, tolerância,
+// valor total, índice, parcelas e custos —, sem pago, falta pagar, próximas nem cronograma; (3) a situação (falta pagar,
+// pago, correção, custo de aquisição, % pago e entrega) vai para o chip Financeiro do ativo, acima da lista de lançamentos;
+// (4) ⋮ do card: Nova parcela ou série, Abatimento (Antecipar, Amortizar ou Desconto numa tela só), Novo custo, Simular
+// venda (veio do Financeiro geral, com o Excel), Histórico do plano e Chaves recebidas.
+// --------------------------------------------------------------------------
+// Versões anteriores (v1.131.0 … v1.131.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
+// mais recentes deste cabeçalho (VER-06).
 
 // Versão anterior: 1.131.0 · 20/10/2026
 //
@@ -4123,6 +4166,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/cofre-controles.js`
 
 // Versão anterior: 1.61.0 · 15/10/2026
@@ -4914,6 +4959,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 // não está implementado (geração automática de ocorrências recorrentes,
 // Central de Alertas consolidada).
 // ============================================================================
+
+---
 
 ---
 
@@ -6064,6 +6111,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/cofre-estado.js`
 
 //
@@ -6209,6 +6258,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 // v1.21.6 (Arquivar/RLS, sessão paralela) nem esta entrega — fechado
 // agora. Ver changelog completo em cofre.html v1.22.0 (merge das 2
 // sessões paralelas + badge fix + form fix + função Vendido).
+
+---
 
 ---
 
@@ -6853,6 +6904,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/cofre-ui.js`
 
 //
@@ -6884,6 +6937,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 // genérica, template de card, indicador de "liga/desliga" (Design System
 // v1.43.0 §2). Não importa cofre-api.js — não sabe nada de Supabase.
 // ============================================================================
+
+---
 
 ---
 
@@ -7593,6 +7648,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/comum-licenca.js`
 
 //
@@ -7735,6 +7792,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 // hospeda (index.html, cofre.html, ou um módulo futuro) é quem decide
 // COMO obtém esse client; este arquivo só usa o que recebe.
 // ============================================================================
+
+---
 
 ---
 
@@ -8199,6 +8258,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 // `dbAuth` já autenticado do host, por parâmetro (ver nota completa em
 // comum-licenca.js).
 // ============================================================================
+
+---
 
 ---
 
@@ -9073,6 +9134,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/comum-renovacao.js`
 
 //
@@ -9115,6 +9178,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 // jsdelivr (mesma origem já usada pelo app); se não carregar, o "copia e cola"
 // continua funcionando sozinho.
 // ============================================================================
+
+---
 
 ---
 
@@ -9697,7 +9762,21 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/conta.js`
+
+// Versão anterior: 1.0.1 · 10/10/2026
+//
+// v1.0.1 (10/10/2026, sessão 20261003-1707-ux-base, demanda 28aa5ce1 — teste do Nicola 10/10 21:43: "Tela licença não
+// carrega") — HOTFIX dos imports dinâmicos. As funções vieram do index.html com import("./js/<módulo>.js"); dentro de
+// js/conta.js o "./" passa a ser a pasta js/, e o caminho virava js/js/<módulo>.js (404). Licença, Dados da empresa
+// (e os boxes Documentos e Controles), Sobre, Minhas notificações e a volta para Ativos caíam no catch. Agora é
+// import('./<módulo>.js'), que bate com a chave do import map (./js/<módulo>.js resolvido a partir da raiz).
+// --------------------------------------------------------------------------
+// Versões anteriores (v1.0.0 … v1.0.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
+// mais recentes deste cabeçalho (VER-06).
 
 //
 // Versão anterior: 1.0.0 · 10/10/2026
@@ -9721,6 +9800,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 //    virar assíncrona poderia deixar o primeiro render com o filtro errado. Não vale o risco
 //    por 345 bytes — é a mesma classe de armadilha do montarBoxDivisaoSocietaria.
 // ============================================================================
+
+---
 
 ---
 
@@ -10900,6 +10981,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/fechamento.js`
 
 //
@@ -11243,6 +11326,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 // window.jspdf, CONFIG_CLIENTE (todos já globais no index.html clássico —
 // mesmo acesso que financeiro.js já faz).
 // ============================================================================
+
+---
 
 ---
 
@@ -13198,6 +13283,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/fiscal.js`
 
 //
@@ -13294,6 +13381,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 // abrirSheet, abrirSheetAcoes, abrirSheetForm, rzSheetCabecalho, fecharSheet,
 // mostrarToast, switchTab, rzIcones, podeUsar, window.fechamentoAbrirChecklistFiscalAtualizado.
 // ============================================================================
+
+---
 
 ---
 
@@ -13931,6 +14020,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/minutas.js`
 
 //
@@ -14102,6 +14193,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/nucleo/porta.js`
 
 // Versão anterior: 1.2.0.
@@ -14151,6 +14244,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 // mapStatus*ParaAntigo) ficaram no index porque os sincronizar* também os usam —
 // duplicar seria violação da CAN-03. Entram aqui por injeção.
 // ============================================================================
+
+---
 
 ---
 
@@ -14325,6 +14420,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/relatorios-executivos.js`
 
 //
@@ -14387,6 +14484,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 // que o bot usa); aqui só se monta o texto e o desenho — nunca se recalcula
 // (REL-02). Protótipo: raiz\docs\PROTOTIPO_RELATORIOS_FLUXO_GERENCIAL v1.1.0.
 // ============================================================================
+
+---
 
 ---
 
@@ -15066,6 +15165,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/vitrine.js`
 
 //
@@ -15186,6 +15287,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 // CLIENTE_ID_SUPABASE, dbAuth. Exclusivo (4) virou nível de módulo.
 // Indentação de origem mantida. Strict verificado.
 // ============================================================================
+
+---
 
 ---
 

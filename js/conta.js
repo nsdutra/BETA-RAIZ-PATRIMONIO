@@ -2,7 +2,11 @@
 // conta.js — Raiz Patrimônio · Conta e preferências: menu da conta, seção Sobre,
 //            licença, preferências de comunicação e de alerta, atalhos de
 //            configuração (Cofre, configuração inicial, cadastro do contador)
-// Versão: 1.4.0 · 21/10/2026
+// Versão: 1.5.0 · 21/10/2026
+//
+// v1.5.0 (21/10/2026, sessão 20261021-1005-ux-onda1, demanda 15146a34; Nicola 21/10 10:02) — menu das iniciais: sai o ✕ (fecha arrastando ou tocando fora) e
+//   o cartão verde ganha a largura toda; o plano aparece pelo nome ("Premium ampliado", não "Premium_ampliado").
+// Versão anterior: 1.4.0 · 21/10/2026
 //
 // v1.4.0 (21/10/2026, sessão 20261021-0905-ux-ramo-menu, demanda 15146a34; de acordo do Nicola 21/10 09:01, protótipo
 //   PROTOTIPO_REVISAO_USABILIDADE_RAIZ v1.4.0 seção 9) — menu das iniciais: cabeçalho verde com as iniciais, nome, empresa e
@@ -22,19 +26,11 @@
 // v1.1.0 (14/10/2026, sessão 20261014-2145-onda9c-textos, demanda a05ad2ee; onda 9c do estudo PROTOTIPO_UX_DENSIDADE_RAMOS_RAIZ
 // v1.2.0, D6 seção 10) — textos no limite: ação até 24 caracteres, descrição até 28, aviso até 40 com o resultado e tela
 // vazia em 1 frase de até 40. A explicação longa fica na confirmação, quando existe. Nada de comportamento mudou.
-// Versão anterior: 1.0.1 · 10/10/2026
-//
-// v1.0.1 (10/10/2026, sessão 20261003-1707-ux-base, demanda 28aa5ce1 — teste do Nicola 10/10 21:43: "Tela licença não
-// carrega") — HOTFIX dos imports dinâmicos. As funções vieram do index.html com import("./js/<módulo>.js"); dentro de
-// js/conta.js o "./" passa a ser a pasta js/, e o caminho virava js/js/<módulo>.js (404). Licença, Dados da empresa
-// (e os boxes Documentos e Controles), Sobre, Minhas notificações e a volta para Ativos caíam no catch. Agora é
-// import('./<módulo>.js'), que bate com a chave do import map (./js/<módulo>.js resolvido a partir da raiz).
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.0.0 … v1.0.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.0.1 … v1.0.1): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-
-export const VERSAO = '1.4.0';  // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.5.0';  // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 
 // v1.71.0 — LGPD: tela de preferências de comunicação, 1 toggle por
 // mensagem que permite opt-out (permite_opt_out=true) — substitui o
@@ -155,10 +151,11 @@ function rzNomeLegivel(t) {
 
 // Menu das iniciais (UXR-09, dem 15146a34): 4 grupos em cartões, valor à direita no lugar da descrição, Sair à parte.
 // O cabeçalho é refeito por cima do .rz-sh-h que o abrirSheetAcoes cria — o mesmo elemento, para não perder o arraste.
+// Sem ✕: fecha arrastando, tocando fora ou pelo voltar do celular.
 export function abrirMenuConta() {
     const ir = (tab) => () => { rzMenuOrigemTab = tab; switchTab(tab); };
     const cod = LICENCA_ATUAL && LICENCA_ATUAL.plano_codigo ? String(LICENCA_ATUAL.plano_codigo) : '';
-    const plano = cod ? cod.charAt(0).toUpperCase() + cod.slice(1) : '';
+    const plano = cod ? (typeof escNomePlano === 'function' ? escNomePlano(cod) : (cod.charAt(0).toUpperCase() + cod.slice(1)).replace(/_/g, ' ')) : '';
     const empresa = (CONFIG_CLIENTE && CONFIG_CLIENTE.nomeEmpresa) || '';
     const nEmpresas = Array.isArray(pessoaRowsSelecaoEmpresa) ? pessoaRowsSelecaoEmpresa.length : 0;
     const perfil = perfilLogado ? String(perfilLogado).charAt(0).toUpperCase() + String(perfilLogado).slice(1) : '';
@@ -204,14 +201,12 @@ export function abrirMenuConta() {
     h.classList.add('rz-mc-h');
     h.innerHTML = '<div class="rz-mc-id"><span class="rz-mc-av"></span><div class="rz-mc-tx"><b>' + esc(nome) + '</b><span>' +
         esc([empresa, perfil].filter(Boolean).join(' · ')) + '</span></div>' +
-        (nEmpresas > 1 ? '<button type="button" class="rz-mc-trocar">Trocar</button>' : '') + '</div>' +
-        '<button type="button" class="rz-x" aria-label="Fechar"><svg data-lucide="x"></svg></button>';
+        (nEmpresas > 1 ? '<button type="button" class="rz-mc-trocar">Trocar</button>' : '') + '</div>';
     // as iniciais (ou a foto) do avatar do topo, sem os atributos de clique dele
     const av = document.querySelector('.rz-hdr .rz-avatar');
     const alvo = h.querySelector('.rz-mc-av');
     if (av && alvo) av.childNodes.forEach(n => alvo.appendChild(n.cloneNode(true)));
     if (alvo && !alvo.childNodes.length) alvo.textContent = nome.split(/\s+/).filter(Boolean).slice(0, 2).map(p => p[0]).join('').toUpperCase();
-    h.querySelector('.rz-x').addEventListener('click', () => fecharSheet());
     h.querySelector('.rz-mc-trocar')?.addEventListener('click', () => { fecharSheet(); rzTrocarEmpresa(); });
     if (typeof rzIcones === 'function') rzIcones();
 }

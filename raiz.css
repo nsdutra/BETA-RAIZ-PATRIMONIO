@@ -1,6 +1,11 @@
 /* ============================================================================
    raiz.css — Raiz Patrimônio · estilos do app (index.html)
-   Versão: 1.1.0 · 21/10/2026
+   Versão: 1.2.0 · 21/10/2026
+
+   v1.2.0 (21/10/2026, sessão 20261021-1005-ux-onda1, demanda 15146a34; Nicola 21/10 10:02, "pode avançar") — ONDA 1 da revisão de usabilidade: escala de
+   texto em 6 tamanhos (24 · 17 · 15 · 14 · 12,5 · 12, tokens --fs-*), um preto só para o texto (o body herdava #3d4e47),
+   título de card em 600 e o resto do texto de lista em 500 (menos negrito); menu das iniciais sem o ✕, cartão verde na
+   largura toda. Bloco "ESCALA 2" no fim do arquivo.
 
    v1.1.0 (21/10/2026, sessão 20261021-0905-ux-ramo-menu, demanda 15146a34; de acordo do Nicola 21/10 09:01) — faixa do ramo
    na lista do Patrimônio em fundo claro, sem o número sobre o ícone, e menu das iniciais com cabeçalho verde, placas
@@ -1688,3 +1693,36 @@
 .rz-menu-conta .rz-act.rz-bad .rz-ic{display:none}
 .rz-menu-conta .rz-act.rz-bad > div:last-child{flex:none}
 .rz-menu-conta .rz-act.rz-bad > div:last-child::after{display:none}
+
+/* ============================================================================================================
+   ESCALA 2 — onda 1 da revisão de usabilidade (raiz.css 1.2.0, dem 15146a34; PROTOTIPO_REVISAO_USABILIDADE_RAIZ §4).
+   Seis tamanhos e o peso por papel: o tamanho organiza, o negrito só marca valor e seleção. Este bloco vem por último de
+   propósito — vence as camadas antigas das ondas sem apagá-las (elas saem quando cada tela for tocada, UXR-02).
+   ARMADILHA: raiz.css não tem @layer, então vence também as utilidades do Tailwind (font-bold, text-gray-800).
+   ============================================================================================================ */
+:root{--fs-heroi:24px;--fs-titulo:17px;--fs-card:15px;--fs-corpo:14px;--fs-sec:12.5px;--fs-min:12px}
+body{color:var(--ink)}
+/* títulos */
+.rz-card-h h3{font-size:var(--fs-card);font-weight:600}
+.rz-heroi-pat{font-size:var(--fs-heroi)}
+.rz-heroi-res b,.rz-heroi-3 b{font-size:var(--fs-titulo)}
+/* linhas de lista: título 14/500, detalhe 12,5, valor 14/600 */
+.rz-row .rz-tx b,#ativos-lista .rz-row .rz-tx b{font-size:var(--fs-corpo);font-weight:500}
+.rz-row .rz-tx span,#ativos-lista .rz-row .rz-tx span{font-size:var(--fs-sec)}
+#ativos-lista .rz-row .rz-rt b.rz-rt-v,.rz-row .rz-rt b{font-size:var(--fs-corpo);font-weight:600}
+.rz-row .rz-rt small.rz-rt-x,.rz-row .rz-rt small.rz-rt-vazio{font-size:var(--fs-sec)}
+/* ações de sheet, chips e abas: 500; o que está escolhido, 600 */
+.rz-act{font-weight:500}
+.rz-chip{font-weight:500}.rz-chip.rz-on{font-weight:600}
+#hoje-chips .rz-chip,#fc-chips .rz-chip,#fa-chips .rz-chip,#cme-chips .rz-chip,#lic-chips .rz-chip,.rz-seg.rz-fin-abas button{font-weight:500}
+#hoje-chips .rz-chip.rz-on,#fc-chips .rz-chip.rz-on,#fa-chips .rz-chip.rz-on,#cme-chips .rz-chip.rz-on,#lic-chips .rz-chip.rz-on,.rz-seg.rz-fin-abas button.rz-on{font-weight:600}
+/* barra de baixo: rótulo 12,5/500, o da aba aberta 600 */
+#bottom-nav-bar > button > span.text-\[12px\]{font-size:var(--fs-sec);font-weight:500}
+#bottom-nav-bar button.bottomnav-active > span.text-\[12px\]{font-weight:600}
+@media (min-width:1024px){#bottom-nav-bar > button > span.text-\[12px\]{font-size:var(--fs-corpo)!important}}
+/* piso de 12: a comparação do herói e do cockpit */
+.rz-vs{font-size:var(--fs-min)}
+
+/* Menu das iniciais sem o ✕: o cartão verde ocupa a largura toda */
+.rz-menu-conta .rz-sh-h.rz-mc-h{padding:8px 14px 4px}
+.rz-menu-conta .rz-mc-id{padding:12px 14px}
