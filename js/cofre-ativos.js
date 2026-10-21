@@ -1,6 +1,11 @@
 // ============================================================================
 // cofre-ativos.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.140.0 · 21/10/2026
+// Versão: 1.141.0 · 21/10/2026
+//
+// v1.141.0 (21/10/2026, sessão 20261021-0905-ux-ramo-menu, demanda 15146a34; de acordo do Nicola 21/10 09:01) — faixa do ramo
+//   na lista do Patrimônio: o número sai de cima do ícone e vai para depois do nome ("Imóveis 9"); o fundo deixa de ser a
+//   cor do ramo (o estilo mora no raiz.css 1.1.0). Total, alinhamento, recolher e a lista por empreendimento não mudam.
+// Versão anterior: 1.140.0 · 21/10/2026
 //
 // v1.140.0 (21/10/2026, sessão 20261021-0857-libs-sob-demanda, demanda 6b11c602; de acordo do Nicola 21/10 08:57) — a planilha da simulação de venda carrega o xlsx
 //   na hora (bibliotecas.js); sem rede, o aviso diz isso em vez de "não foi possível".
@@ -52,19 +57,11 @@
 // pago, correção, custo de aquisição, % pago e entrega) vai para o chip Financeiro do ativo, acima da lista de lançamentos;
 // (4) ⋮ do card: Nova parcela ou série, Abatimento (Antecipar, Amortizar ou Desconto numa tela só), Novo custo, Simular
 // venda (veio do Financeiro geral, com o Excel), Histórico do plano e Chaves recebidas.
-// Versão anterior: 1.131.0 · 20/10/2026
-//
-// v1.131.0 (20/10/2026, sessão 20261020-0027-compra-planta, demanda 83968339; de acordo do Nicola 01:12) — imóvel em
-// construção: "Adicionar uso" › Construção coletiva ou Na planta abre a tela de dados ÚNICA do plano de pagamento (o tipo só
-// troca o preenchimento: séries de parcelas, custos, comissão, índice, entrega e "Pagas até"), salva por
-// fn_plano_pagamento_criar; card "Plano de pagamento" na ficha (abaixo de Usos) com falta pagar, pago, correção, custo de
-// aquisição, próximas, séries, entrega e cronograma; ⋮ com Nova série, Novo custo, Antecipar, Amortizar, Desconto numa série
-// (fn_plano_pagamento_abater) e Chaves recebidas (conclui o uso da obra e abre Adicionar uso).
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.130.0 … v1.130.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.131.0 … v1.131.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '1.140.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.141.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 import { estado } from './cofre-estado.js';
 import { carregarBiblioteca } from './nucleo/bibliotecas.js'; // bibliotecas pesadas, sob demanda (dem 6b11c602)
 import * as api from './cofre-api.js';
@@ -647,9 +644,8 @@ export function renderAtivosLista(filtroTipo = '', filtroTexto = '') {
             .forEach(r => blocos.push({ ramo: r, itens: g[r] }));
     } else blocos.push({ ramo: null, itens: lista });
     const comAlertaTodos = ativosComAlerta(ocorrenciasPorAtivo);
-    // v1.125.0 (item 45, Nicola 19/10 17:02) — o cabeçalho do ramo é uma FAIXA na cor do ramo, de ponta a ponta: ícone do ramo maior
-    // com o contador dos ativos (como o principal com sub-ativos), o nome e, à direita, a soma do patrimônio do ramo, alinhada com
-    // a coluna dos ativos. Saem as 3 caixas (valor, quantidade, alertas) e o "Ver só".
+    // Cabeçalho do ramo: ícone na cor do ramo, nome com a quantidade ao lado e, à direita, a soma do patrimônio do ramo,
+    // alinhada com a coluna de valores dos ativos (dem 15146a34).
     const cardRamo = (r, itens) => {
         const info = (typeof rzRamoInfo === 'function' && rzRamoInfo(r)) || { nome: r, unidade_singular: 'ativo', unidade_plural: 'ativos' };
         const soma = info.soma_valor !== false;
@@ -665,8 +661,8 @@ export function renderAtivosLista(filtroTipo = '', filtroTexto = '') {
         const fechado = ramosRecolhidos.has(cod);
         const tg = `onclick="window.__rzAlternarRamo && window.__rzAlternarRamo('${cod}')"`;
         return `<div class="rz-ramo-faixa${fechado ? ' rz-ramo-fechado' : ''}" id="rz-ramo-faixa-${cod}" style="--ramo-grupo:var(--ramo-cor-${cod}, var(--sage))">` +
-            `<span class="rz-ramo-faixa-ic" role="button" tabindex="0" aria-expanded="${!fechado}" aria-label="${fechado ? 'Mostrar' : 'Recolher'} ${escapeHtml(info.nome)}" ${tg}><svg data-lucide="${escapeHtml(info.icone || 'circle')}"></svg><span class="rz-ramo-faixa-n">${itens.length}</span></span>` +
-            `<h3>${escapeHtml(info.nome)}</h3>${direita ? `<b>${escapeHtml(direita)}</b>` : ''}` +
+            `<span class="rz-ramo-faixa-ic" role="button" tabindex="0" aria-expanded="${!fechado}" aria-label="${fechado ? 'Mostrar' : 'Recolher'} ${escapeHtml(info.nome)}" ${tg}><svg data-lucide="${escapeHtml(info.icone || 'circle')}"></svg></span>` +
+            `<h3>${escapeHtml(info.nome)}<small class="rz-ramo-faixa-q">${itens.length}</small></h3>${direita ? `<b>${escapeHtml(direita)}</b>` : ''}` +
             `<button type="button" class="rz-ramo-faixa-tg" aria-expanded="${!fechado}" aria-label="${fechado ? 'Mostrar' : 'Recolher'} ${escapeHtml(info.nome)}" ${tg}><svg data-lucide="${fechado ? 'chevron-down' : 'chevron-up'}"></svg></button></div>`;
     };
     // F2.4 (UXR-15) — carteira só com imóveis: um card de convite no FIM da lista (nunca no topo).

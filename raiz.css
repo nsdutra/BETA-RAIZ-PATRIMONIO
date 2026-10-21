@@ -1,6 +1,10 @@
 /* ============================================================================
    raiz.css — Raiz Patrimônio · estilos do app (index.html)
-   Versão: 1.0.0 · 21/10/2026
+   Versão: 1.1.0 · 21/10/2026
+
+   v1.1.0 (21/10/2026, sessão 20261021-0905-ux-ramo-menu, demanda 15146a34; de acordo do Nicola 21/10 09:01) — faixa do ramo
+   na lista do Patrimônio em fundo claro, sem o número sobre o ícone, e menu das iniciais com cabeçalho verde, placas
+   neutras, valor à direita e Sair à parte. Bloco novo no fim do arquivo.
 
    v1.0.0 (21/10/2026, sessão 20261021-0030-trava-css, demanda 6b11c602; de acordo do Nicola 21/10 00:30) — criação.
    O bloco de estilos comum que vivia no head do index.html (até a Beta v1.457.0) passa para este arquivo, sem
@@ -1647,3 +1651,40 @@
         .rz-ia-atalhos{display:flex;gap:8px;margin-bottom:12px}
         .rz-ia-atalhos button{flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;padding:10px 4px;border:1px solid var(--line);border-radius:12px;background:var(--card);font:600 12.5px var(--font-body);color:var(--ink);cursor:pointer;min-height:56px}
         .rz-ia-atalhos svg{width:20px;height:20px;color:var(--brass-deep)}
+
+/* ============================================================================================================
+   Faixa do ramo e menu das iniciais (raiz.css 1.1.0, dem 15146a34; PROTOTIPO_REVISAO_USABILIDADE_RAIZ v1.4.0).
+   ============================================================================================================ */
+/* Faixa do ramo: fundo do card (a cor do ramo fica só no ícone); cantos inteiros quando a lista começa por um
+   empreendimento, unida ao card quando a lista vem logo abaixo. Padding e margens não mudam: o total segue alinhado
+   com a coluna de valores dos ativos. */
+.rz-ramo-faixa{background:var(--card);border-radius:var(--r-card);box-shadow:var(--sh-card)}
+#ativos-lista > .rz-ramo-faixa:has(+ .rz-card){border-radius:var(--r-card) var(--r-card) 0 0}
+.rz-ramo-faixa-q{margin-left:7px;font:600 12.5px var(--font-body);color:var(--muted);letter-spacing:0;font-variant-numeric:tabular-nums}
+
+/* Menu das iniciais: o cabeçalho é um cartão verde com as iniciais, nome, empresa · perfil e o Trocar */
+.rz-menu-conta .rz-sh-h.rz-mc-h{gap:6px;padding:8px 12px 4px 14px}
+.rz-mc-id{flex:1;min-width:0;display:flex;align-items:center;gap:12px;background:var(--pine);color:#fff;border-radius:16px;padding:12px 12px 12px 14px}
+.rz-mc-av{width:44px;height:44px;border-radius:50%;background:#efe3c6;color:var(--pine);display:flex;align-items:center;justify-content:center;font:700 14px var(--font-body);overflow:hidden;flex:none}
+.rz-mc-av img{width:100%;height:100%;object-fit:cover}
+.rz-mc-av svg{width:20px;height:20px}
+.rz-mc-tx{flex:1;min-width:0}
+.rz-mc-tx b{display:block;font:700 16px/1.25 var(--font-title);letter-spacing:-.01em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rz-mc-tx span{display:block;font-size:12.5px;color:rgba(255,255,255,.78);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rz-mc-trocar{flex:none;height:32px;padding:0 13px;border:0;border-radius:var(--r-pill);background:rgba(255,255,255,.16);color:#fff;font:600 12.5px var(--font-body);cursor:pointer}
+.rz-mc-trocar:active{background:rgba(255,255,255,.26)}
+/* grupos: título mais escuro, itens de 48 px sem descrição, valor à direita e a seta */
+.rz-menu-conta .rz-group{font-size:12.5px;font-weight:600;color:var(--ink);opacity:.72;margin-top:14px}
+.rz-menu-conta .rz-group:empty{display:none}
+.rz-menu-conta .rz-card.rz-list{padding:0 12px}
+.rz-menu-conta .rz-act{min-height:48px;padding:6px 2px;font-weight:500}
+.rz-menu-conta .rz-act > div:last-child{flex:1;min-width:0;display:flex;align-items:center;gap:8px}
+.rz-menu-conta .rz-act > div:last-child::after{content:"";width:7px;height:7px;margin:0 4px 0 auto;border-right:2px solid var(--sage);border-top:2px solid var(--sage);opacity:.6;transform:rotate(45deg);flex:none}
+.rz-menu-conta .rz-act small{margin:0 0 0 auto;font-size:12.5px;white-space:nowrap}
+.rz-menu-conta .rz-act > div:last-child:has(small)::after{margin-left:0}
+.rz-menu-conta .rz-act .rz-ic,.rz-menu-conta .rz-act .rz-ic.rz-ia{background:var(--tile);color:var(--pine)}
+/* Sair: cartão próprio, vermelho, centrado, sem placa nem seta */
+.rz-menu-conta .rz-act.rz-bad{justify-content:center;font-weight:600}
+.rz-menu-conta .rz-act.rz-bad .rz-ic{display:none}
+.rz-menu-conta .rz-act.rz-bad > div:last-child{flex:none}
+.rz-menu-conta .rz-act.rz-bad > div:last-child::after{display:none}

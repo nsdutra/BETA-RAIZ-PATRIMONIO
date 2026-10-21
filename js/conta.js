@@ -2,7 +2,13 @@
 // conta.js — Raiz Patrimônio · Conta e preferências: menu da conta, seção Sobre,
 //            licença, preferências de comunicação e de alerta, atalhos de
 //            configuração (Cofre, configuração inicial, cadastro do contador)
-// Versão: 1.3.0 · 19/10/2026
+// Versão: 1.4.0 · 21/10/2026
+//
+// v1.4.0 (21/10/2026, sessão 20261021-0905-ux-ramo-menu, demanda 15146a34; de acordo do Nicola 21/10 09:01, protótipo
+//   PROTOTIPO_REVISAO_USABILIDADE_RAIZ v1.4.0 seção 9) — menu das iniciais: cabeçalho verde com as iniciais, nome, empresa e
+//   perfil, e o Trocar ali (sai o item "Trocar empresa"); itens sem descrição, com o valor à direita só quando ele informa
+//   (plano, versão); placas de ícone neutras; Sair em cartão próprio no fim. Estilo no raiz.css 1.1.0.
+// Versão anterior: 1.3.0 · 19/10/2026
 //
 // v1.3.0 (19/10/2026, sessão 20261018-2344-temas, demanda 91a30125; FICHA_ROTINAS_E_ALERTAS_POR_TEMA_RAIZ v1.0.0, de acordo do Nicola 18/10 23:44) — Minhas notificações: avisos agrupados por tema; o que está desligado na empresa aparece
 // apagado (quem liga é o administrador em Minha empresa › Rotinas); a frequência só no convite diário.
@@ -23,30 +29,12 @@
 // js/conta.js o "./" passa a ser a pasta js/, e o caminho virava js/js/<módulo>.js (404). Licença, Dados da empresa
 // (e os boxes Documentos e Controles), Sobre, Minhas notificações e a volta para Ativos caíam no catch. Agora é
 // import('./<módulo>.js'), que bate com a chave do import map (./js/<módulo>.js resolvido a partir da raiz).
-//
-// Versão anterior: 1.0.0 · 10/10/2026
-//
-// v1.0.0 (10/10/2026, sessão 20261010-1500-onda2b-conta, demanda 6b11c602 — Onda 2b da
-// fragmentação, plano aprovado pelo Nicola 09/10 21:15) — 13 telas saíram do index.html
-// SEM UMA LINHA REESCRITA: cada função veio byte a byte e só ganhou "export". Chegam de
-// volta pela ponte rzPonteModulo, a mesma dos outros módulos R8.
-//
-// Sem injeção, como no js/partes.js (Onda 2a): `let` no topo do script clássico do index
-// está no escopo léxico global, que um módulo ES alcança como nome livre e sempre no valor
-// corrente. As 3 globais que este módulo ESCREVE — partesFiltroPapel, rzMenuOrigemTab e
-// LICENCA_ATUAL — foram conferidas uma a uma como `let` do index.
-//
-// O QUE NÃO VEIO NESTA FATIA, de propósito:
-//  · entrarNaEmpresa, mostrarSelecaoEmpresa, escolherEmpresa, rzTrocarEmpresa e
-//    renderizarListaSelecaoEmpresa. São o boot e a troca de empresa, e atribuem
-//    CLIENTE_ID_SUPABASE — estado de sessão. É o escopo da Onda 1c, que pede ficha própria:
-//    mover o dono do estado junto com as telas que o consomem misturaria duas decisões.
-//  · configurarFiltrosIniciais (345 bytes). O entrarNoSistema a chama SOLTA, sem await;
-//    virar assíncrona poderia deixar o primeiro render com o filtro errado. Não vale o risco
-//    por 345 bytes — é a mesma classe de armadilha do montarBoxDivisaoSocietaria.
-// ============================================================================
+// --------------------------------------------------------------------------
+// Versões anteriores (v1.0.0 … v1.0.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
+// mais recentes deste cabeçalho (VER-06).
 
-export const VERSAO = '1.3.0';  // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.4.0';  // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 
 // v1.71.0 — LGPD: tela de preferências de comunicação, 1 toggle por
 // mensagem que permite opt-out (permite_opt_out=true) — substitui o
@@ -158,44 +146,74 @@ export async function abrirPreferenciasComunicacao() {
     }
 }
 
+// Nome como gente escreve ("NICOLA SANTOS DUTRA" → "Nicola Santos Dutra"); conectivos ficam minúsculos.
+function rzNomeLegivel(t) {
+    const s = String(t || '').trim();
+    if (!s || s !== s.toUpperCase()) return s;
+    return s.toLowerCase().split(/\s+/).map((p, i) => (i && /^(da|de|do|das|dos|e)$/.test(p)) ? p : p.charAt(0).toUpperCase() + p.slice(1)).join(' ');
+}
+
+// Menu das iniciais (UXR-09, dem 15146a34): 4 grupos em cartões, valor à direita no lugar da descrição, Sair à parte.
+// O cabeçalho é refeito por cima do .rz-sh-h que o abrirSheetAcoes cria — o mesmo elemento, para não perder o arraste.
 export function abrirMenuConta() {
     const ir = (tab) => () => { rzMenuOrigemTab = tab; switchTab(tab); };
-    const plano = LICENCA_ATUAL && LICENCA_ATUAL.plano_codigo ? ('Plano ' + LICENCA_ATUAL.plano_codigo.charAt(0).toUpperCase() + LICENCA_ATUAL.plano_codigo.slice(1)) : 'Plano e consumo';
+    const cod = LICENCA_ATUAL && LICENCA_ATUAL.plano_codigo ? String(LICENCA_ATUAL.plano_codigo) : '';
+    const plano = cod ? cod.charAt(0).toUpperCase() + cod.slice(1) : '';
     const empresa = (CONFIG_CLIENTE && CONFIG_CLIENTE.nomeEmpresa) || '';
     const nEmpresas = Array.isArray(pessoaRowsSelecaoEmpresa) ? pessoaRowsSelecaoEmpresa.length : 0;
-    const minhaEmpresa = [
-        { icone: 'building', titulo: 'Dados da empresa', sub: 'Cadastro, fiscal e Pix', aoTocar: ir('tab-minha-empresa') },
-        { icone: 'users', titulo: 'Pessoas e acessos', sub: 'Quem usa e o que vê', codigo: 'pessoas.ver', aoTocar: ir('tab-pessoas') },
-        { icone: 'badge-check', titulo: 'Licença e plano', sub: plano, aoTocar: ir('tab-licenca') },
-        { icone: 'file-text', titulo: 'Relatórios', sub: 'Caixa, gerencial, resultados', codigo: 'relatorios.ver', aoTocar: ir('tab-relatorios-catalogo') }, // v1.313.1 — pedido do Nicola 07/10
-        { icone: 'file-check-2', titulo: 'Fiscal', sub: 'Reforma Tributária', codigo: 'fiscal.checkup', aoTocar: ir('tab-fiscal') }, // fica aqui até a etapa 6 (F2.5a)
-    ];
-    if (nEmpresas > 1) minhaEmpresa.unshift({ icone: 'repeat', titulo: 'Trocar empresa', sub: 'Você acessa ' + nEmpresas + ' empresas', aoTocar: rzTrocarEmpresa });
-    abrirSheetAcoes({
-        titulo: socioLogado || 'Conta',
-        sub: perfilLogado ? (empresa + ' · ' + perfilLogado) : empresa,
+    const perfil = perfilLogado ? String(perfilLogado).charAt(0).toUpperCase() + String(perfilLogado).slice(1) : '';
+    const nome = rzNomeLegivel(socioLogado) || 'Conta';
+    const sheet = abrirSheetAcoes({
+        titulo: nome,
+        sub: [empresa, perfil].filter(Boolean).join(' · '),
         grupos: [
-            { titulo: 'Minha empresa', acoes: minhaEmpresa },
+            { titulo: 'Minha empresa', acoes: [
+                { icone: 'building', titulo: 'Dados da empresa', aoTocar: ir('tab-minha-empresa') },
+                { icone: 'users', titulo: 'Pessoas e acessos', codigo: 'pessoas.ver', aoTocar: ir('tab-pessoas') },
+                { icone: 'badge-check', titulo: 'Licença e plano', sub: plano, aoTocar: ir('tab-licenca') },
+                { icone: 'file-text', titulo: 'Relatórios', codigo: 'relatorios.ver', aoTocar: ir('tab-relatorios-catalogo') },
+                { icone: 'file-check-2', titulo: 'Fiscal', codigo: 'fiscal.checkup', aoTocar: ir('tab-fiscal') },
+            ]},
             { titulo: 'Cadastros e regras', acoes: [
-                { icone: 'contact', titulo: 'Partes', sub: 'Locatários, fiadores…', codigo: 'contratos.ver', aoTocar: () => { partesFiltroPapel = 'todos'; ir('tab-partes')(); } },
-                { icone: 'file-signature', titulo: 'Minutas de contrato', sub: 'Modelos de contrato', codigo: 'minutas.gerar', aoTocar: ir('tab-minutas') },
-                { icone: 'landmark', titulo: 'Tipo de empreendimento', sub: 'Como os imóveis se agrupam', codigo: 'imoveis.editar', aoTocar: ir('tab-tipo-empreendimento') },
-                { icone: 'sparkles', tipo: 'ia', titulo: 'Regras de conciliação', sub: 'O que o Raiz decide só', codigo: 'conciliacao.configurar', aoTocar: ir('tab-regras-conciliacao') },
-                { icone: 'link', titulo: 'Links compartilhados', sub: 'Enviados a interessados', codigo: 'vitrine.links.gerenciar', aoTocar: ir('tab-links-vitrine') },
-                { icone: 'archive', titulo: 'Documentos arquivados', sub: 'Restaurar ou excluir', codigo: 'cofre.editar', aoTocar: () => abrirConfiguracaoCofre('arquivados') },
+                { icone: 'contact', titulo: 'Partes', codigo: 'contratos.ver', aoTocar: () => { partesFiltroPapel = 'todos'; ir('tab-partes')(); } },
+                { icone: 'file-signature', titulo: 'Minutas de contrato', codigo: 'minutas.gerar', aoTocar: ir('tab-minutas') },
+                { icone: 'landmark', titulo: 'Tipo de empreendimento', codigo: 'imoveis.editar', aoTocar: ir('tab-tipo-empreendimento') },
+                { icone: 'sparkles', titulo: 'Regras de conciliação', codigo: 'conciliacao.configurar', aoTocar: ir('tab-regras-conciliacao') },
+                { icone: 'link', titulo: 'Links compartilhados', codigo: 'vitrine.links.gerenciar', aoTocar: ir('tab-links-vitrine') },
+                { icone: 'archive', titulo: 'Documentos arquivados', codigo: 'cofre.editar', aoTocar: () => abrirConfiguracaoCofre('arquivados') },
             ]},
             { titulo: 'Preferências', acoes: [
-                { icone: 'bell', titulo: 'Notificações', sub: 'App, WhatsApp e e-mail', aoTocar: abrirPreferenciasComunicacao },
-                { icone: 'bot', titulo: 'Raiz IA no WhatsApp', sub: 'Consultas e avisos', aoTocar: abrirBotWhatsapp },
+                { icone: 'bell', titulo: 'Notificações', aoTocar: abrirPreferenciasComunicacao },
+                { icone: 'bot', titulo: 'Raiz IA no WhatsApp', aoTocar: abrirBotWhatsapp },
             ]},
             { titulo: 'Ajuda e conta', acoes: [
-                { icone: 'life-buoy', titulo: 'Suporte', sub: 'WhatsApp, e-mail e sugestões', aoTocar: abrirSuporte },
-                { icone: 'scroll-text', titulo: 'Termos e privacidade', sub: 'Como tratamos seus dados', aoTocar: () => window.open('https://raizpatrimonio.com.br/termos-de-uso', '_blank') },
-                { icone: 'info', titulo: 'Sobre o app', sub: APP_VERSAO, codigo: 'sistema.versoes.ver', aoTocar: abrirVersoesDev }, // era "Versões" (v1.244.0, 472927ba)
-                { icone: 'log-out', titulo: 'Sair', sub: 'Neste aparelho', aoTocar: fazerLogoutSupabase },
+                { icone: 'life-buoy', titulo: 'Suporte', aoTocar: abrirSuporte },
+                { icone: 'scroll-text', titulo: 'Termos e privacidade', aoTocar: () => window.open('https://raizpatrimonio.com.br/termos-de-uso', '_blank') },
+                { icone: 'info', titulo: 'Sobre o app', sub: String(APP_VERSAO || '').replace(/^Beta v/, ''), codigo: 'sistema.versoes.ver', aoTocar: abrirVersoesDev },
+            ]},
+            { titulo: '', acoes: [
+                { icone: 'log-out', tipo: 'bad', titulo: 'Sair', aoTocar: fazerLogoutSupabase },
             ]},
         ]
     });
+    if (!sheet) return;
+    sheet.classList.add('rz-menu-conta');
+    const h = sheet.querySelector('.rz-sh-h');
+    if (!h) return;
+    const esc = (t) => String(t || '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+    h.classList.add('rz-mc-h');
+    h.innerHTML = '<div class="rz-mc-id"><span class="rz-mc-av"></span><div class="rz-mc-tx"><b>' + esc(nome) + '</b><span>' +
+        esc([empresa, perfil].filter(Boolean).join(' · ')) + '</span></div>' +
+        (nEmpresas > 1 ? '<button type="button" class="rz-mc-trocar">Trocar</button>' : '') + '</div>' +
+        '<button type="button" class="rz-x" aria-label="Fechar"><svg data-lucide="x"></svg></button>';
+    // as iniciais (ou a foto) do avatar do topo, sem os atributos de clique dele
+    const av = document.querySelector('.rz-hdr .rz-avatar');
+    const alvo = h.querySelector('.rz-mc-av');
+    if (av && alvo) av.childNodes.forEach(n => alvo.appendChild(n.cloneNode(true)));
+    if (alvo && !alvo.childNodes.length) alvo.textContent = nome.split(/\s+/).filter(Boolean).slice(0, 2).map(p => p[0]).join('').toUpperCase();
+    h.querySelector('.rz-x').addEventListener('click', () => fecharSheet());
+    h.querySelector('.rz-mc-trocar')?.addEventListener('click', () => { fecharSheet(); rzTrocarEmpresa(); });
+    if (typeof rzIcones === 'function') rzIcones();
 }
 
 // v1.65.0 (pedido explícito) — TODO o bloco de "Minha Empresa" saiu

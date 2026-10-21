@@ -4,6 +4,20 @@ Histórico completo de versões do `index.html`, movido automaticamente pelo `ge
 
 ---
 
+NOVIDADES (Beta v1.455.0) — RAIZ IA VOLTA AS TELAS E NÃO ABRE O TECLADO (Nicola 20/10 22:49: "após entrar na opção
+escolhida e fechar, sair do Raiz IA. Volte as telas ao sair de um item… não posicione o cursor… está abrindo sempre o
+teclado"): fechar a Fatura do cartão ou o Calendário escolar volta para "Importar com IA", e fechar esta volta para a
+Raiz IA (rzIaVoltarAoFechar ganha o destino). Extrato bancário segue para Mensal, como antes. O campo da Raiz IA só
+recebe o cursor em computador (ponteiro fino); no celular o teclado só abre ao tocar no campo.
+Versão anterior (Beta v1.454.0):
+DATA: 20/10/2026 (sessão 20261020-2245-contratos-lista, demanda a871b47d)
+------------------------------------------------------------------
+Versões anteriores (v1.454.0 … v1.454.0): CHANGELOG_APP.md, na raiz do
+repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
+das 5 versões mais recentes deste cabeçalho.
+
+---
+
 NOVIDADES (Beta v1.454.0) — SAI A LISTA DE CONTRATOS; FINANCEIRO DO CONTRATO NO PADRÃO DO ATIVO (de acordo do Nicola 20/10
 22:45): sai a aba Patrimônio › Contratos (e a vista Ativos | Contratos); quem pedia a aba cai em Patrimônio, o atalho
 "contratos" também, e a busca do Hoje deixa de oferecer "ver todos" de contratos. contratos.js 1.63.0 — o Voltar da ficha
