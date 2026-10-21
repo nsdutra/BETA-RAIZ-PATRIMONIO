@@ -4,6 +4,18 @@ Histórico completo de versões do `index.html`, movido automaticamente pelo `ge
 
 ---
 
+NOVIDADES (Beta v1.448.0) — RAIZ IA › IMPORTAR COM IA (Nicola 20/10 19:18): o sheet da Raiz IA passa a reunir as importações
+que já existem — Extrato bancário, Fatura do cartão, Calendário escolar e Outro documento (contrato, apólice, boleto, nota,
+convite) — no lugar do único "Importar extrato". Cada uma abre a tela de sempre (fatura: Financeiro › Importar fatura;
+calendário: a tela única do agenda.js 1.9.0; documento: leitura do Cofre). Sem banco novo.
+Versão anterior (Beta v1.447.0):
+------------------------------------------------------------------
+Versões anteriores (v1.447.0 … v1.447.0): CHANGELOG_APP.md, na raiz do
+repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
+das 5 versões mais recentes deste cabeçalho.
+
+---
+
 NOVIDADES (Beta v1.447.0) — IMPORTAR CALENDÁRIO ESCOLAR (FICHA_FAMILIA_CALENDARIO_E_FERIADOS_RAIZ v1.0.0, E3, de acordo do
 Nicola 20/10 18:34): Agenda › ⋮ › Importar calendário escolar — lê o PDF/foto, separa por filho (escola, série e turma no
 cadastro da pessoa), tela única para marcar e confirmar. agenda.js 1.9.0. Banco: calendario_escolar_v1. Edge:

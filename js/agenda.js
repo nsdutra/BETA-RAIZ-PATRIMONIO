@@ -1,8 +1,14 @@
 // =====================================================================
 // RAIZ PATRIMÔNIO — js/agenda.js
-// VERSÃO: Beta v1.9.2 (20/10/2026 — demanda b3aeefaf)
+// VERSÃO: Beta v1.9.3 (20/10/2026 — demanda b3aeefaf)
 // LINHAS: (ver versoes.json)
 // -----------------------------------------------------------------
+// NOVIDADES (Beta v1.9.3) (20/10/2026, sessão 20261020-2117-calendario-lista, demanda b3aeefaf; Nicola 21:17 "os
+//   componentes ao abrir a cortina ficam grandes. Murilo e Tomás · Evento na escola pode ficar numa linha só menor. A sala
+//   também… e a confirmar. Abaixo as opções de alerta") — os ajustes da linha viram chips pequenos: 1ª linha Para quem ·
+//   Tipo · Turma (tocar abre a lista de escolha por cima, sem campo de seleção grande); 2ª linha Aviso: Sem · 1 dia ·
+//   3 dias | A confirmar (não coube na 1ª linha num celular de 400 px quando há turma).
+// Versão anterior (Beta v1.9.2):
 // NOVIDADES (Beta v1.9.2) (20/10/2026, sessão 20261020-1943-calendario-rapido, demanda b3aeefaf; Nicola 19:43 após a 1ª
 //   importação real: "lista quebrada e grande… cada compromisso em no máximo 2 linhas · avisar 1 dia antes ou 3 dias · mostre
 //   a data, ano e dia da semana") — a revisão do calendário fica em 2 linhas por compromisso: (1) marcar + título; (2) dia da
@@ -89,7 +95,7 @@
 // formatarMoedaBR, abrirSheet, abrirSheetAcoes, rzSheetCabecalho, fecharSheet, abrirAlertaItemControle,
 // abrirFichaContrato, switchTab, mostrarToast, rzDev.
 
-export const VERSAO = '1.9.2';
+export const VERSAO = '1.9.3';
 
 const TIPOS = {
     ocorrencia:   { rotulo: 'Ocorrência',  icone: 'wrench',          dominio: 'ocorrencias' },
@@ -485,6 +491,8 @@ const calChave = (escola, ativo, data, tituloChave) => `calendario:${CAL_NORM(es
 const calData = (d) => d ? `${d.slice(8, 10)}/${d.slice(5, 7)}` : '';
 // v1.9.2 — "sex 06/11/2026"; período "seg 19/10 – qui 29/10/2026"
 const calDiaSem = (d) => DIA_SEM[new Date(d + 'T12:00:00').getDay()];
+// v1.9.3 — lista de escolha do app (js/raiz-ui.js), carregada só quando usada
+const calEscolher = async (o) => (window.rzEscolher || (await import('./raiz-ui.js')).rzEscolher)(o);
 const calQuando = (ini, fim) => (!fim || fim === ini) ? `${calDiaSem(ini)} ${calData(ini)}/${ini.slice(0, 4)}`
     : `${calDiaSem(ini)} ${calData(ini)}${ini.slice(0, 4) !== fim.slice(0, 4) ? '/' + ini.slice(0, 4) : ''} – ${calDiaSem(fim)} ${calData(fim)}/${fim.slice(0, 4)}`;
 const CAL_RECOLHIDO = { outra_serie: 'Outras séries', passado: 'Datas que já passaram', feriado_na_agenda: 'Feriados que já estão na agenda' };
@@ -549,14 +557,24 @@ function revisarCalendario(sh, r) {
             l.situacao === 'escolher_turma' ? 'escolha a turma' : (l.aviso ? `aviso ${l.aviso} dia${l.aviso > 1 ? 's' : ''} antes` : 'sem aviso'),
             l.a_confirmar ? 'a confirmar' : '', l.motivo && CAL_RECOLHIDO[l.situacao] ? l.motivo : ''].filter(Boolean).join(' · ');
         const aberto = editando.has(l.id);
+        // v1.9.3 — ajustes em chips pequenos: Para · Tipo · Turma · A confirmar numa linha; Aviso na linha de baixo
+        const CH = 'height:28px;padding:0 8px;font-size:12px;gap:2px';
+        const seta = '<span style="font-size:9px;opacity:.6">▼</span>';
+        const turmaAtual = l.turmas && l.situacao !== 'escolher_turma' ? l.turmas.find(t => t.data === l.data_inicio) : null;
         const turma = l.turmas
-            ? `<select data-cal-turma="${l.id}"><option value="">Turma…</option>${l.turmas.map(t => `<option value="${t.data}"${t.data === l.data_inicio && l.situacao !== 'escolher_turma' ? ' selected' : ''}>${rzEsc(t.turma)} · ${calDiaSem(t.data)} ${calData(t.data)}</option>`).join('')}</select>` : '';
-        const ed = aberto ? `<div style="display:flex;flex-wrap:wrap;gap:6px;margin:8px 0 2px 32px">
-                <select data-cal-para="${l.id}">${opc.map(o => `<option value="${o.id}"${o.id === l.ativo_id ? ' selected' : ''}>${rzEsc(o.nome)}</option>`).join('')}</select>
-                <select data-cal-cat="${l.id}">${Object.entries(cats).map(([k, n]) => `<option value="${k}"${k === l.categoria ? ' selected' : ''}>${rzEsc(n)}</option>`).join('')}</select>
-                ${turma}
-                ${[[0, 'Sem aviso'], [1, '1 dia antes'], [3, '3 dias antes']].map(([n, t]) => `<button type="button" class="rz-chip${l.aviso === n ? ' rz-on' : ''}" data-cal-av="${l.id}" data-n="${n}">${t}</button>`).join('')}
-                <button type="button" class="rz-chip${l.a_confirmar ? ' rz-on' : ''}" data-cal-conf="${l.id}">A confirmar</button>
+            ? `<button type="button" class="rz-chip${l.situacao === 'escolher_turma' ? ' rz-warn' : ''}" style="${CH}" data-cal-turma="${l.id}">${turmaAtual ? rzEsc(turmaAtual.turma) : 'Turma'}${seta}</button>` : '';
+        const ed = aberto ? `<div style="margin:6px 0 2px 34px">
+                <div style="display:flex;flex-wrap:wrap;gap:5px">
+                    <button type="button" class="rz-chip" style="${CH}" data-cal-para="${l.id}"><span style="max-width:92px;overflow:hidden;text-overflow:ellipsis">${rzEsc(para)}</span>${seta}</button>
+                    <button type="button" class="rz-chip" style="${CH}" data-cal-cat="${l.id}"><span style="max-width:104px;overflow:hidden;text-overflow:ellipsis">${rzEsc(cats[l.categoria] || 'Tipo')}</span>${seta}</button>
+                    ${turma}
+                </div>
+                <div style="display:flex;flex-wrap:wrap;gap:5px;align-items:center;margin-top:6px">
+                    <span class="rz-sub" style="font-size:12px">Aviso</span>
+                    ${[[0, 'Sem'], [1, '1 dia'], [3, '3 dias']].map(([n, t]) => `<button type="button" class="rz-chip${l.aviso === n ? ' rz-on' : ''}" style="${CH}" data-cal-av="${l.id}" data-n="${n}">${t}</button>`).join('')}
+                    <span style="width:1px;height:18px;background:var(--line);margin:0 2px"></span>
+                    <button type="button" class="rz-chip${l.a_confirmar ? ' rz-on' : ''}" style="${CH}" data-cal-conf="${l.id}">A confirmar</button>
+                </div>
             </div>` : '';
         return `<div class="rz-ag-op${l.marcado ? ' rz-on' : ''}" style="padding:8px 0;border-bottom:1px solid var(--line)">
             <div style="display:flex;gap:10px;align-items:flex-start">
@@ -587,10 +605,22 @@ function revisarCalendario(sh, r) {
         corpo.querySelectorAll('[data-cal-av]').forEach(b => b.addEventListener('click', () => { const l = acha(b.dataset.calAv); l.aviso = Number(b.dataset.n); desenhar(); })); // v1.9.2
         corpo.querySelectorAll('[data-cal-ed]').forEach(b => b.addEventListener('click', () => { const id = b.dataset.calEd; editando.has(id) ? editando.delete(id) : editando.add(id); desenhar(); }));
         corpo.querySelectorAll('[data-cal-conf]').forEach(b => b.addEventListener('click', () => { const l = acha(b.dataset.calConf); l.a_confirmar = !l.a_confirmar; desenhar(); }));
-        corpo.querySelectorAll('[data-cal-para]').forEach(s => s.addEventListener('change', () => { acha(s.dataset.calPara).ativo_id = s.value; desenhar(); }));
-        corpo.querySelectorAll('[data-cal-cat]').forEach(s => s.addEventListener('change', () => { acha(s.dataset.calCat).categoria = s.value; desenhar(); }));
-        corpo.querySelectorAll('[data-cal-turma]').forEach(s => s.addEventListener('change', () => {
-            const l = acha(s.dataset.calTurma); if (!s.value) return; l.data_inicio = s.value; l.data_fim = s.value; l.marcado = true; if (l.situacao === 'escolher_turma') l.situacao = 'sugerido'; editando.delete(l.id); desenhar();
+        // v1.9.3 — escolha por lista (rzEscolher, empilhada sobre a cortina) no lugar do <select>
+        corpo.querySelectorAll('[data-cal-para]').forEach(b => b.addEventListener('click', async () => {
+            const l = acha(b.dataset.calPara);
+            const v = await calEscolher({ titulo: 'Para quem', opcoes: opc.map(o => ({ titulo: o.nome, sub: o.completo && o.completo !== o.nome ? o.completo : '', icone: 'user', valor: o.id })) });
+            if (v) { l.ativo_id = v; desenhar(); }
+        }));
+        corpo.querySelectorAll('[data-cal-cat]').forEach(b => b.addEventListener('click', async () => {
+            const l = acha(b.dataset.calCat);
+            const v = await calEscolher({ titulo: 'Tipo', opcoes: Object.entries(cats).map(([k, n]) => ({ titulo: n, icone: k === l.categoria ? 'check' : 'tag', valor: k })) });
+            if (v) { l.categoria = v; desenhar(); }
+        }));
+        corpo.querySelectorAll('[data-cal-turma]').forEach(b => b.addEventListener('click', async () => {
+            const l = acha(b.dataset.calTurma);
+            const v = await calEscolher({ titulo: 'Turma', sub: l.titulo, opcoes: l.turmas.map(t => ({ titulo: t.turma, sub: calQuando(t.data, t.data), icone: 'users', valor: t.data })) });
+            if (!v) return;
+            l.data_inicio = v; l.data_fim = v; l.marcado = true; if (l.situacao === 'escolher_turma') l.situacao = 'sugerido'; desenhar();
         }));
         corpo.querySelectorAll('[data-cal-grupo]').forEach(b => b.addEventListener('click', () => { const k = b.dataset.calGrupo; abertos.has(k) ? abertos.delete(k) : abertos.add(k); desenhar(); }));
         corpo.querySelector('#cal-cancelar').addEventListener('click', () => fecharSheet(true));
