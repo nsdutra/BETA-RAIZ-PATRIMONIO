@@ -27,13 +27,8 @@
 // rzAvisar/rzPerguntar/rzResumo. Excluir imóvel em Sheet com item vermelho; remover foto
 // (só arquiva) ganha "Desfazer"; divisão ≠ 100% vira aviso, sem "salvar assim" (o banco
 // exige 100%); o (i) de Energia abre resumo.
-//
-// Versão anterior: 1.6.1 · 03/10/2026
-//
-// v1.6.1 (F0.3, demanda 29bed5eb, sessão 20261003-1707-ux-base, "de acordo" do Nicola 03/10 23:57) — imóvel sem cidade deixa de ganhar "Belo Horizonte" por padrão — era
-// esse valor inventado que aparecia no recibo quando a cidade vem do imóvel.
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.6.0 … v1.6.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.6.1 … v1.6.1): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
 export const VERSAO = '1.10.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header

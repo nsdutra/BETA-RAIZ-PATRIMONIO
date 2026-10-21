@@ -1,7 +1,13 @@
 // ============================================================================
 // contratos.js — Raiz Patrimônio · Contratos (lista · ficha · formulário ·
 //                 status/reajuste/detalhes · fiadores · documentos · histórico)
-// Versão: 1.63.0 · 20/10/2026
+// Versão: 1.64.0 · 20/10/2026
+//
+// v1.64.0 (20/10/2026, sessão 20261020-2302-contrato-menu, demanda e83c2a46; de acordo do Nicola 23:02) — ficha do contrato: o ⋮
+// do topo fica só com a Situação (Ativar, Suspender, Reativar, Encerrar, Excluir) e Gerar minuta. Cada ação vai para o card do
+// assunto: Condições (Dados do contrato, Editar contrato, Renovar), Distribuição (Editar distribuição), Reajuste › Pelo contrato
+// (Reajustar) e Financeiro (linha "Ver no Financeiro"). Adicionar recebimento, parte, locatário e documento já estavam nos cards.
+// Versão anterior: 1.63.0 · 20/10/2026
 //
 // v1.63.0 (20/10/2026, sessão 20261020-2245-contratos-lista, demanda a871b47d; de acordo do Nicola 22:45) — a lista de
 // contratos (Patrimônio › Contratos) saiu. A edição aberta da ficha não troca mais de aba; o Voltar da ficha sem origem vai
@@ -27,18 +33,8 @@
 // v1.60.0 (14/10/2026, sessão 20261014-2215-ajustes-9d, demanda a05ad2ee; teste do Nicola 14/10 22:12 — "no menu ativos achei
 // uns itens ainda grandinhos") — textos dentro de condição (sub/titulo com ? :) e dicionários de descrição também no limite
 // da D6 (ação 24, descrição 28). Nada de comportamento mudou.
-// Versão anterior: 1.59.0 · 14/10/2026
-//
-// v1.59.0 (14/10/2026, sessão 20261014-2145-onda9c-textos, demanda a05ad2ee; onda 9c do estudo PROTOTIPO_UX_DENSIDADE_RAMOS_RAIZ
-// v1.2.0, D6 seção 10) — textos no limite: ação até 24 caracteres, descrição até 28, aviso até 40 com o resultado e tela
-// vazia em 1 frase de até 40. A explicação longa fica na confirmação, quando existe. Nada de comportamento mudou.
-// Versão anterior: 1.58.0 · 14/10/2026
-//
-// v1.58.0 (14/10/2026, sessão 20261014-2130-ajustes-9b, demanda a05ad2ee; onda 9b do estudo PROTOTIPO_UX_DENSIDADE_RAMOS_RAIZ
-// v1.2.0, D6 seção 10) — textos no limite: ação até 24 caracteres, descrição até 28 (só quando muda a decisão), aviso até
-// 40 com o resultado. A explicação longa fica na confirmação, que já existia. Nada de comportamento mudou.
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.57.0 … v1.57.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.58.0 … v1.59.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
 import { avaliarProntidaoContratoParaMinuta } from './minutas.js'; // v1.0.1
@@ -50,7 +46,7 @@ import { emitirEscrita, aoEscrever } from './raiz-eventos.js'; // v1.18.0 — Fa
 import { renderizarBlocoEndereco, lerBlocoEndereco } from './comum-endereco.js';
 import { formatarEnderecoParte } from './comum-partes.js';
 
-export const VERSAO = '1.63.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.64.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 
 /** Ponto de entrada do switchTab('tab-contratos'). */
 export function montarAbaContratos() {
@@ -1668,7 +1664,7 @@ if (!window.__rzListenerEscritaParteContratoLigado) {
                         <div class="rz-card-f"><button type="button" onclick="verAlertasContrato('${con.id}')" class="rz-btn rz-btn-1 rz-sm"><svg data-lucide="bell"></svg> Ver alertas</button></div>
                     </div>` : ''}
                     <div class="rz-card">
-                        <div class="rz-card-h"><h3>Condições</h3></div>
+                        <div class="rz-card-h"><h3>Condições</h3><button type="button" onclick="abrirAcoesCondicoesContrato('${con.id}')" class="rz-more" aria-label="Ações das condições"><svg data-lucide="ellipsis-vertical"></svg></button></div>
                         <div class="rz-kv">
                             ${kv('Início', formatarDataBR(con.inicio))}
                             ${kv('Fim', formatarDataBR(con.fim))}
@@ -1696,7 +1692,7 @@ if (!window.__rzListenerEscritaParteContratoLigado) {
                          proprietários), não propriedade_ativo (dono do bem).
                          montarDistribuicaoContrato() abaixo. -->
                     <div class="rz-card" id="fc-card-distribuicao">
-                        <div class="rz-card-h"><h3>Distribuição</h3><span class="rz-sub">Rateio do aluguel entre proprietários</span></div>
+                        <div class="rz-card-h"><h3>Distribuição</h3><span class="rz-sub">Rateio do aluguel entre proprietários</span><button type="button" onclick="abrirAcoesDistribuicaoContrato('${con.id}')" class="rz-more" aria-label="Ações da distribuição"><svg data-lucide="ellipsis-vertical"></svg></button></div>
                         <div id="fc-distribuicao">${rzSk('linhas', 2)}</div>
                     </div>
                 </div>
@@ -1731,6 +1727,7 @@ if (!window.__rzListenerEscritaParteContratoLigado) {
                              qualquer aba. -->
                         <div id="fc-fin-comp"></div> <!-- v1.51.0 — visão única por competência (rzFinCompetencias) -->
                         <button type="button" class="rz-add" data-rz-codigo="mensal.ver" onclick="if (rzMostrarBloqueio('mensal.ver')) return; window.abrirNovoRecebimento && window.abrirNovoRecebimento('${con.id}')"><svg data-lucide="plus"></svg>Adicionar recebimento</button>
+                        <button type="button" class="rz-add" data-rz-codigo="mensal.ver" onclick="if (rzMostrarBloqueio('mensal.ver')) return; abrirFinanceiroDoContrato('${con.id}')"><svg data-lucide="wallet"></svg>Ver no Financeiro</button> <!-- v1.64.0 — saiu do ⋮ do topo -->
 
                     </div>
                 </div>
@@ -1742,7 +1739,7 @@ if (!window.__rzListenerEscritaParteContratoLigado) {
                         <p class="rz-desc" id="fc-reaj-alerta-texto" data-aniversario="${escapeHtmlSaidas(formatarDataBR(proxAniversarioStr))}">O contrato completa 12 meses em ${formatarDataBR(proxAniversarioStr)}. Pelo índice cadastrado${con.reajuste ? ' (' + escapeHtmlSaidas(con.reajuste) + ')' : ''}, a regra do contrato permite reajustar o aluguel a partir dessa data.</p>
                     </div>` : ''}
                     <div class="rz-card">
-                        <div class="rz-card-h" style="justify-content:space-between"><h3>Pelo contrato</h3><button type="button" onclick="abrirInfoReajusteContrato()" class="text-slate-400" title="O que é isso?" aria-label="O que é isso?" style="line-height:0"><svg data-lucide="info" style="width:14px;height:14px"></svg></button></div>
+                        <div class="rz-card-h" style="justify-content:space-between"><h3>Pelo contrato</h3><button type="button" onclick="abrirInfoReajusteContrato()" class="text-slate-400" title="O que é isso?" aria-label="O que é isso?" style="line-height:0"><svg data-lucide="info" style="width:14px;height:14px"></svg></button>${con.status === 'Assinando' ? '' : `<button type="button" onclick="abrirAcoesReajusteContrato('${con.id}')" class="rz-more" aria-label="Ações do reajuste"><svg data-lucide="ellipsis-vertical"></svg></button>`}</div>
                         <div class="rz-kv">
                             ${kv('Aluguel atual', `${formatarMoedaBR(con.valor)}/mês`)}
                             ${kv('Índice cadastrado', escapeHtmlSaidas(con.reajuste || '—'))}
@@ -2794,26 +2791,43 @@ if (!window.__rzListenerEscritaParteContratoLigado) {
             acoes.push({ icone: 'trash-2', titulo: 'Excluir contrato', codigo: 'contratos.excluir', tipo: 'bad', aoTocar: () => excluirContrato(con.id) });
             // v1.52.0 (UX onda 3, D11) — é o ⋮ do topo da ficha: todas as ações do contrato, em grupos curtos; os ⋮ dos
             // cabeçalhos dos cards saíram. As de situação (suspender, reativar, encerrar, excluir) ficam por último.
-            const situacao = acoes.filter(a => /contrato$/.test(a.titulo) && /^(Suspender|Reativar|Encerrar|Excluir)/.test(a.titulo));
-            const doContrato = acoes.filter(a => !situacao.includes(a));
-            const abre = (con.status === 'Ativo' || con.status === 'Assinando');
-            const financeiro = emAssinatura ? [] : [
-                { icone: 'plus', titulo: 'Adicionar recebimento', codigo: 'mensal.ver', sub: 'Avulso, deste contrato', aoTocar: () => { if (typeof window.abrirNovoRecebimento === 'function') window.abrirNovoRecebimento(con.id); } },
-                { icone: 'wallet', titulo: 'Ver no Financeiro', codigo: 'mensal.ver', sub: 'Todos os meses do imóvel', aoTocar: () => { document.getElementById('men-filtro-imovel').value = con.imovelId; document.getElementById('men-filtro-imovel-resumo').textContent = (imo ? imo.empreendimento : '-'); switchTab('tab-mensal'); renderMensalidades(); } },
-            ];
-            const partesAnexos = [
-                ...(!con.locatario ? [{ icone: 'user-plus', titulo: 'Adicionar locatário', codigo: 'contratos.editar', sub: 'Quem aluga o imóvel', aoTocar: () => abrirFichaParteDoContrato(con.id, 'locatario') }] : []),
-                { icone: 'user-plus', titulo: 'Adicionar parte', codigo: 'contratos.editar', sub: 'Novo fiador do contrato', aoTocar: () => adicionarParteContrato(con.id) },
-                { icone: 'pie-chart', titulo: 'Editar distribuição', codigo: 'contratos.editar', sub: 'Rateio entre proprietários', aoTocar: () => { if (typeof abrirAlteracoesDivisaoSocietaria === 'function') abrirAlteracoesDivisaoSocietaria(con.imovelId, con.id); else editarContrato(con.id); } },
-                ...(abre ? [{ icone: 'paperclip', titulo: 'Adicionar documento', codigo: 'cofre.upload', sub: 'Com IA ou só o arquivo', aoTocar: () => abrirAcoesAnexosContrato(con.id) }] : []),
-            ];
+            // v1.64.0 (dem e83c2a46, de acordo do Nicola 20/10 23:02; mesmo critério da ficha do ativo 1.138.0) — o ⋮ do topo fica
+            // só com o que vale para o contrato inteiro: a situação e a minuta. Dados/Editar/Renovar foram para o ⋮ de Condições,
+            // Editar distribuição para o de Distribuição, Reajustar para o de "Pelo contrato", Ver no Financeiro para o card
+            // Financeiro; Adicionar recebimento, parte, locatário e documento já estão nos próprios cards.
+            const situacao = acoes.filter(a => /contrato$/.test(a.titulo) && /^(Ativar|Suspender|Reativar|Encerrar|Excluir)/.test(a.titulo));
+            const minuta = acoes.filter(a => a.titulo === 'Gerar minuta');
             const grupos = [
-                { titulo: 'Contrato', acoes: doContrato },
-                { titulo: 'Financeiro', acoes: financeiro },
-                { titulo: 'Partes e anexos', acoes: partesAnexos },
+                { titulo: 'Documento', acoes: minuta },
                 { titulo: 'Situação', acoes: situacao },
             ].filter(g => g.acoes.length);
             abrirSheetAcoes({ titulo: con.locatario || 'Contrato', sub: imo ? `${imo.enderecoRua || ''}, ${imo.enderecoNum || ''}` : '', grupos });
+        }
+
+        // v1.64.0 (dem e83c2a46) — ⋮ dos cards da ficha do contrato
+        export function abrirAcoesCondicoesContrato(contratoId) {
+            const con = contratos.find(c => c.id === contratoId);
+            if (!con || typeof abrirSheetAcoes !== 'function') return;
+            const acoes = [
+                { icone: 'file-text', titulo: 'Dados do contrato', codigo: 'contratos.ver', sub: 'Só leitura', aoTocar: () => abrirDadosContratoLeitura(con.id) },
+                { icone: 'pencil', titulo: 'Editar contrato', codigo: 'contratos.editar', sub: 'Datas, valor, índice e partes', aoTocar: () => abrirEdicaoContratoContextual(con.id, 'fichaContrato', con.id) },
+            ];
+            if (con.status !== 'Assinando') acoes.push({ icone: 'refresh-cw', titulo: 'Renovar contrato', codigo: 'contratos.estender', sub: 'Novo fim e valor', aoTocar: () => renovarContrato(con.id) });
+            abrirSheetAcoes({ titulo: 'Condições', sub: con.locatario || 'Contrato', acoes });
+        }
+        export function abrirAcoesReajusteContrato(contratoId) {
+            const con = contratos.find(c => c.id === contratoId);
+            if (!con || typeof abrirSheetAcoes !== 'function') return;
+            abrirSheetAcoes({ titulo: 'Reajuste', sub: con.locatario || 'Contrato', acoes: [
+                { icone: 'trending-up', titulo: 'Reajustar contrato', codigo: 'contratos.reajustar', sub: 'Novo valor e vigência', aoTocar: () => lancarReajusteContrato(con.id) },
+            ] });
+        }
+        export function abrirFinanceiroDoContrato(contratoId) {
+            const con = contratos.find(c => c.id === contratoId); if (!con) return;
+            const imo = imoveis.find(i => i.id === con.imovelId);
+            document.getElementById('men-filtro-imovel').value = con.imovelId;
+            document.getElementById('men-filtro-imovel-resumo').textContent = (imo ? imo.empreendimento : '-');
+            switchTab('tab-mensal'); renderMensalidades();
         }
 
         // v1.34.0 (pedido do Nicola, 02/10/2026) — "Dados do contrato": tudo o que

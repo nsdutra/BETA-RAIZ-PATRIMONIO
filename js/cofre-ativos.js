@@ -63,12 +63,8 @@
 // de Patrimônio o valor do ativo sai da linha de baixo e vai para a direita da linha, na coluna da soma da faixa do ramo
 // (uma linha a menos por ativo); (2) Dados do ativo: a data de nascimento ganha a idade entre parênteses — "29/08/1981 (45
 // anos)"; abaixo de 1 ano, em meses (pet).
-// Versão anterior: 1.129.0 · 19/10/2026
-//
-// v1.129.0 (19/10/2026, sessão 20261019-2217-carga-silva-arrend, demanda 9404081c item 59; print do Nicola 22:19 — "1981-08-29")
-// — Dados do ativo: campo de data (ex.: Data de nascimento) aparece como dd/mm/aaaa, não no formato do banco.
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.128.0 … v1.128.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.129.0 … v1.129.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
 export const VERSAO = '1.139.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header

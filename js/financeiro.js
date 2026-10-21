@@ -37,21 +37,8 @@
 // "parcela 3/10 · faltam 7 · R$ X a vencer" e diz que a classificação vale para as outras parcelas da mesma compra;
 // a regra PARC ganha nome no resumo da conciliação. Leitura da fatura e do extrato (PDF/foto) com o progresso por
 // etapas da leitura de documento (rzProgressoLeitura, raiz-ui 1.6.0) no lugar do "Lendo…".
-// Versão anterior: 1.70.0 · 19/10/2026
-//
-// v1.70.0 (19/10/2026, sessão 20261019-2244-carga-silva-ajustes2, demanda 9404081c item 60; Nicola 22:44 — "apenas na segunda
-// vez que vinculado e salvo é que aparece o vínculo correto") — "✓ Confirmar pagamento" no formulário da despesa gravava só
-// status, data e forma do pagamento: o ativo (e o resto que tivesse sido mudado na mesma tela) se perdia, e só um 2º Salvar
-// gravava. Agora o pagamento grava junto o que está no formulário (ativo, categoria, descrição, valor, datas, fornecedor
-// escolhido, reembolsável e observação). Fornecedor novo continua pedindo Salvar antes.
-// Versão anterior: 1.69.0 · 19/10/2026
-//
-// v1.69.0 (19/10/2026, sessão 20261019-2217-carga-silva-arrend, demanda 9404081c item 57; pedido do Nicola 22:17, print das Saídas
-// da Rumo) — tocar numa despesa mostra, como 1ª linha do sheet, o ATIVO a que ela está ligada (ou "Da empresa") e o destino
-// (programa, safra, fase ou item), sem precisar abrir o formulário; tocar na linha do ativo abre a ficha dele. Antes o
-// ativo só aparecia no fim do subtítulo, que cortava em nomes longos.
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.68.0 … v1.68.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.69.0 … v1.70.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
 export const VERSAO = '1.75.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
