@@ -1,6 +1,10 @@
 // ============================================================================
 // js/fechamento.js — Raiz Patrimônio · Fechamento da competência
-// Versão: 1.15.0 · 14/10/2026
+// Versão: 1.16.0 · 21/10/2026
+//
+// v1.16.0 (21/10/2026, sessão 20261021-0857-libs-sob-demanda, demanda 6b11c602; de acordo do Nicola 21/10 08:57) — o jsPDF carrega na hora (bibliotecas.js), antes de montar
+// os PDFs do pacote; fechamentoMontarPdfPacote continua síncrona.
+// Versão anterior: 1.15.0 · 14/10/2026
 //
 // v1.15.0 (14/10/2026, sessão 20261014-2215-ajustes-9d, demanda a05ad2ee; teste do Nicola 14/10 22:12 — "no menu ativos achei
 // uns itens ainda grandinhos") — textos dentro de condição (sub/titulo com ? :) e dicionários de descrição também no limite
@@ -19,24 +23,17 @@
 // v1.12.2 (07/10/2026, sessão 20261007-1721-rolo-changelog, demanda 2507d554 — VER-06, "de acordo" do Nicola 07/10 17:21) — SÓ
 // CABEÇALHO: as versões além das 5 mais recentes rolaram para o CHANGELOG_MODULOS.md.
 // Nenhuma linha de código mudou — conferido token a token contra o publicado.
-//
-// Versão anterior: 1.12.1 · 04/10/2026
-//
-// v1.12.1 (04/10/2026, demanda cad6ec67 — correção dos testes da P2): a
-// rotina "NFS-e da competência" ficava em cache até trocar de empresa;
-// ligar/desligar em Minha empresa só aparecia no Financeiro depois de
-// recarregar a página. Agora também reverifica quando o financeiro.js
-// avança window.__rzFinRotinasEpoca (a cada entrada na aba Financeiro).
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.12.0 … v1.12.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.12.1 … v1.12.1): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '1.15.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.16.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 
 // v1.3.0 (Fase 1 do wrapper de escrita, rollout Financeiro) — emitirEscrita
 // é o evento padrão pra "algo mudou que módulos DE FORA deste arquivo podem
 // precisar saber" (ver changelog do topo). aoEscrever usado só pelo listener
 // interno registrado em fechamentoAtualizarCard(), logo abaixo.
+import { carregarBiblioteca } from './nucleo/bibliotecas.js'; // bibliotecas pesadas, sob demanda (dem 6b11c602)
 import { emitirEscrita, aoEscrever } from './raiz-eventos.js';
 
 let fechamentoUltimoEstado = null; // último resultado de fn_fechamento_verificar (cache pro Sheet de ações e pro botão dedicado)
@@ -656,6 +653,7 @@ async function fechamentoGerarEcompartilhar(contadorId, canal, competencias, opc
     let arquivos = [];
     if (opcoes.pdf) {
         try {
+            await carregarBiblioteca('jspdf');
             arquivos = pacotes.map(p => fechamentoMontarPdfPacote(p));
         } catch (e) {
             console.error('[fechamento] montar PDF do pacote', e);

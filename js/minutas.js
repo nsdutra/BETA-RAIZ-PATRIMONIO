@@ -1,7 +1,11 @@
 // ============================================================================
 // minutas.js — Raiz Patrimônio · Minutas de contrato (modelos, placeholders,
 //               geração da minuta preenchida, minutização de um contrato real)
-// Versão: 1.6.0 · 14/10/2026
+// Versão: 1.7.0 · 21/10/2026
+//
+// v1.7.0 (21/10/2026, sessão 20261021-0857-libs-sob-demanda, demanda 6b11c602; de acordo do Nicola 21/10 08:57) — JSZip e pdf.js carregam na hora (bibliotecas.js): gerar a
+// minuta, ler o .docx e ler o PDF de um contrato real esperam a biblioteca antes de começar.
+// Versão anterior: 1.6.0 · 14/10/2026
 //
 // v1.6.0 (14/10/2026, sessão 20261014-2215-ajustes-9d, demanda a05ad2ee; teste do Nicola 14/10 22:12 — "no menu ativos achei
 // uns itens ainda grandinhos") — textos dentro de condição (sub/titulo com ? :) e dicionários de descrição também no limite
@@ -25,20 +29,14 @@
 // placeholders vira Sheet empilhado (antes abria ATRÁS do formulário da minuta, z-index 96 < 97);
 // escolha entre minutas aplicáveis vira Sheet de ações; formulário da minuta em .rz-f; lista vazia
 // vira o vazio que convida (IA lê um contrato real; manual: enviar o .docx).
-//
-// Versão anterior: 1.2.0 · 04/10/2026
-//
-// v1.2.0 (F0.2b do PLANO_UX, demanda 9e4aca28, sessão 20261003-1707-ux-base; UXR-29/30) — zero diálogo nativo: 20 alert() e 2 confirm() viram
-// rzAvisar/rzPerguntar/rzResumo; excluir minuta em Sheet com item vermelho; a lista do que
-// falta para gerar a minuta vira resumo de várias linhas.
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.1.0 … v1.1.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.2.0 … v1.2.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-
+import { carregarBiblioteca } from './nucleo/bibliotecas.js'; // bibliotecas pesadas, sob demanda (dem 6b11c602)
 import { emitirEscrita, aoEscrever } from './raiz-eventos.js'; // v1.1.0 — Fase 1 do wrapper de escrita
 
-export const VERSAO = '1.6.0'; // v-check: manter igual ao header
+export const VERSAO = '1.7.0'; // v-check: manter igual ao header
 
 /** Ponto de entrada do switchTab('tab-minutas'). */
 export function montarAbaMinutas() {
@@ -852,6 +850,7 @@ if (!window.__rzListenerEscritaMinutaLigado) {
         // {{placeholder}} pelo valor real, e gera um novo .docx (Blob) —
         // pronto pra baixar/enviar, sem precisar de nenhum servidor.
         export async function preencherMinutaDocx(arrayBufferDocx, valores) {
+            await carregarBiblioteca('jszip');
             const zip = await JSZip.loadAsync(arrayBufferDocx);
 
             const caminhoDocumento = 'word/document.xml';
@@ -917,6 +916,7 @@ if (!window.__rzListenerEscritaMinutaLigado) {
         }
 
         export async function extrairTextoDocxMinutizacao(arrayBuffer) {
+            await carregarBiblioteca('jszip');
             const zip = await JSZip.loadAsync(arrayBuffer);
             const arquivoXml = zip.file('word/document.xml');
             if (!arquivoXml) throw new Error('Arquivo .docx inválido (não encontrei word/document.xml dentro dele).');
@@ -946,10 +946,7 @@ if (!window.__rzListenerEscritaMinutaLigado) {
         // (vão pequeno/zero) não ganha espaço; palavras realmente
         // separadas (vão maior) continuam ganhando.
         export async function extrairTextoPdfMinutizacao(arrayBuffer) {
-            if (typeof pdfjsLib === 'undefined') throw new Error('Biblioteca de leitura de PDF não carregou — recarregue a página e tente de novo.');
-            if (!pdfjsLib.GlobalWorkerOptions.workerSrc) {
-                pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
-            }
+            const pdfjsLib = await carregarBiblioteca('pdfjs'); // já com o worker configurado
             const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
             const paginas = [];
             for (let i = 1; i <= pdf.numPages; i++) {
@@ -1000,6 +997,7 @@ if (!window.__rzListenerEscritaMinutaLigado) {
         // + docProps/app.xml. Reaproveita escaparXml() já existente (usada
         // por preencherMinutaDocx) — mesma função, um lugar só.
         export async function gerarDocxDoTextoMinutizacao(tituloDocumento, linhasTexto) {
+            await carregarBiblioteca('jszip');
             const zip = new JSZip();
 
             const contentTypes = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n' +

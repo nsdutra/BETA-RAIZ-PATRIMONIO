@@ -1,6 +1,10 @@
 // ============================================================================
 // cofre-ativos.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.139.0 · 20/10/2026
+// Versão: 1.140.0 · 21/10/2026
+//
+// v1.140.0 (21/10/2026, sessão 20261021-0857-libs-sob-demanda, demanda 6b11c602; de acordo do Nicola 21/10 08:57) — a planilha da simulação de venda carrega o xlsx
+//   na hora (bibliotecas.js); sem rede, o aviso diz isso em vez de "não foi possível".
+// Versão anterior: 1.139.0 · 20/10/2026
 //
 // v1.139.0 (20/10/2026, sessão 20261020-2202-financeiro-ativo, demanda 9359f50f; protótipo PROTOTIPO_FINANCEIRO_DO_ATIVO_RAIZ
 //   v1.1.0, de acordo do Nicola 22:02) — chip Financeiro do ativo: o Balanço pendente mostra o saldo partido (rótulo "a receber"
@@ -56,19 +60,13 @@
 // fn_plano_pagamento_criar; card "Plano de pagamento" na ficha (abaixo de Usos) com falta pagar, pago, correção, custo de
 // aquisição, próximas, séries, entrega e cronograma; ⋮ com Nova série, Novo custo, Antecipar, Amortizar, Desconto numa série
 // (fn_plano_pagamento_abater) e Chaves recebidas (conclui o uso da obra e abre Adicionar uso).
-//
-// Versão anterior: 1.130.0 · 19/10/2026
-//
-// v1.130.0 (19/10/2026, sessão 20261019-2244-carga-silva-ajustes2, demanda 9404081c itens 61 e 62; Nicola 22:44) — (1) na lista
-// de Patrimônio o valor do ativo sai da linha de baixo e vai para a direita da linha, na coluna da soma da faixa do ramo
-// (uma linha a menos por ativo); (2) Dados do ativo: a data de nascimento ganha a idade entre parênteses — "29/08/1981 (45
-// anos)"; abaixo de 1 ano, em meses (pet).
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.129.0 … v1.129.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.130.0 … v1.130.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '1.139.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.140.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 import { estado } from './cofre-estado.js';
+import { carregarBiblioteca } from './nucleo/bibliotecas.js'; // bibliotecas pesadas, sob demanda (dem 6b11c602)
 import * as api from './cofre-api.js';
 import { mostrarToast, erroInline, refrescarIcones, alternarToggle, abrirModal, fecharModal, modalGenerico, perguntar, avisarComDesfazer, escolher } from './cofre-ui.js';
 import { mudarTela } from './cofre-navegacao.js';
@@ -3473,7 +3471,7 @@ async function abrirSimulacaoVendaAtivo(a) {
 }
 // Excel: Resumo, Mês a mês (saída, pago acumulado, taxa e saldo reajustado) e Premissas
 async function exportarSimulacaoVendaAtivo(a) {
-    if (typeof XLSX === 'undefined') { mostrarToast('Não foi possível gerar a planilha.', 'erro'); return; }
+    try { await carregarBiblioteca('xlsx'); } catch (e) { mostrarToast(e.message, 'erro'); return; }
     let r;
     try { r = await simBuscar(a); } catch (e) { mostrarToast(e?.message || 'Não foi possível simular.', 'erro'); return; }
     const s = r?.simulacao; if (!s) { mostrarToast('Sem plano para exportar.', 'aviso'); return; }

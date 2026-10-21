@@ -4,6 +4,21 @@ Histórico completo de versões do `index.html`, movido automaticamente pelo `ge
 
 ---
 
+NOVIDADES (Beta v1.454.0) — SAI A LISTA DE CONTRATOS; FINANCEIRO DO CONTRATO NO PADRÃO DO ATIVO (de acordo do Nicola 20/10
+22:45): sai a aba Patrimônio › Contratos (e a vista Ativos | Contratos); quem pedia a aba cai em Patrimônio, o atalho
+"contratos" também, e a busca do Hoje deixa de oferecer "ver todos" de contratos. contratos.js 1.63.0 — o Voltar da ficha
+vai ao ativo do contrato (ou ao Hoje). imoveis.js 1.10.0 — alerta de contrato leva ao Hoje. financeiro.js 1.75.0 — o
+Financeiro da ficha do contrato com o gráfico que filtra o mês, os quatro valores e a lista com etiqueta padrão.
+Versão anterior (Beta v1.453.0):
+LINHAS: 17287
+DATA: 20/10/2026 (sessão 20261020-2202-financeiro-ativo, demanda 9359f50f)
+------------------------------------------------------------------
+Versões anteriores (v1.453.0 … v1.453.0): CHANGELOG_APP.md, na raiz do
+repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
+das 5 versões mais recentes deste cabeçalho.
+
+---
+
 NOVIDADES (Beta v1.453.0) — FINANCEIRO DO ATIVO NO PADRÃO DA TELA FINANCEIRO (protótipo PROTOTIPO_FINANCEIRO_DO_ATIVO_RAIZ
 v1.1.0, de acordo do Nicola 20/10 22:02): financeiro.js 1.74.0 — gráfico do Hoje mais baixo, com valores, que filtra o mês;
 Previsto · Pago · Vencido · A pagar; lista com etiqueta padrão, sem chips e sem a origem. Balanço (Pessoas, Grupos e o card

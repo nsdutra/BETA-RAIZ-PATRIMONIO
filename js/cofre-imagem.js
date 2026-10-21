@@ -1,6 +1,11 @@
 // ============================================================================
 // js/cofre-imagem.js — Qualidade e pré-tratamento da foto (antes da IA)
-// Raiz Patrimônio · Versão: 1.1.0 · 10/09/2026
+// Raiz Patrimônio · Versão: 1.2.0 · 21/10/2026
+//
+// v1.2.0 (21/10/2026, sessão 20261021-0857-libs-sob-demanda, demanda 6b11c602; de acordo do Nicola 21/10 08:57) — pdf.js e jsPDF carregam na hora (bibliotecas.js).
+// pdfjs() passa a ser assíncrono; os dois que o chamam já eram. Funciona também no cofre.html, que nunca carregou
+// essas bibliotecas.
+// Versão anterior: 1.1.0 · 10/09/2026
 //
 // v1.1.0 (A.24) — PDF PROTEGIDO POR SENHA. Tudo no celular, com o pdf.js e o
 // jsPDF que o app já carrega — a senha NUNCA sai do aparelho:
@@ -35,7 +40,8 @@
 // Só roda em image/*; PDF passa direto (texto nativo não precisa disso).
 // ============================================================================
 
-export const VERSAO = '1.1.0'; // v-check: lido por Dev › Versões — manter igual ao header
+export const VERSAO = '1.2.0'; // v-check: lido por Dev › Versões — manter igual ao header
+import { carregarBiblioteca } from './nucleo/bibliotecas.js'; // bibliotecas pesadas, sob demanda (dem 6b11c602)
 
 const LIMIARES = {
     larguraMinima: 900,           // abaixo disso, texto de documento não sobrevive
@@ -284,10 +290,8 @@ export function resumoQualidade(avaliacao, tratamento) {
 // ============================================================================
 // v1.1.0 — PDF protegido por senha (A.24)
 // ============================================================================
-function pdfjs() {
-    if (typeof pdfjsLib === 'undefined') throw new Error('Biblioteca de PDF não carregou — recarregue a página.');
-    if (!pdfjsLib.GlobalWorkerOptions.workerSrc) pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
-    return pdfjsLib;
+async function pdfjs() {
+    return carregarBiblioteca('pdfjs');
 }
 
 // Devolve true quando o PDF exige senha pra abrir. PDF normal → false.
@@ -295,7 +299,7 @@ export async function detectarPdfProtegido(file) {
     if (!file || !/pdf/i.test(file.type || file.name || '')) return false;
     try {
         const data = await file.arrayBuffer();
-        const tarefa = pdfjs().getDocument({ data, password: '' });
+        const tarefa = (await pdfjs()).getDocument({ data, password: '' });
         // pdf.js chama onPassword quando precisa de senha — é o nosso sinal.
         let precisa = false;
         tarefa.onPassword = (_cb, motivo) => { precisa = true; tarefa.destroy(); };
@@ -307,7 +311,7 @@ export async function detectarPdfProtegido(file) {
 // Abre com a senha e devolve { blob (PDF sem senha), paginas } — ou lança
 // 'senha_incorreta'. Renderiza em ~150 dpi: bom pra leitura, leve pra subir.
 export async function destravarPdf(file, senha) {
-    const lib = pdfjs();
+    const lib = await pdfjs();
     const data = await file.arrayBuffer();
     let doc;
     try {
@@ -316,7 +320,7 @@ export async function destravarPdf(file, senha) {
         if (/password/i.test(String(e?.name || e?.message))) throw new Error('senha_incorreta');
         throw e;
     }
-    const { jsPDF } = window.jspdf || {};
+    const { jsPDF } = await carregarBiblioteca('jspdf').catch(() => ({}));
     if (!jsPDF) throw new Error('Biblioteca de PDF (jsPDF) não carregou — recarregue a página.');
     let out = null;
     const paginas = Math.min(doc.numPages, 20); // documentos pessoais têm 1–5 páginas; 20 é folga

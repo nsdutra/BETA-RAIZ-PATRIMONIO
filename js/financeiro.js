@@ -1,7 +1,11 @@
 // ============================================================================
 // financeiro.js — Raiz Patrimônio · Financeiro (Recebimentos · Atrasados · Saídas
 //                  · conciliação de extrato · recibo · detalhe do recebimento)
-// Versão: 1.75.0 · 20/10/2026
+// Versão: 1.76.0 · 21/10/2026
+//
+// v1.76.0 (21/10/2026, sessão 20261021-0857-libs-sob-demanda, demanda 6b11c602; de acordo do Nicola 21/10 08:57) — a leitura de extrato em planilha carrega o xlsx na hora
+// (bibliotecas.js), em vez de contar com ele no <head> do index.
+// Versão anterior: 1.75.0 · 20/10/2026
 //
 // v1.75.0 (20/10/2026, sessão 20261020-2245-contratos-lista; de acordo do Nicola 22:45) — o Financeiro da ficha do CONTRATO
 // passa ao mesmo padrão do ativo (1.74.0): gráfico do Hoje que filtra o mês, Previsto · Recebido · Vencido · Em aberto, lista
@@ -29,25 +33,18 @@
 // pago render pelo menos o IPCA, IGP-M, Selic, um % fixo ao mês ou o índice + % ao mês, com 6% de comissão e 15% de IR sobre
 // o lucro (editáveis); "E se vender por" com o líquido, o lucro e a rentabilidade ao mês; exportação para Excel direto do
 // card (Resumo, Mês a mês e Premissas). A conta mora no banco (fn_simulacao_venda_imovel).
-// Versão anterior: 1.71.0 · 20/10/2026
-//
-// v1.71.0 (20/10/2026, sessão 20261019-2331-fatura-analise, demanda c36b09b2 — de acordo do Nicola 19/10 23:50 e 23:55) —
-// importação de fatura: compra de cartão virtual aparece como "Cartão virtual ··final · do titular" (não pede mais
-// cadastro de adicional) e o aviso de final divergente ignora o final de um virtual; a compra parcelada mostra
-// "parcela 3/10 · faltam 7 · R$ X a vencer" e diz que a classificação vale para as outras parcelas da mesma compra;
-// a regra PARC ganha nome no resumo da conciliação. Leitura da fatura e do extrato (PDF/foto) com o progresso por
-// etapas da leitura de documento (rzProgressoLeitura, raiz-ui 1.6.0) no lugar do "Lendo…".
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.69.0 … v1.70.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.71.0 … v1.71.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '1.75.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.76.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 
 // v1.17.0 (Fase 1 do wrapper de escrita, rollout Financeiro) — emitirEscrita
 // é o evento padrão pra "algo mudou que módulos DE FORA deste arquivo podem
 // precisar saber" (ver changelog do topo). aoEscrever usado só pelo listener
 // interno registrado em montarAbaFinanceiro(), logo abaixo.
 import { emitirEscrita, aoEscrever } from './raiz-eventos.js';
+import { carregarBiblioteca } from './nucleo/bibliotecas.js'; // bibliotecas pesadas, sob demanda (dem 6b11c602)
 // v1.28.0 (UXR-30, D25) — substitutos dos diálogos nativos (js/raiz-ui.js 1.0.0).
 import { rzToast, rzConfirmar, rzAviso, rzEscolher, rzEditarDivisao } from './raiz-ui.js';
 
@@ -3107,6 +3104,7 @@ function financeiroRenderCabecalho(aba) {
             try {
 
                 const buffer = await file.arrayBuffer();
+                await carregarBiblioteca('xlsx');
 
                 const workbook = XLSX.read(buffer, { type: 'array', cellDates: true });
 

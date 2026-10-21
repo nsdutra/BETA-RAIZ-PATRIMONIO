@@ -1,22 +1,22 @@
 {
   "app": "patrimonio",
-  "gerado_em": "2026-10-21T03:34:43",
+  "gerado_em": "2026-10-21T12:02:03",
   "arquivos": {
-    "index.html": "1.458.0",
+    "index.html": "1.459.0",
     "sw.js": "3.3",
     "js/cadastros.js": "1.3.0",
-    "js/financeiro.js": "1.75.0",
-    "js/fechamento.js": "1.15.0",
+    "js/financeiro.js": "1.76.0",
+    "js/fechamento.js": "1.16.0",
     "js/contratos.js": "1.64.0",
-    "js/minutas.js": "1.6.0",
+    "js/minutas.js": "1.7.0",
     "js/vitrine.js": "1.6.0",
     "js/imoveis.js": "1.10.0",
     "js/cofre-api.js": "1.54.0",
     "js/cofre-app.js": "1.52.0",
-    "js/cofre-ativos.js": "1.139.0",
+    "js/cofre-ativos.js": "1.140.0",
     "js/cofre-controles.js": "1.65.0",
     "js/cofre-documentos.js": "2.38.0",
-    "js/cofre-imagem.js": "1.1.0",
+    "js/cofre-imagem.js": "1.2.0",
     "js/cofre-estado.js": "1.5.2",
     "js/cofre-navegacao.js": "1.10.0",
     "js/cofre-ui.js": "1.7.2",
@@ -46,12 +46,13 @@
     "js/agenda.js": "1.9.4",
     "js/cofre-membros.js": "1.0.0",
     "js/cockpit-metas.js": "1.0.0",
-    "raiz.css": "1.0.0"
+    "raiz.css": "1.0.0",
+    "js/nucleo/bibliotecas.js": "1.0.0"
   },
   "detalhes": {
     "index.html": {
-      "linhas": 15664,
-      "funcoes": 71
+      "linhas": 15649,
+      "funcoes": 74
     },
     "sw.js": {
       "linhas": 143,
@@ -62,11 +63,11 @@
       "funcoes": 7
     },
     "js/financeiro.js": {
-      "linhas": 6772,
+      "linhas": 6770,
       "funcoes": 257
     },
     "js/fechamento.js": {
-      "linhas": 974,
+      "linhas": 972,
       "funcoes": 30
     },
     "js/contratos.js": {
@@ -74,7 +75,7 @@
       "funcoes": 149
     },
     "js/minutas.js": {
-      "linhas": 1403,
+      "linhas": 1401,
       "funcoes": 45
     },
     "js/vitrine.js": {
@@ -94,7 +95,7 @@
       "funcoes": 13
     },
     "js/cofre-ativos.js": {
-      "linhas": 4830,
+      "linhas": 4828,
       "funcoes": 187
     },
     "js/cofre-controles.js": {
@@ -106,7 +107,7 @@
       "funcoes": 160
     },
     "js/cofre-imagem.js": {
-      "linhas": 338,
+      "linhas": 342,
       "funcoes": 14
     },
     "js/cofre-estado.js": {
@@ -228,6 +229,10 @@
     "raiz.css": {
       "linhas": 1649,
       "funcoes": 0
+    },
+    "js/nucleo/bibliotecas.js": {
+      "linhas": 67,
+      "funcoes": 3
     }
   }
 }
