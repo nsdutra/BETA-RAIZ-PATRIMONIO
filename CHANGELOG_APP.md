@@ -4,6 +4,17 @@ Histórico completo de versões do `index.html`, movido automaticamente pelo `ge
 
 ---
 
+NOVIDADES (Beta v1.449.0) — RAIZ IA › UMA LINHA "IMPORTAR COM IA" (Nicola 20/10 19:26: "a lista ficou grande… Ler outro
+documento não é o mesmo que Documento?"): as importações viram uma linha só, que abre Extrato bancário · Fatura do cartão ·
+Calendário escolar; "Ler outro documento" sai (é o atalho Documento). agenda.js 1.9.1: o ⋮ da Agenda volta a aparecer.
+Versão anterior (Beta v1.448.0):
+------------------------------------------------------------------
+Versões anteriores (v1.448.0 … v1.448.0): CHANGELOG_APP.md, na raiz do
+repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
+das 5 versões mais recentes deste cabeçalho.
+
+---
+
 NOVIDADES (Beta v1.448.0) — RAIZ IA › IMPORTAR COM IA (Nicola 20/10 19:18): o sheet da Raiz IA passa a reunir as importações
 que já existem — Extrato bancário, Fatura do cartão, Calendário escolar e Outro documento (contrato, apólice, boleto, nota,
 convite) — no lugar do único "Importar extrato". Cada uma abre a tela de sempre (fatura: Financeiro › Importar fatura;

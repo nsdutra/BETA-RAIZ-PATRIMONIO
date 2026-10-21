@@ -6,9 +6,16 @@
    (base derivada do RUMO v7.4.2 — histórico de versões anteriores
    preservado abaixo para referência técnica)
 
-   VERSÃO: Beta v1.451.0
-   LINHAS: 17233
-   DATA: 20/10/2026 (sessão 20261020-2117-calendario-lista, demanda b3aeefaf)
+   VERSÃO: Beta v1.451.1
+   LINHAS: 17261
+   DATA: 20/10/2026 (sessão 20261020-2144-alertas-conteudo, demandas e934ce44 e d269216c)
+   NOVIDADES (Beta v1.451.1) — ALERTAS MOSTRAM O CONTEÚDO (Nicola 20/10 20:58, de acordo 21:44): o vencimento de item vira o próprio
+   item no título ("Seguro Residencial Porto"), com o ativo e a data na 2ª linha, sem "Item de controle"; os alertas de cartão e
+   a mudança automática de status, que mostravam o código cru ("Cartao itens a classificar"), ganham título com o fato ("129
+   compras a classificar", "Fatura Azul Infinite a importar") e o cartão na 2ª linha; grupos sem natureza viram "N vencimentos".
+   Banco (sinal_finalidade_uso_v1): o aviso "Imóvel sem finalidade de uso" não vale mais para imóvel fora da contabilidade nem
+   em construção, obra ou uso próprio.
+   Versão anterior (Beta v1.451.0):
    NOVIDADES (Beta v1.451.0) — CALENDÁRIO ESCOLAR: AJUSTES PEQUENOS E SEM REPETIR O JÁ IMPORTADO (Nicola 20/10 21:17 e
    21:18): agenda.js 1.9.3 — os ajustes da linha viram chips pequenos (Para quem · Tipo · Turma; Aviso Sem · 1 dia · 3 dias
    | A confirmar). Edge calendario-escolar-ler 1.0.3 reconhece o que já foi importado mesmo com outro nome de escola.
@@ -32,12 +39,8 @@
    (cofre-ativos.js 1.137.0); relatório no celular sem cortar a lateral (relatorios-executivos.js 1.6.1). Aqui, só cabeçalho e
    import map.
    Versão anterior (Beta v1.449.0):
-   NOVIDADES (Beta v1.449.0) — RAIZ IA › UMA LINHA "IMPORTAR COM IA" (Nicola 20/10 19:26: "a lista ficou grande… Ler outro
-   documento não é o mesmo que Documento?"): as importações viram uma linha só, que abre Extrato bancário · Fatura do cartão ·
-   Calendário escolar; "Ler outro documento" sai (é o atalho Documento). agenda.js 1.9.1: o ⋮ da Agenda volta a aparecer.
-   Versão anterior (Beta v1.448.0):
    ------------------------------------------------------------------
-   Versões anteriores (v1.448.0 … v1.448.0): CHANGELOG_APP.md, na raiz do
+   Versões anteriores (v1.449.0 … v1.449.0): CHANGELOG_APP.md, na raiz do
    repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
    das 5 versões mais recentes deste cabeçalho.
 
@@ -4547,7 +4550,7 @@
         // texto certo toda vez (esqueci 5 versões seguidas, de v1.37.1 até
         // v1.38.3). Agora só precisa mudar UMA linha aqui a cada release;
         // window.onload aplica nos dois lugares automaticamente.
-        const APP_VERSAO = "Beta v1.451.0"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
+        const APP_VERSAO = "Beta v1.451.1"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
 
         // ====================================================================
         // v1.105.0 — HELPERS DE SUPERFÍCIE DA GRAMÁTICA ÚNICA
@@ -12423,8 +12426,15 @@ async function criarLinkVitrineSupabase(token, idsSelecionados) {
                 case 'extrato_desatualizado': return 'Extrato desatualizado';
                 case 'reajuste_aniversario': return 'Pendente de revisão/reajuste';
                 case 'contrato_encerramento': return row.detalhe?.ja_vencido ? 'Contrato vencido' : 'Contrato vencendo';
-                case 'cofre_item_vencendo': return 'Item de controle vencendo';
-                case 'anexo_apolice_pendente': return `Documento pendente — ${row.detalhe?.subtipo_nome || 'item de controle'}`;
+                // v1.449.2 (Nicola 20/10 20:58: "Elimine a palavra item de controle e destaque o conteúdo do alerta") — o título é o
+                // próprio item (ex.: "Seguro Residencial Porto"); o ativo e a data vão na 2ª linha (subtituloAlertaMotor).
+                case 'cofre_item_vencendo': return row.titulo || row.detalhe?.titulo || row.detalhe?.subtipo_nome || 'Vencimento';
+                case 'anexo_apolice_pendente': return `Documento pendente — ${row.detalhe?.subtipo_nome || row.detalhe?.titulo || row.titulo || 'documento'}`;
+                // v1.449.2 — cartão e transição caíam no código cru sem acento ("Cartao itens a classificar"): o fato vira o título.
+                case 'cartao_itens_a_classificar': { const q = Number(row.detalhe?.qtd || 0); return q ? `${q} ${q === 1 ? 'compra' : 'compras'} a classificar` : 'Compras do cartão a classificar'; }
+                case 'cartao_fatura_a_importar': return `Fatura ${row.detalhe?.cartao_nome || 'do cartão'} a importar`;
+                case 'cartao_fatura_vencendo': return `Fatura ${row.detalhe?.cartao_nome || 'do cartão'}${row.detalhe?.valor != null ? ' · ' + formatarMoedaBR(Number(row.detalhe.valor)) : ''}`;
+                case 'transicao_automatica': return 'Mudança automática de status';
                 case 'contrato_aguardando_assinatura': return 'Aguardando assinatura';
                 case 'contrato_ativo_vendido_arquivado': return `Contrato vigente em ativo ${row.detalhe?.ativo_status || ''}`;
                 // v1.183.0 — quantidade vai pro INICIO do texto, igual a todos os
@@ -12548,6 +12558,20 @@ async function criarLinkVitrineSupabase(token, idsSelecionados) {
             // (boleto)", "Revisão periódica") — vira o objeto exibido
             // sempre que existir, caindo pro título livre só quando o item
             // não tem subtipo cadastrado.
+            // v1.449.2 — cartão: o cartão e a fatura na 2ª linha (o título já diz o fato)
+            if (['cartao_itens_a_classificar', 'cartao_fatura_a_importar', 'cartao_fatura_vencendo'].includes(row.tipo_alerta)) {
+                const d = row.detalhe || {}, comp = /^(\d{4})-(\d{2})/.exec(d.competencia || '');
+                const cartao = `${d.cartao_nome || 'Cartão'}${d.final ? ' ·· ' + d.final : ''}`;
+                if (row.tipo_alerta === 'cartao_itens_a_classificar') return `${cartao}${comp ? ' · fatura ' + comp[2] + '/' + comp[1] : ''}`;
+                const venc = d.data_vencimento ? formatarDataBR(d.data_vencimento) : '';
+                return `${cartao}${venc ? ` · ${(row.dias ?? 0) < 0 ? 'venceu em' : 'vence em'} ${venc}` : ''}`;
+            }
+            if (row.tipo_alerta === 'transicao_automatica') return row.titulo || '';
+            // v1.449.2 — item vencendo: o título já é o item; aqui o ativo e a data
+            if (row.tipo_alerta === 'cofre_item_vencendo' && row.detalhe?.data_referencia) {
+                const venc = formatarDataBR(row.detalhe.data_referencia);
+                return [row.detalhe?.ativo_nome, `${(row.dias ?? 0) < 0 ? 'venceu em' : 'vence em'} ${venc}`].filter(Boolean).join(' · ');
+            }
             if (row.tipo_alerta === 'cofre_item_vencendo') {
                 const objeto = row.detalhe?.subtipo_nome || row.titulo;
                 return row.detalhe?.ativo_nome ? `${row.detalhe.ativo_nome} · ${objeto}` : objeto;
@@ -12822,6 +12846,10 @@ async function criarLinkVitrineSupabase(token, idsSelecionados) {
                 case 'ativo_sem_proprietario': return `${n} ativos sem proprietário`; // v1.297.5
                 case 'contrato_sem_divisao': return `${n} contratos sem divisão do aluguel`; // v1.297.5
                 case 'membro_fase_prevista': return `${n} avisos do rebanho`; // v1.430.0 (fatia 8)
+                case 'cartao_itens_a_classificar': return `${n} cartões com compras a classificar`; // v1.449.2
+                case 'cartao_fatura_a_importar': return `${n} faturas de cartão a importar`; // v1.449.2
+                case 'cartao_fatura_vencendo': return `${n} faturas de cartão a pagar`; // v1.449.2
+                case 'transicao_automatica': return `${n} mudanças automáticas de status`; // v1.449.2
                 default: return `${n} ${rzTipoAlertaLegivel(tipoAlerta).toLowerCase()}`; // v1.297.5 — nunca "N alertas" sem dizer de quê
             }
         }
@@ -12880,8 +12908,8 @@ async function criarLinkVitrineSupabase(token, idsSelecionados) {
         // explícito do Nicola: "1ª linha após a quantidade, mencionar o
         // nome do objeto do alerta" também no card de grupo.
         function tituloResumoPorNatureza(itemTipo, n) {
-            const plural = NATUREZA_ITEM_CONTROLE_LABEL[itemTipo] || 'itens de controle';
-            return `${n} ${plural} vencendo`;
+            const plural = NATUREZA_ITEM_CONTROLE_LABEL[itemTipo];
+            return plural ? `${n} ${plural} vencendo` : `${n} vencimentos`; // v1.449.2 — sem "itens de controle" na tela
         }
 
         function agruparEMapearAlertas(rows) {
