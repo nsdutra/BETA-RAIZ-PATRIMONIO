@@ -1,8 +1,17 @@
 // =====================================================================
 // RAIZ PATRIMÔNIO — js/agenda.js
-// VERSÃO: Beta v1.9.4 (20/10/2026 — demanda b3aeefaf)
+// VERSÃO: Beta v1.10.0 (21/10/2026 — demanda 6f9e5b7d)
 // LINHAS: (ver versoes.json)
 // -----------------------------------------------------------------
+// NOVIDADES (Beta v1.10.0) (21/10/2026, sessão 20261021-1342-calendario-generico, demanda 6f9e5b7d;
+//   FICHA_CALENDARIO_GENERICO_RAIZ v1.1.0, D1–D3 ok do Nicola 21/10 13:08 e 13:42) — IMPORTAR CALENDÁRIO GENÉRICO. ⋮ da Agenda
+//   › "Importar calendário" (escola, esporte, curso). No topo da revisão, o perfil lido (Escola · Esporte · Curso · Genérico),
+//   que dá para trocar — a Edge refaz só a regra, sem ler de novo. Tipos do perfil (esporte: jogo, treino, torneio…).
+//   Jogo com times: "Qual o time do Murilo?" com os times lidos como chips; a resposta marca os jogos dele, recolhe os de
+//   outros times ("Outros times") e fica gravada nas Atividades da pessoa para a próxima vez. Prazo com valor (inscrição)
+//   mostra o valor e vai com aviso 3 dias + repetição 2 (3 e 1 dia antes). Na agenda: troféu para "Esporte · ", paleta para
+//   "Atividade · ".
+// Versão anterior (Beta v1.9.4):
 // NOVIDADES (Beta v1.9.4) (20/10/2026, sessão 20261020-2149-calendario-ja, demanda b3aeefaf; Nicola 21:49 "não vi
 //   nenhuma menção de já está na agenda. Destaque… ao clicar na setinha pra abrir a cortina não funciona") — linha já
 //   importada ganha o selo verde "✓ Já está na agenda" na 2ª linha (marcada de novo, vira aviso "vai repetir"); a seta
@@ -100,7 +109,7 @@
 // formatarMoedaBR, abrirSheet, abrirSheetAcoes, rzSheetCabecalho, fecharSheet, abrirAlertaItemControle,
 // abrirFichaContrato, switchTab, mostrarToast, rzDev.
 
-export const VERSAO = '1.9.4';
+export const VERSAO = '1.10.0';
 
 const TIPOS = {
     ocorrencia:   { rotulo: 'Ocorrência',  icone: 'wrench',          dominio: 'ocorrencias' },
@@ -287,7 +296,10 @@ function desenhar(carregando) {
 
 // ---- linhas
 function linhaHtml(r, i) {
-    const t = /^Escola · /.test(r.titulo || '') ? { icone: 'backpack', rotulo: 'Escola' } : (TIPOS[r.tipo] || { icone: 'circle', rotulo: '' }); // v1.9.0
+    const t = /^Escola · /.test(r.titulo || '') ? { icone: 'backpack', rotulo: 'Escola' }
+        : /^Esporte · /.test(r.titulo || '') ? { icone: 'trophy', rotulo: 'Esporte' } // v1.10.0
+        : /^Atividade · /.test(r.titulo || '') ? { icone: 'palette', rotulo: 'Atividade' }
+        : (TIPOS[r.tipo] || { icone: 'circle', rotulo: '' }); // v1.9.0
     const s = statusCompromisso(r);
     const sub = [r.sub, r.situacao === 'realizado' ? 'realizado' : ''].filter(Boolean).join(' · ') || t.rotulo;
     const diasAtraso = r.atrasado ? Math.round((hoje() - deIso(r.data)) / 86400000) : 0;
@@ -404,7 +416,7 @@ function ligar() {
     const mais = st.el.querySelector('[data-ag-mais]');
     if (mais) mais.addEventListener('click', () => abrirSheetAcoes({ titulo: 'Agenda', sub: tituloPeriodo(), acoes: [
         { icone: 'send', titulo: 'Enviar a semana', sub: 'Compartilhar com uma pessoa', aoTocar: enviarSemana },
-        { icone: 'backpack', titulo: 'Importar calendário escolar', sub: 'PDF ou foto da escola', aoTocar: () => setTimeout(abrirImportarCalendario, 50) }, // v1.9.0
+        { icone: 'calendar-plus', titulo: 'Importar calendário', sub: 'Escola, esporte, curso · PDF ou foto', aoTocar: () => setTimeout(abrirImportarCalendario, 50) }, // v1.10.0
     ] }));
 }
 
@@ -500,10 +512,13 @@ const calDiaSem = (d) => DIA_SEM[new Date(d + 'T12:00:00').getDay()];
 const calEscolher = async (o) => (window.rzEscolher || (await import('./raiz-ui.js')).rzEscolher)(o);
 const calQuando = (ini, fim) => (!fim || fim === ini) ? `${calDiaSem(ini)} ${calData(ini)}/${ini.slice(0, 4)}`
     : `${calDiaSem(ini)} ${calData(ini)}${ini.slice(0, 4) !== fim.slice(0, 4) ? '/' + ini.slice(0, 4) : ''} – ${calDiaSem(fim)} ${calData(fim)}/${fim.slice(0, 4)}`;
-const CAL_RECOLHIDO = { outra_serie: 'Outras séries', passado: 'Datas que já passaram', feriado_na_agenda: 'Feriados que já estão na agenda' };
+const CAL_RECOLHIDO = { outra_serie: 'Outras séries', outro_grupo: 'Outros grupos', passado: 'Datas que já passaram', feriado_na_agenda: 'Feriados que já estão na agenda' };
+// v1.10.0 — nomes dos recolhidos pelo perfil (série/turma na escola, categoria/time no esporte)
+const CAL_RECOLHIDO_PERFIL = { esporte: { outra_serie: 'Outras categorias', outro_grupo: 'Outros times' }, curso: { outra_serie: 'Outros módulos', outro_grupo: 'Outras turmas' } };
+const calCasaGrupo = (g, grupos) => { const a = CAL_NORM(g); return !!a && (grupos || []).some(x => { const b = CAL_NORM(x); return b === a || b.split(' ').includes(a) || a.split(' ').includes(b); }); };
 
 export async function abrirImportarCalendario() { // v1.9.0 — exportada também para o atalho de outras telas
-    const sh = abrirSheet(rzSheetCabecalho('Importar calendário escolar', 'Você confere tudo antes de entrar na agenda') + '<div class="rz-sh-b" id="cal-corpo"><p class="rz-sub">Carregando…</p></div>', { classe: 'rz-cheio' });
+    const sh = abrirSheet(rzSheetCabecalho('Importar calendário', 'Escola, esporte, curso — você confere tudo antes de entrar na agenda') + '<div class="rz-sh-b" id="cal-corpo"><p class="rz-sub">Carregando…</p></div>', { classe: 'rz-cheio' });
     const corpo = sh.querySelector('#cal-corpo');
     let recebidos = [];
     try {
@@ -514,15 +529,15 @@ export async function abrirImportarCalendario() { // v1.9.0 — exportada també
     } catch (_) { /* sem lista: só o botão de escolher */ }
     corpo.innerHTML = `
         <input type="file" id="cal-arq" accept="application/pdf,image/*" style="display:none">
-        <button type="button" class="rz-act" id="cal-escolher"><div class="rz-ic rz-ia"><svg data-lucide="file-up"></svg></div><div>Escolher PDF ou foto do calendário<small>A Raiz IA lê as datas e separa o que é de cada filho</small></div></button>
+        <button type="button" class="rz-act" id="cal-escolher"><div class="rz-ic rz-ia"><svg data-lucide="file-up"></svg></div><div>Escolher PDF ou foto do calendário<small>A Raiz IA lê as datas e separa o que é de cada pessoa</small></div></button>
         ${recebidos.length ? `<p class="rz-sub" style="margin:14px 0 6px">Já está no Cofre</p>` + recebidos.map(d => `
-        <button type="button" class="rz-act" data-cal-doc="${d.id}"><div class="rz-ic"><svg data-lucide="calendar-days"></svg></div><div>${rzEsc(d.nome_exibicao || 'Calendário escolar')}<small>${d.origem === 'bot_whatsapp' ? 'Recebido pelo WhatsApp' : 'Enviado pelo app'} · ${calData(String(d.criado_em).slice(0, 10))}</small></div></button>`).join('') : ''}
+        <button type="button" class="rz-act" data-cal-doc="${d.id}"><div class="rz-ic"><svg data-lucide="calendar-days"></svg></div><div>${rzEsc(d.nome_exibicao || 'Calendário')}<small>${d.origem === 'bot_whatsapp' ? 'Recebido pelo WhatsApp' : 'Enviado pelo app'} · ${calData(String(d.criado_em).slice(0, 10))}</small></div></button>`).join('') : ''}
         <div id="cal-prog"></div>`;
     rzIcones();
     const ler = async (body, arquivo) => {
         corpo.querySelectorAll('.rz-act').forEach(b => b.style.display = 'none');
         const prog = window.rzProgressoLeitura ? window.rzProgressoLeitura({ alvo: corpo.querySelector('#cal-prog'), arquivo, passoIa: 1, tempoTipicoS: 25,
-            passos: ['Enviando o calendário', 'Raiz IA lendo as datas', 'Separando por filho', 'Pronto'] }) : { passo() {}, fim() {} };
+            passos: ['Enviando o calendário', 'Raiz IA lendo as datas', 'Separando por pessoa', 'Pronto'] }) : { passo() {}, fim() {} };
         try {
             prog.passo(1);
             const { data, error } = await dbAuth.functions.invoke('calendario-escolar-ler', { body: { cliente_id: CLIENTE_ID_SUPABASE, ...body } });
@@ -532,7 +547,7 @@ export async function abrirImportarCalendario() { // v1.9.0 — exportada també
                 throw new Error(msg);
             }
             prog.passo(2); prog.fim();
-            revisarCalendario(sh, data);
+            revisarCalendario(sh, data, (perfil) => ler({ documento_id: data.documento_id, perfil }, null)); // v1.10.0 — trocar o perfil
         } catch (e) {
             prog.fim();
             corpo.querySelectorAll('.rz-act').forEach(b => b.style.display = '');
@@ -547,19 +562,34 @@ export async function abrirImportarCalendario() { // v1.9.0 — exportada també
     corpo.querySelectorAll('[data-cal-doc]').forEach(b => b.addEventListener('click', () => ler({ documento_id: b.dataset.calDoc }, null)));
 }
 
-function revisarCalendario(sh, r) {
+function revisarCalendario(sh, r, trocarPerfil) {
     const corpo = sh.querySelector('#cal-corpo');
     const opc = r.opcoes || []; const cats = r.categorias || {};
-    const linhas = (r.sugestoes || []).map(s => ({ ...s, aviso: s.lembrete ? 3 : 0 })); // v1.9.2 — aviso em dias (0, 1 ou 3)
+    // v1.10.0 — aviso que a Edge sugeriu (prazo 3, jogo 1…); recolhidos com o nome do perfil
+    const linhas = (r.sugestoes || []).map(s => ({ ...s, aviso: s.lembrete_dias != null ? s.lembrete_dias : (s.lembrete ? 3 : 0) })); // v1.9.2 — aviso em dias (0, 1 ou 3)
+    const nomesRec = { ...CAL_RECOLHIDO, ...(CAL_RECOLHIDO_PERFIL[r.perfil] || {}) };
+    const perguntas = (r.perguntas || []).filter(q => (q.opcoes || []).length);
+    const respondidas = {}; const atividades = [];
+    const rotGrupo = String(r.rotulos?.grupo || 'grupo').toLowerCase();
     const editando = new Set(linhas.filter(l => l.situacao === 'escolher_turma').map(l => l.id)); // v1.9.2
     const visiveis = () => linhas.filter(l => !CAL_RECOLHIDO[l.situacao]);
     const recolhidas = () => linhas.filter(l => CAL_RECOLHIDO[l.situacao]);
+    // v1.10.0 — resposta do grupo: marca as linhas do time escolhido, recolhe as de outros times, guarda para gravar
+    const responder = (pessoaId, grupo) => {
+        respondidas[pessoaId] = grupo;
+        const q = perguntas.find(x => x.pessoa_id === pessoaId);
+        atividades.push({ ativo_id: pessoaId, perfil: r.perfil, organizacao: r.organizacao || r.escola || '', nivel: q?.nivel || null, grupo });
+        linhas.filter(l => l.situacao === 'escolher_grupo' && l.ativo_id === pessoaId).forEach(l => {
+            if (calCasaGrupo(grupo, l.grupos)) { l.situacao = 'sugerido'; l.marcado = true; l.motivo = null; }
+            else { l.situacao = 'outro_grupo'; l.marcado = false; l.motivo = `Outro ${rotGrupo} (${q?.nome || ''}: ${grupo})`; }
+        });
+    };
     let abertos = new Set();
     // v1.9.2 — 2 linhas por compromisso; os ajustes abrem ao tocar no texto
     const linhaHtml = (l) => {
         const para = (opc.find(o => o.id === l.ativo_id) || {}).nome || l.para || '—';
-        const det = [calQuando(l.data_inicio, l.data_fim), para, cats[l.categoria] || '',
-            l.situacao === 'escolher_turma' ? 'escolha a turma' : (l.aviso ? `aviso ${l.aviso} dia${l.aviso > 1 ? 's' : ''} antes` : 'sem aviso'),
+        const det = [calQuando(l.data_inicio, l.data_fim), l.valor ? moeda(l.valor) : '', para, cats[l.categoria] || '', // v1.10.0 — valor logo depois da data
+            l.situacao === 'escolher_turma' ? 'escolha a turma' : l.situacao === 'escolher_grupo' ? `escolha o ${rotGrupo}` : (l.aviso ? `aviso ${l.aviso} dia${l.aviso > 1 ? 's' : ''} antes` : 'sem aviso'),
             l.a_confirmar ? 'a confirmar' : '', l.motivo && CAL_RECOLHIDO[l.situacao] ? l.motivo : ''].filter(Boolean).join(' · ');
         const aberto = editando.has(l.id);
         // v1.9.4 — destaque do que já foi importado; marcado de novo, avisa que repete
@@ -596,11 +626,21 @@ function revisarCalendario(sh, r) {
     };
     const desenhar = () => {
         const marcadas = linhas.filter(l => l.marcado && l.ativo_id);
-        const grupos = Object.entries(CAL_RECOLHIDO).map(([k, n]) => [k, n, recolhidas().filter(l => l.situacao === k)]).filter(g => g[2].length);
+        const grupos = Object.entries(nomesRec).map(([k, n]) => [k, n, recolhidas().filter(l => l.situacao === k)]).filter(g => g[2].length);
+        const CHP = 'height:28px;padding:0 10px;font-size:12px';
+        // v1.10.0 — perfil (dá para trocar) e perguntas de grupo ("Qual o time do Murilo?")
+        const perfisHtml = (r.perfis || []).length ? `<div style="display:flex;flex-wrap:wrap;gap:5px;margin:0 0 8px">${r.perfis.map(p =>
+            `<button type="button" class="rz-chip${p.codigo === r.perfil ? ' rz-on' : ''}" style="${CHP}" data-cal-perfil="${p.codigo}">${rzEsc(p.nome)}</button>`).join('')}</div>` : '';
+        const pergHtml = perguntas.filter(q => !respondidas[q.pessoa_id]).map(q => `<div class="rz-card" style="padding:10px 12px;margin:0 0 8px">
+            <b style="display:block;margin-bottom:6px">Qual o ${rzEsc(String(q.rotulo || 'grupo').toLowerCase())} de ${rzEsc(q.nome)}?${q.nivel ? ` <small class="rz-sub">(${rzEsc(q.nivel)})</small>` : ''}</b>
+            <div style="display:flex;flex-wrap:wrap;gap:5px">${q.opcoes.map(o => `<button type="button" class="rz-chip" style="${CHP}" data-cal-gr="${q.pessoa_id}" data-v="${rzEsc(o)}">${rzEsc(o)}</button>`).join('')}</div>
+            <small class="rz-sub" style="display:block;margin-top:6px">Fica gravado no cadastro de ${rzEsc(q.nome)} para as próximas importações.</small></div>`).join('');
         corpo.innerHTML = `
+            ${perfisHtml}
             <p class="rz-sub" style="margin:0 0 6px">${rzEsc(r.escola || 'Escola')}${r.periodo ? ' · ' + rzEsc(r.periodo) : ''} — ${visiveis().length} sugeridos, ${recolhidas().length} recolhidos</p>
+            ${pergHtml}
             ${(r.avisos || []).map(a => `<p class="rz-sub" style="color:var(--danger);margin:0 0 6px">${rzEsc(a)}</p>`).join('')}
-            ${visiveis().map(linhaHtml).join('') || '<p class="rz-sub">Nada para os filhos neste calendário.</p>'}
+            ${visiveis().map(linhaHtml).join('') || '<p class="rz-sub">Nada para a família neste calendário.</p>'}
             ${grupos.map(([k, n, ls]) => `<button type="button" class="rz-row rz-link" data-cal-grupo="${k}" style="margin-top:10px"><div class="rz-tx"><b>${n} (${ls.length})</b></div><span class="rz-sub">${abertos.has(k) ? 'esconder' : 'ver'}</span></button>
                 ${abertos.has(k) ? ls.map(linhaHtml).join('') : ''}`).join('')}
             <button type="button" class="rz-btn rz-btn-1 rz-ag-bt" id="cal-aplicar"${marcadas.length ? '' : ' disabled'}>${marcadas.length ? `Importar ${marcadas.length} para a agenda` : 'Marque ao menos uma linha'}</button>
@@ -631,6 +671,11 @@ function revisarCalendario(sh, r) {
             l.data_inicio = v; l.data_fim = v; l.marcado = true; if (l.situacao === 'escolher_turma') l.situacao = 'sugerido'; desenhar();
         }));
         corpo.querySelectorAll('[data-cal-grupo]').forEach(b => b.addEventListener('click', () => { const k = b.dataset.calGrupo; abertos.has(k) ? abertos.delete(k) : abertos.add(k); desenhar(); }));
+        corpo.querySelectorAll('[data-cal-gr]').forEach(b => b.addEventListener('click', () => { responder(b.dataset.calGr, b.dataset.v); desenhar(); })); // v1.10.0
+        corpo.querySelectorAll('[data-cal-perfil]').forEach(b => b.addEventListener('click', () => { // v1.10.0
+            if (b.dataset.calPerfil === r.perfil || typeof trocarPerfil !== 'function') return;
+            corpo.innerHTML = '<div id="cal-prog"></div>'; trocarPerfil(b.dataset.calPerfil);
+        }));
         corpo.querySelector('#cal-cancelar').addEventListener('click', () => fecharSheet(true));
         corpo.querySelector('#cal-aplicar').addEventListener('click', aplicar);
     };
@@ -642,9 +687,11 @@ function revisarCalendario(sh, r) {
             const para = (opc.find(o => o.id === l.ativo_id) || {}).nome || '';
             return { titulo: `${l.titulo}${para ? ' — ' + para : ''}`, data_inicio: l.data_inicio, data_fim: l.data_fim || l.data_inicio,
                 ativo_id: l.ativo_id, lembrete: l.aviso > 0, lembrete_dias: l.aviso, a_confirmar: !!l.a_confirmar, // v1.9.2
+                perfil: r.perfil || 'escola', valor: l.valor || null, repeticao_dias: l.aviso === 3 ? (l.repeticao_dias || 0) : 0, // v1.10.0
                 descricao: [cats[l.categoria] || '', l.descricao || ''].filter(Boolean).join(' · ') || null,
                 origem_chave: calChave(r.escola || 'Escola', l.ativo_id, l.data_inicio, l.titulo_chave) };
         });
+        atividades.forEach((a, i) => { if (payload[i]) payload[i].atividade = a; }); // v1.10.0 — o time escolhido vai para o cadastro da pessoa
         const { data, error } = await dbAuth.rpc('fn_calendario_escolar_aplicar', { p_cliente_id: CLIENTE_ID_SUPABASE, p_documento_id: r.documento_id || null, p_linhas: payload });
         if (error) { bt.disabled = false; bt.textContent = `Importar ${marcadas.length} para a agenda`; (window.rzToast || mostrarToast)(error.message, { tipo: 'danger' }); return; }
         fecharSheet(true);

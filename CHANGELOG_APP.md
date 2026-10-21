@@ -4,6 +4,17 @@ Histórico completo de versões do `index.html`, movido automaticamente pelo `ge
 
 ---
 
+NOVIDADES (Beta v1.461.0) — ESCALA DE TEXTO, ONDA 1 (Nicola 21/10 10:02, "pode avançar"): raiz.css 1.2.0 com 6 tamanhos,
+um preto só e menos negrito; sub-ativo com a quantidade ao lado do nome; menu sem ✕. Aqui: o plano pelo nome no topo.
+Versão anterior (Beta v1.460.0):
+DATA: 21/10/2026 (sessão 20261021-0905-ux-ramo-menu, demanda 15146a34)
+------------------------------------------------------------------
+Versões anteriores (v1.460.0 … v1.460.0): CHANGELOG_APP.md, na raiz do
+repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
+das 5 versões mais recentes deste cabeçalho.
+
+---
+
 NOVIDADES (Beta v1.460.0) — FAIXA DO RAMO E MENU DAS INICIAIS (de acordo do Nicola 21/10 09:01): faixa do ramo em fundo
 claro com a quantidade ao lado do nome; menu das iniciais com cabeçalho verde, Trocar, valor à direita e Sair à parte.
 Aqui só versão e import map; o resto em raiz.css 1.1.0, cofre-ativos.js 1.141.0 e conta.js 1.4.0.
