@@ -4,6 +4,14 @@ Histórico completo de versões do `index.html`, movido automaticamente pelo `ge
 
 ---
 
+NOVIDADES (Beta v1.463.1) — correção: a linha do alerta da lista saía cinza (raiz.css 1.4.1).
+------------------------------------------------------------------
+Versões anteriores (v1.463.0 … v1.463.0): CHANGELOG_APP.md, na raiz do
+repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
+das 5 versões mais recentes deste cabeçalho.
+
+---
+
 NOVIDADES (Beta v1.463.0) — ONDA 2, LISTA DO PATRIMÔNIO (Nicola 21/10 12:02): vencido por extenso numa linha própria
 ("Dedetização periódica · venceu há 11 dias"); situação sem fundo; Controles sem "Em dia" com item vencido. Aqui só versão.
 Versão anterior (Beta v1.462.0):

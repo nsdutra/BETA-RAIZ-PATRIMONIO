@@ -1,6 +1,11 @@
 // ============================================================================
 // cofre-ativos.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.145.0 · 21/10/2026
+// Versão: 1.145.1 · 21/10/2026
+//
+// v1.145.1 (21/10/2026, sessão 20261021-1735-ux-onda4, demanda 15146a34) — correção da 1.145.0, achada na conferência no ar
+//   (Rumo sem a linha do aluguel): os alertas do Motor vivem em alertasVisiveisTodos só depois de abrir a Agenda; antes
+//   disso estão em geralVisiveisTodos (o Hoje). A linha do aluguel e a espera passam a ler as duas, como o chip "Com alerta".
+// Versão anterior: 1.145.0 · 21/10/2026
 //
 // v1.145.0 (21/10/2026, sessão 20261021-1735-ux-onda4, demanda 15146a34; Nicola 21/10 17:31: "pq a visão da Rumo está sem os
 //   alertas vermelhos") — a linha do alerta passa a mostrar também o aluguel em atraso (alerta atraso_pagamento do Motor,
@@ -21,16 +26,11 @@
 //
 // v1.142.0 (21/10/2026, sessão 20261021-1005-ux-onda1, demanda 15146a34; Nicola 21/10 10:02) — ativo com sub-ativos (ex.: Família Maia Dutra): a quantidade
 //   sai de cima do ícone e vai para depois do nome, como na faixa do ramo. A borda do ícone e a linha até os sub-ativos ficam.
-// Versão anterior: 1.141.0 · 21/10/2026
-//
-// v1.141.0 (21/10/2026, sessão 20261021-0905-ux-ramo-menu, demanda 15146a34; de acordo do Nicola 21/10 09:01) — faixa do ramo
-//   na lista do Patrimônio: o número sai de cima do ícone e vai para depois do nome ("Imóveis 9"); o fundo deixa de ser a
-//   cor do ramo (o estilo mora no raiz.css 1.1.0). Total, alinhamento, recolher e a lista por empreendimento não mudam.
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.140.0 … v1.140.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.141.0 … v1.141.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '1.145.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.145.1'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 import { estado } from './cofre-estado.js';
 import { carregarBiblioteca } from './nucleo/bibliotecas.js'; // bibliotecas pesadas, sob demanda (dem 6b11c602)
 import * as api from './cofre-api.js';
@@ -1094,21 +1094,25 @@ window.__rzAlternarSubativos = (id, btn) => {
 // carregados pelo index (atraso_pagamento: mensalidade de contrato vencida e não recebida; detalhe.ativo_id = ativo do contrato).
 function atrasosDeRecebimento(id) {
     try {
-        const fonte = (typeof alertasVisiveisTodos !== 'undefined' && alertasVisiveisTodos) || [];
-        return fonte.filter(r => r.tipo_alerta === 'atraso_pagamento' && r.detalhe?.ativo_id === id && r.dias != null && r.dias < 0)
+        return alertasDoMotorAgora().filter(r => r.tipo_alerta === 'atraso_pagamento' && r.detalhe?.ativo_id === id && r.dias != null && r.dias < 0)
             .map(r => r.dias).sort((x, y) => x - y);
     } catch (_) { return []; } // sem Motor (cofre.html)
 }
 // v1.145.0 — os alertas do Motor podem chegar DEPOIS da lista (entrada no app, troca de empresa). Desenhada sem eles, a lista
 // fica sem o chip "Com alerta" certo e sem a linha do aluguel. Sem evento do index para isso, a lista confere a cada 1,5 s,
 // por até 30 s, e se redesenha uma vez quando eles chegam (preservando chip e busca). Só arma quando desenhou sem alertas.
+// v1.145.1 — mesma fonte do chip "Com alerta" (window.rzAtivosComAlerta, index): a lista da Agenda se tiver, senão a do Hoje
+function alertasDoMotorAgora() {
+    const a = (typeof alertasVisiveisTodos !== 'undefined' && alertasVisiveisTodos) || [];
+    return a.length ? a : ((typeof geralVisiveisTodos !== 'undefined' && geralVisiveisTodos) || []);
+}
 let esperaAlertasMotor = null;
 function esperarAlertasDoMotor() {
     if (esperaAlertasMotor || typeof window === 'undefined' || typeof alertasVisiveisTodos === 'undefined') return;
-    if (alertasVisiveisTodos && alertasVisiveisTodos.length) return;
+    if (alertasDoMotorAgora().length) return;
     let n = 0;
     esperaAlertasMotor = setInterval(() => {
-        const chegou = alertasVisiveisTodos && alertasVisiveisTodos.length;
+        const chegou = alertasDoMotorAgora().length;
         if (chegou || ++n >= 20) { clearInterval(esperaAlertasMotor); esperaAlertasMotor = null; }
         if (chegou && document.getElementById('ativos-lista')?.offsetParent) redesenharComFiltros();
     }, 1500);
