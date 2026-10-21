@@ -1,5 +1,9 @@
 // Raiz Patrimônio — Service Worker
-// Versão: 3.3 · 21/10/2026
+// Versão: 3.4 · 21/10/2026
+//
+// v3.4 (21/10/2026, sessão 20261021-1732-icones-raiz, demanda 6b11c602; de acordo do Nicola 21/10 17:32) — guarda também o icones-raiz.js?v=<versão> na instalação
+// (os ícones do app saíram do unpkg). Servido da cópia pela URL versionada, como os módulos.
+// Versão anterior: 3.3 · 21/10/2026
 //
 // v3.3 (21/10/2026, sessão 20261021-0030-trava-css, demanda 6b11c602; de acordo do Nicola 21/10 00:30) — o CSS do app
 // saiu do index para raiz.css?v=<versão>. Ele é tratado como os módulos: guardado na instalação (lido do versoes.json) e
@@ -73,7 +77,7 @@ self.addEventListener('install', function (event) {
             return fetch('versoes.json', { cache: 'reload' }).then(function (r) { return r.json(); }).then(function (v) {
                 var lista = ['./', 'index.html', 'manifest.json', 'icon-192.png', 'versoes.json'];
                 Object.keys((v && v.arquivos) || {}).forEach(function (arq) {
-                    if (/^js\/.*\.js$/.test(arq) || arq === 'raiz.css') lista.push(arq + '?v=' + v.arquivos[arq]);
+                    if (/^js\/.*\.js$/.test(arq) || arq === 'raiz.css' || arq === 'icones-raiz.js') lista.push(arq + '?v=' + v.arquivos[arq]);
                 });
                 return Promise.all(lista.map(function (u) {
                     return fetch(u, { cache: 'reload' }).then(function (resp) { if (resp.ok) return cache.put(u, resp); }).catch(function () {});

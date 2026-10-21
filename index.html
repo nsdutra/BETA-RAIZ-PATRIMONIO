@@ -6,8 +6,12 @@
    (base derivada do RUMO v7.4.2 — histórico de versões anteriores
    preservado abaixo para referência técnica)
 
-   VERSÃO: Beta v1.465.0
+   VERSÃO: Beta v1.466.0
    LINHAS: 15626
+   DATA: 21/10/2026 (sessão 20261021-1732-icones-raiz, demanda 6b11c602)
+   NOVIDADES (Beta v1.466.0) — ÍCONES RECORTADOS: Lucide inteira (665 KB) → icones-raiz.js 1.0.0 (67 KB, 322 ícones);
+   ícone fora do recorte carrega a Lucide inteira. sw.js 3.4.
+   Versão anterior (Beta v1.465.0):
    DATA: 21/10/2026 (sessão 20261021-1342-calendario-generico, demanda 6f9e5b7d)
    NOVIDADES (Beta v1.465.0) — CALENDÁRIO GENÉRICO (agenda.js 1.10.0): atalho da Raiz IA vira "Calendário".
    Versão anterior (Beta v1.464.0):
@@ -22,12 +26,8 @@
    ("Dedetização periódica · venceu há 11 dias"); situação sem fundo; Controles sem "Em dia" com item vencido. Aqui só versão.
    Versão anterior (Beta v1.462.0):
    DATA: 21/10/2026 (sessão 20261021-1040-ux-subativos, demanda 15146a34)
-   NOVIDADES (Beta v1.462.0) — SUB-ATIVOS (Nicola 21/10 10:35): a quantidade volta para o ícone (ramo e grupo) e a linha que
-   liga os sub-ativos fica mais curta, com ícone menor — o nome ganha ~26 px. Aqui só versão e import map.
-   Versão anterior (Beta v1.461.0):
-   DATA: 21/10/2026 (sessão 20261021-1005-ux-onda1, demanda 15146a34)
    ------------------------------------------------------------------
-   Versões anteriores (v1.461.0 … v1.461.0): CHANGELOG_APP.md, na raiz do
+   Versões anteriores (v1.462.0 … v1.462.0): CHANGELOG_APP.md, na raiz do
    repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
    das 5 versões mais recentes deste cabeçalho.
 
@@ -100,7 +100,7 @@
          de editar as ~875 classes bg-emerald-*/slate-*/gray-*/red-*/amber-*/
          green-* já espalhadas pelo arquivo. Toda classe existente passa a
          renderizar com a cor da marca automaticamente — zero HTML tocado. -->
-    <script src="https://unpkg.com/lucide@1.60.0/dist/umd/lucide.js"></script>
+    <script src="icones-raiz.js?v=1.0.0"></script>
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -2904,7 +2904,7 @@
         // texto certo toda vez (esqueci 5 versões seguidas, de v1.37.1 até
         // v1.38.3). Agora só precisa mudar UMA linha aqui a cada release;
         // window.onload aplica nos dois lugares automaticamente.
-        const APP_VERSAO = "Beta v1.465.0"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
+        const APP_VERSAO = "Beta v1.466.0"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
 
         // ====================================================================
         // v1.105.0 — HELPERS DE SUPERFÍCIE DA GRAMÁTICA ÚNICA
