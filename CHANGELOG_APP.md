@@ -4,6 +4,21 @@ Histórico completo de versões do `index.html`, movido automaticamente pelo `ge
 
 ---
 
+NOVIDADES (Beta v1.453.0) — FINANCEIRO DO ATIVO NO PADRÃO DA TELA FINANCEIRO (protótipo PROTOTIPO_FINANCEIRO_DO_ATIVO_RAIZ
+v1.1.0, de acordo do Nicola 20/10 22:02): financeiro.js 1.74.0 — gráfico do Hoje mais baixo, com valores, que filtra o mês;
+Previsto · Pago · Vencido · A pagar; lista com etiqueta padrão, sem chips e sem a origem. Balanço (Pessoas, Grupos e o card
+do ativo) com saldo partido: "a receber"/"deve" em cima e o valor embaixo, sem apertar o nome. cofre-ativos.js 1.139.0 —
+card do plano de pagamento resumido. Aqui, o CSS (.rz-fc-chart, .rz-saldo), cabeçalho e import map.
+Versão anterior (Beta v1.452.0):
+LINHAS: 17260
+DATA: 20/10/2026 (sessão 20261020-2149-calendario-ja, demanda b3aeefaf)
+------------------------------------------------------------------
+Versões anteriores (v1.452.0 … v1.452.0): CHANGELOG_APP.md, na raiz do
+repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
+das 5 versões mais recentes deste cabeçalho.
+
+---
+
 NOVIDADES (Beta v1.452.0) — CALENDÁRIO ESCOLAR: "JÁ ESTÁ NA AGENDA" EM DESTAQUE (Nicola 20/10 21:49): agenda.js 1.9.4 —
 selo verde na linha já importada ("vai repetir" se marcada de novo), a seta abre os ajustes e a chave de origem sem o
 nome da escola. Edge calendario-escolar-ler 1.0.4: data por turma vem uma linha por data. Aqui, só cabeçalho e import map.

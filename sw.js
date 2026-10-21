@@ -1,5 +1,10 @@
 // Raiz Patrimônio — Service Worker
-// Versão: 3.2 · 12/10/2026
+// Versão: 3.3 · 21/10/2026
+//
+// v3.3 (21/10/2026, sessão 20261021-0030-trava-css, demanda 6b11c602; de acordo do Nicola 21/10 00:30) — o CSS do app
+// saiu do index para raiz.css?v=<versão>. Ele é tratado como os módulos: guardado na instalação (lido do versoes.json) e
+// servido da cópia pela própria URL versionada. Sem isto, o app abriria sem estilo quando estivesse sem rede.
+// Versão anterior: 3.2 · 12/10/2026
 //
 // v3.2 (12/10/2026, sessão 20261008-1231-pessoas-ativos, demanda 41d771c8; F13.10, de acordo do Nicola 12/10 03:27) — a
 // página do link do rateio (grupo.html) passa direto pela rede, fora do SW: sem isso, abrir o link num aparelho com o
@@ -68,7 +73,7 @@ self.addEventListener('install', function (event) {
             return fetch('versoes.json', { cache: 'reload' }).then(function (r) { return r.json(); }).then(function (v) {
                 var lista = ['./', 'index.html', 'manifest.json', 'icon-192.png', 'versoes.json'];
                 Object.keys((v && v.arquivos) || {}).forEach(function (arq) {
-                    if (/^js\/.*\.js$/.test(arq)) lista.push(arq + '?v=' + v.arquivos[arq]);
+                    if (/^js\/.*\.js$/.test(arq) || arq === 'raiz.css') lista.push(arq + '?v=' + v.arquivos[arq]);
                 });
                 return Promise.all(lista.map(function (u) {
                     return fetch(u, { cache: 'reload' }).then(function (resp) { if (resp.ok) return cache.put(u, resp); }).catch(function () {});
@@ -128,8 +133,8 @@ self.addEventListener('fetch', function (event) {
     if (url.origin === self.location.origin) {
         if (/\/grupo\.html$/.test(url.pathname)) return; // v3.2 — página pública do rateio: só rede
         if (req.mode === 'navigate') { event.respondWith(redePrimeiro(req, null, 15000)); return; } // v3.1 — 15 s (era 4 s)
-        if (url.pathname.endsWith('.js') && url.searchParams.has('v')) { event.respondWith(cacheDepoisRede(req)); return; }
-        if (url.pathname.endsWith('.js') || url.pathname.endsWith('versoes.json')) { event.respondWith(redePrimeiro(req, { cache: 'reload' })); return; }
+        if ((url.pathname.endsWith('.js') || url.pathname.endsWith('.css')) && url.searchParams.has('v')) { event.respondWith(cacheDepoisRede(req)); return; }
+        if (url.pathname.endsWith('.js') || url.pathname.endsWith('.css') || url.pathname.endsWith('versoes.json')) { event.respondWith(redePrimeiro(req, { cache: 'reload' })); return; }
         if (/\.(png|svg|ico|webp|json)$/.test(url.pathname)) { event.respondWith(cacheEAtualiza(req)); return; }
         return;
     }

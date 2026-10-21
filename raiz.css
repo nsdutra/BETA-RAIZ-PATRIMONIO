@@ -1,0 +1,1649 @@
+/* ============================================================================
+   raiz.css — Raiz Patrimônio · estilos do app (index.html)
+   Versão: 1.0.0 · 21/10/2026
+
+   v1.0.0 (21/10/2026, sessão 20261021-0030-trava-css, demanda 6b11c602; de acordo do Nicola 21/10 00:30) — criação.
+   O bloco de estilos comum que vivia no head do index.html (até a Beta v1.457.0) passa para este arquivo, sem
+   mudar um caractere. O index o carrega no mesmo ponto onde o bloco estava, então a cascata é a mesma.
+
+   ARMADILHA: o bloco @theme do Tailwind NÃO mora aqui — fica embutido no index, porque o Tailwind do navegador
+   só processa estilo embutido. Classe utilitária e token do Tailwind: index. Componente .rz-*: aqui.
+   Ao mudar este arquivo, suba a versão acima: o gerar_versoes.py copia para o ?v= do <link> no index.
+   ============================================================================ */
+
+        .tab-content { display: none; }
+
+        .tab-content.active { display: block; }
+
+        /* v1.61.1 — FIX: #form-imovel-wrapper usa position:fixed inline,
+           mas precisa de display:flex só quando visível. Colocar
+           "display:flex" no atributo style inline SEMPRE vence a classe
+           .hidden (display:none) por especificidade — o modal nunca
+           fechava. Resolvido via regra CSS de classe, que respeita a
+           mesma cascade de .hidden usada no resto do app. */
+        #form-imovel-wrapper:not(.hidden) { display: flex; }
+
+        /* v1.61.5 — Badge de ATRIBUTO (não confundir com badge de STATUS
+           da §14 do DS). Categoria nova, documentada em DS v2.1.0 §14.1:
+           usada quando o dado é uma característica do registro (ex.:
+           "tem energia própria"), não um estado do fluxo (Vago/Alugado/
+           etc.). Reaproveita o par --warning já existente — nunca um hex
+           novo — só para não competir visualmente com os 4 status reais.
+           Substitui os antigos bg-yellow-100/text-yellow-800 hardcoded
+           (3 ocorrências: renderImoveis/renderContratos/renderVitrine). */
+        .raiz-badge-atributo { background: var(--warning-bg); color: var(--warning); }
+
+        /* Tokens de marca — usar nos componentes novos (toast, onboarding, badges).
+           Mesmos valores da landing page (www.raizpatrimonio.com.br).
+           v1.92.0 (31/08/2026, pedido explícito, decisão de design já
+           tomada em conversa separada) — --sprout/--sprout-light novos,
+           mesma família de matiz do --pine. Regra de uso (ver
+           DESIGN_SYSTEM_RAIZ_PATRIMONIO, patch v2.1): --pine/--pine-deep
+           ficam reservados pra telas de autoridade (contrato, minuta,
+           fiador, divisão societária de CONTRATO) — não tocados nesta
+           entrega. --sprout vira o padrão do dia a dia (header, barra de
+           baixo, menu Configurações, botões "Salvar" fora de contrato).
+           Não são 2 marcas — mesma raiz, peso num lugar, abertura no
+           outro. */
+        :root{
+            --pine:#1e3a32; --pine-deep:#152a24; --pine-light:#2d5347;
+            --sprout:#3f8163; --sprout-light:#dcebe0;
+            --brass:#c68a3b; --brass-deep:#a86f27; --brass-light:#f0c88a;
+            /* v1.105.0 — brass é cor EXCLUSIVA de IA/Robô (REGRAS_EXPERIENCIA §16).
+               --brass-bg é o fundo do selo/zona IA. */
+            --brass-bg:#fbf1e2;
+            /* v1.105.0 — vinho entra como 2º acento e como --warning (DS v2.1 §1),
+               separando "atenção" (vinho) de "IA" (dourado), que antes eram o mesmo hex. */
+            --wine:#7d4b54; --wine-light:#c98f97;
+            --sage:#6b857a; --ink:#17211e; --line:#e6e3da;
+            /* v1.107.0 — paleta "executiva" (decisão do Nicola 03/09, DS v2.3):
+               --paper volta a ser neutro quente (#f4f3ee; Pérola #f1f4ec ficou
+               esverdeado demais somado às placas e ao cabeçalho) e nasce
+               --tile, o fundo neutro das placas de ícone (row, entidade,
+               sheet de ações) — --sprout-light deixa de ser superfície e
+               sprout vira SÓ acento de estado (aba ativa, positivo). */
+            --paper:#f4f3ee; --tile:#e9ece5; --card:#ffffff; --muted:#6f7a76;
+            --success:#2f8b57; --success-bg:#e8f5ed;
+            --warning:#7d4b54; --warning-bg:#f3e7e9;
+            --danger:#c1463a; --danger-bg:#fbebe9;
+            --info:#3d6b8c; --info-bg:#e8f0f5;
+            /* v1.105.0 — geometria e sombra únicas da gramática (REGRAS §17) */
+            --r-card:14px; --r-ctl:10px; --r-pill:999px;
+            --sh-card:0 1px 2px rgba(23,33,30,.06),0 4px 14px rgba(23,33,30,.05);
+            --font-title:"Bricolage Grotesque",sans-serif; --font-body:"Inter",system-ui,sans-serif;
+        }
+
+        h1,h2,h3,h4{font-family:"Bricolage Grotesque",sans-serif;letter-spacing:-.02em}
+
+        /* v1.41.0 (Fase 2) — Design system "liga/desliga": botões circulares
+           que abrem/fecham um painel (ex: "+", "Conciliar") trocam de cor
+           quando o painel está aberto, dando a sensação de toggle — em vez
+           de precisar de um X vermelho separado para fechar. Aplicar a
+           classe .raiz-btn-toggle no botão e alternar .ativo via JS junto
+           com o hidden do painel correspondente. */
+        .raiz-btn-toggle.ativo {
+            background: var(--sprout) !important;
+            color: #fff !important;
+            border-color: var(--sprout) !important;
+        }
+
+        /* v1.41.2 — mesmo princípio, só que para os botões menores "..."
+           (reajuste de contrato, "Energia/multa/taxa" da aba Mensal): fundo
+           escurece enquanto o painel abaixo dele está aberto. */
+        .raiz-btn-toggle-mini.ativo {
+            background: var(--sprout) !important;
+            color: #fff !important;
+            border-color: var(--sprout) !important;
+        }
+
+        /* v1.41.3 — CORRIGIDO: os botões +/X de Síndico/Manutencista/
+           Administradora pareciam "maiores" que o de Imóveis mesmo tendo o
+           mesmo tamanho de círculo (w-11 h-11) — o SVG interno esquecia o
+           w-5 h-5, então o navegador desenhava o ícone no tamanho padrão do
+           SVG (bem maior). Esta regra é uma rede de segurança: garante que
+           TODO <svg class="raiz-icone-toggle"> dentro de um .raiz-btn-toggle
+           sempre tenha 20x20px, mesmo que alguém esqueça de declarar
+           w-5 h-5 na classe ao criar um novo botão no futuro. */
+        .raiz-btn-toggle svg.raiz-icone-toggle { width: 20px; height: 20px; }
+
+        /* v1.41.0 (Fase 2) — Métricas: o filtro "Imóvel" (botão) e o filtro
+           "Período" (select) têm classes de padding idênticas, mas
+           navegadores renderizam a altura de cada um de forma levemente
+           diferente. Esta classe força os dois a terem exatamente a mesma
+           altura, alinhados ao padrão do sistema (demais filtros do app). */
+        .raiz-filtro-altura-padrao { height: 34px; line-height: 1.2; }
+
+        /* v1.41.2 — mesmo princípio da classe acima, calibrada para o par
+           "Imóvel" (botão) / "Status" (select) do formulário de contrato,
+           que usa padding maior (p-2) e texto text-sm — precisa de uma
+           altura de referência diferente da dos filtros de Métricas. */
+        .raiz-campo-altura-contrato { height: 38px; line-height: 1.2; display: flex; align-items: center; }
+        select.raiz-campo-altura-contrato { display: block; }
+
+        /* v1.41.2 — corrige o espaçamento irregular entre linhas do
+           formulário de contrato: os parágrafos de indicador de validação
+           (con-doc-indicador, con-whatsapp-indicador, con-email-indicador)
+           reservavam uma altura fixa (h-3) mesmo vazios, "esticando" só as
+           colunas/linhas que os têm — fazendo a linha seguinte parecer mais
+           distante da linha acima do que as demais. Colapsando por completo
+           quando vazios (:empty), o espaçamento entre todas as linhas do
+           formulário fica visualmente uniforme; ao aparecer uma mensagem de
+           validação de verdade, o parágrafo volta a ocupar espaço normal. */
+        .raiz-indicador-inline:empty { height: 0; margin-top: 0; }
+
+        /* v1.202.0 — #btn-falar-bot-splash (botão de IA da tela de abertura)
+           migrado do mascote R.AI.Z próprio (verde-escuro, anel branco fino,
+           olhos piscando — v1.40.2/v1.40.3, CSS acima removida por não ter
+           mais uso) pra MESMA linguagem visual de IA já usada no cabeçalho
+           pós-login (.rz-hdr .rz-ia: círculo brass + sparkles + sombra —
+           REGRAS_EXPERIENCIA §15/16, brass é cor EXCLUSIVA de IA/Robô).
+           Regra própria (em vez de reaproveitar .rz-ia direto) porque aqui
+           o botão fica solto sobre a splash, position:absolute, sem o
+           .rz-hdr como pai — mesmos tokens, mesmo desenho. onclick continua
+           abrirBotWhatsapp() (não é o sheet do Raiz IA — pré-login não tem
+           sessão/empresa carregada; o convite aqui é o mesmo WhatsApp de
+           sempre). Pulso brass (::before) só decorativo, sem interferir no
+           toque (pointer-events não desativado pois fica atrás via z-index
+           de stacking do próprio botão, não some clique). */
+        #btn-falar-bot-splash{
+            position:absolute; top:14px; right:66px; z-index:10;
+            width:44px; height:44px; border-radius:50%;
+            background:var(--brass); color:#fff; border:0; padding:0; cursor:pointer;
+            display:flex; align-items:center; justify-content:center;
+            box-shadow:0 6px 18px rgba(21,42,36,.35), 0 2px 6px rgba(21,42,36,.2);
+            transition:transform .08s;
+        }
+        #btn-falar-bot-splash:active{ transform:scale(.92); }
+        #btn-falar-bot-splash svg{ width:20px; height:20px; position:relative; z-index:1; }
+        #btn-falar-bot-splash::before{
+            content:''; position:absolute; inset:0; border-radius:50%;
+            background:var(--brass); z-index:0;
+            animation:rz-splash-ia-pulse 2.6s ease-out infinite;
+        }
+        @keyframes rz-splash-ia-pulse{
+            0%   { transform:scale(1); opacity:.5; }
+            100% { transform:scale(1.9); opacity:0; }
+        }
+
+        /* v1.203.0 — BUG REAL achado pelo Nicola em print: com a lista de
+           "escolha a empresa" longa (9+ itens), a splash inteira rolava
+           (era 1 coluna só, centralizada) e o botão de IA — position:
+           absolute relativo à splash, não ao conteúdo — ficava PARADO na
+           tela enquanto o cabeçalho/foto rolavam por baixo dele,
+           sobrepondo o texto. Pedido explícito: cabeçalho + foto + rodapé
+           + filtro fixos, só a LISTA de empresas rola, sem borda de
+           componente nem barra de rolagem visível. Classe aplicada só
+           durante mostrarSelecaoEmpresa() (removida ao sair dela); login
+           e "definir senha" continuam exatamente como sempre foram —
+           coluna curta, centralizada, sem essa divisão em 3 regiões. */
+        /* v1.368.0 (marca e ramos, fase 1) — splash no verde da marca (o Tailwind bg-emerald-900 ficava fora da paleta) e
+           assinatura vertical "Raiz Patrimônio" no lugar da foto de prédios do Unsplash (sem chamada a terceiro) */
+        #splash-screen{background:var(--pine)}
+        /* Splash "Horizonte" (dem 680ee9f8): céu de manhã com a árvore dos 7 ramos em cima, terra com raízes embaixo; o login
+           fica na terra. A arte é um SVG só (.rz-splash-arte), com viewBox largo para telas largas e o topo sempre à vista
+           (xMidYMin slice). --rz-chao = altura em px da linha do chão, calculada por rzSplashChao() — o conteúdo começa ali. */
+        #splash-screen:not(.splash-lista-ativa){background:linear-gradient(180deg,#1e3a32 0,#1e3a32 calc(var(--rz-chao,360px) * 1.45),#132820 100%);justify-content:flex-start}
+        .rz-splash-arte{position:absolute;top:0;left:0;width:100%;height:max(clamp(440px,64vh,640px),52vw);display:block;z-index:0;pointer-events:none}
+        #splash-screen.splash-lista-ativa .rz-splash-arte{display:none}
+        #splash-conteudo{position:relative;z-index:1}
+        #btn-falar-bot-splash,#btn-solicitar-acesso-socio,#splash-ia-tooltip{z-index:2}
+        #splash-screen:not(.splash-lista-ativa) #splash-conteudo{padding-top:calc(var(--rz-chao,360px) + 6px)}
+        #splash-screen:not(.splash-lista-ativa) .rz-marca-v small{color:#d7c49a}
+        #splash-screen:not(.splash-lista-ativa) .rz-marca-v b{margin-top:0;text-shadow:0 2px 18px rgba(10,25,20,.55)}
+        #splash-screen #btn-login-supabase{background:#f3e3c7 !important;color:#1e3a32;box-shadow:0 6px 18px rgba(0,0,0,.18)}
+        #splash-screen #btn-login-supabase:hover{background:#f8ead3 !important} /* !important: vence o .raiz-btn-pine, que também usa */
+        /* um único movimento: a árvore cresce, as folhas brotam, os ramos amadurecem; parado com "reduzir movimento" */
+        .rz-sp-cresce{transform-box:fill-box;transform-origin:50% 100%;animation:rzSpCresce 1.1s cubic-bezier(.2,.8,.2,1) var(--d) both}
+        .rz-sp-folha{opacity:0;animation:rzSpBrota .6s ease-out var(--d) forwards}
+        .rz-sp-fruto{opacity:0;transform-box:fill-box;transform-origin:center;animation:rzSpFruto .7s cubic-bezier(.2,.8,.2,1) var(--d) forwards}
+        /* v1.376.0 — leque: cada ramo (galho + fruto) gira a partir do topo do tronco, do fechado (em pé) até o lugar */
+        .rz-sp-ramo{transform-box:view-box;transform-origin:170px 232px;animation:rzSpLeque .95s cubic-bezier(.2,.85,.25,1) var(--d) both}
+        @keyframes rzSpLeque{from{transform:rotate(var(--a)) scale(.35);opacity:0}35%{opacity:1}to{transform:none;opacity:1}}
+        .rz-splash-arte:not(.rz-sp-play) *{animation-play-state:paused!important}
+        .rz-sp-raizes{animation:rzSpBrota 1.6s ease-out .2s both}
+        @keyframes rzSpCresce{from{transform:scaleY(0)}to{transform:scaleY(1)}}
+        @keyframes rzSpBrota{from{opacity:0}to{opacity:1}}
+        @keyframes rzSpFruto{from{opacity:0;transform:scale(.4)}to{opacity:1;transform:scale(1)}}
+        @media (prefers-reduced-motion:reduce){.rz-sp-cresce,.rz-sp-fruto,.rz-sp-ramo{animation:none;opacity:1;transform:none}.rz-sp-folha,.rz-sp-raizes{animation:none;opacity:1}}
+        /* v1.371.0 (fase 6) — assinatura discreta no rodapé do recibo (html2canvas lê classe normalmente) */
+        .rz-pdf-marca{margin-top:12px;display:flex;align-items:center;justify-content:center;gap:5px;font:7.5px Arial,sans-serif;color:#6f7a76}
+        .rz-pdf-simb{flex:none}
+        .rz-marca-v{display:flex;flex-direction:column;align-items:center;gap:2px}
+        .rz-marca-v b{font:800 40px/1 var(--font-title);letter-spacing:-.02em;color:#fff;margin-top:6px}
+        .rz-marca-v small{font:600 11px var(--font-body);letter-spacing:.2em;color:#9fc3ae}
+        .rz-splash-visao{color:#cfe0d6;font-size:14px;line-height:1.45;margin:0 12px}
+        .rz-sh-marca{text-align:center;margin:10px 0 2px}
+        .rz-marca-h{display:inline-flex;align-items:center;gap:8px;vertical-align:middle}
+        .rz-marca-h b{font:800 18px/1 var(--font-title);letter-spacing:-.02em;color:var(--pine)}
+        .rz-marca-h small{display:block;font:600 11px/1.2 var(--font-title);color:var(--sprout)}
+        #splash-screen.splash-lista-ativa{ overflow:hidden; justify-content:flex-start; }
+        #splash-screen.splash-lista-ativa #splash-conteudo{ flex:1; min-height:0; display:flex; flex-direction:column; }
+        #splash-screen.splash-lista-ativa #area-selecao-empresa{ flex:1; min-height:0; display:flex; flex-direction:column; }
+        #splash-screen.splash-lista-ativa #lista-selecao-empresa{
+            flex:1; min-height:0; overflow-y:auto;
+            scrollbar-width:none; -ms-overflow-style:none; /* Firefox/IE — sem barra visível */
+        }
+        #splash-screen.splash-lista-ativa #lista-selecao-empresa::-webkit-scrollbar{ display:none; } /* Chrome/Safari/WebView */
+        /* dem 4fa92c2c — escolha de empresa na gramática do app, sobre o fundo verde do login (protótipo aprovado 10/10 22:26):
+           cabeçalho, barra digitável (6+ empresas), chips por plano, lista em card claro, Sair no rodapé. */
+        .rz-esc-topo{margin:4px 2px 12px}
+        .rz-esc-ola{font:700 24px var(--font-title);letter-spacing:-.02em;color:#fff;margin:0}
+        .rz-esc-sub{color:#b9d0c3;font-size:14px;margin:4px 0 0}
+        #area-selecao-empresa .rz-topo{margin-bottom:10px}
+        #area-selecao-empresa .rz-search{background:rgba(255,255,255,.1);border-color:rgba(255,255,255,.2);color:#cfe0d6}
+        #area-selecao-empresa .rz-search.rz-search-in input{color:#fff}
+        #area-selecao-empresa .rz-search.rz-search-in input::placeholder{color:#b9d0c3}
+        #area-selecao-empresa .rz-search-x{background:rgba(255,255,255,.16);color:#fff}
+        .rz-esc-grupo{color:#9fc3ae;font-size:12px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;margin:10px 4px 6px}
+        #lista-selecao-empresa .rz-card{margin-bottom:4px;color:var(--ink)}
+        #lista-selecao-empresa .rz-row{width:100%;background:none;border:0;border-bottom:1px solid var(--line);text-align:left;font:inherit;color:inherit}
+        #lista-selecao-empresa .rz-row:last-child{border-bottom:0}
+        #lista-selecao-empresa .rz-ic img{width:100%;height:100%;object-fit:contain;border-radius:inherit}
+        #lista-selecao-empresa .rz-ic.rz-esc-sigla{font:700 15px var(--font-title)}
+        .rz-esc-aviso{color:#f0c88a;font-size:13px;margin:0 4px 8px}
+        .rz-esc-vazio{text-align:center;margin:10px 0}
+        /* v1.360.0 (Nicola 10/10 23:05: "ficou apertada") — na escolha de empresa saem a foto e o título da splash, os chips e
+           a linha de versão solta; a tela começa no "Olá", a lista ocupa o resto e o rodapé junta versão (esq.) e Sair (dir.). */
+        #splash-screen.splash-lista-ativa .rz-splash-foto,#splash-screen.splash-lista-ativa .rz-splash-titulo,
+        #splash-screen.splash-lista-ativa .rz-splash-versao,#splash-screen.splash-lista-ativa #splash-status:empty{display:none}
+        #splash-screen.splash-lista-ativa{padding-bottom:4px}
+        #splash-screen.splash-lista-ativa #splash-conteudo{padding-top:0;padding-bottom:calc(8px + env(safe-area-inset-bottom))}
+        #splash-screen.splash-lista-ativa .rz-esc-topo{margin:0 2px 14px}
+        /* v1.361.0 (Nicola 10/10 23:23: "subir mais o Olá Nicola, ficando a busca ao lado do IA") — o "Olá" sobe para o
+           topo; a barra de busca e o botão da IA dividem a mesma linha (o botão entra na linha da busca, sem posição absoluta).
+           Sem barra (menos de 6 empresas), o botão fica na linha do "Olá". #splash-ia-tooltip não aparece nesta tela. */
+        #splash-screen.splash-lista-ativa #splash-ia-tooltip{display:none}
+        #splash-screen.splash-lista-ativa .rz-esc-linha{display:flex;align-items:center;gap:10px}
+        #splash-screen.splash-lista-ativa .rz-esc-linha > :first-child{flex:1;min-width:0}
+        #splash-screen.splash-lista-ativa .rz-esc-linha #btn-falar-bot-splash{position:relative;top:auto;right:auto;flex:none}
+        #area-selecao-empresa .rz-topo.rz-esc-linha{margin-bottom:6px}
+        .rz-esc-rodape{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:14px 4px 0}
+        .rz-esc-versao{color:#9fc3ae;font-size:12px}
+        .rz-esc-rodape button{background:none;border:0;color:#fff;font:600 14px var(--font-body, inherit);display:flex;align-items:center;gap:6px;cursor:pointer;padding:8px 4px}
+        .rz-esc-rodape svg{width:16px;height:16px}
+        /* v1.378.0 — continuidade splash → empresas → app (PROTOTIPO_CONTINUIDADE_SPLASH_APP_RAIZ v1.0.0, C1–C5).
+           C1: na escolha de empresa a árvore fica, menor, no céu; a lista nasce do solo em cartões creme (o tom do Entrar),
+           com o logo (sem logo, só o nome — nada de iniciais) e os ramos da empresa como frutos. */
+        .rz-splash-arte{transition:height .9s cubic-bezier(.3,.8,.25,1)}
+        #splash-screen.splash-lista-ativa .rz-splash-arte,#splash-screen.rz-esc-abrindo .rz-splash-arte{display:block;height:min(250px,32vh)}
+        #splash-screen.splash-lista-ativa #splash-conteudo,#splash-screen.rz-esc-abrindo #splash-conteudo{padding-top:calc(var(--rz-chao,190px) + 2px)}
+        #splash-screen.splash-lista-ativa .rz-esc-ola{font-size:22px}
+        #splash-screen.splash-lista-ativa .rz-sp-raizes{opacity:.3!important;transition:opacity .6s}
+        #splash-screen.rz-esc-abrindo .rz-sp-raizes{opacity:0!important;transition:opacity .4s} /* v1.419.0 — as raízes descem para o "Abrindo" */
+        /* v1.420.0 — principal com subativos na lista de Ativos: ícone com borda na cor do ramo e o número de subativos */
+        .rz-row .rz-ic.rz-ic-grupo{position:relative;overflow:visible;box-shadow:inset 0 0 0 2px var(--ramo-grupo,var(--sprout))}
+        .rz-ic-grupo .rz-ic-n{position:absolute;right:-5px;bottom:-5px;min-width:18px;height:18px;padding:0 4px;border-radius:9px;background:var(--ramo-grupo,var(--sprout));color:#fff;font:700 11px/18px var(--font-body);text-align:center;box-shadow:0 0 0 2px var(--card)}
+        .rz-ic-grupo img{border-radius:inherit}
+        /* v1.439.0 (item 40) — a linha sai do ícone do principal (centro a 21px) e chega a cada ícone de sub-ativo */
+        .rz-subs{position:relative;padding-left:40px}
+        .rz-subs>.rz-sub-row{position:relative}
+        .rz-subs>.rz-sub-row::before{content:"";position:absolute;left:-19px;top:-12px;bottom:0;border-left:2px solid var(--ramo-grupo,var(--line))}
+        .rz-subs>.rz-sub-row:last-child::before{bottom:auto;height:calc(50% + 12px)}
+        .rz-subs>.rz-sub-row::after{content:"";position:absolute;left:-19px;top:50%;width:17px;border-top:2px solid var(--ramo-grupo,var(--line))}
+        /* v1.439.3 (item 47, Nicola 19/10 17:09: "mais fina, mais sutil, sem mudar o tamanho das letras, seguindo a moldura dos
+           ativos") — a faixa vira o topo do card da lista do ramo: mesma largura e cantos do card, fundo claro na cor do ramo e
+           um fio na cor do ramo embaixo; o ícone (38px, sólido na cor do ramo) fica centrado na coluna dos ícones dos ativos (34px, escala compacta) */
+        .rz-ramo-faixa{display:flex;align-items:center;gap:10px;margin:18px 0 0;padding:6px 14px;border-radius:var(--r-card) var(--r-card) 0 0;
+            background:var(--tile);background:color-mix(in srgb,var(--ramo-grupo,var(--sage)) 18%,var(--card));border:1px solid var(--line);color:var(--ink)} /* v1.439.4 (item 49): sem o fio forte, fundo 12%→18% */
+        .rz-ramo-faixa:first-child{margin-top:4px}
+        #ativos-lista > .rz-ramo-faixa + .rz-card{margin-top:0;border-top:0;border-top-left-radius:0;border-top-right-radius:0}
+        .rz-ramo-faixa h3{font-family:var(--font-title);font-size:16px;font-weight:600;flex:1;min-width:0;margin:0;color:inherit}
+        .rz-ramo-faixa>b{font-size:14px;font-weight:600;white-space:nowrap;font-variant-numeric:tabular-nums}
+        .rz-ramo-faixa-ic{position:relative;width:38px;height:38px;margin:0 -2px;border-radius:11px;background:var(--ramo-grupo,var(--sage));color:var(--card);display:inline-flex;align-items:center;justify-content:center;flex:none}
+        .rz-ramo-faixa-ic svg{width:19px;height:19px}
+        /* item 48 — o ícone e a setinha recolhem/abrem a lista do ramo; recolhido, a faixa fica com os 4 cantos do card */
+        .rz-ramo-faixa-ic{cursor:pointer}
+        .rz-ramo-faixa-tg{display:inline-flex;align-items:center;justify-content:center;width:32px;height:32px;margin:0 -8px 0 -4px;border:0;border-radius:50%;background:none;color:var(--muted);cursor:pointer;flex:none}
+        .rz-ramo-faixa-tg svg{width:18px;height:18px}
+        .rz-ramo-faixa.rz-ramo-fechado{border-radius:var(--r-card)}
+        /* a linha das áreas, refeita para a escala compacta (ícone 34px, centro a 17px; linha com 9px de respiro) */
+        .rz-subs>.rz-sub-row::before{left:-23px;top:-9px}
+        .rz-subs>.rz-sub-row:last-child::before{height:calc(50% + 9px)}
+        .rz-subs>.rz-sub-row::after{left:-23px;width:21px}
+        .rz-ramo-faixa-n{position:absolute;right:-6px;bottom:-5px;min-width:18px;height:18px;padding:0 4px;border-radius:9px;background:var(--card);color:var(--ramo-grupo,var(--sage));font:700 11px/18px var(--font-body);text-align:center;box-shadow:0 0 0 1.5px var(--ramo-grupo,var(--sage))}
+        /* v1.439.2 (item 46) — ⋮ de Patrimônio na ponta direita da linha dos chips (padrão da ficha do ativo) */
+        /* v1.439.6 (item 51) — a margem de baixo sai dos chips e vai para a linha (o ⋮ fica no meio da altura dos chips); os
+           chips param antes do ⋮, com um esmaecido na ponta, e ficam um pouco mais curtos nesta linha */
+        .rz-chips-linha{display:flex;align-items:center;gap:6px;margin-bottom:12px}
+        .rz-chips-linha>.rz-chips{flex:1;min-width:0;margin:0 0 0 -16px;padding:2px 10px 2px 16px;gap:5px;
+            -webkit-mask-image:linear-gradient(to right,black calc(100% - 18px),transparent);mask-image:linear-gradient(to right,black calc(100% - 18px),transparent)}
+        .rz-chips-linha .rz-chip{padding:0 10px;gap:5px}
+        .rz-chips-linha>.rz-more{margin:0 -8px 0 0;align-self:center}
+        .rz-ramo-ic{width:28px;height:28px;border-radius:9px;display:inline-flex;align-items:center;justify-content:center;color:var(--card);flex:none}
+        .rz-ramo-ic svg{width:15px;height:15px}
+        /* v1.436.1 (dem 9404081c, ajuste do Nicola 19/10 09:17) — na lista de Ativos a etiqueta de status fica embaixo do nome */
+        .rz-row .rz-tx .rz-tx-st{margin:4px 0 2px;line-height:1}
+        .rz-row .rz-tx .rz-tx-st .rz-st{display:inline-flex;margin-top:0;overflow:visible}
+        .rz-row .rz-tx .rz-tx-st .rz-st.rz-ok{color:var(--success)} .rz-row .rz-tx .rz-tx-st .rz-st.rz-warn{color:var(--warning)}
+        .rz-row .rz-tx .rz-tx-st .rz-st.rz-bad{color:var(--danger)} .rz-row .rz-tx .rz-tx-st .rz-st.rz-run{color:var(--info)}
+        .rz-row .rz-tx .rz-tx-st .rz-st.rz-neu{color:var(--sage)}
+        /* v1.421.0 (usos fatia 4) — Programas no chip Controles: sugestão (mesmo tom da sugestão da Raiz IA), cabeçalho do
+           programa sobre os itens dele e, na folha Aceitar, os campos de data só do item marcado */
+        .rz-prog-sug{padding:10px 12px;border-radius:12px;background:var(--brass-bg);margin:0 0 10px}
+        .rz-prog-sug small{display:block;color:var(--brass-deep);font-weight:700;font-size:11px;letter-spacing:.04em;text-transform:uppercase}
+        .rz-prog-sug b{display:block;margin-top:2px}
+        .rz-prog-sug .rz-desc{display:block;margin:2px 0 0}
+        .rz-prog-sug .rz-desc svg{width:13px;height:13px;vertical-align:-2px}
+        .rz-prog-sug .rz-seq-btns{margin-top:10px}
+        /* chip Controles: grupos de itens (programa e categoria) no desenho do item agrupado de Ativos (cofre-controles) */
+        .rz-ctl-grp .rz-ctl-tog{display:flex;color:var(--muted);flex:none}
+        .rz-ctl-subs>.rz-sub-row::before,.rz-ctl-subs>.rz-sub-row::after{left:-19px}
+        .rz-ctl-subs>.rz-sub-row::after{width:19px}
+        .rz-prog-campos{display:flex;flex-wrap:wrap;gap:8px;padding:0 0 10px 28px}
+        .rz-prog-campos .rz-f{flex:1 1 130px;margin:0}
+        .rz-prog-it:has(input[type=checkbox]:not(:checked)) .rz-prog-campos{display:none}
+        /* v1.425.0 (usos fatia 6b) — execução do programa: botão no grupo, fases e custo na tela da obra/safra */
+        .rz-prog-exec{display:inline-flex;align-items:center;gap:6px;margin:6px 0 4px 19px;padding:6px 10px;border:1.5px solid var(--line);border-radius:999px;background:var(--card);color:var(--ink);font:inherit;font-size:13px;font-weight:600;cursor:pointer}
+        .rz-prog-exec svg{width:15px;height:15px}
+        .rz-exec-custo{display:flex;flex-wrap:wrap;gap:6px 14px;margin:0 0 12px;font-size:13px;color:var(--muted)}
+        .rz-exec-custo b{color:var(--ink);font-variant-numeric:tabular-nums}
+        .rz-exec-fases{margin:0 0 6px}
+        .rz-exec-f{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--line)}
+        .rz-exec-f:last-child{border-bottom:0}
+        .rz-exec-f .rz-tx{flex:1;min-width:0}
+        .rz-exec-f .rz-tx b{display:block;font-weight:600}
+        .rz-exec-f .rz-tx span{display:block;font-size:12.5px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+        .rz-exec-ic{width:26px;height:26px;border-radius:50%;display:grid;place-items:center;flex:none;background:var(--line);color:var(--muted)}
+        .rz-exec-ic svg{width:15px;height:15px}
+        .rz-exec-concluida .rz-exec-ic{background:var(--sprout);color:var(--card)}
+        .rz-exec-atual .rz-exec-ic{background:var(--pine);color:var(--card)}
+        .rz-exec-atual .rz-tx b{color:var(--pine)}
+        .rz-exec-pulada .rz-tx b{color:var(--muted);text-decoration:line-through}
+        .rz-exec-acoes{display:flex;flex-wrap:wrap;gap:8px}
+        /* v1.426.0 (usos fatia 7) — membros: contagem por categoria e fase no card do rebanho, campos lado a lado nas folhas */
+        .rz-mb-cnts{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 10px}
+        .rz-mb-cnt{display:inline-flex;align-items:baseline;gap:4px;padding:3px 9px;border-radius:999px;background:var(--tile);font-size:12.5px;color:var(--muted)}
+        .rz-mb-cnt b{color:var(--ink);font-variant-numeric:tabular-nums}
+        .rz-mb-fase{background:var(--info-bg)}
+        .rz-mb-busca{margin:0 0 8px}
+        .rz-mb-2{display:grid;grid-template-columns:1fr 1fr;gap:0 10px}
+        .rz-mb-ciclo .rz-btn{margin-top:8px}
+        .rz-exec-atraso .rz-tx span{color:var(--wine)}
+        .rz-exec-acoes .rz-btn{flex:1 1 140px}
+        .rz-esc-grupo{text-transform:none;letter-spacing:0;font-size:12.5px;color:#a9c4b6}
+        #lista-selecao-empresa .rz-card{background:none;border:0;box-shadow:none;padding:0;margin:0}
+        #lista-selecao-empresa .rz-row{display:flex;align-items:center;gap:12px;min-height:66px;padding:10px 12px;margin-bottom:8px;border:0!important;border-radius:16px;background:#f7f1e4;color:var(--ink);box-shadow:0 2px 0 rgba(0,0,0,.14);transition:transform .25s,box-shadow .25s}
+        #lista-selecao-empresa .rz-row:active{transform:scale(.98)}
+        #lista-selecao-empresa .rz-row .rz-tx span{color:#7d776a}
+        .rz-esc-logo{width:46px;height:46px;border-radius:12px;background:#fff;border:1px solid #e8e0cf;flex:none;display:flex;align-items:center;justify-content:center;overflow:hidden;padding:4px}
+        .rz-esc-logo img{max-width:100%;max-height:100%;object-fit:contain}
+        .rz-esc-frutos{display:flex;gap:3px;flex:none}
+        .rz-esc-frutos i{width:20px;height:20px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;background-image:radial-gradient(circle at 34% 28%,rgba(255,255,255,.35),rgba(255,255,255,0) 60%);box-shadow:0 1px 2px rgba(0,0,0,.22)}
+        .rz-esc-frutos i.rz-breve{opacity:.35}
+        .rz-esc-frutos svg{width:11px;height:11px;stroke-width:2.4}
+        /* C2: ao escolher a empresa, a lista sai, o logo da empresa fica no centro e as raízes se desenham enquanto carrega */
+        #rz-esc-abre{display:none;text-align:center;padding-top:22px}
+        #splash-screen.rz-esc-abrindo #rz-esc-abre{display:block;animation:rzEscAbre .4s ease-out both}
+        #splash-screen.rz-esc-abrindo #area-selecao-empresa,#splash-screen.rz-esc-abrindo #area-login-supabase,
+        #splash-screen.rz-esc-abrindo .rz-splash-foto,#splash-screen.rz-esc-abrindo .rz-splash-titulo,#splash-screen.rz-esc-abrindo #splash-ia-tooltip{display:none!important}
+        #rz-esc-abre .rz-esc-logo{width:auto;min-width:56px;height:56px;padding:6px 10px;margin:0 auto;display:inline-flex}
+        #rz-esc-abre .rz-esc-nome{font:700 22px/1.2 var(--font-title);letter-spacing:-.02em;color:#fff;margin:0 16px}
+        #rz-esc-abre p{color:#a9c4b6;font-size:13px;margin:12px 0 0}
+        #rz-esc-abre svg.rz-raizes{display:block;width:240px;height:150px;margin:18px auto 0}
+        /* v1.420.0 — raízes finas (pivotante → laterais → radicelas), desenhadas em sequência; largura e opacidade por traço */
+        #rz-esc-abre svg.rz-raizes-finas{width:min(280px,72vw);height:auto;aspect-ratio:240/140}
+        .rz-raizes-finas path{fill:none;stroke:#d7c49a;stroke-linecap:round;stroke-dasharray:1;stroke-dashoffset:1;animation:rzRaizFina 1.3s ease-out forwards}
+        @keyframes rzRaizFina{to{stroke-dashoffset:0}}
+        .rz-raizes path{fill:none;stroke:#d7c49a;stroke-width:1.4;stroke-linecap:round;stroke-dasharray:170;stroke-dashoffset:170;animation:rzRaizDesenha 1.2s ease-out forwards}
+        @keyframes rzRaizDesenha{to{stroke-dashoffset:0}}
+        @keyframes rzEscAbre{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+        @media (prefers-reduced-motion:reduce){.rz-splash-arte{transition:none}.rz-raizes path{animation:none;stroke-dashoffset:0}.rz-raizes-finas path{animation:none;stroke-dashoffset:0}#splash-screen.rz-esc-abrindo #rz-esc-abre{animation:none}}
+
+
+        /* Barra inferior (v1.39.8) — indicador do item ativo: barrinha fina no
+           topo do botão, além da cor. */
+        #bottom-nav-bar button{position:relative;color:var(--sage)}
+        #bottom-nav-bar button.bottomnav-active{color:var(--ramo-txt)} /* v1.368.0 (marca e ramos, fase 2) — a cor saiu do JS (style inline) para cá */
+        /* v1.303.0 (UX F2.2, UXR-05/22) — número de pendências na aba Alertas, na cor da pior severidade */
+        #bottom-nav-bar .rz-nav-n{position:absolute;top:3px;left:calc(50% + 4px);min-width:20px;height:20px;padding:0 6px;border-radius:10px;font-size:12px;font-weight:700;line-height:20px;text-align:center;color:#fff;background:var(--sage)}
+        #bottom-nav-bar .rz-nav-n.rz-bad{background:var(--danger)}#bottom-nav-bar .rz-nav-n.rz-warn{background:var(--warning)}
+        #bottom-nav-bar button.rz-nav-off{opacity:.45}#bottom-nav-bar button.rz-nav-off::after{content:'';position:absolute;top:6px;right:calc(50% - 16px);width:10px;height:10px;border-radius:50%;background:var(--wine)} /* v1.130 — aba bloqueada */
+        .rz-chip.rz-off{opacity:.5}.rz-chip.rz-off::before{content:'🔒';font-size:12px;margin-right:2px} /* v1.130 — chip bloqueado */
+        [data-rz-codigo].rz-off{opacity:.5;position:relative}[data-rz-codigo].rz-off::after{content:'🔒';position:absolute;top:-6px;right:-6px;font-size:12px;line-height:1} /* v1.248 — botão com porta (comum-licenca.aplicarCadeados) */
+        /* Entrega F.4 (21/09/2026) — mesma semântica "bloqueado com motivo"
+           dentro do .rz-seg (Fechamento desligado por rotina): .rz-off
+           genérico, não mais preso a .rz-chip. */
+        .rz-seg button.rz-off{opacity:.5}.rz-seg button.rz-off::before{content:'🔒';font-size:12px;margin-right:2px}
+        #bottom-nav-bar button.bottomnav-active::before{
+            content:'';position:absolute;top:0;left:50%;transform:translateX(-50%);
+            width:28px;height:3px;border-radius:0 0 3px 3px;background:var(--ramo-acc);
+        }
+
+        .rubrica-digital {
+
+            font-family: 'Mrs Saint Delafield', cursive;
+
+            font-size: 21px;
+
+            color: #0f172a;
+
+            font-weight: 400;
+
+            line-height: 1.15;
+
+            word-break: keep-all;
+
+        }
+
+        /* v1.104.0 (02/09/2026, pedido explícito: "pode evoluir mais nos
+           ajustes das cores") — utilitárias raiz-* pra trocar classes
+           Tailwind emerald-* (fora do sistema de tokens) por --pine/
+           --sprout, em escala, sem precisar mexer em style="" inline
+           elemento por elemento (mais seguro pra 200+ ocorrências —
+           troca só o NOME da classe, preserva o resto do atributo
+           class="" intacto). Cobre os casos "seguros" desta rodada
+           (títulos, botões de ação em cards/formulários, pills de
+           editar) — NÃO cobre splash/login nem os ícones do cabeçalho
+           global, que já têm histórico próprio de tratamento cuidadoso
+           (contraste WCAG sinalizado antes, decisão consciente de
+           escopo) e ficam de fora de propósito, não por esquecimento. */
+        .raiz-text-pine { color: var(--pine) !important; }
+        .raiz-bg-pine { background: var(--pine) !important; }
+        .raiz-bg-pine-deep { background: var(--pine-deep) !important; }
+        .raiz-border-pine { border-color: var(--pine) !important; }
+        .raiz-bg-sprout-light { background: var(--sprout-light) !important; }
+        .raiz-border-sprout { border-color: var(--sprout) !important; }
+        .raiz-btn-pine { background: var(--pine) !important; }
+        .raiz-btn-pine:hover { background: var(--pine-light) !important; }
+
+        /* ====================================================================
+           v1.105.0 — CATÁLOGO DE CLASSES DA GRAMÁTICA ÚNICA (prefixo rz-)
+           Fonte: REGRAS_EXPERIENCIA_RAIZ_v3_0.md §18 + PROTOTIPO_UX_RAIZ_v3_0.html.
+           Esta é a lista INTEIRA de classes de UI permitidas em código novo.
+           Código novo não usa style="" de layout nem cor Tailwind
+           (emerald-* ou slate-*) — só estas classes + tokens. Prefixo rz-
+           porque .card/.btn/.chip/.nav já existiam no arquivo com outro
+           significado.
+           Fatia 1 da migração (§19): aditiva, nenhuma tela usa ainda.
+           ==================================================================== */
+        /* 4. cabeçalho global e de aba */
+        /* v1.345.0 (F21) — tonalidade por ramo: <html data-ramo="…"> troca estes tokens (FICHA_RAMOS_ATIVO_F21_F22 §5) */
+        /* v1.368.0 (marca e ramos, fase 2; PROTOTIPO_MARCA_RAMOS_RAIZ v1.1.0) — 8 tons. Regra: o ramo pinta só a MOLDURA
+           (cabeçalho, herói, lente, traço da barra = hdr/acc); TEXTO colorido usa --ramo-txt (contraste AA no papel);
+           --ramo-cor-* = cor de identificação (pontos, barras, faixas). Papel de cada ramo só no tema claro. */
+        :root{--ramo-hdr:var(--pine);--ramo-acc:var(--sprout);--ramo-txt:#2f6a51;--ramo-txt-esc:#9fc3ae;
+              --ramo-cor-obras:#b07a2a;--ramo-cor-geral:#8b918e; /* v1.430.0 (fatia 8) — Obras e a linha Geral · sem ativo */
+              --ramo-cor-imoveis:#3c4f9a;--ramo-cor-familia:#7e6596;--ramo-cor-outros:#5d636b;--ramo-cor-agro:#7a8f3c;--ramo-cor-pecuaria:#966040;--ramo-cor-varejo:#944272;--ramo-cor-investimentos:#38949f}
+        :root[data-ramo="imoveis"]{--ramo-hdr:#1f2951;--ramo-acc:#3c4f9a;--ramo-txt:#3c4f9a;--ramo-txt-esc:#aab6e6}
+        :root[data-ramo="familia"]{--ramo-hdr:#4f3b5c;--ramo-acc:#7e6596;--ramo-txt:#6c5384;--ramo-txt-esc:#c9b6dc}
+        :root[data-ramo="outros"]{--ramo-hdr:#35383b;--ramo-acc:#5d636b;--ramo-txt:#5d636b;--ramo-txt-esc:#c3c7cc}
+        :root[data-ramo="agro"]{--ramo-hdr:#4a5a2a;--ramo-acc:#7a8f3c;--ramo-txt:#5c6f2f;--ramo-txt-esc:#cbd99a}
+        :root[data-ramo="obras"]{--ramo-hdr:#5e4116;--ramo-acc:#b07a2a;--ramo-txt:#8e611d;--ramo-txt-esc:#e6c48f} /* v1.430.0 */
+        :root[data-ramo="pecuaria"]{--ramo-hdr:#4f3222;--ramo-acc:#966040;--ramo-txt:#925d3f;--ramo-txt-esc:#e0b896}
+        :root[data-ramo="varejo"]{--ramo-hdr:#4d233c;--ramo-acc:#944272;--ramo-txt:#944272;--ramo-txt-esc:#e2b4cf}
+        :root[data-ramo="investimentos"]{--ramo-hdr:#1d4e53;--ramo-acc:#38949f;--ramo-txt:#2c747d;--ramo-txt-esc:#9fd3d9}
+        :root[data-ramo="imoveis"]:not([data-theme="dark"]){--paper:#eff1f6}
+        :root[data-ramo="familia"]:not([data-theme="dark"]){--paper:#f4f1f5}
+        :root[data-ramo="outros"]:not([data-theme="dark"]){--paper:#f2f2f3}
+        :root[data-ramo="agro"]:not([data-theme="dark"]){--paper:#f4f6ee}
+        :root[data-ramo="pecuaria"]:not([data-theme="dark"]){--paper:#f6f1ee}
+        :root[data-ramo="varejo"]:not([data-theme="dark"]){--paper:#f6eff3}
+        :root[data-ramo="investimentos"]:not([data-theme="dark"]){--paper:#edf6f7}
+        :root[data-theme="dark"],:root[data-theme="dark"][data-ramo]{--ramo-txt:var(--ramo-txt-esc)}
+        .rz-hdr .rz-lente{width:40px;height:40px;border-radius:50%;flex:none;display:flex;align-items:center;justify-content:center;color:#fff;background:rgba(255,255,255,.14);box-shadow:0 0 0 1px rgba(255,255,255,.3)}
+        .rz-hdr .rz-lente svg{width:19px;height:19px}
+        :root[data-ramo] .rz-hdr .rz-avatar{background:rgba(255,255,255,.16);border-color:rgba(255,255,255,.3)} /* v1.348.0 */
+        :root[data-ramo] .rz-hdr .rz-lente{background:var(--ramo-acc);box-shadow:0 0 0 3px rgba(255,255,255,.22)}
+        /* v1.378.0 (C3) — o botão do ramo é um fruto da árvore: cor do ramo, brilho e sombra (também em Todo o patrimônio) */
+        .rz-hdr .rz-lente,:root[data-ramo] .rz-hdr .rz-lente{background:radial-gradient(circle at 34% 28%,rgba(255,255,255,.38),rgba(255,255,255,0) 58%),var(--ramo-acc);box-shadow:0 2px 5px rgba(5,15,12,.35),0 0 0 2px rgba(255,255,255,.26)}
+        /* v1.378.0 (C4) — "Sua árvore": o patrimônio por ramo como a árvore do splash; o fruto tem o tamanho do ramo */
+        .rz-arvore{position:relative;max-width:340px;margin:0 auto}
+        .rz-arvore svg{display:block;width:100%;height:auto}
+        .rz-arvore button{position:absolute;transform:translate(-50%,-50%);border-radius:50%;border:0;padding:0;display:flex;align-items:center;justify-content:center;color:#fff;cursor:pointer;background-image:radial-gradient(circle at 34% 28%,rgba(255,255,255,.38),rgba(255,255,255,0) 58%);box-shadow:0 2px 5px rgba(5,15,12,.28);transition:transform .15s}
+        .rz-arvore button:active{transform:translate(-50%,-50%) scale(.92)}
+        .rz-arvore button svg{width:46%;height:46%}
+        .rz-arvore-leg{display:flex;justify-content:space-around;gap:6px;margin-top:2px;text-align:center}
+        .rz-arvore-leg button{background:none;border:0;padding:4px 2px;font:inherit;color:var(--muted);font-size:12px;min-width:0;cursor:pointer}
+        .rz-arvore-leg b{display:block;color:var(--ink);font-family:var(--font-title);font-size:15px}
+        /* v1.347.0 — Visão geral: uma seção por ramo em Todo o patrimônio (protótipo PROTOTIPO_HOJE_RAMOS_RAIZ v1.1.0) */
+        .rz-ramo-sec{margin:18px 0 6px}
+        .rz-ramo-cab{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+        .rz-ramo-cab h3{font-family:var(--font-title);font-size:16px;flex:1;margin:0}
+        .rz-ramo-cab button{background:none;border:0;color:var(--ramo-txt);font:600 13px var(--font-body);min-height:40px;padding:0 4px}
+        .rz-ramo-k3{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:8px}
+        .rz-ramo-k3 div{background:var(--card);border-radius:14px;box-shadow:var(--sh-card);padding:10px 12px;min-width:0}
+        .rz-ramo-k3 small{display:block;font-size:12px;color:var(--muted)}
+        .rz-ramo-k3 b{font-family:var(--font-title);font-size:16px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:block}
+        .rz-ramo-seg{display:flex;align-items:center;gap:10px;padding:7px 0;font-size:14px}
+        .rz-ramo-seg span{width:110px;flex:none;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+        .rz-ramo-seg i{flex:1;height:8px;border-radius:999px;background:var(--tile);overflow:hidden;display:block}
+        .rz-ramo-seg i em{display:block;height:100%;border-radius:999px}
+        .rz-ramo-seg b{min-width:72px;text-align:right;font-size:13px}
+        .rz-ramo-breve{border:1px dashed var(--line);border-radius:var(--r-card);padding:14px;color:var(--muted);font-size:13px;text-align:center;margin-top:12px}
+        .rz-ramo-dot{display:inline-block;width:14px;height:14px;border-radius:5px}
+        .rz-hdr{background:var(--ramo-hdr);color:#fff;padding:calc(14px + env(safe-area-inset-top)) 16px 12px;display:flex;align-items:center;gap:10px}
+        /* v1.378.0 (C3) — a linha do horizonte do splash na borda de baixo do topo, na cor do ramo */
+        .rz-hdr{position:relative;padding-bottom:22px}
+        .rz-hdr::before,.rz-hdr::after{content:"";position:absolute;left:0;right:0;bottom:-1px;height:14px;pointer-events:none;-webkit-mask-size:100% 100%;mask-size:100% 100%;-webkit-mask-repeat:no-repeat;mask-repeat:no-repeat}
+        .rz-hdr::before{background:var(--ramo-acc);opacity:.55;-webkit-mask-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 342 16' preserveAspectRatio='none'%3E%3Cpath d='M0%209%20C40%203%2080%203%20120%208%20C160%2013%20200%2012%20240%206%20C280%201%20310%204%20342%208%20L342%2016%20L0%2016Z'/%3E%3C/svg%3E");mask-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 342 16' preserveAspectRatio='none'%3E%3Cpath d='M0%209%20C40%203%2080%203%20120%208%20C160%2013%20200%2012%20240%206%20C280%201%20310%204%20342%208%20L342%2016%20L0%2016Z'/%3E%3C/svg%3E")}
+        .rz-hdr::after{background:var(--paper);-webkit-mask-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 342 16' preserveAspectRatio='none'%3E%3Cpath d='M0%2012%20C50%208%2090%209%20140%2012%20C190%2015%20240%2014%20290%2010%20C310%209%20330%209%20342%2011%20L342%2016%20L0%2016Z'/%3E%3C/svg%3E");mask-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 342 16' preserveAspectRatio='none'%3E%3Cpath d='M0%2012%20C50%208%2090%209%20140%2012%20C190%2015%20240%2014%20290%2010%20C310%209%20330%209%20342%2011%20L342%2016%20L0%2016Z'/%3E%3C/svg%3E")}
+        #main-header{box-shadow:none}
+        .rz-hdr .rz-brand{flex:1;min-width:0}
+        .rz-hdr .rz-brand h1{font-family:var(--font-title);font-size:17px;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;letter-spacing:-.02em}
+        .rz-hdr .rz-brand small{display:block;font-size:12px;opacity:.85;margin-top:1px}
+        .rz-hdr .rz-ia{width:40px;height:40px;border-radius:50%;background:var(--brass);color:#fff;display:flex;align-items:center;justify-content:center;position:relative;box-shadow:0 0 0 3px rgba(198,138,59,.28);flex:none}
+        .rz-hdr .rz-ia .rz-dot{position:absolute;top:-1px;right:-1px;width:10px;height:10px;border-radius:50%;background:#fff;border:2px solid var(--brass)}
+        /* v1.115.0 (fatia 7) — .rz-hdr é o cabeçalho de verdade; os
+           remendos #main-header .rz-hdr-ia/.rz-hdr-avatar da v1.107 saíram.
+           Botões do cabeçalho não têm borda/outline própria além da regra. */
+        .rz-hdr button{border:0;padding:0;cursor:pointer;transition:transform .08s}
+        .rz-hdr button:active{transform:scale(.92)}
+        .rz-hdr .rz-ia svg{width:20px;height:20px}
+        .rz-hdr .rz-brand h1 img{max-height:1.5em;display:inline-block;vertical-align:middle}
+        .rz-hdr .rz-off{display:inline-block;font-size:12px;font-weight:700;background:var(--danger);color:#fff;padding:1px 6px;border-radius:6px;margin-left:6px;vertical-align:middle;animation:rz-pulse 1.4s infinite}
+        /* v1.116.0 — "cabeçalho desformatado em campo" (print do Nicola):
+           causa raiz encontrada e corrigida na v1.177.0 (Parte I do plano
+           de conciliação) — o comentário CSS do catálogo, acima, fechava
+           antes da hora em "(emerald-*/slate-*)" (o "*/" ali dentro
+           encerra o comentário de verdade) e o texto solto que sobrava
+           virava um seletor inválido que engolia a regra .rz-hdr{...}
+           logo abaixo — layout nunca aplicava, parecia cache. Corrigido
+           o comentário (1 caractere: "/" trocado por " ou "); os 2
+           contornos que tratavam o sintoma (regra duplicada com #main-
+           header e forcarLayoutHeaderGlobal() no JS) saem — não são mais
+           necessários e escondiam a causa real. */
+        @keyframes rz-pulse{0%,100%{opacity:1}50%{opacity:.45}}
+        .rz-hdr .rz-avatar{width:40px;height:40px;border-radius:50%;background:var(--pine-light);border:1px solid rgba(255,255,255,.25);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;flex:none}
+        /* Onda 12 (pedido explícito, 16/09/2026: "o sino de alertas deve
+           ir pro topo, no cabeçalho, ao lado do ícone de IA") — mesmo
+           .rz-ico-btn/.rz-dot de sempre (semântica danger/warning já
+           pronta), só 40px em vez de 44px aqui pra bater com .rz-ia/
+           .rz-avatar ao lado. */
+        .rz-hdr .rz-ico-btn{width:48px;height:48px;flex:none}
+        .rz-tabhead{display:flex;align-items:center;gap:10px;margin-bottom:12px}
+        .rz-tabhead p{flex:1;font-size:13px;color:var(--muted);line-height:1.35;margin:0}
+        .rz-tabhead h2{flex:1;font-family:var(--font-title);font-size:20px;letter-spacing:-.02em}
+        /* Entrega F.1 (21/09/2026, REGRAS §11) — card de competência
+           (‹ Mês/Ano ›) no topo de Recebimentos/Saídas. */
+        .rz-mes-label{font-family:var(--font-title);font-size:16px;letter-spacing:-.02em}
+        button.rz-kpi{text-align:left;width:100%;font:inherit;cursor:pointer}
+        .rz-ico-btn{width:48px;height:48px;border-radius:50%;background:#fff;border:1px solid var(--line);display:flex;align-items:center;justify-content:center;color:var(--pine);box-shadow:var(--sh-card);transition:transform .08s;flex:none;position:relative}
+        /* v1.6.3 — achado do Nicola: .rz-ico-btn.rz-ia (já usado em
+           btn-minutizar-ia) não tinha regra própria — o selo "IA" (fundo/
+           ícone brass) só existia pra .rz-hdr/.rz-row/.rz-act. Mesma cor de
+           sempre, agora também pro botão de ícone isolado. */
+        .rz-ico-btn.rz-ia{background:var(--brass-bg);color:var(--brass-deep);border-color:var(--brass)}
+        .rz-ico-btn:active{transform:scale(.92)}
+        /* v1.115.0 (fatia 7) — ponto de badge no ícone de aba (sino da Visão
+           Geral, REGRAS §5: badge só em Visão Geral e Financeiro). */
+        .rz-ico-btn .rz-dot{position:absolute;top:9px;right:9px;width:9px;height:9px;border-radius:50%;background:var(--danger);border:2px solid #fff}
+        .rz-ico-btn .rz-dot.rz-warn{background:var(--warning)}
+        .rz-ico-btn.rz-primary{background:var(--ramo-hdr);color:#fff;border-color:var(--ramo-hdr)}
+        .rz-ico-btn svg{width:20px;height:20px}
+        .rz-back{display:inline-flex;align-items:center;gap:4px;font-size:13px;font-weight:600;color:var(--pine);margin-bottom:12px}
+        .rz-back svg{width:16px;height:16px}
+        /* v1.285.0 — com o atalho global "‹ <tela de origem>" visível na aba Ativos (ex.: veio de um contrato), some o "‹ Ativos" próprio da ficha: um voltar só, sem encavalar */
+        #tab-ativos:has(> .rz-voltar-global:not(.hidden)) [data-action="voltar-ficha-ativo"]{display:none}
+        /* 11. cabeçalho de entidade (ficha) */
+        .rz-entity{display:flex;gap:12px;align-items:center;margin-bottom:12px}
+        .rz-btn[hidden],.rz-card[hidden]{display:none} /* F2.5b — o atributo hidden vence o display do botão e do card */
+        .rz-entity .rz-ic{width:52px;height:52px;border-radius:14px;background:var(--tile);color:var(--pine);display:flex;align-items:center;justify-content:center;flex:none}
+        .rz-entity .rz-ic svg{width:24px;height:24px}
+        .rz-entity .rz-tx{flex:1;min-width:0}
+        .rz-entity .rz-tx b{display:block;font-family:var(--font-title);font-size:18px;font-weight:700;letter-spacing:-.02em;line-height:1.2}
+        .rz-entity .rz-tx span{display:block;font-size:13px;color:var(--muted);margin-top:2px}
+        /* 8. chips (1 linha, rolagem horizontal) e segmento */
+        .rz-chips{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;margin:0 -16px 12px;padding:2px 16px}
+        .rz-chips::-webkit-scrollbar{display:none}
+        /* Entrega F.4 (21/09/2026) — #conc-uni-chips (chips Todos/Pendentes/
+           Conciliados/Não controlado) saiu do HTML; a regra de rolagem que
+           só existia pra ele saiu junto (dead code, QUA-01). */
+        .rz-chip{flex:none;display:inline-flex;align-items:center;gap:6px;height:36px;padding:0 13px;border-radius:var(--r-pill);border:1px solid var(--line);background:#fff;font-size:13px;font-weight:600;color:var(--pine);white-space:nowrap}
+        .rz-chip .rz-n{font-size:12px;font-weight:600;color:var(--muted);background:var(--paper);padding:1px 6px;border-radius:var(--r-pill)}
+        .rz-chip.rz-on{background:var(--ramo-hdr);border-color:var(--ramo-hdr);color:#fff}
+        .rz-chip.rz-on .rz-n{background:rgba(255,255,255,.18);color:#fff}
+        .rz-chip.rz-warn .rz-n{background:var(--warning-bg);color:var(--warning)}
+        .rz-seg{display:flex;background:#e2e6df;border-radius:12px;padding:3px;margin-bottom:12px}
+        .rz-seg button{flex:1;height:36px;border-radius:9px;font-size:13px;font-weight:600;color:var(--muted);background:none;border:0}
+        .rz-seg button.rz-on{background:#fff;color:var(--pine);box-shadow:0 1px 3px rgba(0,0,0,.08)}
+        /* Entrega F.4 (21/09/2026, pedido explícito) — seletor de competência
+           (‹ Mês › de Recebimentos/Saídas/Fechamento) "mais baixo, seguindo
+           altura do componente seletor de recebimento, saidas e fechamento":
+           mesma caixa/altura de .rz-seg (padding 3px + 34px = 40px), só que
+           com os 2 chevrons pequenos (28px) nas pontas e o mês centralizado,
+           no lugar do .rz-card (padding 14px 16px + botões de 44px, bem mais
+           alto) que este bloco usava antes. */
+        .rz-mes-bar{display:flex;align-items:center;justify-content:space-between;background:#e2e6df;border-radius:12px;padding:3px 8px;margin-bottom:12px;min-height:34px}
+        .rz-mes-bar .rz-ico-btn{width:28px;height:28px;box-shadow:none;background:transparent;border:0;color:var(--pine)}
+        .rz-mes-bar .rz-ico-btn svg{width:16px;height:16px}
+        /* 6. card — anatomia única */
+        .rz-card{background:var(--card);border:1px solid var(--line);border-radius:var(--r-card);box-shadow:var(--sh-card);padding:14px 16px;margin-bottom:12px}
+        .rz-card.rz-list{padding:4px 16px}
+        .rz-card.rz-critico{border-color:var(--danger)}
+        .rz-card.rz-atencao{border-color:var(--wine-light)}
+        .rz-card-h{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+        .rz-card-h h3{font-family:var(--font-title);font-size:15px;flex:1;letter-spacing:-.02em;margin:0}
+        .rz-card-h .rz-sub{font-size:13px;color:var(--muted)}
+        /* v1.187.0 — título de seção SEM moldura (Precisa de atenção deixou
+           de ser .rz-card: o padding:14px 16px do card tirava largura útil
+           da linha do alerta, agravando o truncamento). Mesma tipografia de
+           .rz-card-h h3, sem caixa/borda em volta. */
+        .rz-plain-title{font-family:var(--font-title);font-size:15px;font-weight:700;letter-spacing:-.02em;margin:0 0 8px}
+        .rz-card-f{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:12px;padding-top:12px;border-top:1px solid var(--line)}
+        /* v1.112.0 — "Mais ações" vira ⋮ no cabeçalho do card (Nicola 03/09:
+           "padronizar o menu 3 bolinhas no lugar de todos os mais ações";
+           cards mais baixos). Ícone 36×36, sem texto. */
+        .rz-more{display:inline-flex;align-items:center;justify-content:center;width:36px;height:36px;margin:-6px -8px -6px auto;border-radius:50%;color:var(--muted);background:none;border:0;flex:none}
+        .rz-more:active{background:var(--tile)}
+        .rz-more svg{width:20px;height:20px}
+        .rz-card-f .rz-more{margin:0 -8px 0 auto}
+        .rz-desc{font-size:13px;color:var(--muted);line-height:1.4;margin:0}
+        .rz-kv{display:grid;grid-template-columns:1fr 1fr;gap:10px 12px;margin-top:6px}
+        .rz-kv > div{min-width:0}
+        .rz-kv small{display:block;font-size:12px;color:var(--muted);margin-bottom:2px}
+        .rz-kv b{font-size:15px;font-weight:600;word-break:break-word}
+        .rz-kv .rz-full{grid-column:1/-1}
+        /* 7. botões — 3 níveis + IA */
+        .rz-btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;white-space:nowrap;height:48px;padding:0 16px;border-radius:var(--r-ctl);font-size:14px;font-weight:600;border:0;background:none;transition:transform .08s;cursor:pointer}
+        .rz-btn:active{transform:scale(.97)}
+        .rz-btn svg{width:17px;height:17px}
+        .rz-btn-1{background:var(--pine);color:#fff}
+        .rz-btn-2{background:#fff;color:var(--pine);border:1.5px solid var(--pine)}
+        .rz-btn-3{color:var(--pine);padding:0 6px;text-decoration:underline;text-decoration-color:var(--sprout-light);text-underline-offset:3px}
+        .rz-btn-ia{background:var(--brass);color:#fff}
+        .rz-btn.rz-sm{height:40px;font-size:13px;padding:0 12px}
+        .rz-btn.rz-wide{width:100%}
+        .rz-btn:disabled{opacity:.55;pointer-events:none}
+        /* 10. status — ponto + rótulo, 5 semânticas */
+        .rz-st{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:600;padding:3px 9px 3px 7px;border-radius:var(--r-pill);white-space:nowrap;flex:none}
+        .rz-st::before{content:"";width:7px;height:7px;border-radius:50%;background:currentColor}
+        .rz-st.rz-ok{color:var(--success);background:var(--success-bg)}
+        .rz-st.rz-warn{color:var(--warning);background:var(--warning-bg)}
+        .rz-st.rz-bad{color:var(--danger);background:var(--danger-bg)}
+        .rz-st.rz-run{color:var(--info);background:var(--info-bg)}
+        .rz-st.rz-neu{color:var(--sage);background:#eef1ec}
+        .rz-ia-tag{display:inline-flex;align-items:center;gap:4px;font-size:12px;font-weight:600;color:var(--brass-deep);background:var(--brass-bg);padding:2px 8px;border-radius:var(--r-pill);white-space:nowrap}
+        .rz-ia-tag svg{width:12px;height:12px}
+        /* 9. lista — item padrão, agrupador, vazio */
+        .rz-row{display:flex;align-items:center;gap:12px;padding:12px 0;border-top:1px solid var(--line)}
+        .rz-row:first-of-type{border-top:0}
+        .rz-row .rz-ic{width:42px;height:42px;border-radius:12px;background:var(--tile);color:var(--pine);display:flex;align-items:center;justify-content:center;flex:none}
+        .rz-row .rz-ic.rz-bad{background:var(--danger-bg);color:var(--danger)}
+        .rz-row .rz-ic.rz-warn{background:var(--warning-bg);color:var(--warning)}
+        .rz-row .rz-ic.rz-ia{background:var(--brass-bg);color:var(--brass-deep)}
+        .rz-row .rz-ic.rz-neu{background:#eef1ec;color:var(--sage)}
+        .rz-row .rz-ic svg{width:20px;height:20px}
+        .rz-empty .rz-ic svg{width:24px;height:24px}
+        .rz-more svg,.rz-back svg,.rz-btn svg{flex:none}
+        .rz-row .rz-tx{flex:1;min-width:0}
+        .rz-row .rz-tx b{display:block;font-size:15px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+        .rz-row .rz-tx span{display:block;font-size:13px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:1px}
+        .rz-row .rz-rt{text-align:right;flex:none;display:flex;flex-direction:column;align-items:flex-end;gap:4px}
+        /* v1.194.0 (pedido explícito, 16/09) — Ocorrências do contrato: a data
+           não pode cortar com "...". Override só desta linha (não mexe no
+           .rz-row nowrap padrão usado no resto do app). */
+        .rz-row-oc .rz-tx b{white-space:normal;overflow:visible;text-overflow:clip;line-height:1.25}
+        .rz-row .rz-rt b{font-size:15px;font-weight:600}
+        .rz-row .rz-rt b.rz-in{color:var(--success)}
+        .rz-row .rz-rt b.rz-out{color:var(--ink)}
+        .rz-row.rz-link{cursor:pointer}
+        /* v1.256.0 (Fase 7 fiscal) — linha com caixa de marcar (opções do pacote do contador) */
+        .rz-row .rz-tx.rz-wrap span{white-space:normal;overflow:visible;text-overflow:clip;line-height:1.45}.rz-row .rz-tx.rz-wrap b{white-space:normal}
+        .rz-row.rz-chk{cursor:pointer}.rz-row.rz-chk input[type=checkbox]{width:18px;height:18px;margin-right:10px;accent-color:var(--pine);flex:none}
+        .rz-row .rz-chev{color:var(--muted);width:18px;height:18px;flex:none}
+        .rz-group{font-size:12px;font-weight:600;color:var(--sage);margin:14px 2px 6px}
+        .rz-kpis{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px}
+        .rz-kpi{background:#fff;border:1px solid var(--line);border-radius:14px;padding:12px 14px}
+        .rz-kpi small{display:block;font-size:12px;color:var(--muted)}
+        .rz-kpi b{display:block;font-family:var(--font-title);font-size:20px;margin-top:2px;letter-spacing:-.02em}
+        .rz-kpi.rz-in b{color:var(--success)} .rz-kpi.rz-bad b{color:var(--danger)}
+        .rz-kpi.rz-hero{grid-column:1/-1;background:var(--pine);border-color:var(--pine);color:#fff}
+        .rz-kpi.rz-hero small{color:rgba(255,255,255,.75)} .rz-kpi.rz-hero b{font-size:26px}
+        /* v1.195.0 (17/09/2026) — MESMO .rz-kpi de sempre, pra "quebra
+           executiva do patrimônio por tipo de ativo".
+           v1.196.0 (17/09/2026, pedido explícito) — número de colunas
+           deixou de ser fixo em 3: renderizarQuebraTipoGeral() calcula
+           e escreve grid-template-columns inline (até 3 grupos = 1
+           linha; 4+ = 2 linhas balanceadas) — esta classe só define o
+           grid em si (gap/margem), sem colunas fixas. */
+        .rz-kpis-3{display:grid;gap:8px;margin-bottom:12px}
+        /* v1.313.0 (UX F2.1c, UXR-19) — Patrimônio por tipo em donut tocável; detalhe da Novidade */
+        .rz-donut{display:flex;gap:16px;align-items:center}
+        .rz-donut svg{width:112px;height:112px;flex:none}
+        .rz-donut circle{fill:none;stroke-width:16;cursor:pointer}
+        .rz-donut text{font-family:var(--font-title);fill:var(--ink)}
+        .rz-donut-leg{flex:1;min-width:0;display:flex;flex-direction:column}
+        .rz-donut-leg button{display:flex;align-items:center;gap:8px;min-height:48px;padding:0;background:none;border:0;text-align:left;font:inherit;color:var(--ink);width:100%}
+        .rz-donut-leg i{width:10px;height:10px;border-radius:50%;flex:none}
+        .rz-donut-leg span{flex:1;min-width:0;font-size:14px}
+        .rz-donut-leg small{display:block;font-size:12px;color:var(--muted)}
+        .rz-donut-leg b{font-size:14px;white-space:nowrap}
+        .rz-convite{display:flex;align-items:center;gap:8px;min-height:48px;margin-top:8px;padding:0 12px;border:1px dashed var(--sage);border-radius:12px;background:none;width:100%;font:inherit;font-size:13px;font-weight:600;color:var(--pine);text-align:left}
+        .rz-guia h4{font-family:var(--font-title);font-size:15px;margin:16px 0 6px}
+        .rz-guia p{font-size:15px;line-height:1.45;margin:0;color:var(--ink)}
+        .rz-guia .rz-guia-lead{font-size:16px}
+        .rz-guia ul{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:6px}
+        .rz-guia li{display:flex;gap:8px;font-size:15px;line-height:1.35}
+        .rz-guia li svg{width:18px;height:18px;flex:none;color:var(--success);margin-top:1px}
+        /* v1.310.0 (UX F2.1b, UXR-16/20/21) — chips de Hoje e Jornal do dia */
+        .rz-chip .rz-pt{width:8px;height:8px;border-radius:50%;background:var(--danger);flex:none}
+        /* v1.320.0 (UX F2.4, UXR-13/14/15) — ponto do chip de ação na cor do pior alerta; chip de convite
+           (categoria vazia: vazado, tracejado --sage, "+", contador 0); card de convite no fim da lista */
+        .rz-chip .rz-pt.rz-bad{background:var(--danger)} .rz-chip .rz-pt.rz-warn{background:var(--warning)}
+        .rz-chip.rz-on .rz-pt{box-shadow:0 0 0 2px #fff}
+        .rz-chip.rz-chip-convite{background:transparent;border:1px dashed var(--sage);color:var(--sage);font-weight:600}
+        .rz-chip.rz-chip-convite .rz-n{background:transparent;color:var(--sage)}
+        .rz-convite-card{border:1px dashed var(--sage);background:transparent;margin-top:12px}
+        .rz-convite-card b{display:block;font-family:var(--font-title);font-size:15px;margin-bottom:4px}
+        .rz-jornal-data{font-size:13px;color:var(--muted);margin:0 2px 10px}
+        .rz-jornal-data b{color:var(--ink);font-weight:600}
+        .rz-norte{display:flex;gap:14px;align-items:center}
+        .rz-anel{width:84px;height:84px;flex:none}
+        .rz-anel circle{fill:none;stroke-width:7}
+        .rz-anel .rz-anel-f{stroke:var(--tile)}
+        .rz-anel .rz-anel-v{stroke-linecap:round;transform:rotate(-90deg);transform-origin:50% 50%}
+        .rz-anel text{font-family:var(--font-title);font-size:20px;font-weight:700;fill:var(--ink)}
+        .rz-norte-tx b{display:block;font-family:var(--font-title);font-size:20px;letter-spacing:-.02em}
+        .rz-norte-tx small{display:block;font-size:13px;color:var(--muted);margin-top:2px}
+        .rz-marcos{display:grid;grid-template-columns:1fr 1fr;gap:6px 10px;margin-top:12px;padding-top:12px;border-top:1px solid var(--line)}
+        .rz-marcos div{display:flex;align-items:center;gap:6px;font-size:13px;color:var(--muted);min-width:0}
+        .rz-marcos div.rz-feito{color:var(--ink)}
+        .rz-marcos svg{width:16px;height:16px;flex:none}
+        .rz-marcos div.rz-feito svg{color:var(--success)}
+        .rz-tag{display:inline-block;font-size:12px;font-weight:600;padding:1px 8px;border-radius:var(--r-pill);background:var(--tile);color:var(--sage)}
+        .rz-tag.rz-run{background:var(--brass-bg);color:var(--brass-deep)}
+        /* v1.304.0 (UX F2.1a, UXR-17/18) — herói unificado de Hoje: um só bloco --pine com patrimônio,
+           nº de ativos, Resultado do ano e 3 números; ano (‹ 2026 ›) e contexto dentro do herói. */
+        .rz-heroi{background:var(--ramo-hdr);color:#fff;border-radius:18px;padding:12px 16px 16px;margin-bottom:12px}
+        .rz-heroi-top{display:flex;align-items:center;justify-content:space-between;margin:-4px -10px 4px}
+        .rz-heroi-ano{display:flex;align-items:center}
+        .rz-heroi-ano button,.rz-heroi-top .rz-heroi-exp{width:48px;height:48px;display:flex;align-items:center;justify-content:center;background:none;border:0;color:#fff;border-radius:12px}
+        .rz-heroi-ano button:disabled{opacity:.3}
+        .rz-heroi-ano b{font-size:16px;font-weight:700;min-width:44px;text-align:center}
+        .rz-heroi small{display:block;font-size:12px;color:rgba(255,255,255,.75)}
+        .rz-heroi-pat{display:block;font-family:var(--font-title);font-size:30px;letter-spacing:-.02em;line-height:1.15;margin-top:2px}
+        .rz-heroi-res{margin-top:12px;padding-top:12px;border-top:1px solid rgba(255,255,255,.18)}
+        .rz-heroi-res b{display:block;font-family:var(--font-title);font-size:22px;letter-spacing:-.02em;margin-top:2px}
+        .rz-heroi .rz-neg{color:var(--wine-light)}
+        .rz-heroi-3{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:10px}
+        .rz-heroi-3.rz-um{grid-template-columns:1fr}
+        .rz-heroi-3 div{background:rgba(255,255,255,.08);border-radius:12px;padding:8px 10px;min-width:0}
+        .rz-heroi-3 b{display:block;font-size:16px;font-weight:700;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+        .rz-heroi .rz-seg{background:rgba(255,255,255,.12);margin:14px 0 0}
+        .rz-heroi .rz-seg button{color:rgba(255,255,255,.85)}
+        .rz-heroi .rz-seg button.rz-on{background:#fff;color:var(--pine)}
+        /* v1.430.0 (fatia 8, cockpit — DESIGN_SYSTEM §cockpit) — herói com comparação e linha do ano; resultado por ramo;
+           barra de bala; anel do rebanho; listas da lente. Verde e vermelho só dizem bom e ruim; a cor do ramo só identifica. */
+        .rz-heroi-resl{display:flex;align-items:flex-end;gap:10px}.rz-heroi-resl>div{flex:1;min-width:0}
+        .rz-heroi .rz-spark{width:72px;height:26px;flex:none;margin-bottom:4px}
+        .rz-spark polyline{fill:none;stroke:currentColor;stroke-width:1.8;stroke-linejoin:round;stroke-linecap:round;opacity:.85}
+        .rz-heroi-3.rz-q4{grid-template-columns:1fr 1fr}
+        .rz-vs{display:block;font-style:normal;font-size:11.5px;font-weight:600;line-height:1.3;margin-top:2px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+        .rz-vs.rz-vs-bom{color:var(--success)}.rz-vs.rz-vs-ruim{color:var(--danger)}
+        .rz-heroi .rz-vs{color:rgba(255,255,255,.72)}.rz-heroi .rz-vs.rz-vs-bom{color:#a6e3bd}.rz-heroi .rz-vs.rz-vs-ruim{color:#f3b3ac}
+        .rz-ck .rz-desc{margin:0 0 8px}.rz-ck .rz-ck-nota{margin:8px 0 0;font-size:12.5px}
+        .rz-rr{box-sizing:border-box;display:grid;grid-template-columns:10px minmax(0,1fr) auto;gap:2px 8px;align-items:center;width:100%;padding:9px 0;border:0;border-bottom:1px solid var(--line);background:none;font:inherit;color:inherit;text-align:left}
+        button.rz-rr{cursor:pointer;min-height:44px}
+        .rz-rr-pt{width:10px;height:10px;border-radius:3px}
+        .rz-rr-nm{font-weight:600;min-width:0}.rz-rr-nm small{display:block;font-weight:500;color:var(--muted);font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+        .rz-rr-vl{text-align:right;font:700 15px var(--font-title);white-space:nowrap}.rz-rr-vl small{display:block;font:600 11.5px var(--font-body);color:var(--muted)}
+        .rz-rr-vl.rz-neg{color:var(--danger)}.rz-rr-vl .rz-vs{font-family:var(--font-body)}
+        .rz-rr-bars{grid-column:2/4;display:flex;flex-direction:column;gap:3px;margin-top:3px}
+        .rz-rr-bars>span{height:6px;border-radius:3px;background:var(--tile);position:relative;overflow:hidden}
+        .rz-rr-bars i{position:absolute;left:0;top:0;bottom:0;border-radius:3px}
+        .rz-rr-rec{background:var(--success)}.rz-rr-desp{background:var(--danger)}
+        .rz-rr-leg{display:flex;gap:12px;font-size:11.5px;color:var(--muted);margin:0 0 4px}.rz-rr-leg span{display:inline-flex;align-items:center;gap:5px}.rz-rr-leg i{width:10px;height:6px;border-radius:2px;display:inline-block}
+        .rz-rr.rz-rr-tot{background:var(--paper);border-radius:10px;padding:10px 8px;margin-top:6px;border:0}
+        .rz-ck-li{width:100%;background:none;border:0;border-bottom:1px solid var(--line);font:inherit;color:inherit;text-align:left;display:flex;align-items:center;gap:12px;padding:10px 0}
+        .rz-ck-li:last-child{border-bottom:0}.rz-ck-li .rz-tx{flex:1;min-width:0}
+        .rz-ck-li .rz-rt{text-align:right}.rz-ck-li .rz-rt small{display:block;font-size:11.5px;color:var(--muted)}
+        .rz-ck-li .rz-rt b.rz-in{color:var(--success)}.rz-ck-li .rz-rt b.rz-neg{color:var(--danger)}
+        .rz-bl{margin:6px 0 2px}
+        .rz-bl-tr{height:12px;border-radius:4px;background:var(--tile);position:relative}
+        .rz-bl-fs{position:absolute;left:0;top:0;bottom:0;border-radius:4px;background:rgba(23,33,30,.08)}
+        .rz-bl-ex{position:absolute;left:0;top:3px;height:6px;border-radius:3px;background:var(--ramo-hdr)}.rz-bl-ex.rz-ruim{background:var(--danger)}
+        .rz-bl-mk{position:absolute;top:-3px;bottom:-3px;width:2px;background:var(--ink)}
+        .rz-bl-lg{display:flex;flex-wrap:wrap;justify-content:space-between;gap:0 8px;font-size:11.5px;color:var(--muted);margin-top:3px}
+        /* v1.433.0 (cockpit C1, D-CK2) — meta: barra real × meta no herói (traço = meta até o mês, na escala da meta do ano) e o sheet Metas */
+        .rz-mt-bar{position:relative;height:8px;border-radius:4px;background:rgba(255,255,255,.16);margin:8px 0 2px}
+        .rz-mt-ex{position:absolute;left:0;top:0;bottom:0;border-radius:4px;background:rgba(255,255,255,.85)}
+        .rz-mt-mk{position:absolute;top:-4px;bottom:-4px;width:2px;background:#fff;box-shadow:0 0 0 1px rgba(0,0,0,.25)}
+        .rz-mt-at{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px}.rz-mt-at .rz-btn{height:40px;padding:0 12px;font-size:13px}
+        .rz-mt-pct{display:inline-flex;align-items:center;gap:6px}.rz-mt-pct input{box-sizing:border-box;width:56px;height:40px;border:1.5px solid var(--line);border-radius:var(--r-ctl);text-align:center;font:inherit;font-size:15px}
+        .rz-mt-g{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--line)}
+        .rz-mt-g input{box-sizing:border-box;width:130px;height:44px;padding:0 10px;border:1.5px solid var(--line);border-radius:var(--r-ctl);font:inherit;font-size:16px;text-align:right;background:#fff;color:var(--ink)}
+        .rz-mt-g input:disabled{background:var(--tile);color:var(--muted)}
+        .rz-mt-tx{flex:1;min-width:0}.rz-mt-tx small{display:block;font-size:12px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+        .rz-mt-g-mes{flex-direction:column;align-items:stretch}
+        .rz-mt-meses{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px}
+        .rz-mt-meses label{display:flex;flex-direction:column;min-width:0;font-size:11.5px;color:var(--muted)}.rz-mt-g .rz-mt-meses input{box-sizing:border-box;width:100%;min-width:0;height:40px;padding:0 6px;font-size:14px}
+        .rz-mt-tot{border-bottom:0}.rz-mt-tot>b{font:700 17px var(--font-title)}.rz-mt-tot>b.rz-neg{color:var(--danger)}
+        .rz-mt-mais{margin:10px 0 0;height:40px;font-size:13px}
+        /* v1.434.0 (cockpit C2) — o resultado do herói é tocável; sheet Composição (trilha, filtro de grupo) */
+        .rz-tq{cursor:pointer;border-radius:10px;margin:-4px -6px;padding:4px 6px}.rz-tq:active{background:rgba(255,255,255,.08)}
+        .rz-tq-ic{width:13px;height:13px;vertical-align:-2px;opacity:.7}
+        .rz-cp-trilha{display:flex;flex-wrap:wrap;align-items:center;gap:4px;font-size:12.5px;color:var(--muted);margin:0 0 10px}
+        .rz-cp-trilha button{background:none;border:0;padding:4px 2px;color:var(--pine);font:inherit;font-weight:600;min-height:32px}.rz-cp-trilha b{color:var(--ink)}
+        .rz-cp-trilha .rz-cp-volta{width:32px;height:32px;display:inline-flex;align-items:center;justify-content:center;border-radius:8px;background:var(--tile);margin-right:4px;padding:0}
+        .rz-cp-filtro{display:flex;align-items:center;gap:6px;font-size:13px;margin:0 0 8px}
+        .rz-cp-filtro button{width:28px;height:28px;border:0;border-radius:8px;background:var(--tile);display:inline-flex;align-items:center;justify-content:center}
+        .rz-ck-dot{width:8px;height:8px;border-radius:50%;flex:none;display:inline-block}
+        .rz-ck-tag{flex:none;font-size:11.5px;font-weight:700;padding:3px 8px;border-radius:99px;background:var(--tile);color:var(--muted)}
+        .rz-ck-tag.rz-ruim{background:var(--danger-bg);color:var(--danger)}.rz-ck-tag.rz-aten{background:var(--warning-bg);color:var(--warning)}.rz-ck-tag.rz-info{background:var(--info-bg);color:var(--info)}
+        .rz-ck-ring{display:flex;gap:14px;align-items:center}.rz-ck-ring svg{width:104px;height:104px;flex:none}
+        .rz-ck-ring circle{fill:none;stroke-width:6}.rz-ck-ring .rz-ck-ring-bg{stroke:var(--tile)}
+        .rz-ck-ring-n{font:700 7px var(--font-title);fill:var(--ink)}.rz-ck-ring-u{font-size:3.6px;fill:var(--muted)}
+        .rz-ck-ring-leg{flex:1;font-size:12.5px;min-width:0}.rz-ck-ring-leg div{display:flex;align-items:center;gap:6px;padding:2px 0}.rz-ck-ring-leg b{margin-left:auto}
+        .rz-ck-cnts{display:flex;flex-wrap:wrap;gap:6px;margin:10px 0 0}
+        .rz-ck-cnt{display:inline-flex;align-items:baseline;gap:4px;padding:4px 10px;border-radius:99px;background:var(--info-bg);font-size:12.5px;color:var(--muted)}.rz-ck-cnt b{color:var(--ink)}
+        .rz-ck-kpis{display:grid;grid-template-columns:1fr 1fr;gap:8px}.rz-ck-kpis>div{background:var(--paper);border-radius:12px;padding:10px}
+        .rz-ck-kpis small{display:block;font-size:11.5px;color:var(--muted)}.rz-ck-kpis b{display:block;font:700 18px/1.2 var(--font-title);margin-top:2px}
+        .rz-ck-depois{font-size:12.5px;background:var(--paper);border-radius:10px;padding:8px 10px;margin:0 0 12px}
+        .rz-seg + .rz-seg-uso{margin-top:8px}.rz-seg.rz-seg-uso button{height:30px;font-size:12px} /* F20: uso dentro de Patrimônio */
+        .rz-donut-nota{font-size:12px;color:var(--muted);margin-top:8px}
+        .rz-prog{height:6px;border-radius:3px;background:var(--paper);overflow:hidden}
+        .rz-prog i{display:block;height:100%;background:var(--sprout)}
+        .rz-empty{text-align:center;padding:18px 8px 8px}
+        .rz-empty .rz-ic{width:52px;height:52px;border-radius:16px;background:var(--paper);color:var(--sage);display:inline-flex;align-items:center;justify-content:center;margin-bottom:8px}
+        .rz-empty p{font-size:13px;color:var(--muted);margin:0 0 12px;line-height:1.4}
+        .rz-empty .rz-acts{display:flex;gap:8px;justify-content:center;flex-wrap:wrap}
+        /* v1.323.0 — vazio que convida (rzVazio): fundo em gradiente do tema, ilustração leve por
+           assunto, benefício em 1 frase, Raiz IA primeiro e cadastro manual depois */
+        /* v1.326.0 — barra de uso dos limites do plano (Licença) e interruptor liga/desliga
+           (Minhas notificações): estado em aria-checked, nada de cor em style="" */
+        .rz-row.rz-uso .rz-tx span{white-space:normal}
+        .rz-uso-bar{height:6px;border-radius:3px;background:var(--tile);margin-top:8px;overflow:hidden}
+        .rz-uso-bar i{display:block;height:100%;border-radius:3px;background:var(--success)}
+        .rz-uso-bar i.rz-warn{background:var(--warning)} .rz-uso-bar i.rz-bad{background:var(--danger)}
+        .rz-switch{position:relative;flex:none;width:52px;height:32px;border:0;background:none;padding:0;cursor:pointer}
+        .rz-switch::before{content:"";position:absolute;left:4px;top:4px;width:44px;height:24px;border-radius:12px;background:var(--line);transition:background .15s}
+        .rz-switch::after{content:"";position:absolute;left:6px;top:6px;width:20px;height:20px;border-radius:50%;background:var(--card);box-shadow:0 1px 2px rgba(0,0,0,.2);transition:left .15s}
+        .rz-switch[aria-checked="true"]::before{background:var(--sprout)} .rz-switch[aria-checked="true"]::after{left:26px}
+        .rz-switch:disabled{opacity:.5}
+        /* v1.327.0 — linha tocável feita de botão (logo, assinatura) e prévia em quadriculado */
+        .rz-btnrow{flex:1;min-width:0;display:flex;align-items:center;gap:12px;background:none;border:0;padding:0;text-align:left;font:inherit;color:inherit;cursor:pointer}
+        .rz-btnrow:disabled{opacity:.5;cursor:default}
+        .rz-quadriculado{display:flex;justify-content:center;padding:12px;margin-bottom:8px;border:1px solid var(--line);border-radius:var(--r-ctl);background:repeating-conic-gradient(var(--tile) 0% 25%, var(--card) 0% 50%) 0 0/16px 16px}
+        .rz-pref .rz-tx b{white-space:normal;overflow:visible;text-overflow:clip;font-weight:500;font-size:15px}
+        /* v1.326.1 — linha com seletor: título em linha inteira e, embaixo, frequência + interruptor
+           (lado a lado, o seletor de 48 px espremia o título numa coluna de uma palavra) */
+        .rz-pref.rz-pref-2l{flex-wrap:wrap;row-gap:8px}
+        .rz-pref.rz-pref-2l .rz-tx{flex:1 1 100%}
+        .rz-pref.rz-pref-2l select{flex:1;min-width:0;width:auto}
+        .rz-vazio{text-align:center;padding:22px 16px 18px;border-radius:var(--r-card);border:1px solid var(--line);background:linear-gradient(165deg,var(--card) 0%,var(--tile) 100%)}
+        .rz-vazio .rz-vz-ilu{display:block;width:112px;height:84px;margin:0 auto 10px;color:var(--sage)}
+        .rz-vazio .rz-vz-a{fill:var(--paper)} .rz-vazio .rz-vz-b{fill:var(--brass-light)} .rz-vazio .rz-vz-c{fill:var(--pine)}
+        .rz-vazio h4{font-family:var(--font-title);font-size:16px;letter-spacing:-.02em;margin:0 0 6px;color:var(--ink)}
+        .rz-vazio p{font-size:13px;color:var(--muted);margin:0 auto 14px;line-height:1.45;max-width:340px}
+        .rz-vazio .rz-acts{display:flex;flex-direction:column;gap:4px;max-width:320px;margin:0 auto}
+        .rz-vazio .rz-btn svg{width:18px;height:18px}
+        /* estado vazio dentro de uma lista em card: a moldura é uma só, a do vazio (dem 9404081c, item 7) */
+        .rz-card:has(> .rz-vazio:only-child){background:none;border:0;box-shadow:none;padding:0}
+        .rz-comece .rz-comece-n{font-size:12px;font-weight:600;color:var(--sage)}
+        .rz-comece .rz-row .rz-tx span{white-space:normal}
+        .rz-comece .rz-feito .rz-ic{color:var(--sage)} .rz-comece .rz-feito .rz-tx b{color:var(--muted);font-weight:500}
+        .rz-comece .rz-prox .rz-ic{background:var(--pine);color:#fff}
+        .rz-alert-sev{display:flex;gap:8px;align-items:center;margin-bottom:6px;font-size:12px;color:var(--muted)}
+        .rz-card.rz-sev-bad{border-left:4px solid var(--danger)} .rz-card.rz-sev-warn{border-left:4px solid var(--warning)}
+        .rz-card.rz-sev-ia{border-left:4px solid var(--brass)} .rz-card.rz-sev-run{border-left:4px solid var(--info)}
+        /* 5. bottom nav (usada a partir da fatia 7) */
+        .rz-nav{position:fixed;left:0;right:0;bottom:0;background:#fff;border-top:1px solid var(--line);display:flex;padding:6px 4px calc(10px + env(safe-area-inset-bottom));z-index:40}
+        .rz-nav button{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;font-size:12px;font-weight:600;color:var(--muted);position:relative;padding-top:8px;background:none;border:0}
+        .rz-nav button.rz-on{color:var(--ramo-txt)} /* v1.368.0 — texto do ramo (era acc) */
+        .rz-nav button.rz-on::before{content:"";position:absolute;top:0;width:28px;height:3px;border-radius:2px;background:var(--ramo-acc)}
+        .rz-nav button .rz-b{position:absolute;top:4px;right:calc(50% - 20px);min-width:16px;height:16px;padding:0 4px;border-radius:8px;background:var(--danger);color:#fff;font-size:12px;line-height:16px}
+        .rz-nav button .rz-b.rz-warn{background:var(--warning)}
+        /* 3. sheet — única superfície modal (formulário, ações, menu, IA) */
+        .rz-veil{position:fixed;inset:0;background:rgba(23,33,30,.5);display:flex;align-items:flex-end;justify-content:center;z-index:97;opacity:0;pointer-events:none;transition:opacity .15s}
+        .rz-veil.rz-on{opacity:1;pointer-events:auto}
+        .rz-sheet{width:100%;max-width:480px;background:#fff;border-radius:20px 20px 0 0;max-height:86vh;max-height:calc(var(--rz-vvh,100dvh) * .86);display:flex;flex-direction:column;transform:translateY(24px);transition:transform .18s}
+        .rz-veil.rz-on .rz-sheet{transform:none}
+        /* v1.298.0 — F1.1 (DIRETRIZES UXR-28, REGRAS §2): pilha de 2 níveis e arraste */
+        .rz-sheet.rz-n2{position:absolute;left:0;right:0;bottom:0;margin:0 auto;max-height:78vh;max-height:calc(var(--rz-vvh,100dvh) * .78);box-shadow:0 -10px 30px -12px rgba(23,33,30,.35);transform:translateY(24px)}
+        .rz-veil.rz-on .rz-sheet.rz-n2.rz-n2-on{transform:none}
+        .rz-veil.rz-tem-n2 #rz-sheet{pointer-events:none;filter:brightness(.92)}
+        .rz-sheet.rz-cheio{max-height:calc(var(--rz-vvh,100dvh) - 12px);height:calc(var(--rz-vvh,100dvh) - 12px)}
+        .rz-sheet.rz-arrastando{transition:none}
+        .rz-grab{touch-action:none;cursor:grab}
+        .rz-grab::before{content:"";display:block;height:20px;margin:-10px -40px -6px}
+        .rz-sh-h{touch-action:pan-x}
+        .rz-x.rz-voltar{order:-1}
+        .rz-sheet.rz-menu{background:var(--paper)}
+        .rz-grab{width:38px;height:4px;border-radius:2px;background:var(--line);margin:10px auto 0;flex:none}
+        .rz-sh-h{display:flex;align-items:center;gap:10px;padding:10px 16px 8px;flex:none}
+        .rz-sh-h h3{font-family:var(--font-title);font-size:17px;flex:1;letter-spacing:-.02em;margin:0}
+        .rz-sh-h .rz-sub{font-size:13px;color:var(--muted);display:block;margin-top:1px}
+        .rz-x{width:30px;height:30px;border-radius:50%;background:var(--paper);display:flex;align-items:center;justify-content:center;color:var(--muted);border:0;flex:none}
+        .rz-x svg{width:16px;height:16px}
+        .rz-sh-b{padding:4px 16px 16px;overflow-y:auto}
+        .rz-sh-f{display:flex;gap:8px;padding:12px 16px calc(14px + env(safe-area-inset-bottom));border-top:1px solid var(--line);flex:none}
+        .rz-sh-f[hidden]{display:none} /* F2.5c — ficha da parte: o rodapé Salvar só aparece no chip Dados */
+        .rz-sh-f .rz-btn{flex:1}
+        .rz-act{display:flex;align-items:center;gap:12px;width:100%;padding:12px 6px;border:0;border-top:1px solid var(--line);background:none;text-align:left;font-size:14px;font-weight:600;color:var(--ink);cursor:pointer}
+        .rz-act.rz-off{opacity:.5;cursor:not-allowed}.rz-act.rz-off .rz-ic{background:var(--paper);color:var(--muted)}.rz-act.rz-off small{color:var(--wine)} /* v1.124 — bloqueado com motivo */
+        .rz-act:first-child{border-top:0}
+        .rz-act .rz-ic{width:36px;height:36px;border-radius:10px;background:var(--tile);color:var(--pine);display:flex;align-items:center;justify-content:center;flex:none}
+        .rz-act .rz-ic svg{width:18px;height:18px}
+        .rz-act .rz-ic.rz-ia{background:var(--brass-bg);color:var(--brass-deep)}
+        .rz-act .rz-ic.rz-bad{background:var(--danger-bg);color:var(--danger)}
+        .rz-act small{display:block;font-size:13px;font-weight:400;color:var(--muted);margin-top:1px}
+        .rz-act.rz-bad{color:var(--danger)}
+        /* v1.245.0 (demanda 0e40951a, pedido explícito do Nicola: "colocar
+           2 botoes a direita e dois a esquerda como se fosse 4 quadrantes,
+           1 pra cada função... o botão a esquerda e uma explicação da
+           funcao na frente") — grid de 4 "quadrantes" de função (Extrato/
+           Adicionar/Fechar-Reabrir competência/Compartilhar com contador),
+           mesmo conteúdo de .rz-act (ícone à esquerda + título + explicação)
+           só que 2 colunas fixas em vez de lista vertical. A explicação
+           QUEBRA linha de propósito (nunca nowrap/ellipsis, diferente de
+           .rz-row) — correção direta do achado "mensagens estão saindo da
+           tela" na aba Conciliação/Fechamento. Usado nas 3 abas do grupo
+           Financeiro (Recebimentos/Saídas/Fechamento) — ver
+           financeiroQuadrantesHtml(), js/financeiro.js. */
+        /* v1.249.0 (demanda 7bdcb8d4, pedido explícito: "Deixar os botoes
+           com altura menor. reduzir o texto explicativo do botao para no
+           max 2 linha. Fazer caber 6 botoes") — 3 linhas x 2 colunas;
+           ícone 28px, título 12px numa linha só, explicação cortada em
+           2 linhas (line-clamp). Status por cor do ícone (rz-ok/rz-warn/
+           rz-bad/rz-mute) e botão indisponível (.rz-off: apagado, toque
+           mostra o motivo) — ver financeiroQuadrantesHtml(). */
+        .rz-fin-quad-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px}
+        .rz-fin-quad{display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:var(--r-ctl);background:var(--card);border:1px solid var(--line);text-align:left;cursor:pointer;min-width:0;min-height:56px}
+        .rz-fin-quad .rz-ic{width:28px;height:28px;border-radius:8px;background:var(--tile);color:var(--pine);display:flex;align-items:center;justify-content:center;flex:none}
+        .rz-fin-quad .rz-ic svg{width:15px;height:15px}
+        .rz-fin-quad .rz-ic.rz-ia{background:var(--brass-bg);color:var(--brass-deep)}
+        .rz-fin-quad .rz-ic.rz-ok{background:var(--success-bg);color:var(--success)}
+        .rz-fin-quad .rz-ic.rz-warn{background:var(--warning-bg);color:var(--warning)}
+        .rz-fin-quad .rz-ic.rz-bad{background:var(--danger-bg);color:var(--danger)}
+        .rz-fin-quad .rz-ic.rz-mute{background:var(--paper);color:var(--muted)}
+        .rz-fin-quad.rz-off{opacity:.55;cursor:not-allowed}
+        .rz-fin-quad.rz-off .rz-ic{background:var(--paper);color:var(--muted)}
+        .rz-fin-quad .rz-tx{min-width:0;flex:1}
+        .rz-fin-quad .rz-tx b{display:block;font-size:12px;font-weight:700;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+        .rz-fin-quad .rz-tx small{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;font-size:12px;font-weight:400;color:var(--muted);margin-top:1px;line-height:1.25;white-space:normal;overflow-wrap:break-word}
+        /* v1.249.0 — cadeado ao lado do mês quando a competência está fechada */
+        .rz-mes-centro{display:inline-flex;align-items:center;gap:6px}
+        .rz-mes-lock{display:inline-flex;color:var(--pine)}
+        .rz-mes-lock svg{width:14px;height:14px}
+        .rz-f{display:flex;flex-direction:column;gap:4px;margin-bottom:12px}
+        .rz-f label{font-size:13px;font-weight:600;color:var(--muted)}
+        .rz-f label i{color:var(--danger);font-style:normal}
+        .rz-f input,.rz-f select,.rz-f textarea{width:100%;height:48px;padding:0 12px;border:1.5px solid var(--line);border-radius:var(--r-ctl);font:inherit;font-size:16px;background:#fff;color:var(--ink)}
+        .rz-f textarea{height:auto;padding:10px 12px}
+        .rz-f input:focus,.rz-f select:focus,.rz-f textarea:focus{border-color:var(--sprout);outline:0}
+        .rz-f .rz-hint{font-size:13px;color:var(--muted)}
+        .rz-f .rz-ok{font-size:12px;color:var(--success);font-weight:600}
+        .rz-f2{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:10px}
+        .rz-acao-fixa{position:sticky;bottom:calc(84px + env(safe-area-inset-bottom));z-index:5;margin-top:12px;padding-top:8px;background:linear-gradient(to bottom,transparent,var(--paper) 40%)}
+        .rz-acao-fixa .rz-btn:disabled{opacity:.55;cursor:default}
+        .rz-row[role="checkbox"]{cursor:pointer}
+        .rz-pend-lista{margin:0 0 12px;padding-left:20px;font-size:15px;line-height:1.5;color:var(--ink)}
+        /* Página pública dos imóveis compartilhados (sem login) — tema claro do app. */
+        body.rz-pub-body{background:var(--paper);color:var(--ink);font-family:var(--font-body);padding:0;margin:0}
+        .rz-pub{max-width:480px;margin:0 auto;padding:16px 16px calc(24px + env(safe-area-inset-bottom));min-height:100vh}
+        .rz-pub-h{display:flex;align-items:flex-start;gap:12px;padding:8px 0 16px;margin-bottom:16px;border-bottom:1px solid var(--line)}
+        .rz-pub-h-tx{flex:1;min-width:0}
+        .rz-pub-h h1{font-family:var(--font-title);font-size:24px;line-height:1.2;letter-spacing:-.02em;color:var(--pine);margin:0}
+        .rz-pub-h p{font-size:15px;color:var(--muted);margin:4px 0 0}
+        .rz-pub-msg{font-size:15px;color:var(--muted);text-align:center;padding:48px 8px}
+        .rz-pub-card h2{font-family:var(--font-title);font-size:20px;line-height:1.25;color:var(--ink);margin:8px 0 4px}
+        .rz-pub-end,.rz-pub-info{display:flex;align-items:center;gap:6px;font-size:15px;color:var(--muted);margin:4px 0 0}
+        .rz-pub-end svg,.rz-pub-info svg{width:16px;height:16px;flex:none;color:var(--sage)}
+        .rz-pub-desc{font-size:15px;line-height:1.45;color:var(--ink);margin:10px 0 0}
+        .rz-pub-fotos{display:flex;gap:8px;overflow-x:auto;padding:12px 0 2px;scroll-snap-type:x mandatory}
+        .rz-pub-fotos img{width:200px;height:136px;object-fit:cover;border-radius:var(--r-ctl);flex:none;cursor:pointer;scroll-snap-align:start}
+        .rz-pub-valor{display:flex;justify-content:space-between;align-items:baseline;margin-top:12px;padding-top:12px;border-top:1px solid var(--line)}
+        .rz-pub-valor span{font-size:13px;color:var(--muted)}
+        .rz-pub-valor b{font-family:var(--font-title);font-size:20px;color:var(--pine)}
+        .rz-pub-fim{display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center}
+        .rz-pub-fim h1{font-family:var(--font-title);font-size:24px;color:var(--pine);margin:0 0 8px}
+        .rz-pub-fim p{font-size:15px;color:var(--muted)}
+        .rz-f .rz-f-btn{width:100%;min-height:48px;padding:0 12px;border:1.5px solid var(--line);border-radius:var(--r-ctl);font:inherit;font-size:16px;background:#fff;color:var(--ink);text-align:left;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer}
+        .rz-f input[type=file]{height:auto;padding:10px 12px;font-size:14px}
+        .rz-f .rz-btn-3{align-self:flex-start}
+        .rz-ph-lista{display:flex;flex-wrap:wrap;gap:6px}
+        .rz-ph{min-height:40px;padding:0 10px;border:1px solid var(--line);border-radius:var(--r-ctl);background:var(--tile);color:var(--ink);font:13px/1 ui-monospace,SFMono-Regular,Menlo,monospace;cursor:pointer}
+        /* 16. IA — assistente e sugestões */
+        .rz-ia-hero{background:linear-gradient(135deg,var(--pine) 0%,var(--pine-light) 100%);color:#fff;border-radius:14px;padding:14px;margin-bottom:12px}
+        .rz-ia-hero h4{font-family:var(--font-title);font-size:15px;display:flex;align-items:center;gap:8px;margin:0 0 6px}
+        .rz-ia-hero h4 svg{color:var(--brass-light);width:18px;height:18px}
+        .rz-ia-hero p{font-size:13px;line-height:1.45;opacity:.92;margin:0}
+        .rz-sug{display:flex;gap:8px;overflow-x:auto;scrollbar-width:none;margin:0 -16px 12px;padding:0 16px}
+        .rz-sug button{flex:none;border:1px solid var(--brass-light);background:var(--brass-bg);color:var(--brass-deep);font-size:12.5px;font-weight:600;padding:8px 12px;border-radius:var(--r-pill)}
+        .rz-bubble{background:var(--paper);border-radius:14px;padding:10px 12px;font-size:13px;line-height:1.45;margin-bottom:8px}
+        .rz-bubble.rz-me{background:var(--sprout-light);margin-left:40px}
+        /* v1.106.1 — BUG (print 03/09: vazio + rodapé de Documentos/Fotos
+           visíveis ao mesmo tempo): .rz-card-f/.rz-kpis/.rz-row etc. definem
+           display e têm a MESMA especificidade do .hidden do Tailwind — quem
+           vem depois no CSS vence, e o catálogo vem depois. Mesmo anti-padrão
+           do "display:flex inline + .hidden" (PENDÊNCIAS), agora em classe.
+           Seletor atributo+classe (0,2,0) garante que .hidden sempre esconde
+           componente rz-*, sem !important. */
+        [class*="rz-"].hidden{display:none}
+        @media (prefers-reduced-motion:reduce){.rz-veil,.rz-sheet,.rz-btn,.rz-ico-btn{transition:none}}
+        /* v1.293.0 — F0.4: tokens de movimento (UXR-34/35) e de modo escuro (UXR-44, ainda NÃO ligado:
+           só vale com data-theme="dark" no <html>; a escolha em ⚙️ › Aparência chega na F4.4) */
+        :root{--m-rapido:120ms;--m-base:200ms;--m-lento:320ms;--m-ease:cubic-bezier(.2,.8,.2,1);--m-saida:cubic-bezier(.4,0,1,1)}
+        @media (prefers-reduced-motion:reduce){:root{--m-rapido:0ms;--m-base:0ms;--m-lento:0ms}}
+        :root[data-theme="dark"]{--paper:#121715;--card:#1a211e;--tile:#232b27;--line:#2b3430;--ink:#e8ebe6;--muted:#9aa49f;--sage:#8fa69c;
+          --success-bg:#1d3328;--warning-bg:#33262a;--danger-bg:#3a2522;--info-bg:#1f2d38;--brass-bg:#33281a;--pine-deep:#152a24}
+
+
+        /* ====================================================================
+           v1.291.0 — F0.1 LEGIBILIDADE E TOQUE (DIRETRIZES_UX_RAIZ_2026 UXR-31/32,
+           PLANO_UX_PWA_ATUAL F0.1). Base da migração para o app nativo.
+           ==================================================================== */
+        body{touch-action:manipulation}                      /* sem zoom por duplo toque; pinça mantida */
+        /* piso de 12 px: classes Tailwind de 9–11 px ainda emitidas pelos módulos js/ (UXR-02:
+           cada módulo troca a classe quando for tocado; até lá o piso vale pela CSS) */
+        .text-\[9px\],.text-\[10px\],.text-\[11px\]{font-size:12px;line-height:1.35}
+        /* campos com 16 px em tela de toque: evita o auto-zoom do WebKit ao focar (UXR-31) */
+        @media (pointer:coarse){
+          input:not([type=checkbox]):not([type=radio]):not([type=range]):not([type=file]),select,textarea{font-size:16px}
+        }
+        /* alvo mínimo de 48 px em botões de ação e itens de sheet */
+        .rz-act{min-height:48px}
+        .rz-nav button{min-height:48px}
+
+        /* ====================================================================
+           v1.292.0 — F0.5 CAMPOS E RÓTULOS ÚNICOS (DIRETRIZES_UX_RAIZ_2026 UXR-31a).
+           Uma casca só para todo campo de formulário, em qualquer tela ou módulo,
+           sem reescrever cada formulário. Módulo tocado migra para .rz-f (UXR-02).
+           Opt-out explícito: classe .rz-raw (tela de entrar, fundo escuro).
+           ==================================================================== */
+        input:not([type=checkbox]):not([type=radio]):not([type=range]):not([type=file]):not([type=color]):not([type=hidden]):not([type=submit]):not([type=button]):not(.rz-raw),
+        select:not(.rz-raw){height:48px;padding:0 12px;border:1.5px solid var(--line);border-radius:var(--r-ctl);background:#fff;color:var(--ink);font:inherit;font-size:16px;line-height:1.2}
+        textarea:not(.rz-raw){min-height:96px;padding:10px 12px;border:1.5px solid var(--line);border-radius:var(--r-ctl);background:#fff;color:var(--ink);font:inherit;font-size:16px}
+        input:not(.rz-raw):focus,select:not(.rz-raw):focus,textarea:not(.rz-raw):focus{border-color:var(--sprout);outline:0;box-shadow:none}
+        input[readonly]:not([type=checkbox]):not([type=radio]):not([type=range]):not([type=file]):not([type=color]):not([type=hidden]):not([type=submit]):not([type=button]):not(.rz-raw),
+        input[disabled]:not([type=checkbox]):not([type=radio]):not([type=range]):not([type=file]):not([type=color]):not([type=hidden]):not([type=submit]):not([type=button]):not(.rz-raw),select[disabled]:not(.rz-raw){background:var(--paper);color:var(--muted)}
+        input::placeholder,textarea::placeholder{color:var(--sage);opacity:1}
+        /* rótulo: 13 px, --muted, sempre acima (rótulo que embrulha um controle — checkbox, rádio — fica como está) */
+        label:not(.rz-row):not(.rz-chk):not(:has(input,select,textarea)){display:block;font-size:13px;font-weight:600;color:var(--muted);line-height:1.3}
+        label:not(.rz-row):not(.rz-chk) + input:not(.rz-raw),label:not(.rz-row):not(.rz-chk) + select:not(.rz-raw),label:not(.rz-row):not(.rz-chk) + textarea:not(.rz-raw){margin-top:4px}
+        /* seletor de mês e filtros compactos herdam a casca, mas não a altura */
+        .rz-mes-bar select,.rz-mes-bar input{height:36px}
+
+        /* ====================================================================
+           v1.292.2 — F0.5c UMA COLUNA NO CELULAR (DIRETRIZES UXR-31b).
+           Em tela < 600 px, um campo por linha: nada de rótulo, valor ou
+           placeholder cortado. Lado a lado só para pares curtos marcados com
+           .rz-f2-curto (UF, número, %, dia, valor, sim/não, datas). No
+           computador tudo continua em duas colunas.
+           ==================================================================== */
+        @media (max-width:599px){
+          .rz-f2:not(.rz-f2-curto){grid-template-columns:minmax(0,1fr)}
+          .grid.grid-cols-2:not(.rz-f2-curto):has(input:not([type=checkbox]):not([type=radio]),select,textarea){grid-template-columns:minmax(0,1fr)}
+          /* v1.294.1 — grade de 3 colunas com campo também vira 1 coluna; e filho col-span-* ocupa a
+             linha inteira (sem isso o span cria 2ª coluna implícita e espreme a 1ª — regressão 1.292.2) */
+          .grid.grid-cols-3:not(.rz-f2-curto):has(input:not([type=checkbox]):not([type=radio]),select,textarea){grid-template-columns:minmax(0,1fr)}
+          .grid.grid-cols-2:not(.rz-f2-curto):has(input:not([type=checkbox]):not([type=radio]),select,textarea)>[class*="col-span-"],
+          .grid.grid-cols-3:not(.rz-f2-curto):has(input:not([type=checkbox]):not([type=radio]),select,textarea)>[class*="col-span-"]{grid-column:1/-1}
+        }
+        /* v1.294.0 (UXR-10/11) — topo de aba: barra de busca de largura inteira + "+" (48 px) */
+        .rz-topo{display:flex;align-items:center;gap:10px;margin-bottom:12px}
+        .rz-search{flex:1;min-width:0;height:48px;display:flex;align-items:center;gap:8px;background:var(--card);border:1px solid var(--line);border-radius:var(--r-pill);padding:0 16px;color:var(--muted);font-size:15px;text-align:left;cursor:pointer}
+        .rz-search svg{width:18px;height:18px;flex:none}
+        .rz-search span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+        .rz-topo .rz-ico-btn{flex:none}
+        .rz-search.rz-ativo{color:var(--ink);border-color:var(--pine)}
+        .rz-busca-campo{display:flex;align-items:center;gap:8px;height:48px;padding:0 14px;border:1.5px solid var(--line);border-radius:var(--r-pill);background:#fff;margin-bottom:4px}
+        .rz-busca-campo:focus-within{border-color:var(--sprout)}
+        .rz-busca-campo svg{width:18px;height:18px;flex:none;color:var(--muted)}
+        .rz-busca-campo input{flex:1;min-width:0;height:44px;border:0;outline:0;background:transparent;font:inherit;font-size:16px;color:var(--ink)}
+        .rz-busca .rz-chips-wrap{flex-wrap:wrap;overflow:visible;margin:0 0 4px;padding:0}
+        .rz-busca-linhas{margin-top:12px}
+        .rz-busca-linhas .rz-row{width:100%;background:none;border-left:0;border-right:0;border-top:0;text-align:left;font:inherit;color:inherit}
+        /* dem 1f98c359 — × da barra de busca: aparece com a busca ligada e limpa em um toque */
+        .rz-search.rz-ativo{padding-right:52px}
+        /* F2.5c-2 — barra de busca digitável: <label class="rz-search rz-search-in"> com <input class="rz-raw">; digita
+           na própria barra, filtra enquanto digita, × limpa (rzBuscaInline). Sem Sheet nem botões. */
+        .rz-search.rz-search-in{cursor:text}
+        .rz-search.rz-search-in:focus-within{border-color:var(--sprout);color:var(--ink)}
+        .rz-search.rz-search-in input{flex:1;min-width:0;height:44px;border:0;outline:0;background:transparent;font:inherit;font-size:16px;color:var(--ink);padding:0}
+        .rz-search.rz-search-in input::-webkit-search-cancel-button{display:none}
+        /* dem 28aa5ce1 — Hoje: com a busca ligada, a tela mostra só a barra e os resultados (#hoje-busca-res) */
+        #tab-geral.rz-hoje-buscando > :not(.rz-topo):not(#hoje-busca-res){display:none !important}
+        #hoje-busca-res[hidden]{display:none}
+        .rz-topo .rz-search-x{flex:none;width:40px;height:40px;margin:0 4px 0 -54px;border:0;border-radius:50%;background:var(--tile);color:var(--ink);display:flex;align-items:center;justify-content:center;position:relative;z-index:1;cursor:pointer}
+        .rz-topo .rz-search-x[hidden]{display:none}
+        .rz-topo .rz-search-x svg{width:18px;height:18px}
+        /* dem f0ab422d — gráficos de colunas no padrão executivo (resultados.js, colunasExecutivasSvg) */
+        .rz-res-titulo{font-size:16px;line-height:1.3;margin:0;flex:1;min-width:0}
+        .rz-res-sub{font-size:12.5px;color:var(--muted);margin:2px 0 0}
+        .rz-res-fonte{font-size:11px;color:var(--muted);margin:8px 0 0}
+        .rz-cols{display:block;width:100%;height:auto;margin-top:10px;overflow:visible}
+        .rz-cols .rz-col{fill:var(--sage);fill-opacity:.55}
+        .rz-cols .rz-col-hl{fill:var(--pine)}
+        .rz-cols .rz-col-neg{fill:var(--danger)}
+        .rz-cols .rz-col-warn{fill:var(--warning)}
+        .rz-cols .rz-col-base{stroke:var(--ink);stroke-width:1}
+        .rz-cols .rz-col-v{font:600 10px var(--font-body);fill:var(--ink);font-variant-numeric:tabular-nums}
+        .rz-cols .rz-col-v-neg{fill:var(--danger)}
+        .rz-cols .rz-col-m{font:400 10px var(--font-body);fill:var(--muted)}
+        .rz-cols .rz-col-fut{fill-opacity:.45}
+        .rz-cols .rz-col-alvo{fill:transparent}
+        .rz-cols .rz-res-barra-mes,.rz-cols .rz-res-barra-revisional{cursor:pointer}
+        /* dem 43bc3cab — Indicadores de mercado (Fique por Dentro); dem 4de70503 — em blocos */
+        .rz-ind .rz-rt span{font-size:12px;color:var(--muted)}
+        .rz-ind .rz-rt b.rz-ind-neg{color:var(--danger)}
+        .rz-ind-grade{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}
+        .rz-ind-q{border:1px solid var(--line);border-radius:12px;padding:10px 12px;display:flex;flex-direction:column;gap:2px;min-width:0}
+        .rz-ind-q-h{display:flex;justify-content:space-between;align-items:baseline;gap:6px}
+        .rz-ind-q-h b{font-size:13px;font-weight:600}
+        .rz-ind-q-h span{font-size:11.5px;color:var(--muted)}
+        .rz-ind-q strong{font-size:20px;font-weight:600;font-variant-numeric:tabular-nums;color:var(--ink)}
+        .rz-ind-q strong.rz-ind-neg{color:var(--danger)}
+        .rz-ind-q-12{font-size:12px;color:var(--muted)}
+        /* dem 4de70503 — Sua carteira × indicadores e Contratos por índice */
+        .rz-card .rz-res-cmp{margin:10px 0 2px;padding:2px 0}
+        .rz-cmp{display:block;width:100%;height:auto;margin-top:6px;overflow:visible}
+        .rz-cmp .rz-cmp-base{stroke:var(--line);stroke-width:1}
+        .rz-cmp .rz-cmp-cart{fill:none;stroke:var(--pine);stroke-width:2.2;stroke-linejoin:round}
+        .rz-cmp .rz-cmp-ind{fill:none;stroke:var(--sage);stroke-width:1.6}
+        .rz-cmp .rz-cmp-rot-c{font:600 10px var(--font-body);fill:var(--pine)}
+        .rz-cmp .rz-cmp-rot-i{font:600 10px var(--font-body);fill:var(--muted)}
+        .rz-cmp .rz-cmp-m{font:400 10px var(--font-body);fill:var(--muted)}
+        .rz-idx{margin-top:12px;display:flex;flex-direction:column;gap:10px}
+        .rz-idx-l{display:grid;grid-template-columns:64px 1fr auto;align-items:center;gap:10px}
+        .rz-idx-n{font-size:13px;font-weight:600}
+        .rz-idx-t{display:block;width:100%;height:12px}
+        .rz-idx-t .rz-idx-fundo{fill:var(--tile)}
+        .rz-idx-t .rz-idx-b{fill:var(--sage);fill-opacity:.55}
+        .rz-idx-t .rz-idx-hl{fill:var(--pine)}
+        .rz-idx-pond{margin-top:10px}
+        .rz-res-nota{margin-top:8px}
+        .rz-idx-v{font-size:12.5px;color:var(--muted);white-space:nowrap}
+        .rz-idx-v b{color:var(--ink);font-variant-numeric:tabular-nums}
+        /* F2.3b — busca universal do Hoje: resultados por entidade e buscas recentes. As linhas-botão do
+           painel perdem a borda padrão do <button> e ficam com o fio da lista (.rz-row). */
+        .rz-busca-linhas .rz-row{border:0;border-top:1px solid var(--line)}
+        .rz-busca-linhas .rz-row:first-child{border-top:0}
+        .rz-busca-res .rz-busca-linhas{margin-top:0}
+        .rz-busca-res .rz-busca-mais{justify-content:center;color:var(--pine);font-weight:600;font-size:14px}
+        .rz-busca-dica{font-size:13px;color:var(--muted);margin:12px 2px 0;line-height:1.45}
+        .rz-busca-limpar{background:none;border:0;padding:8px 2px;margin-top:4px;font:inherit;font-size:13px;color:var(--muted);text-decoration:underline;cursor:pointer}
+        /* v1.294.0 (UXR-25) — segmento de 4 opções do Financeiro; rótulo curto em tela estreita */
+        .rz-seg.rz-seg-4 button{font-size:12px;padding:0 2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+        .rz-seg .rz-seg-s{display:none}
+        @media (max-width:389px){ .rz-seg .rz-seg-l{display:none} .rz-seg .rz-seg-s{display:inline} }
+        .rz-row.rz-off{opacity:.55}
+        /* toast acima da bottom nav (UXR-29) */
+        #toast-container{position:fixed;left:16px;right:16px;bottom:calc(76px + env(safe-area-inset-bottom));z-index:500;display:flex;flex-direction:column;gap:8px;align-items:center;pointer-events:none}
+        #toast-container>div{pointer-events:auto}
+        /* v1.299.0 (UX F1.3) — puxar para atualizar: indicador sob o cabeçalho */
+        html.rz-ptr-on{overscroll-behavior-y:contain}
+        /* v1.314.0 (9ddb9f34) — o puxar-para-atualizar NATIVO do navegador recarregava a página onde o do
+           app não atua (ex.: ficha do ativo) e perdia o que estava em andamento. Desligado no app todo. */
+        html,body{overscroll-behavior-y:contain}
+        #rz-ptr{position:fixed;left:50%;top:0;z-index:45;width:36px;height:36px;margin-left:-18px;border-radius:50%;background:#fff;box-shadow:0 2px 8px rgba(0,0,0,.18);display:flex;align-items:center;justify-content:center;color:var(--pine);opacity:0;transform:translateY(-48px);pointer-events:none;transition:transform var(--m-base,200ms) ease,opacity var(--m-base,200ms) ease}
+        #rz-ptr.rz-puxando{transition:none}
+        #rz-ptr svg{width:18px;height:18px}
+        #rz-ptr.rz-pronto{color:var(--sprout)}
+        @keyframes rz-ptr-girar{to{transform:rotate(360deg)}}
+        /* v1.301.0 (UX F1.4a) — esqueleto no lugar de "Carregando…" (rzSkeleton) e faixa de sem conexão */
+        @keyframes rz-sk-brilho{0%{background-position:100% 0}100%{background-position:-100% 0}}
+        .rz-sk{display:block;border-radius:6px;background:linear-gradient(90deg,var(--line) 25%,var(--tile) 50%,var(--line) 75%);background-size:200% 100%;animation:rz-sk-brilho 1.3s ease-in-out infinite}
+        .rz-sk-row{display:flex;align-items:center;gap:12px;padding:12px 0;border-top:1px solid var(--line)}
+        .rz-sk-row:first-child{border-top:0}
+        .rz-sk-ic{width:42px;height:42px;border-radius:12px;flex:none}
+        .rz-sk-tx{flex:1;display:flex;flex-direction:column;gap:6px;min-width:0}
+        .rz-sk-l1{height:14px;width:62%}.rz-sk-l2{height:11px;width:40%}
+        .rz-sk-card{height:84px;border-radius:14px;margin-bottom:12px}
+        .rz-sk-txt{height:12px;margin:8px 0}
+        @media (prefers-reduced-motion:reduce){.rz-sk{animation:none}}
+        #rz-sem-rede{position:sticky;top:0;z-index:44;display:none;align-items:center;gap:8px;padding:8px 16px;background:var(--warning-bg);color:var(--warning);font-size:13px;font-weight:600}
+        #rz-sem-rede svg{width:16px;height:16px;flex:none}
+        html.rz-offline #rz-sem-rede{display:flex}
+        /* v1.300.0 (UX F1.2, UXR-28) — deslizar a linha revela até 2 ações por lado; só o toque na ação executa */
+        .rz-card.rz-list:has(.rz-sw){overflow:hidden}
+        .rz-sw{position:relative;overflow:hidden;margin:0 -16px}
+        .rz-sw:not(:first-child){border-top:1px solid var(--line)}
+        .rz-sw>.rz-row{position:relative;z-index:1;background:var(--card);padding-left:16px;padding-right:16px;border-top:0;touch-action:pan-y;transition:transform var(--m-base,200ms) ease}
+        .rz-sw.rz-sw-arrastando>.rz-row{transition:none}
+        .rz-sw-a{position:absolute;top:0;bottom:0;display:flex;z-index:0}
+        .rz-sw-a.rz-sw-dir{left:0}.rz-sw-a.rz-sw-esq{right:0}
+        .rz-sw-a button{width:76px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;font-size:12px;font-weight:600;color:#fff;border:0;background:var(--pine);padding:0 4px;text-align:center;line-height:1.2}
+        .rz-sw-a button svg{width:20px;height:20px}
+        /* v1.359.0 (etapa 6 · C) — prévia da cobrança pelo WhatsApp: o texto exato que vai sair */
+        .rz-cob-msg{white-space:pre-wrap;word-break:break-word;background:var(--tile);border-radius:12px;padding:12px 14px;font-size:13px;line-height:1.45;color:var(--ink);max-height:42vh;overflow:auto}
+        .rz-cob-msg + .rz-row{margin-top:8px;border-top:0}
+        /* v1.365.0 (etapa 6 · D) — Conciliação "Revisar em sequência": uma carta por vez (progresso, linha do extrato,
+           sugestão da Raiz IA, botões ao alcance do polegar) */
+        .rz-seq-prog{display:flex;justify-content:space-between;align-items:baseline;margin:0 2px 8px;font-size:13px;color:var(--muted)}
+        .rz-seq-prog b{color:var(--ink);font-size:14px}
+        .rz-seq-card{padding:16px}
+        .rz-seq-card small{display:block;color:var(--muted);font-size:12px}
+        .rz-seq-valor{display:block;font:700 24px var(--font-title);letter-spacing:-.02em;margin:4px 0 2px}
+        .rz-seq-valor.rz-in{color:var(--success)}
+        .rz-seq-nome{font-weight:600;margin:0}
+        .rz-seq-sug{margin-top:12px;padding:10px 12px;border-radius:12px;background:var(--brass-bg)}
+        .rz-seq-sug small{color:var(--brass-deep);font-weight:700;letter-spacing:.04em;text-transform:uppercase}
+        .rz-seq-sug b{display:block;margin-top:2px}
+        .rz-seq-sug.rz-sem{background:var(--tile)}
+        .rz-seq-sug.rz-sem small{color:var(--muted)}
+        .rz-seq-btns{display:flex;gap:8px;margin-top:12px}
+        .rz-seq-btns .rz-btn{flex:1}
+        .rz-seq-mais{display:flex;justify-content:space-between;align-items:center;margin-top:10px}
+        .rz-sw-a button.rz-sw-bad{background:var(--danger)}.rz-sw-a button.rz-sw-warn{background:var(--warning)}.rz-sw-a button.rz-sw-neu{background:var(--sage)}
+        .rz-lp{-webkit-touch-callout:none;-webkit-user-select:none;user-select:none}
+        .rz-grupo-itens{margin:0 -16px;background:var(--tile);border-top:1px solid var(--line)}
+        .rz-grupo-itens .rz-sw{margin:0}
+        .rz-grupo-itens .rz-row{padding-left:28px;padding-right:16px}
+        .rz-grupo-itens .rz-sw>.rz-row{background:var(--tile)}
+        .rz-row.rz-aberto .rz-chev{transform:rotate(90deg)}
+        @media (prefers-reduced-motion:reduce){.rz-sw>.rz-row{transition:none}}
+        #rz-ptr.rz-girando svg{animation:rz-ptr-girar .8s linear infinite}
+        @media (prefers-reduced-motion:reduce){#rz-ptr.rz-girando svg{animation:none}}
+
+        /* ============================================================================================================
+           v1.380.0 — UX ONDA 1: ESCALA COMPACTA (PROTOTIPO_UX_DENSIDADE_RAMOS_RAIZ v1.2.0 §9; D1, D3, D5).
+           Corpo 14 · secundário 12,5 · títulos 16–17 · KPI herói 26 · placa de linha 34 · botão 44 · chip/segmento 32.
+           O alvo de toque segue 48 px onde já era (linhas, itens de sheet, barra inferior). O piso de 12 px continua:
+           o 11 px da D2 (rótulo da barra, contador) espera a regra nova do verificador.
+           Título de linha quebra em até 2 linhas (nada cortado em 1 linha); o detalhe fica em 1 linha com reticências e o
+           toque na linha abre a ficha com o texto inteiro (D5).
+           ============================================================================================================ */
+        body{font-size:14px}
+        .rz-tabhead h2{font-size:17px}
+        .rz-card{padding:12px 14px;margin-bottom:10px}
+        .rz-card.rz-list{padding:2px 14px}
+        .rz-card-h h3{font-size:14px}
+        .rz-row{gap:10px;padding:9px 0;min-height:52px}
+        .rz-row .rz-ic{width:34px;height:34px;border-radius:10px}
+        .rz-row .rz-ic svg{width:17px;height:17px}
+        .rz-row .rz-tx b{font-size:14px;white-space:normal;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;line-height:1.3}
+        .rz-row .rz-tx span{font-size:12.5px}
+        .rz-row .rz-rt b{font-size:14px}
+        /* v1.442.0 (demanda ce8b1820, Nicola 20/10 09:07 e 11:06) — lista de Ativos: uma coluna só de valores à direita, no alto
+           da linha (altura do nome): valor do item (compacto, como a faixa e o grupo), aluguel /mês embaixo, e o total do grupo
+           e da faixa do ramo terminam na mesma linha vertical, antes da seta (seta 18 + vão 10 + respiro do card 14 + borda 1 =
+           43 px da borda). Letra um pouco menor só nesta lista ("está ocupando muito espaço"), sem passar do piso de 12 px. */
+        .rz-row .rz-rt b.rz-rt-v{font-size:14px;font-weight:600;font-variant-numeric:tabular-nums;white-space:nowrap}
+        .rz-row .rz-rt small.rz-rt-x{font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums;white-space:nowrap}
+        #ativos-lista .rz-row{padding:8px 0;min-height:48px}
+        #ativos-lista .rz-row .rz-rt{align-self:flex-start;gap:3px;padding-top:1px}
+        #ativos-lista .rz-row .rz-tx b{font-size:13px;line-height:1.3}
+        #ativos-lista .rz-row .rz-tx span{font-size:12px}
+        #ativos-lista .rz-row .rz-rt b.rz-rt-v{font-size:13px;line-height:1.3}
+        #ativos-lista .rz-row .rz-st{font-size:12px}
+        #ativos-lista .rz-group.rz-group-t b{margin-right:41px;font-weight:600;font-size:13px;font-variant-numeric:tabular-nums}
+        #ativos-lista .rz-ramo-faixa h3{font-size:15px}
+        #ativos-lista .rz-ramo-faixa>b{margin-right:-2px;font-size:13px}
+        /* v1.443.0 (Nicola 20/10 11:25) — imóvel com resumo em grade: nome ↔ valor, etiqueta ↔ chip, locatário ↔ aluguel/mês
+           (o aluguel à frente do locatário, na coluna do valor). .rz-tx e .rz-rt viram display:contents só nessa linha. */
+        .rz-row .rz-rt small.rz-rt-vazio{font-size:12px;color:var(--muted);white-space:nowrap;line-height:1.3}
+        #ativos-lista .rz-row[data-grade]{display:grid;grid-template-columns:auto minmax(0,1fr) auto auto;column-gap:10px;row-gap:0;align-items:start}
+        #ativos-lista .rz-row[data-grade]>.rz-ic{grid-column:1;grid-row:1/span 3;align-self:center}
+        #ativos-lista .rz-row[data-grade]>.rz-tx,#ativos-lista .rz-row[data-grade]>.rz-rt{display:contents}
+        #ativos-lista .rz-row[data-grade]>.rz-tx>b{grid-column:2;grid-row:1}
+        #ativos-lista .rz-row[data-grade]>.rz-tx>.rz-tx-st{grid-column:2;grid-row:2}
+        #ativos-lista .rz-row[data-grade]>.rz-tx>span{grid-column:2;grid-row:3}
+        #ativos-lista .rz-row[data-grade]>.rz-rt>*{grid-column:3;grid-row:2;justify-self:end;align-self:center}
+        #ativos-lista .rz-row[data-grade]>.rz-rt>.rz-rt-v,#ativos-lista .rz-row[data-grade]>.rz-rt>.rz-rt-vazio{grid-row:1;align-self:start}
+        #ativos-lista .rz-row[data-grade]>.rz-rt>.rz-rt-al{grid-row:3;align-self:start;margin-top:1px}
+        #ativos-lista .rz-row[data-grade]>.rz-chev,#ativos-lista .rz-row[data-grade]>.rz-subs-toggle{grid-column:4;grid-row:1/span 3;align-self:center}
+        /* v1.442.0 (Nicola 20/10 11:06: "o botão de IA aparece solto no topo… deixe ele apenas ao lado da escolha da empresa") — o
+           botão da IA da splash só aparece na escolha de empresa (na linha da busca ou do "Olá"); some no login e no "Abrindo". */
+        #splash-screen:not(.splash-lista-ativa) #btn-falar-bot-splash,#splash-screen:not(.splash-lista-ativa) #splash-ia-tooltip,
+        #splash-screen.rz-esc-abrindo #btn-falar-bot-splash{display:none}
+        .rz-entity .rz-ic{width:40px;height:40px;border-radius:11px}
+        .rz-entity .rz-ic svg{width:20px;height:20px}
+        .rz-entity .rz-tx b{font-size:17px}
+        .rz-entity .rz-tx span{font-size:12.5px}
+        .rz-kv{gap:8px 12px}
+        .rz-kv b{font-size:14px}
+        .rz-kpi b{font-size:17px}
+        .rz-kpi.rz-hero b{font-size:22px}
+        .rz-heroi-pat{font-size:26px}
+        .rz-heroi-res b{font-size:19px}
+        .rz-btn{height:44px;font-size:14px}
+        .rz-btn.rz-sm{height:36px;font-size:12.5px}
+        .rz-chip{height:32px;padding:0 12px;font-size:12.5px}
+        .rz-seg button{height:32px;font-size:12.5px}
+        .rz-sh-h h3{font-size:16px}
+        .rz-act{gap:10px;padding:10px 6px;font-size:14px}
+        .rz-act .rz-ic{width:32px;height:32px;border-radius:9px}
+        .rz-act .rz-ic svg{width:17px;height:17px}
+        .rz-act small{font-size:12.5px}
+        .rz-nav button svg{width:22px;height:22px}
+        .rz-ramo-k3 b{font-size:15px}
+        .rz-ramo-cab h3{font-size:15px}
+        /* Topo: os botões redondos viram frutos da árvore — o do ramo (cor do ramo), a Raiz IA (o sol dourado do splash) e
+           o avatar (fruto claro com as iniciais ou a foto). Mesmo tamanho (36), mesmo brilho e mesma sombra; alvo 44. */
+        .rz-hdr{gap:8px}
+        .rz-hdr .rz-brand h1{font-size:17px}
+        .rz-hdr .rz-lente,.rz-hdr .rz-ia,.rz-hdr .rz-avatar{width:36px;height:36px;border:0;margin:4px 2px;flex:none;
+            box-shadow:0 2px 5px rgba(5,15,12,.35),0 0 0 2px rgba(255,255,255,.24)}
+        .rz-hdr .rz-ia,:root[data-ramo] .rz-hdr .rz-ia{background:radial-gradient(circle at 34% 28%,rgba(255,255,255,.45),rgba(255,255,255,0) 58%),radial-gradient(circle at 50% 50%,#e0a656,#c68a3b 62%,#a86f27)}
+        .rz-hdr .rz-ia .rz-dot{top:0;right:0;width:9px;height:9px;background:#fff;border:2px solid #a86f27}
+        .rz-hdr .rz-avatar,:root[data-ramo] .rz-hdr .rz-avatar{background:radial-gradient(circle at 34% 28%,rgba(255,255,255,.7),rgba(255,255,255,0) 60%),#efe3c6;color:#1e3a32;font:700 12.5px var(--font-body);overflow:hidden}
+        .rz-hdr .rz-avatar img{width:100%;height:100%;object-fit:cover;border-radius:50%}
+        .rz-hdr .rz-lente svg,.rz-hdr .rz-ia svg{width:18px;height:18px}
+        .rz-hdr .rz-avatar svg{width:17px;height:17px;color:#1e3a32}
+        .rz-hdr button:active{transform:scale(.92)}
+
+        /* ============================================================================================================
+           v1.381.0 — UX ONDA 2: TOPO E BARRA (PROTOTIPO_UX_DENSIDADE_RAMOS_RAIZ v1.2.0, D7/D8/D10; continuidade C5/C6).
+           Topo: marca da empresa · busca · ramo · avatar. Barra: Hoje · Ativos · Raiz IA (sol, no centro) · Agenda ·
+           Financeiro. Contratos é vista de Ativos (.rz-vista). Vazio ganha as raízes do splash ao fundo.
+           ============================================================================================================ */
+        .rz-hdr .rz-busca-hdr{width:40px;height:40px;margin:2px 0;border-radius:50%;background:transparent;color:#fff;display:flex;align-items:center;justify-content:center;flex:none}
+        .rz-hdr .rz-busca-hdr svg{width:21px;height:21px}
+        .rz-hdr .rz-brand h1.rz-com-logo{display:flex;align-items:center;gap:8px;overflow:visible}
+        .rz-hdr .rz-marca-placa{display:inline-flex;align-items:center;justify-content:center;height:36px;max-width:150px;padding:4px 8px;border-radius:10px;background:#fff;flex:none;box-shadow:0 1px 3px rgba(5,15,12,.25)}
+        .rz-hdr .rz-marca-placa.rz-quad{width:36px;padding:3px}
+        .rz-hdr .rz-brand h1 .rz-marca-placa img{max-height:28px;max-width:134px;width:auto;height:auto;object-fit:contain;display:block}
+        .rz-hdr .rz-marca-nome{min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+        #bottom-nav-bar .rz-nav-ia{color:var(--brass-deep)}
+        #bottom-nav-bar .rz-sol{position:relative;width:46px;height:46px;margin-top:-24px;border-radius:50%;color:#fff;display:flex;align-items:center;justify-content:center;
+            background:radial-gradient(circle at 34% 28%,rgba(255,255,255,.45),rgba(255,255,255,0) 58%),radial-gradient(circle at 50% 50%,#e0a656,#c68a3b 62%,#a86f27);
+            box-shadow:0 4px 12px rgba(5,15,12,.22),0 0 0 4px var(--card);transition:transform .08s}
+        #bottom-nav-bar .rz-sol svg{width:22px;height:22px}
+        #bottom-nav-bar .rz-nav-ia:active .rz-sol{transform:scale(.92)}
+        #bottom-nav-bar .rz-sol .rz-dot{position:absolute;top:1px;right:1px;width:11px;height:11px;border-radius:50%;background:#fff;border:2px solid var(--brass-deep)}
+        .rz-vista{display:flex;gap:18px;margin:0 0 10px;border-bottom:1px solid var(--line)}
+        .rz-vista button{height:40px;padding:0;background:none;border:0;border-bottom:2px solid transparent;margin-bottom:-1px;font:700 17px var(--font-title);letter-spacing:-.02em;color:var(--muted);cursor:pointer}
+        .rz-vista button.rz-on{color:var(--ink);border-bottom-color:var(--ramo-acc)}
+        #tab-ativos:has([data-screen^="ficha"]:not(.hidden)) .rz-vista{display:none}
+        .rz-vazio{position:relative;overflow:hidden}
+        .rz-vazio > *{position:relative;z-index:1}
+        .rz-vazio::after{content:"";position:absolute;left:50%;bottom:-8px;width:260px;height:110px;transform:translateX(-50%);background:var(--sage);opacity:.13;pointer-events:none;
+            -webkit-mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 240 150' fill='none' stroke='black' stroke-width='1.6' stroke-linecap='round'%3E%3Cpath d='M120 0 C120 40 118 80 120 140'/%3E%3Cpath d='M120 10 C100 30 70 40 40 70 C30 80 20 100 14 120'/%3E%3Cpath d='M120 10 C140 30 170 40 200 70 C210 80 220 100 226 120'/%3E%3Cpath d='M118 40 C95 55 80 75 70 110'/%3E%3Cpath d='M122 40 C145 55 160 75 170 110'/%3E%3Cpath d='M70 55 C55 60 45 70 30 72'/%3E%3Cpath d='M170 55 C185 60 195 70 210 72'/%3E%3Cpath d='M119 80 C108 95 100 115 96 140'/%3E%3Cpath d='M121 80 C132 95 140 115 144 140'/%3E%3C/svg%3E") center bottom/100% 100% no-repeat;mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 240 150' fill='none' stroke='black' stroke-width='1.6' stroke-linecap='round'%3E%3Cpath d='M120 0 C120 40 118 80 120 140'/%3E%3Cpath d='M120 10 C100 30 70 40 40 70 C30 80 20 100 14 120'/%3E%3Cpath d='M120 10 C140 30 170 40 200 70 C210 80 220 100 226 120'/%3E%3Cpath d='M118 40 C95 55 80 75 70 110'/%3E%3Cpath d='M122 40 C145 55 160 75 170 110'/%3E%3Cpath d='M70 55 C55 60 45 70 30 72'/%3E%3Cpath d='M170 55 C185 60 195 70 210 72'/%3E%3Cpath d='M119 80 C108 95 100 115 96 140'/%3E%3Cpath d='M121 80 C132 95 140 115 144 140'/%3E%3C/svg%3E") center bottom/100% 100% no-repeat}
+
+        /* ============================================================================================================
+           v1.385.0 — UX ONDA 3 (CSS que faltou na 1.383.0) e ONDA 4a (Financeiro da ficha).
+           .rz-more-topo — o ⋮ do cabeçalho de entidade · .rz-add — "+ Adicionar …" como última linha do card.
+           .rz-fc-resumo — Recebido · Despesas · Em atraso numa faixa, sem caixas · .rz-fc-atalhos — "a classificar" e
+           "sem conciliação" · .rz-fc-meses — a lista dos meses direto no card que já existe.
+           ============================================================================================================ */
+        .rz-entity .rz-more-topo{margin:0 -8px 0 2px;width:44px;height:44px;color:var(--ink)}
+        .rz-entity .rz-more-topo svg{width:21px;height:21px}
+        .rz-add{display:flex;align-items:center;gap:10px;width:100%;min-height:48px;padding:0;background:none;border:0;border-top:1px solid var(--line);font:600 14px var(--font-body);color:var(--ramo-txt);cursor:pointer;text-align:left}
+        .rz-add svg{width:34px;height:18px;flex:none}
+        .rz-card > .rz-add:first-child{border-top:0}
+        .rz-add.rz-off{opacity:.5}
+        .rz-fc-resumo{display:flex;gap:12px;padding:6px 0 10px;border-bottom:1px solid var(--line);margin-bottom:2px}
+        .rz-fc-resumo > *{flex:1;min-width:0;text-align:left;background:none;border:0;padding:0;font:inherit}
+        .rz-fc-resumo small{display:block;font-size:12.5px;color:var(--muted)}
+        .rz-fc-resumo b{display:block;font:700 15px var(--font-title);letter-spacing:-.01em;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+        .rz-fc-resumo b.rz-in{color:var(--success)}
+        .rz-fc-resumo button.rz-bad{cursor:pointer}.rz-fc-resumo button.rz-bad small,.rz-fc-resumo button.rz-bad b{color:var(--danger)}
+        .rz-fc-atalhos{display:flex;flex-wrap:wrap;gap:6px 14px;padding:8px 0 2px}
+        .rz-fc-atalho{display:inline-flex;align-items:center;gap:2px;min-height:32px;padding:0;background:none;border:0;font:600 13px var(--font-body);color:var(--warning);cursor:pointer}
+        .rz-fc-atalho svg{width:15px;height:15px}
+        .rz-fc-meses .rz-row:last-child{border-bottom:0}
+        /* v1.453.0 (20/10/2026, demanda 9359f50f; protótipo PROTOTIPO_FINANCEIRO_DO_ATIVO_RAIZ v1.1.0) — Financeiro da ficha do ativo:
+           gráfico do Hoje mais baixo, com o valor em cima de cada coluna, que filtra o mês (.rz-fc-chart); título-conclusão
+           (.rz-fc-tit); grupo da lista só como título (.rz-fc-gh). .rz-saldo — saldo partido do Balanço (sugestão do Splitwise):
+           rótulo pequeno com o ponto da cor do status em cima, valor embaixo, sem a pílula larga que apertava o nome. */
+        .rz-fc-tit{margin:2px 0 0;font:600 15px/1.3 var(--font-body);color:var(--ink);text-wrap:balance}
+        .rz-fc-sub{display:block;font-size:12.5px;color:var(--muted)}
+        .rz-fc-chart{display:grid;grid-template-columns:repeat(12,minmax(0,1fr));gap:4px;align-items:end;height:84px;margin-top:10px;border-bottom:1.5px solid var(--ink)}
+        .rz-fc-chart button{height:100%;min-width:0;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;gap:3px;padding:0;background:none;border:0;cursor:pointer;font:inherit}
+        .rz-fc-chart i{display:block;width:100%;max-width:24px;background:#b5bfb9;border-radius:2px 2px 0 0}
+        .rz-fc-chart .v{font-size:10.5px;font-weight:600;color:var(--ink);font-variant-numeric:tabular-nums;white-space:nowrap}
+        .rz-fc-chart button[aria-pressed="true"] i{background:var(--pine)}
+        .rz-fc-chart button.fut i{opacity:.45}.rz-fc-chart button.fut .v{color:var(--muted);font-weight:500}
+        .rz-fc-chart button:focus-visible{outline:2px solid var(--info);outline-offset:2px}
+        .rz-fc-mes{display:grid;grid-template-columns:repeat(12,minmax(0,1fr));gap:4px;margin-top:5px;font-size:11px;color:var(--muted);text-align:center}
+        .rz-fc-mes .on{color:var(--ink);font-weight:700}
+        .rz-fc-pe{display:flex;justify-content:space-between;align-items:center;gap:8px;min-height:32px;margin-top:4px;font-size:12.5px;color:var(--muted)}
+        .rz-fc-pe button{background:none;border:0;padding:6px 0;font:600 13px var(--font-body);color:var(--ink);cursor:pointer}
+        .rz-fc-gh{font-size:12.5px;color:var(--muted);padding:10px 0 2px;border-top:1px solid var(--line)}
+        .rz-fc-lista .rz-fc-gh:first-child{border-top:0;padding-top:6px}
+        .rz-fc-gh + .rz-row{border-top:0}
+        .rz-saldo{display:flex;flex-direction:column;align-items:flex-end;line-height:1.2;white-space:nowrap}
+        .rz-saldo small{display:inline-flex;align-items:center;gap:5px;font-size:12px;font-weight:600}
+        .rz-saldo small::before{content:"";width:7px;height:7px;border-radius:50%;background:currentColor}
+        .rz-saldo b{font:700 15px var(--font-title);letter-spacing:-.01em;font-variant-numeric:tabular-nums}
+        .rz-saldo.rz-run{color:var(--info)}.rz-saldo.rz-warn{color:var(--warning)}.rz-saldo.rz-ok{color:var(--success)}
+        /* v1.454.0 — Financeiro da ficha do contrato: as três partes como blocos do card que já existe */
+        .rz-fc-bloco + .rz-fc-bloco{border-top:1px solid var(--line);margin-top:12px;padding-top:10px}
+
+        /* ============================================================================================================
+           v1.386.0 — UX ONDA 4b: CONTROLES (PROTOTIPO_UX_DENSIDADE_RAMOS_RAIZ v1.2.0 §6, D9).
+           Vistas de uma tela (Hoje: Visão geral · Minha gestão · Fique por dentro; fichas do contrato, do ativo, de Minha
+           empresa e da Licença) viram ABAS SUBLINHADAS — o atual em --ink com traço na cor do ramo. Chip fica só para
+           filtrar uma lista. Em todo chip e aba, o número é só o número (sem pílula).
+           ============================================================================================================ */
+        #hoje-chips,#fc-chips,#fa-chips,#cme-chips,#lic-chips{gap:20px;box-shadow:inset 0 -1px 0 var(--line);padding-top:0;padding-bottom:0}
+        #hoje-chips .rz-chip,#fc-chips .rz-chip,#fa-chips .rz-chip,#cme-chips .rz-chip,#lic-chips .rz-chip{height:40px;padding:0;border:0;border-bottom:2px solid transparent;border-radius:0;background:none;font:600 14px var(--font-body);color:var(--muted);gap:5px}
+        #hoje-chips .rz-chip.rz-on,#fc-chips .rz-chip.rz-on,#fa-chips .rz-chip.rz-on,#cme-chips .rz-chip.rz-on,#lic-chips .rz-chip.rz-on{background:none;color:var(--ink);border-bottom-color:var(--ramo-acc)}
+        #hoje-chips .rz-chip.rz-on .rz-pt,#fc-chips .rz-chip.rz-on .rz-pt,#fa-chips .rz-chip.rz-on .rz-pt,#cme-chips .rz-chip.rz-on .rz-pt,#lic-chips .rz-chip.rz-on .rz-pt{box-shadow:none}
+        .rz-chip .rz-n,.rz-chip.rz-on .rz-n,.rz-chip.rz-warn .rz-n{background:none;padding:0;font-size:12px;font-weight:600}
+        .rz-chip .rz-n{color:var(--muted)}
+        .rz-chip.rz-on .rz-n{color:rgba(255,255,255,.78)}
+        .rz-chip.rz-warn .rz-n{color:var(--danger)}
+        #hoje-chips .rz-chip.rz-on .rz-n,#fc-chips .rz-chip.rz-on .rz-n,#fa-chips .rz-chip.rz-on .rz-n,#cme-chips .rz-chip.rz-on .rz-n,#lic-chips .rz-chip.rz-on .rz-n{color:var(--muted)}
+        #hoje-chips .rz-chip.rz-warn .rz-n,#fc-chips .rz-chip.rz-warn .rz-n,#fa-chips .rz-chip.rz-warn .rz-n,#cme-chips .rz-chip.rz-warn .rz-n,#lic-chips .rz-chip.rz-warn .rz-n{color:var(--danger)}
+
+        /* ============================================================================================================
+           v1.387.0 — UX ONDA 4c: FINANCEIRO EM 2 LINHAS (PROTOTIPO_UX_DENSIDADE_RAMOS_RAIZ v1.2.0 §6, D9).
+           Linha 1 (.rz-fin-topo): o mês como título (‹ mês ›, cadeado) + lupa + "+". Linha 2: abas sublinhadas
+           (.rz-fin-abas). A busca (.rz-fin-busca) aparece pela lupa ou com texto. Os 4 números sem caixas; as rotinas do
+           mês numa faixa de status (.rz-fin-rotinas).
+           ============================================================================================================ */
+        .rz-fin-topo{display:flex;align-items:center;gap:4px;margin-bottom:4px}
+        .rz-fin-topo .rz-mes-titulo{flex:1;min-width:0;justify-content:flex-start;gap:2px;background:none;padding:0;margin:0 0 0 -8px;min-height:44px}
+        .rz-fin-topo .rz-mes-titulo .rz-ico-btn{width:36px;height:36px}
+        .rz-fin-topo .rz-mes-titulo .rz-ico-btn svg{width:18px;height:18px}
+        .rz-fin-topo .rz-mes-label{font-size:19px;font-weight:700;color:var(--ink)}
+        .rz-fin-topo .rz-fin-lupa{background:none;box-shadow:none;border:0;color:var(--ink)}
+        .rz-seg.rz-fin-abas{background:none;border-radius:0;padding:0;gap:18px;box-shadow:inset 0 -1px 0 var(--line);margin:0 0 12px;overflow-x:auto;scrollbar-width:none}
+        .rz-seg.rz-fin-abas button{flex:none;height:40px;padding:0;border-radius:0;background:none;box-shadow:none;border-bottom:2px solid transparent;font:600 14px var(--font-body);color:var(--muted)}
+        .rz-seg.rz-fin-abas button.rz-on{background:none;box-shadow:none;color:var(--ink);border-bottom-color:var(--ramo-acc)}
+        .rz-seg.rz-fin-abas .rz-seg-s{display:none}.rz-seg.rz-fin-abas .rz-seg-l{display:inline}
+        .rz-fin-busca{display:none}
+        .rz-fin-busca.rz-aberta,.rz-fin-busca:has(input:not(:placeholder-shown)){display:flex}
+        #tab-mensal .rz-kpis,#tab-saidas .rz-kpis,#tab-conciliacao .rz-kpis{grid-template-columns:1fr 1fr;gap:10px 16px;padding:2px 0 10px;border-bottom:1px solid var(--line);margin-bottom:10px}
+        #tab-mensal .rz-kpi,#tab-saidas .rz-kpi,#tab-conciliacao .rz-kpi{background:none;border:0;border-radius:0;padding:0;box-shadow:none}
+        #tab-mensal .rz-kpi b,#tab-saidas .rz-kpi b,#tab-conciliacao .rz-kpi b{font-size:16px}
+        .rz-fin-rotinas{display:flex;flex-wrap:nowrap;gap:6px;margin:0 -16px 12px;padding:0 16px;overflow-x:auto;scrollbar-width:none}.rz-fin-rotinas::-webkit-scrollbar{display:none}.rz-rot{flex:none}
+        .rz-rot{display:inline-flex;align-items:center;gap:5px;height:30px;padding:0 10px;border-radius:var(--r-pill);border:1px solid var(--line);background:var(--card);font:600 12.5px var(--font-body);color:var(--ink);cursor:pointer;white-space:nowrap}
+        .rz-rot svg{width:14px;height:14px;flex:none}
+        .rz-rot.rz-ok svg{color:var(--success)}.rz-rot.rz-warn{color:var(--warning);border-color:var(--warning-bg);background:var(--warning-bg)}
+        .rz-rot.rz-bad{color:var(--danger);border-color:var(--danger-bg);background:var(--danger-bg)}.rz-rot.rz-neu{color:var(--muted)}
+        .rz-rot.rz-off{opacity:.55}
+        /* v1.387.0 — card Usos com o ano (cofre-ativos 1.95.0): barra de 1/jan a 31/dez, iniciais dos meses, % de ocupação */
+        .rz-uso-ano{display:inline-flex;align-items:center;gap:2px;color:var(--ink)}
+        .rz-uso-ano b{font:700 14px var(--font-body);min-width:38px;text-align:center}
+        .rz-uso-ano button{width:32px;height:32px;display:inline-flex;align-items:center;justify-content:center;border:0;background:none;color:var(--ink);border-radius:50%;cursor:pointer}
+        .rz-uso-ano button:disabled{opacity:.3;cursor:default}
+        .rz-uso-ano svg{width:17px;height:17px}
+        .rz-uso-barra{position:relative;height:24px;border-radius:8px;background:var(--tile);overflow:hidden;margin:6px 0 4px;
+            background-image:repeating-linear-gradient(to right,transparent 0,transparent calc(100% / 12 - 1px),var(--card) calc(100% / 12 - 1px),var(--card) calc(100% / 12))}
+        .rz-uso-seg{position:absolute;top:0;bottom:0;opacity:.88}
+        .rz-uso-hoje{position:absolute;top:-2px;bottom:-2px;width:2px;margin-left:-1px;background:var(--ink)}
+        .rz-uso-meses{display:grid;grid-template-columns:repeat(12,1fr);text-align:center;font-size:12px;color:var(--muted);margin-bottom:8px}
+        .rz-uso-meses .rz-on{color:var(--ink);font-weight:700}
+        .rz-uso-pe{display:flex;justify-content:space-between;align-items:baseline;gap:10px;font-size:12.5px;color:var(--muted);padding:2px 0 4px}
+        .rz-uso-pe b{font:700 17px var(--font-title);color:var(--ink);margin-left:4px}
+        /* v1.388.0 — UX ONDA 4d: agrupador com total à direita (lista de Ativos e de Contratos) */
+        .rz-group.rz-group-t{display:flex;justify-content:space-between;align-items:baseline;gap:10px}
+        .rz-group.rz-group-t b{font-weight:700;color:var(--ink);white-space:nowrap}
+        /* ============================================================================================================
+           v1.389.0 — UX ONDA 5: VOLTAR POR PLATAFORMA (D4) e SELETOR DE ANO ÚNICO.
+           Android: sem "‹" na tela (o voltar do celular faz) · iPhone e computador: só a seta, 44 px · sheet de formulário
+           só com o botão de salvar · .rz-ano = ‹ ano › (mesmo desenho do card Usos) · sem a data em Minha gestão.
+           ============================================================================================================ */
+        .rz-plat-android .rz-back{display:none!important}
+        .rz-plat-ios .rz-back,.rz-plat-web .rz-back{font-size:0;gap:0;width:44px;height:44px;margin:-6px 0 4px -12px;justify-content:center;border-radius:50%;color:var(--ink)}
+        .rz-plat-ios .rz-back svg,.rz-plat-web .rz-back svg{width:24px;height:24px}
+        .rz-sh-f.rz-sh-f-1 .rz-btn{flex:1;width:100%}
+        .rz-ano{display:inline-flex;align-items:center;gap:2px;color:var(--ink)}
+        .rz-ano b{font:700 14px var(--font-body);min-width:38px;text-align:center}
+        .rz-ano button{width:32px;height:32px;display:inline-flex;align-items:center;justify-content:center;border:0;background:none;color:var(--ink);border-radius:50%;cursor:pointer;padding:0}
+        .rz-ano button:disabled{opacity:.3;cursor:default}
+        .rz-ano svg{width:17px;height:17px}
+        .rz-ano-linha{display:flex;justify-content:flex-end;margin:-4px 0 4px}
+        #jornal-data{display:none}
+        /* ============================================================================================================
+           v1.390.0 — BUSCA PELA LUPA DO TOPO (Nicola 12/10 03:18) e Financeiro das fichas num card só.
+           As barras de busca das telas ficam escondidas (o campo do topo escreve nelas); o "+" que dividia a linha com a
+           barra vai para a direita, e em Ativos/Contratos sobe para a linha das abas.
+           ============================================================================================================ */
+        .rz-hdr-busca{position:absolute;left:12px;top:calc(10px + env(safe-area-inset-top));height:44px;right:120px;z-index:2;display:flex;align-items:center;
+            background:var(--card);border-radius:22px;box-shadow:0 4px 14px rgba(5,15,12,.25);padding:0 16px;
+            transform:scaleX(0);transform-origin:right center;opacity:0;pointer-events:none;transition:transform var(--m-base,200ms) var(--m-ease,ease),opacity var(--m-rapido,120ms)}
+        .rz-hdr-busca.rz-aberta{transform:scaleX(1);opacity:1;pointer-events:auto}
+        .rz-hdr-busca input{flex:1;min-width:0;height:40px;border:0;background:none;font:400 16px var(--font-body);color:var(--ink);outline:none}
+        .rz-hdr .rz-busca-hdr{position:relative;z-index:3}
+        .rz-hdr .rz-busca-hdr.rz-filtrado{background:rgba(255,255,255,.16)}
+        .rz-hdr .rz-busca-hdr.rz-filtrado::after{content:"";position:absolute;top:6px;right:6px;width:8px;height:8px;border-radius:50%;background:var(--brass)}
+        .rz-hdr.rz-buscando .rz-brand{visibility:hidden}
+        @media (prefers-reduced-motion:reduce){.rz-hdr-busca{transition:none}}
+        #main-content .rz-topo > .rz-search,#main-content .rz-topo > .rz-search-x,#main-content .rz-fin-busca,#main-content .rz-fin-lupa{display:none!important}
+        #main-content .rz-topo{justify-content:flex-end}
+        #main-content .rz-topo:not(:has(.rz-primary)){display:none}
+        #main-content .rz-vista{padding-right:56px}
+        /* v1.429.0 — sem a vista Contratos em Ativos (v1.427.0) o "+" de Ativos não sobe mais para a linha da vista: subia 58 px
+           para baixo do cabeçalho e sumia (Nicola 16/10 09:30). Contratos continua com a vista. */
+        #tab-contratos > .rz-vista + * + .rz-topo,#tab-contratos > .rz-vista + .rz-topo{margin-top:-58px;position:relative;z-index:1;pointer-events:none}
+        #tab-contratos .rz-topo .rz-primary{pointer-events:auto}
+        #tab-ativos [data-screen="ativos"] > .rz-topo{margin:0 0 8px}
+        /* v1.403.0 — ONDA 7a: Agenda Lista · Semana · Mês (js/agenda.js) */
+        .rz-ag-topo{display:flex;align-items:center;gap:4px;margin-bottom:6px}
+        .rz-ag-dia{display:flex;justify-content:space-between;align-items:baseline;text-transform:none}
+        .rz-ag-dia span{font-weight:600;color:var(--muted)}
+        .rz-ag-dia.rz-ag-hoje{color:var(--ink)}
+        .rz-ag-vazio{color:var(--muted);margin:8px 2px}
+        .rz-ag-linha{width:100%;background:none;border-left:0;border-right:0;border-bottom:0;text-align:left;font:inherit;color:inherit}
+        .rz-ag-linha .rz-ic{width:36px;height:36px;border-radius:10px}
+        .rz-ag-linha .rz-ic svg{width:18px;height:18px}
+        .rz-ag-valor{flex:none;font-size:14px;font-weight:600;color:var(--ink);font-variant-numeric:tabular-nums}
+        .rz-ag-linha.rz-ag-atraso .rz-ic{background:var(--danger-bg);color:var(--danger)}
+        .rz-ag-linha.rz-ag-atraso .rz-tx span{color:var(--danger)}
+        .rz-ag-grade{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin:4px 0 8px}
+        .rz-ag-sem{text-align:center;font-size:11px;font-weight:600;color:var(--muted);padding:2px 0}
+        .rz-ag-cel{display:flex;flex-direction:column;align-items:center;justify-content:flex-start;gap:4px;min-height:48px;padding:6px 0 4px;border:0;border-radius:10px;background:var(--card);font:inherit;color:var(--ink);cursor:pointer}
+        .rz-ag-cel b{font-size:14px;font-weight:600;line-height:1}
+        .rz-ag-cel.rz-ag-fora{opacity:.4}
+        .rz-ag-cel.rz-ag-cel-hoje b{color:var(--ramo-acc)}
+        .rz-ag-cel small{font-size:10.5px;font-weight:600;color:var(--muted)}
+        .rz-ag-cel.rz-on small{color:#fff}
+        .rz-ag-cel.rz-on .rz-ag-pts i{box-shadow:0 0 0 1.5px #fff}
+        /* v1.406.0 — status da Agenda (D7.10): crítico = --danger, atenção = --warning, informativo = --info */
+        .rz-ag-pt{width:8px;height:8px;border-radius:50%;flex:none}
+        .rz-ag-pt.rz-ag-critico,.rz-ag-pts i.rz-ag-critico{background:var(--danger)}
+        .rz-ag-pt.rz-ag-atencao,.rz-ag-pts i.rz-ag-atencao{background:var(--warning)}
+        .rz-ag-pt.rz-ag-informativo,.rz-ag-pts i.rz-ag-informativo{background:var(--info)}
+        .rz-chip.rz-on .rz-ag-pt{box-shadow:0 0 0 2px #fff}
+        .rz-ag-chips .rz-ag-ass{border-style:dashed}.rz-ag-chips .rz-ag-ass.rz-on{border-style:solid}
+        .rz-ag-chips .rz-ag-ass svg{width:14px;height:14px}
+        .rz-ag-linha.rz-ag-critico .rz-ic{background:var(--danger-bg);color:var(--danger)}
+        .rz-ag-linha.rz-ag-critico .rz-tx span{color:var(--danger)}
+        .rz-ag-linha.rz-ag-atencao .rz-ic{background:var(--warning-bg);color:var(--warning)}
+        .rz-ag-linha.rz-ag-informativo .rz-ic{background:var(--info-bg);color:var(--info)}
+        .rz-ag-resumo{font-size:12.5px;color:var(--muted);margin:2px 2px 0}.rz-ag-resumo b{color:var(--ink)}
+        .rz-ag-txt-critico,.rz-ag-txt-critico b{color:var(--danger)!important}
+        .rz-ag-hora{font-size:11.5px;font-weight:700;color:var(--sage);padding:10px 0 2px;border-top:1px solid var(--line)}
+        .rz-ag-hora:first-child{border-top:0}
+        .rz-ag-op{width:100%;background:none;border-left:0;border-right:0;border-bottom:0;text-align:left;font:inherit;color:inherit}
+        .rz-ag-ck{width:22px;height:22px;border-radius:6px;border:1.5px solid var(--line);display:flex;align-items:center;justify-content:center;flex:none;color:#fff}
+        .rz-ag-op.rz-on .rz-ag-ck{background:var(--ramo-hdr);border-color:var(--ramo-hdr)}
+        .rz-ag-ck svg{width:15px;height:15px}
+        .rz-ag-bt{width:100%;margin-top:10px}
+        .rz-ag-cel.rz-on{background:var(--ramo-hdr);color:#fff}
+        .rz-ag-cel.rz-on b{color:#fff}
+        .rz-ag-pts{display:flex;gap:3px;height:6px}
+        .rz-ag-pts i{display:block;width:6px;height:6px;border-radius:50%}
+        .rz-ag-nada{text-align:center;padding:12px 0}
+        /* v1.409.0 — ONDA 8a (estudo D15, computador a partir de 1024 px): a barra de baixo vira barra lateral fixa à
+           esquerda (mesmos 5 botões, a Raiz IA como botão dourado no topo da lista); o conteúdo ganha largura de leitura
+           (820 px) ao lado; os sheets abrem como PAINEL LATERAL à direita (altura inteira); Ctrl/⌘ K abre a busca. */
+        @media (min-width:1024px){
+            #bottom-nav-bar{top:0!important;bottom:0!important;right:auto!important;width:232px;flex-direction:column!important;
+                justify-content:flex-start;gap:4px;padding:112px 12px 16px!important;border-top:0!important;border-right:1px solid var(--line);z-index:45}
+            #bottom-nav-bar > button{flex:none!important;flex-direction:row!important;justify-content:flex-start!important;gap:12px!important;
+                height:48px;padding:0 14px!important;border-radius:12px;text-align:left}
+            #bottom-nav-bar > button > span.text-\[12px\]{font-size:15px!important}
+            #bottom-nav-bar > button:hover{background:var(--tile)}
+            #bottom-nav-bar button.bottomnav-active{background:var(--tile)}
+            #bottom-nav-bar button.bottomnav-active::before{top:12px;left:0;transform:none;width:3px;height:24px;border-radius:0 3px 3px 0}
+            #bottom-nav-bar .rz-nav-ia{order:-1;margin-bottom:10px;background:var(--brass-bg)}
+            #bottom-nav-bar .rz-sol{width:32px;height:32px;margin-top:0;box-shadow:none}
+            #bottom-nav-bar .rz-sol svg{width:17px;height:17px}
+            #bottom-nav-bar .rz-nav-n{position:static;margin-left:auto}
+            /* v1.429.0 (Nicola 16/10 09:30: "não está aproveitando toda largura da parte central") — o conteúdo ocupa a área central
+               toda, até 1280 px (era 820 px) */
+            #main-content{max-width:1280px!important;margin-left:calc(232px + max(24px, (100vw - 232px - 1280px) / 2))!important;margin-right:max(24px, calc((100vw - 232px - 1280px) / 2))!important;
+                padding-bottom:40px!important}
+            .rz-veil{align-items:stretch;justify-content:flex-end}
+            .rz-sheet{max-width:460px;height:100vh;height:100dvh;max-height:none;border-radius:20px 0 0 20px;transform:translateX(32px)}
+            .rz-veil.rz-on .rz-sheet{transform:none}
+            .rz-sheet .rz-grab{display:none}
+        }
+        /* v1.411.0 — ONDA 8b (estudo D15, computador): em Ativos e Contratos a ficha abre AO LADO da lista. A lista fica
+           numa coluna à esquerda (360 px, rola sozinha e marca o item aberto) e a ficha à direita; o "‹ Ativos/Contratos"
+           da ficha some porque a lista está à vista. As classes rz-split-* só são postas por rzSplitAtualizar() a partir de
+           1024 px; no celular nada muda. */
+        @media (min-width:1024px){
+            body.rz-split #main-content{max-width:1280px!important;margin-left:calc(232px + max(24px, (100vw - 232px - 1280px) / 2))!important}
+            body.rz-split-con #main-content,
+            body.rz-split-at #app-cofre > main{display:grid;grid-template-columns:minmax(300px,360px) minmax(0,1fr);column-gap:24px;align-items:start}
+            body.rz-split-con #main-content > *,
+            body.rz-split-at #app-cofre > main > *{grid-column:1 / -1}
+            body.rz-split-con #tab-contratos,
+            body.rz-split-at #app-cofre > main > [data-screen="ativos"]{display:block!important;grid-column:1;grid-row:1;position:sticky;top:calc(var(--rz-hdr-h,72px) + 12px);
+                max-height:calc(100dvh - var(--rz-hdr-h,72px) - 24px);overflow-y:auto;overscroll-behavior:contain;padding:6px 4px 12px 2px;scrollbar-width:thin}
+            body.rz-split-con #tab-contrato-ficha,
+            body.rz-split-at #app-cofre > main > [data-screen="ficha-ativo"]{grid-column:2;grid-row:1;min-width:0}
+            body.rz-split-con #fc-voltar,
+            body.rz-split-at [data-screen="ficha-ativo"] > [data-action="voltar-ficha-ativo"]{display:none!important}
+            body.rz-split .rz-row.rz-split-sel{background:var(--tile);box-shadow:inset 3px 0 0 var(--ramo-acc,var(--sprout));border-radius:10px}
+        }
+        /* v1.413.0 — ONDA 8c (FICHA_ONDA_8C v1.0.0): Financeiro em tabela no computador (js/financeiro.js monta .rz-ft só
+           a partir de 1024 px). Colunas alinhadas, cabeçalho que ordena, caixa de seleção e a barra de lote presa ao pé da
+           lista (some com a aba, porque mora dentro dela). */
+        .rz-ft{background:var(--card);border:1px solid var(--line);border-radius:14px;overflow:clip}
+        .rz-ft-cab,.rz-ft-lin{display:grid;grid-template-columns:40px minmax(0,1.5fr) minmax(0,1.2fr) 96px 124px 112px 40px;align-items:center;column-gap:10px;padding:0 8px 0 4px}
+        .rz-ft-cab{position:sticky;top:var(--rz-hdr-h,72px);z-index:2;background:var(--tile);border-bottom:1px solid var(--line);min-height:40px}
+        .rz-ft-c{background:none;border:0;padding:0;text-align:left;font:600 12.5px var(--font-body);color:var(--muted);cursor:pointer;min-height:40px}
+        .rz-ft-c.rz-on{color:var(--ink)}
+        .rz-ft-valor.rz-ft-c,.rz-ft-cab .rz-ft-valor{text-align:right}
+        .rz-ft-lin{min-height:48px;border-bottom:1px solid var(--line);font-size:14px;color:var(--ink);cursor:pointer}
+        .rz-ft-lin:hover{background:var(--tile)}
+        .rz-ft-lin.rz-on{background:color-mix(in srgb, var(--ramo-acc, var(--sprout)) 9%, var(--card))}
+        .rz-ft-lin:focus-visible{outline:2px solid var(--sprout);outline-offset:-2px}
+        .rz-ft-nome{font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+        .rz-ft-local,.rz-ft-data{color:var(--muted);font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+        .rz-ft-valor{text-align:right;font-weight:600;font-variant-numeric:tabular-nums}
+        .rz-ft-chk{display:flex;align-items:center;justify-content:center;min-height:44px}
+        .rz-ft-chk input{width:18px;height:18px;accent-color:var(--ramo-acc, var(--sprout));cursor:pointer}
+        .rz-ft-more{width:36px;height:36px;border:0;background:none;border-radius:10px;color:var(--muted);display:flex;align-items:center;justify-content:center;cursor:pointer}
+        .rz-ft-more:hover{background:var(--tile)}.rz-ft-more svg{width:18px;height:18px}
+        .rz-ft-lote{position:sticky;bottom:12px;display:flex;align-items:center;gap:8px;margin:8px;padding:8px 8px 8px 16px;border-radius:14px;
+            background:var(--pine);color:#fff;box-shadow:0 8px 24px rgba(0,0,0,.18);z-index:3}
+        .rz-ft-lote[hidden]{display:none}
+        .rz-ft-lote-tx{flex:1;font-size:14px}
+        .rz-ft-lote .rz-btn-1{background:#fff;color:var(--pine);border-color:#fff}
+        .rz-ft-lote .rz-btn-2,.rz-ft-lote .rz-btn-3{background:rgba(255,255,255,.12);color:#fff;border-color:transparent}
+        .rz-ft-lote-ajuda{font-size:12.5px;color:var(--muted);margin:4px 2px 10px}
+        .rz-ft-lote-v{width:100%;height:40px;border:1px solid var(--line);border-radius:10px;padding:0 10px;text-align:right;font:500 16px var(--font-body);background:var(--card);color:var(--ink)}
+        /* v1.415.0 — computador: a arte do login segue a altura da tela (antes 52vw empurrava o login para baixo da dobra) */
+        @media (min-width:1024px){
+            #splash-screen:not(.splash-lista-ativa):not(.rz-esc-abrindo) .rz-splash-arte{height:clamp(300px,54vh,560px)}
+        }
+        /* v1.415.0 — cabeçalho de ficha (ativo, contrato) com ⋮: o nome ganha a linha toda ao lado do ícone; tipo e situação
+           descem para a linha de baixo, lado a lado (Nicola 14/10 21:26: "nome, tag e menu 3 pontos muito embolados") */
+        /* o recuo de 52 px (ícone + espaço) vale para todas as linhas: o ícone volta para a margem com margem negativa */
+        .rz-entity:has(> .rz-more-topo){flex-wrap:wrap;align-items:flex-start;column-gap:12px;row-gap:6px;padding-left:52px}
+        .rz-entity:has(> .rz-more-topo) > .rz-ic{order:1;margin-left:-52px}
+        .rz-entity:has(> .rz-more-topo) > .rz-tx{display:contents}
+        .rz-entity:has(> .rz-more-topo) > .rz-tx > b{order:2;flex:1 1 calc(100% - 48px);min-width:0;align-self:center}
+        .rz-entity:has(> .rz-more-topo) > .rz-more-topo{order:3;margin:-2px -8px 0 0}
+        .rz-entity:has(> .rz-more-topo) > .rz-tx > span{order:4;margin:0;flex:0 1 auto;min-width:0;align-self:center}
+        .rz-entity:has(> .rz-more-topo) > :not(.rz-ic):not(.rz-tx):not(.rz-more-topo){order:5;align-self:center;flex:none}
+        /* v1.391.0 — ONDA 6a: campo único da Raiz IA (texto + voz) e atalhos */
+        .rz-ia-campo{display:flex;align-items:flex-end;gap:6px;border:1.5px solid var(--brass);border-radius:22px;padding:6px 6px 6px 14px;background:var(--card);margin:2px 0 6px}
+        .rz-ia-campo textarea{flex:1;min-width:0;border:0;outline:none;resize:none;background:none;font:400 16px/1.35 var(--font-body);color:var(--ink);padding:7px 0;max-height:120px}
+        .rz-ia-mic,.rz-ia-enviar{flex:none;width:40px;height:40px;border-radius:50%;border:0;display:flex;align-items:center;justify-content:center;cursor:pointer}
+        .rz-ia-mic{background:var(--brass-bg);color:var(--brass-deep)}
+        .rz-ia-mic.rz-ouvindo{background:var(--danger);color:#fff;animation:rz-pulse 1.2s infinite}
+        .rz-ia-enviar{background:var(--brass);color:#fff}.rz-ia-enviar:disabled{opacity:.5}
+        .rz-ia-mic svg,.rz-ia-enviar svg{width:19px;height:19px}
+        .rz-ia-dica{font-size:12.5px;color:var(--muted);margin:0 4px 10px}
+        /* v1.396.0 — Raiz IA lendo / busca procurando (Nicola 13/10 22:44: "sinalize na tela que está processando") */
+        @keyframes rz-gira{to{transform:rotate(360deg)}}
+        @keyframes rz-brilho{0%,100%{box-shadow:0 0 0 0 rgba(176,138,74,.0)}50%{box-shadow:0 0 0 4px rgba(176,138,74,.22)}}
+        .rz-roda{display:inline-block;width:18px;height:18px;border-radius:50%;border:2.5px solid currentColor;border-right-color:transparent;animation:rz-gira .8s linear infinite;flex:none}
+        .rz-ia-campo.rz-ia-lendo{animation:rz-brilho 1.4s ease-in-out infinite}
+        .rz-ia-campo.rz-ia-lendo textarea{color:var(--muted)}
+        .rz-ia-campo.rz-ia-lendo .rz-ia-enviar:disabled{opacity:1}
+        .rz-ia-dica.rz-ia-lendo-tx{display:flex;align-items:center;gap:8px;color:var(--brass-deep);font-weight:600}
+        .rz-ia-dica.rz-ia-lendo-tx .rz-roda{width:14px;height:14px;border-width:2px}
+        .rz-busca-procurando{display:flex;align-items:center;gap:10px;padding:18px 6px;color:var(--brass-deep);font-weight:600;font-size:14px}
+        .rz-ia-atalhos{display:flex;gap:8px;margin-bottom:12px}
+        .rz-ia-atalhos button{flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;padding:10px 4px;border:1px solid var(--line);border-radius:12px;background:var(--card);font:600 12.5px var(--font-body);color:var(--ink);cursor:pointer;min-height:56px}
+        .rz-ia-atalhos svg{width:20px;height:20px;color:var(--brass-deep)}
