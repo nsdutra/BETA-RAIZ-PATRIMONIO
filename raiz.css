@@ -1,6 +1,9 @@
 /* ============================================================================
    raiz.css — Raiz Patrimônio · estilos do app (index.html)
-   Versão: 1.4.0 · 21/10/2026
+   Versão: 1.4.1 · 21/10/2026
+
+   v1.4.1 (21/10/2026, sessão 20261021-1205-ux-onda2, demanda 15146a34) — correção: a linha do alerta saía cinza; a cor
+   do texto secundário da linha (.rz-row .rz-tx span) vencia a cor do alerta. Seletor do alerta com o mesmo peso.
 
    v1.4.0 (21/10/2026, sessão 20261021-1205-ux-onda2, demanda 15146a34; Nicola 21/10 12:02, "vamos avançar") — onda 2: linha do alerta (.rz-al) na lista do Patrimônio, na largura toda
    da linha (também na grade do imóvel); situação da linha (Alugado, Disponível) como ponto + texto, sem fundo.
@@ -1748,7 +1751,10 @@ body{color:var(--ink)}
    grade do imóvel ela ocupa as colunas do texto e do valor (linha 4), e o ícone e a seta passam a cobrir as 4 linhas. */
 .rz-al{display:block;margin-top:3px;font:600 var(--fs-sec,12.5px)/1.35 var(--font-body);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .rz-al::before{content:"";display:inline-block;width:7px;height:7px;margin:0 6px 1px 0;border-radius:50%;background:currentColor;vertical-align:middle}
-.rz-al.rz-al-bad{color:var(--danger)}.rz-al.rz-al-warn{color:var(--warning)}
+.rz-al.rz-al-bad,#ativos-lista .rz-row .rz-tx span.rz-al.rz-al-bad{color:var(--danger)}
+.rz-al.rz-al-warn,#ativos-lista .rz-row .rz-tx span.rz-al.rz-al-warn{color:var(--warning)}
+/* ARMADILHA: .rz-al é um <span> dentro de .rz-tx, e as regras de texto secundário da linha pintam todo span de --muted */
+#ativos-lista .rz-row .rz-tx span.rz-al{font-size:var(--fs-sec,12.5px);font-weight:600}
 #ativos-lista .rz-row[data-grade]>.rz-tx>.rz-al{grid-column:2/4;grid-row:4;min-width:0}
 #ativos-lista .rz-row[data-grade]:has(.rz-al)>.rz-ic,#ativos-lista .rz-row[data-grade]:has(.rz-al)>.rz-chev,
 #ativos-lista .rz-row[data-grade]:has(.rz-al)>.rz-subs-toggle{grid-row:1/span 4}

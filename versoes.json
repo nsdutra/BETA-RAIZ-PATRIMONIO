@@ -1,8 +1,8 @@
 {
   "app": "patrimonio",
-  "gerado_em": "2026-10-21T15:04:44",
+  "gerado_em": "2026-10-21T15:10:29",
   "arquivos": {
-    "index.html": "1.463.0",
+    "index.html": "1.463.1",
     "sw.js": "3.3",
     "js/cadastros.js": "1.3.0",
     "js/financeiro.js": "1.76.0",
@@ -46,12 +46,12 @@
     "js/agenda.js": "1.9.4",
     "js/cofre-membros.js": "1.0.0",
     "js/cockpit-metas.js": "1.0.0",
-    "raiz.css": "1.4.0",
+    "raiz.css": "1.4.1",
     "js/nucleo/bibliotecas.js": "1.0.0"
   },
   "detalhes": {
     "index.html": {
-      "linhas": 15640,
+      "linhas": 15634,
       "funcoes": 74
     },
     "sw.js": {
@@ -227,7 +227,7 @@
       "funcoes": 8
     },
     "raiz.css": {
-      "linhas": 1756,
+      "linhas": 1762,
       "funcoes": 0
     },
     "js/nucleo/bibliotecas.js": {

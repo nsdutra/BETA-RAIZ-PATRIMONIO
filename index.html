@@ -6,9 +6,10 @@
    (base derivada do RUMO v7.4.2 — histórico de versões anteriores
    preservado abaixo para referência técnica)
 
-   VERSÃO: Beta v1.463.0
-   LINHAS: 15633
+   VERSÃO: Beta v1.463.1
+   LINHAS: 15627
    DATA: 21/10/2026 (sessão 20261021-1205-ux-onda2, demanda 15146a34)
+   NOVIDADES (Beta v1.463.1) — correção: a linha do alerta da lista saía cinza (raiz.css 1.4.1).
    NOVIDADES (Beta v1.463.0) — ONDA 2, LISTA DO PATRIMÔNIO (Nicola 21/10 12:02): vencido por extenso numa linha própria
    ("Dedetização periódica · venceu há 11 dias"); situação sem fundo; Controles sem "Em dia" com item vencido. Aqui só versão.
    Versão anterior (Beta v1.462.0):
@@ -26,15 +27,8 @@
    Aqui só versão e import map; o resto em raiz.css 1.1.0, cofre-ativos.js 1.141.0 e conta.js 1.4.0.
    Versão anterior (Beta v1.459.0):
    DATA: 21/10/2026 (sessão 20261021-0857-libs-sob-demanda, demanda 6b11c602)
-   NOVIDADES (Beta v1.459.0) — BIBLIOTECAS PESADAS SÓ QUANDO USADAS (de acordo do Nicola 21/10 08:57): xlsx, jsPDF,
-   pdf.js, JSZip e html2canvas saem do head (1,9 MB de JavaScript processados em toda abertura) e carregam na primeira
-   exportação ou leitura de arquivo, pelo carregador js/nucleo/bibliotecas.js 1.0.0. Aqui: os três PDFs de relatório
-   esperam o jsPDF. Módulos: financeiro.js 1.76.0, cofre-ativos.js 1.140.0, minutas.js 1.7.0, cofre-imagem.js 1.2.0,
-   fechamento.js 1.16.0.
-   Versão anterior (Beta v1.458.0):
-   DATA: 21/10/2026 (sessão 20261021-0030-trava-css, demanda 6b11c602)
    ------------------------------------------------------------------
-   Versões anteriores (v1.458.0 … v1.458.0): CHANGELOG_APP.md, na raiz do
+   Versões anteriores (v1.459.0 … v1.459.0): CHANGELOG_APP.md, na raiz do
    repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
    das 5 versões mais recentes deste cabeçalho.
 
@@ -180,7 +174,7 @@
 
     <link href="https://fonts.googleapis.com/css2?family=Mrs+Saint+Delafield&family=Dancing+Script:wght@600&display=swap" rel="stylesheet">
 
-    <link rel="stylesheet" href="raiz.css?v=1.4.0">
+    <link rel="stylesheet" href="raiz.css?v=1.4.1">
 
 </head>
 
@@ -2911,7 +2905,7 @@
         // texto certo toda vez (esqueci 5 versões seguidas, de v1.37.1 até
         // v1.38.3). Agora só precisa mudar UMA linha aqui a cada release;
         // window.onload aplica nos dois lugares automaticamente.
-        const APP_VERSAO = "Beta v1.463.0"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
+        const APP_VERSAO = "Beta v1.463.1"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
 
         // ====================================================================
         // v1.105.0 — HELPERS DE SUPERFÍCIE DA GRAMÁTICA ÚNICA

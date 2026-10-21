@@ -4,6 +4,20 @@ Histórico completo de versões do `index.html`, movido automaticamente pelo `ge
 
 ---
 
+NOVIDADES (Beta v1.459.0) — BIBLIOTECAS PESADAS SÓ QUANDO USADAS (de acordo do Nicola 21/10 08:57): xlsx, jsPDF,
+pdf.js, JSZip e html2canvas saem do head (1,9 MB de JavaScript processados em toda abertura) e carregam na primeira
+exportação ou leitura de arquivo, pelo carregador js/nucleo/bibliotecas.js 1.0.0. Aqui: os três PDFs de relatório
+esperam o jsPDF. Módulos: financeiro.js 1.76.0, cofre-ativos.js 1.140.0, minutas.js 1.7.0, cofre-imagem.js 1.2.0,
+fechamento.js 1.16.0.
+Versão anterior (Beta v1.458.0):
+DATA: 21/10/2026 (sessão 20261021-0030-trava-css, demanda 6b11c602)
+------------------------------------------------------------------
+Versões anteriores (v1.458.0 … v1.458.0): CHANGELOG_APP.md, na raiz do
+repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
+das 5 versões mais recentes deste cabeçalho.
+
+---
+
 NOVIDADES (Beta v1.458.0) — CSS DO APP EM ARQUIVO PRÓPRIO E BIBLIOTECAS COM VERSÃO FIXA (de acordo do Nicola 21/10
 00:30): o bloco de estilos comum do head (~1.640 linhas, sem mudar um caractere) passa para raiz.css 1.0.0, carregado
 no mesmo ponto da página — a ordem da cascata não muda; o bloco do Tailwind continua aqui, porque o Tailwind do
