@@ -4,6 +4,19 @@ Histórico completo de versões do `index.html`, movido automaticamente pelo `ge
 
 ---
 
+NOVIDADES (Beta v1.451.0) — CALENDÁRIO ESCOLAR: AJUSTES PEQUENOS E SEM REPETIR O JÁ IMPORTADO (Nicola 20/10 21:17 e
+21:18): agenda.js 1.9.3 — os ajustes da linha viram chips pequenos (Para quem · Tipo · Turma; Aviso Sem · 1 dia · 3 dias
+| A confirmar). Edge calendario-escolar-ler 1.0.3 reconhece o que já foi importado mesmo com outro nome de escola.
+Aqui, só cabeçalho e import map.
+Versão anterior (Beta v1.450.1):
+DATA: 20/10/2026 (sessão 20261020-1943-ficha-menu-cards, demanda 9404081c)
+------------------------------------------------------------------
+Versões anteriores (v1.450.1 … v1.450.1): CHANGELOG_APP.md, na raiz do
+repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
+das 5 versões mais recentes deste cabeçalho.
+
+---
+
 NOVIDADES (Beta v1.450.1) — FICHA DO ATIVO: CADA AÇÃO NO CARD DO ASSUNTO (Nicola 20/10 19:10, de acordo 19:16; UXR-49
 v1.5.1): o ⋮ do topo fica com Raiz IA, Compartilhar e a Situação; Editar dados, Editar divisão, contabilidade,
 sub-ativos e o financeiro vão para o ⋮ do card de cada um (cofre-ativos.js 1.138.0, ativos-markup.js 1.68.0). Aqui, só

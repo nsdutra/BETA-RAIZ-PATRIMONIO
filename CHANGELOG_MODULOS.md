@@ -871,6 +871,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/cofre-api.js`
 
 //
@@ -1332,6 +1334,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 // supabase-js diretamente (Diretriz Arquitetural — Passo 2: responsabilidade
 // única por módulo).
 // ============================================================================
+
+---
 
 ---
 
@@ -2271,7 +2275,18 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/cofre-ativos.js`
+
+// Versão anterior: 1.129.0 · 19/10/2026
+//
+// v1.129.0 (19/10/2026, sessão 20261019-2217-carga-silva-arrend, demanda 9404081c item 59; print do Nicola 22:19 — "1981-08-29")
+// — Dados do ativo: campo de data (ex.: Data de nascimento) aparece como dd/mm/aaaa, não no formato do banco.
+// --------------------------------------------------------------------------
+// Versões anteriores (v1.128.0 … v1.128.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
+// mais recentes deste cabeçalho (VER-06).
 
 // Versão anterior: 1.128.0 · 19/10/2026
 //
@@ -4038,6 +4053,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/cofre-controles.js`
 
 // Versão anterior: 1.60.0 · 15/10/2026
@@ -4815,6 +4832,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 // não está implementado (geração automática de ocorrências recorrentes,
 // Central de Alertas consolidada).
 // ============================================================================
+
+---
 
 ---
 
@@ -5945,6 +5964,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/cofre-estado.js`
 
 //
@@ -6090,6 +6111,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 // v1.21.6 (Arquivar/RLS, sessão paralela) nem esta entrega — fechado
 // agora. Ver changelog completo em cofre.html v1.22.0 (merge das 2
 // sessões paralelas + badge fix + form fix + função Vendido).
+
+---
 
 ---
 
@@ -6714,6 +6737,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/cofre-ui.js`
 
 //
@@ -6745,6 +6770,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 // genérica, template de card, indicador de "liga/desliga" (Design System
 // v1.43.0 §2). Não importa cofre-api.js — não sabe nada de Supabase.
 // ============================================================================
+
+---
 
 ---
 
@@ -7434,6 +7461,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/comum-licenca.js`
 
 //
@@ -7576,6 +7605,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 // hospeda (index.html, cofre.html, ou um módulo futuro) é quem decide
 // COMO obtém esse client; este arquivo só usa o que recebe.
 // ============================================================================
+
+---
 
 ---
 
@@ -8030,6 +8061,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 // `dbAuth` já autenticado do host, por parâmetro (ver nota completa em
 // comum-licenca.js).
 // ============================================================================
+
+---
 
 ---
 
@@ -8884,6 +8917,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/comum-renovacao.js`
 
 //
@@ -8926,6 +8961,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 // jsdelivr (mesma origem já usada pelo app); se não carregar, o "copia e cola"
 // continua funcionando sozinho.
 // ============================================================================
+
+---
 
 ---
 
@@ -9488,7 +9525,19 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/contratos.js`
+
+// Versão anterior: 1.58.0 · 14/10/2026
+//
+// v1.58.0 (14/10/2026, sessão 20261014-2130-ajustes-9b, demanda a05ad2ee; onda 9b do estudo PROTOTIPO_UX_DENSIDADE_RAMOS_RAIZ
+// v1.2.0, D6 seção 10) — textos no limite: ação até 24 caracteres, descrição até 28 (só quando muda a decisão), aviso até
+// 40 com o resultado. A explicação longa fica na confirmação, que já existia. Nada de comportamento mudou.
+// --------------------------------------------------------------------------
+// Versões anteriores (v1.57.0 … v1.57.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
+// mais recentes deste cabeçalho (VER-06).
 
 // Versão anterior: 1.57.0 · 14/10/2026
 //
@@ -10638,6 +10687,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/fechamento.js`
 
 // Versão anterior: 1.12.0.
@@ -11215,7 +11266,27 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/financeiro.js`
+
+// Versão anterior: 1.70.0 · 19/10/2026
+//
+// v1.70.0 (19/10/2026, sessão 20261019-2244-carga-silva-ajustes2, demanda 9404081c item 60; Nicola 22:44 — "apenas na segunda
+// vez que vinculado e salvo é que aparece o vínculo correto") — "✓ Confirmar pagamento" no formulário da despesa gravava só
+// status, data e forma do pagamento: o ativo (e o resto que tivesse sido mudado na mesma tela) se perdia, e só um 2º Salvar
+// gravava. Agora o pagamento grava junto o que está no formulário (ativo, categoria, descrição, valor, datas, fornecedor
+// escolhido, reembolsável e observação). Fornecedor novo continua pedindo Salvar antes.
+// Versão anterior: 1.69.0 · 19/10/2026
+//
+// v1.69.0 (19/10/2026, sessão 20261019-2217-carga-silva-arrend, demanda 9404081c item 57; pedido do Nicola 22:17, print das Saídas
+// da Rumo) — tocar numa despesa mostra, como 1ª linha do sheet, o ATIVO a que ela está ligada (ou "Da empresa") e o destino
+// (programa, safra, fase ou item), sem precisar abrir o formulário; tocar na linha do ativo abre a ficha dele. Antes o
+// ativo só aparecia no fim do subtítulo, que cortava em nomes longos.
+// --------------------------------------------------------------------------
+// Versões anteriores (v1.68.0 … v1.68.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
+// mais recentes deste cabeçalho (VER-06).
 
 // Versão anterior: 1.68.0 · 15/10/2026
 //
@@ -12872,6 +12943,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/fiscal.js`
 
 //
@@ -13215,7 +13288,19 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/imoveis.js`
+
+//
+// Versão anterior: 1.6.1 · 03/10/2026
+//
+// v1.6.1 (F0.3, demanda 29bed5eb, sessão 20261003-1707-ux-base, "de acordo" do Nicola 03/10 23:57) — imóvel sem cidade deixa de ganhar "Belo Horizonte" por padrão — era
+// esse valor inventado que aparecia no recibo quando a cidade vem do imóvel.
+// --------------------------------------------------------------------------
+// Versões anteriores (v1.6.0 … v1.6.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
+// mais recentes deste cabeçalho (VER-06).
 
 //
 // Versão anterior: 1.6.0 · 02/10/2026
@@ -13328,6 +13413,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 // ainda referencia `imovel_id`, não `ativo_id`. Os dois ficam pra quando a
 // fatia de Contratos migrar (passo 4), não escopo desta entrega.
 // ============================================================================
+
+---
 
 ---
 
@@ -13725,6 +13812,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/nucleo/porta.js`
 
 // Versão anterior: 1.2.0.
@@ -13774,6 +13863,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 // mapStatus*ParaAntigo) ficaram no index porque os sincronizar* também os usam —
 // duplicar seria violação da CAN-03. Entram aqui por injeção.
 // ============================================================================
+
+---
 
 ---
 
@@ -13928,6 +14019,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/relatorios-executivos.js`
 
 //
@@ -13990,6 +14083,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 // que o bot usa); aqui só se monta o texto e o desenho — nunca se recalcula
 // (REL-02). Protótipo: raiz\docs\PROTOTIPO_RELATORIOS_FLUXO_GERENCIAL v1.1.0.
 // ============================================================================
+
+---
 
 ---
 
@@ -14649,6 +14744,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/vitrine.js`
 
 //
@@ -14769,6 +14866,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 // CLIENTE_ID_SUPABASE, dbAuth. Exclusivo (4) virou nível de módulo.
 // Indentação de origem mantida. Strict verificado.
 // ============================================================================
+
+---
 
 ---
 

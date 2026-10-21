@@ -6,8 +6,15 @@
    (base derivada do RUMO v7.4.2 — histórico de versões anteriores
    preservado abaixo para referência técnica)
 
-   VERSÃO: Beta v1.454.0
-   LINHAS: 17290
+   VERSÃO: Beta v1.455.0
+   LINHAS: 17297
+   DATA: 20/10/2026 (sessão 20261020-2249-raiz-ia-voltar, demanda 27bf9abe)
+   NOVIDADES (Beta v1.455.0) — RAIZ IA VOLTA AS TELAS E NÃO ABRE O TECLADO (Nicola 20/10 22:49: "após entrar na opção
+   escolhida e fechar, sair do Raiz IA. Volte as telas ao sair de um item… não posicione o cursor… está abrindo sempre o
+   teclado"): fechar a Fatura do cartão ou o Calendário escolar volta para "Importar com IA", e fechar esta volta para a
+   Raiz IA (rzIaVoltarAoFechar ganha o destino). Extrato bancário segue para Mensal, como antes. O campo da Raiz IA só
+   recebe o cursor em computador (ponteiro fino); no celular o teclado só abre ao tocar no campo.
+   Versão anterior (Beta v1.454.0):
    DATA: 20/10/2026 (sessão 20261020-2245-contratos-lista, demanda a871b47d)
    NOVIDADES (Beta v1.454.0) — SAI A LISTA DE CONTRATOS; FINANCEIRO DO CONTRATO NO PADRÃO DO ATIVO (de acordo do Nicola 20/10
    22:45): sai a aba Patrimônio › Contratos (e a vista Ativos | Contratos); quem pedia a aba cai em Patrimônio, o atalho
@@ -37,14 +44,8 @@
    Banco (sinal_finalidade_uso_v1): o aviso "Imóvel sem finalidade de uso" não vale mais para imóvel fora da contabilidade nem
    em construção, obra ou uso próprio.
    Versão anterior (Beta v1.451.0):
-   NOVIDADES (Beta v1.451.0) — CALENDÁRIO ESCOLAR: AJUSTES PEQUENOS E SEM REPETIR O JÁ IMPORTADO (Nicola 20/10 21:17 e
-   21:18): agenda.js 1.9.3 — os ajustes da linha viram chips pequenos (Para quem · Tipo · Turma; Aviso Sem · 1 dia · 3 dias
-   | A confirmar). Edge calendario-escolar-ler 1.0.3 reconhece o que já foi importado mesmo com outro nome de escola.
-   Aqui, só cabeçalho e import map.
-   Versão anterior (Beta v1.450.1):
-   DATA: 20/10/2026 (sessão 20261020-1943-ficha-menu-cards, demanda 9404081c)
    ------------------------------------------------------------------
-   Versões anteriores (v1.450.1 … v1.450.1): CHANGELOG_APP.md, na raiz do
+   Versões anteriores (v1.451.0 … v1.451.0): CHANGELOG_APP.md, na raiz do
    repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
    das 5 versões mais recentes deste cabeçalho.
 
@@ -72,7 +73,7 @@
          O navegador aplica o mapa também aos imports estáticos dentro dos
          módulos (cofre-app.js → ./cofre-api.js etc.). -->
     <!-- RZ-IMPORTMAP:INICIO -->
-    <script type="importmap">{"imports":{"./js/cadastros.js":"./js/cadastros.js?v=1.3.0","./js/financeiro.js":"./js/financeiro.js?v=1.75.0","./js/fechamento.js":"./js/fechamento.js?v=1.15.0","./js/contratos.js":"./js/contratos.js?v=1.63.0","./js/minutas.js":"./js/minutas.js?v=1.6.0","./js/vitrine.js":"./js/vitrine.js?v=1.6.0","./js/imoveis.js":"./js/imoveis.js?v=1.10.0","./js/cofre-api.js":"./js/cofre-api.js?v=1.53.0","./js/cofre-app.js":"./js/cofre-app.js?v=1.52.0","./js/cofre-ativos.js":"./js/cofre-ativos.js?v=1.139.0","./js/cofre-controles.js":"./js/cofre-controles.js?v=1.64.0","./js/cofre-documentos.js":"./js/cofre-documentos.js?v=2.38.0","./js/cofre-imagem.js":"./js/cofre-imagem.js?v=1.1.0","./js/cofre-estado.js":"./js/cofre-estado.js?v=1.5.2","./js/cofre-navegacao.js":"./js/cofre-navegacao.js?v=1.10.0","./js/cofre-ui.js":"./js/cofre-ui.js?v=1.7.2","./js/cofre-validacoes.js":"./js/cofre-validacoes.js?v=2.14.0","./js/comum-licenca.js":"./js/comum-licenca.js?v=1.9.0","./js/comum-minha-empresa.js":"./js/comum-minha-empresa.js?v=1.21.0","./js/comum-pessoas.js":"./js/comum-pessoas.js?v=1.216.0","./js/comum-sobre.js":"./js/comum-sobre.js?v=1.5.0","./js/comum-endereco.js":"./js/comum-endereco.js?v=1.2.0","./js/comum-partes.js":"./js/comum-partes.js?v=1.0.0","./js/resultados.js":"./js/resultados.js?v=2.16.0","./js/raiz-eventos.js":"./js/raiz-eventos.js?v=1.0.0","./js/fiscal.js":"./js/fiscal.js?v=1.7.0","./js/ativos/ativos-boot.js":"./js/ativos/ativos-boot.js?v=1.4.0","./js/ativos/ativos-markup.js":"./js/ativos/ativos-markup.js?v=1.68.0"}}</script>
+    <script type="importmap">{"imports":{"./js/cadastros.js":"./js/cadastros.js?v=1.3.0","./js/financeiro.js":"./js/financeiro.js?v=1.75.0","./js/fechamento.js":"./js/fechamento.js?v=1.15.0","./js/contratos.js":"./js/contratos.js?v=1.63.0","./js/minutas.js":"./js/minutas.js?v=1.6.0","./js/vitrine.js":"./js/vitrine.js?v=1.6.0","./js/imoveis.js":"./js/imoveis.js?v=1.10.0","./js/cofre-api.js":"./js/cofre-api.js?v=1.53.0","./js/cofre-app.js":"./js/cofre-app.js?v=1.52.0","./js/cofre-ativos.js":"./js/cofre-ativos.js?v=1.139.0","./js/cofre-controles.js":"./js/cofre-controles.js?v=1.64.0","./js/cofre-documentos.js":"./js/cofre-documentos.js?v=2.38.0","./js/cofre-imagem.js":"./js/cofre-imagem.js?v=1.1.0","./js/cofre-estado.js":"./js/cofre-estado.js?v=1.5.2","./js/cofre-navegacao.js":"./js/cofre-navegacao.js?v=1.10.0","./js/cofre-ui.js":"./js/cofre-ui.js?v=1.7.2","./js/cofre-validacoes.js":"./js/cofre-validacoes.js?v=2.14.0","./js/comum-licenca.js":"./js/comum-licenca.js?v=1.9.0","./js/comum-renovacao.js":"./js/comum-renovacao.js?v=1.3.5","./js/comum-minha-empresa.js":"./js/comum-minha-empresa.js?v=1.21.0","./js/comum-pessoas.js":"./js/comum-pessoas.js?v=1.216.0","./js/comum-sobre.js":"./js/comum-sobre.js?v=1.5.0","./js/comum-endereco.js":"./js/comum-endereco.js?v=1.2.0","./js/comum-partes.js":"./js/comum-partes.js?v=1.0.0","./js/resultados.js":"./js/resultados.js?v=2.16.0","./js/indicadores.js":"./js/indicadores.js?v=1.2.0","./js/configuracao-inicial.js":"./js/configuracao-inicial.js?v=1.1.0","./js/relatorios-executivos.js":"./js/relatorios-executivos.js?v=1.6.1","./js/raiz-eventos.js":"./js/raiz-eventos.js?v=1.0.0","./js/raiz-device.js":"./js/raiz-device.js?v=1.1.0","./js/raiz-ui.js":"./js/raiz-ui.js?v=1.6.1","./js/fiscal.js":"./js/fiscal.js?v=1.7.0","./js/ativos/ativos-boot.js":"./js/ativos/ativos-boot.js?v=1.4.0","./js/ativos/ativos-markup.js":"./js/ativos/ativos-markup.js?v=1.68.0","./js/nucleo/porta.js":"./js/nucleo/porta.js?v=1.7.0","./js/partes.js":"./js/partes.js?v=1.1.0","./js/conta.js":"./js/conta.js?v=1.3.0","./js/grupo-visao.js":"./js/grupo-visao.js?v=1.0.0","./js/agenda.js":"./js/agenda.js?v=1.9.4","./js/cofre-membros.js":"./js/cofre-membros.js?v=1.0.0","./js/cockpit-metas.js":"./js/cockpit-metas.js?v=1.0.0"}}</script>
     <!-- RZ-IMPORTMAP:FIM -->
 
     <!-- ===== PWA: permite "instalar" o app no celular (Android e iPhone) ===== -->
@@ -4578,7 +4579,7 @@
         // texto certo toda vez (esqueci 5 versões seguidas, de v1.37.1 até
         // v1.38.3). Agora só precisa mudar UMA linha aqui a cada release;
         // window.onload aplica nos dois lugares automaticamente.
-        const APP_VERSAO = "Beta v1.454.0"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
+        const APP_VERSAO = "Beta v1.455.0"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
 
         // ====================================================================
         // v1.105.0 — HELPERS DE SUPERFÍCIE DA GRAMÁTICA ÚNICA
@@ -10004,7 +10005,8 @@ async function criarLinkVitrineSupabase(token, idsSelecionados) {
             if (vis(document.getElementById('overlay-carregamento-global'))) return true;
             return Array.from(document.querySelectorAll('body > [id^="modal-"]')).some(vis);
         }
-        function rzIaVoltarAoFechar() {
+        // v1.455.0 (27bf9abe) — destino opcional: a tela anterior (ex.: "Importar com IA"); sem destino, a Raiz IA
+        function rzIaVoltarAoFechar(destino) {
             rzIaFundoParar();
             let visto = false, vazios = 0, voltas = 0;
             rzIaFundoTimer = setInterval(() => {
@@ -10013,16 +10015,20 @@ async function criarLinkVitrineSupabase(token, idsSelecionados) {
                 if (!visto) { if (voltas > 25) rzIaFundoParar(); return; }
                 if (++vazios < 2) return;
                 rzIaFundoParar();
+                if (typeof destino === 'function') { destino(); return; } // v1.455.0
                 if (rzIaFila.length) rzIaMostrarFila(); else abrirSheetRaizIA(); // v1.422.0 — vários pedidos: volta para a fila
             }, 400);
         }
         // v1.449.0 — as importações com IA, num sheet próprio (a Raiz IA mostra uma linha só)
+        // v1.455.0 (27bf9abe) — fechar o que abriu daqui volta para cá; fechar este sheet volta para a Raiz IA
         function abrirImportarComIA() {
+            const voltarAqui = () => rzIaVoltarAoFechar(abrirImportarComIA);
             abrirSheetAcoes({ titulo: 'Importar com IA', sub: 'Você confere antes de gravar', acoes: [
-                { icone: 'file-down', tipo: 'ia', titulo: 'Extrato bancário', codigo: 'conciliacao.importar', sub: 'Excel, PDF ou foto · concilia os recebimentos', aoTocar: () => { switchTab('tab-mensal'); setTimeout(() => document.getElementById('extrato-file-input')?.click(), 250); } },
-                { icone: 'credit-card', tipo: 'ia', titulo: 'Fatura do cartão', codigo: 'cartao.importar', sub: 'PDF ou foto', aoTocar: () => { if (typeof window.financeiroImportarFatura === 'function') window.financeiroImportarFatura(); else { switchTab('tab-saidas'); setTimeout(() => window.financeiroImportarFatura?.(), 600); } } },
-                { icone: 'backpack', tipo: 'ia', titulo: 'Calendário escolar', sub: 'PDF ou foto · separa por filho', aoTocar: () => import('./js/agenda.js').then(m => m.abrirImportarCalendario()).catch(() => mostrarToast('Não consegui abrir a importação.')) },
+                { icone: 'file-down', tipo: 'ia', titulo: 'Extrato bancário', codigo: 'conciliacao.importar', sub: 'Excel, PDF ou foto · concilia os recebimentos', aoTocar: () => { rzIaFundoParar(); switchTab('tab-mensal'); setTimeout(() => document.getElementById('extrato-file-input')?.click(), 250); } },
+                { icone: 'credit-card', tipo: 'ia', titulo: 'Fatura do cartão', codigo: 'cartao.importar', sub: 'PDF ou foto', aoTocar: () => { voltarAqui(); if (typeof window.financeiroImportarFatura === 'function') window.financeiroImportarFatura(); else { switchTab('tab-saidas'); setTimeout(() => window.financeiroImportarFatura?.(), 600); } } },
+                { icone: 'backpack', tipo: 'ia', titulo: 'Calendário escolar', sub: 'PDF ou foto · separa por filho', aoTocar: () => voltarAqui() || import('./js/agenda.js').then(m => m.abrirImportarCalendario()).catch(() => mostrarToast('Não consegui abrir a importação.')) },
             ]});
+            rzIaVoltarAoFechar(abrirSheetRaizIA);
         }
         function abrirSheetRaizIA() {
             rzIaFundoParar();
@@ -10064,7 +10070,8 @@ async function criarLinkVitrineSupabase(token, idsSelecionados) {
                 else if (k === 'lancamento') rzEscolherLancamento({});
                 else abrirUploadDocumentoNoApp();
             }));
-            setTimeout(() => q.focus(), 80);
+            // v1.455.0 (27bf9abe) — cursor no campo só em computador; no celular abria o teclado sempre
+            if (window.matchMedia && window.matchMedia('(pointer:fine)').matches) setTimeout(() => q.focus(), 80);
         }
 
         async function rzIaRegistrar(texto, canal) {
