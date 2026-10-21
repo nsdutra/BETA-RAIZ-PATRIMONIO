@@ -1,6 +1,10 @@
 // ============================================================================
 // cofre-api.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.53.0 · 19/10/2026
+// Versão: 1.54.0 · 20/10/2026
+//
+// v1.54.0 (20/10/2026, sessão 20261020-2340-controles-grupos, demanda 9404081c) — itens de controle do ativo e da empresa trazem o ícone do
+//   subtipo (cofre_controle_subtipos.icone, migration controles_icones_v1) para o chip Controles.
+// Versão anterior: 1.53.0 · 19/10/2026
 //
 // v1.53.0 (19/10/2026, sessão 20261019-0935-carga-silva-l5b, demanda 9404081c, L5-B; ficha F2 com de acordo do Nicola 18/10
 // 23:43) — listarAtivosArquivados (chip Arquivados) e excluirAtivoDeVerdade (fn_ativo_excluir).
@@ -19,17 +23,11 @@
 // v1.50.0 (UX F2.8, demanda ed5accfe, sessão 20261003-1707-ux-base; "Sim. Faça 1 e 2 agora" do Nicola 08/10 20:09; dem 5a84b9aa) — foto publicada de imóvel cadastrado direto como
 // ativo vai para a pasta do próprio ativo (<cliente>/<ativo>/<foto>.<ext>); antes só imóvel do cadastro antigo
 // tinha pasta e a foto nunca chegava ao link compartilhado.
-//
-// Versão anterior: 1.49.0 · 07/10/2026
-//
-// v1.49.0 (demanda a30da78b, item 2, sessão 20261007-2025-controles-empresa; plano aprovado pelo Nicola 07/10 20:14) —
-// listarItensControleEmpresa (itens com empresa_id, sem ativo/contrato, fora 'sistema') e
-// listarSubtiposControleEmpresa (regra de aplicabilidade vínculo:empresa).
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.48.1 … v1.48.1): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.49.0 … v1.49.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '1.53.0'; // v-check (22/09/2026): lido por Dev › Versões — manter igual ao header
+export const VERSAO = '1.54.0'; // v-check (22/09/2026): lido por Dev › Versões — manter igual ao header
 const SUPABASE_URL = 'https://oduwpttbbemypiypjsux.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9kdXdwdHRiYmVteXBpeXBqc3V4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODUyODEyOTcsImV4cCI6MjEwMDg1NzI5N30.9-cu1CV1wPbo5UH1G2eAsWqsvS54AWNuQZOlifc9a7w';
 
@@ -1327,7 +1325,7 @@ export async function arquivarSubtipoControle(id) {
 
 export async function listarItensControleAtivo(ativoId, incluirEncerrados = false) { // v1.21.0 — incluirEncerrados
     let q = dbAuth.from('cofre_itens_controle')
-        .select('*, cofre_ocorrencias_controle(*), cofre_controle_subtipos(nome)')
+        .select('*, cofre_ocorrencias_controle(*), cofre_controle_subtipos(nome, icone)')
         .eq('ativo_id', ativoId).order('criado_em');
     if (!incluirEncerrados) q = q.eq('ativo', true);
     const { data, error } = await q;
@@ -1341,7 +1339,7 @@ export async function listarItensControleAtivo(ativoId, incluirEncerrados = fals
 // ⚙️ › Minha empresa. Inclui encerrados (o chip filtra no cliente).
 export async function listarItensControleEmpresa(clienteId) {
     const { data, error } = await dbAuth.from('cofre_itens_controle')
-        .select('*, cofre_ocorrencias_controle(*), cofre_controle_subtipos(nome)')
+        .select('*, cofre_ocorrencias_controle(*), cofre_controle_subtipos(nome, icone)')
         .eq('cliente_id', clienteId).not('empresa_id', 'is', null)
         .is('ativo_id', null).is('contrato_id', null).neq('tipo', 'sistema')
         .order('criado_em');

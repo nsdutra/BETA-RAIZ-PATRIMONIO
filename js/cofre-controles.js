@@ -1,6 +1,17 @@
 // ============================================================================
 // cofre-controles.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.64.0 · 19/10/2026
+// Versão: 1.65.0 · 20/10/2026
+//
+// v1.65.0 (20/10/2026, sessão 20261020-2340-controles-grupos, demanda 9404081c; Nicola 23:28 e 23:37, de acordo com ajustes;
+//   PROTOTIPO_CONTROLES_GRUPOS_RAIZ v1.0.0) — chip Controles da ficha: (1) os itens fora de programa ficam em grupos pela
+//   categoria do catálogo (controle_tipos, na ordem dele), depois dos programas; (2) grupo e programa no desenho do item
+//   agrupado da lista de Ativos — ícone com a quantidade, a etiqueta do item mais urgente, a seta que abre e fecha e a linha
+//   que liga os itens; sem a frase "próximo"; (3) com mais de 8 itens, o grupo sem nada nos próximos 30 dias começa fechado;
+//   (4) ícone do item pelo subtipo (cofre_controle_subtipos.icone) ou pela categoria (controle_tipos.icone), e não troca pelo
+//   relógio quando vence (a cor da placa e a etiqueta avisam); (5) título curto na ficha: sem o nome do ativo no fim e sem o
+//   subtipo no começo; a linha de baixo traz a data (Válido até…, a data do evento). Com uma categoria só e sem programa, a
+//   lista fica sem grupo.
+// Versão anterior: 1.64.0 · 19/10/2026
 //
 // v1.64.0 (19/10/2026, sessão 20261019-2217-carga-silva-arrend, demanda 9404081c item 56; pedido do Nicola 22:17, print do Lili Dog
 // › "Saúde do pet · 0 itens") — o ⋮ do programa ganha "Excluir programa" (fn_programa_excluir): sem vínculo, sai com os itens
@@ -30,20 +41,11 @@
 // (muda sozinha ou você confirma), "Registrar" a próxima (cobertura, diagnóstico positivo, parto com a cria cadastrada
 // ligada à mãe, ou outra fase adiante), "Diagnóstico negativo" (volta para Apta) e Fechar/Abrir o próximo ciclo. Depois de
 // mudar, o card do rebanho recarrega (cofre-membros.js).
-// Versão anterior: 1.61.0 · 15/10/2026
-//
-// v1.61.0 (15/10/2026, sessão 20261015-2220-usos-fatia6b, demanda 3022603b; FICHA_FATIA6_CICLOS_E_FASES_RAIZ v1.2.0, de acordo do
-// Nicola 15/10 13:34, 14:45, 15:22 e 22:27) — EXECUÇÃO do programa: a obra (Construção, etapas escolhidas do modelo, com
-// opcionais e próprias) e a safra (Safra de café, ciclo com fases). No grupo do programa, a linha diz a fase atual (n de m) e
-// o botão "Ver/Abrir a obra|safra" abre a tela da execução (abrirExecucao): fases com situação e custo, custo pago e a pagar,
-// itens de agora, da safra e do programa, e as folhas Abrir, Avançar (levar ou concluir cada item aberto; itens da próxima
-// marcados), Pular/Retomar/Voltar fase com motivo, Fechar a safra (resultado e "abrir a próxima"), Reabrir, Concluir a obra
-// (o lote pode virar Casa) e "+ Do catálogo". Regra no banco (fn_execucao_*, fn_fase_*, fn_ciclo_*).
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.60.0 … v1.60.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.61.0 … v1.61.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '1.64.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.65.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 import { estado } from './cofre-estado.js';
 import * as api from './cofre-api.js';
 import { mostrarToast, refrescarIcones, abrirModal, fecharModal, modalGenerico, perguntar, escolher, avisarComDesfazer } from './cofre-ui.js';
@@ -156,7 +158,7 @@ function renderizarControlesEmpresa() {
     const chips = nEnc ? `<div class="rz-chips" style="margin-bottom:6px">${chip('ativos', 'Ativos', itensEmpresaAtual.length - nEnc)}${chip('encerrados', 'Encerrados', nEnc)}</div>` : '';
     // mesma linha do box do ativo (itemResumoHtml), trocando o data-action pelo atributo próprio
     alvo.innerHTML = chips + (lista.length
-        ? lista.map(itemResumoHtml).join('').replace(/data-action="abrir-item-controle" data-id=/g, 'data-me-ctrl-item=')
+        ? lista.map(i => itemResumoHtml(i)).join('').replace(/data-action="abrir-item-controle" data-id=/g, 'data-me-ctrl-item=')
         : `<div class="rz-empty"><p>Nenhum item ${filtroControlesEmpresa === 'encerrados' ? 'encerrado' : 'ativo'}.</p></div>`);
     alvo.querySelectorAll('[data-me-ctrl-filtro]').forEach(b => b.addEventListener('click', () => { filtroControlesEmpresa = b.dataset.meCtrlFiltro; renderizarControlesEmpresa(); }));
     alvo.querySelectorAll('[data-me-ctrl-item]').forEach(r => r.addEventListener('click', () => abrirItemControleDaEmpresa(r.dataset.meCtrlItem)));
@@ -181,8 +183,10 @@ window.addEventListener('cofre:recarregar-eventos', () => {
 export async function montarControlesAtivo(a) {
     try {
         // v1.60.0 (fatia 4) — os programas do ativo vêm junto; falha neles não derruba a lista de itens
-        const [itens] = await Promise.all([api.listarItensControleAtivo(a.id, true), carregarProgramasAtivo(a.id)]); // v1.20.0 — inclui encerrados (filtro local)
+        const [itens] = await Promise.all([api.listarItensControleAtivo(a.id, true), carregarProgramasAtivo(a.id),
+            carregarCatalogoTiposControle()]); // v1.20.0 — inclui encerrados (filtro local); o catálogo dá ícone e ordem dos grupos
         itensDoAtivoAtual = itens;
+        ativoControlesAtual = a;
     } catch (err) {
         document.getElementById('fa-tab-controles').innerHTML = `<p class="text-xs" style="color:var(--danger)">Erro ao carregar controles: ${escapeHtml(err.message)}</p>`;
         return;
@@ -386,36 +390,81 @@ function programasSugeridosHtml() {
             : '<span class="rz-desc"><i data-lucide="lock"></i> Seu perfil só vê os programas.</span>'}</div>`;
     }).join('');
 }
-// Itens agrupados: um bloco por programa ativo ou pausado (cabeçalho com o ⋮) e "Outros itens" com o resto.
+// Itens agrupados no desenho do item agrupado da lista de Ativos: programas primeiro (com o ⋮ e o botão da safra/obra) e
+// depois os avulsos por categoria do catálogo. O grupo é só agrupamento: o toque abre e fecha; quem abre ficha é o item.
+const gruposControlesAbertos = new Map(); // `${ativoId}:${chave}` → aberto (true/false) enquanto o app estiver aberto
+const ORDEM_SEM = { bad: 0, warn: 1, run: 2, ok: 3, neu: 4 };
+function piorStatusItens(its) {
+    return its.map(statusDoItem).sort((x, y) => ORDEM_SEM[x[0]] - ORDEM_SEM[y[0]])[0] || ['ok', 'Em dia'];
+}
+function grupoControlesHtml(g, aberto, cor) {
+    const pior = piorStatusItens(g.itens);
+    const etiqueta = ['bad', 'warn', 'run'].includes(pior[0]) ? `<div class="rz-rt">${statusHtml(pior[0], pior[1])}</div>` : '';
+    const mais = g.prog && (g.prog.acoes || []).length
+        ? `<button type="button" class="rz-more" data-prog-mais="${g.prog.id}" aria-label="Ações do programa ${escapeHtml(g.nome)}"><i data-lucide="ellipsis-vertical"></i></button>` : '';
+    const sub = g.prog && g.prog.situacao === 'pausado' ? '<span>Pausado · os itens não avisam</span>' : '';
+    return `<div class="rz-row rz-link rz-ctl-grp" role="button" tabindex="0" aria-expanded="${aberto}" data-ctl-grp="${escapeHtml(g.k)}" style="--ramo-grupo:${cor}">
+            <div class="rz-ic rz-ic-grupo"><i data-lucide="${escapeHtml(g.icone)}"></i><span class="rz-ic-n">${g.itens.length}</span></div>
+            <div class="rz-tx"><b>${escapeHtml(g.nome)}</b>${sub}</div>${etiqueta}${mais}
+            <span class="rz-ctl-tog"><i data-lucide="${aberto ? 'chevron-up' : 'chevron-down'}" class="rz-chev"></i></span></div>`
+        + (g.exBtn || '')
+        + `<div class="rz-subs rz-ctl-subs${aberto ? '' : ' hidden'}" data-ctl-subs="${escapeHtml(g.k)}" style="--ramo-grupo:${cor}">`
+        + g.itens.map(i => itemResumoHtml(i).replace('<div class="rz-row rz-link"', '<div class="rz-row rz-link rz-sub-row"')).join('') + '</div>';
+}
 function programasAgrupadosHtml(lista) {
     const progs = filtroControles === 'ativos' && programasAtual?.pode_ver ? (programasAtual.ativos || []) : [];
-    if (!progs.length) return lista.map(itemResumoHtml).join('');
+    if (filtroControles !== 'ativos') return lista.map(i => itemResumoHtml(i)).join('');
+    const grupos = [];
     const usados = new Set();
-    let html = progs.map(p => {
+    progs.forEach(p => {
         const its = lista.filter(i => i.ativo_programa_id === p.id);
         its.forEach(i => usados.add(i.id));
-        const n = its.length;
-        const prox = p.proximo?.data ? ` · próximo: ${p.proximo.titulo} em ${formatarDataBR(p.proximo.data)}` : '';
-        const ex = p.execucao; // v1.61.0 (fatia 6b) — obra (etapas) ou safra (ciclo e fases)
-        const exSub = ex ? (ex.por_membro ? `${ex.em_ciclo || 0} ${ex.em_ciclo === 1 ? 'animal' : 'animais'} em ciclo · abre pela ficha do animal` // v1.62.0 (fatia 7)
-            : ex.aberta ? `${ex.ciclo && ex.ciclo.situacao !== 'fechado' ? ex.ciclo.nome + ' · ' : ''}${ex.fase_atual || ''} (${ex.posicao} de ${ex.total})`
-            : (ex.tem_etapas ? 'Obra ainda não aberta' : `${ex.ciclo_rotulo || 'Ciclo'} não aberta`)) : '';
-        const sub = p.situacao === 'pausado' ? 'Pausado · os itens não avisam' : (exSub || `${n} ite${n === 1 ? 'm' : 'ns'}${prox}`);
+        const ex = p.execucao; // obra (etapas), safra (ciclo e fases) ou animais em ciclo
         const exBtn = !ex ? '' : ex.por_membro ? (ex.em_ciclo ? `<button type="button" class="rz-prog-exec" data-prog-exec="${p.id}"><i data-lucide="heart-pulse"></i>Ver os animais em ciclo</button>` : '')
-            : `<button type="button" class="rz-prog-exec" data-prog-exec="${p.id}"><i data-lucide="${ex.tem_etapas ? 'hard-hat' : 'sprout'}"></i>${ex.aberta ? 'Ver' : 'Abrir'} a ${ex.tem_etapas ? 'obra' : escapeHtml((ex.ciclo_rotulo || 'ciclo').toLowerCase())}</button>`;
-        return `<div class="rz-prog-h"><span class="rz-prog-pt" aria-hidden="true"></span><div class="rz-tx"><b>${escapeHtml(p.nome)}</b><span>${escapeHtml(sub)}</span></div>
-            ${(p.acoes || []).length ? `<button type="button" class="rz-more" data-prog-mais="${p.id}" aria-label="Ações do programa ${escapeHtml(p.nome)}"><i data-lucide="ellipsis-vertical"></i></button>` : ''}</div>`
-            + exBtn + its.map(itemResumoHtml).join('');
-    }).join('');
+            : `<button type="button" class="rz-prog-exec" data-prog-exec="${p.id}"><i data-lucide="${ex.tem_etapas ? 'hard-hat' : 'sprout'}"></i>${ex.aberta ? 'Ver' : 'Abrir'} a ${ex.tem_etapas ? 'obra' : escapeHtml((ex.ciclo_rotulo || 'safra').toLowerCase())}</button>`;
+        grupos.push({ k: 'p:' + p.id, nome: p.nome, itens: its, icone: 'package', prog: p, exBtn });
+    });
     const resto = lista.filter(i => !usados.has(i.id));
-    if (resto.length) html += `<div class="rz-group rz-group-t"><span>Outros itens · ${resto.length}</span></div>` + resto.map(itemResumoHtml).join('');
-    return html;
+    const cat = catalogoTiposControle || [];
+    const ordemCat = (t) => { const c = cat.find(x => x.codigo === t); return c ? (c.ordem ?? 999) : 999; };
+    const tipos = [...new Set(resto.map(i => i.tipo))].sort((x, y) => ordemCat(x) - ordemCat(y));
+    // uma categoria só e nenhum programa: o grupo não ajuda, fica a lista
+    if (!grupos.length && tipos.length <= 1) return resto.map(i => itemResumoHtml(i)).join('');
+    tipos.forEach(t => {
+        const c = cat.find(x => x.codigo === t);
+        grupos.push({ k: 'c:' + t, nome: c?.nome || rotuloTipoControle(t), itens: resto.filter(i => i.tipo === t), icone: c?.icone || 'clipboard-check' });
+    });
+    const muitos = lista.length > 8;
+    const aId = ativoControlesAtual?.id || '';
+    const cor = `var(--ramo-cor-${String(ativoControlesAtual?.ramo || 'geral').replace(/[^a-z_]/g, '')}, var(--line))`;
+    return grupos.map(g => {
+        const chave = `${aId}:${g.k}`;
+        if (!gruposControlesAbertos.has(chave)) {
+            const tranquilo = !g.itens.some(i => { const d = diasProximaOcorrencia(i); return d !== null && d <= 30; });
+            gruposControlesAbertos.set(chave, !(muitos && tranquilo));
+        }
+        return grupoControlesHtml(g, gruposControlesAbertos.get(chave), cor);
+    }).join('');
 }
 function ligarAcoesProgramas(alvo) {
     alvo.querySelectorAll('[data-prog-aceitar]').forEach(b => b.addEventListener('click', () => abrirAceitarPrograma(b.dataset.progAceitar)));
     alvo.querySelectorAll('[data-prog-recusar]').forEach(b => b.addEventListener('click', () => recusarPrograma(b.dataset.progRecusar, b)));
     alvo.querySelectorAll('[data-prog-mais]').forEach(b => b.addEventListener('click', (ev) => { ev.stopPropagation(); abrirAcoesPrograma(b.dataset.progMais); }));
     alvo.querySelectorAll('[data-prog-exec]').forEach(b => b.addEventListener('click', (ev) => { ev.stopPropagation(); abrirExecucao(b.dataset.progExec); })); // v1.61.0
+    // abre e fecha o grupo pelo toque no cabeçalho; o estado fica guardado enquanto o app está aberto
+    alvo.querySelectorAll('[data-ctl-grp]').forEach(el => {
+        const alternar = () => {
+            const k = el.dataset.ctlGrp, lista = alvo.querySelector(`[data-ctl-subs="${CSS.escape(k)}"]`); if (!lista) return;
+            const abrir = lista.classList.contains('hidden');
+            lista.classList.toggle('hidden', !abrir);
+            gruposControlesAbertos.set(`${ativoControlesAtual?.id || ''}:${k}`, abrir);
+            el.setAttribute('aria-expanded', String(abrir));
+            const tog = el.querySelector('.rz-ctl-tog'); if (tog) tog.innerHTML = `<i data-lucide="${abrir ? 'chevron-up' : 'chevron-down'}" class="rz-chev"></i>`;
+            refrescarIcones();
+        };
+        el.addEventListener('click', alternar);
+        el.addEventListener('keydown', ev => { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); alternar(); } });
+    });
 }
 async function recarregarControlesDoAtivo() {
     const a = estado.ativoEmFoco; if (!a) return;
@@ -1131,55 +1180,57 @@ function ehItemCartao(item) {
 }
 function iconeItemConta(item) { return ehItemCartao(item) ? 'credit-card' : 'landmark'; }
 
-function itemResumoHtml(item) {
-    // NOVO (29/08/2026) — item com alerta_ativo=false (ex.: ativo marcado
-    // como vendido, cascata em marcarAtivoVendido) não mostra chip de
-    // urgência — mostra "Alertas desligados" neutro, consistente com o
-    // fato de que a varredura proativa também não vai gerar aviso nenhum
-    // pra ele (mesmo campo usado nos dois lugares).
-    // v1.13.0 (fatia 3, REGRAS §9/§10) — item de lista único (.rz-row):
-    // ícone 42 colorido pela semântica · título + subtipo · status
-    // "ponto + rótulo" (o número é o rótulo: "9 dias", "Vencido há 3d").
-    // chipVencimento() (bg-amber/green Tailwind) deixou de ser usado aqui.
-    // v1.36.0 (demanda 854f6343) — quem paga vem do contrato vigente do imóvel
-    // (trigger trg_contrato_sincroniza_encargos); só o locatário aparece na
-    // lista — proprietário é o padrão e não precisa de texto.
-    const subtitulo = (item.data_fim ? 'Até ' + formatarDataBR(item.data_fim) + ' · ' : '') // v1.40.0 — data primeiro (não corta no celular)
-        + (item.cofre_controle_subtipos?.nome || rotuloTipoControle(item.tipo))
-        + (item.responsavel_pagamento === 'locatario' ? ' · Paga: locatário' : '');
-    const iconeTipo = item.tipo === 'conta' ? iconeItemConta(item) // v1.50.0 (F18)
-        : ({ seguro: 'shield', tributo: 'landmark', manutencao: 'wrench' }[item.tipo] || 'clipboard-check');
-    if (item.ativo === false) { // v1.20.0 — encerrado: histórico visível, sem urgência
-        return `<div class="rz-row rz-link" data-action="abrir-item-controle" data-id="${item.id}">
-            <div class="rz-ic rz-neu"><i data-lucide="${item.situacao === 'pausado' ? 'pause' : 'archive'}"></i></div>
-            <div class="rz-tx"><b>${escapeHtml(item.titulo)}</b><span>${escapeHtml(subtitulo)}</span></div>
-            <div class="rz-rt">${item.situacao === 'pausado' ? statusHtml('warn', 'Pausado') : statusHtml('neu', 'Concluído')}</div>
-            <i data-lucide="chevron-right" class="rz-chev"></i>
-        </div>`;
-    }
-    if (item.alerta_ativo === false) {
-        const ehConta = item.tipo === 'conta'; // v1.50.0 (F18) — conta corrente: ainda sem aviso (extrato por conta vem no lote 1)
-        return `<div class="rz-row rz-link" data-action="abrir-item-controle" data-id="${item.id}">
-            <div class="rz-ic rz-neu"><i data-lucide="${ehConta ? iconeItemConta(item) : 'bell-off'}"></i></div>
-            <div class="rz-tx"><b>${escapeHtml(item.titulo)}</b><span>${escapeHtml(subtitulo)}</span></div>
-            <div class="rz-rt">${statusHtml('neu', ehConta ? 'Sem aviso' : 'Alertas desligados')}</div>
-            <i data-lucide="chevron-right" class="rz-chev"></i>
-        </div>`;
-    }
+// Status do item na semântica única: ok "Em dia", run "Em Nd" (até 30 dias), warn "Vence hoje", bad "Há Nd"; neu para
+// encerrado, pausado e sem aviso. Fonte única da linha e da etiqueta do grupo.
+function statusDoItem(item) {
+    if (item.ativo === false) return item.situacao === 'pausado' ? ['warn', 'Pausado'] : ['neu', 'Concluído'];
+    if (item.alerta_ativo === false) return ['neu', item.tipo === 'conta' ? 'Sem aviso' : 'Alertas desligados'];
     const dias = diasProximaOcorrencia(item);
-    let sem = 'ok', rotulo = 'Em dia', classeIc = '';
-    if (dias !== null && dias < 0) { sem = 'bad'; rotulo = `há ${Math.abs(dias)}d`; classeIc = ' rz-bad'; }
-    else if (dias === 0) { sem = 'warn'; rotulo = 'Vence hoje'; classeIc = ' rz-warn'; }
-    // CORRIGIDO v1.27.0 (padrão "há/em xx d") — de 0 a 30 dias caía tudo em
-    // 'warn' com rótulo cru ("13 dias"), sem o prefixo "Em" e na cor de
-    // "vai virar problema" (--warning, marrom) em vez da cor de "ainda
-    // dentro do prazo" (--info/azul, REGRAS_EXPERIENCIA §9: "run" cobre
-    // exatamente "A vencer"/"A pagar"). Só o dia exato do vencimento
-    // (dias===0, acima) fica em 'warn' — o resto do prazo é 'run'.
-    else if (dias !== null && dias <= 30) { sem = 'run'; rotulo = `Em ${dias}d`; classeIc = ''; }
+    if (dias !== null && dias < 0) return ['bad', `Há ${Math.abs(dias)}d`];
+    if (dias === 0) return ['warn', 'Vence hoje'];
+    if (dias !== null && dias <= 30) return ['run', `Em ${dias}d`];
+    return ['ok', 'Em dia'];
+}
+// Ícone do item: o do subtipo, senão o da categoria (catálogo); conta separa cartão de conta corrente
+function iconeDoItem(item) {
+    if (item.cofre_controle_subtipos?.icone) return item.cofre_controle_subtipos.icone;
+    if (item.tipo === 'conta') return iconeItemConta(item);
+    const c = (catalogoTiposControle || []).find(x => x.codigo === item.tipo);
+    return c?.icone || ({ seguro: 'shield', tributo: 'receipt', manutencao: 'wrench' }[item.tipo] || 'clipboard-check');
+}
+// Título curto na ficha do ativo: tira " — <nome do ativo>" do fim e "<subtipo> — " do começo (o grupo e a linha de baixo
+// já dizem isso). Só na tela; o título gravado não muda.
+function tituloCurtoItem(item) {
+    let t = String(item.titulo || '');
+    const nomeAtivo = ativoControlesAtual?.nome_exibicao;
+    if (nomeAtivo && item.ativo_id === ativoControlesAtual?.id) {
+        const fim = ' — ' + nomeAtivo;
+        if (t.length > fim.length && t.endsWith(fim)) t = t.slice(0, -fim.length);
+    }
+    const sub = item.cofre_controle_subtipos?.nome;
+    const k = t.indexOf(' — ');
+    if (sub && k > 0) {
+        const cab = t.slice(0, k).trim().toLowerCase();
+        if (cab && sub.toLowerCase().startsWith(cab)) t = t.slice(k + 3);
+    }
+    return t || String(item.titulo || '');
+}
+function subtituloItem(item) {
+    const pagaLoc = item.responsavel_pagamento === 'locatario' ? ' · Paga: locatário' : '';
+    const sub = item.cofre_controle_subtipos?.nome || rotuloTipoControle(item.tipo);
+    if (!item.data_fim) return sub + pagaLoc;
+    if (item.tipo === 'evento') return `${sub} · ${formatarDataBR(item.data_fim)}${pagaLoc}`;
+    return `Válido até ${formatarDataBR(item.data_fim)}${pagaLoc}`;
+}
+function itemResumoHtml(item) {
+    const [sem, rotulo] = statusDoItem(item);
+    const encerrado = item.ativo === false;
+    const icone = encerrado ? (item.situacao === 'pausado' ? 'pause' : 'archive')
+        : (item.alerta_ativo === false && item.tipo !== 'conta' ? 'bell-off' : iconeDoItem(item));
+    const classeIc = { bad: ' rz-bad', warn: ' rz-warn', neu: ' rz-neu' }[sem] || '';
     return `<div class="rz-row rz-link" data-action="abrir-item-controle" data-id="${item.id}">
-        <div class="rz-ic${classeIc}"><i data-lucide="${sem === 'bad' ? 'alarm-clock' : (sem === 'warn' ? 'clock' : iconeTipo)}"></i></div>
-        <div class="rz-tx"><b>${escapeHtml(item.titulo)}</b><span>${escapeHtml(subtitulo)}</span></div>
+        <div class="rz-ic${classeIc}"><i data-lucide="${escapeHtml(icone)}"></i></div>
+        <div class="rz-tx"><b>${escapeHtml(tituloCurtoItem(item))}</b><span>${escapeHtml(subtituloItem(item))}</span></div>
         <div class="rz-rt">${statusHtml(sem, rotulo)}</div>
         <i data-lucide="chevron-right" class="rz-chev"></i>
     </div>`;
@@ -1448,11 +1499,12 @@ const CATEGORIA_DESPESA_POR_TIPO_ITEM = { seguro: 'seguro', manutencao: 'manuten
 
 // v1.43.0 — catálogo de tipos de item (tabela controle_tipos, demanda 2923ff4d).
 let catalogoTiposControle = null;
+let ativoControlesAtual = null; // ativo da ficha aberta: nome (título curto) e ramo (cor da linha dos grupos)
 async function carregarCatalogoTiposControle() {
     if (catalogoTiposControle) return catalogoTiposControle;
     try {
         const { data, error } = await api.dbAuth.from('controle_tipos')
-            .select('codigo,nome,ordem,selecionavel_app,categoria_lancamento_padrao').eq('ativo', true).order('ordem');
+            .select('codigo,nome,ordem,icone,selecionavel_app,categoria_lancamento_padrao').eq('ativo', true).order('ordem');
         if (error) throw error;
         catalogoTiposControle = data || [];
         definirCatalogoTiposControle(catalogoTiposControle);

@@ -4,6 +4,18 @@ Histórico completo de versões do `index.html`, movido automaticamente pelo `ge
 
 ---
 
+NOVIDADES (Beta v1.452.0) — CALENDÁRIO ESCOLAR: "JÁ ESTÁ NA AGENDA" EM DESTAQUE (Nicola 20/10 21:49): agenda.js 1.9.4 —
+selo verde na linha já importada ("vai repetir" se marcada de novo), a seta abre os ajustes e a chave de origem sem o
+nome da escola. Edge calendario-escolar-ler 1.0.4: data por turma vem uma linha por data. Aqui, só cabeçalho e import map.
+Versão anterior (Beta v1.451.1):
+DATA: 20/10/2026 (sessão 20261020-2144-alertas-conteudo, demandas e934ce44 e d269216c)
+------------------------------------------------------------------
+Versões anteriores (v1.451.1 … v1.451.1): CHANGELOG_APP.md, na raiz do
+repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
+das 5 versões mais recentes deste cabeçalho.
+
+---
+
 NOVIDADES (Beta v1.451.0) — CALENDÁRIO ESCOLAR: AJUSTES PEQUENOS E SEM REPETIR O JÁ IMPORTADO (Nicola 20/10 21:17 e
 21:18): agenda.js 1.9.3 — os ajustes da linha viram chips pequenos (Para quem · Tipo · Turma; Aviso Sem · 1 dia · 3 dias
 | A confirmar). Edge calendario-escolar-ler 1.0.3 reconhece o que já foi importado mesmo com outro nome de escola.

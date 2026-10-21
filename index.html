@@ -6,9 +6,14 @@
    (base derivada do RUMO v7.4.2 — histórico de versões anteriores
    preservado abaixo para referência técnica)
 
-   VERSÃO: Beta v1.456.0
-   LINHAS: 17297
-   DATA: 20/10/2026 (sessão 20261020-2302-contrato-menu, demanda e83c2a46)
+   VERSÃO: Beta v1.457.0
+   LINHAS: 17295
+   DATA: 20/10/2026 (sessão 20261020-2340-controles-grupos, demanda 9404081c)
+   NOVIDADES (Beta v1.457.0) — CONTROLES EM GRUPOS (Nicola 20/10 23:28 e 23:37; PROTOTIPO_CONTROLES_GRUPOS_RAIZ v1.0.0): no
+   chip Controles da ficha, os itens fora de programa ficam em grupos pela categoria do catálogo, no desenho do item
+   agrupado de Ativos (ícone com a quantidade, etiqueta, seta e a linha que liga os itens); ícone por subtipo; título curto
+   (cofre-controles.js 1.65.0, cofre-api.js 1.54.0; banco: controles_icones_v1). Aqui: CSS dos grupos (sai o .rz-prog-h).
+   Versão anterior (Beta v1.456.0):
    NOVIDADES (Beta v1.456.0) — FICHA DO CONTRATO: CADA AÇÃO NO CARD DO ASSUNTO (de acordo do Nicola 20/10 23:02; mesmo critério
    da ficha do ativo): contratos.js 1.64.0 — o ⋮ do topo fica com a Situação e Gerar minuta; Condições ganha ⋮ (Dados, Editar,
    Renovar), Distribuição (Editar divisão), Reajuste › Pelo contrato (Reajustar) e o Financeiro a linha "Ver no Financeiro".
@@ -38,13 +43,8 @@
    Versão anterior (Beta v1.452.0):
    LINHAS: 17260
    DATA: 20/10/2026 (sessão 20261020-2149-calendario-ja, demanda b3aeefaf)
-   NOVIDADES (Beta v1.452.0) — CALENDÁRIO ESCOLAR: "JÁ ESTÁ NA AGENDA" EM DESTAQUE (Nicola 20/10 21:49): agenda.js 1.9.4 —
-   selo verde na linha já importada ("vai repetir" se marcada de novo), a seta abre os ajustes e a chave de origem sem o
-   nome da escola. Edge calendario-escolar-ler 1.0.4: data por turma vem uma linha por data. Aqui, só cabeçalho e import map.
-   Versão anterior (Beta v1.451.1):
-   DATA: 20/10/2026 (sessão 20261020-2144-alertas-conteudo, demandas e934ce44 e d269216c)
    ------------------------------------------------------------------
-   Versões anteriores (v1.451.1 … v1.451.1): CHANGELOG_APP.md, na raiz do
+   Versões anteriores (v1.452.0 … v1.452.0): CHANGELOG_APP.md, na raiz do
    repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
    das 5 versões mais recentes deste cabeçalho.
 
@@ -72,7 +72,7 @@
          O navegador aplica o mapa também aos imports estáticos dentro dos
          módulos (cofre-app.js → ./cofre-api.js etc.). -->
     <!-- RZ-IMPORTMAP:INICIO -->
-    <script type="importmap">{"imports":{"./js/cadastros.js":"./js/cadastros.js?v=1.3.0","./js/financeiro.js":"./js/financeiro.js?v=1.75.0","./js/fechamento.js":"./js/fechamento.js?v=1.15.0","./js/contratos.js":"./js/contratos.js?v=1.64.0","./js/minutas.js":"./js/minutas.js?v=1.6.0","./js/vitrine.js":"./js/vitrine.js?v=1.6.0","./js/imoveis.js":"./js/imoveis.js?v=1.10.0","./js/cofre-api.js":"./js/cofre-api.js?v=1.53.0","./js/cofre-app.js":"./js/cofre-app.js?v=1.52.0","./js/cofre-ativos.js":"./js/cofre-ativos.js?v=1.139.0","./js/cofre-controles.js":"./js/cofre-controles.js?v=1.64.0","./js/cofre-documentos.js":"./js/cofre-documentos.js?v=2.38.0","./js/cofre-imagem.js":"./js/cofre-imagem.js?v=1.1.0","./js/cofre-estado.js":"./js/cofre-estado.js?v=1.5.2","./js/cofre-navegacao.js":"./js/cofre-navegacao.js?v=1.10.0","./js/cofre-ui.js":"./js/cofre-ui.js?v=1.7.2","./js/cofre-validacoes.js":"./js/cofre-validacoes.js?v=2.14.0","./js/comum-licenca.js":"./js/comum-licenca.js?v=1.9.0","./js/comum-renovacao.js":"./js/comum-renovacao.js?v=1.3.5","./js/comum-minha-empresa.js":"./js/comum-minha-empresa.js?v=1.21.0","./js/comum-pessoas.js":"./js/comum-pessoas.js?v=1.216.0","./js/comum-sobre.js":"./js/comum-sobre.js?v=1.5.0","./js/comum-endereco.js":"./js/comum-endereco.js?v=1.2.0","./js/comum-partes.js":"./js/comum-partes.js?v=1.0.0","./js/resultados.js":"./js/resultados.js?v=2.16.0","./js/indicadores.js":"./js/indicadores.js?v=1.2.0","./js/configuracao-inicial.js":"./js/configuracao-inicial.js?v=1.1.0","./js/relatorios-executivos.js":"./js/relatorios-executivos.js?v=1.6.1","./js/raiz-eventos.js":"./js/raiz-eventos.js?v=1.0.0","./js/raiz-device.js":"./js/raiz-device.js?v=1.1.0","./js/raiz-ui.js":"./js/raiz-ui.js?v=1.6.1","./js/fiscal.js":"./js/fiscal.js?v=1.7.0","./js/ativos/ativos-boot.js":"./js/ativos/ativos-boot.js?v=1.4.0","./js/ativos/ativos-markup.js":"./js/ativos/ativos-markup.js?v=1.68.0","./js/nucleo/porta.js":"./js/nucleo/porta.js?v=1.7.0","./js/partes.js":"./js/partes.js?v=1.1.0","./js/conta.js":"./js/conta.js?v=1.3.0","./js/grupo-visao.js":"./js/grupo-visao.js?v=1.0.0","./js/agenda.js":"./js/agenda.js?v=1.9.4","./js/cofre-membros.js":"./js/cofre-membros.js?v=1.0.0","./js/cockpit-metas.js":"./js/cockpit-metas.js?v=1.0.0"}}</script>
+    <script type="importmap">{"imports":{"./js/cadastros.js":"./js/cadastros.js?v=1.3.0","./js/financeiro.js":"./js/financeiro.js?v=1.75.0","./js/fechamento.js":"./js/fechamento.js?v=1.15.0","./js/contratos.js":"./js/contratos.js?v=1.64.0","./js/minutas.js":"./js/minutas.js?v=1.6.0","./js/vitrine.js":"./js/vitrine.js?v=1.6.0","./js/imoveis.js":"./js/imoveis.js?v=1.10.0","./js/cofre-api.js":"./js/cofre-api.js?v=1.54.0","./js/cofre-app.js":"./js/cofre-app.js?v=1.52.0","./js/cofre-ativos.js":"./js/cofre-ativos.js?v=1.139.0","./js/cofre-controles.js":"./js/cofre-controles.js?v=1.65.0","./js/cofre-documentos.js":"./js/cofre-documentos.js?v=2.38.0","./js/cofre-imagem.js":"./js/cofre-imagem.js?v=1.1.0","./js/cofre-estado.js":"./js/cofre-estado.js?v=1.5.2","./js/cofre-navegacao.js":"./js/cofre-navegacao.js?v=1.10.0","./js/cofre-ui.js":"./js/cofre-ui.js?v=1.7.2","./js/cofre-validacoes.js":"./js/cofre-validacoes.js?v=2.14.0","./js/comum-licenca.js":"./js/comum-licenca.js?v=1.9.0","./js/comum-renovacao.js":"./js/comum-renovacao.js?v=1.3.5","./js/comum-minha-empresa.js":"./js/comum-minha-empresa.js?v=1.21.0","./js/comum-pessoas.js":"./js/comum-pessoas.js?v=1.216.0","./js/comum-sobre.js":"./js/comum-sobre.js?v=1.5.0","./js/comum-endereco.js":"./js/comum-endereco.js?v=1.2.0","./js/comum-partes.js":"./js/comum-partes.js?v=1.0.0","./js/resultados.js":"./js/resultados.js?v=2.16.0","./js/indicadores.js":"./js/indicadores.js?v=1.2.0","./js/configuracao-inicial.js":"./js/configuracao-inicial.js?v=1.1.0","./js/relatorios-executivos.js":"./js/relatorios-executivos.js?v=1.6.1","./js/raiz-eventos.js":"./js/raiz-eventos.js?v=1.0.0","./js/raiz-device.js":"./js/raiz-device.js?v=1.1.0","./js/raiz-ui.js":"./js/raiz-ui.js?v=1.6.1","./js/fiscal.js":"./js/fiscal.js?v=1.7.0","./js/ativos/ativos-boot.js":"./js/ativos/ativos-boot.js?v=1.4.0","./js/ativos/ativos-markup.js":"./js/ativos/ativos-markup.js?v=1.68.0","./js/nucleo/porta.js":"./js/nucleo/porta.js?v=1.7.0","./js/partes.js":"./js/partes.js?v=1.1.0","./js/conta.js":"./js/conta.js?v=1.3.0","./js/grupo-visao.js":"./js/grupo-visao.js?v=1.0.0","./js/agenda.js":"./js/agenda.js?v=1.9.4","./js/cofre-membros.js":"./js/cofre-membros.js?v=1.0.0","./js/cockpit-metas.js":"./js/cockpit-metas.js?v=1.0.0"}}</script>
     <!-- RZ-IMPORTMAP:FIM -->
 
     <!-- ===== PWA: permite "instalar" o app no celular (Android e iPhone) ===== -->
@@ -523,12 +523,10 @@
         .rz-prog-sug .rz-desc{display:block;margin:2px 0 0}
         .rz-prog-sug .rz-desc svg{width:13px;height:13px;vertical-align:-2px}
         .rz-prog-sug .rz-seq-btns{margin-top:10px}
-        .rz-prog-h{display:flex;align-items:center;gap:10px;margin:14px 0 2px;padding-top:10px;border-top:1px solid var(--line)}
-        .rz-prog-h:first-child{margin-top:0;padding-top:0;border-top:0}
-        .rz-prog-h .rz-tx{flex:1;min-width:0}
-        .rz-prog-h .rz-tx b{display:block;font-weight:700}
-        .rz-prog-h .rz-tx span{display:block;font-size:12.5px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-        .rz-prog-pt{width:9px;height:9px;border-radius:50%;background:var(--sprout);flex:none}
+        /* chip Controles: grupos de itens (programa e categoria) no desenho do item agrupado de Ativos (cofre-controles) */
+        .rz-ctl-grp .rz-ctl-tog{display:flex;color:var(--muted);flex:none}
+        .rz-ctl-subs>.rz-sub-row::before,.rz-ctl-subs>.rz-sub-row::after{left:-19px}
+        .rz-ctl-subs>.rz-sub-row::after{width:19px}
         .rz-prog-campos{display:flex;flex-wrap:wrap;gap:8px;padding:0 0 10px 28px}
         .rz-prog-campos .rz-f{flex:1 1 130px;margin:0}
         .rz-prog-it:has(input[type=checkbox]:not(:checked)) .rz-prog-campos{display:none}
@@ -4578,7 +4576,7 @@
         // texto certo toda vez (esqueci 5 versões seguidas, de v1.37.1 até
         // v1.38.3). Agora só precisa mudar UMA linha aqui a cada release;
         // window.onload aplica nos dois lugares automaticamente.
-        const APP_VERSAO = "Beta v1.456.0"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
+        const APP_VERSAO = "Beta v1.457.0"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
 
         // ====================================================================
         // v1.105.0 — HELPERS DE SUPERFÍCIE DA GRAMÁTICA ÚNICA
