@@ -4,6 +4,20 @@ Histórico completo de versões do `index.html`, movido automaticamente pelo `ge
 
 ---
 
+NOVIDADES (Beta v1.458.0) — CSS DO APP EM ARQUIVO PRÓPRIO E BIBLIOTECAS COM VERSÃO FIXA (de acordo do Nicola 21/10
+00:30): o bloco de estilos comum do head (~1.640 linhas, sem mudar um caractere) passa para raiz.css 1.0.0, carregado
+no mesmo ponto da página — a ordem da cascata não muda; o bloco do Tailwind continua aqui, porque o Tailwind do
+navegador só lê estilo embutido. Tailwind 4.3.3, supabase-js 2.118.0 e Lucide 1.60.0 deixam de vir como @4/@2/@latest
+(publicação do fornecedor não muda mais o app sem deploy). sw.js 3.3 guarda o raiz.css para abrir sem rede.
+Versão anterior (Beta v1.457.0):
+DATA: 20/10/2026 (sessão 20261020-2340-controles-grupos, demanda 9404081c)
+------------------------------------------------------------------
+Versões anteriores (v1.457.0 … v1.457.0): CHANGELOG_APP.md, na raiz do
+repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
+das 5 versões mais recentes deste cabeçalho.
+
+---
+
 NOVIDADES (Beta v1.457.0) — CONTROLES EM GRUPOS (Nicola 20/10 23:28 e 23:37; PROTOTIPO_CONTROLES_GRUPOS_RAIZ v1.0.0): no
 chip Controles da ficha, os itens fora de programa ficam em grupos pela categoria do catálogo, no desenho do item
 agrupado de Ativos (ícone com a quantidade, etiqueta, seta e a linha que liga os itens); ícone por subtipo; título curto

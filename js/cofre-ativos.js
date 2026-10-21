@@ -1,6 +1,12 @@
 // ============================================================================
 // cofre-ativos.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.143.0 · 21/10/2026
+// Versão: 1.144.0 · 21/10/2026
+//
+// v1.144.0 (21/10/2026, sessão 20261021-1205-ux-onda2, demanda 15146a34; Nicola 21/10 12:02, "vamos avançar") — ONDA 2, lista do Patrimônio: o que está vencido ou vence hoje
+//   deixa de ser o selo "há 11d" ao lado do valor e vira uma linha embaixo, na largura toda, dizendo o quê e quando
+//   ("Dedetização periódica · venceu há 11 dias", "+1" quando há mais); o que vence nos próximos 30 dias continua no
+//   selo azul "Em 9d". Situação (Alugado, Disponível) sem fundo na lista (raiz.css 1.4.0).
+// Versão anterior: 1.143.0 · 21/10/2026
 //
 // v1.143.0 (21/10/2026, sessão 20261021-1040-ux-subativos, demanda 15146a34; Nicola 21/10 10:35: "prefiro o número nos ícones") — a quantidade volta para o
 //   ícone, no ramo e no ativo com sub-ativos (selo no canto do ícone); a linha dos sub-ativos fica mais curta (raiz.css 1.3.0).
@@ -17,17 +23,11 @@
 //
 // v1.140.0 (21/10/2026, sessão 20261021-0857-libs-sob-demanda, demanda 6b11c602; de acordo do Nicola 21/10 08:57) — a planilha da simulação de venda carrega o xlsx
 //   na hora (bibliotecas.js); sem rede, o aviso diz isso em vez de "não foi possível".
-// Versão anterior: 1.139.0 · 20/10/2026
-//
-// v1.139.0 (20/10/2026, sessão 20261020-2202-financeiro-ativo, demanda 9359f50f; protótipo PROTOTIPO_FINANCEIRO_DO_ATIVO_RAIZ
-//   v1.1.0, de acordo do Nicola 22:02) — chip Financeiro do ativo: o Balanço pendente mostra o saldo partido (rótulo "a receber"
-//   ou "deve" em cima, valor embaixo, sugestão do Splitwise), o nome não aperta mais; o card do plano de pagamento fica com
-//   Falta pagar, Pago, a barra e "x de y parcelas pagas · custo total previsto". A lista e o gráfico vêm de financeiro 1.74.0.
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.138.0 … v1.138.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.139.0 … v1.139.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '1.143.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.144.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 import { estado } from './cofre-estado.js';
 import { carregarBiblioteca } from './nucleo/bibliotecas.js'; // bibliotecas pesadas, sob demanda (dem 6b11c602)
 import * as api from './cofre-api.js';
@@ -82,6 +82,15 @@ function colunaDireitaLinha(valorFmt, chip, extra) {
         : `<b class="rz-rt-v" title="${escapeHtml(valorFmt.exato || '')}">${escapeHtml(valorFmt.curto)}</b>`;
     const ex = extra ? `<small class="rz-rt-x rz-rt-al" title="${escapeHtml(extra.exato || '')}">${escapeHtml(extra.curto)}</small>` : '';
     return `<div class="rz-rt">${vb}${ex}${chip ? chip.html : ''}</div>`;
+}
+// Nome do item de controle para a linha do alerta: sem " — <nome do ativo>" no fim e sem o que vem depois de " — "
+// (o título gravado costuma ser "IPTU — Av. Faria Lima, 3000"). Só na tela.
+function nomeCurtoDoItem(item, ativo) {
+    let t = String(item?.titulo || '').trim();
+    const fim = ativo?.nome_exibicao ? ' — ' + ativo.nome_exibicao : '';
+    if (fim && t.endsWith(fim) && t.length > fim.length) t = t.slice(0, -fim.length);
+    const k = t.indexOf(' — ');
+    return k > 0 ? t.slice(0, k) : t;
 }
 function ehCategoriaImovel(tipo) {
     return tipo === 'imovel_predial' || tipo === 'imovel_territorial';
@@ -1093,10 +1102,21 @@ function ativoCardHtml(a) {
     // só o dia exato do vencimento é 'warn' (marrom, "vai virar
     // problema"); o resto do prazo ainda não vencido é 'run' (azul,
     // REGRAS_EXPERIENCIA §9 — mesma semântica de "A vencer"/"A pagar").
-    const chip = proximo === undefined || proximo === null || proximo > 30 ? null
-        : proximo < 0 ? { html: rsA('bad', `há ${Math.abs(proximo)}d`) }
-        : proximo === 0 ? { html: rsA('warn', 'Vence hoje') }
+    // Vencido e vence hoje viram a linha .rz-al, por extenso e com o nome do item (dem 15146a34); o resto da janela de 30 dias
+    // fica no selo curto da direita, para não aumentar a altura de toda linha que só tem vencimento futuro.
+    const chip = proximo === undefined || proximo === null || proximo > 30 || proximo <= 0 ? null
         : { html: rsA('run', `Em ${proximo}d`) };
+    const urgentes = ocorrenciasDoAtivo.map(oc => ({ oc, d: diasAte(oc.data_prevista_atual) }))
+        .filter(x => x.d !== null && x.d <= 0).sort((x, y) => x.d - y.d);
+    const alertaLinha = (() => {
+        if (!urgentes.length) return '';
+        const x = urgentes[0];
+        const quando = x.d < 0 ? `venceu há ${-x.d} dia${x.d === -1 ? '' : 's'}` : 'vence hoje';
+        const nome = nomeCurtoDoItem(x.oc.cofre_itens_controle, a);
+        const texto = nome ? `${nome} · ${quando}` : quando.charAt(0).toUpperCase() + quando.slice(1);
+        const mais = urgentes.length > 1 ? ` · +${urgentes.length - 1}` : '';
+        return `<span class="rz-al rz-al-${x.d < 0 ? 'bad' : 'warn'}">${escapeHtml(texto + mais)}</span>`;
+    })();
     // CORRIGIDO v1.47.0 (pedido explícito, achado no print — valores com
     // casa decimal poluindo a lista) — sem decimais aqui (lista); o valor
     // exato com centavos continua em toda tela que precisa dele (ficha
@@ -1191,6 +1211,7 @@ function ativoCardHtml(a) {
                 <b style="display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;white-space:normal;word-break:break-word">${escapeHtml(a.nome_exibicao)}</b>
                 ${badgeHtml ? `<div class="rz-tx-st">${badgeHtml}</div>` : ''}
                 ${linhaLocatario ? `<span>${escapeHtml(linhaLocatario)}</span>` : ''}
+                ${alertaLinha}
             </div>
             ${colunaDireitaLinha(valorFmt, chip, aluguelFmt)}
             <svg data-lucide="chevron-right" class="rz-chev"></svg>
@@ -1228,6 +1249,7 @@ function ativoCardHtml(a) {
             ${seloGen ? `<div class="rz-tx-st">${seloGen}</div>` : ''}
             ${modeloAtivo ? `<span>${escapeHtml(modeloAtivo)}</span>` : ''}
             ${identificadorDocumento ? `<span>${escapeHtml(identificadorDocumento)}</span>` : ''}
+            ${alertaLinha}
         </div>
         ${colunaDireitaLinha(valorFmt, chip)}
         <svg data-lucide="chevron-right" class="rz-chev"></svg>

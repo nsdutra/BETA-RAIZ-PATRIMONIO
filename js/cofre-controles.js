@@ -1,6 +1,11 @@
 // ============================================================================
 // cofre-controles.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.65.0 · 20/10/2026
+// Versão: 1.66.0 · 21/10/2026
+//
+// v1.66.0 (21/10/2026, sessão 20261021-1205-ux-onda2, demanda 15146a34; Nicola 21/10 12:02, "vamos avançar") — chip Controles da ficha: o cabeçalho "Itens de controle" não
+//   diz mais "Em dia" quando algum item da lista está vencido (o Motor pode estar sem o alerta, adiado ou desligado): vale o
+//   pior entre o Motor e os itens. A linha do item não repete o título embaixo ("IPTU / IPTU").
+// Versão anterior: 1.65.0 · 20/10/2026
 //
 // v1.65.0 (20/10/2026, sessão 20261020-2340-controles-grupos, demanda 9404081c; Nicola 23:28 e 23:37, de acordo com ajustes;
 //   PROTOTIPO_CONTROLES_GRUPOS_RAIZ v1.0.0) — chip Controles da ficha: (1) os itens fora de programa ficam em grupos pela
@@ -33,19 +38,11 @@
 // desfazer; sem vínculo, apaga com as fases e os itens). Na fase concluída ou em andamento, "Corrigir datas"
 // (fn_fase_datas), também com a safra fechada. "Abrir a safra" ganha a data de referência (p_inicio): uma safra já em
 // curso abre no ano e na fase certos. "Excluir item de vez" recusa item com lançamento no Financeiro.
-// Versão anterior: 1.62.0 · 16/10/2026
-//
-// v1.62.0 (16/10/2026, sessão 20261016-0020-usos-fatia7, demanda 3022603b; FICHA_FATIA7_MEMBROS_RAIZ v1.2.0, de acordo do Nicola
-// 15/10 23:17 e 16/10 00:05, D7-4, D7-11, D7-12) — CICLO DO ANIMAL na tela da execução: o programa por animal (Reprodução
-// bovina e suína) mostra no lote "N animais em ciclo" e a lista; o ciclo do animal mostra as fases com a data prevista
-// (muda sozinha ou você confirma), "Registrar" a próxima (cobertura, diagnóstico positivo, parto com a cria cadastrada
-// ligada à mãe, ou outra fase adiante), "Diagnóstico negativo" (volta para Apta) e Fechar/Abrir o próximo ciclo. Depois de
-// mudar, o card do rebanho recarrega (cofre-membros.js).
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.61.0 … v1.61.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.62.0 … v1.62.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '1.65.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.66.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 import { estado } from './cofre-estado.js';
 import * as api from './cofre-api.js';
 import { mostrarToast, refrescarIcones, abrirModal, fecharModal, modalGenerico, perguntar, escolher, avisarComDesfazer } from './cofre-ui.js';
@@ -289,9 +286,17 @@ export function aplicarMotorNoChipControles(alertas) {
     const cab = document.getElementById('fa-controles-status');
     const ativos = itensDoAtivoAtual.filter(i => i.ativo !== false);
 
+    // "Em dia" só quando os itens também estão em dia: o Motor pode não ter o alerta (adiado, dispensado, item recém-criado)
+    // e a lista logo abaixo mostrar "Há Nd" (dem 15146a34).
+    const emDiaOuItens = () => {
+        const v = ativos.filter(i => statusDoItem(i)[0] === 'bad').length;
+        if (v) { chip?.classList.add('rz-warn'); return statusHtml('bad', `${v} vencido${v === 1 ? '' : 's'}`); }
+        if (ativos.some(i => statusDoItem(i)[0] === 'warn' && i.ativo !== false)) { chip?.classList.add('rz-warn'); return statusHtml('warn', 'Vence hoje'); }
+        return ativos.length ? statusHtml('ok', 'Em dia') : '';
+    };
     if (!lista.length) {
         chip?.classList.remove('rz-warn');
-        if (cab) cab.innerHTML = comComplementoControles(ativos.length ? statusHtml('ok', 'Em dia') : '');
+        if (cab) cab.innerHTML = comComplementoControles(emDiaOuItens());
         return;
     }
 
@@ -301,7 +306,7 @@ export function aplicarMotorNoChipControles(alertas) {
 
     if (!urgentes.length) {
         chip?.classList.remove('rz-warn');
-        if (cab) cab.innerHTML = comComplementoControles(statusHtml('ok', 'Em dia'));
+        if (cab) cab.innerHTML = comComplementoControles(emDiaOuItens());
         return;
     }
 
@@ -1230,7 +1235,7 @@ function itemResumoHtml(item) {
     const classeIc = { bad: ' rz-bad', warn: ' rz-warn', neu: ' rz-neu' }[sem] || '';
     return `<div class="rz-row rz-link" data-action="abrir-item-controle" data-id="${item.id}">
         <div class="rz-ic${classeIc}"><i data-lucide="${escapeHtml(icone)}"></i></div>
-        <div class="rz-tx"><b>${escapeHtml(tituloCurtoItem(item))}</b><span>${escapeHtml(subtituloItem(item))}</span></div>
+        <div class="rz-tx"><b>${escapeHtml(tituloCurtoItem(item))}</b>${subtituloItem(item).trim().toLowerCase() === tituloCurtoItem(item).trim().toLowerCase() ? '' : `<span>${escapeHtml(subtituloItem(item))}</span>`}</div>
         <div class="rz-rt">${statusHtml(sem, rotulo)}</div>
         <i data-lucide="chevron-right" class="rz-chev"></i>
     </div>`;
