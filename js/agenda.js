@@ -1,8 +1,14 @@
 // =====================================================================
 // RAIZ PATRIMÔNIO — js/agenda.js
-// VERSÃO: Beta v1.10.0 (21/10/2026 — demanda 6f9e5b7d)
+// VERSÃO: Beta v1.11.0 (21/10/2026 — demanda 15146a34)
 // LINHAS: (ver versoes.json)
 // -----------------------------------------------------------------
+// NOVIDADES (Beta v1.11.0) (21/10/2026, sessão 20261021-1735-ux-onda4, demanda 15146a34; Nicola 21/10 17:31: "ícones
+//   estranhos na agenda") — o item de controle saía sempre com a chave inglesa (ícone do tipo "Ocorrência"), fosse cartão,
+//   condomínio, obra ou inscrição. Agora usa o ícone do próprio item, o mesmo de Controles: o do subtipo, senão o do tipo
+//   no catálogo (controle_tipos), senão a prancheta. Vale para o compromisso e para o alerta do Motor ligado a um item.
+//   Uma leitura por período (ids do período), sem mudança no banco.
+// Versão anterior (Beta v1.10.0):
 // NOVIDADES (Beta v1.10.0) (21/10/2026, sessão 20261021-1342-calendario-generico, demanda 6f9e5b7d;
 //   FICHA_CALENDARIO_GENERICO_RAIZ v1.1.0, D1–D3 ok do Nicola 21/10 13:08 e 13:42) — IMPORTAR CALENDÁRIO GENÉRICO. ⋮ da Agenda
 //   › "Importar calendário" (escola, esporte, curso). No topo da revisão, o perfil lido (Escola · Esporte · Curso · Genérico),
@@ -109,7 +115,7 @@
 // formatarMoedaBR, abrirSheet, abrirSheetAcoes, rzSheetCabecalho, fecharSheet, abrirAlertaItemControle,
 // abrirFichaContrato, switchTab, mostrarToast, rzDev.
 
-export const VERSAO = '1.10.0';
+export const VERSAO = '1.11.0';
 
 const TIPOS = {
     ocorrencia:   { rotulo: 'Ocorrência',  icone: 'wrench',          dominio: 'ocorrencias' },
@@ -128,7 +134,30 @@ const MES_CURTO = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set'
 const DIA_SEM = ['dom', 'seg', 'ter', 'qua', 'qui', 'sex', 'sáb'];
 const JANELA_ATENCAO = 7; // D7.10
 
-const st = { vista: 'mes', semana: null, mes: null, dia: null, status: new Set(), assuntos: null, dados: [], seq: 0, el: null };
+const st = { vista: 'mes', semana: null, mes: null, dia: null, status: new Set(), assuntos: null, dados: [], seq: 0, el: null, icones: new Map() };
+
+// v1.11.0 — ícone do item de controle (id → nome lucide), na regra de Controles (iconeDoItem, cofre-controles.js):
+// subtipo › tipo no catálogo › conta (cartão ou banco) › prancheta. Lê só os ids que ainda não tem.
+let catalogoIconesControle = null;
+async function carregarIconesDosItens(ids) {
+    const faltam = [...new Set(ids)].filter(id => id && !st.icones.has(id));
+    if (!faltam.length) return;
+    try {
+        if (!catalogoIconesControle) {
+            const { data } = await dbAuth.from('controle_tipos').select('codigo,icone').eq('ativo', true);
+            catalogoIconesControle = new Map((data || []).filter(x => x.icone).map(x => [x.codigo, x.icone]));
+        }
+        const { data, error } = await dbAuth.from('cofre_itens_controle').select('id,tipo,cofre_controle_subtipos(nome,icone)').in('id', faltam.slice(0, 300));
+        if (error) throw error;
+        (data || []).forEach(it => {
+            const sub = it.cofre_controle_subtipos;
+            const ic = sub?.icone || catalogoIconesControle.get(it.tipo)
+                || (it.tipo === 'conta' ? (/cart[ãa]o/i.test(sub?.nome || '') ? 'credit-card' : 'landmark') : 'clipboard-check');
+            st.icones.set(it.id, ic);
+        });
+    } catch (e) { console.warn('[agenda] ícones dos itens:', e?.message || e); } // sem ícone próprio, fica a prancheta
+}
+const iconeDoItemAgenda = (id) => st.icones.get(id) || 'clipboard-check';
 
 // ---- datas (data local, ISO yyyy-mm-dd)
 const iso = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
@@ -253,6 +282,9 @@ async function carregar() {
         return;
     }
     if (meu !== st.seq) return; // chegou um período mais novo
+    await carregarIconesDosItens([...dados.filter(r => r.entidade_tipo === 'item_controle').map(r => r.entidade_id),
+        ...alertasMotor().filter(a => a.entidade_tipo === 'item_controle').map(a => a.entidade_id)]); // v1.11.0
+    if (meu !== st.seq) return;
     st.dados = dados;
     desenhar(false);
 }
@@ -299,6 +331,7 @@ function linhaHtml(r, i) {
     const t = /^Escola · /.test(r.titulo || '') ? { icone: 'backpack', rotulo: 'Escola' }
         : /^Esporte · /.test(r.titulo || '') ? { icone: 'trophy', rotulo: 'Esporte' } // v1.10.0
         : /^Atividade · /.test(r.titulo || '') ? { icone: 'palette', rotulo: 'Atividade' }
+        : r.entidade_tipo === 'item_controle' ? { icone: iconeDoItemAgenda(r.entidade_id), rotulo: 'Item de controle' } // v1.11.0
         : (TIPOS[r.tipo] || { icone: 'circle', rotulo: '' }); // v1.9.0
     const s = statusCompromisso(r);
     const sub = [r.sub, r.situacao === 'realizado' ? 'realizado' : ''].filter(Boolean).join(' · ') || t.rotulo;
@@ -324,13 +357,17 @@ function alertasPorDia(itensAlerta) {
     const porDia = new Map();
     if (!itensAlerta.length || typeof agruparEMapearAlertas !== 'function' || typeof linhaAlertaHtml !== 'function') return porDia;
     const diaDaChave = new Map(itensAlerta.map(it => [it.a.alerta_chave, it.dia]));
+    const itemDaChave = new Map(itensAlerta.filter(it => it.a.entidade_tipo === 'item_controle').map(it => [it.a.alerta_chave, it.a.entidade_id])); // v1.11.0
     const mapeados = agruparEMapearAlertas(itensAlerta.map(it => it.a));
     if (typeof rzOrdemAlertas === 'function') mapeados.sort(rzOrdemAlertas);
     mapeados.forEach(m => {
         const chaves = m.alertaChave ? [m.alertaChave] : (m.grupoChaves || []);
         const dia = chaves.map(c => diaDaChave.get(c)).filter(Boolean).sort()[0] || iso(hoje());
         if (!porDia.has(dia)) porDia.set(dia, []);
-        porDia.get(dia).push(linhaAlertaHtml(m));
+        // v1.11.0 — alerta de UM item de controle: troca a chave inglesa (ícone da categoria no index) pelo ícone do item
+        const item = m.alertaChave ? itemDaChave.get(m.alertaChave) : null;
+        const html = linhaAlertaHtml(m);
+        porDia.get(dia).push(item && st.icones.has(item) ? html.replace('data-lucide="wrench"', `data-lucide="${st.icones.get(item)}"`) : html);
     });
     return porDia;
 }

@@ -1,6 +1,13 @@
 // ============================================================================
 // cofre-ativos.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.144.0 · 21/10/2026
+// Versão: 1.145.0 · 21/10/2026
+//
+// v1.145.0 (21/10/2026, sessão 20261021-1735-ux-onda4, demanda 15146a34; Nicola 21/10 17:31: "pq a visão da Rumo está sem os
+//   alertas vermelhos") — a linha do alerta passa a mostrar também o aluguel em atraso (alerta atraso_pagamento do Motor,
+//   detalhe.ativo_id), antes dos itens de controle: "Aluguel · venceu há 36 dias · +2". Antes só os itens de controle
+//   vencidos entravam, e a Rumo, com 50 aluguéis atrasados e poucos itens de controle, ficava sem vermelho. E a lista se
+//   redesenha quando os alertas do Motor chegam depois dela (o chip "Com alerta" chegou a mostrar 1 em vez de 44).
+// Versão anterior: 1.144.0 · 21/10/2026
 //
 // v1.144.0 (21/10/2026, sessão 20261021-1205-ux-onda2, demanda 15146a34; Nicola 21/10 12:02, "vamos avançar") — ONDA 2, lista do Patrimônio: o que está vencido ou vence hoje
 //   deixa de ser o selo "há 11d" ao lado do valor e vira uma linha embaixo, na largura toda, dizendo o quê e quando
@@ -19,15 +26,11 @@
 // v1.141.0 (21/10/2026, sessão 20261021-0905-ux-ramo-menu, demanda 15146a34; de acordo do Nicola 21/10 09:01) — faixa do ramo
 //   na lista do Patrimônio: o número sai de cima do ícone e vai para depois do nome ("Imóveis 9"); o fundo deixa de ser a
 //   cor do ramo (o estilo mora no raiz.css 1.1.0). Total, alinhamento, recolher e a lista por empreendimento não mudam.
-// Versão anterior: 1.140.0 · 21/10/2026
-//
-// v1.140.0 (21/10/2026, sessão 20261021-0857-libs-sob-demanda, demanda 6b11c602; de acordo do Nicola 21/10 08:57) — a planilha da simulação de venda carrega o xlsx
-//   na hora (bibliotecas.js); sem rede, o aviso diz isso em vez de "não foi possível".
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.139.0 … v1.139.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.140.0 … v1.140.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '1.144.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.145.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 import { estado } from './cofre-estado.js';
 import { carregarBiblioteca } from './nucleo/bibliotecas.js'; // bibliotecas pesadas, sob demanda (dem 6b11c602)
 import * as api from './cofre-api.js';
@@ -575,6 +578,7 @@ export function renderAtivosLista(filtroTipo = '', filtroTexto = '') {
     });
 
     const container = document.getElementById('ativos-lista');
+    esperarAlertasDoMotor(); // v1.145.0
 
     // v1.7.0 (pedido explícito, 01/09/2026: "a lista de ativos está bem
     // diferente da lista antiga de imóveis... prefiro o padrão da lista
@@ -1086,6 +1090,30 @@ window.__rzAlternarSubativos = (id, btn) => {
     refrescarIcones();
 };
 
+// v1.145.0 — dias (negativos) dos recebimentos em atraso do ativo, do mais antigo ao mais novo. Fonte: alertas do Motor já
+// carregados pelo index (atraso_pagamento: mensalidade de contrato vencida e não recebida; detalhe.ativo_id = ativo do contrato).
+function atrasosDeRecebimento(id) {
+    try {
+        const fonte = (typeof alertasVisiveisTodos !== 'undefined' && alertasVisiveisTodos) || [];
+        return fonte.filter(r => r.tipo_alerta === 'atraso_pagamento' && r.detalhe?.ativo_id === id && r.dias != null && r.dias < 0)
+            .map(r => r.dias).sort((x, y) => x - y);
+    } catch (_) { return []; } // sem Motor (cofre.html)
+}
+// v1.145.0 — os alertas do Motor podem chegar DEPOIS da lista (entrada no app, troca de empresa). Desenhada sem eles, a lista
+// fica sem o chip "Com alerta" certo e sem a linha do aluguel. Sem evento do index para isso, a lista confere a cada 1,5 s,
+// por até 30 s, e se redesenha uma vez quando eles chegam (preservando chip e busca). Só arma quando desenhou sem alertas.
+let esperaAlertasMotor = null;
+function esperarAlertasDoMotor() {
+    if (esperaAlertasMotor || typeof window === 'undefined' || typeof alertasVisiveisTodos === 'undefined') return;
+    if (alertasVisiveisTodos && alertasVisiveisTodos.length) return;
+    let n = 0;
+    esperaAlertasMotor = setInterval(() => {
+        const chegou = alertasVisiveisTodos && alertasVisiveisTodos.length;
+        if (chegou || ++n >= 20) { clearInterval(esperaAlertasMotor); esperaAlertasMotor = null; }
+        if (chegou && document.getElementById('ativos-lista')?.offsetParent) redesenharComFiltros();
+    }, 1500);
+}
+
 function ativoCardHtml(a) {
     const ocorrenciasDoAtivo = estado.ocorrenciasAbertas.filter(oc => oc.cofre_itens_controle?.ativo_id === a.id);
     const proximo = ocorrenciasDoAtivo.map(oc => diasAte(oc.data_prevista_atual)).filter(d => d !== null).sort((x, y) => x - y)[0];
@@ -1108,13 +1136,21 @@ function ativoCardHtml(a) {
         : { html: rsA('run', `Em ${proximo}d`) };
     const urgentes = ocorrenciasDoAtivo.map(oc => ({ oc, d: diasAte(oc.data_prevista_atual) }))
         .filter(x => x.d !== null && x.d <= 0).sort((x, y) => x.d - y.d);
+    // v1.145.0 — aluguel em atraso vem primeiro (é o que mais pesa); o "+N" soma os outros atrasos e os itens vencidos
+    const atrasos = atrasosDeRecebimento(a.id);
     const alertaLinha = (() => {
-        if (!urgentes.length) return '';
+        if (!urgentes.length && !atrasos.length) return '';
+        const total = atrasos.length + urgentes.length;
+        const mais = total > 1 ? ` · +${total - 1}` : '';
+        if (atrasos.length) {
+            const d = atrasos[0];
+            const rot = resumoImoveisPorId.has(a.id) ? 'Aluguel' : 'Mensalidade';
+            return `<span class="rz-al rz-al-bad">${escapeHtml(`${rot} · venceu há ${-d} dia${d === -1 ? '' : 's'}${mais}`)}</span>`;
+        }
         const x = urgentes[0];
         const quando = x.d < 0 ? `venceu há ${-x.d} dia${x.d === -1 ? '' : 's'}` : 'vence hoje';
         const nome = nomeCurtoDoItem(x.oc.cofre_itens_controle, a);
         const texto = nome ? `${nome} · ${quando}` : quando.charAt(0).toUpperCase() + quando.slice(1);
-        const mais = urgentes.length > 1 ? ` · +${urgentes.length - 1}` : '';
         return `<span class="rz-al rz-al-${x.d < 0 ? 'bad' : 'warn'}">${escapeHtml(texto + mais)}</span>`;
     })();
     // CORRIGIDO v1.47.0 (pedido explícito, achado no print — valores com

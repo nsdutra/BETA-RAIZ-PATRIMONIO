@@ -6,8 +6,13 @@
    (base derivada do RUMO v7.4.2 — histórico de versões anteriores
    preservado abaixo para referência técnica)
 
-   VERSÃO: Beta v1.466.0
-   LINHAS: 15626
+   VERSÃO: Beta v1.467.0
+   LINHAS: 15625
+   DATA: 21/10/2026 (sessão 20261021-1735-ux-onda4, demanda 15146a34)
+   NOVIDADES (Beta v1.467.0) — ONDA 4 (Nicola 21/10 17:31): selo da Agenda só com crítico ou vencido, "9+"; menu das
+   iniciais como painel no computador; cabeçalho da ficha mais justo; aluguel em atraso na linha da lista; ícone do item
+   na Agenda (raiz.css 1.6.0, cofre-ativos 1.145.0, agenda 1.11.0).
+   Versão anterior (Beta v1.466.0):
    DATA: 21/10/2026 (sessão 20261021-1732-icones-raiz, demanda 6b11c602)
    NOVIDADES (Beta v1.466.0) — ÍCONES RECORTADOS: Lucide inteira (665 KB) → icones-raiz.js 1.0.0 (67 KB, 322 ícones);
    ícone fora do recorte carrega a Lucide inteira. sw.js 3.4.
@@ -22,12 +27,8 @@
    a borda esmaecida; subtítulo do topo numa linha. Aqui só versão e import map.
    Versão anterior (Beta v1.463.1):
    NOVIDADES (Beta v1.463.1) — correção: a linha do alerta da lista saía cinza (raiz.css 1.4.1).
-   NOVIDADES (Beta v1.463.0) — ONDA 2, LISTA DO PATRIMÔNIO (Nicola 21/10 12:02): vencido por extenso numa linha própria
-   ("Dedetização periódica · venceu há 11 dias"); situação sem fundo; Controles sem "Em dia" com item vencido. Aqui só versão.
-   Versão anterior (Beta v1.462.0):
-   DATA: 21/10/2026 (sessão 20261021-1040-ux-subativos, demanda 15146a34)
    ------------------------------------------------------------------
-   Versões anteriores (v1.462.0 … v1.462.0): CHANGELOG_APP.md, na raiz do
+   Versões anteriores (v1.463.0 … v1.463.0): CHANGELOG_APP.md, na raiz do
    repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
    das 5 versões mais recentes deste cabeçalho.
 
@@ -55,7 +56,7 @@
          O navegador aplica o mapa também aos imports estáticos dentro dos
          módulos (cofre-app.js → ./cofre-api.js etc.). -->
     <!-- RZ-IMPORTMAP:INICIO -->
-    <script type="importmap">{"imports":{"./js/cadastros.js":"./js/cadastros.js?v=1.3.0","./js/financeiro.js":"./js/financeiro.js?v=1.76.0","./js/fechamento.js":"./js/fechamento.js?v=1.16.0","./js/contratos.js":"./js/contratos.js?v=1.65.0","./js/minutas.js":"./js/minutas.js?v=1.7.0","./js/vitrine.js":"./js/vitrine.js?v=1.6.0","./js/imoveis.js":"./js/imoveis.js?v=1.10.0","./js/cofre-api.js":"./js/cofre-api.js?v=1.54.0","./js/cofre-app.js":"./js/cofre-app.js?v=1.52.0","./js/cofre-ativos.js":"./js/cofre-ativos.js?v=1.144.0","./js/cofre-controles.js":"./js/cofre-controles.js?v=1.66.0","./js/cofre-documentos.js":"./js/cofre-documentos.js?v=2.38.0","./js/cofre-imagem.js":"./js/cofre-imagem.js?v=1.2.0","./js/cofre-estado.js":"./js/cofre-estado.js?v=1.5.2","./js/cofre-navegacao.js":"./js/cofre-navegacao.js?v=1.10.0","./js/cofre-ui.js":"./js/cofre-ui.js?v=1.7.2","./js/cofre-validacoes.js":"./js/cofre-validacoes.js?v=2.14.0","./js/comum-licenca.js":"./js/comum-licenca.js?v=1.9.0","./js/comum-renovacao.js":"./js/comum-renovacao.js?v=1.3.5","./js/comum-minha-empresa.js":"./js/comum-minha-empresa.js?v=1.21.0","./js/comum-pessoas.js":"./js/comum-pessoas.js?v=1.216.0","./js/comum-sobre.js":"./js/comum-sobre.js?v=1.5.0","./js/comum-endereco.js":"./js/comum-endereco.js?v=1.2.0","./js/comum-partes.js":"./js/comum-partes.js?v=1.0.0","./js/resultados.js":"./js/resultados.js?v=2.16.0","./js/indicadores.js":"./js/indicadores.js?v=1.2.0","./js/configuracao-inicial.js":"./js/configuracao-inicial.js?v=1.1.0","./js/relatorios-executivos.js":"./js/relatorios-executivos.js?v=1.6.1","./js/raiz-eventos.js":"./js/raiz-eventos.js?v=1.0.0","./js/raiz-device.js":"./js/raiz-device.js?v=1.1.0","./js/raiz-ui.js":"./js/raiz-ui.js?v=1.6.1","./js/fiscal.js":"./js/fiscal.js?v=1.7.0","./js/ativos/ativos-boot.js":"./js/ativos/ativos-boot.js?v=1.4.0","./js/ativos/ativos-markup.js":"./js/ativos/ativos-markup.js?v=1.68.0","./js/nucleo/porta.js":"./js/nucleo/porta.js?v=1.7.0","./js/partes.js":"./js/partes.js?v=1.1.0","./js/conta.js":"./js/conta.js?v=1.5.0","./js/grupo-visao.js":"./js/grupo-visao.js?v=1.0.0","./js/agenda.js":"./js/agenda.js?v=1.10.0","./js/cofre-membros.js":"./js/cofre-membros.js?v=1.0.0","./js/cockpit-metas.js":"./js/cockpit-metas.js?v=1.0.0","./js/nucleo/bibliotecas.js":"./js/nucleo/bibliotecas.js?v=1.0.0"}}</script>
+    <script type="importmap">{"imports":{"./js/cadastros.js":"./js/cadastros.js?v=1.3.0","./js/financeiro.js":"./js/financeiro.js?v=1.76.0","./js/fechamento.js":"./js/fechamento.js?v=1.16.0","./js/contratos.js":"./js/contratos.js?v=1.65.0","./js/minutas.js":"./js/minutas.js?v=1.7.0","./js/vitrine.js":"./js/vitrine.js?v=1.6.0","./js/imoveis.js":"./js/imoveis.js?v=1.10.0","./js/cofre-api.js":"./js/cofre-api.js?v=1.54.0","./js/cofre-app.js":"./js/cofre-app.js?v=1.52.0","./js/cofre-ativos.js":"./js/cofre-ativos.js?v=1.145.0","./js/cofre-controles.js":"./js/cofre-controles.js?v=1.66.0","./js/cofre-documentos.js":"./js/cofre-documentos.js?v=2.38.0","./js/cofre-imagem.js":"./js/cofre-imagem.js?v=1.2.0","./js/cofre-estado.js":"./js/cofre-estado.js?v=1.5.2","./js/cofre-navegacao.js":"./js/cofre-navegacao.js?v=1.10.0","./js/cofre-ui.js":"./js/cofre-ui.js?v=1.7.2","./js/cofre-validacoes.js":"./js/cofre-validacoes.js?v=2.14.0","./js/comum-licenca.js":"./js/comum-licenca.js?v=1.9.0","./js/comum-renovacao.js":"./js/comum-renovacao.js?v=1.3.5","./js/comum-minha-empresa.js":"./js/comum-minha-empresa.js?v=1.21.0","./js/comum-pessoas.js":"./js/comum-pessoas.js?v=1.216.0","./js/comum-sobre.js":"./js/comum-sobre.js?v=1.5.0","./js/comum-endereco.js":"./js/comum-endereco.js?v=1.2.0","./js/comum-partes.js":"./js/comum-partes.js?v=1.0.0","./js/resultados.js":"./js/resultados.js?v=2.16.0","./js/indicadores.js":"./js/indicadores.js?v=1.2.0","./js/configuracao-inicial.js":"./js/configuracao-inicial.js?v=1.1.0","./js/relatorios-executivos.js":"./js/relatorios-executivos.js?v=1.6.1","./js/raiz-eventos.js":"./js/raiz-eventos.js?v=1.0.0","./js/raiz-device.js":"./js/raiz-device.js?v=1.1.0","./js/raiz-ui.js":"./js/raiz-ui.js?v=1.6.1","./js/fiscal.js":"./js/fiscal.js?v=1.7.0","./js/ativos/ativos-boot.js":"./js/ativos/ativos-boot.js?v=1.4.0","./js/ativos/ativos-markup.js":"./js/ativos/ativos-markup.js?v=1.68.0","./js/nucleo/porta.js":"./js/nucleo/porta.js?v=1.7.0","./js/partes.js":"./js/partes.js?v=1.1.0","./js/conta.js":"./js/conta.js?v=1.5.0","./js/grupo-visao.js":"./js/grupo-visao.js?v=1.0.0","./js/agenda.js":"./js/agenda.js?v=1.11.0","./js/cofre-membros.js":"./js/cofre-membros.js?v=1.0.0","./js/cockpit-metas.js":"./js/cockpit-metas.js?v=1.0.0","./js/nucleo/bibliotecas.js":"./js/nucleo/bibliotecas.js?v=1.0.0"}}</script>
     <!-- RZ-IMPORTMAP:FIM -->
 
     <!-- ===== PWA: permite "instalar" o app no celular (Android e iPhone) ===== -->
@@ -173,7 +174,7 @@
 
     <link href="https://fonts.googleapis.com/css2?family=Mrs+Saint+Delafield&family=Dancing+Script:wght@600&display=swap" rel="stylesheet">
 
-    <link rel="stylesheet" href="raiz.css?v=1.5.0">
+    <link rel="stylesheet" href="raiz.css?v=1.6.0">
 
 </head>
 
@@ -2904,7 +2905,7 @@
         // texto certo toda vez (esqueci 5 versões seguidas, de v1.37.1 até
         // v1.38.3). Agora só precisa mudar UMA linha aqui a cada release;
         // window.onload aplica nos dois lugares automaticamente.
-        const APP_VERSAO = "Beta v1.466.0"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
+        const APP_VERSAO = "Beta v1.467.0"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
 
         // ====================================================================
         // v1.105.0 — HELPERS DE SUPERFÍCIE DA GRAMÁTICA ÚNICA
@@ -6400,19 +6401,17 @@ async function criarLinkVitrineSupabase(token, idsSelecionados) {
             if (typeof rzAtualizarFaixaSemRede === 'function') rzAtualizarFaixaSemRede(); // v1.302.0
         }
         // v1.302.0 — a faixa diz de quando é o dado mostrado (a resposta guardada mais antiga em uso)
-        // v1.303.0 (UX F2.2) — número da aba Alertas: mesmo total ponderado do chip "Todos" (pesoAlerta),
-        // cor da pior severidade (crítico › atenção › informativo). Some quando não há nada.
+        // Selo da aba Agenda (onda 4, dem 15146a34): só crítico ou vencido, em vermelho, "9+" acima de 9
         function rzAtualizarNumeroAlertas(visiveis) {
             const el = document.getElementById('nav-alertas-n'); if (!el) return;
-            const lista = Array.isArray(visiveis) ? visiveis : [];
+            const lista = (Array.isArray(visiveis) ? visiveis : []).filter(r => r.severidade === 'critico' || (r.dias != null && r.dias < 0));
             const total = lista.reduce((s, r) => s + (typeof pesoAlerta === 'function' ? pesoAlerta(r) : 1), 0);
             el.classList.remove('rz-bad', 'rz-warn');
             if (!total) { el.classList.add('hidden'); el.textContent = ''; return; }
-            const pior = lista.some(r => r.severidade === 'critico') ? 'rz-bad' : (lista.some(r => r.severidade === 'atencao') ? 'rz-warn' : '');
-            if (pior) el.classList.add(pior);
-            el.textContent = total > 99 ? '99+' : String(total);
+            el.classList.add('rz-bad');
+            el.textContent = total > 9 ? '9+' : String(total);
             el.classList.remove('hidden');
-            el.setAttribute('aria-label', `${total} alerta${total > 1 ? 's' : ''}`);
+            el.setAttribute('aria-label', `${total} crítico${total > 1 ? 's' : ''} ou vencido${total > 1 ? 's' : ''}`);
         }
         // Ativos com algum alerta do Motor (o chip "Com alerta" de Ativos lê daqui — cofre-ativos.js)
         window.rzAtivosComAlerta = function () {

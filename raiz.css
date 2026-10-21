@@ -1,6 +1,10 @@
 /* ============================================================================
    raiz.css — Raiz Patrimônio · estilos do app (index.html)
-   Versão: 1.5.0 · 21/10/2026
+   Versão: 1.6.0 · 21/10/2026
+
+   v1.6.0 (21/10/2026, sessão 20261021-1735-ux-onda4, demanda 15146a34; Nicola 21/10 17:31, "siga com a onda 4") — onda 4:
+   cabeçalho da ficha mais justo (o tipo e a situação encostam no nome; o ícone e o ⋮ deixam de esticar a 1ª linha);
+   no computador, o menu das iniciais abre como painel de 360 px preso ao canto do avatar, não como gaveta de altura toda.
 
    v1.5.0 (21/10/2026, sessão 20261021-1235-ux-onda3, demanda 15146a34; Nicola 21/10 12:33, "pode fazer a onda 3") — onda 3: a seta ‹ da ficha do ativo e do contrato sobe para a linha
    do nome (iPhone e computador; no Android não há seta); faixa Aluguel · Em aberto · Fim do contrato; abas das fichas com
@@ -1788,3 +1792,19 @@ html.rz-plat-web body:not(.rz-split-con) #ficha-contrato-conteudo > .rz-entity:f
 @media (max-width:600px){#fc-chips,#fa-chips{-webkit-mask-image:linear-gradient(90deg,#000 calc(100% - 28px),transparent);mask-image:linear-gradient(90deg,#000 calc(100% - 28px),transparent);padding-right:24px}}
 /* subtítulo do cabeçalho global numa linha (antes "Plano Premium ampliado · 8 ativos" quebrava e o topo crescia) */
 .rz-hdr .rz-brand small{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+/* Onda 4 (raiz.css 1.6.0, dem 15146a34) — cabeçalho da ficha (ativo e contrato) com ⋮.
+   Antes o ícone de 40 px e o ⋮ de 44 px ficavam na 1ª linha do flex e a esticavam: "Conjunto · Ocupado" ficava ~40 px
+   abaixo do nome (Nicola 21/10 17:31, "muito espaçado"). O ícone sai do fluxo e centraliza no bloco; o ⋮ perde a altura
+   (margem negativa, o alvo de toque continua 44 px). Fica: nome, 2 px, tipo e situação. */
+.rz-entity:has(> .rz-more-topo){position:relative;min-height:40px;row-gap:2px}
+.rz-entity:has(> .rz-more-topo) > .rz-ic{position:absolute;left:0;top:50%;transform:translateY(-50%);margin:0}
+.rz-entity:has(> .rz-more-topo) > .rz-more-topo{margin:-12px -8px -12px 0}
+/* Computador: o menu das iniciais é painel de 360 px no canto do avatar (abre embaixo dele), com véu leve; os outros
+   sheets continuam gaveta à direita. A classe rz-menu-conta é posta pelo abrirMenuConta (conta.js) e o abrirSheet a
+   limpa ao abrir qualquer outro sheet, então a regra não vaza. */
+@media (min-width:1024px){
+    .rz-veil:has(> .rz-sheet.rz-menu-conta){align-items:flex-start;justify-content:flex-end;padding:68px 20px 0 0;background:rgba(23,33,30,.16)}
+    .rz-sheet.rz-menu-conta{max-width:360px;height:auto;max-height:calc(100dvh - 88px);border-radius:16px;box-shadow:0 18px 48px -16px rgba(23,33,30,.45);transform:translateY(-6px)}
+    .rz-veil.rz-on .rz-sheet.rz-menu-conta{transform:none}
+}

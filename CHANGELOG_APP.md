@@ -4,6 +4,17 @@ Histórico completo de versões do `index.html`, movido automaticamente pelo `ge
 
 ---
 
+NOVIDADES (Beta v1.463.0) — ONDA 2, LISTA DO PATRIMÔNIO (Nicola 21/10 12:02): vencido por extenso numa linha própria
+("Dedetização periódica · venceu há 11 dias"); situação sem fundo; Controles sem "Em dia" com item vencido. Aqui só versão.
+Versão anterior (Beta v1.462.0):
+DATA: 21/10/2026 (sessão 20261021-1040-ux-subativos, demanda 15146a34)
+------------------------------------------------------------------
+Versões anteriores (v1.462.0 … v1.462.0): CHANGELOG_APP.md, na raiz do
+repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
+das 5 versões mais recentes deste cabeçalho.
+
+---
+
 NOVIDADES (Beta v1.462.0) — SUB-ATIVOS (Nicola 21/10 10:35): a quantidade volta para o ícone (ramo e grupo) e a linha que
 liga os sub-ativos fica mais curta, com ícone menor — o nome ganha ~26 px. Aqui só versão e import map.
 Versão anterior (Beta v1.461.0):
