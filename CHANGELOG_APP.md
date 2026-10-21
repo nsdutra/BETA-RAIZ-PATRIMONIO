@@ -4,6 +4,18 @@ Histórico completo de versões do `index.html`, movido automaticamente pelo `ge
 
 ---
 
+NOVIDADES (Beta v1.460.0) — FAIXA DO RAMO E MENU DAS INICIAIS (de acordo do Nicola 21/10 09:01): faixa do ramo em fundo
+claro com a quantidade ao lado do nome; menu das iniciais com cabeçalho verde, Trocar, valor à direita e Sair à parte.
+Aqui só versão e import map; o resto em raiz.css 1.1.0, cofre-ativos.js 1.141.0 e conta.js 1.4.0.
+Versão anterior (Beta v1.459.0):
+DATA: 21/10/2026 (sessão 20261021-0857-libs-sob-demanda, demanda 6b11c602)
+------------------------------------------------------------------
+Versões anteriores (v1.459.0 … v1.459.0): CHANGELOG_APP.md, na raiz do
+repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
+das 5 versões mais recentes deste cabeçalho.
+
+---
+
 NOVIDADES (Beta v1.459.0) — BIBLIOTECAS PESADAS SÓ QUANDO USADAS (de acordo do Nicola 21/10 08:57): xlsx, jsPDF,
 pdf.js, JSZip e html2canvas saem do head (1,9 MB de JavaScript processados em toda abertura) e carregam na primeira
 exportação ou leitura de arquivo, pelo carregador js/nucleo/bibliotecas.js 1.0.0. Aqui: os três PDFs de relatório

@@ -1,6 +1,10 @@
 /* ============================================================================
    raiz.css — Raiz Patrimônio · estilos do app (index.html)
-   Versão: 1.4.1 · 21/10/2026
+   Versão: 1.5.0 · 21/10/2026
+
+   v1.5.0 (21/10/2026, sessão 20261021-1235-ux-onda3, demanda 15146a34; Nicola 21/10 12:33, "pode fazer a onda 3") — onda 3: a seta ‹ da ficha do ativo e do contrato sobe para a linha
+   do nome (iPhone e computador; no Android não há seta); faixa Aluguel · Em aberto · Fim do contrato; abas das fichas com
+   a borda direita esmaecida quando rolam; subtítulo do cabeçalho global numa linha só.
 
    v1.4.1 (21/10/2026, sessão 20261021-1205-ux-onda2, demanda 15146a34) — correção: a linha do alerta saía cinza; a cor
    do texto secundário da linha (.rz-row .rz-tx span) vencia a cor do alerta. Seletor do alerta com o mesmo peso.
@@ -1760,3 +1764,27 @@ body{color:var(--ink)}
 #ativos-lista .rz-row[data-grade]:has(.rz-al)>.rz-subs-toggle{grid-row:1/span 4}
 /* situação na lista: ponto + texto, sem a pílula de fundo (a pílula fica no cabeçalho da ficha) */
 #ativos-lista .rz-tx-st .rz-st{background:none;padding:0}
+
+/* Onda 3 — cabeçalho das fichas (raiz.css 1.5.0, dem 15146a34).
+   A seta deixa de ocupar uma linha: fica por cima, à esquerda do ícone, e o cabeçalho recua 30 px. Só onde a seta aparece
+   (iPhone e computador, UXR-51) e fora da ficha ao lado da lista (no computador a lista está à vista e a seta some).
+   ARMADILHA: o recuo do cabeçalho tem de seguir as mesmas condições da seta, senão sobra um buraco no Android. */
+[data-screen="ficha-ativo"],#tab-contrato-ficha{position:relative}
+#ficha-contrato-conteudo{margin-top:0}
+html.rz-plat-ios body:not(.rz-split-at) [data-screen="ficha-ativo"] > .rz-back,
+html.rz-plat-web body:not(.rz-split-at) [data-screen="ficha-ativo"] > .rz-back,
+html.rz-plat-ios body:not(.rz-split-con) #tab-contrato-ficha > #fc-voltar,
+html.rz-plat-web body:not(.rz-split-con) #tab-contrato-ficha > #fc-voltar{position:absolute;top:-2px;left:-12px;margin:0;z-index:1}
+html.rz-plat-ios body:not(.rz-split-at) [data-screen="ficha-ativo"] > #fa-cabecalho,
+html.rz-plat-web body:not(.rz-split-at) [data-screen="ficha-ativo"] > #fa-cabecalho,
+html.rz-plat-ios body:not(.rz-split-con) #ficha-contrato-conteudo > .rz-entity:first-child,
+html.rz-plat-web body:not(.rz-split-con) #ficha-contrato-conteudo > .rz-entity:first-child{margin-top:0;margin-left:30px}
+/* faixa de números da ficha do contrato */
+.rz-fc-faixa{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;padding:8px 0 10px;margin:-4px 0 6px;border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
+.rz-fc-faixa small{display:block;font-size:var(--fs-sec,12.5px);color:var(--muted)}
+.rz-fc-faixa b{display:block;font:700 var(--fs-titulo,17px)/1.25 var(--font-title);color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-variant-numeric:tabular-nums}
+.rz-fc-faixa b.rz-neg{color:var(--danger)}
+/* abas das fichas: no celular a borda direita esmaece, sinal de que a fileira rola */
+@media (max-width:600px){#fc-chips,#fa-chips{-webkit-mask-image:linear-gradient(90deg,#000 calc(100% - 28px),transparent);mask-image:linear-gradient(90deg,#000 calc(100% - 28px),transparent);padding-right:24px}}
+/* subtítulo do cabeçalho global numa linha (antes "Plano Premium ampliado · 8 ativos" quebrava e o topo crescia) */
+.rz-hdr .rz-brand small{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}

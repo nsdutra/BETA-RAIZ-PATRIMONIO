@@ -1,7 +1,13 @@
 // ============================================================================
 // contratos.js — Raiz Patrimônio · Contratos (lista · ficha · formulário ·
 //                 status/reajuste/detalhes · fiadores · documentos · histórico)
-// Versão: 1.64.0 · 20/10/2026
+// Versão: 1.65.0 · 21/10/2026
+//
+// v1.65.0 (21/10/2026, sessão 20261021-1235-ux-onda3, demanda 15146a34; Nicola 21/10 12:33, "pode fazer a onda 3") — ONDA 3, cabeçalho da ficha do contrato: o título é o imóvel e o
+//   locatário vai na linha de baixo (antes o nome do locatário quebrava em 2 linhas e o valor partia no meio); abaixo, a faixa
+//   Aluguel · Em aberto · Fim. As Condições continuam com Início e Fim inteiros. Estilo no raiz.css 1.5.0. Achado: "Editar
+//   contrato" com descrição dentro do limite ("Datas, valor e índice").
+// Versão anterior: 1.64.0 · 20/10/2026
 //
 // v1.64.0 (20/10/2026, sessão 20261020-2302-contrato-menu, demanda e83c2a46; de acordo do Nicola 23:02) — ficha do contrato: o ⋮
 // do topo fica só com a Situação (Ativar, Suspender, Reativar, Encerrar, Excluir) e Gerar minuta. Cada ação vai para o card do
@@ -28,13 +34,8 @@
 // contrato de Arrendamento (modelo 'arrendamento', aberto pela gleba ou pela fazenda) o formulário fala a língua do campo:
 // Imóvel → Área arrendada, Locatário → Arrendatário, Aluguel → Valor do arrendamento. Nos outros modelos volta o texto de
 // sempre (rotularFormContratoPorModelo, chamada por prepararCampoTipoContrato).
-// Versão anterior: 1.60.0 · 14/10/2026
-//
-// v1.60.0 (14/10/2026, sessão 20261014-2215-ajustes-9d, demanda a05ad2ee; teste do Nicola 14/10 22:12 — "no menu ativos achei
-// uns itens ainda grandinhos") — textos dentro de condição (sub/titulo com ? :) e dicionários de descrição também no limite
-// da D6 (ação 24, descrição 28). Nada de comportamento mudou.
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.58.0 … v1.59.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.60.0 … v1.60.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
 import { avaliarProntidaoContratoParaMinuta } from './minutas.js'; // v1.0.1
@@ -46,7 +47,19 @@ import { emitirEscrita, aoEscrever } from './raiz-eventos.js'; // v1.18.0 — Fa
 import { renderizarBlocoEndereco, lerBlocoEndereco } from './comum-endereco.js';
 import { formatarEnderecoParte } from './comum-partes.js';
 
-export const VERSAO = '1.64.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.65.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+
+// Faixa do cabeçalho da ficha do contrato: o resumo que se procura primeiro (valor, o que está em aberto e até quando vai).
+// Fim em mês/ano curto ("fev/28"); a data inteira fica no card Condições.
+function fcFaixaNumerosHtml(con, atrasadas) {
+    const meses = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez'];
+    const m = /^(\d{4})-(\d{2})/.exec(String(con.fim || ''));
+    const fim = m ? `${meses[Number(m[2]) - 1]}/${m[1].slice(2)}` : 'sem fim';
+    const valor = typeof formatarMoedaBR === 'function' ? formatarMoedaBR(con.valor).replace(/,00$/, '') : String(con.valor || '');
+    const n = (atrasadas || []).length;
+    const aberto = n ? `<b class="rz-neg">${n} ${n === 1 ? 'mês' : 'meses'}</b>` : '<b>em dia</b>';
+    return `<div class="rz-fc-faixa"><div><small>Aluguel</small><b>${valor}</b></div><div><small>Em aberto</small>${aberto}</div><div><small>Fim</small><b>${fim}</b></div></div>`;
+}
 
 /** Ponto de entrada do switchTab('tab-contratos'). */
 export function montarAbaContratos() {
@@ -1643,11 +1656,12 @@ if (!window.__rzListenerEscritaParteContratoLigado) {
             document.getElementById('ficha-contrato-conteudo').innerHTML = `
                 <div class="rz-entity">
                     <div class="rz-ic"><svg data-lucide="${con.status === 'Assinando' ? 'file-signature' : 'file-text'}"></svg></div>
-                    <div class="rz-tx"><b>${escapeHtmlSaidas(con.locatario || 'Locatário não informado')}</b><span>${con.tipoContrato && nomeTipoContrato(con.tipoContrato) ? escapeHtmlSaidas(nomeTipoContrato(con.tipoContrato)) + ' · ' : ''}${escapeHtmlSaidas(enderecoCurto)} · ${formatarMoedaBR(con.valor)}/mês</span></div>
+                    <div class="rz-tx"><b>${escapeHtmlSaidas(imo ? enderecoCurto : (con.locatario || 'Locatário não informado'))}</b><span>${escapeHtmlSaidas(imo ? (con.locatario || 'Locatário não informado') : (con.tipoContrato && nomeTipoContrato(con.tipoContrato) ? nomeTipoContrato(con.tipoContrato) : 'Contrato'))}</span></div>
                     ${statusFicha}
                     <!-- v1.52.0 (UX onda 3, D11) — o ⋮ do topo é o lugar de todas as ações do contrato, em grupos -->
                     <button type="button" onclick="abrirAcoesFichaContrato('${con.id}')" class="rz-more rz-more-topo" id="fc-mais" aria-label="Ações do contrato"><svg data-lucide="ellipsis-vertical"></svg></button>
                 </div>
+                ${fcFaixaNumerosHtml(con, atrasadas)}
                 <div class="rz-chips" id="fc-chips">
                     <button type="button" class="rz-chip rz-on" data-fc-chip="resumo" onclick="fcTrocarChip('resumo')">Resumo</button>
                     <button type="button" class="rz-chip ${atrasadas.length ? 'rz-warn' : ''}" data-fc-chip="cobrancas" onclick="fcTrocarChip('cobrancas')">Financeiro <span class="rz-n">${atrasadas.length}</span></button>
@@ -2810,7 +2824,7 @@ if (!window.__rzListenerEscritaParteContratoLigado) {
             if (!con || typeof abrirSheetAcoes !== 'function') return;
             const acoes = [
                 { icone: 'file-text', titulo: 'Dados do contrato', codigo: 'contratos.ver', sub: 'Só leitura', aoTocar: () => abrirDadosContratoLeitura(con.id) },
-                { icone: 'pencil', titulo: 'Editar contrato', codigo: 'contratos.editar', sub: 'Datas, valor, índice e partes', aoTocar: () => abrirEdicaoContratoContextual(con.id, 'fichaContrato', con.id) },
+                { icone: 'pencil', titulo: 'Editar contrato', codigo: 'contratos.editar', sub: 'Datas, valor e índice', aoTocar: () => abrirEdicaoContratoContextual(con.id, 'fichaContrato', con.id) },
             ];
             if (con.status !== 'Assinando') acoes.push({ icone: 'refresh-cw', titulo: 'Renovar contrato', codigo: 'contratos.estender', sub: 'Novo fim e valor', aoTocar: () => renovarContrato(con.id) });
             abrirSheetAcoes({ titulo: 'Condições', sub: con.locatario || 'Contrato', acoes });
