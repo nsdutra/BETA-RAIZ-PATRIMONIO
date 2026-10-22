@@ -1,6 +1,11 @@
 // ============================================================================
 // cofre-ativos.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.146.0 · 22/10/2026
+// Versão: 1.147.0 · 22/10/2026
+//
+// v1.147.0 (22/10/2026, sessão 20261022-1035-computador-c1, demanda 15146a34; PROTOTIPO_COMPUTADOR_RAIZ v1.0.0, de acordo do
+//   Nicola 22/10 10:32) — sai o cabeçalho de colunas da tabela do Patrimônio e a ordenação por ele (a linha já se explica;
+//   Nicola 09:51: "não acho que precisa do cabeçalho"). As colunas alinhadas ficam (raiz.css).
+// Versão anterior: 1.146.0 · 22/10/2026
 //
 // v1.146.0 (22/10/2026, sessão 20261022-0850-ux-onda5c, demanda 15146a34; Nicola 22/10 08:45, "pode seguir") — onda 5c, computador:
 //   a tabela do Patrimônio ganha o cabeçalho das colunas (Ativo · Situação · Locatário · Aluguel/mês · Valor) logo abaixo da
@@ -24,15 +29,11 @@
 //   deixa de ser o selo "há 11d" ao lado do valor e vira uma linha embaixo, na largura toda, dizendo o quê e quando
 //   ("Dedetização periódica · venceu há 11 dias", "+1" quando há mais); o que vence nos próximos 30 dias continua no
 //   selo azul "Em 9d". Situação (Alugado, Disponível) sem fundo na lista (raiz.css 1.4.0).
-// Versão anterior: 1.143.0 · 21/10/2026
-//
-// v1.143.0 (21/10/2026, sessão 20261021-1040-ux-subativos, demanda 15146a34; Nicola 21/10 10:35: "prefiro o número nos ícones") — a quantidade volta para o
-//   ícone, no ramo e no ativo com sub-ativos (selo no canto do ícone); a linha dos sub-ativos fica mais curta (raiz.css 1.3.0).
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.142.0 … v1.142.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.143.0 … v1.143.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '1.146.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.147.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 import { estado } from './cofre-estado.js';
 import { carregarBiblioteca } from './nucleo/bibliotecas.js'; // bibliotecas pesadas, sob demanda (dem 6b11c602)
 import * as api from './cofre-api.js';
@@ -662,22 +663,8 @@ export function renderAtivosLista(filtroTipo = '', filtroTexto = '') {
     const totalGrupo = (l) => { const c = l.filter(a => a.valor_referencia != null); return c.length ? compacto(c.reduce((t, a) => t + Number(a.valor_referencia || 0), 0)) : ''; };
     const listaHtml = (itens) => porEmp(itens).map(e => `
         ${e.nome ? `<div class="rz-group rz-group-t"><span>${escapeHtml(e.nome)} · ${e.itens.length}</span>${totalGrupo(e.itens) ? `<b>${totalGrupo(e.itens)}</b>` : ''}</div>` : ''}
-        <div class="rz-card rz-list">${ordenarTabelaAtivos(e.itens).map(soArquivados ? ativoCardArquivadoHtml : ativoComSubativosHtml).join('')}</div>`).join('');
-    // v1.146.0 — cabeçalho da tabela (só computador, raiz.css) logo abaixo da faixa do ramo que tem imóveis com a grade
-    const comCab = (itens) => !soArquivados && itens.some(a => resumoImoveisPorId.has(a.id)) ? cabecalhoTabelaAtivos() : '';
-    container.innerHTML = blocos.map(bl => (bl.ramo ? cardRamo(bl.ramo, bl.itens) + (ramosRecolhidos.has(bl.ramo.replace(/[^a-z_]/g, '')) ? '' : comCab(bl.itens) + listaHtml(bl.itens)) : comCab(bl.itens) + listaHtml(bl.itens))).join('') + (soArquivados ? '' : cardConvite);
-    if (!container.dataset.rzOrdem) { // v1.146.0 — um ouvinte só, no container que fica
-        container.dataset.rzOrdem = '1';
-        container.addEventListener('click', ev => {
-            const b = ev.target.closest && ev.target.closest('[data-at-ordem]');
-            if (!b) return;
-            ev.stopPropagation();
-            const c = b.dataset.atOrdem;
-            ordemTabelaAtivos = ordemTabelaAtivos && ordemTabelaAtivos.col === c ? { col: c, dir: -ordemTabelaAtivos.dir }
-                : { col: c, dir: (c === 'nome' || c === 'locatario') ? 1 : -1 };
-            redesenharComFiltros();
-        });
-    }
+        <div class="rz-card rz-list">${e.itens.map(soArquivados ? ativoCardArquivadoHtml : ativoComSubativosHtml).join('')}</div>`).join('');
+    container.innerHTML = blocos.map(bl => (bl.ramo ? cardRamo(bl.ramo, bl.itens) + (ramosRecolhidos.has(bl.ramo.replace(/[^a-z_]/g, '')) ? '' : listaHtml(bl.itens)) : listaHtml(bl.itens))).join('') + (soArquivados ? '' : cardConvite);
 
     // v1.121.0 (item 33, Nicola 19/10 11:19) — lente de um ramo sem nenhum ativo mostra o card de cadastro daquele ramo (antes:
     // "Todos 0" e um card vazio). Com ativo mas sem resultado na busca/chip, uma linha de texto, nunca um card em branco.
@@ -1106,33 +1093,6 @@ window.__rzAlternarSubativos = (id, btn) => {
     refrescarIcones();
 };
 
-// v1.146.0 — ordem da tabela do computador: null = a de sempre (por empreendimento e nome); senão a coluna tocada no cabeçalho.
-// Vale dentro de cada empreendimento; o agrupamento não muda.
-let ordemTabelaAtivos = null;
-function chaveTabelaAtivo(a, col) {
-    const p = resumoImoveisPorId.get(a.id)?.contratoPrincipal;
-    const vig = !!p && String(p.status || '').toLowerCase() === 'ativo';
-    if (col === 'valor') return a.valor_referencia != null ? Number(a.valor_referencia) : -Infinity;
-    if (col === 'aluguel') return vig && p.valor != null ? Number(p.valor) : -Infinity;
-    if (col === 'locatario') return vig ? String(p.locatario || '') : '';
-    return String(a.nome_exibicao || '');
-}
-function ordenarTabelaAtivos(itens) {
-    if (!ordemTabelaAtivos) return itens;
-    const { col, dir } = ordemTabelaAtivos;
-    return [...itens].sort((x, y) => {
-        const a = chaveTabelaAtivo(x, col), b = chaveTabelaAtivo(y, col);
-        const r = typeof a === 'number' ? (a - b) : String(a).localeCompare(String(b), 'pt-BR');
-        return (r || String(x.nome_exibicao || '').localeCompare(String(y.nome_exibicao || ''), 'pt-BR')) * (r ? dir : 1);
-    });
-}
-function cabecalhoTabelaAtivos() {
-    const col = (c, rot, dir) => {
-        const on = ordemTabelaAtivos && ordemTabelaAtivos.col === c;
-        return `<button type="button" class="rz-tab-c${dir ? ' rz-tab-dir' : ''}${on ? ' rz-on' : ''}" data-at-ordem="${c}" aria-label="Ordenar por ${rot}">${rot}${on ? (ordemTabelaAtivos.dir > 0 ? ' ↑' : ' ↓') : ''}</button>`;
-    };
-    return `<div class="rz-tab-h rz-tab-h-at" role="row"><span></span>${col('nome', 'Ativo')}<span class="rz-tab-c">Situação</span>${col('locatario', 'Locatário')}${col('aluguel', 'Aluguel/mês', true)}${col('valor', 'Valor', true)}<span></span></div>`;
-}
 // v1.145.0 — dias (negativos) dos recebimentos em atraso do ativo, do mais antigo ao mais novo. Fonte: alertas do Motor já
 // carregados pelo index (atraso_pagamento: mensalidade de contrato vencida e não recebida; detalhe.ativo_id = ativo do contrato).
 function atrasosDeRecebimento(id) {

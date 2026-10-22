@@ -4,6 +4,18 @@ Histórico completo de versões do `index.html`, movido automaticamente pelo `ge
 
 ---
 
+NOVIDADES (Beta v1.467.0) — ONDA 4 (Nicola 21/10 17:31): selo da Agenda só com crítico ou vencido, "9+"; menu das
+iniciais como painel no computador; cabeçalho da ficha mais justo; aluguel em atraso na linha da lista; ícone do item
+na Agenda (raiz.css 1.6.0, cofre-ativos 1.145.0, agenda 1.11.0).
+Versão anterior (Beta v1.466.0):
+DATA: 21/10/2026 (sessão 20261021-1732-icones-raiz, demanda 6b11c602)
+------------------------------------------------------------------
+Versões anteriores (v1.466.0 … v1.466.0): CHANGELOG_APP.md, na raiz do
+repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
+das 5 versões mais recentes deste cabeçalho.
+
+---
+
 NOVIDADES (Beta v1.466.0) — ÍCONES RECORTADOS: Lucide inteira (665 KB) → icones-raiz.js 1.0.0 (67 KB, 322 ícones);
 ícone fora do recorte carrega a Lucide inteira. sw.js 3.4.
 Versão anterior (Beta v1.465.0):

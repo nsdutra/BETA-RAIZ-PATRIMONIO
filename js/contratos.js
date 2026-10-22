@@ -1,7 +1,12 @@
 // ============================================================================
 // contratos.js — Raiz Patrimônio · Contratos (lista · ficha · formulário ·
 //                 status/reajuste/detalhes · fiadores · documentos · histórico)
-// Versão: 1.66.0 · 22/10/2026
+// Versão: 1.67.0 · 22/10/2026
+//
+// v1.67.0 (22/10/2026, sessão 20261022-1035-computador-c1, demanda 15146a34; PROTOTIPO_COMPUTADOR_RAIZ v1.0.0, de acordo do
+//   Nicola 22/10 10:32) — sai o cabeçalho de colunas da lista de Contratos e a ordenação por ele (mesma decisão do
+//   Patrimônio). As colunas e a linha de baixo em partes ficam.
+// Versão anterior: 1.66.0 · 22/10/2026
 //
 // v1.66.0 (22/10/2026, sessão 20261022-0850-ux-onda5c, demanda 15146a34; Nicola 22/10 08:45, "pode seguir") — onda 5c, computador:
 //   a lista de Contratos vira tabela (Locatário · Imóvel · Fim · Aluguel · Situação) com cabeçalho que ordena dentro de cada
@@ -24,18 +29,8 @@
 // v1.63.0 (20/10/2026, sessão 20261020-2245-contratos-lista, demanda a871b47d; de acordo do Nicola 22:45) — a lista de
 // contratos (Patrimônio › Contratos) saiu. A edição aberta da ficha não troca mais de aba; o Voltar da ficha sem origem vai
 // para o ativo do contrato (ou para o Hoje, se não houver ativo) e o botão diz "Ativo" ou "Hoje", nunca "Contratos".
-// Versão anterior: 1.62.0 · 19/10/2026
-//
-// v1.62.0 (19/10/2026, sessão 20261019-2217-carga-silva-arrend, demanda 9404081c item 55; ficha aprovada pelo Nicola 21:54 e 22:17)
-// — CONTRATO DE ARRENDAMENTO RURAL com os campos do tipo (contratos.dados_modelo): Atividade (define o prazo mínimo do
-// Decreto 59.566/66: 3, 5 ou 7 anos — aviso, não bloqueia), Área arrendada (ha, vem da área do bem), Pagamento (anual, na
-// colheita ou mensal, com mês e dia: o anual e o da colheita geram um recebimento por ano no banco), Equivalente em produto
-// (só referência; o preço segue em R$), ITR e CCIR (quem paga), Benfeitorias e bens incluídos e Valor cadastral (VTN, opcional:
-// avisa quando o valor passa de 15%). Saem do formulário: Encargos (IPTU/condomínio), Aluguel antecipado e Desconto de
-// energia; o Dia de vencimento vem do Pagamento. Reajuste e revisional seguem o caminho de sempre (o reajuste "pelo produto"
-// ficou no backlog).
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.61.0 … v1.61.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.62.0 … v1.62.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
 import { avaliarProntidaoContratoParaMinuta } from './minutas.js'; // v1.0.1
@@ -47,7 +42,7 @@ import { emitirEscrita, aoEscrever } from './raiz-eventos.js'; // v1.18.0 — Fa
 import { renderizarBlocoEndereco, lerBlocoEndereco } from './comum-endereco.js';
 import { formatarEnderecoParte } from './comum-partes.js';
 
-export const VERSAO = '1.66.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.67.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 
 // Faixa do cabeçalho da ficha do contrato: o resumo que se procura primeiro (valor, o que está em aberto e até quando vai).
 // Fim em mês/ano curto ("fev/28"); a data inteira fica no card Condições.
@@ -4935,12 +4930,6 @@ if (!window.__rzListenerEscritaParteContratoLigado) {
             renderContratos();
         }
 
-        // v1.66.0 — ordem da tabela de Contratos (computador): toque na coluna ordena; toque de novo inverte
-        window.rzOrdenarContratos = (c) => {
-            const o = window.rzOrdemTabelaCon;
-            window.rzOrdemTabelaCon = o && o.col === c ? { col: c, dir: -o.dir } : { col: c, dir: (c === 'valor') ? -1 : 1 };
-            renderContratos();
-        };
         export function renderContratos() {
 
             const container = document.getElementById('lista-contratos');
@@ -5019,25 +5008,12 @@ if (!window.__rzListenerEscritaParteContratoLigado) {
                 return rs('neu', con.status === 'Finalizado' ? 'Encerrado' : (con.status || '—'));
             };
             atualizarRotuloBuscaContratos();
-            const ordemT = window.rzOrdemTabelaCon || null; // v1.66.0 — coluna tocada no cabeçalho (computador)
-            const chaveT = (c, col) => {
-                if (col === 'valor') return Number(c.valor) || 0;
-                if (col === 'fim') return c.fim ? String(c.fim) : '9999';
-                if (col === 'imovel') { const im = imoveis.find(i => i.id === c.imovelId); return im ? `${im.enderecoRua || ''} ${String(im.enderecoNum || '').padStart(6, '0')}` : ''; }
-                return c.locatario || '';
-            };
             const ordenados = contratos.filter(passaFiltroContrato).sort((a, b) => {
                 const imoA = imoveis.find(i => i.id === a.imovelId);
                 const imoB = imoveis.find(i => i.id === b.imovelId);
                 const empA = imoA ? imoA.empreendimento : '';
                 const empB = imoB ? imoB.empreendimento : '';
-                if (empA !== empB) return empA.localeCompare(empB);
-                if (ordemT) {
-                    const x = chaveT(a, ordemT.col), y = chaveT(b, ordemT.col);
-                    const r = typeof x === 'number' ? x - y : String(x).localeCompare(String(y), 'pt-BR');
-                    if (r) return r * ordemT.dir;
-                }
-                return (a.locatario || '').localeCompare(b.locatario || '');
+                return empA.localeCompare(empB) || (a.locatario || '').localeCompare(b.locatario || '');
             });
             ultimaContagemContratos = ordenados.length;
             if (!ordenados.length) {
@@ -5054,12 +5030,7 @@ if (!window.__rzListenerEscritaParteContratoLigado) {
                 return;
             }
             const empDe = (c) => { const im = imoveis.find(i => i.id === c.imovelId); return im ? (im.empreendimento || 'Sem empreendimento') : 'Sem imóvel'; };
-            // v1.66.0 — cabeçalho da tabela (só computador, raiz.css 1.9.0); o toque ordena e toca de novo inverte
-            const colT = (c, rot, dir) => {
-                const on = ordemT && ordemT.col === c;
-                return `<button type="button" class="rz-tab-c${dir ? ' rz-tab-dir' : ''}${on ? ' rz-on' : ''}" onclick="rzOrdenarContratos('${c}')" aria-label="Ordenar por ${rot}">${rot}${on ? (ordemT.dir > 0 ? ' ↑' : ' ↓') : ''}</button>`;
-            };
-            let html = `<div class="rz-tab-h rz-tab-h-con" role="row"><span></span>${colT('locatario', 'Locatário')}${colT('imovel', 'Imóvel')}${colT('fim', 'Fim')}${colT('valor', 'Aluguel', true)}<span class="rz-tab-c rz-tab-dir">Situação</span><span></span></div>`, grupoAtual = null;
+            let html = '', grupoAtual = null;
             ordenados.forEach(con => {
                 const imo = imoveis.find(i => i.id === con.imovelId);
                 const emp = empDe(con);

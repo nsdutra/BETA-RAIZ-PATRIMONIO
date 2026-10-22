@@ -1,8 +1,14 @@
 // =====================================================================
 // RAIZ PATRIMÔNIO — js/resultados.js
-// VERSÃO: Beta v2.16.0 (20/10/2026 — demanda 87ff1a11)
+// VERSÃO: Beta v2.17.0 (22/10/2026 — demanda 15146a34)
 // LINHAS: (ver versoes.json)
 // -----------------------------------------------------------------
+// NOVIDADES (Beta v2.17.0) (22/10/2026, sessão 20261022-1035-computador-c1, demanda 15146a34; PROTOTIPO_COMPUTADOR_RAIZ v1.0.0,
+//   de acordo do Nicola 22/10 10:32) — Hoje no computador (≥ 1024 px) em 2 colunas: à esquerda o que responde "como vai"
+//   (Resultado por ramo, mês a mês, por grupo, concentração, reajustes, revisional); à direita o apoio (contratos por
+//   índice, carteira × indicadores, performance). O gráfico de colunas desenha com 640 de largura no computador (antes 320
+//   esticado: os números chegavam a 40 px). No celular nada muda.
+// Versão anterior (Beta v2.16.0):
 // NOVIDADES (Beta v2.16.0) (20/10/2026, sessão 20261018-2336-usos-lotes, demanda 87ff1a11; Nicola 13:38, de acordo 14:01) — lente
 //   Obras: sem obra com etapas, o box "Avanço físico · Entrega dez/27" vira "Falta pagar": saldo somado dos planos de pagamento e
 //   as parcelas que faltam ("6 parcelas"; com mais de um plano, "· N obras"). A data de entrega fica só em Obras em andamento.
@@ -93,7 +99,7 @@
 // Versões anteriores (v2.4.0 … v2.4.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '2.16.0';
+export const VERSAO = '2.17.0';
 
 // ---------------------------------------------------------------------
 // Estado do filtro (module-scoped — sobrevive entre renders porque o
@@ -638,19 +644,25 @@ async function renderizarConteudo() {
                 cardGeral = `<div class="rz-card"><h3 class="rz-plain-title">Geral · sem ativo · ${filtro.ano}</h3><p class="rz-desc">Lançamentos que não estão ligados a um ativo: contam em Todo o patrimônio e em ramo nenhum. Receitas ${fmt(rec)} · despesas ${fmt(desp)}.</p></div>`;
             }
         }
-        alvo.innerHTML = [
+        const cIndice = cardsLocacao ? montarContratosPorIndice(indicesR) : ''; // v2.5.0
+        const cIndicador = p_ramo === 'obras' ? '' : montarGraficoIndicador(graficoIndicador); // v2.15.0 — não serve para obra
+        const cPerf = filtro.contexto !== 'familia' && p_ramo !== 'obras' ? montarPerformanceGrid(perf) : ''; // v1.8.0 · v2.15.0
+        const esq = [
             cardPorRamo, // v2.11.0 — logo abaixo do herói: "qual ramo dá resultado"
             p_ramo ? montarCardsDoRamo(p_ramo, indRamo) : '', // v2.11.0 — os números da operação do ramo
             p_ramo === 'obras' ? montarGraficoInvestido(indRamo) : montarGraficoMensal(mensal), // v2.15.0 (dem 87ff1a11) — Obras: investido por mês
             montarPorGrupo(porGrupo), // v2.3.0
             cardGeral, // v2.9.0 (F23)
-            cardsLocacao ? montarContratosPorIndice(indicesR) : '', // v2.5.0
-            p_ramo === 'obras' ? '' : montarGraficoIndicador(graficoIndicador), // v2.15.0 — não serve para obra
+        ];
+        const fim = [
             cardsLocacao ? montarConcentracao(concentracao) : '',
             cardsLocacao ? montarReajustesCalendario(reajustes) : '',
             cardsLocacao ? montarRevisionaisCalendario(revisionais) : '',
-            filtro.contexto !== 'familia' && p_ramo !== 'obras' ? montarPerformanceGrid(perf) : '', // v1.8.0 · v2.15.0: fora de Obras
-        ].filter(Boolean).join('');
+        ];
+        // v2.17.0 — computador: 2 colunas (o principal à esquerda, o apoio à direita); celular: a ordem de sempre, uma coluna
+        alvo.innerHTML = rzDesk()
+            ? `<div class="rz-hoje-cols"><div class="rz-hoje-c1">${[...esq, ...fim].filter(Boolean).join('')}</div><div class="rz-hoje-c2">${[cIndice, cIndicador, cPerf].filter(Boolean).join('')}</div></div>`
+            : [...esq, cIndice, cIndicador, ...fim, cPerf].filter(Boolean).join('');
 
         if (typeof rzIcones === 'function') rzIcones();
         ligarBarrasCalendario('.rz-res-barra-mes', reajustes, abrirResultadosMesReajuste);
@@ -1068,8 +1080,10 @@ function numeroNaUnidade(v, u) {
 function mesesFechadosNoAno() {
     return filtro.ano < ANO_ATUAL ? 12 : (filtro.ano > ANO_ATUAL ? 0 : new Date().getMonth() + 1);
 }
+// v2.17.0 — computador: Hoje em 2 colunas e gráfico de colunas mais largo (o texto fica na escala do app)
+const rzDesk = () => typeof window !== 'undefined' && typeof window.matchMedia === 'function' && window.matchMedia('(min-width:1024px)').matches;
 function colunasExecutivasSvg(valores, { destaque = -1, alerta = -1, unidade, classeBarra = '', rotuloAria = '' }) {
-    const W = 320, TOPO = 16, AREA = 112, BAIXO = 14, MES = 14;
+    const W = rzDesk() ? 640 : 320, TOPO = 16, AREA = 112, BAIXO = 14, MES = 14;
     const max = Math.max(0, ...valores), min = Math.min(0, ...valores);
     const faixa = (max - min) || 1;
     const yZero = TOPO + AREA * (max / faixa);
