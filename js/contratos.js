@@ -1,7 +1,13 @@
 // ============================================================================
 // contratos.js — Raiz Patrimônio · Contratos (lista · ficha · formulário ·
 //                 status/reajuste/detalhes · fiadores · documentos · histórico)
-// Versão: 1.65.0 · 21/10/2026
+// Versão: 1.66.0 · 22/10/2026
+//
+// v1.66.0 (22/10/2026, sessão 20261022-0850-ux-onda5c, demanda 15146a34; Nicola 22/10 08:45, "pode seguir") — onda 5c, computador:
+//   a lista de Contratos vira tabela (Locatário · Imóvel · Fim · Aluguel · Situação) com cabeçalho que ordena dentro de cada
+//   empreendimento; a linha de baixo do celular continua igual (imóvel · anexos · até dd/mm/aaaa), agora em partes (<i>) que
+//   o raiz.css 1.9.0 distribui em colunas. Com a ficha aberta, a lista fica à esquerda e a ficha em painel de 560 px.
+// Versão anterior: 1.65.0 · 21/10/2026
 //
 // v1.65.0 (21/10/2026, sessão 20261021-1235-ux-onda3, demanda 15146a34; Nicola 21/10 12:33, "pode fazer a onda 3") — ONDA 3, cabeçalho da ficha do contrato: o título é o imóvel e o
 //   locatário vai na linha de baixo (antes o nome do locatário quebrava em 2 linhas e o valor partia no meio); abaixo, a faixa
@@ -28,14 +34,8 @@
 // avisa quando o valor passa de 15%). Saem do formulário: Encargos (IPTU/condomínio), Aluguel antecipado e Desconto de
 // energia; o Dia de vencimento vem do Pagamento. Reajuste e revisional seguem o caminho de sempre (o reajuste "pelo produto"
 // ficou no backlog).
-// Versão anterior: 1.61.0 · 19/10/2026
-//
-// v1.61.0 (19/10/2026, sessão 20261019-1931-carga-silva-correcoes, demanda 9404081c item 52, de acordo do Nicola 19:31) — no
-// contrato de Arrendamento (modelo 'arrendamento', aberto pela gleba ou pela fazenda) o formulário fala a língua do campo:
-// Imóvel → Área arrendada, Locatário → Arrendatário, Aluguel → Valor do arrendamento. Nos outros modelos volta o texto de
-// sempre (rotularFormContratoPorModelo, chamada por prepararCampoTipoContrato).
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.60.0 … v1.60.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.61.0 … v1.61.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
 import { avaliarProntidaoContratoParaMinuta } from './minutas.js'; // v1.0.1
@@ -47,7 +47,7 @@ import { emitirEscrita, aoEscrever } from './raiz-eventos.js'; // v1.18.0 — Fa
 import { renderizarBlocoEndereco, lerBlocoEndereco } from './comum-endereco.js';
 import { formatarEnderecoParte } from './comum-partes.js';
 
-export const VERSAO = '1.65.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.66.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 
 // Faixa do cabeçalho da ficha do contrato: o resumo que se procura primeiro (valor, o que está em aberto e até quando vai).
 // Fim em mês/ano curto ("fev/28"); a data inteira fica no card Condições.
@@ -4935,6 +4935,12 @@ if (!window.__rzListenerEscritaParteContratoLigado) {
             renderContratos();
         }
 
+        // v1.66.0 — ordem da tabela de Contratos (computador): toque na coluna ordena; toque de novo inverte
+        window.rzOrdenarContratos = (c) => {
+            const o = window.rzOrdemTabelaCon;
+            window.rzOrdemTabelaCon = o && o.col === c ? { col: c, dir: -o.dir } : { col: c, dir: (c === 'valor') ? -1 : 1 };
+            renderContratos();
+        };
         export function renderContratos() {
 
             const container = document.getElementById('lista-contratos');
@@ -5013,12 +5019,25 @@ if (!window.__rzListenerEscritaParteContratoLigado) {
                 return rs('neu', con.status === 'Finalizado' ? 'Encerrado' : (con.status || '—'));
             };
             atualizarRotuloBuscaContratos();
+            const ordemT = window.rzOrdemTabelaCon || null; // v1.66.0 — coluna tocada no cabeçalho (computador)
+            const chaveT = (c, col) => {
+                if (col === 'valor') return Number(c.valor) || 0;
+                if (col === 'fim') return c.fim ? String(c.fim) : '9999';
+                if (col === 'imovel') { const im = imoveis.find(i => i.id === c.imovelId); return im ? `${im.enderecoRua || ''} ${String(im.enderecoNum || '').padStart(6, '0')}` : ''; }
+                return c.locatario || '';
+            };
             const ordenados = contratos.filter(passaFiltroContrato).sort((a, b) => {
                 const imoA = imoveis.find(i => i.id === a.imovelId);
                 const imoB = imoveis.find(i => i.id === b.imovelId);
                 const empA = imoA ? imoA.empreendimento : '';
                 const empB = imoB ? imoB.empreendimento : '';
-                return empA.localeCompare(empB) || (a.locatario || '').localeCompare(b.locatario || '');
+                if (empA !== empB) return empA.localeCompare(empB);
+                if (ordemT) {
+                    const x = chaveT(a, ordemT.col), y = chaveT(b, ordemT.col);
+                    const r = typeof x === 'number' ? x - y : String(x).localeCompare(String(y), 'pt-BR');
+                    if (r) return r * ordemT.dir;
+                }
+                return (a.locatario || '').localeCompare(b.locatario || '');
             });
             ultimaContagemContratos = ordenados.length;
             if (!ordenados.length) {
@@ -5035,7 +5054,12 @@ if (!window.__rzListenerEscritaParteContratoLigado) {
                 return;
             }
             const empDe = (c) => { const im = imoveis.find(i => i.id === c.imovelId); return im ? (im.empreendimento || 'Sem empreendimento') : 'Sem imóvel'; };
-            let html = '', grupoAtual = null;
+            // v1.66.0 — cabeçalho da tabela (só computador, raiz.css 1.9.0); o toque ordena e toca de novo inverte
+            const colT = (c, rot, dir) => {
+                const on = ordemT && ordemT.col === c;
+                return `<button type="button" class="rz-tab-c${dir ? ' rz-tab-dir' : ''}${on ? ' rz-on' : ''}" onclick="rzOrdenarContratos('${c}')" aria-label="Ordenar por ${rot}">${rot}${on ? (ordemT.dir > 0 ? ' ↑' : ' ↓') : ''}</button>`;
+            };
+            let html = `<div class="rz-tab-h rz-tab-h-con" role="row"><span></span>${colT('locatario', 'Locatário')}${colT('imovel', 'Imóvel')}${colT('fim', 'Fim')}${colT('valor', 'Aluguel', true)}<span class="rz-tab-c rz-tab-dir">Situação</span><span></span></div>`, grupoAtual = null;
             ordenados.forEach(con => {
                 const imo = imoveis.find(i => i.id === con.imovelId);
                 const emp = empDe(con);
@@ -5058,11 +5082,12 @@ if (!window.__rzListenerEscritaParteContratoLigado) {
                 const extras = [];
                 if (imo && imo.energiaRumo === 'Sim' && con.descontoEnergia > 0) extras.push('energia c/ desconto');
                 if (con.anexos && con.anexos.length > 0) extras.push(`${con.anexos.length} anexo${con.anexos.length > 1 ? 's' : ''}`);
-                if (con.fim) extras.push(`até ${formatarDataBR(con.fim)}`);
+                // v1.66.0 — a linha de baixo em partes: no celular lê igual (imóvel · extras · até …), no computador vira colunas
+                const subT = `<span class="rz-c-sub"><i class="rz-c-imo">${escapeHtmlSaidas(endereco)}</i>${extras.length ? `<i class="rz-c-x">${escapeHtmlSaidas(extras.join(' · '))}</i>` : ''}${con.fim ? `<i class="rz-c-fim">até ${formatarDataBR(con.fim)}</i>` : '<i class="rz-c-fim rz-c-vazio">—</i>'}</span>`;
                 html += `
-                    <div class="rz-row rz-link" role="button" tabindex="0" onclick="abrirFichaContrato('${con.id}')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault(); abrirFichaContrato('${con.id}');}">
+                    <div class="rz-row rz-link" data-grade-con="1" role="button" tabindex="0" onclick="abrirFichaContrato('${con.id}')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault(); abrirFichaContrato('${con.id}');}">
                         <div class="rz-ic${classeIc}"><svg data-lucide="${icone}"></svg></div>
-                        <div class="rz-tx"><b>${escapeHtmlSaidas(con.locatario || 'Locatário não informado')}</b><span>${escapeHtmlSaidas(endereco)}${extras.length ? ' · ' + extras.join(' · ') : ''}</span></div>
+                        <div class="rz-tx"><b>${escapeHtmlSaidas(con.locatario || 'Locatário não informado')}</b>${subT}</div>
                         <div class="rz-rt"><b>${formatarMoedaBR(con.valor)}</b>${statusContratoHtml(con)}</div>
                         <svg data-lucide="chevron-right" class="rz-chev"></svg>
                     </div>`;

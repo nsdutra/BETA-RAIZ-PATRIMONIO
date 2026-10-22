@@ -4,6 +4,17 @@ Histórico completo de versões do `index.html`, movido automaticamente pelo `ge
 
 ---
 
+NOVIDADES (Beta v1.466.0) — ÍCONES RECORTADOS: Lucide inteira (665 KB) → icones-raiz.js 1.0.0 (67 KB, 322 ícones);
+ícone fora do recorte carrega a Lucide inteira. sw.js 3.4.
+Versão anterior (Beta v1.465.0):
+DATA: 21/10/2026 (sessão 20261021-1342-calendario-generico, demanda 6f9e5b7d)
+------------------------------------------------------------------
+Versões anteriores (v1.465.0 … v1.465.0): CHANGELOG_APP.md, na raiz do
+repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
+das 5 versões mais recentes deste cabeçalho.
+
+---
+
 NOVIDADES (Beta v1.465.0) — CALENDÁRIO GENÉRICO (agenda.js 1.10.0): atalho da Raiz IA vira "Calendário".
 Versão anterior (Beta v1.464.0):
 DATA: 21/10/2026 (sessão 20261021-1235-ux-onda3, demanda 15146a34)
