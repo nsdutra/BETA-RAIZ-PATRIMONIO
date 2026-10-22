@@ -4,6 +4,15 @@ Histórico completo de versões do `index.html`, movido automaticamente pelo `ge
 
 ---
 
+NOVIDADES (Beta v1.467.1) — correção da linha do aluguel em atraso (cofre-ativos 1.145.1).
+Versão anterior (Beta v1.467.0):
+------------------------------------------------------------------
+Versões anteriores (v1.467.0 … v1.467.0): CHANGELOG_APP.md, na raiz do
+repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
+das 5 versões mais recentes deste cabeçalho.
+
+---
+
 NOVIDADES (Beta v1.467.0) — ONDA 4 (Nicola 21/10 17:31): selo da Agenda só com crítico ou vencido, "9+"; menu das
 iniciais como painel no computador; cabeçalho da ficha mais justo; aluguel em atraso na linha da lista; ícone do item
 na Agenda (raiz.css 1.6.0, cofre-ativos 1.145.0, agenda 1.11.0).

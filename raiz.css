@@ -1,6 +1,11 @@
 /* ============================================================================
    raiz.css — Raiz Patrimônio · estilos do app (index.html)
-   Versão: 1.10.0 · 22/10/2026
+   Versão: 1.11.0 · 22/10/2026
+
+   v1.11.0 (22/10/2026, sessão 20261022-1120-computador-c1b, demanda 15146a34; teste do Nicola 22/10 11:16) — computador:
+   totais do ramo e do empreendimento alinhados com a coluna de valor da lista do Patrimônio (com e sem a ficha aberta);
+   com a ficha aberta a lista ganha a coluna do aluguel/mês; sem barra horizontal na ficha; o contrato aberto vira página
+   própria (some a lista de Contratos ao lado), com a seta ‹ na linha do nome.
 
    v1.10.0 (22/10/2026, sessão 20261022-1035-computador-c1, demanda 15146a34; PROTOTIPO_COMPUTADOR_RAIZ v1.0.0, de acordo do
    Nicola 22/10 10:32) — computador, onda C1: sai o cabeçalho das tabelas; lista e ficha sem barras de rolagem na lista (a
@@ -1937,4 +1942,30 @@ html.rz-plat-web body:not(.rz-split-con) #ficha-contrato-conteudo > .rz-entity:f
     /* o "+" redondo das listas vira "+ Novo" */
     #main-content .rz-ico-btn.rz-primary{width:auto;min-width:0;height:36px;padding:0 14px 0 10px;border-radius:10px;gap:6px;display:inline-flex;align-items:center}
     #main-content .rz-ico-btn.rz-primary::after{content:"Novo";font:600 var(--fs-corpo,14px) var(--font-body)}
+}
+
+/* Computador C1b (raiz.css 1.11.0, dem 15146a34; teste do Nicola 22/10 11:16). Medido no ar a 1.600 px. */
+@media (min-width:1024px){
+    /* total do empreendimento e do ramo na mesma direita do valor da linha (sem ficha: chevron 20 + gap 16; com ficha: 20 + 12) */
+    body:not(.rz-split) #ativos-lista .rz-group.rz-group-t b{margin-right:49px}
+    body:not(.rz-split) #ativos-lista .rz-ramo-faixa > b{margin-right:6px}
+    body.rz-split-at #ativos-lista .rz-group.rz-group-t b{margin-right:45px}
+    body.rz-split-at #ativos-lista .rz-ramo-faixa > b{margin-right:4px}
+    /* com a ficha aberta: Ativo · Situação · Aluguel/mês · Valor */
+    body.rz-split-at #ativos-lista .rz-row[data-grade]{grid-template-columns:36px minmax(0,1fr) 110px 110px 96px 20px}
+    body.rz-split-at #ativos-lista .rz-row[data-grade]>.rz-rt>.rz-rt-al{display:block;grid-column:4;grid-row:1;justify-self:end;align-self:center;margin:0}
+    body.rz-split-at #ativos-lista .rz-row[data-grade]>.rz-rt>.rz-rt-v,
+    body.rz-split-at #ativos-lista .rz-row[data-grade]>.rz-rt>.rz-rt-vazio{grid-column:5}
+    body.rz-split-at #ativos-lista .rz-row[data-grade]>.rz-tx>.rz-al{grid-column:2 / 6}
+    body.rz-split-at #ativos-lista .rz-row[data-grade]>.rz-chev,
+    body.rz-split-at #ativos-lista .rz-row[data-grade]>.rz-subs-toggle{grid-column:6}
+    body.rz-split-at #app-cofre > main > [data-screen="ficha-ativo"]{overflow-x:hidden}
+    /* contrato aberto = página própria: some a lista de Contratos, a ficha ocupa a área (até 1.040 px) com a seta ‹.
+       ARMADILHA: a classe rz-split-con continua vindo do index (rzSplitAtualizar); aqui ela só desfaz a divisão.
+       O top da regra sticky da C1 precisa ir a auto, senão a ficha desce ~90 px. */
+    body.rz-split-con #main-content{display:block!important}
+    body.rz-split-con #tab-contratos{display:none!important}
+    body.rz-split-con #tab-contrato-ficha{position:relative!important;top:auto!important;max-height:none!important;overflow:visible!important;max-width:1040px;margin:0 auto;padding-right:0}
+    body.rz-split-con #fc-voltar{display:flex!important;position:absolute;top:-2px;left:-12px;margin:0;z-index:1}
+    body.rz-split-con #ficha-contrato-conteudo > .rz-entity:first-child{margin-top:0;margin-left:30px}
 }
