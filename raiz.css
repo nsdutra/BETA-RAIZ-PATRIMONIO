@@ -1,6 +1,11 @@
 /* ============================================================================
    raiz.css — Raiz Patrimônio · estilos do app (index.html)
-   Versão: 1.7.0 · 21/10/2026
+   Versão: 1.8.0 · 21/10/2026
+
+   v1.8.0 (21/10/2026, sessão 20261021-2310-ux-onda5b, demanda 15146a34; Nicola 21/10 23:05, "pode seguir") — onda 5b, computador:
+   a lista do Patrimônio vira tabela (Ativo · Situação · Locatário · Aluguel/mês · Valor, colunas da direita com largura
+   fixa para alinhar também os sub-ativos); com a ficha aberta, a lista fica à esquerda com Ativo · Situação · Valor e a
+   ficha vira painel de 560 px à direita (era o contrário: lista de 360 px e ficha larga).
 
    v1.7.0 (21/10/2026, sessão 20261021-2225-ux-onda5, demanda 15146a34; Nicola 21/10 22:21, "pode seguir") — onda 5a, computador:
    barra lateral de 200 px com rótulos 14 / 500 (a aberta em 600); herói do Hoje numa faixa (patrimônio à esquerda,
@@ -1840,4 +1845,37 @@ html.rz-plat-web body:not(.rz-split-con) #ficha-contrato-conteudo > .rz-entity:f
     input:not([type=checkbox]):not([type=radio]):not([type=range]):not([type=file]):not([type=color]):not([type=hidden]):not([type=submit]):not([type=button]):not(.rz-raw),
     select:not(.rz-raw),.rz-f input,.rz-f select,.rz-f .rz-f-btn{height:40px;min-height:40px;font-size:var(--fs-corpo,14px)}
     textarea:not(.rz-raw),.rz-f textarea{font-size:var(--fs-corpo,14px)}
+}
+
+/* Onda 5b (raiz.css 1.8.0, dem 15146a34) — Patrimônio em tabela no computador. Só CSS sobre a grade que a linha do imóvel
+   já tem (data-grade): .rz-tx e .rz-rt são display:contents, então nome, situação, locatário, aluguel e valor viram colunas.
+   As colunas da direita têm largura fixa: o sub-ativo (recuado 24 px) alinha os números com o principal.
+   ARMADILHA: o locatário e a linha do alerta são os dois <span> de .rz-tx — o locatário é span:not(.rz-al). */
+@media (min-width:1024px){
+    body:not(.rz-split) #ativos-lista .rz-row[data-grade]{grid-template-columns:40px minmax(0,1fr) 190px 230px 120px 110px 20px;column-gap:16px;align-items:center}
+    body:not(.rz-split) #ativos-lista .rz-row[data-grade]>.rz-ic{grid-column:1;grid-row:1 / span 2}
+    body:not(.rz-split) #ativos-lista .rz-row[data-grade]>.rz-tx>b{grid-column:2;grid-row:1}
+    body:not(.rz-split) #ativos-lista .rz-row[data-grade]>.rz-tx>.rz-tx-st{grid-column:3;grid-row:1}
+    body:not(.rz-split) #ativos-lista .rz-row[data-grade]>.rz-tx>span:not(.rz-al){grid-column:4;grid-row:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    body:not(.rz-split) #ativos-lista .rz-row[data-grade]>.rz-rt>*{grid-column:3;grid-row:2;justify-self:start;align-self:center}
+    body:not(.rz-split) #ativos-lista .rz-row[data-grade]>.rz-rt>.rz-rt-al{grid-column:5;grid-row:1;justify-self:end;margin:0}
+    body:not(.rz-split) #ativos-lista .rz-row[data-grade]>.rz-rt>.rz-rt-v,
+    body:not(.rz-split) #ativos-lista .rz-row[data-grade]>.rz-rt>.rz-rt-vazio{grid-column:6;grid-row:1;justify-self:end;align-self:center}
+    body:not(.rz-split) #ativos-lista .rz-row[data-grade]>.rz-tx>.rz-al{grid-column:2 / 6;grid-row:2}
+    body:not(.rz-split) #ativos-lista .rz-row[data-grade]>.rz-chev,
+    body:not(.rz-split) #ativos-lista .rz-row[data-grade]>.rz-subs-toggle{grid-column:7;grid-row:1 / span 2}
+    /* com a ficha aberta: lista à esquerda (Ativo · Situação · Valor), ficha em painel de 560 px à direita */
+    body.rz-split-at #app-cofre > main{grid-template-columns:minmax(0,1fr) minmax(480px,560px)}
+    body.rz-split-at #ativos-lista .rz-row[data-grade]{grid-template-columns:36px minmax(0,1fr) 150px 100px 20px;column-gap:12px;align-items:center}
+    body.rz-split-at #ativos-lista .rz-row[data-grade]>.rz-ic{grid-column:1;grid-row:1 / span 2}
+    body.rz-split-at #ativos-lista .rz-row[data-grade]>.rz-tx>b{grid-column:2;grid-row:1}
+    body.rz-split-at #ativos-lista .rz-row[data-grade]>.rz-tx>.rz-tx-st{grid-column:3;grid-row:1}
+    body.rz-split-at #ativos-lista .rz-row[data-grade]>.rz-tx>span:not(.rz-al),
+    body.rz-split-at #ativos-lista .rz-row[data-grade]>.rz-rt>.rz-rt-al{display:none}
+    body.rz-split-at #ativos-lista .rz-row[data-grade]>.rz-rt>*{grid-column:3;grid-row:2;justify-self:start}
+    body.rz-split-at #ativos-lista .rz-row[data-grade]>.rz-rt>.rz-rt-v,
+    body.rz-split-at #ativos-lista .rz-row[data-grade]>.rz-rt>.rz-rt-vazio{grid-column:4;grid-row:1;justify-self:end;align-self:center}
+    body.rz-split-at #ativos-lista .rz-row[data-grade]>.rz-tx>.rz-al{grid-column:2 / 5;grid-row:2}
+    body.rz-split-at #ativos-lista .rz-row[data-grade]>.rz-chev,
+    body.rz-split-at #ativos-lista .rz-row[data-grade]>.rz-subs-toggle{grid-column:5;grid-row:1 / span 2}
 }

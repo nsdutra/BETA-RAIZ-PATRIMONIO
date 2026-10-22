@@ -4,6 +4,16 @@ Histórico completo de versões do `index.html`, movido automaticamente pelo `ge
 
 ---
 
+NOVIDADES (Beta v1.465.0) — CALENDÁRIO GENÉRICO (agenda.js 1.10.0): atalho da Raiz IA vira "Calendário".
+Versão anterior (Beta v1.464.0):
+DATA: 21/10/2026 (sessão 20261021-1235-ux-onda3, demanda 15146a34)
+------------------------------------------------------------------
+Versões anteriores (v1.464.0 … v1.464.0): CHANGELOG_APP.md, na raiz do
+repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
+das 5 versões mais recentes deste cabeçalho.
+
+---
+
 NOVIDADES (Beta v1.464.0) — ONDA 3, CABEÇALHO DAS FICHAS (Nicola 21/10 12:33): a seta ‹ sobe para a linha do nome (ativo e
 contrato); contrato com o imóvel no título, o locatário embaixo e a faixa Aluguel · Em aberto · Fim; abas que rolam com
 a borda esmaecida; subtítulo do topo numa linha. Aqui só versão e import map.
