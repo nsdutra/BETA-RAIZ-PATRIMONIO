@@ -1,6 +1,11 @@
 /* ============================================================================
    raiz.css — Raiz Patrimônio · estilos do app (index.html)
-   Versão: 1.6.0 · 21/10/2026
+   Versão: 1.7.0 · 21/10/2026
+
+   v1.7.0 (21/10/2026, sessão 20261021-2225-ux-onda5, demanda 15146a34; Nicola 21/10 22:21, "pode seguir") — onda 5a, computador:
+   barra lateral de 200 px com rótulos 14 / 500 (a aberta em 600); herói do Hoje numa faixa (patrimônio à esquerda,
+   resultado e os 4 números em linha); campos de 14 px e 40 px de altura com mouse (pointer:fine); pares rótulo-valor
+   em 3 colunas quando a ficha tem largura. A tabela de Ativos e Contratos é a onda 5b.
 
    v1.6.0 (21/10/2026, sessão 20261021-1735-ux-onda4, demanda 15146a34; Nicola 21/10 17:31, "siga com a onda 4") — onda 4:
    cabeçalho da ficha mais justo (o tipo e a situação encostam no nome; o ícone e o ⋮ deixam de esticar a 1ª linha);
@@ -1807,4 +1812,32 @@ html.rz-plat-web body:not(.rz-split-con) #ficha-contrato-conteudo > .rz-entity:f
     .rz-veil:has(> .rz-sheet.rz-menu-conta){align-items:flex-start;justify-content:flex-end;padding:68px 20px 0 0;background:rgba(23,33,30,.16)}
     .rz-sheet.rz-menu-conta{max-width:360px;height:auto;max-height:calc(100dvh - 88px);border-radius:16px;box-shadow:0 18px 48px -16px rgba(23,33,30,.45);transform:translateY(-6px)}
     .rz-veil.rz-on .rz-sheet.rz-menu-conta{transform:none}
+}
+
+/* Onda 5a (raiz.css 1.7.0, dem 15146a34) — computador. A escala de texto é a do celular; o que muda é a grade. */
+@media (min-width:1024px){
+    /* barra lateral: 232 → 200 px, rótulos 14 / 500, a aberta em 600 */
+    #bottom-nav-bar{width:200px}
+    #bottom-nav-bar > button > span.text-\[12px\]{font-size:var(--fs-corpo,14px)!important;font-weight:500}
+    #bottom-nav-bar button.bottomnav-active > span.text-\[12px\]{font-weight:600}
+    #main-content,body.rz-split #main-content{margin-left:calc(200px + max(24px, (100vw - 200px - 1280px) / 2))!important;margin-right:max(24px, calc((100vw - 200px - 1280px) / 2))!important}
+    /* herói do Hoje numa faixa: patrimônio à esquerda; resultado e os 4 números à direita, em linha (~170 px de altura) */
+    .rz-heroi{display:grid;grid-template-columns:minmax(220px,280px) minmax(0,1fr);column-gap:24px;align-content:start}
+    .rz-heroi > *{grid-column:1}
+    .rz-heroi > .rz-heroi-top{grid-column:1 / -1}
+    .rz-heroi > .rz-heroi-res{grid-column:2;grid-row:1 / span 5;align-self:center;margin:0;padding:0 0 0 24px;border-top:0;border-left:1px solid rgba(255,255,255,.18);
+        display:grid;grid-template-columns:minmax(200px,260px) minmax(0,1fr);column-gap:16px;align-items:center}
+    .rz-heroi > .rz-heroi-top ~ .rz-heroi-res{grid-row:2 / span 4}
+    .rz-heroi-res > *{grid-column:1}
+    .rz-heroi-res > .rz-heroi-3{grid-column:2;grid-row:1 / span 3;margin-top:0}
+    .rz-heroi-3.rz-q4{grid-template-columns:repeat(4,minmax(0,1fr))}
+    .rz-heroi > .rz-seg{grid-column:1 / -1}
+    /* pares rótulo-valor: 3 colunas quando o card tem largura */
+    .rz-kv{grid-template-columns:repeat(auto-fill,minmax(200px,1fr))}
+}
+/* campo com mouse: 14 px e 40 px de altura (os 16 px só evitam o zoom do toque) */
+@media (min-width:1024px) and (pointer:fine){
+    input:not([type=checkbox]):not([type=radio]):not([type=range]):not([type=file]):not([type=color]):not([type=hidden]):not([type=submit]):not([type=button]):not(.rz-raw),
+    select:not(.rz-raw),.rz-f input,.rz-f select,.rz-f .rz-f-btn{height:40px;min-height:40px;font-size:var(--fs-corpo,14px)}
+    textarea:not(.rz-raw),.rz-f textarea{font-size:var(--fs-corpo,14px)}
 }
