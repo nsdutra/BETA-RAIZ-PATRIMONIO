@@ -1,6 +1,12 @@
 // ============================================================================
 // cofre-controles.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.66.0 · 21/10/2026
+// Versão: 1.67.0 · 22/10/2026
+//
+// v1.67.0 (22/10/2026, sessão 20261022-1155-vinculos-compromisso, demanda 0e70b85a; FICHA_RAIZ_IA_COMPROMISSO_RAIZ v1.2.0, de acordo
+//   do Nicola 22/10 11:55) — UM ITEM, VÁRIAS PESSOAS: a ficha do item ganha a linha "Pessoas" (quem está ligado, tabela
+//   vinculos) com toque para incluir ou tirar (fn_vinculos_item_definir); os Controles da pessoa mostram também os itens em
+//   que ela está ligada (a viagem do Nicola nos Controles do Murilo), com "em conjunto" na linha de baixo.
+// Versão anterior: 1.66.0 · 21/10/2026
 //
 // v1.66.0 (21/10/2026, sessão 20261021-1205-ux-onda2, demanda 15146a34; Nicola 21/10 12:02, "vamos avançar") — chip Controles da ficha: o cabeçalho "Itens de controle" não
 //   diz mais "Em dia" quando algum item da lista está vencido (o Motor pode estar sem o alerta, adiado ou desligado): vale o
@@ -29,20 +35,11 @@
 // da safra: os itens (Agora, Da safra inteira, Do programa) voltam a ocupar a largura toda, alinhados à esquerda (a linha
 // solta fora de .rz-list ficava estreita e centrada); o ⋮ da fase e "Corrigir <safra>" abrem por cima da safra (empilhar),
 // então escolher Corrigir datas, Voltar, Pular ou Editar não fecha a tela da safra, e ela volta atualizada ao salvar.
-// Versão anterior: 1.63.0 · 19/10/2026
-//
-// v1.63.0 (19/10/2026, sessão 20261019-1931-carga-silva-correcoes, demanda 9404081c item 53, de acordo do Nicola 19:31) —
-// CORRIGIR o que foi cadastrado errado na execução do programa: botão "Corrigir" na safra (ou ciclo) com Editar a safra
-// (início, fim previsto, nome e, se fechada, a data do fechamento — fn_ciclo_editar) e Excluir a safra (fn_ciclo_excluir:
-// antes mostra os vínculos de fn_ciclo_vinculos — lançamentos, ocorrências tratadas, documentos, rateios — e diz o que
-// desfazer; sem vínculo, apaga com as fases e os itens). Na fase concluída ou em andamento, "Corrigir datas"
-// (fn_fase_datas), também com a safra fechada. "Abrir a safra" ganha a data de referência (p_inicio): uma safra já em
-// curso abre no ano e na fase certos. "Excluir item de vez" recusa item com lançamento no Financeiro.
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.62.0 … v1.62.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.63.0 … v1.63.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '1.66.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.67.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 import { estado } from './cofre-estado.js';
 import * as api from './cofre-api.js';
 import { mostrarToast, refrescarIcones, abrirModal, fecharModal, modalGenerico, perguntar, escolher, avisarComDesfazer } from './cofre-ui.js';
@@ -1220,8 +1217,50 @@ function tituloCurtoItem(item) {
     }
     return t || String(item.titulo || '');
 }
+// v1.67.0 — "Pessoas" na ficha do item: quem está ligado (vinculos); toque abre a escolha (chips) e grava
+async function montarPessoasItem(item) {
+    const alvo = document.getElementById('fic-pessoas-kv');
+    if (!alvo) return;
+    let pessoas = [];
+    try { pessoas = await api.listarPessoasDoItem(item.id); } catch (e) { console.warn('[cofre-controles] pessoas do item:', e?.message || e); return; }
+    if (!pessoas.length && item.tipo !== 'evento') return;
+    const nomes = pessoas.length ? pessoas.sort((a, b) => Number(b.principal) - Number(a.principal)).map(p => String(p.nome).split(/\s+/)[0]).join(', ')
+        : (item.cofre_ativos?.nome_exibicao || '—');
+    alvo.innerHTML = `<div class="rz-link" data-action="fic-pessoas" style="cursor:pointer"><small>Pessoas</small><b>${escapeHtml(nomes)} <i data-lucide="pencil" style="width:13px;height:13px;vertical-align:-2px;color:var(--muted)"></i></b></div>`;
+    alvo.querySelector('[data-action="fic-pessoas"]').addEventListener('click', () => editarPessoasItem(item, pessoas.map(p => p.id)));
+    refrescarIcones();
+}
+async function editarPessoasItem(item, atuais) {
+    if (typeof window.abrirSheet !== 'function') { mostrarToast('Abra pelo app principal.', 'erro'); return; }
+    const { data } = await api.dbAuth.from('cofre_ativos').select('id, nome_exibicao, ativo_principal_id')
+        .eq('cliente_id', item.cliente_id).eq('tipo_ativo', 'vida').eq('status', 'ativo').limit(60);
+    const lista = data || [];
+    const principais = new Set(lista.map(a => a.ativo_principal_id).filter(Boolean));
+    const membros = lista.filter(a => !principais.has(a.id)).sort((x, y) => String(x.nome_exibicao).localeCompare(String(y.nome_exibicao)));
+    const marcados = new Set(atuais.length ? atuais : (item.ativo_id && membros.some(m => m.id === item.ativo_id) ? [item.ativo_id] : []));
+    const cab = typeof window.rzSheetCabecalho === 'function' ? window.rzSheetCabecalho('Pessoas', item.titulo || '') : '<h3>Pessoas</h3>';
+    const sh = window.abrirSheet(cab + '<div class="rz-sh-b" id="fic-pes-corpo"></div>');
+    const corpo = sh.querySelector('#fic-pes-corpo');
+    const desenhar = () => {
+        corpo.innerHTML = `<div style="display:flex;flex-wrap:wrap;gap:6px;margin:4px 0 14px">${membros.map(m =>
+            `<button type="button" class="rz-chip${marcados.has(m.id) ? ' rz-on' : ''}" style="height:34px;padding:0 12px" data-p="${m.id}">${escapeHtml(String(m.nome_exibicao).split(/\s+/)[0])}</button>`).join('')}</div>
+            <button type="button" class="rz-btn rz-btn-1" id="fic-pes-ok"${marcados.size ? '' : ' disabled'} style="width:100%">${marcados.size ? 'Salvar' : 'Escolha ao menos uma pessoa'}</button>`;
+        corpo.querySelectorAll('[data-p]').forEach(b => b.addEventListener('click', () => { const id = b.dataset.p; marcados.has(id) ? marcados.delete(id) : marcados.add(id); desenhar(); }));
+        corpo.querySelector('#fic-pes-ok').addEventListener('click', async () => {
+            const ids = membros.filter(m => marcados.has(m.id)).map(m => m.id);
+            const ordem = item.ativo_id && ids.includes(item.ativo_id) ? [item.ativo_id, ...ids.filter(i => i !== item.ativo_id)] : ids;
+            try { await api.definirPessoasDoItem(item.id, ordem); }
+            catch (e) { mostrarToast('Não consegui salvar: ' + (e?.message || e), 'erro'); return; }
+            if (typeof window.fecharSheet === 'function') window.fecharSheet(true);
+            mostrarToast('Pessoas do item atualizadas ✅');
+            await recarregarFichaItemControle();
+        });
+    };
+    desenhar();
+}
+
 function subtituloItem(item) {
-    const pagaLoc = item.responsavel_pagamento === 'locatario' ? ' · Paga: locatário' : '';
+    const pagaLoc = (item.responsavel_pagamento === 'locatario' ? ' · Paga: locatário' : '') + (item._ligado ? ' · em conjunto' : ''); // v1.67.0
     const sub = item.cofre_controle_subtipos?.nome || rotuloTipoControle(item.tipo);
     if (!item.data_fim) return sub + pagaLoc;
     if (item.tipo === 'evento') return `${sub} · ${formatarDataBR(item.data_fim)}${pagaLoc}`;
@@ -1673,7 +1712,9 @@ function renderizarFichaItemControle() {
             ? (item.rateio.vago ? 'Proprietário · imóvel sem contrato' : item.responsavel_pagamento === 'locatario' ? 'Locatário (contrato) · sem saída no Financeiro' : 'Proprietário (contrato)')
             : ({ locatario: 'Locatário na vigência do contrato · sem saída no Financeiro nesse período', proprietario: 'Proprietário', condominio: 'Condomínio' }[item.responsavel_pagamento] || (item.responsavel_pagamento || 'Proprietário (padrão)')))) : '') +
         (item.valor_previsto ? kv('Valor previsto', `${moedaBR(item.valor_previsto)}${(item.parcelas || 1) > 1 ? ` · ${item.parcelas}× de ${moedaBR(item.valor_previsto / item.parcelas)}` : ''}`) : '') + // v1.20.0
-        memoriaRateioHtml(item, kv);
+        memoriaRateioHtml(item, kv) +
+        `<div id="fic-pessoas-kv" style="display:contents"></div>`; // v1.67.0 — Pessoas (vinculos), preenchido abaixo
+    montarPessoasItem(item);
 
     // v1.34.0 (demanda 4a609dbb) — clicar no alerta "documento pendente"
     // abria a ficha sem nenhum indicador de que falta o documento; esse

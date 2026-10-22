@@ -1,6 +1,12 @@
 // ============================================================================
 // cofre-api.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.54.0 · 20/10/2026
+// Versão: 1.55.0 · 22/10/2026
+//
+// v1.55.0 (22/10/2026, sessão 20261022-1155-vinculos-compromisso, demanda 0e70b85a; FICHA_RAIZ_IA_COMPROMISSO_RAIZ v1.2.0) —
+//   itens de controle do ativo trazem também os itens em que a pessoa está LIGADA (tabela vinculos: a viagem do Nicola
+//   aparece nos Controles do Murilo), marcados com _ligado; listarPessoasDoItem e definirPessoasDoItem
+//   (fn_vinculos_item_definir) para a linha "Pessoas" da ficha do item.
+// Versão anterior: 1.54.0 · 20/10/2026
 //
 // v1.54.0 (20/10/2026, sessão 20261020-2340-controles-grupos, demanda 9404081c) — itens de controle do ativo e da empresa trazem o ícone do
 //   subtipo (cofre_controle_subtipos.icone, migration controles_icones_v1) para o chip Controles.
@@ -17,17 +23,11 @@
 //
 // v1.51.0 (usos fatia 3 · subativos, demanda 3022603b, sessão 20261014-1020-usos-fatia3; de acordo do Nicola 14/10) —
 // criarImovelEAtivo aceita imovelDados.ativo_principal_id: a unidade nasce dentro do principal.
-//
-// Versão anterior: 1.50.0 · 08/10/2026
-//
-// v1.50.0 (UX F2.8, demanda ed5accfe, sessão 20261003-1707-ux-base; "Sim. Faça 1 e 2 agora" do Nicola 08/10 20:09; dem 5a84b9aa) — foto publicada de imóvel cadastrado direto como
-// ativo vai para a pasta do próprio ativo (<cliente>/<ativo>/<foto>.<ext>); antes só imóvel do cadastro antigo
-// tinha pasta e a foto nunca chegava ao link compartilhado.
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.49.0 … v1.49.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.50.0 … v1.50.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '1.54.0'; // v-check (22/09/2026): lido por Dev › Versões — manter igual ao header
+export const VERSAO = '1.55.0'; // v-check (22/09/2026): lido por Dev › Versões — manter igual ao header
 const SUPABASE_URL = 'https://oduwpttbbemypiypjsux.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9kdXdwdHRiYmVteXBpeXBqc3V4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODUyODEyOTcsImV4cCI6MjEwMDg1NzI5N30.9-cu1CV1wPbo5UH1G2eAsWqsvS54AWNuQZOlifc9a7w';
 
@@ -1330,7 +1330,32 @@ export async function listarItensControleAtivo(ativoId, incluirEncerrados = fals
     if (!incluirEncerrados) q = q.eq('ativo', true);
     const { data, error } = await q;
     if (error) throw error;
-    return data || [];
+    const itens = data || [];
+    // v1.55.0 — itens de outro dono em que esta pessoa está ligada (vinculos); falha aqui não derruba a lista
+    try {
+        const { data: vs } = await dbAuth.from('vinculos').select('origem_id').eq('origem_tipo', 'item_controle').eq('ativo_id', ativoId);
+        const faltam = [...new Set((vs || []).map(v => v.origem_id))].filter(id => !itens.some(i => i.id === id));
+        if (faltam.length) {
+            let q2 = dbAuth.from('cofre_itens_controle').select('*, cofre_ocorrencias_controle(*), cofre_controle_subtipos(nome, icone)').in('id', faltam.slice(0, 200));
+            if (!incluirEncerrados) q2 = q2.eq('ativo', true);
+            const { data: ligados } = await q2;
+            (ligados || []).forEach(i => itens.push({ ...i, _ligado: true }));
+        }
+    } catch (e) { console.warn('[cofre-api] itens ligados:', e?.message || e); }
+    return itens;
+}
+
+// v1.55.0 — pessoas do item (vinculos); vazio = só o dono
+export async function listarPessoasDoItem(itemId) {
+    const { data, error } = await dbAuth.from('vinculos').select('ativo_id, principal, cofre_ativos(nome_exibicao)')
+        .eq('origem_tipo', 'item_controle').eq('origem_id', itemId).not('ativo_id', 'is', null);
+    if (error) throw error;
+    return (data || []).map(v => ({ id: v.ativo_id, principal: !!v.principal, nome: v.cofre_ativos?.nome_exibicao || '' }));
+}
+export async function definirPessoasDoItem(itemId, ids) {
+    const { data, error } = await dbAuth.rpc('fn_vinculos_item_definir', { p_item_id: itemId, p_ativos: ids, p_canal: 'app' });
+    if (error) throw error;
+    return data;
 }
 
 // v1.49.0 (demanda a30da78b, item 2 — plano aprovado pelo Nicola 07/10 20:14) —

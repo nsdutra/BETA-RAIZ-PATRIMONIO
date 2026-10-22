@@ -4,6 +4,16 @@ Histórico completo de versões do `index.html`, movido automaticamente pelo `ge
 
 ---
 
+NOVIDADES (Beta v1.468.0) — ONDA 5a: computador (raiz.css 1.7.0).
+Versão anterior (Beta v1.467.1):
+DATA: 21/10/2026 (sessão 20261021-1735-ux-onda4, demanda 15146a34)
+------------------------------------------------------------------
+Versões anteriores (v1.467.1 … v1.467.1): CHANGELOG_APP.md, na raiz do
+repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
+das 5 versões mais recentes deste cabeçalho.
+
+---
+
 NOVIDADES (Beta v1.467.1) — correção da linha do aluguel em atraso (cofre-ativos 1.145.1).
 Versão anterior (Beta v1.467.0):
 ------------------------------------------------------------------
