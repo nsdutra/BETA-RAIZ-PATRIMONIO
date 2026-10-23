@@ -1,6 +1,12 @@
 // ============================================================================
 // cofre-controles.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.68.0 · 22/10/2026
+// Versão: 1.69.0 · 23/10/2026
+//
+// v1.69.0 (23/10/2026, sessão 20261023-0023-controles-lista, demanda 6946fc07; de acordo do Nicola 23/10 00:23) — LINHA DO
+//   EVENTO: embaixo do título vai só a data do evento, ou o período quando tem início e fim ("03 a 27/11/2026"); antes ia
+//   "Subtipo · fim", e o item de período parecia fora da ordem. ÍCONES iguais aos do robô no WhatsApp: aniversário (bolo),
+//   presente, show (ingresso), escola (mochila), seguro (escudo), feriado (palmeira); os demais seguem o catálogo.
+// Versão anterior: 1.68.0 · 22/10/2026
 //
 // v1.68.0 (22/10/2026, sessão 20261022-2353-agenda-visual, demanda 4568a519; FICHA_AGENDA_ROBO_VISUAL_RAIZ v1.0.0, de acordo do
 //   Nicola 22/10 23:53) — chip Controles da ficha: os itens (soltos, em cada grupo e em cada programa) vêm pela data do próximo
@@ -27,18 +33,11 @@
 //   relógio quando vence (a cor da placa e a etiqueta avisam); (5) título curto na ficha: sem o nome do ativo no fim e sem o
 //   subtipo no começo; a linha de baixo traz a data (Válido até…, a data do evento). Com uma categoria só e sem programa, a
 //   lista fica sem grupo.
-// Versão anterior: 1.64.0 · 19/10/2026
-//
-// v1.64.0 (19/10/2026, sessão 20261019-2217-carga-silva-arrend, demanda 9404081c item 56; pedido do Nicola 22:17, print do Lili Dog
-// › "Saúde do pet · 0 itens") — o ⋮ do programa ganha "Excluir programa" (fn_programa_excluir): sem vínculo, sai com os itens
-// que ele criou, as safras/etapas e as ocorrências em aberto; o item que já existia no ativo antes do aceite só sai do programa.
-// Com vínculo (lançamento, ocorrência tratada, documento, rateio), o banco recusa com a lista e a dica de usar Concluir.
-// Depois o programa volta a aparecer como sugerido.
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.63.1 … v1.63.1): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.64.0 … v1.64.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '1.68.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.69.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 import { estado } from './cofre-estado.js';
 import * as api from './cofre-api.js';
 import { mostrarToast, refrescarIcones, abrirModal, fecharModal, modalGenerico, perguntar, escolher, avisarComDesfazer } from './cofre-ui.js';
@@ -1197,7 +1196,14 @@ function statusDoItem(item) {
 }
 // Ícone do item: o do subtipo, senão o da categoria (catálogo); conta separa cartão de conta corrente
 function iconeDoItem(item) {
-    if (item.cofre_controle_subtipos?.icone) return item.cofre_controle_subtipos.icone;
+    // o mesmo desenho do emoji do robô (iconeLinhaAgenda no whatsapp-webhook)
+    const t = String(item.titulo || ''), ic = item.cofre_controle_subtipos?.icone;
+    if (/^Presente/i.test(t)) return 'gift';
+    if (/feriado/i.test(t)) return 'tree-palm';
+    if (ic === 'party-popper') return /show|ingresso|concerto|teatro|espet/i.test(t) ? 'ticket' : 'cake';
+    if (ic === 'school') return 'backpack';
+    if (item.tipo === 'seguro') return 'shield';
+    if (ic) return ic;
     if (item.tipo === 'conta') return iconeItemConta(item);
     const c = (catalogoTiposControle || []).find(x => x.codigo === item.tipo);
     return c?.icone || ({ seguro: 'shield', tributo: 'receipt', manutencao: 'wrench' }[item.tipo] || 'clipboard-check');
@@ -1261,11 +1267,19 @@ async function editarPessoasItem(item, atuais) {
     desenhar();
 }
 
+// Data do evento ("15/11/2026") ou o período ("03 a 27/11/2026", "20/01 a 08/02/2027", "28/12/2026 a 04/01/2027")
+function periodoEvento(ini, fim) {
+    const a = String(ini || fim).slice(0, 10), b = String(fim || ini).slice(0, 10);
+    if (a >= b) return formatarDataBR(b);
+    const [ya, ma, da] = a.split('-'), [yb, mb, db] = b.split('-');
+    if (ya !== yb) return `${da}/${ma}/${ya} a ${db}/${mb}/${yb}`;
+    return ma === mb ? `${da} a ${db}/${mb}/${yb}` : `${da}/${ma} a ${db}/${mb}/${yb}`;
+}
 function subtituloItem(item) {
     const pagaLoc = (item.responsavel_pagamento === 'locatario' ? ' · Paga: locatário' : '') + (item._ligado ? ' · em conjunto' : ''); // v1.67.0
     const sub = item.cofre_controle_subtipos?.nome || rotuloTipoControle(item.tipo);
+    if (item.tipo === 'evento' && (item.data_base || item.data_fim)) return periodoEvento(item.data_base, item.data_fim) + pagaLoc;
     if (!item.data_fim) return sub + pagaLoc;
-    if (item.tipo === 'evento') return `${sub} · ${formatarDataBR(item.data_fim)}${pagaLoc}`;
     return `Válido até ${formatarDataBR(item.data_fim)}${pagaLoc}`;
 }
 function itemResumoHtml(item) {
