@@ -1,6 +1,12 @@
 // ============================================================================
 // cofre-controles.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.69.0 · 23/10/2026
+// Versão: 1.70.0 · 23/10/2026
+//
+// v1.70.0 (23/10/2026, sessão 20261023-0831-controles-linha, demanda f8c764fd; de acordo do Nicola 23/10 08:31) — SÓ A DATA
+//   EM TODOS OS GRUPOS: documento e seguro com fim ficam "Válido até dd/mm/aaaa", sem o "· em conjunto" (as pessoas estão
+//   dentro do item); itens que se repetem (conta, taxa, tributo, manutenção, rotina, despesa) mostram só a data do próximo
+//   vencimento em aberto, como os eventos; sem vencimento em aberto, o nome do tipo.
+// Versão anterior: 1.69.0 · 23/10/2026
 //
 // v1.69.0 (23/10/2026, sessão 20261023-0023-controles-lista, demanda 6946fc07; de acordo do Nicola 23/10 00:23) — LINHA DO
 //   EVENTO: embaixo do título vai só a data do evento, ou o período quando tem início e fim ("03 a 27/11/2026"); antes ia
@@ -22,22 +28,11 @@
 // v1.66.0 (21/10/2026, sessão 20261021-1205-ux-onda2, demanda 15146a34; Nicola 21/10 12:02, "vamos avançar") — chip Controles da ficha: o cabeçalho "Itens de controle" não
 //   diz mais "Em dia" quando algum item da lista está vencido (o Motor pode estar sem o alerta, adiado ou desligado): vale o
 //   pior entre o Motor e os itens. A linha do item não repete o título embaixo ("IPTU / IPTU").
-// Versão anterior: 1.65.0 · 20/10/2026
-//
-// v1.65.0 (20/10/2026, sessão 20261020-2340-controles-grupos, demanda 9404081c; Nicola 23:28 e 23:37, de acordo com ajustes;
-//   PROTOTIPO_CONTROLES_GRUPOS_RAIZ v1.0.0) — chip Controles da ficha: (1) os itens fora de programa ficam em grupos pela
-//   categoria do catálogo (controle_tipos, na ordem dele), depois dos programas; (2) grupo e programa no desenho do item
-//   agrupado da lista de Ativos — ícone com a quantidade, a etiqueta do item mais urgente, a seta que abre e fecha e a linha
-//   que liga os itens; sem a frase "próximo"; (3) com mais de 8 itens, o grupo sem nada nos próximos 30 dias começa fechado;
-//   (4) ícone do item pelo subtipo (cofre_controle_subtipos.icone) ou pela categoria (controle_tipos.icone), e não troca pelo
-//   relógio quando vence (a cor da placa e a etiqueta avisam); (5) título curto na ficha: sem o nome do ativo no fim e sem o
-//   subtipo no começo; a linha de baixo traz a data (Válido até…, a data do evento). Com uma categoria só e sem programa, a
-//   lista fica sem grupo.
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.64.0 … v1.64.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.65.0 … v1.65.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '1.69.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.70.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 import { estado } from './cofre-estado.js';
 import * as api from './cofre-api.js';
 import { mostrarToast, refrescarIcones, abrirModal, fecharModal, modalGenerico, perguntar, escolher, avisarComDesfazer } from './cofre-ui.js';
@@ -1276,9 +1271,14 @@ function periodoEvento(ini, fim) {
     return ma === mb ? `${da} a ${db}/${mb}/${yb}` : `${da}/${ma} a ${db}/${mb}/${yb}`;
 }
 function subtituloItem(item) {
-    const pagaLoc = (item.responsavel_pagamento === 'locatario' ? ' · Paga: locatário' : '') + (item._ligado ? ' · em conjunto' : ''); // v1.67.0
+    const pagaLoc = item.responsavel_pagamento === 'locatario' ? ' · Paga: locatário' : '';
     const sub = item.cofre_controle_subtipos?.nome || rotuloTipoControle(item.tipo);
     if (item.tipo === 'evento' && (item.data_base || item.data_fim)) return periodoEvento(item.data_base, item.data_fim) + pagaLoc;
+    // documento e seguro valem até o fim; o resto mostra a data do próximo vencimento em aberto
+    if (item.data_fim && (item.tipo === 'documento' || item.tipo === 'seguro')) return `Válido até ${formatarDataBR(item.data_fim)}${pagaLoc}`;
+    const prox = (item.cofre_ocorrencias_controle || []).filter(o => o.status_execucao === 'aberto')
+        .map(o => o.data_prevista_atual).filter(Boolean).sort()[0];
+    if (prox) return formatarDataBR(prox) + pagaLoc;
     if (!item.data_fim) return sub + pagaLoc;
     return `Válido até ${formatarDataBR(item.data_fim)}${pagaLoc}`;
 }

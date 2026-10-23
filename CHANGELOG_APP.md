@@ -4,6 +4,16 @@ Histórico completo de versões do `index.html`, movido automaticamente pelo `ge
 
 ---
 
+NOVIDADES (Beta v1.474.1) — 5 diálogos nativos viram rzAvisar (UXR).
+Versão anterior (Beta v1.474.0):
+DATA: 22/10/2026 (sessão 20261022-2353-agenda-visual, demanda 4568a519)
+------------------------------------------------------------------
+Versões anteriores (v1.474.0 … v1.474.0): CHANGELOG_APP.md, na raiz do
+repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
+das 5 versões mais recentes deste cabeçalho.
+
+---
+
 NOVIDADES (Beta v1.474.0) — cofre-controles.js 1.68.0 (Controles por vencimento); import map.
 Versão anterior (Beta v1.473.0):
 DATA: 22/10/2026 (sessão 20261022-2255-fatura-sugestoes, demanda 279ab311)
