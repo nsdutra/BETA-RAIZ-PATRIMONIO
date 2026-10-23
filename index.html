@@ -6,8 +6,11 @@
    (base derivada do RUMO v7.4.2 — histórico de versões anteriores
    preservado abaixo para referência técnica)
 
-   VERSÃO: Beta v1.474.0
+   VERSÃO: Beta v1.474.1
    LINHAS: 15614
+   DATA: 23/10/2026 (sessão 20261023-0003-zeladoria-p2, demanda f9621340)
+   NOVIDADES (Beta v1.474.1) — 5 diálogos nativos viram rzAvisar (UXR).
+   Versão anterior (Beta v1.474.0):
    DATA: 22/10/2026 (sessão 20261022-2353-agenda-visual, demanda 4568a519)
    NOVIDADES (Beta v1.474.0) — cofre-controles.js 1.68.0 (Controles por vencimento); import map.
    Versão anterior (Beta v1.473.0):
@@ -21,11 +24,8 @@
    NOVIDADES (Beta v1.471.1) — C1b: totais alinhados; contrato em página própria.
    Versão anterior (Beta v1.471.0):
    DATA: 22/10/2026 (sessão 20261022-1035-computador-c1, demanda 15146a34)
-   NOVIDADES (Beta v1.471.0) — COMPUTADOR C1: Hoje em 2 colunas; lista sem barras próprias; sem cabeçalho de colunas.
-   Versão anterior (Beta v1.470.0):
-   DATA: 22/10/2026 (sessão 20261022-0850-ux-onda5c, demanda 15146a34)
    ------------------------------------------------------------------
-   Versões anteriores (v1.470.0 … v1.470.0): CHANGELOG_APP.md, na raiz do
+   Versões anteriores (v1.471.0 … v1.471.0): CHANGELOG_APP.md, na raiz do
    repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
    das 5 versões mais recentes deste cabeçalho.
 
@@ -2902,7 +2902,7 @@
         // texto certo toda vez (esqueci 5 versões seguidas, de v1.37.1 até
         // v1.38.3). Agora só precisa mudar UMA linha aqui a cada release;
         // window.onload aplica nos dois lugares automaticamente.
-        const APP_VERSAO = "Beta v1.474.0"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
+        const APP_VERSAO = "Beta v1.474.1"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
 
         // ====================================================================
         // v1.105.0 — HELPERS DE SUPERFÍCIE DA GRAMÁTICA ÚNICA
@@ -13725,7 +13725,7 @@ async function criarLinkVitrineSupabase(token, idsSelecionados) {
 
             if (socioSelecionado === "todos") {
 
-                alert("⚠️ Selecione um sócio específico para gerar o extrato.");
+                rzAvisar('Selecione um sócio específico para gerar o extrato.', 'aviso');
 
                 return;
 
@@ -13956,9 +13956,9 @@ async function criarLinkVitrineSupabase(token, idsSelecionados) {
 
             if(!con || !men) return;
 
-            if(canal === 'zap' && (!con.whatsapp || con.whatsapp.length < 5)) return alert("⚠️ WhatsApp inválido.");
+            if(canal === 'zap' && (!con.whatsapp || con.whatsapp.length < 5)) return rzAvisar('WhatsApp inválido.', 'erro');
 
-            if(canal === 'email' && (!con.email || con.email.length < 5)) return alert("⚠️ E-mail inválido.");
+            if(canal === 'email' && (!con.email || con.email.length < 5)) return rzAvisar('E-mail inválido.', 'erro');
 
             const menIdx = mensalidades.findIndex(m => m.id === men.id);
 
@@ -14007,7 +14007,7 @@ async function criarLinkVitrineSupabase(token, idsSelecionados) {
 
             const dataTransf = document.getElementById('rep-data-transferencia').value;
 
-            if(!mes || isNaN(valor) || !dataTransf) return alert("Preencha o valor e a data real.");
+            if(!mes || isNaN(valor) || !dataTransf) return rzAvisar('Preencha o valor e a data real.', 'aviso');
 
             const dataFormatada = dataTransf.split('-').reverse().join('/');
 
@@ -14154,7 +14154,7 @@ async function criarLinkVitrineSupabase(token, idsSelecionados) {
 
             // Nada encontrado — avisa com clareza em vez de "não fazer nada".
             const rotulo = tipo === 'zap' ? 'WhatsApp' : 'e-mail';
-            alert(`⚠️ ${socio} não tem ${rotulo} cadastrado.\n\nCadastre em: Conta → Pessoas.`);
+            rzAvisar(`${socio} não tem ${rotulo} cadastrado. Cadastre em Conta › Pessoas.`, 'aviso');
             return null;
 
         }
