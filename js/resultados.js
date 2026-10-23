@@ -1,8 +1,15 @@
 // =====================================================================
 // RAIZ PATRIMÔNIO — js/resultados.js
-// VERSÃO: Beta v2.17.0 (22/10/2026 — demanda 15146a34)
+// VERSÃO: Beta v2.18.0 (23/10/2026 — demanda 15146a34)
 // LINHAS: (ver versoes.json)
 // -----------------------------------------------------------------
+// NOVIDADES (Beta v2.18.0) (23/10/2026, sessão 20261023-0855-computador-c5, demanda 15146a34; PROTOTIPO_COMPUTADOR_RAIZ v1.1.0 §3,
+//   de acordo do Nicola 23/10 08:51) — Hoje no computador em 3 colunas iguais: Como vai (resultado por ramo, cards do ramo,
+//   mês a mês, por grupo, performance) · O que vem (reajustes, revisionais, contratos por índice, dependência de locatário) ·
+//   O contexto (Sua árvore, carteira × indicadores, Geral · sem ativo). A Sua árvore (#hoje-ramos-mount, desenhada pelo index)
+//   é movida para o topo da 3ª coluna e devolvida ao lugar antes de cada redesenho. Coluna vazia não aparece. Entre 1.024 e
+//   1.279 px a 3ª coluna desce para baixo da 2ª (raiz.css 1.15.0). Gráfico de colunas com 360 de largura no computador.
+// Versão anterior (Beta v2.17.0):
 // NOVIDADES (Beta v2.17.0) (22/10/2026, sessão 20261022-1035-computador-c1, demanda 15146a34; PROTOTIPO_COMPUTADOR_RAIZ v1.0.0,
 //   de acordo do Nicola 22/10 10:32) — Hoje no computador (≥ 1024 px) em 2 colunas: à esquerda o que responde "como vai"
 //   (Resultado por ramo, mês a mês, por grupo, concentração, reajustes, revisional); à direita o apoio (contratos por
@@ -99,7 +106,7 @@
 // Versões anteriores (v2.4.0 … v2.4.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '2.17.0';
+export const VERSAO = '2.18.0';
 
 // ---------------------------------------------------------------------
 // Estado do filtro (module-scoped — sobrevive entre renders porque o
@@ -259,6 +266,7 @@ export async function renderResultados(opcoes) {
         const abrir = ev => { if (ev.target.closest('[data-rz-compo]') && (ev.type === 'click' || ev.key === 'Enter' || ev.key === ' ')) { ev.preventDefault(); abrirComposicaoHoje(); } };
         heroi.addEventListener('click', abrir); heroi.addEventListener('keydown', abrir);
     }
+    devolverArvore(); // v2.18.0
     // v2.7.0 — num ramo, os cards de Resultados ficam em Todo o patrimônio (as funções ainda não recortam por ramo — F23)
     cards.innerHTML = noRamo ? '<div id="resultados-conteudo"></div>'
         : `<h3 class="rz-plain-title">Resultados · ${filtro.ano}</h3><div id="resultados-conteudo">${rzSk('cards', 3)}</div>`;
@@ -526,9 +534,18 @@ export function abrirMetasHoje() {
 // ---------------------------------------------------------------------
 // Conteúdo — Carteira / Empreendimento
 // ---------------------------------------------------------------------
+// v2.18.0 — a Sua árvore (#hoje-ramos-mount, do index) mora na 3ª coluna do Hoje no computador; antes de qualquer
+// redesenho ela volta para logo depois de #hoje-resultados-mount, senão o innerHTML a apagaria. Devolve o elemento.
+function devolverArvore() {
+    const arvore = document.getElementById('hoje-ramos-mount');
+    const origem = document.getElementById('hoje-resultados-mount');
+    if (arvore && origem && origem.contains(arvore)) origem.after(arvore);
+    return arvore;
+}
 async function renderizarConteudo() {
     const alvo = document.getElementById('resultados-conteudo');
     if (!alvo) return;
+    devolverArvore();
     const minha = ++geracao; // v2.0.0
     const p_ramo = filtro.ramo === 'tudo' ? null : filtro.ramo; // v2.9.0 (F23)
     if (p_ramo && ramoInfo && ramoInfo.soma_valor === false) { // v2.9.0 — ramo de contagem (Família): vidas + despesas do ramo
@@ -659,10 +676,19 @@ async function renderizarConteudo() {
             cardsLocacao ? montarReajustesCalendario(reajustes) : '',
             cardsLocacao ? montarRevisionaisCalendario(revisionais) : '',
         ];
-        // v2.17.0 — computador: 2 colunas (o principal à esquerda, o apoio à direita); celular: a ordem de sempre, uma coluna
-        alvo.innerHTML = rzDesk()
-            ? `<div class="rz-hoje-cols"><div class="rz-hoje-c1">${[...esq, ...fim].filter(Boolean).join('')}</div><div class="rz-hoje-c2">${[cIndice, cIndicador, cPerf].filter(Boolean).join('')}</div></div>`
-            : [...esq, cIndice, cIndicador, ...fim, cPerf].filter(Boolean).join('');
+        // v2.18.0 — a Sua árvore volta ao lugar de origem antes do redesenho (senão o innerHTML a apagaria)
+        const arvore = devolverArvore();
+        if (rzDesk()) {
+            // v2.18.0 — 3 colunas: Como vai · O que vem · O contexto (PROTOTIPO_COMPUTADOR v1.1.0 §3)
+            const col = (classe, itens) => { const h = itens.filter(Boolean).join(''); return h ? `<div class="${classe}">${h}</div>` : ''; };
+            const c1 = col('rz-hoje-c1', [esq[0], esq[1], esq[2], esq[3], cPerf]);
+            const c2 = col('rz-hoje-c2', [fim[1], fim[2], cIndice, fim[0]]);
+            const c3 = `<div class="rz-hoje-c3"><div class="rz-hoje-arv"></div>${[cIndicador, cardGeral].filter(Boolean).join('')}</div>`;
+            alvo.innerHTML = `<div class="rz-hoje-cols">${c1}<div class="rz-hoje-c23">${c2}${c3}</div></div>`;
+            if (arvore) alvo.querySelector('.rz-hoje-arv').appendChild(arvore);
+        } else {
+            alvo.innerHTML = [...esq, cIndice, cIndicador, ...fim, cPerf].filter(Boolean).join('');
+        }
 
         if (typeof rzIcones === 'function') rzIcones();
         ligarBarrasCalendario('.rz-res-barra-mes', reajustes, abrirResultadosMesReajuste);
@@ -1083,7 +1109,7 @@ function mesesFechadosNoAno() {
 // v2.17.0 — computador: Hoje em 2 colunas e gráfico de colunas mais largo (o texto fica na escala do app)
 const rzDesk = () => typeof window !== 'undefined' && typeof window.matchMedia === 'function' && window.matchMedia('(min-width:1024px)').matches;
 function colunasExecutivasSvg(valores, { destaque = -1, alerta = -1, unidade, classeBarra = '', rotuloAria = '' }) {
-    const W = rzDesk() ? 640 : 320, TOPO = 16, AREA = 112, BAIXO = 14, MES = 14;
+    const W = rzDesk() ? 360 : 320, TOPO = 16, AREA = 112, BAIXO = 14, MES = 14;
     const max = Math.max(0, ...valores), min = Math.min(0, ...valores);
     const faixa = (max - min) || 1;
     const yZero = TOPO + AREA * (max / faixa);

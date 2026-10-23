@@ -1,6 +1,11 @@
 /* ============================================================================
    raiz.css — Raiz Patrimônio · estilos do app (index.html)
-   Versão: 1.14.0 · 23/10/2026
+   Versão: 1.15.0 · 23/10/2026
+
+   v1.15.0 (23/10/2026, sessão 20261023-0855-computador-c5, demanda 15146a34; PROTOTIPO_COMPUTADOR_RAIZ v1.1.0 §3, de acordo
+   do Nicola 23/10 08:51) — Hoje no computador em 3 colunas iguais (Como vai · O que vem · O contexto), com a Sua árvore no
+   topo da 3ª; entre 1.024 e 1.279 px, 2 colunas com a 3ª embaixo da 2ª; coluna vazia não ocupa lugar. Minha Gestão em 3
+   colunas (Norte · Pontos de atenção · Para você) e Fique por Dentro em 2 (Indicadores · Novidades).
 
    v1.14.0 (23/10/2026, sessão 20261023-0830-computador-c4, demanda 15146a34; Nicola 23/10 08:26 "ainda vi barras de rolagem ao
    escolher um imóvel") — a ficha ao lado da lista (imóvel e contrato) continua rolando sozinha com a roda do mouse e o
@@ -1945,10 +1950,21 @@ html.rz-plat-web body:not(.rz-split-con) #ficha-contrato-conteudo > .rz-entity:f
     /* v1.14.0: sem barra desenhada na ficha (rola pela roda/touchpad) */
     body.rz-split-con #tab-contrato-ficha::-webkit-scrollbar,
     body.rz-split-at #app-cofre > main > [data-screen="ficha-ativo"]::-webkit-scrollbar{display:none}
-    /* Hoje em 2 colunas (resultados.js monta .rz-hoje-cols só no computador) */
-    .rz-hoje-cols{display:grid;grid-template-columns:minmax(0,2fr) minmax(0,1fr);gap:0 16px;align-items:start}
+    /* v1.15.0 — Hoje em colunas iguais (resultados.js 2.18.0 monta .rz-hoje-cols só no computador): cada coluna presente
+       vira uma faixa (grid-auto-flow:column), então coluna vazia não sobra. Abaixo de 1.280 px, .rz-hoje-c23 empilha a 2ª
+       e a 3ª; a partir de 1.280 px ela some da grade (display:contents) e as três ficam lado a lado. */
+    .rz-hoje-cols{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(0,1fr);gap:0 16px;align-items:start}
     .rz-hoje-cols .rz-kv{grid-template-columns:1fr 1fr}
-    .rz-hoje-c2 .rz-cmp{max-height:260px}
+    .rz-hoje-cols .rz-cmp{max-height:260px}
+    .rz-hoje-c23:empty,.rz-hoje-arv:empty{display:none}
+    .rz-hoje-arv .rz-arvore{max-width:260px}
+    .rz-hoje-arv .rz-ramo-breve{margin:-6px 0 12px}
+    /* Minha Gestão em 3 colunas; Fique por Dentro em 2 */
+    #hoje-jornal:not(.hidden){display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:0 16px;align-items:start}
+    #hoje-jornal > #jornal-data{grid-column:1 / -1}
+    #hoje-jornal > :empty{display:none}
+    #hoje-fique:not(.hidden){display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:0 16px;align-items:start}
+    #hoje-fique > :empty{display:none}
     /* telas de leitura e configuração: coluna central de 960 px */
     :is(#tab-relatorios-catalogo,#tab-minha-empresa,#tab-licenca,#tab-pessoas,#tab-partes,#tab-fiscal,#tab-minutas,#tab-tipo-empreendimento,#tab-regras-conciliacao,#tab-links-vitrine).tab-content{max-width:960px;margin-left:auto;margin-right:auto}
     /* Relatórios em 2 colunas */
@@ -1957,6 +1973,9 @@ html.rz-plat-web body:not(.rz-split-con) #ficha-contrato-conteudo > .rz-entity:f
     /* o "+" redondo das listas vira "+ Novo" */
     #main-content .rz-ico-btn.rz-primary{width:auto;min-width:0;height:36px;padding:0 14px 0 10px;border-radius:10px;gap:6px;display:inline-flex;align-items:center}
     #main-content .rz-ico-btn.rz-primary::after{content:"Novo";font:600 var(--fs-corpo,14px) var(--font-body)}
+}
+@media (min-width:1280px){
+    .rz-hoje-c23{display:contents}
 }
 
 /* Computador C1b (raiz.css 1.11.0, dem 15146a34; teste do Nicola 22/10 11:16). Medido no ar a 1.600 px. */

@@ -4,6 +4,16 @@ Histórico completo de versões do `index.html`, movido automaticamente pelo `ge
 
 ---
 
+NOVIDADES (Beta v1.475.0) — selo da Agenda sem informativo; cofre-controles 1.69.0; icones-raiz 1.1.0.
+Versão anterior (Beta v1.474.1):
+DATA: 23/10/2026 (sessão 20261023-0003-zeladoria-p2, demanda f9621340)
+------------------------------------------------------------------
+Versões anteriores (v1.474.1 … v1.474.1): CHANGELOG_APP.md, na raiz do
+repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
+das 5 versões mais recentes deste cabeçalho.
+
+---
+
 NOVIDADES (Beta v1.474.1) — 5 diálogos nativos viram rzAvisar (UXR).
 Versão anterior (Beta v1.474.0):
 DATA: 22/10/2026 (sessão 20261022-2353-agenda-visual, demanda 4568a519)
