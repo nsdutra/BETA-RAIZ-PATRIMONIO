@@ -1,7 +1,14 @@
 // ============================================================================
 // financeiro.js — Raiz Patrimônio · Financeiro (Recebimentos · Atrasados · Saídas
 //                  · conciliação de extrato · recibo · detalhe do recebimento)
-// Versão: 1.77.0 · 22/10/2026
+// Versão: 1.78.0 · 23/10/2026
+//
+// v1.78.0 (23/10/2026, sessão 20261023-0830-computador-c4, demanda 15146a34; Nicola 23/10 08:26) — EXPORTAR NO PADRÃO DO RAIZ:
+// Recebimentos e Saídas › selecionar › Exportar deixa de baixar um CSV cru e baixa a planilha .xlsx no molde do Cadastro da
+// carteira (relatorios-executivos.js 1.7.0, baixarPlanilhaLista; PADRAO_RELATORIOS v1.6.0, REL-61 a REL-66): empresa e
+// competência no topo, 4 números com fórmula (linhas, total, em atraso, pago), Data como data, Valor como número, linha
+// Total que acompanha o filtro, "Em atraso" em vermelho, ordem cronológica (REL-28) e aba Sobre.
+// Versão anterior: 1.77.0 · 22/10/2026
 //
 // v1.77.0 (22/10/2026, sessão 20261022-2255-fatura-sugestoes, demanda 279ab311; FICHA_CARTAO_COMPRA_ANTECIPADA_RAIZ v1.1.0, de
 // acordo do Nicola 22/10 22:55) — FATURA × DESPESA PREVISTA: na fatura, as compras que parecem uma despesa prevista em aberto
@@ -28,16 +35,11 @@
 // sem os chips de atalho e sem a origem. O grupo só vira título com dois ou mais lançamentos. O contrato segue na vista por
 // competência. Balanço › Pessoas e Grupos: saldo partido (rótulo "a receber"/"deve" em cima, valor embaixo — sugestão do
 // Splitwise), o nome deixa de ser apertado pela etiqueta.
-// Versão anterior: 1.73.0 · 20/10/2026
-//
-// v1.73.0 (20/10/2026, sessão 20261020-1013-planta-ajustes, demanda 83968339; de acordo do Nicola 10:13) — o card "Simulação
-// de venda" sai de Saídas (Financeiro geral): a simulação, com o Excel, passa a ser ação do ⋮ do plano de pagamento no
-// próprio ativo (cofre-ativos 1.132.0).
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.72.0 … v1.72.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.73.0 … v1.73.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '1.77.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.78.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 
 // v1.17.0 (Fase 1 do wrapper de escrita, rollout Financeiro) — emitirEscrita
 // é o evento padrão pra "algo mudou que módulos DE FORA deste arquivo podem
@@ -5138,19 +5140,38 @@ function financeiroRenderCabecalho(aba) {
             barra.querySelector('[data-ft-lote="limpar"]').onclick = () => { finSel[aba].clear(); aba === 'rec' ? renderMensalidades() : renderSaidas(); };
             if (typeof lucide !== 'undefined') lucide.createIcons();
         }
-        function finExportarCsv(aba) {
+        async function finExportarCsv(aba) { // v1.78.0 — planilha .xlsx no padrão do Raiz (nome mantido: o botão chama por ele)
             const marcadas = finTab[aba].linhas.filter(l => finSel[aba].has(l.id)); if (!marcadas.length) return;
-            const cel = (v) => { const s = String(v ?? ''); return /[";\r\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s; };
-            const num = (v) => (Math.round(Number(v) * 100) / 100).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2, useGrouping: false });
-            const cab = FIN_COLS[aba].map(c => c[1]);
-            const linhas = [cab, ...marcadas.map(l => [l.nome, l.local, l.dataTxt, num(Math.abs(l.valor)), l.situ])];
-            const texto = '﻿' + linhas.map(l => l.map(cel).join(';')).join('\r\n');
+            const rec = aba === 'rec';
             const comp = String(financeiroCompetenciaAtual || financeiroCompetenciaHojeISO()).slice(0, 7);
-            const a = document.createElement('a');
-            a.href = URL.createObjectURL(new Blob([texto], { type: 'text/csv;charset=utf-8' }));
-            a.download = `${aba === 'rec' ? 'recebimentos' : 'saidas'}-${comp}.csv`;
-            document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1500);
-            rzToast(`${marcadas.length} ${marcadas.length === 1 ? 'linha exportada' : 'linhas exportadas'}`);
+            const compTxt = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez'][parseInt(comp.slice(5, 7), 10) - 1] + '/' + comp.slice(0, 4);
+            const linhas = [...marcadas].sort((a, b) => String(a.data || '').localeCompare(String(b.data || '')) || String(a.nome).localeCompare(String(b.nome), 'pt-BR'));
+            const total = finTab[aba].linhas.length;
+            const colunas = [
+                { cab: 'Data', larg: 12, fmt: 'data', ler: l => l.data },
+                { cab: rec ? 'Locatário' : 'Descrição', larg: 34, ler: l => l.nome },
+                { cab: rec ? 'Imóvel' : 'Ativo', larg: 34, ler: l => l.local },
+                { cab: 'Valor (R$)', larg: 15, fmt: 'moeda', total: true, ler: l => Math.round(Math.abs(Number(l.valor || 0)) * 100) / 100 },
+                { cab: 'Situação', larg: 13, ler: l => l.situ, alerta: v => v === 'Em atraso' },
+            ];
+            const { baixarPlanilhaLista } = await import('./relatorios-executivos.js');
+            await baixarPlanilhaLista({
+                titulo: rec ? 'Recebimentos' : 'Saídas', arquivo: rec ? 'recebimentos' : 'saidas', sufixo: comp, aba: rec ? 'Recebimentos' : 'Saídas',
+                recorte: `Competência ${compTxt} · ${marcadas.length === total ? 'todas as linhas da tela' : marcadas.length + ' de ' + total + ' linhas selecionadas'}`,
+                fonte: `Financeiro › ${rec ? 'Recebimentos' : 'Saídas'} · competência ${compTxt}`,
+                colunas, linhas,
+                kpis: [
+                    { rot: rec ? 'Recebimentos' : 'Saídas', formula: f => `COUNTA(${f('Data')})`, fmt: 'int' },
+                    { rot: 'Total (R$)', formula: f => `SUM(${f('Valor (R$)')})`, fmt: 'moeda' },
+                    { rot: 'Pago (R$)', formula: f => `SUMIF(${f('Situação')},"Pago",${f('Valor (R$)')})`, fmt: 'moeda' },
+                    { rot: 'Em atraso (R$)', formula: f => `SUMIF(${f('Situação')},"Em atraso",${f('Valor (R$)')})`, fmt: 'moeda' },
+                ],
+                sobre: [
+                    ['Uma linha por ' + (rec ? 'recebimento' : 'saída'), rec ? 'Mensalidade do contrato na competência: locatário, imóvel, data de vencimento (ou de pagamento, quando pago), valor e situação.'
+                        : 'Despesa ou fatura na competência: descrição, ativo, data de vencimento (ou de pagamento, quando pago), valor e situação.'],
+                    ['Situação', rec ? 'Pago · A vencer · Em atraso (venceu e não foi pago).' : 'Pago · A pagar · Em atraso (venceu e não foi pago).'],
+                ],
+            });
         }
         function finCorpoLote(itens, formas, rotuloItem) {
             const hoje = new Date(); const iso = `${hoje.getFullYear()}-${String(hoje.getMonth() + 1).padStart(2, '0')}-${String(hoje.getDate()).padStart(2, '0')}`;

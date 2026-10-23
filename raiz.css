@@ -1,6 +1,10 @@
 /* ============================================================================
    raiz.css — Raiz Patrimônio · estilos do app (index.html)
-   Versão: 1.13.0 · 23/10/2026
+   Versão: 1.14.0 · 23/10/2026
+
+   v1.14.0 (23/10/2026, sessão 20261023-0830-computador-c4, demanda 15146a34; Nicola 23/10 08:26 "ainda vi barras de rolagem ao
+   escolher um imóvel") — a ficha ao lado da lista (imóvel e contrato) continua rolando sozinha com a roda do mouse e o
+   touchpad, mas sem a barra de rolagem desenhada.
 
    v1.13.0 (23/10/2026, sessão 20261023-0045-computador-c3, demanda 15146a34; PROTOTIPO_COMPUTADOR_RAIZ v1.0.0 §6) — Agenda no
    computador: mês e filtros numa coluna de 300 px à esquerda (parada ao rolar); Pendentes, o dia e os próximos 7 dias à
@@ -1937,7 +1941,10 @@ html.rz-plat-web body:not(.rz-split-con) #ficha-contrato-conteudo > .rz-entity:f
     body.rz-split-at #app-cofre > main > [data-screen="ativos"]{position:static;max-height:none;overflow:visible;padding:0;min-width:0}
     body.rz-split-con #tab-contrato-ficha,
     body.rz-split-at #app-cofre > main > [data-screen="ficha-ativo"]{position:sticky;top:calc(var(--rz-hdr-h,72px) + 12px);max-height:calc(100dvh - var(--rz-hdr-h,72px) - 24px);
-        overflow-y:auto;overscroll-behavior:contain;scrollbar-width:thin;padding-right:4px}
+        overflow-y:auto;overscroll-behavior:contain;scrollbar-width:none;padding-right:4px}
+    /* v1.14.0: sem barra desenhada na ficha (rola pela roda/touchpad) */
+    body.rz-split-con #tab-contrato-ficha::-webkit-scrollbar,
+    body.rz-split-at #app-cofre > main > [data-screen="ficha-ativo"]::-webkit-scrollbar{display:none}
     /* Hoje em 2 colunas (resultados.js monta .rz-hoje-cols só no computador) */
     .rz-hoje-cols{display:grid;grid-template-columns:minmax(0,2fr) minmax(0,1fr);gap:0 16px;align-items:start}
     .rz-hoje-cols .rz-kv{grid-template-columns:1fr 1fr}

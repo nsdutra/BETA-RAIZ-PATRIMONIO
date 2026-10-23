@@ -1,6 +1,14 @@
 // ============================================================================
 // relatorios-executivos.js — Raiz Patrimônio · Relatórios no modelo executivo
-// Versão: 1.6.1 · 20/10/2026
+// Versão: 1.7.0 · 23/10/2026
+//
+// v1.7.0 (23/10/2026, sessão 20261023-0830-computador-c4, demanda 15146a34; Nicola 23/10 08:26: "ao exportar recebimentos, não
+//   está saindo com formatação padrão de relatórios do Raiz … use o exportar pendências de cadastro como padrão e escreva") —
+//   baixarPlanilhaLista(): o molde da planilha do Cadastro da carteira vira a casca de TODA exportação de lista do app
+//   (PADRAO_RELATORIOS v1.6.0, REL-61 a REL-66): empresa, título e linha de situação no topo, símbolo Raiz, até 4 números com
+//   fórmula, cabeçalho congelado com filtro, número como número, data como data, zebra, linha Total com fórmula, fonte,
+//   rodapé de impressão com página e uma aba "Sobre". Primeiro uso: Financeiro › Recebimentos e Saídas › Exportar.
+// Versão anterior: 1.6.1 · 20/10/2026
 //
 // v1.6.1 (20/10/2026, sessão 20261020-1846-balanco-ativo, demanda b8ff7e8d; prints do Nicola 18:37, de acordo 19:12) — no
 //   celular o relatório não corta mais a lateral: o texto das células quebra linha (descrição longa como
@@ -33,25 +41,15 @@
 // vazia em 1 frase de até 40. A explicação longa fica na confirmação, quando existe. Nada de comportamento mudou.
 // Também: o resumo do topo do relatório troca o style com cor solta por uma classe (.acao-sub.rx-resumo) — zera o
 // hex_solto_style deste arquivo no verificar_gramatica.py.
-// Versão anterior: 1.3.0 · 11/10/2026
-//
-// v1.3.0 (11/10/2026, sessão 20261008-1231-pessoas-ativos, demandas 0aa64e93 e 7c5c4c65; F13.8, ficha v1.4.0 e protótipo v1.3.0; de acordo do Nicola 11/10 22:55) — relatório
-// novo "Retiradas extraordinárias" (relatorios.retiradas_extraordinarias), lido de fn_relatorio_retiradas_extraordinarias:
-//   · só fatos e dados (REL-56): capa com cabeçalho, uma linha de números do período, 4 números e 2 gráficos de título
-//     descritivo; sem manchete, sem pontos de conclusão, sem adjetivo e sem cor de juízo;
-//   · com o controle de partes ligado na empresa: tabela "Pessoas com parte definida" (parte e diferença em cor neutra,
-//     com sinal), traço da parte no gráfico por pessoa e "Pessoas sem parte definida"; aviso quando a soma ≠ 100%;
-//   · filtro por ano ou "Todos os anos"; aberto a partir do ativo pessoa, chip com o nome (recorte por pessoa, REL-46);
-//   · abrirRelatorioExecutivo(tipo, opcoes) aceita { pessoaId, pessoaNome }.
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.2.0 … v1.2.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.3.0 … v1.3.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
 import { rzMostrarBloqueio } from './comum-licenca.js';
 import { rzToast } from './raiz-ui.js';
 import RaizDevice from './raiz-device.js';
 
-export const VERSAO = '1.6.1';
+export const VERSAO = '1.7.0';
 
 // ---------------------------------------------------------------------------
 // Formatos (REL-13 a REL-17)
@@ -1011,7 +1009,8 @@ function simboloPng() {
 }
 
 const CC = { pine: 'FF1E3A32', sprout: 'FF2F6A51', paper: 'FFF1F4EC', ink: 'FF17211E', muted: 'FF5B6662', line: 'FFE3E6E0',
-    brassBg: 'FFF7ECD9', brass: 'FF8A5A1F', brassTx: 'FF6B4415', zebra: 'FFF6F7F4', loc: 'FF3C5A50', branco: 'FFFFFFFF' };
+    brassBg: 'FFF7ECD9', brass: 'FF8A5A1F', brassTx: 'FF6B4415', zebra: 'FFF6F7F4', loc: 'FF3C5A50', branco: 'FFFFFFFF',
+    danger: 'FFC1463A' };
 const SIT_ATIVO = { alugado: 'Alugado', disponivel: 'Disponível', uso_proprio: 'Uso próprio' };
 const FORMA_PG = { pix: 'PIX', boleto: 'Boleto', transferencia: 'Transferência', dinheiro: 'Dinheiro', outro: 'Outro' };
 const dataXl = (s) => { if (!s) return null; const [a, m, d] = String(s).slice(0, 10).split('-').map(Number); return new Date(Date.UTC(a, m - 1, d)); };
@@ -1255,6 +1254,112 @@ async function baixarPlanilhaCadastro(empId, empNome) {
         rzToast('Planilha baixada');
     } catch (e) {
         console.error('[rz] cadastro da carteira', e);
+        rzToast('Não foi possível gerar a planilha: ' + (e?.message || e), 'danger');
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Planilha de lista (v1.7.0) — PADRAO_RELATORIOS REL-61 a REL-66. A casca é a do Cadastro da carteira; quem exporta só
+// diz as colunas e entrega as linhas já lidas da tela (REL-02: a planilha não recalcula, só soma com fórmula).
+//   o = { titulo, recorte, arquivo, aba, colunas: [{ cab, larg, fmt, ler, total, alerta }], linhas,
+//         kpis: [{ rot, formula: (faixa) => 'SUM(' + faixa('Valor (R$)') + ')', fmt }], sobre: [[a, b]], fonte }
+//   fmt: 'moeda' | 'data' | 'int' | null · total: soma a coluna na linha Total · alerta(valor) → true pinta a célula de vermelho
+// ---------------------------------------------------------------------------
+const FMT_PLANILHA = { moeda: '#,##0.00', data: 'dd/mm/yyyy', int: '0' };
+export async function baixarPlanilhaLista(o) {
+    rzToast('Montando a planilha…');
+    try {
+        const ExcelJS = await carregarExcelJs();
+        const quem = (typeof socioLogado === 'string' && socioLogado) || await quemGera();
+        const empresa = (typeof CONFIG_CLIENTE === 'object' && CONFIG_CLIENTE?.nomeEmpresa) || 'Empresa';
+        const agora = new Date(), p2 = (n) => String(n).padStart(2, '0');
+        const quando = `${p2(agora.getDate())}/${p2(agora.getMonth() + 1)}/${agora.getFullYear()} às ${p2(agora.getHours())}:${p2(agora.getMinutes())}`;
+        const F = (sz = 10, b = false, cor = CC.ink, i = false) => ({ name: 'Arial', size: sz, bold: b, italic: i, color: { argb: cor } });
+        const fundo = (c) => ({ type: 'pattern', pattern: 'solid', fgColor: { argb: c } });
+        const fio = { style: 'thin', color: { argb: CC.line } };
+        const cols = o.colunas, NC = cols.length, linhas = o.linhas || [];
+        const wb = new ExcelJS.Workbook();
+        wb.creator = 'Raiz Patrimônio'; wb.title = `${o.titulo} · ${empresa}`; wb.created = agora;
+        wb.calcProperties = { fullCalcOnLoad: true };
+        const HDR = 8, INI = 9, FIM = Math.max(INI, INI + linhas.length - 1);
+        const ws = wb.addWorksheet(o.aba || 'Lista', { views: [{ state: 'frozen', xSplit: 0, ySplit: HDR, showGridLines: false }],
+            pageSetup: { orientation: NC > 6 ? 'landscape' : 'portrait', fitToPage: true, fitToWidth: 1, fitToHeight: 0, printTitlesRow: `${HDR}:${HDR}` } });
+        ws.headerFooter.oddFooter = `&L&8${o.titulo.replace(/&/g, '&&')} · ${empresa.replace(/&/g, '&&')} · gerado em ${quando}${quem ? ' por ' + quem.replace(/&/g, '&&') : ''}&R&8Página &P de &N`;
+        cols.forEach((c, i) => { ws.getColumn(i + 1).width = c.larg || 16; });
+        ws.getRow(1).height = 30;
+        ws.getCell('A1').value = empresa; ws.getCell('A1').font = F(18, true, CC.pine);
+        ws.getCell('A2').value = o.titulo; ws.getCell('A2').font = F(12, true);
+        ws.getCell('A3').value = `${o.recorte ? o.recorte + ' · ' : ''}gerado em ${quando}${quem ? ' por ' + quem : ''} · ${linhas.length} ${linhas.length === 1 ? 'linha' : 'linhas'}`;
+        ws.getCell('A3').font = F(9, false, CC.muted);
+        const cMarca = Math.max(3, NC - 1);
+        const png = await simboloPng();
+        if (png) { const id = wb.addImage({ base64: png, extension: 'png' }); ws.addImage(id, { tl: { col: cMarca - 1, row: 0 }, ext: { width: 30, height: 38 } }); }
+        ws.getCell(1, cMarca + 1).value = 'Raiz'; ws.getCell(1, cMarca + 1).font = F(12, true, CC.pine);
+        ws.getCell(2, cMarca + 1).value = 'Patrimônio'; ws.getCell(2, cMarca + 1).font = F(8, true, CC.sprout);
+
+        const L = {}; cols.forEach((c, i) => { L[c.cab] = colLetra(i + 1); });
+        const faixa = (cab) => `${L[cab]}${INI}:${L[cab]}${FIM}`;
+        (o.kpis || []).slice(0, 4).forEach((k, i) => {
+            const c0 = 1 + i * 2;
+            const a = ws.getCell(5, c0); a.value = k.rot; a.font = F(8, false, CC.muted);
+            const b = ws.getCell(6, c0); b.value = { formula: k.formula(faixa) }; b.font = F(14, true, CC.pine);
+            b.numFmt = FMT_PLANILHA[k.fmt] || k.fmt || '0'; b.alignment = { horizontal: 'left' };
+            [5, 6].forEach(rr => [c0, c0 + 1].forEach(cc => { if (cc <= Math.max(NC, 8)) ws.getCell(rr, cc).fill = fundo(CC.paper); }));
+        });
+
+        const direita = (c) => c.fmt === 'moeda' || c.fmt === 'int';
+        cols.forEach((c, i) => {
+            const cl = ws.getCell(HDR, i + 1); cl.value = c.cab; cl.font = F(9, true, CC.pine); cl.fill = fundo(CC.paper);
+            cl.alignment = { wrapText: true, vertical: 'middle', horizontal: direita(c) ? 'right' : 'left' };
+            cl.border = { bottom: { style: 'medium', color: { argb: CC.pine } } };
+        });
+        ws.getRow(HDR).height = 30;
+        linhas.forEach((r, k) => {
+            const rr = INI + k;
+            cols.forEach((c, i) => {
+                const cl = ws.getCell(rr, i + 1);
+                let v = c.ler(r);
+                if (c.fmt === 'data') v = dataXl(v);
+                else if (c.fmt === 'moeda' || c.fmt === 'int') v = nOuNulo(v);
+                else v = tOuNulo(v);
+                cl.value = v; cl.font = F(9); cl.border = { bottom: fio };
+                if (FMT_PLANILHA[c.fmt]) cl.numFmt = FMT_PLANILHA[c.fmt];
+                if (direita(c)) cl.alignment = { horizontal: 'right' };
+                if (k % 2 === 1) cl.fill = fundo(CC.zebra);
+                if (c.alerta && c.alerta(v)) cl.font = F(9, true, CC.danger);
+            });
+        });
+        ws.autoFilter = { from: { row: HDR, column: 1 }, to: { row: FIM, column: NC } };
+        const TR = FIM + 1;
+        ws.getCell(TR, 1).value = 'Total'; ws.getCell(TR, 1).font = F(9, true);
+        cols.forEach((c, i) => {
+            const cl = ws.getCell(TR, i + 1);
+            cl.border = { top: { style: 'medium', color: { argb: CC.pine } } };
+            if (c.total) { cl.value = { formula: `SUBTOTAL(9,${faixa(c.cab)})` }; cl.numFmt = FMT_PLANILHA[c.fmt] || '#,##0.00'; cl.font = F(9, true); cl.alignment = { horizontal: 'right' }; }
+        });
+        ws.getCell(TR + 2, 1).value = `Fonte: Raiz · ${o.fonte || o.titulo} · situação em ${quando.slice(0, 10)} · Raiz Patrimônio · raizpatrimonio.com.br`;
+        ws.getCell(TR + 2, 1).font = F(8, false, CC.muted, true);
+
+        const wsb = wb.addWorksheet('Sobre', { views: [{ showGridLines: false }] });
+        wsb.getColumn(1).width = 30; wsb.getColumn(2).width = 100;
+        wsb.getCell('A1').value = 'Sobre esta planilha'; wsb.getCell('A1').font = F(14, true, CC.pine);
+        [...(o.sobre || []),
+            ['Total', 'A linha Total soma só as linhas visíveis: ao filtrar uma coluna, o total acompanha o filtro.'],
+            ['Origem', `Exportado do Raiz em ${quando}${quem ? ' por ' + quem : ''}. Os números são os da tela no momento da exportação.`]]
+            .forEach(([a, b], k) => {
+                wsb.getCell(3 + k, 1).value = a || null; wsb.getCell(3 + k, 1).font = F(9, true, CC.pine);
+                const cl = wsb.getCell(3 + k, 2); cl.value = b; cl.font = F(9); cl.alignment = { wrapText: true, vertical: 'top' };
+            });
+
+        const buf = await wb.xlsx.writeBuffer();
+        const s = (t) => String(t || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '');
+        const nome = `raiz_${s(o.arquivo || o.titulo)}_${s(empresa) || 'empresa'}${o.sufixo ? '_' + s(o.sufixo) : ''}.xlsx`;
+        const url = URL.createObjectURL(new Blob([buf], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }));
+        const a = document.createElement('a'); a.href = url; a.download = nome; document.body.appendChild(a); a.click(); a.remove();
+        setTimeout(() => URL.revokeObjectURL(url), 30000);
+        rzToast(`Planilha baixada · ${linhas.length} ${linhas.length === 1 ? 'linha' : 'linhas'}`);
+    } catch (e) {
+        console.error('[rz] planilha de lista', e);
         rzToast('Não foi possível gerar a planilha: ' + (e?.message || e), 'danger');
     }
 }
