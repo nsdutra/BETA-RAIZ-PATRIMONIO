@@ -1,6 +1,13 @@
 // ============================================================================
 // raiz-ui.js — Raiz Patrimônio · Diálogos sem diálogo nativo (UXR-29/30)
-// Versão: 1.6.1 · 20/10/2026
+// Versão: 1.7.0 · 23/10/2026
+//
+// v1.7.0 (23/10/2026, sessão 20261023-0025-computador-c2, demanda 15146a34; PROTOTIPO_COMPUTADOR_RAIZ v1.0.0 §7, de acordo do
+//   Nicola 22/10 10:32 e "siga em frente" 23/10 00:22) — sheets no computador (≥ 1024 px com mouse): o sheet de AÇÕES abre
+//   preso ao botão que o abriu, como menu de contexto (popover de 300 px); o de formulário e os demais seguem como painel à
+//   direita, com o cabeçalho único do raiz.css 1.12.0. Classificação pelo conteúdo do sheet, sem mexer no abrirSheet do
+//   index: só ações (.rz-act) e nenhum campo = ações. Sem clique recente (teclado, abertura por código) fica o painel.
+// Versão anterior: 1.6.1 · 20/10/2026
 //
 // v1.6.1 (20/10/2026, sessão 20261020-1943-calendario-rapido, demanda b3aeefaf; Nicola 19:43 "não está atualizando o tempo de
 // carregamento ao passar de 45 s, apenas ao chegar nos 60 s") — rzProgressoLeitura: a barra parava no tempo típico e só
@@ -30,17 +37,11 @@
 //     folha reabrir igual (fn_divisao_excecao_definir já guarda desde a F13.4);
 //   · "Dividir igual" funciona nos três modos.
 // Sem a opção, o editor é o de sempre (só %). aoSalvar recebe (itens, { igual, modo }), e cada item traz modo, cotas, valor.
-//
-// Versão anterior: 1.3.0 · 11/10/2026
-//
-// v1.3.0 (11/10/2026, sessão 20261008-1231-pessoas-ativos, demanda f3e6cd27; F13 §3.5) — rzEditarDivisao ganha a opção
-// igualar: true, que mostra "Dividir igual entre todos" (percentuais iguais; o arredondamento fica com o primeiro, que é
-// quem pagou). O retorno de aoSalvar passa a trazer igual: true quando a divisão ficou igual. Sem a opção, nada muda.
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.2.0 … v1.2.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.3.0 … v1.3.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '1.6.1'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.7.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 
 const esc = (v) => String(v ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 const g = (nome) => (typeof window !== 'undefined' && typeof window[nome] === 'function') ? window[nome] : null;
@@ -381,6 +382,55 @@ export function rzProgressoLeitura({ alvo = null, titulo = 'Lendo o arquivo', ar
             if (camada) camada.remove(); else caixa.innerHTML = '';
         },
     };
+}
+
+// ---------------------------------------------------------------------------
+// Sheets no computador (v1.7.0). O abrirSheet do index troca o className do #rz-sheet a cada abertura; aqui só se olha o
+// conteúdo depois que ele entra e se põe a classe do formato. ARMADILHA: o nível 2 (#rz-sheet-2) e o menu das iniciais
+// (.rz-menu-conta, posicionado pelo raiz.css) ficam de fora.
+let rzUltimoAlvo = null, rzUltimoAlvoEm = 0;
+const rzDeskFino = () => window.matchMedia && window.matchMedia('(min-width:1024px) and (pointer:fine)').matches;
+function rzSoAcoes(sheet) {
+    const b = sheet.querySelector(':scope > .rz-sh-b');
+    if (!b || sheet.querySelector('input,select,textarea,.rz-sh-f') || !b.querySelector('.rz-act')) return false;
+    return [...b.children].every(c => c.matches('.rz-act, .rz-group') || (c.matches('.rz-card.rz-list') && [...c.children].every(x => x.matches('.rz-act'))));
+}
+// ARMADILHA: o observador também vê a classe que esta função põe no véu; ela só mexe quando o estado muda (senão, laço).
+function rzFormatoSheet() {
+    const veil = document.getElementById('rz-veil'), sheet = document.getElementById('rz-sheet');
+    if (!veil || !sheet) return;
+    const alvo = rzUltimoAlvo && document.contains(rzUltimoAlvo) && (Date.now() - rzUltimoAlvoEm) < 1500 ? rzUltimoAlvo : null;
+    const pop = veil.classList.contains('rz-on') && rzDeskFino() && !sheet.classList.contains('rz-menu-conta') && !!alvo && rzSoAcoes(sheet);
+    if (!pop) { if (veil.classList.contains('rz-dk-pop-veil')) veil.classList.remove('rz-dk-pop-veil'); return; }
+    if (sheet.classList.contains('rz-dk-pop') && veil.classList.contains('rz-dk-pop-veil')) return; // já posicionado
+    const r = alvo.getBoundingClientRect(), L = 300, M = 8;
+    const x = Math.max(M, Math.min(window.innerWidth - L - M, r.right - L));
+    veil.style.setProperty('--rz-pop-x', x + 'px');
+    veil.style.setProperty('--rz-pop-y', (r.bottom + 6) + 'px');
+    sheet.classList.add('rz-dk-pop');
+    veil.classList.add('rz-dk-pop-veil');
+    const h = sheet.offsetHeight; // medido já no formato de popover (altura do conteúdo)
+    if (r.bottom + 6 + h > window.innerHeight - M) veil.style.setProperty('--rz-pop-y', Math.max(M, r.top - 6 - h) + 'px'); // não cabe embaixo: abre em cima
+}
+if (typeof window !== 'undefined' && typeof document !== 'undefined') {
+    document.addEventListener('pointerdown', ev => {
+        const a = ev.target && ev.target.closest ? ev.target.closest('button,[role="button"],a,.rz-row') : null;
+        if (a && !a.closest('#rz-veil')) { rzUltimoAlvo = a; rzUltimoAlvoEm = Date.now(); }
+    }, true);
+    let rzObsSheet = null;
+    const ligar = () => {
+        const veil = document.getElementById('rz-veil'), sheet = document.getElementById('rz-sheet');
+        if (!veil || !sheet || rzObsSheet) return !!rzObsSheet;
+        rzObsSheet = new MutationObserver(() => rzFormatoSheet());
+        rzObsSheet.observe(sheet, { childList: true });
+        rzObsSheet.observe(veil, { attributes: true, attributeFilter: ['class'] });
+        rzFormatoSheet();
+        return true;
+    };
+    if (!ligar()) { // o véu nasce no primeiro sheet
+        const obs = new MutationObserver(() => { if (ligar()) obs.disconnect(); });
+        obs.observe(document.body, { childList: true });
+    }
 }
 
 if (typeof window !== 'undefined') {

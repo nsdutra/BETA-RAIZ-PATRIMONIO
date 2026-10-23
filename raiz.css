@@ -1,6 +1,10 @@
 /* ============================================================================
    raiz.css — Raiz Patrimônio · estilos do app (index.html)
-   Versão: 1.11.0 · 22/10/2026
+   Versão: 1.12.0 · 23/10/2026
+
+   v1.12.0 (23/10/2026, sessão 20261023-0025-computador-c2, demanda 15146a34; PROTOTIPO_COMPUTADOR_RAIZ v1.0.0 §7) — sheets
+   no computador: ações em popover de 300 px preso ao botão (raiz-ui.js 1.7.0 põe a classe e a posição), sem véu escuro;
+   formulário e os demais em painel à direita de 480 px; cabeçalho único (título 17/700, ✕ quadrado de 32 px).
 
    v1.11.0 (22/10/2026, sessão 20261022-1120-computador-c1b, demanda 15146a34; teste do Nicola 22/10 11:16) — computador:
    totais do ramo e do empreendimento alinhados com a coluna de valor da lista do Patrimônio (com e sem a ficha aberta);
@@ -1968,4 +1972,26 @@ html.rz-plat-web body:not(.rz-split-con) #ficha-contrato-conteudo > .rz-entity:f
     body.rz-split-con #tab-contrato-ficha{position:relative!important;top:auto!important;max-height:none!important;overflow:visible!important;max-width:1040px;margin:0 auto;padding-right:0}
     body.rz-split-con #fc-voltar{display:flex!important;position:absolute;top:-2px;left:-12px;margin:0;z-index:1}
     body.rz-split-con #ficha-contrato-conteudo > .rz-entity:first-child{margin-top:0;margin-left:30px}
+}
+
+/* Computador C2 (raiz.css 1.12.0, dem 15146a34) — sheets. As classes rz-dk-pop / rz-dk-pop-veil vêm do raiz-ui.js 1.7.0. */
+@media (min-width:1024px){
+    .rz-sheet{max-width:480px}
+    .rz-sheet .rz-sh-h{padding:14px 16px 10px;border-bottom:1px solid var(--line)}
+    .rz-sheet .rz-sh-h h3{font:700 var(--fs-titulo,17px)/1.25 var(--font-title);letter-spacing:-.01em}
+    .rz-sheet .rz-sh-h .rz-sub{font-size:var(--fs-sec,12.5px)}
+    .rz-sheet .rz-x{width:32px;height:32px;border-radius:8px;background:var(--tile)}
+    .rz-sheet .rz-sh-b{padding-top:8px}
+    .rz-veil.rz-dk-pop-veil{background:transparent;display:block}
+    .rz-veil.rz-dk-pop-veil > #rz-sheet.rz-dk-pop{position:fixed;left:var(--rz-pop-x,auto);top:var(--rz-pop-y,auto);width:300px;max-width:300px;height:auto;
+        max-height:70vh;border-radius:12px;border:1px solid var(--line);box-shadow:0 18px 40px -16px rgba(23,33,30,.45);transform:none;transition:none}
+    #rz-sheet.rz-dk-pop .rz-x,#rz-sheet.rz-dk-pop .rz-grab{display:none}
+    #rz-sheet.rz-dk-pop .rz-sh-h{padding:10px 12px 8px}
+    #rz-sheet.rz-dk-pop .rz-sh-h h3{font-size:var(--fs-card,15px)}
+    #rz-sheet.rz-dk-pop .rz-sh-b{padding:2px 6px 6px}
+    #rz-sheet.rz-dk-pop .rz-act{min-height:40px;padding:8px 8px;border-radius:8px;border-top:0;font-weight:500}
+    #rz-sheet.rz-dk-pop .rz-act:hover{background:var(--tile)}
+    #rz-sheet.rz-dk-pop .rz-act .rz-ic{width:28px;height:28px;border-radius:8px}
+    #rz-sheet.rz-dk-pop .rz-card.rz-list{padding:0;border:0;box-shadow:none;margin:0}
+    #rz-sheet.rz-dk-pop .rz-group{margin:6px 8px 2px}
 }
