@@ -1,6 +1,11 @@
 /* ============================================================================
    raiz.css — Raiz Patrimônio · estilos do app (index.html)
-   Versão: 1.17.0 · 23/10/2026
+   Versão: 1.18.0 · 23/10/2026
+
+   v1.18.0 (23/10/2026, sessão 20261023-0955-computador-ajustes, demanda 15146a34; prints do Nicola 23/10 09:49) — Patrimônio: a
+   linha do empreendimento e o seu total no mesmo tamanho do nome e do valor do ativo (--fs-corpo); Hoje no computador: entre
+   1.024 e 1.439 px os 4 números do herói descem para baixo do resultado (não cortam mais "R$ 4…"); a Sua árvore menor na
+   3ª coluna.
 
    v1.17.0 (23/10/2026, sessão 20261023-0935-computador-c4, demanda 15146a34; PROTOTIPO_COMPUTADOR_RAIZ v1.1.0 §7) — confirmação
    (.rz-conf, raiz-ui.js 1.9.0) no computador: caixa de 400 px no centro da tela, cantos arredondados, sem a alça.
@@ -2059,4 +2064,16 @@ html.rz-plat-web body:not(.rz-split-con) #ficha-contrato-conteudo > .rz-entity:f
     .rz-veil .rz-sheet.rz-conf{position:fixed;left:50%;top:50%;right:auto;bottom:auto;margin:0;width:400px;max-width:calc(100vw - 32px);height:auto;
         max-height:80vh;border-radius:14px;transform:translate(-50%,-50%)!important;box-shadow:0 24px 60px -20px rgba(23,33,30,.5)}
     .rz-sheet.rz-conf .rz-grab{display:none}
+}
+
+/* v1.18.0 — empreendimento no mesmo tamanho do ativo (nome e total) */
+#ativos-lista .rz-group.rz-group-t span,#ativos-lista .rz-group.rz-group-t b{font-size:var(--fs-corpo,14px)}
+#ativos-lista .rz-group.rz-group-t b{font-weight:600;color:var(--ink)}
+@media (min-width:1024px){
+    .rz-hoje-arv .rz-arvore{max-width:200px}
+}
+/* v1.18.0 — herói do Hoje em janela média: os 4 números embaixo do resultado, em vez de espremidos ao lado */
+@media (min-width:1024px) and (max-width:1439px){
+    .rz-heroi > .rz-heroi-res{grid-template-columns:minmax(0,1fr)}
+    .rz-heroi-res > .rz-heroi-3{grid-column:1;grid-row:auto;margin-top:10px}
 }

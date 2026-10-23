@@ -1,8 +1,12 @@
 // =====================================================================
 // RAIZ PATRIMÔNIO — js/resultados.js
-// VERSÃO: Beta v2.19.0 (23/10/2026 — demanda 15146a34)
+// VERSÃO: Beta v2.20.0 (23/10/2026 — demanda 15146a34)
 // LINHAS: (ver versoes.json)
 // -----------------------------------------------------------------
+// NOVIDADES (Beta v2.20.0) (23/10/2026, sessão 20261023-0955-computador-ajustes, demanda 15146a34; prints do Nicola 23/10 09:49
+//   "quando muda de ramo nem todos se encaixam nas 3 colunas") — numa lente, o anel "<Ramo> por segmento" sai da largura toda
+//   e vai para o topo da 3ª coluna (como a Sua árvore); a lente Família (ramo de contagem) também abre em 3 colunas.
+// Versão anterior (Beta v2.19.0):
 // NOVIDADES (Beta v2.19.0) (23/10/2026, sessão 20261023-0915-computador-c6, demanda 15146a34; PROTOTIPO_COMPUTADOR_RAIZ v1.1.0 §11, de acordo do Nicola 23/10 08:51) — C6 · escala de letras: 12 tamanhos de letra escritos em número (font-size:13px etc.) trocados pelos da escala (--fs-mini 11 · --fs-sec 12,5 · --fs-corpo 14 · --fs-titulo 17; 16 px fica, por causa do zoom do iPhone em campo, e 18 px ou mais também — herói e números grandes). Nada muda de lugar; só o tamanho passa a ser o mesmo em todas as telas.
 // Versão anterior (Beta v2.18.0):
 // NOVIDADES (Beta v2.18.0) (23/10/2026, sessão 20261023-0855-computador-c5, demanda 15146a34; PROTOTIPO_COMPUTADOR_RAIZ v1.1.0 §3,
@@ -108,7 +112,7 @@
 // Versões anteriores (v2.4.0 … v2.4.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '2.19.0';
+export const VERSAO = '2.20.0';
 
 // ---------------------------------------------------------------------
 // Estado do filtro (module-scoped — sobrevive entre renders porque o
@@ -538,11 +542,30 @@ export function abrirMetasHoje() {
 // ---------------------------------------------------------------------
 // v2.18.0 — a Sua árvore (#hoje-ramos-mount, do index) mora na 3ª coluna do Hoje no computador; antes de qualquer
 // redesenho ela volta para logo depois de #hoje-resultados-mount, senão o innerHTML a apagaria. Devolve o elemento.
+// v2.20.0 — o mesmo vale para o anel "<Ramo> por segmento" (#geral-quebra-tipo-secao, do index), que numa lente ficava na
+// largura toda acima das colunas. Cada um deixa um marcador escondido (data-rz-casa) no lugar de origem e volta para ele.
+const HOJE_MOVEIS = ['geral-quebra-tipo-secao', 'hoje-ramos-mount'];
 function devolverArvore() {
+    HOJE_MOVEIS.forEach(id => {
+        const el = document.getElementById(id), casa = document.querySelector(`[data-rz-casa="${id}"]`);
+        if (el && casa) casa.replaceWith(el);
+    });
     const arvore = document.getElementById('hoje-ramos-mount');
     const origem = document.getElementById('hoje-resultados-mount');
-    if (arvore && origem && origem.contains(arvore)) origem.after(arvore);
+    if (arvore && origem && origem.contains(arvore)) origem.after(arvore); // v2.18.0 — movido antes de existir o marcador
     return arvore;
+}
+// v2.20.0 — Hoje no computador: 3 colunas; a 3ª começa pelo anel por segmento e pela Sua árvore
+function montarColunasHoje(alvo, c1, c2, c3) {
+    const col = (classe, itens) => { const h = itens.filter(Boolean).join(''); return h ? `<div class="${classe}">${h}</div>` : ''; };
+    alvo.innerHTML = `<div class="rz-hoje-cols">${col('rz-hoje-c1', c1)}<div class="rz-hoje-c23">${col('rz-hoje-c2', c2)}` +
+        `<div class="rz-hoje-c3"><div class="rz-hoje-arv"></div>${c3.filter(Boolean).join('')}</div></div></div>`;
+    const slot = alvo.querySelector('.rz-hoje-arv');
+    HOJE_MOVEIS.forEach(id => {
+        const el = document.getElementById(id); if (!el || !slot) return;
+        if (!document.querySelector(`[data-rz-casa="${id}"]`)) { const c = document.createElement('i'); c.hidden = true; c.dataset.rzCasa = id; el.before(c); }
+        slot.appendChild(el);
+    });
 }
 async function renderizarConteudo() {
     const alvo = document.getElementById('resultados-conteudo');
@@ -564,11 +587,13 @@ async function renderizarConteudo() {
         const qtd = ativosR.error ? null : (ativosR.data || []).filter(x => ramoDe(x) === p_ramo).length;
         const heroiR = document.getElementById('hoje-heroi-mount');
         if (heroiR) heroiR.innerHTML = montarHeroiRamo(qtd == null ? null : { qtd, valor: 0, ind: indFam, mensal: mensalF.error ? [] : (mensalF.data || []) });
-        alvo.innerHTML = [
+        const famCards = [
             montarCardsDoRamo(p_ramo, indFam), // v2.11.0
             mensalF.error ? '' : montarGraficoMensal(mensalF.data || []),
             grupoF.error ? '' : montarPorGrupo(grupoF.data || []),
-        ].filter(Boolean).join('') || '<p class="rz-desc">Nenhuma despesa deste ramo no ano.</p>';
+        ];
+        if (rzDesk() && famCards.some(Boolean)) montarColunasHoje(alvo, [famCards[0]], [famCards[1]], [famCards[2]]); // v2.20.0
+        else alvo.innerHTML = famCards.filter(Boolean).join('') || '<p class="rz-desc">Nenhuma despesa deste ramo no ano.</p>';
         if (typeof rzIcones === 'function') rzIcones();
         return;
     }
@@ -679,15 +704,10 @@ async function renderizarConteudo() {
             cardsLocacao ? montarRevisionaisCalendario(revisionais) : '',
         ];
         // v2.18.0 — a Sua árvore volta ao lugar de origem antes do redesenho (senão o innerHTML a apagaria)
-        const arvore = devolverArvore();
+        devolverArvore();
         if (rzDesk()) {
             // v2.18.0 — 3 colunas: Como vai · O que vem · O contexto (PROTOTIPO_COMPUTADOR v1.1.0 §3)
-            const col = (classe, itens) => { const h = itens.filter(Boolean).join(''); return h ? `<div class="${classe}">${h}</div>` : ''; };
-            const c1 = col('rz-hoje-c1', [esq[0], esq[1], esq[2], esq[3], cPerf]);
-            const c2 = col('rz-hoje-c2', [fim[1], fim[2], cIndice, fim[0]]);
-            const c3 = `<div class="rz-hoje-c3"><div class="rz-hoje-arv"></div>${[cIndicador, cardGeral].filter(Boolean).join('')}</div>`;
-            alvo.innerHTML = `<div class="rz-hoje-cols">${c1}<div class="rz-hoje-c23">${c2}${c3}</div></div>`;
-            if (arvore) alvo.querySelector('.rz-hoje-arv').appendChild(arvore);
+            montarColunasHoje(alvo, [esq[0], esq[1], esq[2], esq[3], cPerf], [fim[1], fim[2], cIndice, fim[0]], [cIndicador, cardGeral]);
         } else {
             alvo.innerHTML = [...esq, cIndice, cIndicador, ...fim, cPerf].filter(Boolean).join('');
         }

@@ -1,7 +1,14 @@
 // ============================================================================
 // financeiro.js — Raiz Patrimônio · Financeiro (Recebimentos · Atrasados · Saídas
 //                  · conciliação de extrato · recibo · detalhe do recebimento)
-// Versão: 1.79.0 · 23/10/2026
+// Versão: 1.80.0 · 23/10/2026
+//
+// v1.80.0 (23/10/2026, sessão 20261023-0955-computador-ajustes, demanda 15146a34; print do Nicola 23/10 09:49 "ao lançar a
+// despesa nem todos estão do mesmo tamanho") — Nova despesa / Detalhes da despesa: os campos antigos (Vínculo, Descrição,
+// Valor, Vencimento, Competência, Fornecedor, Observação, Dar baixa) passam ao padrão .rz-f dos campos novos (Categoria,
+// Subcategoria): mesmo rótulo, mesma caixa, mesmo tamanho de letra; Reembolsável vira caixa de marcar como "Dividir com
+// outras pessoas"; título, Fechar e Salvar no padrão dos sheets.
+// Versão anterior: 1.79.0 · 23/10/2026
 //
 // v1.79.0 (23/10/2026, sessão 20261023-0915-computador-c6, demanda 15146a34; PROTOTIPO_COMPUTADOR_RAIZ v1.1.0 §11, de acordo do Nicola 23/10 08:51) — C6 · escala de letras: 61 tamanhos de letra escritos em número (font-size:13px etc.) trocados pelos da escala (--fs-mini 11 · --fs-sec 12,5 · --fs-corpo 14 · --fs-titulo 17; 16 px fica, por causa do zoom do iPhone em campo, e 18 px ou mais também — herói e números grandes). Nada muda de lugar; só o tamanho passa a ser o mesmo em todas as telas.
 // Versão anterior: 1.78.0 · 23/10/2026
@@ -22,18 +29,11 @@
 //
 // v1.76.0 (21/10/2026, sessão 20261021-0857-libs-sob-demanda, demanda 6b11c602; de acordo do Nicola 21/10 08:57) — a leitura de extrato em planilha carrega o xlsx na hora
 // (bibliotecas.js), em vez de contar com ele no <head> do index.
-// Versão anterior: 1.75.0 · 20/10/2026
-//
-// v1.75.0 (20/10/2026, sessão 20261020-2245-contratos-lista; de acordo do Nicola 22:45) — o Financeiro da ficha do CONTRATO
-// passa ao mesmo padrão do ativo (1.74.0): gráfico do Hoje que filtra o mês, Previsto · Recebido · Vencido · Em aberto, lista
-// direta com etiqueta padrão (Recebido, A receber, Atrasado, Isento), sem a lista de meses → categorias → lançamentos e sem
-// os atalhos "a classificar"/"sem conciliação". O ano vem inteiro (as mensalidades futuras já existem). Dentro do card da
-// ficha, as partes viram blocos do mesmo card.
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.74.0 … v1.74.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.75.0 … v1.75.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '1.79.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.80.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 
 // v1.17.0 (Fase 1 do wrapper de escrita, rollout Financeiro) — emitirEscrita
 // é o evento padrão pra "algo mudou que módulos DE FORA deste arquivo podem
@@ -2166,17 +2166,17 @@ function financeiroRenderCabecalho(aba) {
             modal.innerHTML = `
                 <div style="background:#fff;border-radius:16px 16px 0 0;max-width:480px;width:100%;padding:16px;max-height:88vh;overflow-y:auto;">
                     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
-                        <h3 style="font-size:var(--fs-corpo,14px);font-weight:bold;color:#1e293b;">${ehEdicao ? 'Detalhes da despesa' : 'Nova despesa'}</h3>
+                        <h3 style="font:700 var(--fs-titulo,17px)/1.25 var(--font-title);color:var(--ink);margin:0">${ehEdicao ? 'Detalhes da despesa' : 'Nova despesa'}</h3>
                         <button onclick="fecharPopupDespesa()" style="background:#e2e8f0;border:none;border-radius:9999px;width:26px;height:26px;flex:none;">✕</button>
                     </div>
                     <div style="display:flex;flex-direction:column;gap:8px;">
-                        <div>
-                            <label style="font-size:var(--fs-mini,11px);font-weight:bold;color:#64748b;">Vínculo</label>
-                            <select id="desp-ativo" style="width:100%;padding:8px;border:1px solid #cbd5e1;border-radius:6px;font-size:var(--fs-sec,12.5px);margin-top:2px;background:#f8fafc;">${optsAtivos}</select>
+                        <div class="rz-f">
+                            <label>Vínculo</label>
+                            <select id="desp-ativo" >${optsAtivos}</select>
                         </div>
-                        <div>
-                            <label style="font-size:var(--fs-mini,11px);font-weight:bold;color:#64748b;">Descrição <span style="color:var(--danger)">*</span></label>
-                            <input id="desp-descricao" type="text" value="${escapeHtmlSaidas(d?.descricao || sugestoes?.descricao || '')}" placeholder="Ex: Reparo de infiltração — suíte" style="width:100%;padding:8px;border:1px solid #cbd5e1;border-radius:6px;font-size:var(--fs-sec,12.5px);margin-top:2px;">
+                        <div class="rz-f">
+                            <label>Descrição <span style="color:var(--danger)">*</span></label>
+                            <input id="desp-descricao" type="text" value="${escapeHtmlSaidas(d?.descricao || sugestoes?.descricao || '')}" placeholder="Ex: Reparo de infiltração — suíte" >
                         </div>
                         ${usarArvoreDesp ? `<div class="rz-f">
                             <label for="desp-categoria-grupo">Categoria <i>*</i></label>
@@ -2188,42 +2188,39 @@ function financeiroRenderCabecalho(aba) {
                         </div>
                         ${ehEdicao ? '' : `<label class="rz-row rz-chk"><input type="checkbox" id="desp-contab" checked><div class="rz-tx"><b>Entra na contabilidade</b><span>Vai no pacote do contador; sugerido pela subcategoria</span></div></label>`}` : ''}
                         <div class="grid grid-cols-2 gap-2">
-                            <div${usarArvoreDesp ? ' class="hidden"' : ''}>
-                                <label style="font-size:var(--fs-mini,11px);font-weight:bold;color:#64748b;">Categoria <span style="color:var(--danger)">*</span></label>
-                                <select id="${usarArvoreDesp ? 'desp-categoria-legado' : 'desp-categoria'}" style="width:100%;padding:8px;border:1px solid #cbd5e1;border-radius:6px;font-size:var(--fs-sec,12.5px);margin-top:2px;background:#f8fafc;">${optsCategorias}</select>
+                            <div class="rz-f${usarArvoreDesp ? ' hidden' : ''}">
+                                <label>Categoria <span style="color:var(--danger)">*</span></label>
+                                <select id="${usarArvoreDesp ? 'desp-categoria-legado' : 'desp-categoria'}" >${optsCategorias}</select>
                             </div>
-                            <div>
-                                <label style="font-size:var(--fs-mini,11px);font-weight:bold;color:#64748b;">Valor (R$) <span style="color:var(--danger)">*</span></label>
-                                <input id="desp-valor" type="number" step="0.01" value="${d?.valor ?? sugestoes?.valor ?? ''}" style="width:100%;padding:8px;border:1px solid #cbd5e1;border-radius:6px;font-size:var(--fs-sec,12.5px);margin-top:2px;">
+                            <div class="rz-f">
+                                <label>Valor (R$) <span style="color:var(--danger)">*</span></label>
+                                <input id="desp-valor" type="number" step="0.01" value="${d?.valor ?? sugestoes?.valor ?? ''}" >
                             </div>
                         </div>
                         <div class="grid grid-cols-2 gap-2">
-                            <div>
-                                <label style="font-size:var(--fs-mini,11px);font-weight:bold;color:#64748b;">Vencimento <span style="color:var(--danger)">*</span></label>
-                                <input id="desp-vencimento" type="date" value="${d?.vencimento || sugestoes?.vencimento || ''}" style="width:100%;padding:8px;border:1px solid #cbd5e1;border-radius:6px;font-size:var(--fs-sec,12.5px);margin-top:2px;">
+                            <div class="rz-f">
+                                <label>Vencimento <span style="color:var(--danger)">*</span></label>
+                                <input id="desp-vencimento" type="date" value="${d?.vencimento || sugestoes?.vencimento || ''}" >
                             </div>
-                            <div>
-                                <label style="font-size:var(--fs-mini,11px);font-weight:bold;color:#64748b;">Competência <span style="color:var(--danger)">*</span></label>
-                                <select id="desp-competencia" style="width:100%;padding:8px;border:1px solid #cbd5e1;border-radius:6px;font-size:var(--fs-sec,12.5px);margin-top:2px;background:#f8fafc;">${optsCompetencia}</select>
+                            <div class="rz-f">
+                                <label>Competência <span style="color:var(--danger)">*</span></label>
+                                <select id="desp-competencia" >${optsCompetencia}</select>
                             </div>
                         </div>
-                        <div>
-                            <label style="font-size:var(--fs-mini,11px);font-weight:bold;color:#64748b;">Fornecedor / beneficiário</label>
+                        <div class="rz-f">
+                            <label>Fornecedor / beneficiário</label>
                             ${sugestoes?.partes?.length > 1 ? `
                             <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:2px;margin-bottom:6px;">
                                 ${sugestoes.partes.map(p => `<button type="button" onclick="document.getElementById('desp-fornecedor').value='${p.parte_id}'; alternarNovoFornecedor('${p.parte_id}');" style="font-size:var(--fs-mini,11px);font-weight:bold;padding:5px 10px;border-radius:9999px;background:var(--sprout-light);color:var(--pine);border:1px solid var(--sprout);">${escapeHtmlSaidas(p.nome)}</button>`).join('')}
                             </div>
-                            <p style="font-size:var(--fs-mini,11px);color:#94a3b8;margin-top:-4px;margin-bottom:4px;">Este item tem mais de uma parte — toque em quem deve receber esta despesa.</p>` : ''}
-                            <select id="desp-fornecedor" onchange="alternarNovoFornecedor(this.value)" style="width:100%;padding:8px;border:1px solid #cbd5e1;border-radius:6px;font-size:var(--fs-sec,12.5px);margin-top:2px;background:#f8fafc;">${optsPartes}</select>
-                            <input id="desp-fornecedor-novo-nome" type="text" placeholder="Nome do novo fornecedor" style="width:100%;padding:8px;border:1px solid #cbd5e1;border-radius:6px;font-size:var(--fs-sec,12.5px);margin-top:6px;display:none;">
-                            <p style="font-size:var(--fs-mini,11px);color:#94a3b8;margin-top:2px;">Vira um cadastro em Partes, mesmo que incompleto — dá pra completar depois.</p>
+                            <p style="font-size:var(--fs-sec,12.5px);color:var(--muted);margin:0 0 4px">Este item tem mais de uma parte — toque em quem deve receber esta despesa.</p>` : ''}
+                            <select id="desp-fornecedor" onchange="alternarNovoFornecedor(this.value)" >${optsPartes}</select>
+                            <input id="desp-fornecedor-novo-nome" type="text" placeholder="Nome do novo fornecedor" style="display:none;margin-top:6px">
+                            <p style="font-size:var(--fs-sec,12.5px);color:var(--muted);margin:0">Vira um cadastro em Partes, mesmo que incompleto — dá pra completar depois.</p>
                         </div>
                         ${financeiroContasMultiplas() && (typeof podeUsar !== 'function' || podeUsar('financeiro.contas.escolher').ok) ? `<div class="rz-f"><label>Quem pagou (conta)</label><select id="desp-conta">${financeiroContasInfo.contas.map(c => `<option value="${c.id}" ${(d?.contaId ? d.contaId === c.id : (c.padrao && c.titular_tipo === 'empresa')) ? 'selected' : ''}>${escapeHtmlSaidas(c.nome)}</option>`).join('')}</select></div>` : ''}
                         ${ehEdicao ? '' : `<label class="rz-row rz-chk"><input type="checkbox" id="desp-dividir"><div class="rz-tx"><b>Dividir com outras pessoas</b><span>Depois de salvar, escolha quem divide e quanto (igual ou %)</span></div></label>`}
-                        <div style="display:flex;align-items:flex-start;gap:8px;background:#f8fafc;border-radius:8px;padding:8px;">
-                            <input id="desp-reembolsavel" type="checkbox" ${d?.reembolsavel ? 'checked' : ''} style="margin-top:2px;">
-                            <label for="desp-reembolsavel" style="font-size:var(--fs-mini,11px);color:#475569;">Reembolsável — não entra no cálculo de líquido dos sócios</label>
-                        </div>
+                        <label class="rz-row rz-chk"><input id="desp-reembolsavel" type="checkbox" ${d?.reembolsavel ? 'checked' : ''}><div class="rz-tx"><b>Reembolsável</b><span>Não entra no cálculo de líquido dos sócios</span></div></label>
                         ${(() => {
                             // v1.6.0 — Etapa 8: só mostra quando a linha do extrato tem
                             // documento (CPF/CNPJ) — fn_conciliacao_sempre_assim exige
@@ -2234,24 +2231,24 @@ function financeiroRenderCabecalho(aba) {
                             if (!fpOrigem?.documento_original) return '';
                             return `<div style="display:flex;align-items:flex-start;gap:8px;background:var(--brass-bg,#f7ecd9);border-radius:8px;padding:8px;">
                                 <input id="desp-sempre-assim" type="checkbox" style="margin-top:2px;">
-                                <label for="desp-sempre-assim" style="font-size:var(--fs-mini,11px);color:var(--brass-deep,#8a5a1f);">Sempre fazer assim com este favorecido — próximas vezes a conciliação registra sozinha, nesta categoria (dá pra desfazer)</label>
+                                <label for="desp-sempre-assim" style="font-size:var(--fs-sec,12.5px);color:var(--brass-deep,#8a5a1f);">Sempre fazer assim com este favorecido — próximas vezes a conciliação registra sozinha, nesta categoria (dá pra desfazer)</label>
                             </div>`;
                         })()}
-                        <div>
-                            <label style="font-size:var(--fs-mini,11px);font-weight:bold;color:#64748b;">Observação</label>
-                            <textarea id="desp-observacao" rows="2" style="width:100%;padding:8px;border:1px solid #cbd5e1;border-radius:6px;font-size:var(--fs-sec,12.5px);margin-top:2px;resize:none;">${escapeHtmlSaidas(d?.observacao || '')}</textarea>
+                        <div class="rz-f">
+                            <label>Observação</label>
+                            <textarea id="desp-observacao" rows="2" style="height:auto;min-height:76px;padding:10px 12px;resize:none">${escapeHtmlSaidas(d?.observacao || '')}</textarea>
                         </div>
                         ${ehEdicao && !jaFoiPaga ? `
                         <div style="border-top:1px dashed #e6e3da;padding-top:10px;margin-top:2px;">
                             <p style="font-size:var(--fs-mini,11px);font-weight:bold;text-transform:uppercase;letter-spacing:.02em;color:var(--brass-deep);margin-bottom:6px;">Dar baixa</p>
                             <div class="grid grid-cols-2 gap-2">
-                                <div>
-                                    <label style="font-size:var(--fs-mini,11px);font-weight:bold;color:#64748b;">Data do pagamento</label>
-                                    <input id="desp-data-pgto" type="date" value="${new Date().toISOString().slice(0, 10)}" style="width:100%;padding:8px;border:1px solid #cbd5e1;border-radius:6px;font-size:var(--fs-sec,12.5px);margin-top:2px;">
+                                <div class="rz-f">
+                                    <label>Data do pagamento</label>
+                                    <input id="desp-data-pgto" type="date" value="${new Date().toISOString().slice(0, 10)}" >
                                 </div>
-                                <div>
-                                    <label style="font-size:var(--fs-mini,11px);font-weight:bold;color:#64748b;">Forma de pagamento</label>
-                                    <select id="desp-forma-pgto" style="width:100%;padding:8px;border:1px solid #cbd5e1;border-radius:6px;font-size:var(--fs-sec,12.5px);margin-top:2px;background:#f8fafc;"><option value="">— não definida —</option>${optsFormaPagamento}</select>
+                                <div class="rz-f">
+                                    <label>Forma de pagamento</label>
+                                    <select id="desp-forma-pgto" ><option value="">— não definida —</option>${optsFormaPagamento}</select>
                                 </div>
                             </div>
                             <button onclick="confirmarPagamentoDespesa('${d.id}')" style="width:100%;margin-top:8px;background:var(--success);color:#fff;font-weight:bold;font-size:var(--fs-sec,12.5px);padding:9px;border:none;border-radius:8px;">✓ Confirmar pagamento</button>
@@ -2263,10 +2260,10 @@ function financeiroRenderCabecalho(aba) {
                         </div>` : ''}
                     </div>
                     <div style="display:flex;gap:8px;margin-top:14px;">
-                        <button onclick="fecharPopupDespesa()" style="flex:1;background:#f1f5f9;color:#475569;font-weight:bold;font-size:var(--fs-sec,12.5px);padding:10px;border:none;border-radius:8px;">Fechar</button>
-                        <button onclick="salvarDespesa()" style="flex:1;background:var(--pine);color:#fff;font-weight:bold;font-size:var(--fs-sec,12.5px);padding:10px;border:none;border-radius:8px;">Salvar</button>
+                        <button type="button" onclick="fecharPopupDespesa()" class="rz-btn rz-btn-2" style="flex:1">Fechar</button>
+                        <button type="button" onclick="salvarDespesa()" class="rz-btn rz-btn-1" style="flex:1">Salvar</button>
                     </div>
-                    ${ehEdicao ? `<button onclick="excluirDespesa('${d.id}')" style="width:100%;margin-top:10px;background:transparent;border:none;color:var(--danger);font-size:var(--fs-mini,11px);font-weight:bold;padding:4px;">Excluir despesa</button>` : ''}
+                    ${ehEdicao ? `<button onclick="excluirDespesa('${d.id}')" style="width:100%;margin-top:10px;background:transparent;border:none;color:var(--danger);font-size:var(--fs-corpo,14px);font-weight:600;padding:6px;">Excluir despesa</button>` : ''}
                 </div>`;
             document.body.appendChild(modal);
             modal.onclick = (ev) => { if (ev.target === modal) modal.remove(); };
