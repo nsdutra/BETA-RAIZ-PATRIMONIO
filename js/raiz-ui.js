@@ -1,6 +1,9 @@
 // ============================================================================
 // raiz-ui.js — Raiz Patrimônio · Diálogos sem diálogo nativo (UXR-29/30)
-// Versão: 1.7.0 · 23/10/2026
+// Versão: 1.8.0 · 23/10/2026
+//
+// v1.8.0 (23/10/2026, sessão 20261023-0915-computador-c6, demanda 15146a34; PROTOTIPO_COMPUTADOR_RAIZ v1.1.0 §11, de acordo do Nicola 23/10 08:51) — C6 · escala de letras: 17 tamanhos de letra escritos em número (font-size:13px etc.) trocados pelos da escala (--fs-mini 11 · --fs-sec 12,5 · --fs-corpo 14 · --fs-titulo 17; 16 px fica, por causa do zoom do iPhone em campo, e 18 px ou mais também — herói e números grandes). Nada muda de lugar; só o tamanho passa a ser o mesmo em todas as telas.
+// Versão anterior: 1.7.0 · 23/10/2026
 //
 // v1.7.0 (23/10/2026, sessão 20261023-0025-computador-c2, demanda 15146a34; PROTOTIPO_COMPUTADOR_RAIZ v1.0.0 §7, de acordo do
 //   Nicola 22/10 10:32 e "siga em frente" 23/10 00:22) — sheets no computador (≥ 1024 px com mouse): o sheet de AÇÕES abre
@@ -26,22 +29,11 @@
 // v1.5.0 (14/10/2026, sessão 20261014-2145-onda9c-textos, demanda a05ad2ee; onda 9c do estudo PROTOTIPO_UX_DENSIDADE_RAMOS_RAIZ
 // v1.2.0, D6 seção 10) — textos no limite: ação até 24 caracteres, descrição até 28, aviso até 40 com o resultado e tela
 // vazia em 1 frase de até 40. A explicação longa fica na confirmação, quando existe. Nada de comportamento mudou.
-// Versão anterior: 1.4.0 · 11/10/2026
-//
-// v1.4.0 (11/10/2026, sessão 20261008-1231-pessoas-ativos, demanda f3e6cd27; bloco "Produto, já registrado", Nicola 11/10 18:41 ("quero evoluir com Produto, já registrado"); F13 §3.5 e F13.4) — rzEditarDivisao
-// ganha a opção modos: true, com o seletor "%  ·  Cotas  ·  Valor" no topo (Valor só quando há valorBase), como no
-// Splitwise:
-//   · Cotas: cada pessoa recebe um número de cotas (1, 2, 1,5…) e o percentual sai da proporção;
-//   · Valor: cada pessoa recebe um valor em R$; a soma precisa bater com o total do movimento;
-//   · o percentual continua sendo o que o banco soma; o modo, as cotas e o valor vão juntos em cada linha para a
-//     folha reabrir igual (fn_divisao_excecao_definir já guarda desde a F13.4);
-//   · "Dividir igual" funciona nos três modos.
-// Sem a opção, o editor é o de sempre (só %). aoSalvar recebe (itens, { igual, modo }), e cada item traz modo, cotas, valor.
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.3.0 … v1.3.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.4.0 … v1.4.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '1.7.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.8.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 
 const esc = (v) => String(v ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 const g = (nome) => (typeof window !== 'undefined' && typeof window[nome] === 'function') ? window[nome] : null;
@@ -79,7 +71,7 @@ export function rzToast(mensagem, opcoes = {}) {
     }
     const cor = tipo === 'danger' ? 'var(--danger)' : 'var(--pine)';
     const el = document.createElement('div');
-    el.style.cssText = `background:${cor};color:#fff;padding:8px 8px 8px 18px;border-radius:10px;box-shadow:0 8px 20px -8px rgba(0,0,0,.35);font-size:15px;font-weight:600;display:flex;align-items:center;gap:12px;max-width:360px;opacity:0;transform:translateY(8px);transition:opacity .2s ease,transform .2s ease;`;
+    el.style.cssText = `background:${cor};color:#fff;padding:8px 8px 8px 18px;border-radius:10px;box-shadow:0 8px 20px -8px rgba(0,0,0,.35);font-size:var(--fs-corpo,14px);font-weight:600;display:flex;align-items:center;gap:12px;max-width:360px;opacity:0;transform:translateY(8px);transition:opacity .2s ease,transform .2s ease;`;
     el.innerHTML = `<span style="flex:1">${esc(mensagem)}</span><button type="button" style="min-height:40px;padding:0 12px;border-radius:8px;background:rgba(255,255,255,.16);color:#fff;font-weight:700;border:0">${esc(opcoes.rotuloDesfazer || 'Desfazer')}</button>`;
     container.appendChild(el);
     haptic(tipo === 'danger' ? 'error' : 'success');
@@ -98,7 +90,7 @@ export function rzConfirmar({ titulo = 'Confirmar', impacto = '', destrutivo = f
         if (!abrir || !fechar) { resolve(false); return; }
         let decidido = false;
         const decidir = (v) => { if (decidido) return; decidido = true; resolve(v); };
-        const texto = impacto ? `<p style="font-size:15px;color:var(--ink);margin:0 0 12px;line-height:1.45">${esc(impacto)}</p>` : '';
+        const texto = impacto ? `<p style="font-size:var(--fs-corpo,14px);color:var(--ink);margin:0 0 12px;line-height:1.45">${esc(impacto)}</p>` : '';
         let html;
         if (destrutivo) {
             html = cabecalho(titulo) + `<div class="rz-sh-b">${texto}` +
@@ -138,7 +130,7 @@ export function rzAviso({ titulo = 'Aviso', linhas = [], rotulo = 'Entendi' } = 
         const abrir = g('abrirSheet'), fechar = g('fecharSheet');
         if (!abrir || !fechar) { resolve(); return; }
         const corpo = (Array.isArray(linhas) ? linhas : [linhas]).filter(Boolean)
-            .map(l => `<p style="font-size:15px;color:var(--ink);margin:0 0 10px;line-height:1.45">${esc(l)}</p>`).join('');
+            .map(l => `<p style="font-size:var(--fs-corpo,14px);color:var(--ink);margin:0 0 10px;line-height:1.45">${esc(l)}</p>`).join('');
         const sheet = abrir(cabecalho(titulo) + `<div class="rz-sh-b">${corpo}</div>` +
             `<div class="rz-sh-f"><button type="button" class="rz-btn rz-btn-1 rz-wide" data-rz-ok>${esc(rotulo)}</button></div>`, { aoFechar: () => resolve(), empilhar: true });
         sheet.querySelector('[data-rz-ok]')?.addEventListener('click', () => fechar());
@@ -198,9 +190,9 @@ export function rzEditarDivisao({ titulo = 'Editar divisão', sub = '', nota = '
     };
     const campo = (i, k) => {
         const est = 'box-sizing:border-box;height:44px;padding:0 8px;border:1.5px solid var(--line);border-radius:var(--r-ctl);font:inherit;font-size:16px;text-align:right;background:var(--card);color:var(--ink)';
-        if (modo === 'cotas') return `<input type="number" inputmode="decimal" step="0.5" min="0" data-rzd-cotas="${k}" value="${i.cotas ?? ''}" aria-label="Cotas" style="${est};width:64px"><span style="color:var(--muted);font-size:14px">cotas</span>`;
-        if (modo === 'valor') return `<span style="color:var(--muted);font-size:14px">R$</span><input type="number" inputmode="decimal" step="0.01" min="0" data-rzd-valor="${k}" value="${i.valor ?? ''}" aria-label="Valor" style="${est};width:96px">`;
-        return `<input type="number" inputmode="decimal" step="0.01" min="0" max="100" data-rzd-pct="${k}" value="${i.percentual || ''}" aria-label="Percentual" style="${est};width:72px"><span style="color:var(--muted);font-size:15px">%</span>`;
+        if (modo === 'cotas') return `<input type="number" inputmode="decimal" step="0.5" min="0" data-rzd-cotas="${k}" value="${i.cotas ?? ''}" aria-label="Cotas" style="${est};width:64px"><span style="color:var(--muted);font-size:var(--fs-corpo,14px)">cotas</span>`;
+        if (modo === 'valor') return `<span style="color:var(--muted);font-size:var(--fs-corpo,14px)">R$</span><input type="number" inputmode="decimal" step="0.01" min="0" data-rzd-valor="${k}" value="${i.valor ?? ''}" aria-label="Valor" style="${est};width:96px">`;
+        return `<input type="number" inputmode="decimal" step="0.01" min="0" max="100" data-rzd-pct="${k}" value="${i.percentual || ''}" aria-label="Percentual" style="${est};width:72px"><span style="color:var(--muted);font-size:var(--fs-corpo,14px)">%</span>`;
     };
     const linha = (i, k) => `<div class="rz-row" style="gap:10px;padding-top:10px;padding-bottom:10px">
         <div class="rz-tx" style="flex:1;min-width:0">${i.pessoa_id
@@ -231,13 +223,13 @@ export function rzEditarDivisao({ titulo = 'Editar divisão', sub = '', nota = '
     };
     const desenhar = () => {
         const seg = modosOk.length > 1 ? `<div class="rz-chips" style="margin:0 0 10px">${modosOk.map(m => `<button type="button" class="rz-chip${modo === m ? ' rz-on' : ''}" data-rzd-modo="${m}">${m === 'percentual' ? '%' : m === 'cotas' ? 'Cotas' : 'Valor'}</button>`).join('')}</div>` : '';
-        corpo.innerHTML = (nota ? `<p style="margin:0 0 10px;font-size:14px;color:var(--muted);line-height:1.4">${esc(nota)}</p>` : '') + seg +
-            (modo === 'valor' ? `<p style="margin:0 0 8px;font-size:13px;color:var(--muted)">Total do movimento: <b style="color:var(--ink)">${moeda(base)}</b></p>` : '') +
+        corpo.innerHTML = (nota ? `<p style="margin:0 0 10px;font-size:var(--fs-corpo,14px);color:var(--muted);line-height:1.4">${esc(nota)}</p>` : '') + seg +
+            (modo === 'valor' ? `<p style="margin:0 0 8px;font-size:var(--fs-sec,12.5px);color:var(--muted)">Total do movimento: <b style="color:var(--ink)">${moeda(base)}</b></p>` : '') +
             `<div class="rz-card rz-list">${lista.map(linha).join('') || '<div class="rz-empty"><p>Ninguém na divisão ainda.</p></div>'}</div>` +
             `<button type="button" class="rz-act" data-rzd-add><div class="rz-ic"><svg data-lucide="user-plus"></svg></div><div>${esc(rotuloAdicionar)}<small>${permitirExterno ? 'Pessoa cadastrada ou parte externa' : 'Pessoa cadastrada'}</small></div></button>` +
             (igualar && lista.length > 1 ? `<button type="button" class="rz-act" data-rzd-igual><div class="rz-ic"><svg data-lucide="equal"></svg></div><div>Dividir igual entre todos<small>${lista.length} pessoas · ${pctTxt(Math.floor(10000 / lista.length) / 100)} cada</small></div></button>` : '') +
-            `<div data-rzd-soma style="display:flex;justify-content:space-between;align-items:baseline;margin-top:12px;padding-top:12px;border-top:1px solid var(--line);font-size:15px">` +
-            `<span style="color:var(--muted)"></span><div style="display:flex;gap:8px;align-items:baseline"><small style="color:var(--muted);font-size:13px">Soma</small><b style="font-size:17px"></b></div></div>`;
+            `<div data-rzd-soma style="display:flex;justify-content:space-between;align-items:baseline;margin-top:12px;padding-top:12px;border-top:1px solid var(--line);font-size:var(--fs-corpo,14px)">` +
+            `<span style="color:var(--muted)"></span><div style="display:flex;gap:8px;align-items:baseline"><small style="color:var(--muted);font-size:var(--fs-sec,12.5px)">Soma</small><b style="font-size:var(--fs-titulo,17px)"></b></div></div>`;
         const somaEl = corpo.querySelector('[data-rzd-soma]');
         somaEl.querySelector('b').style.fontWeight = '700';
         corpo.querySelectorAll('[data-rzd-modo]').forEach(b => b.addEventListener('click', () => { if (b.dataset.rzdModo !== modo) { converterPara(b.dataset.rzdModo); desenhar(); } }));
@@ -309,12 +301,12 @@ const CSS_PROGRESSO = `
 .rz-lp-camada{position:fixed;inset:0;z-index:400;background:rgba(23,33,30,.45);display:flex;align-items:flex-end;justify-content:center}
 .rz-lp-camada .rz-lp{background:var(--card,#fff);border-radius:18px 18px 0 0;width:100%;max-width:520px;padding:18px 16px calc(18px + env(safe-area-inset-bottom))}
 @media (min-width:768px){.rz-lp-camada{align-items:center}.rz-lp-camada .rz-lp{border-radius:var(--r-card,14px)}}
-.rz-lp h3{font-family:var(--font-title,inherit);font-size:17px;margin:0 0 12px}
-.rz-lp .rz-lp-arq{display:flex;gap:10px;align-items:center;background:var(--tile,#e9ece5);border-radius:10px;padding:9px 11px;font-size:13px;margin:0 0 14px;overflow-wrap:anywhere}
+.rz-lp h3{font-family:var(--font-title,inherit);font-size:var(--fs-titulo,17px);margin:0 0 12px}
+.rz-lp .rz-lp-arq{display:flex;gap:10px;align-items:center;background:var(--tile,#e9ece5);border-radius:10px;padding:9px 11px;font-size:var(--fs-sec,12.5px);margin:0 0 14px;overflow-wrap:anywhere}
 .rz-lp .rz-lp-arq small{display:block;color:var(--muted,#6f7a76)}
 .rz-lp ol{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:10px}
-.rz-lp li{display:flex;gap:10px;align-items:center;font-size:14px;color:var(--muted,#6f7a76)}
-.rz-lp .rz-lp-bola{width:22px;height:22px;border-radius:50%;border:2px solid var(--line,#e6e3da);flex:none;display:grid;place-items:center;font-size:12px}
+.rz-lp li{display:flex;gap:10px;align-items:center;font-size:var(--fs-corpo,14px);color:var(--muted,#6f7a76)}
+.rz-lp .rz-lp-bola{width:22px;height:22px;border-radius:50%;border:2px solid var(--line,#e6e3da);flex:none;display:grid;place-items:center;font-size:var(--fs-sec,12.5px)}
 .rz-lp li.feito{color:var(--ink,#17211e)}
 .rz-lp li.feito .rz-lp-bola{background:var(--pine);border-color:var(--pine);color:#fff}
 .rz-lp li.agora{color:var(--ink,#17211e);font-weight:600}
@@ -324,8 +316,8 @@ const CSS_PROGRESSO = `
 @media (prefers-reduced-motion:reduce){.rz-lp li.agora .rz-lp-bola{animation:none;border-top-color:var(--brass,#c68a3b)}}
 .rz-lp .rz-lp-barra{height:6px;background:var(--tile,#e9ece5);border-radius:3px;margin:16px 0 8px;overflow:hidden}
 .rz-lp .rz-lp-barra i{display:block;height:100%;width:0;background:var(--brass,#c68a3b);transition:width .6s}
-.rz-lp .rz-lp-tempo{font-size:12.5px;color:var(--muted,#6f7a76)}
-.rz-lp .rz-lp-aviso{margin-top:14px;background:var(--brass-bg,#fbf1e2);border-radius:10px;padding:10px 12px;font-size:12.5px;color:var(--brass-deep,#a86f27)}
+.rz-lp .rz-lp-tempo{font-size:var(--fs-sec,12.5px);color:var(--muted,#6f7a76)}
+.rz-lp .rz-lp-aviso{margin-top:14px;background:var(--brass-bg,#fbf1e2);border-radius:10px;padding:10px 12px;font-size:var(--fs-sec,12.5px);color:var(--brass-deep,#a86f27)}
 `;
 function rzLpEsc(t) { return String(t ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
 function rzLpBytes(n) { n = Number(n) || 0; return n >= 1048576 ? (n / 1048576).toFixed(1).replace('.', ',') + ' MB' : Math.max(1, Math.round(n / 1024)) + ' KB'; }

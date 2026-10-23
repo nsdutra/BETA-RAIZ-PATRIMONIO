@@ -1,6 +1,11 @@
 /* ============================================================================
    raiz.css — Raiz Patrimônio · estilos do app (index.html)
-   Versão: 1.15.0 · 23/10/2026
+   Versão: 1.16.0 · 23/10/2026
+
+   v1.16.0 (23/10/2026, sessão 20261023-0915-computador-c6, demanda 15146a34; PROTOTIPO_COMPUTADOR_RAIZ v1.1.0 §11, de acordo
+   do Nicola 23/10 08:51) — C6 · escala de letras: tokens novos --fs-mini (11, selo e chip) e --fs-tela (22, título da tela e
+   nome da ficha no computador); no computador o título de card fica em --fs-card e a 2ª linha da ficha em --fs-sec. Os
+   tamanhos em número dos módulos passaram para a escala (12 módulos); o verificar_gramatica.py 1.8 trava o número solto.
 
    v1.15.0 (23/10/2026, sessão 20261023-0855-computador-c5, demanda 15146a34; PROTOTIPO_COMPUTADOR_RAIZ v1.1.0 §3, de acordo
    do Nicola 23/10 08:51) — Hoje no computador em 3 colunas iguais (Como vai · O que vem · O contexto), com a Sua árvore no
@@ -1759,7 +1764,13 @@
    propósito — vence as camadas antigas das ondas sem apagá-las (elas saem quando cada tela for tocada, UXR-02).
    ARMADILHA: raiz.css não tem @layer, então vence também as utilidades do Tailwind (font-bold, text-gray-800).
    ============================================================================================================ */
-:root{--fs-heroi:24px;--fs-titulo:17px;--fs-card:15px;--fs-corpo:14px;--fs-sec:12.5px;--fs-min:12px}
+:root{--fs-heroi:24px;--fs-titulo:17px;--fs-card:15px;--fs-corpo:14px;--fs-sec:12.5px;--fs-min:12px;--fs-mini:11px;--fs-tela:22px}
+/* v1.16.0 — C6: no computador, título da tela e nome da ficha em --fs-tela; título de card em --fs-card */
+@media (min-width:1024px){
+    .rz-tabhead h2,.rz-entity .rz-tx b{font-size:var(--fs-tela)}
+    .rz-entity .rz-tx span{font-size:var(--fs-sec)}
+    .rz-plain-title,.rz-card-h h3,.rz-card > h3{font-size:var(--fs-card)}
+}
 body{color:var(--ink)}
 /* títulos */
 .rz-card-h h3{font-size:var(--fs-card);font-weight:600}

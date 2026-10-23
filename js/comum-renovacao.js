@@ -1,6 +1,9 @@
 // ============================================================================
 // comum-renovacao.js — Raiz Patrimônio · Renovação e ampliação de plano por Pix
-// Versão: 1.3.5 · 07/10/2026
+// Versão: 1.4.0 · 23/10/2026
+//
+// v1.4.0 (23/10/2026, sessão 20261023-0915-computador-c6, demanda 15146a34; PROTOTIPO_COMPUTADOR_RAIZ v1.1.0 §11, de acordo do Nicola 23/10 08:51) — C6 · escala de letras: 5 tamanhos de letra escritos em número (font-size:13px etc.) trocados pelos da escala (--fs-mini 11 · --fs-sec 12,5 · --fs-corpo 14 · --fs-titulo 17; 16 px fica, por causa do zoom do iPhone em campo, e 18 px ou mais também — herói e números grandes). Nada muda de lugar; só o tamanho passa a ser o mesmo em todas as telas.
+// Versão anterior: 1.3.5 · 07/10/2026
 //
 // v1.3.4 (07/10/2026, sessão 20261007-1721-rolo-changelog, demanda 2507d554 — VER-06, "de acordo" do Nicola 07/10 17:21) — SÓ
 // CABEÇALHO: as versões além das 5 mais recentes rolaram para o CHANGELOG_MODULOS.md.
@@ -24,26 +27,11 @@
 // um resumo da licença: vigência atual × nova vigência (expira_anterior vem
 // do banco). A cópia do comprovante no Cofre da empresa já nasce vinculada à
 // empresa (não vira "documento sem vínculo").
-//
-// Versão anterior: 1.3.0 · 01/10/2026
-//
-// v1.3.0 — FICHA F11 (demanda 45bb4875, aprovada pelo Nicola em 01/10 17:46):
-// depois do "Já paguei" a tela diz se o plano JÁ ESTÁ LIBERADO (o banco libera
-// na hora o período inteiro, com trava: recusa nos últimos 30 dias ou outra
-// liberação ainda não conferida) ou se aguarda a Raiz. Dali: "Enviar
-// comprovante" (foto ou PDF; o arquivo vai SÓ para o Cofre da Raiz Patrimônio,
-// pasta comprovantes-pix — fn_licenca_comprovante_anexar), com a opção marcada
-// pelo usuário de guardar também uma cópia no Cofre da própria empresa
-// (cofre-api, mesmo caminho de "Enviar documento"); e "Enviar pelo R.AI.Z"
-// (ícone bot, abre o WhatsApp do R.AI.Z com o código da cobrança) — este só
-// aparece quando o R.AI.Z publicado já sabe receber comprovante (canal_raiz,
-// devolvido pelo banco). Ao fechar, a aba de Licença e as cotas recarregam.
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.0.0 … v1.2.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.3.0 … v1.3.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-
-export const VERSAO = '1.3.5'; // v-check (30/09/2026): lido por Dev › Versões — manter igual ao header
+export const VERSAO = '1.4.0'; // v-check (30/09/2026): lido por Dev › Versões — manter igual ao header
 
 const QR_URL = 'https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js';
 let _qrPromessa = null;
@@ -139,20 +127,20 @@ function economiaAnual(o, ofertas) {
 function linhaOferta(o, i, ofertas) {
     const e = economiaAnual(o, ofertas);
     const precoHtml = e
-        ? `<span style="white-space:nowrap"><s style="color:var(--muted);font-size:12px;font-weight:500">${brl(e.cheio)}</s> <b>${brl(o.preco)}</b></span>` +
-          `<small style="color:var(--success);font-size:11.5px;font-weight:600;white-space:nowrap">Economize ${brl(e.eco)} (${e.pct}%)</small>`
+        ? `<span style="white-space:nowrap"><s style="color:var(--muted);font-size:var(--fs-sec,12.5px);font-weight:500">${brl(e.cheio)}</s> <b>${brl(o.preco)}</b></span>` +
+          `<small style="color:var(--success);font-size:var(--fs-mini,11px);font-weight:600;white-space:nowrap">Economize ${brl(e.eco)} (${e.pct}%)</small>`
         : `<b>${brl(o.preco)}</b>`;
     return `<div class="rz-row rz-link" data-i="${i}" style="padding:9px 0;gap:8px"><div class="rz-tx"><b>${esc(rotuloOferta(o))}</b>` +
         `<span>${o.periodo === 'anual' ? '12 meses, à vista' : 'todo mês'}</span></div>` +
         `<div class="rz-rt" style="gap:1px">${precoHtml}</div>` +
-        `<span style="display:flex;align-items:center;color:var(--pine);font-size:12px;font-weight:600;flex:none">Escolher<svg data-lucide="chevron-right" style="width:16px;height:16px"></svg></span></div>`;
+        `<span style="display:flex;align-items:center;color:var(--pine);font-size:var(--fs-sec,12.5px);font-weight:600;flex:none">Escolher<svg data-lucide="chevron-right" style="width:16px;height:16px"></svg></span></div>`;
 }
 
 function blocoPlano(grupo, caps) {
     const o = grupo[0].o;
     const tag = grupo.some((g) => g.o.eh_renovacao) ? window.renderStatus('run', 'Seu plano')
         : o.eh_ampliado_sugerido ? window.renderStatus('ok', 'Sugerido') : '';
-    return `<div class="rz-card rz-list"><div style="padding:10px 0 2px"><div style="display:flex;justify-content:space-between;gap:8px;align-items:center"><b style="font-size:15px">${esc(o.plano_nome)}</b>${tag}</div>` +
+    return `<div class="rz-card rz-list"><div style="padding:10px 0 2px"><div style="display:flex;justify-content:space-between;gap:8px;align-items:center"><b style="font-size:var(--fs-corpo,14px)">${esc(o.plano_nome)}</b>${tag}</div>` +
         (caps[o.plano_codigo] ? `<p class="text-xs" style="color:var(--muted);margin:2px 0 0">Até ${esc(caps[o.plano_codigo])}</p>` : '') + '</div>' +
         grupo.map((g) => linhaOferta(g.o, g.i, g.todas)).join('') + '</div>';
 }
@@ -257,7 +245,7 @@ async function telaCobranca({ dbAuth, clienteId, oferta, toast, voltar }) {
             el.innerHTML = recusa +
                 (svgQr ? `<div style="width:220px;height:220px;margin:4px auto 10px;background:var(--card);border:1px solid var(--line);border-radius:var(--r-card);padding:6px">${svgQr}</div>` : '') +
                 `<div class="rz-kv"><div><small>Valor a pagar</small><b>${brl(c.valor)}</b></div><div><small>Código da cobrança</small><b>${esc(c.txid)}</b></div>${credito}` +
-                `<div class="rz-full"><small>Pix copia e cola</small><b id="rnv-code" style="font-size:12px;font-weight:500;user-select:all">${esc(c.brcode || '')}</b></div></div>` +
+                `<div class="rz-full"><small>Pix copia e cola</small><b id="rnv-code" style="font-size:var(--fs-sec,12.5px);font-weight:500;user-select:all">${esc(c.brcode || '')}</b></div></div>` +
                 '<div style="margin-top:10px"><button type="button" class="rz-btn rz-btn-2 rz-wide" id="rnv-copiar"><svg data-lucide="copy"></svg>Copiar código Pix</button></div>' +
                 '<p class="text-xs" style="color:var(--muted);margin-top:10px">Pague no app do seu banco e toque em <b>Já paguei</b>. O plano é liberado na hora.</p>';
             el.querySelector('#rnv-copiar')?.addEventListener('click', async () => {

@@ -6,6 +6,16 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ## `js/ativos/ativos-markup.js`
 
+// Versão anterior: 1.64.0 · 14/10/2026
+//
+// v1.64.0 (14/10/2026, sessão 20261014-2220-usos-fatia4, frente usos-fatia3b, demanda 3022603b; FICHA_FATIA3B v1.1.0,
+// de acordo do Nicola 14/10 22:38–22:58) — Novo ativo: a divisão societária ganha id (#naf-pe-wrapper) para o
+// cofre-ativos.js mostrá-la só quando o catálogo pede (some no subativo e na vida); o botão passa a "Salvar".
+// --------------------------------------------------------------------------
+// Versões anteriores (v1.63.0 … v1.63.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
+// mais recentes deste cabeçalho (VER-06).
+
 // Versão anterior: 1.63.0 · 14/10/2026
 //
 // v1.63.0 (14/10/2026, sessão 20261014-2145-onda9c-textos, demanda a05ad2ee; onda 9c do estudo PROTOTIPO_UX_DENSIDADE_RAMOS_RAIZ
@@ -624,6 +634,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 // sem este ícone, Home/Alertas/"Em triagem"/"Comece pelo documento"
 // ficariam sem NENHUMA porta de entrada dentro da aba Ativos.
 // ============================================================================
+
+---
 
 ---
 
@@ -1681,6 +1693,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/cofre-app.js`
 
 //
@@ -2413,7 +2427,20 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/cofre-ativos.js`
+
+// Versão anterior: 1.144.0 · 21/10/2026
+//
+// v1.144.0 (21/10/2026, sessão 20261021-1205-ux-onda2, demanda 15146a34; Nicola 21/10 12:02, "vamos avançar") — ONDA 2, lista do Patrimônio: o que está vencido ou vence hoje
+//   deixa de ser o selo "há 11d" ao lado do valor e vira uma linha embaixo, na largura toda, dizendo o quê e quando
+//   ("Dedetização periódica · venceu há 11 dias", "+1" quando há mais); o que vence nos próximos 30 dias continua no
+//   selo azul "Em 9d". Situação (Alugado, Disponível) sem fundo na lista (raiz.css 1.4.0).
+// --------------------------------------------------------------------------
+// Versões anteriores (v1.143.0 … v1.143.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
+// mais recentes deste cabeçalho (VER-06).
 
 // Versão anterior: 1.143.0 · 21/10/2026
 //
@@ -4354,7 +4381,19 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/cofre-controles.js`
+
+// Versão anterior: 1.66.0 · 21/10/2026
+//
+// v1.66.0 (21/10/2026, sessão 20261021-1205-ux-onda2, demanda 15146a34; Nicola 21/10 12:02, "vamos avançar") — chip Controles da ficha: o cabeçalho "Itens de controle" não
+//   diz mais "Em dia" quando algum item da lista está vencido (o Motor pode estar sem o alerta, adiado ou desligado): vale o
+//   pior entre o Motor e os itens. A linha do item não repete o título embaixo ("IPTU / IPTU").
+// --------------------------------------------------------------------------
+// Versões anteriores (v1.65.0 … v1.65.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
+// mais recentes deste cabeçalho (VER-06).
 
 // Versão anterior: 1.65.0 · 20/10/2026
 //
@@ -5498,7 +5537,20 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/cofre-documentos.js`
+
+//
+// Versão anterior: 2.34.0 · 08/10/2026
+//
+// v2.34.0 (UX F2.7c-3, demanda b8602a3a, sessão 20261003-1707-ux-base; "De acordo" do Nicola 08/10 14:04) —
+// Documentos arquivados no app vira Sheet por cima da tela atual: linha com ⋮ (Restaurar · Vincular ·
+// Excluir de vez, este vermelho e por último). O modal antigo fica só para o cofre.html avulso.
+// --------------------------------------------------------------------------
+// Versões anteriores (v2.33.0 … v2.33.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
+// mais recentes deste cabeçalho (VER-06).
 
 //
 // Versão anterior: 2.33.0 · 08/10/2026
@@ -6421,6 +6473,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/cofre-estado.js`
 
 //
@@ -6566,6 +6620,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 // v1.21.6 (Arquivar/RLS, sessão paralela) nem esta entrega — fechado
 // agora. Ver changelog completo em cofre.html v1.22.0 (merge das 2
 // sessões paralelas + badge fix + form fix + função Vendido).
+
+---
 
 ---
 
@@ -7270,6 +7326,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/cofre-ui.js`
 
 //
@@ -7301,6 +7359,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 // genérica, template de card, indicador de "liga/desliga" (Design System
 // v1.43.0 §2). Não importa cofre-api.js — não sabe nada de Supabase.
 // ============================================================================
+
+---
 
 ---
 
@@ -8070,6 +8130,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/comum-licenca.js`
 
 //
@@ -8212,6 +8274,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 // hospeda (index.html, cofre.html, ou um módulo futuro) é quem decide
 // COMO obtém esse client; este arquivo só usa o que recebe.
 // ============================================================================
+
+---
 
 ---
 
@@ -8706,6 +8770,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 // `dbAuth` já autenticado do host, por parâmetro (ver nota completa em
 // comum-licenca.js).
 // ============================================================================
+
+---
 
 ---
 
@@ -9640,7 +9706,28 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/comum-renovacao.js`
+
+//
+// Versão anterior: 1.3.0 · 01/10/2026
+//
+// v1.3.0 — FICHA F11 (demanda 45bb4875, aprovada pelo Nicola em 01/10 17:46):
+// depois do "Já paguei" a tela diz se o plano JÁ ESTÁ LIBERADO (o banco libera
+// na hora o período inteiro, com trava: recusa nos últimos 30 dias ou outra
+// liberação ainda não conferida) ou se aguarda a Raiz. Dali: "Enviar
+// comprovante" (foto ou PDF; o arquivo vai SÓ para o Cofre da Raiz Patrimônio,
+// pasta comprovantes-pix — fn_licenca_comprovante_anexar), com a opção marcada
+// pelo usuário de guardar também uma cópia no Cofre da própria empresa
+// (cofre-api, mesmo caminho de "Enviar documento"); e "Enviar pelo R.AI.Z"
+// (ícone bot, abre o WhatsApp do R.AI.Z com o código da cobrança) — este só
+// aparece quando o R.AI.Z publicado já sabe receber comprovante (canal_raiz,
+// devolvido pelo banco). Ao fechar, a aba de Licença e as cotas recarregam.
+// --------------------------------------------------------------------------
+// Versões anteriores (v1.0.0 … v1.2.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
+// mais recentes deste cabeçalho (VER-06).
 
 //
 // Versão anterior: 1.2.0 · 01/10/2026
@@ -9682,6 +9769,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 // jsdelivr (mesma origem já usada pelo app); se não carregar, o "copia e cola"
 // continua funcionando sozinho.
 // ============================================================================
+
+---
 
 ---
 
@@ -10324,6 +10413,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/conta.js`
 
 // Versão anterior: 1.0.1 · 10/10/2026
@@ -10393,7 +10484,19 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/contratos.js`
+
+// Versão anterior: 1.63.0 · 20/10/2026
+//
+// v1.63.0 (20/10/2026, sessão 20261020-2245-contratos-lista, demanda a871b47d; de acordo do Nicola 22:45) — a lista de
+// contratos (Patrimônio › Contratos) saiu. A edição aberta da ficha não troca mais de aba; o Voltar da ficha sem origem vai
+// para o ativo do contrato (ou para o Hoje, se não houver ativo) e o botão diz "Ativo" ou "Hoje", nunca "Contratos".
+// --------------------------------------------------------------------------
+// Versões anteriores (v1.62.0 … v1.62.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
+// mais recentes deste cabeçalho (VER-06).
 
 // Versão anterior: 1.62.0 · 19/10/2026
 //
@@ -11635,6 +11738,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/fechamento.js`
 
 //
@@ -12265,7 +12370,23 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/financeiro.js`
+
+// Versão anterior: 1.74.0 · 20/10/2026
+//
+// v1.74.0 (20/10/2026, sessão 20261020-2202-financeiro-ativo, demanda 9359f50f; protótipo PROTOTIPO_FINANCEIRO_DO_ATIVO_RAIZ v1.1.0,
+// de acordo do Nicola 22:02) — Financeiro da ficha do ativo no padrão da tela Financeiro: gráfico do Hoje mais baixo com o valor em
+// cima de cada coluna, que filtra o mês (toque de novo ou "Ano todo" volta ao ano, que agora vem inteiro, com o que está por
+// vencer); Previsto · Pago · Vencido · A pagar do recorte; lista com ícone, valor e etiqueta padrão (Pago, A vencer, Atrasado),
+// sem os chips de atalho e sem a origem. O grupo só vira título com dois ou mais lançamentos. O contrato segue na vista por
+// competência. Balanço › Pessoas e Grupos: saldo partido (rótulo "a receber"/"deve" em cima, valor embaixo — sugestão do
+// Splitwise), o nome deixa de ser apertado pela etiqueta.
+// --------------------------------------------------------------------------
+// Versões anteriores (v1.73.0 … v1.73.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
+// mais recentes deste cabeçalho (VER-06).
 
 // Versão anterior: 1.73.0 · 20/10/2026
 //
@@ -14015,6 +14136,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/fiscal.js`
 
 //
@@ -14398,7 +14521,21 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/imoveis.js`
+
+//
+// Versão anterior: 1.7.0 · 04/10/2026
+//
+// v1.7.0 (F0.2b do PLANO_UX, demanda 9e4aca28, sessão 20261003-1707-ux-base; UXR-29/30) — zero diálogo nativo: 11 alert() e 3 confirm() viram
+// rzAvisar/rzPerguntar/rzResumo. Excluir imóvel em Sheet com item vermelho; remover foto
+// (só arquiva) ganha "Desfazer"; divisão ≠ 100% vira aviso, sem "salvar assim" (o banco
+// exige 100%); o (i) de Energia abre resumo.
+// --------------------------------------------------------------------------
+// Versões anteriores (v1.6.1 … v1.6.1): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
+// mais recentes deste cabeçalho (VER-06).
 
 //
 // Versão anterior: 1.6.1 · 03/10/2026
@@ -14521,6 +14658,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 // ainda referencia `imovel_id`, não `ativo_id`. Os dois ficam pra quando a
 // fatia de Contratos migrar (passo 4), não escopo desta entrega.
 // ============================================================================
+
+---
 
 ---
 
@@ -15009,6 +15148,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/nucleo/porta.js`
 
 // Versão anterior: 1.2.0.
@@ -15117,7 +15258,25 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/raiz-ui.js`
+
+// Versão anterior: 1.4.0 · 11/10/2026
+//
+// v1.4.0 (11/10/2026, sessão 20261008-1231-pessoas-ativos, demanda f3e6cd27; bloco "Produto, já registrado", Nicola 11/10 18:41 ("quero evoluir com Produto, já registrado"); F13 §3.5 e F13.4) — rzEditarDivisao
+// ganha a opção modos: true, com o seletor "%  ·  Cotas  ·  Valor" no topo (Valor só quando há valorBase), como no
+// Splitwise:
+//   · Cotas: cada pessoa recebe um número de cotas (1, 2, 1,5…) e o percentual sai da proporção;
+//   · Valor: cada pessoa recebe um valor em R$; a soma precisa bater com o total do movimento;
+//   · o percentual continua sendo o que o banco soma; o modo, as cotas e o valor vão juntos em cada linha para a
+//     folha reabrir igual (fn_divisao_excecao_definir já guarda desde a F13.4);
+//   · "Dividir igual" funciona nos três modos.
+// Sem a opção, o editor é o de sempre (só %). aoSalvar recebe (itens, { igual, modo }), e cada item traz modo, cotas, valor.
+// --------------------------------------------------------------------------
+// Versões anteriores (v1.3.0 … v1.3.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
+// mais recentes deste cabeçalho (VER-06).
 
 //
 // Versão anterior: 1.3.0 · 11/10/2026
@@ -15182,6 +15341,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 // 'warning' (UXR-35). Também publica window.rzToast/rzConfirmar/rzEscolher/
 // rzAviso para código inline do index.html.
 // ============================================================================
+
+---
 
 ---
 
@@ -15380,6 +15541,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 // que o bot usa); aqui só se monta o texto e o desenho — nunca se recalcula
 // (REL-02). Protótipo: raiz\docs\PROTOTIPO_RELATORIOS_FLUXO_GERENCIAL v1.1.0.
 // ============================================================================
+
+---
 
 ---
 
@@ -16119,6 +16282,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/vitrine.js`
 
 //
@@ -16239,6 +16404,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 // CLIENTE_ID_SUPABASE, dbAuth. Exclusivo (4) virou nível de módulo.
 // Indentação de origem mantida. Strict verificado.
 // ============================================================================
+
+---
 
 ---
 

@@ -1,7 +1,10 @@
 // ============================================================================
 // financeiro.js — Raiz Patrimônio · Financeiro (Recebimentos · Atrasados · Saídas
 //                  · conciliação de extrato · recibo · detalhe do recebimento)
-// Versão: 1.78.0 · 23/10/2026
+// Versão: 1.79.0 · 23/10/2026
+//
+// v1.79.0 (23/10/2026, sessão 20261023-0915-computador-c6, demanda 15146a34; PROTOTIPO_COMPUTADOR_RAIZ v1.1.0 §11, de acordo do Nicola 23/10 08:51) — C6 · escala de letras: 61 tamanhos de letra escritos em número (font-size:13px etc.) trocados pelos da escala (--fs-mini 11 · --fs-sec 12,5 · --fs-corpo 14 · --fs-titulo 17; 16 px fica, por causa do zoom do iPhone em campo, e 18 px ou mais também — herói e números grandes). Nada muda de lugar; só o tamanho passa a ser o mesmo em todas as telas.
+// Versão anterior: 1.78.0 · 23/10/2026
 //
 // v1.78.0 (23/10/2026, sessão 20261023-0830-computador-c4, demanda 15146a34; Nicola 23/10 08:26) — EXPORTAR NO PADRÃO DO RAIZ:
 // Recebimentos e Saídas › selecionar › Exportar deixa de baixar um CSV cru e baixa a planilha .xlsx no molde do Cadastro da
@@ -26,20 +29,11 @@
 // direta com etiqueta padrão (Recebido, A receber, Atrasado, Isento), sem a lista de meses → categorias → lançamentos e sem
 // os atalhos "a classificar"/"sem conciliação". O ano vem inteiro (as mensalidades futuras já existem). Dentro do card da
 // ficha, as partes viram blocos do mesmo card.
-// Versão anterior: 1.74.0 · 20/10/2026
-//
-// v1.74.0 (20/10/2026, sessão 20261020-2202-financeiro-ativo, demanda 9359f50f; protótipo PROTOTIPO_FINANCEIRO_DO_ATIVO_RAIZ v1.1.0,
-// de acordo do Nicola 22:02) — Financeiro da ficha do ativo no padrão da tela Financeiro: gráfico do Hoje mais baixo com o valor em
-// cima de cada coluna, que filtra o mês (toque de novo ou "Ano todo" volta ao ano, que agora vem inteiro, com o que está por
-// vencer); Previsto · Pago · Vencido · A pagar do recorte; lista com ícone, valor e etiqueta padrão (Pago, A vencer, Atrasado),
-// sem os chips de atalho e sem a origem. O grupo só vira título com dois ou mais lançamentos. O contrato segue na vista por
-// competência. Balanço › Pessoas e Grupos: saldo partido (rótulo "a receber"/"deve" em cima, valor embaixo — sugestão do
-// Splitwise), o nome deixa de ser apertado pela etiqueta.
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.73.0 … v1.73.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.74.0 … v1.74.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '1.78.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.79.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 
 // v1.17.0 (Fase 1 do wrapper de escrita, rollout Financeiro) — emitirEscrita
 // é o evento padrão pra "algo mudou que módulos DE FORA deste arquivo podem
@@ -453,7 +447,7 @@ export async function abrirNovoRecebimento(contratoIdPreSelecionado) {
     let campoContrato;
     if (con) {
         campoContrato = `<input type="hidden" id="nrec-contrato" value="${con.id}">
-            <div class="rz-f"><label>Contrato</label><div style="padding:8px 0 2px;font-size:13px;font-weight:bold;color:var(--pine)">${escapeHtmlSaidas(con.locatario || 'Locatário')}</div></div>`;
+            <div class="rz-f"><label>Contrato</label><div style="padding:8px 0 2px;font-size:var(--fs-sec,12.5px);font-weight:bold;color:var(--pine)">${escapeHtmlSaidas(con.locatario || 'Locatário')}</div></div>`;
     } else {
         const ativos = contratos.filter(c => c.status === 'Ativo').slice()
             .sort((a, b) => (a.locatario || '').localeCompare(b.locatario || ''));
@@ -712,7 +706,7 @@ async function financeiroAbrirDivisao(origemTipo, id, valor, aoMudar, opcoes = {
     const rows = linhas.map(l => `<div class="rz-row"><div class="rz-ic${l.origem === 'empresa' ? ' rz-neu' : ''}"><svg data-lucide="${l.origem === 'empresa' ? 'building-2' : 'user'}"></svg></div>
         <div class="rz-tx"><b>${esc(l.nome)}</b><span>${formatarMoedaBR(Number(valor || 0) * Number(l.percentual || 0) / 100)}${l.pessoa_id || l.origem === 'empresa' ? '' : ' · externo'}</span></div>
         <div class="rz-rt"><b>${pctBR(l.percentual)}</b></div></div>`).join('');
-    const nota = compFechada ? '<p style="margin:8px 0 0;font-size:13px;color:var(--muted)">Competência fechada: a divisão só muda reabrindo o fechamento.</p>' : '';
+    const nota = compFechada ? '<p style="margin:8px 0 0;font-size:var(--fs-sec,12.5px);color:var(--muted)">Competência fechada: a divisão só muda reabrindo o fechamento.</p>' : '';
     const botoes = compFechada ? '' : `<div class="rz-sh-f">${origem === 'excecao' ? '<button type="button" class="rz-btn rz-btn-2" data-div-padrao>Voltar ao padrão</button>' : ''}<button type="button" class="rz-btn rz-btn-1${origem === 'excecao' ? '' : ' rz-wide'}" data-div-editar>Editar divisão</button></div>`;
     const sheet = abrirSheet(rzSheetCabecalho('Divisão', DIVISAO_ORIGEM[origem] || '') + `<div class="rz-sh-b"><div class="rz-card rz-list">${rows}</div>${nota}</div>${botoes}`, { empilhar: !!opcoes.empilhar });
     sheet.querySelector('[data-div-editar]')?.addEventListener('click', () => {
@@ -1055,7 +1049,7 @@ function financeiroRenderCabecalho(aba) {
             const esc = escapeHtmlSaidas;
             const item = (o) => `<button type="button" class="rz-act" data-dest="${esc(o.chave)}" style="padding-left:${12 + o.nivel * 16}px"><div class="rz-ic"><svg data-lucide="${o.chave.startsWith('item') ? 'list-checks' : o.chave.startsWith('ativo_fase') ? 'milestone' : o.chave.startsWith('ciclo') ? 'refresh-cw' : 'package'}"></svg></div><div>${esc(o.rotulo)}</div></button>`;
             const sheet = abrirSheet(rzSheetCabecalho('Destino', `${esc(d.descricao || 'Despesa')} · ${formatarMoedaBR(d.valor)}`) +
-                `<div class="rz-sh-b"><p style="margin:0 0 10px;font-size:14px;color:var(--muted)">O lançamento inteiro vai para o ponto escolhido. Para dividir entre vários, use "Dividir em partes".</p>${ops.map(item).join('')}
+                `<div class="rz-sh-b"><p style="margin:0 0 10px;font-size:var(--fs-corpo,14px);color:var(--muted)">O lançamento inteiro vai para o ponto escolhido. Para dividir entre vários, use "Dividir em partes".</p>${ops.map(item).join('')}
                 <button type="button" class="rz-act" data-dest=""><div class="rz-ic"><svg data-lucide="x"></svg></div><div>Sem destino<small>Fica só no ativo</small></div></button></div>`);
             if (typeof lucide !== 'undefined') lucide.createIcons();
             sheet.querySelectorAll('[data-dest]').forEach(b => b.addEventListener('click', async () => {
@@ -1101,18 +1095,18 @@ function financeiroRenderCabecalho(aba) {
                 salvar.disabled = !valido();
             };
             const desenhar = () => {
-                corpo.innerHTML = `<p style="margin:0 0 10px;font-size:14px;color:var(--muted);line-height:1.4">A soma das partes é sempre ${esc(formatarMoedaBR(total))}: a parte 1 fica com o restante e com a conciliação do extrato. Cada parte tem a sua categoria${ops.length ? ' e o seu destino' : ''}.</p>` +
+                corpo.innerHTML = `<p style="margin:0 0 10px;font-size:var(--fs-corpo,14px);color:var(--muted);line-height:1.4">A soma das partes é sempre ${esc(formatarMoedaBR(total))}: a parte 1 fica com o restante e com a conciliação do extrato. Cada parte tem a sua categoria${ops.length ? ' e o seu destino' : ''}.</p>` +
                     partes.map((p, k) => `<div class="rz-card" style="padding:12px 14px;margin-bottom:8px">
                         <div style="display:flex;align-items:center;gap:10px"><b style="flex:1">Parte ${k + 1}</b>${k === 0
                             ? `<small style="color:var(--muted)">Restante</small><b data-dl-resto style="font-variant-numeric:tabular-nums">${esc(formatarMoedaBR(p.valor))}</b>`
-                            : `<span style="color:var(--muted);font-size:14px">R$</span><input type="number" inputmode="decimal" step="0.01" min="0" data-dl-valor="${k}" value="${p.valor || ''}" aria-label="Valor da parte ${k + 1}" style="${est};width:120px;text-align:right">` +
+                            : `<span style="color:var(--muted);font-size:var(--fs-corpo,14px)">R$</span><input type="number" inputmode="decimal" step="0.01" min="0" data-dl-valor="${k}" value="${p.valor || ''}" aria-label="Valor da parte ${k + 1}" style="${est};width:120px;text-align:right">` +
                               (partes.length > 2 ? `<button type="button" data-dl-tirar="${k}" aria-label="Tirar parte ${k + 1}" style="flex:none;width:40px;height:44px;border:0;background:none;color:var(--muted);display:grid;place-items:center;cursor:pointer"><svg data-lucide="trash-2" style="width:18px;height:18px"></svg></button>` : '')}</div>
                         <select data-dl-cat="${k}" aria-label="Categoria da parte ${k + 1}" style="${est};width:100%;margin-top:8px">${optsCat(p.categoria)}</select>
                         ${ops.length ? `<select data-dl-dest="${k}" aria-label="Destino da parte ${k + 1}" style="${est};width:100%;margin-top:8px">${optsDest(p.destino)}</select>` : ''}
                         <input type="text" data-dl-desc="${k}" value="${esc(p.descricao)}" placeholder="Descrição (opcional)" aria-label="Descrição da parte ${k + 1}" style="${est};width:100%;margin-top:8px">
                     </div>`).join('') +
                     (partes.length < 20 ? `<button type="button" class="rz-act" data-dl-add><div class="rz-ic"><svg data-lucide="plus"></svg></div><div>Adicionar parte<small>Até 20 partes</small></div></button>` : '') +
-                    `<p data-dl-msg style="margin:8px 0 0;font-size:13px;color:var(--danger)"></p>`;
+                    `<p data-dl-msg style="margin:8px 0 0;font-size:var(--fs-sec,12.5px);color:var(--danger)"></p>`;
                 corpo.querySelectorAll('[data-dl-valor]').forEach(inp => inp.addEventListener('input', () => { partes[Number(inp.dataset.dlValor)].valor = r2(String(inp.value).replace(',', '.')); atualizar(); }));
                 corpo.querySelectorAll('[data-dl-cat]').forEach(s => s.addEventListener('change', () => { partes[Number(s.dataset.dlCat)].categoria = s.value; }));
                 corpo.querySelectorAll('[data-dl-dest]').forEach(s => s.addEventListener('change', () => { partes[Number(s.dataset.dlDest)].destino = s.value; }));
@@ -1482,7 +1476,7 @@ function financeiroRenderCabecalho(aba) {
                 const doAd = i.cartao_uso_id ? ` · ··${escapeHtmlSaidas(i.cartao_uso_final || '')} ${escapeHtmlSaidas(i.cartao_uso_nome || 'adicional')}` : ''; // v1.62.0
                 const extra = (pend ? '' : ` · ${escapeHtmlSaidas(nomeCat(i.categoria))}${i.ativo_nome ? ' · ' + escapeHtmlSaidas(i.ativo_nome) : ''}${i.parte_nome ? ' · ' + escapeHtmlSaidas(i.parte_nome) : ''}${i.divisao_ajustada ? ' · divisão ajustada' : ''}`) + doAd;
                 return `<div class="rz-row rz-link" data-fat-item="${i.id}">
-                    ${selecionando && pend ? `<div data-fat-chk style="flex:none;width:24px;height:24px;border-radius:7px;border:2px solid ${sel.has(i.id) ? 'var(--pine)' : 'var(--line)'};background:${sel.has(i.id) ? 'var(--pine)' : 'transparent'};display:grid;place-items:center;color:white;font-size:14px;font-weight:700">${sel.has(i.id) ? '✓' : ''}</div>` : ''}
+                    ${selecionando && pend ? `<div data-fat-chk style="flex:none;width:24px;height:24px;border-radius:7px;border:2px solid ${sel.has(i.id) ? 'var(--pine)' : 'var(--line)'};background:${sel.has(i.id) ? 'var(--pine)' : 'transparent'};display:grid;place-items:center;color:white;font-size:var(--fs-corpo,14px);font-weight:700">${sel.has(i.id) ? '✓' : ''}</div>` : ''}
                     <div class="rz-ic${temSug ? (confSug < 70 ? ' rz-warn' : ' rz-ia') : (pend ? ' rz-warn' : '')}"><svg data-lucide="${temSug ? 'sparkles' : icCat(i.categoria)}"></svg></div>
                     <div class="rz-tx"><b>${escapeHtmlSaidas(i.descricao)}</b><span>${temSug ? 'Parece: ' + escapeHtmlSaidas(textoSug) + ' · ' : ''}${compra(i)}${parcela(i)}${extra}</span></div>
                     <div class="rz-rt">${valorTxt}${temSug ? `<span class="rz-ia-tag"><svg data-lucide="sparkles"></svg>${confSug}%</span>` : ''}</div>
@@ -1505,12 +1499,12 @@ function financeiroRenderCabecalho(aba) {
             const quem = f.titular_tipo === 'pessoa' ? `Cartão de ${f.titular_nome}` : 'Empresa';
             const corpo = `
                 <div class="rz-card">
-                    <div style="display:flex;justify-content:space-between;gap:12px;padding:4px 0;font-size:14px"><span style="color:var(--muted)">Fechamento</span><b>${f.data_fechamento ? formatarDataBR(f.data_fechamento) : '—'}</b></div>
-                    <div style="display:flex;justify-content:space-between;gap:12px;padding:4px 0;font-size:14px"><span style="color:var(--muted)">Vencimento</span><b>${f.data_vencimento ? formatarDataBR(f.data_vencimento) : '—'}</b></div>
-                    <div style="display:flex;justify-content:space-between;gap:12px;padding:4px 0;font-size:14px"><span style="color:var(--muted)">Total da fatura</span><b>${formatarMoedaBR(f.valor_total)}</b></div>
-                    ${Math.abs(Number(f.valor_total) - Number(f.soma_itens)) > 0.01 ? `<div style="display:flex;justify-content:space-between;gap:12px;padding:4px 0;font-size:14px"><span style="color:var(--muted)">Soma das compras</span><b style="color:var(--danger)">${formatarMoedaBR(f.soma_itens)}</b></div>` : ''}
-                    ${f.valor_pago ? `<div style="display:flex;justify-content:space-between;gap:12px;padding:4px 0;font-size:14px"><span style="color:var(--muted)">Pago</span><b>${formatarMoedaBR(f.valor_pago)}${f.data_pagamento ? ' em ' + formatarDataBR(f.data_pagamento) : ''}</b></div>` : ''}
-                    <div style="display:flex;justify-content:space-between;gap:12px;padding:4px 0;font-size:14px"><span style="color:var(--muted)">Paga pela conta</span><b>${escapeHtmlSaidas(f.conta_pagadora_nome || '—')}</b></div>
+                    <div style="display:flex;justify-content:space-between;gap:12px;padding:4px 0;font-size:var(--fs-corpo,14px)"><span style="color:var(--muted)">Fechamento</span><b>${f.data_fechamento ? formatarDataBR(f.data_fechamento) : '—'}</b></div>
+                    <div style="display:flex;justify-content:space-between;gap:12px;padding:4px 0;font-size:var(--fs-corpo,14px)"><span style="color:var(--muted)">Vencimento</span><b>${f.data_vencimento ? formatarDataBR(f.data_vencimento) : '—'}</b></div>
+                    <div style="display:flex;justify-content:space-between;gap:12px;padding:4px 0;font-size:var(--fs-corpo,14px)"><span style="color:var(--muted)">Total da fatura</span><b>${formatarMoedaBR(f.valor_total)}</b></div>
+                    ${Math.abs(Number(f.valor_total) - Number(f.soma_itens)) > 0.01 ? `<div style="display:flex;justify-content:space-between;gap:12px;padding:4px 0;font-size:var(--fs-corpo,14px)"><span style="color:var(--muted)">Soma das compras</span><b style="color:var(--danger)">${formatarMoedaBR(f.soma_itens)}</b></div>` : ''}
+                    ${f.valor_pago ? `<div style="display:flex;justify-content:space-between;gap:12px;padding:4px 0;font-size:var(--fs-corpo,14px)"><span style="color:var(--muted)">Pago</span><b>${formatarMoedaBR(f.valor_pago)}${f.data_pagamento ? ' em ' + formatarDataBR(f.data_pagamento) : ''}</b></div>` : ''}
+                    <div style="display:flex;justify-content:space-between;gap:12px;padding:4px 0;font-size:var(--fs-corpo,14px)"><span style="color:var(--muted)">Paga pela conta</span><b>${escapeHtmlSaidas(f.conta_pagadora_nome || '—')}</b></div>
                     <div style="height:8px;border-radius:999px;background:var(--tile);overflow:hidden;margin:10px 0 4px"><i style="display:block;height:100%;width:${pct}%;background:var(--sprout)"></i></div>
                     <span class="rz-hint">${classificadas} de ${itens.length} ${itens.length === 1 ? 'compra classificada' : 'compras classificadas'}</span>
                     ${f.parcial ? '<span class="rz-hint" style="display:block;margin-top:6px">Você vê só as compras do seu cartão adicional. A fatura inteira é de quem tem o cartão principal.</span>' : ''}
@@ -1937,9 +1931,9 @@ function financeiroRenderCabecalho(aba) {
                     ${finalDiverge ? `<p class="rz-hint" style="color:var(--danger);margin:0 0 8px">A fatura é do final ${escapeHtmlSaidas(lido.finalCartao)} e o cartão escolhido é ${escapeHtmlSaidas(cart.final_identificador)}. Confira o cartão.</p>` : ''}
                     <div class="rz-f"><label>Mês da fatura</label><select id="fi-comp">${meses.map(m => `<option value="${m}" ${m === comp ? 'selected' : ''}>${financeiroCompetenciaLabel(m)}</option>`).join('')}</select></div>
                     <div class="rz-card">
-                        <div style="display:flex;justify-content:space-between;gap:12px;padding:4px 0;font-size:14px"><span style="color:var(--muted)">Vencimento</span><b>${venc ? formatarDataBR(venc) : 'pelo dia do cartão'}</b></div>
-                        <div style="display:flex;justify-content:space-between;gap:12px;padding:4px 0;font-size:14px"><span style="color:var(--muted)">Total da fatura</span><b>${lido.valorTotal != null ? formatarMoedaBR(lido.valorTotal) : '—'}</b></div>
-                        <div style="display:flex;justify-content:space-between;gap:12px;padding:4px 0;font-size:14px"><span style="color:var(--muted)">Soma das compras</span><b ${lido.valorTotal != null && Math.abs(soma - lido.valorTotal) > 0.01 ? 'style="color:var(--danger)"' : ''}>${formatarMoedaBR(soma)}</b></div>
+                        <div style="display:flex;justify-content:space-between;gap:12px;padding:4px 0;font-size:var(--fs-corpo,14px)"><span style="color:var(--muted)">Vencimento</span><b>${venc ? formatarDataBR(venc) : 'pelo dia do cartão'}</b></div>
+                        <div style="display:flex;justify-content:space-between;gap:12px;padding:4px 0;font-size:var(--fs-corpo,14px)"><span style="color:var(--muted)">Total da fatura</span><b>${lido.valorTotal != null ? formatarMoedaBR(lido.valorTotal) : '—'}</b></div>
+                        <div style="display:flex;justify-content:space-between;gap:12px;padding:4px 0;font-size:var(--fs-corpo,14px)"><span style="color:var(--muted)">Soma das compras</span><b ${lido.valorTotal != null && Math.abs(soma - lido.valorTotal) > 0.01 ? 'style="color:var(--danger)"' : ''}>${formatarMoedaBR(soma)}</b></div>
                     </div>
                     <span class="rz-hint">${lido.itens.length} ${lido.itens.length === 1 ? 'compra lida' : 'compras lidas'} no arquivo</span>
                     <div id="fi-sim"></div>`;
@@ -2172,17 +2166,17 @@ function financeiroRenderCabecalho(aba) {
             modal.innerHTML = `
                 <div style="background:#fff;border-radius:16px 16px 0 0;max-width:480px;width:100%;padding:16px;max-height:88vh;overflow-y:auto;">
                     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
-                        <h3 style="font-size:14px;font-weight:bold;color:#1e293b;">${ehEdicao ? 'Detalhes da despesa' : 'Nova despesa'}</h3>
+                        <h3 style="font-size:var(--fs-corpo,14px);font-weight:bold;color:#1e293b;">${ehEdicao ? 'Detalhes da despesa' : 'Nova despesa'}</h3>
                         <button onclick="fecharPopupDespesa()" style="background:#e2e8f0;border:none;border-radius:9999px;width:26px;height:26px;flex:none;">✕</button>
                     </div>
                     <div style="display:flex;flex-direction:column;gap:8px;">
                         <div>
-                            <label style="font-size:11px;font-weight:bold;color:#64748b;">Vínculo</label>
-                            <select id="desp-ativo" style="width:100%;padding:8px;border:1px solid #cbd5e1;border-radius:6px;font-size:13px;margin-top:2px;background:#f8fafc;">${optsAtivos}</select>
+                            <label style="font-size:var(--fs-mini,11px);font-weight:bold;color:#64748b;">Vínculo</label>
+                            <select id="desp-ativo" style="width:100%;padding:8px;border:1px solid #cbd5e1;border-radius:6px;font-size:var(--fs-sec,12.5px);margin-top:2px;background:#f8fafc;">${optsAtivos}</select>
                         </div>
                         <div>
-                            <label style="font-size:11px;font-weight:bold;color:#64748b;">Descrição <span style="color:var(--danger)">*</span></label>
-                            <input id="desp-descricao" type="text" value="${escapeHtmlSaidas(d?.descricao || sugestoes?.descricao || '')}" placeholder="Ex: Reparo de infiltração — suíte" style="width:100%;padding:8px;border:1px solid #cbd5e1;border-radius:6px;font-size:13px;margin-top:2px;">
+                            <label style="font-size:var(--fs-mini,11px);font-weight:bold;color:#64748b;">Descrição <span style="color:var(--danger)">*</span></label>
+                            <input id="desp-descricao" type="text" value="${escapeHtmlSaidas(d?.descricao || sugestoes?.descricao || '')}" placeholder="Ex: Reparo de infiltração — suíte" style="width:100%;padding:8px;border:1px solid #cbd5e1;border-radius:6px;font-size:var(--fs-sec,12.5px);margin-top:2px;">
                         </div>
                         ${usarArvoreDesp ? `<div class="rz-f">
                             <label for="desp-categoria-grupo">Categoria <i>*</i></label>
@@ -2195,40 +2189,40 @@ function financeiroRenderCabecalho(aba) {
                         ${ehEdicao ? '' : `<label class="rz-row rz-chk"><input type="checkbox" id="desp-contab" checked><div class="rz-tx"><b>Entra na contabilidade</b><span>Vai no pacote do contador; sugerido pela subcategoria</span></div></label>`}` : ''}
                         <div class="grid grid-cols-2 gap-2">
                             <div${usarArvoreDesp ? ' class="hidden"' : ''}>
-                                <label style="font-size:11px;font-weight:bold;color:#64748b;">Categoria <span style="color:var(--danger)">*</span></label>
-                                <select id="${usarArvoreDesp ? 'desp-categoria-legado' : 'desp-categoria'}" style="width:100%;padding:8px;border:1px solid #cbd5e1;border-radius:6px;font-size:13px;margin-top:2px;background:#f8fafc;">${optsCategorias}</select>
+                                <label style="font-size:var(--fs-mini,11px);font-weight:bold;color:#64748b;">Categoria <span style="color:var(--danger)">*</span></label>
+                                <select id="${usarArvoreDesp ? 'desp-categoria-legado' : 'desp-categoria'}" style="width:100%;padding:8px;border:1px solid #cbd5e1;border-radius:6px;font-size:var(--fs-sec,12.5px);margin-top:2px;background:#f8fafc;">${optsCategorias}</select>
                             </div>
                             <div>
-                                <label style="font-size:11px;font-weight:bold;color:#64748b;">Valor (R$) <span style="color:var(--danger)">*</span></label>
-                                <input id="desp-valor" type="number" step="0.01" value="${d?.valor ?? sugestoes?.valor ?? ''}" style="width:100%;padding:8px;border:1px solid #cbd5e1;border-radius:6px;font-size:13px;margin-top:2px;">
+                                <label style="font-size:var(--fs-mini,11px);font-weight:bold;color:#64748b;">Valor (R$) <span style="color:var(--danger)">*</span></label>
+                                <input id="desp-valor" type="number" step="0.01" value="${d?.valor ?? sugestoes?.valor ?? ''}" style="width:100%;padding:8px;border:1px solid #cbd5e1;border-radius:6px;font-size:var(--fs-sec,12.5px);margin-top:2px;">
                             </div>
                         </div>
                         <div class="grid grid-cols-2 gap-2">
                             <div>
-                                <label style="font-size:11px;font-weight:bold;color:#64748b;">Vencimento <span style="color:var(--danger)">*</span></label>
-                                <input id="desp-vencimento" type="date" value="${d?.vencimento || sugestoes?.vencimento || ''}" style="width:100%;padding:8px;border:1px solid #cbd5e1;border-radius:6px;font-size:13px;margin-top:2px;">
+                                <label style="font-size:var(--fs-mini,11px);font-weight:bold;color:#64748b;">Vencimento <span style="color:var(--danger)">*</span></label>
+                                <input id="desp-vencimento" type="date" value="${d?.vencimento || sugestoes?.vencimento || ''}" style="width:100%;padding:8px;border:1px solid #cbd5e1;border-radius:6px;font-size:var(--fs-sec,12.5px);margin-top:2px;">
                             </div>
                             <div>
-                                <label style="font-size:11px;font-weight:bold;color:#64748b;">Competência <span style="color:var(--danger)">*</span></label>
-                                <select id="desp-competencia" style="width:100%;padding:8px;border:1px solid #cbd5e1;border-radius:6px;font-size:13px;margin-top:2px;background:#f8fafc;">${optsCompetencia}</select>
+                                <label style="font-size:var(--fs-mini,11px);font-weight:bold;color:#64748b;">Competência <span style="color:var(--danger)">*</span></label>
+                                <select id="desp-competencia" style="width:100%;padding:8px;border:1px solid #cbd5e1;border-radius:6px;font-size:var(--fs-sec,12.5px);margin-top:2px;background:#f8fafc;">${optsCompetencia}</select>
                             </div>
                         </div>
                         <div>
-                            <label style="font-size:11px;font-weight:bold;color:#64748b;">Fornecedor / beneficiário</label>
+                            <label style="font-size:var(--fs-mini,11px);font-weight:bold;color:#64748b;">Fornecedor / beneficiário</label>
                             ${sugestoes?.partes?.length > 1 ? `
                             <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:2px;margin-bottom:6px;">
-                                ${sugestoes.partes.map(p => `<button type="button" onclick="document.getElementById('desp-fornecedor').value='${p.parte_id}'; alternarNovoFornecedor('${p.parte_id}');" style="font-size:11px;font-weight:bold;padding:5px 10px;border-radius:9999px;background:var(--sprout-light);color:var(--pine);border:1px solid var(--sprout);">${escapeHtmlSaidas(p.nome)}</button>`).join('')}
+                                ${sugestoes.partes.map(p => `<button type="button" onclick="document.getElementById('desp-fornecedor').value='${p.parte_id}'; alternarNovoFornecedor('${p.parte_id}');" style="font-size:var(--fs-mini,11px);font-weight:bold;padding:5px 10px;border-radius:9999px;background:var(--sprout-light);color:var(--pine);border:1px solid var(--sprout);">${escapeHtmlSaidas(p.nome)}</button>`).join('')}
                             </div>
-                            <p style="font-size:10px;color:#94a3b8;margin-top:-4px;margin-bottom:4px;">Este item tem mais de uma parte — toque em quem deve receber esta despesa.</p>` : ''}
-                            <select id="desp-fornecedor" onchange="alternarNovoFornecedor(this.value)" style="width:100%;padding:8px;border:1px solid #cbd5e1;border-radius:6px;font-size:13px;margin-top:2px;background:#f8fafc;">${optsPartes}</select>
-                            <input id="desp-fornecedor-novo-nome" type="text" placeholder="Nome do novo fornecedor" style="width:100%;padding:8px;border:1px solid #cbd5e1;border-radius:6px;font-size:13px;margin-top:6px;display:none;">
-                            <p style="font-size:10px;color:#94a3b8;margin-top:2px;">Vira um cadastro em Partes, mesmo que incompleto — dá pra completar depois.</p>
+                            <p style="font-size:var(--fs-mini,11px);color:#94a3b8;margin-top:-4px;margin-bottom:4px;">Este item tem mais de uma parte — toque em quem deve receber esta despesa.</p>` : ''}
+                            <select id="desp-fornecedor" onchange="alternarNovoFornecedor(this.value)" style="width:100%;padding:8px;border:1px solid #cbd5e1;border-radius:6px;font-size:var(--fs-sec,12.5px);margin-top:2px;background:#f8fafc;">${optsPartes}</select>
+                            <input id="desp-fornecedor-novo-nome" type="text" placeholder="Nome do novo fornecedor" style="width:100%;padding:8px;border:1px solid #cbd5e1;border-radius:6px;font-size:var(--fs-sec,12.5px);margin-top:6px;display:none;">
+                            <p style="font-size:var(--fs-mini,11px);color:#94a3b8;margin-top:2px;">Vira um cadastro em Partes, mesmo que incompleto — dá pra completar depois.</p>
                         </div>
                         ${financeiroContasMultiplas() && (typeof podeUsar !== 'function' || podeUsar('financeiro.contas.escolher').ok) ? `<div class="rz-f"><label>Quem pagou (conta)</label><select id="desp-conta">${financeiroContasInfo.contas.map(c => `<option value="${c.id}" ${(d?.contaId ? d.contaId === c.id : (c.padrao && c.titular_tipo === 'empresa')) ? 'selected' : ''}>${escapeHtmlSaidas(c.nome)}</option>`).join('')}</select></div>` : ''}
                         ${ehEdicao ? '' : `<label class="rz-row rz-chk"><input type="checkbox" id="desp-dividir"><div class="rz-tx"><b>Dividir com outras pessoas</b><span>Depois de salvar, escolha quem divide e quanto (igual ou %)</span></div></label>`}
                         <div style="display:flex;align-items:flex-start;gap:8px;background:#f8fafc;border-radius:8px;padding:8px;">
                             <input id="desp-reembolsavel" type="checkbox" ${d?.reembolsavel ? 'checked' : ''} style="margin-top:2px;">
-                            <label for="desp-reembolsavel" style="font-size:11px;color:#475569;">Reembolsável — não entra no cálculo de líquido dos sócios</label>
+                            <label for="desp-reembolsavel" style="font-size:var(--fs-mini,11px);color:#475569;">Reembolsável — não entra no cálculo de líquido dos sócios</label>
                         </div>
                         ${(() => {
                             // v1.6.0 — Etapa 8: só mostra quando a linha do extrato tem
@@ -2240,39 +2234,39 @@ function financeiroRenderCabecalho(aba) {
                             if (!fpOrigem?.documento_original) return '';
                             return `<div style="display:flex;align-items:flex-start;gap:8px;background:var(--brass-bg,#f7ecd9);border-radius:8px;padding:8px;">
                                 <input id="desp-sempre-assim" type="checkbox" style="margin-top:2px;">
-                                <label for="desp-sempre-assim" style="font-size:11px;color:var(--brass-deep,#8a5a1f);">Sempre fazer assim com este favorecido — próximas vezes a conciliação registra sozinha, nesta categoria (dá pra desfazer)</label>
+                                <label for="desp-sempre-assim" style="font-size:var(--fs-mini,11px);color:var(--brass-deep,#8a5a1f);">Sempre fazer assim com este favorecido — próximas vezes a conciliação registra sozinha, nesta categoria (dá pra desfazer)</label>
                             </div>`;
                         })()}
                         <div>
-                            <label style="font-size:11px;font-weight:bold;color:#64748b;">Observação</label>
-                            <textarea id="desp-observacao" rows="2" style="width:100%;padding:8px;border:1px solid #cbd5e1;border-radius:6px;font-size:13px;margin-top:2px;resize:none;">${escapeHtmlSaidas(d?.observacao || '')}</textarea>
+                            <label style="font-size:var(--fs-mini,11px);font-weight:bold;color:#64748b;">Observação</label>
+                            <textarea id="desp-observacao" rows="2" style="width:100%;padding:8px;border:1px solid #cbd5e1;border-radius:6px;font-size:var(--fs-sec,12.5px);margin-top:2px;resize:none;">${escapeHtmlSaidas(d?.observacao || '')}</textarea>
                         </div>
                         ${ehEdicao && !jaFoiPaga ? `
                         <div style="border-top:1px dashed #e6e3da;padding-top:10px;margin-top:2px;">
-                            <p style="font-size:11px;font-weight:bold;text-transform:uppercase;letter-spacing:.02em;color:var(--brass-deep);margin-bottom:6px;">Dar baixa</p>
+                            <p style="font-size:var(--fs-mini,11px);font-weight:bold;text-transform:uppercase;letter-spacing:.02em;color:var(--brass-deep);margin-bottom:6px;">Dar baixa</p>
                             <div class="grid grid-cols-2 gap-2">
                                 <div>
-                                    <label style="font-size:11px;font-weight:bold;color:#64748b;">Data do pagamento</label>
-                                    <input id="desp-data-pgto" type="date" value="${new Date().toISOString().slice(0, 10)}" style="width:100%;padding:8px;border:1px solid #cbd5e1;border-radius:6px;font-size:13px;margin-top:2px;">
+                                    <label style="font-size:var(--fs-mini,11px);font-weight:bold;color:#64748b;">Data do pagamento</label>
+                                    <input id="desp-data-pgto" type="date" value="${new Date().toISOString().slice(0, 10)}" style="width:100%;padding:8px;border:1px solid #cbd5e1;border-radius:6px;font-size:var(--fs-sec,12.5px);margin-top:2px;">
                                 </div>
                                 <div>
-                                    <label style="font-size:11px;font-weight:bold;color:#64748b;">Forma de pagamento</label>
-                                    <select id="desp-forma-pgto" style="width:100%;padding:8px;border:1px solid #cbd5e1;border-radius:6px;font-size:13px;margin-top:2px;background:#f8fafc;"><option value="">— não definida —</option>${optsFormaPagamento}</select>
+                                    <label style="font-size:var(--fs-mini,11px);font-weight:bold;color:#64748b;">Forma de pagamento</label>
+                                    <select id="desp-forma-pgto" style="width:100%;padding:8px;border:1px solid #cbd5e1;border-radius:6px;font-size:var(--fs-sec,12.5px);margin-top:2px;background:#f8fafc;"><option value="">— não definida —</option>${optsFormaPagamento}</select>
                                 </div>
                             </div>
-                            <button onclick="confirmarPagamentoDespesa('${d.id}')" style="width:100%;margin-top:8px;background:var(--success);color:#fff;font-weight:bold;font-size:13px;padding:9px;border:none;border-radius:8px;">✓ Confirmar pagamento</button>
+                            <button onclick="confirmarPagamentoDespesa('${d.id}')" style="width:100%;margin-top:8px;background:var(--success);color:#fff;font-weight:bold;font-size:var(--fs-sec,12.5px);padding:9px;border:none;border-radius:8px;">✓ Confirmar pagamento</button>
                         </div>` : ''}
                         ${jaFoiPaga ? `
                         <div style="background:var(--success-bg);border-radius:8px;padding:10px;">
-                            <p style="font-size:12px;color:#166534;font-weight:bold;">✓ Paga em ${formatarDataBR(d.dataPagamento)}${d.formaPagamento ? ' via ' + d.formaPagamento.toUpperCase() : ''}</p>
-                            <button onclick="estornarPagamentoDespesa('${d.id}')" style="margin-top:6px;background:transparent;border:none;color:#92400e;font-size:11px;font-weight:bold;text-decoration:underline;padding:0;">Estornar pagamento</button>
+                            <p style="font-size:var(--fs-sec,12.5px);color:#166534;font-weight:bold;">✓ Paga em ${formatarDataBR(d.dataPagamento)}${d.formaPagamento ? ' via ' + d.formaPagamento.toUpperCase() : ''}</p>
+                            <button onclick="estornarPagamentoDespesa('${d.id}')" style="margin-top:6px;background:transparent;border:none;color:#92400e;font-size:var(--fs-mini,11px);font-weight:bold;text-decoration:underline;padding:0;">Estornar pagamento</button>
                         </div>` : ''}
                     </div>
                     <div style="display:flex;gap:8px;margin-top:14px;">
-                        <button onclick="fecharPopupDespesa()" style="flex:1;background:#f1f5f9;color:#475569;font-weight:bold;font-size:13px;padding:10px;border:none;border-radius:8px;">Fechar</button>
-                        <button onclick="salvarDespesa()" style="flex:1;background:var(--pine);color:#fff;font-weight:bold;font-size:13px;padding:10px;border:none;border-radius:8px;">Salvar</button>
+                        <button onclick="fecharPopupDespesa()" style="flex:1;background:#f1f5f9;color:#475569;font-weight:bold;font-size:var(--fs-sec,12.5px);padding:10px;border:none;border-radius:8px;">Fechar</button>
+                        <button onclick="salvarDespesa()" style="flex:1;background:var(--pine);color:#fff;font-weight:bold;font-size:var(--fs-sec,12.5px);padding:10px;border:none;border-radius:8px;">Salvar</button>
                     </div>
-                    ${ehEdicao ? `<button onclick="excluirDespesa('${d.id}')" style="width:100%;margin-top:10px;background:transparent;border:none;color:var(--danger);font-size:11px;font-weight:bold;padding:4px;">Excluir despesa</button>` : ''}
+                    ${ehEdicao ? `<button onclick="excluirDespesa('${d.id}')" style="width:100%;margin-top:10px;background:transparent;border:none;color:var(--danger);font-size:var(--fs-mini,11px);font-weight:bold;padding:4px;">Excluir despesa</button>` : ''}
                 </div>`;
             document.body.appendChild(modal);
             modal.onclick = (ev) => { if (ev.target === modal) modal.remove(); };
@@ -3849,7 +3843,7 @@ function financeiroRenderCabecalho(aba) {
             ];
             abrirSheet(rzSheetCabecalho('O que significa cada status') +
                 `<div class="rz-sh-b"><div class="rz-card"><div class="rz-kv">${
-                    itens.map(([r, v]) => `<div class="rz-full"><small>${rzEsc(r)}</small><b style="font-weight:500;font-size:12.5px">${rzEsc(v)}</b></div>`).join('')
+                    itens.map(([r, v]) => `<div class="rz-full"><small>${rzEsc(r)}</small><b style="font-weight:500;font-size:var(--fs-sec,12.5px)">${rzEsc(v)}</b></div>`).join('')
                 }</div></div></div>`);
         }
 
@@ -4466,7 +4460,7 @@ function financeiroRenderCabecalho(aba) {
             const valorAbs = Math.abs(parseFloat(f.valor)).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
             const corpoLista = abertas.length
                 ? abertas.map(l => `<div class="rz-row rz-link" data-txt="${rzEsc(l.nome.toLowerCase())}" onclick="selecionarMensalidadeManual('${fingerprintId}','${l.id}')"><div class="rz-ic"><svg data-lucide="file-text"></svg></div><div class="rz-tx"><b>${rzEsc(l.nome)}</b><span>${rzEsc(l.ctx)}</span></div><div class="rz-rt"><b>R$ ${Number(l.valor).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</b></div></div>`).join('')
-                : '<p style="font-size:13px;color:var(--sage);padding:8px 0">Nenhum recebimento em aberto no momento.</p>';
+                : '<p style="font-size:var(--fs-sec,12.5px);color:var(--sage);padding:8px 0">Nenhum recebimento em aberto no momento.</p>';
 
             abrirSheet(rzSheetCabecalho('Vincular a um recebimento', `${limparRotuloConciliacao(f.razao_social)} · R$ ${valorAbs} · ${formatarDataBR(f.data)}`) +
                 `<div class="rz-sh-b">
@@ -6049,7 +6043,7 @@ function distribDesenhar() {
     const totExtra = extras.reduce((t, r) => t + Number(r.valor || 0), 0);
     const quadroExtra = extras.length
         ? `<div class="rz-card rz-list"><div class="rz-card-h" style="padding-top:10px;margin-bottom:0"><h3>Retiradas extraordinárias</h3><span class="rz-sub">${esc(periodo)} · ${formatarMoedaBR(totExtra)}</span></div>` +
-          `<p style="margin:0 14px 6px;font-size:12px;color:var(--muted)">Não abatem o saldo a retirar.</p>` +
+          `<p style="margin:0 14px 6px;font-size:var(--fs-sec,12.5px);color:var(--muted)">Não abatem o saldo a retirar.</p>` +
           extras.slice(0, 20).map(r => `<div class="rz-row rz-link" role="button" tabindex="0" onclick="rzAcoesRetirada('${r.id}')">
                 <div class="rz-ic rz-neu"><svg data-lucide="sparkles"></svg></div>
                 <div class="rz-tx"><b>${esc(r.pessoas?.nome || nomePorId[r.pessoa_id] || 'Sócio')}</b><span>${formatarDataBR(r.data_real || r.competencia)} · ref. ${esc(compCurta(r.competencia))}${esc(retParteTxt(r))}</span></div>
@@ -6205,7 +6199,7 @@ export function balancoAbrirPessoa(chave) {
     const motivo = !p.pessoaId ? 'Pessoa sem cadastro: cadastre em Pessoas (nome e WhatsApp bastam) para quitar.' : (!pode.ok ? (pode.textoCurto || 'Sem permissão para quitar.') : '');
     const sheet = abrirSheet(rzSheetCabecalho(p.nome, `até ${formatarDataBR(balancoDados.ate)}`) + `<div class="rz-sh-b">
         <div class="rz-card rz-list">${linhas}</div>${comp}
-        ${motivo ? `<p style="margin:8px 0 0;font-size:13px;color:var(--muted)">${balEsc(motivo)}</p>` : ''}
+        ${motivo ? `<p style="margin:8px 0 0;font-size:var(--fs-sec,12.5px);color:var(--muted)">${balEsc(motivo)}</p>` : ''}
         <button type="button" class="rz-act" data-bal-hist><div class="rz-ic"><svg data-lucide="list"></svg></div><div>Ver histórico<small>de onde vem cada valor, e as quitações</small></div></button>
         <div id="bal-hist"></div>
     </div>`);
@@ -6215,17 +6209,17 @@ export function balancoAbrirPessoa(chave) {
 }
 
 export async function balancoHistorico(p, alvo) {
-    if (!alvo || !p.pessoaId) { if (alvo) alvo.innerHTML = '<p style="font-size:13px;color:var(--muted)">Sem histórico para pessoa sem cadastro.</p>'; return; }
+    if (!alvo || !p.pessoaId) { if (alvo) alvo.innerHTML = '<p style="font-size:var(--fs-sec,12.5px);color:var(--muted)">Sem histórico para pessoa sem cadastro.</p>'; return; }
     alvo.innerHTML = '<p class="text-xs text-center py-3" style="color:var(--sage)">Carregando…</p>';
     const { data, error } = await dbAuth.rpc('fn_balanco_extrato', { p_cliente_id: CLIENTE_ID_SUPABASE, p_pessoa_id: p.pessoaId, p_limite: 60, p_ate: balancoDados?.ate || balancoAte() });
-    if (error) { alvo.innerHTML = '<p style="font-size:13px;color:var(--danger)">Não consegui ler o histórico.</p>'; return; }
+    if (error) { alvo.innerHTML = '<p style="font-size:var(--fs-sec,12.5px);color:var(--danger)">Não consegui ler o histórico.</p>'; return; }
     alvo.innerHTML = (data || []).length ? `<div class="rz-group">Histórico</div><div class="rz-card rz-list">` + data.map(e => `<div class="rz-row">
             <div class="rz-ic"><svg data-lucide="${e.origem_tipo === 'repasse' ? 'handshake' : (e.valor > 0 ? 'arrow-down-left' : 'arrow-up-right')}"></svg></div>
             <div class="rz-tx"><b>${balEsc(e.descricao || '')}</b><span>${formatarDataBR(e.data)} · ${balEsc(BAL_NATUREZA[e.natureza] || e.natureza)} · ${balEsc(e.contraparte_nome || 'Empresa')}${e.pagador ? ' · pagou ' + balEsc(e.pagador) : ''}</span></div>
             <div class="rz-rt">${e.natureza === 'extraordinaria' // v1.50.0 — F13.7: fora do fluxo, não mexe no saldo
                 ? `${balSt('neu', 'Extraordinária')}<small style="display:block;text-align:right">${formatarMoedaBR(Number(e.valor_movimento || 0))}</small>`
                 : `<b class="${e.valor > 0 ? 'rz-in' : 'rz-out'}">${moedaSinal(e.valor)}</b>`}</div></div>`).join('') + '</div>'
-        : '<p style="font-size:13px;color:var(--muted)">Nada no histórico até esta data.</p>';
+        : '<p style="font-size:var(--fs-sec,12.5px);color:var(--muted)">Nada no histórico até esta data.</p>';
     if (typeof lucide !== 'undefined') lucide.createIcons();
 }
 
@@ -6309,7 +6303,7 @@ export function abrirFichaSocioDistribuicao(chave) {
         <div class="rz-card"><div class="rz-kv" style="grid-template-columns:1fr">
             ${kv('Cotas recebidas', l.entradas)}${kv('(−) Despesas do imóvel', l.saidas)}${kv('(=) Líquido apurado', l.liquido, true)}${l.reembolso > 0.004 ? kv('(+) Reembolso · pago da própria conta', l.reembolso) : ''}${kv('(−) Retirado', l.retirado)}${kv('(=) Saldo a retirar', l.saldo, true)}
         </div></div>${linhasRet}${linhasExt}
-        ${motivo ? `<p style="margin:8px 0 0;font-size:13px;color:var(--muted)">${esc(motivo)}</p>` : ''}
+        ${motivo ? `<p style="margin:8px 0 0;font-size:var(--fs-sec,12.5px);color:var(--muted)">${esc(motivo)}</p>` : ''}
         <button type="button" class="rz-act" data-rz-compartilhar><div class="rz-ic"><svg data-lucide="share"></svg></div><div>Compartilhar resumo<small>WhatsApp do sócio ou outro app</small></div></button>
     </div><div class="rz-sh-f"><button type="button" class="rz-btn rz-btn-1 rz-wide" data-rz-retirada ${motivo ? 'disabled' : ''}>Lançar retirada</button></div>`);
     sheet.querySelector('[data-rz-retirada]')?.addEventListener('click', () => { fecharSheet(); abrirLancarRetirada(l.pessoaId, l.saldo); });
@@ -6457,17 +6451,17 @@ function retiradaDividir(id) {
     const chips = (p, k) => `<div class="rz-chips" style="margin:8px 0 0">${[['distribuicao', 'Do fluxo'], ['extraordinaria', 'Extraordinária']].map(([v, t]) =>
         `<button type="button" class="rz-chip${p.natureza === v ? ' rz-on' : ''}" data-dv-nat="${k}" data-v="${v}">${t}</button>`).join('')}</div>`;
     const desenhar = () => {
-        corpo.innerHTML = `<p style="margin:0 0 10px;font-size:14px;color:var(--muted);line-height:1.4">A soma das partes é sempre ${esc(formatarMoedaBR(total))}: a parte 1 fica com o restante. A conciliação com o extrato continua valendo.</p>` +
+        corpo.innerHTML = `<p style="margin:0 0 10px;font-size:var(--fs-corpo,14px);color:var(--muted);line-height:1.4">A soma das partes é sempre ${esc(formatarMoedaBR(total))}: a parte 1 fica com o restante. A conciliação com o extrato continua valendo.</p>` +
             partes.map((p, k) => `<div class="rz-card" style="padding:12px 14px;margin-bottom:8px">
                 <div style="display:flex;align-items:center;gap:10px"><b style="flex:1">Parte ${k + 1}</b>${k === 0
                     ? `<small style="color:var(--muted)">Restante</small><b data-dv-resto style="font-variant-numeric:tabular-nums">${esc(formatarMoedaBR(p.valor))}</b>`
-                    : `<span style="color:var(--muted);font-size:14px">R$</span><input type="number" inputmode="decimal" step="0.01" min="0" data-dv-valor="${k}" value="${p.valor || ''}" aria-label="Valor da parte ${k + 1}" style="${est};width:120px;text-align:right">` +
+                    : `<span style="color:var(--muted);font-size:var(--fs-corpo,14px)">R$</span><input type="number" inputmode="decimal" step="0.01" min="0" data-dv-valor="${k}" value="${p.valor || ''}" aria-label="Valor da parte ${k + 1}" style="${est};width:120px;text-align:right">` +
                       (partes.length > 2 ? `<button type="button" data-dv-tirar="${k}" aria-label="Tirar parte ${k + 1}" style="flex:none;width:40px;height:44px;border:0;background:none;color:var(--muted);display:grid;place-items:center;cursor:pointer"><svg data-lucide="trash-2" style="width:18px;height:18px"></svg></button>` : '')}</div>
                 ${chips(p, k)}
                 <input type="text" data-dv-obs="${k}" value="${esc(p.observacao)}" placeholder="Observação (opcional)" aria-label="Observação da parte ${k + 1}" style="${est};width:100%;margin-top:8px">
             </div>`).join('') +
             (partes.length < 6 ? `<button type="button" class="rz-act" data-dv-add><div class="rz-ic"><svg data-lucide="plus"></svg></div><div>Adicionar parte<small>Até 6 partes</small></div></button>` : '') +
-            `<p data-dv-msg style="margin:8px 0 0;font-size:13px;color:var(--danger)"></p>`;
+            `<p data-dv-msg style="margin:8px 0 0;font-size:var(--fs-sec,12.5px);color:var(--danger)"></p>`;
         corpo.querySelectorAll('[data-dv-valor]').forEach(inp => inp.addEventListener('input', () => { partes[Number(inp.dataset.dvValor)].valor = r2(String(inp.value).replace(',', '.')); atualizar(); }));
         corpo.querySelectorAll('[data-dv-obs]').forEach(inp => inp.addEventListener('input', () => { partes[Number(inp.dataset.dvObs)].observacao = inp.value; }));
         corpo.querySelectorAll('[data-dv-nat]').forEach(b => b.addEventListener('click', () => { partes[Number(b.dataset.dvNat)].natureza = b.dataset.v; desenhar(); }));

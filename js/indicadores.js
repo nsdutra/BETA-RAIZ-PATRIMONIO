@@ -1,8 +1,10 @@
 // =====================================================================
 // RAIZ PATRIMÔNIO — js/indicadores.js
-// VERSÃO: Beta v1.2.0 (14/10/2026 — demanda a05ad2ee)
+// VERSÃO: Beta v1.3.0 (23/10/2026 — demanda 15146a34)
 // LINHAS: (ver versoes.json)
 // -----------------------------------------------------------------
+// NOVIDADES (Beta v1.3.0) (23/10/2026, sessão 20261023-0915-computador-c6, demanda 15146a34; PROTOTIPO_COMPUTADOR_RAIZ v1.1.0 §11, de acordo do Nicola 23/10 08:51) — C6 · escala de letras: 12 tamanhos de letra escritos em número (font-size:13px etc.) trocados pelos da escala (--fs-mini 11 · --fs-sec 12,5 · --fs-corpo 14 · --fs-titulo 17; 16 px fica, por causa do zoom do iPhone em campo, e 18 px ou mais também — herói e números grandes). Nada muda de lugar; só o tamanho passa a ser o mesmo em todas as telas.
+// Versão anterior (Beta v1.2.0):
 // NOVIDADES (Beta v1.2.0) (14/10/2026, sessão 20261014-2145-onda9c-textos, demanda a05ad2ee; onda 9c do estudo, D6 seção 10) — textos no
 //   limite: ação até 24, descrição até 28, aviso e tela vazia até 40 caracteres. Nada de comportamento mudou.
 // Versão anterior (Beta v1.1.0):
@@ -27,7 +29,7 @@
 // Depende de globais do index.html: dbAuth, CLIENTE_ID_SUPABASE, abrirSheet, rzSheetCabecalho,
 // rzEsc, rzIcones, formatarMoedaBR.
 
-export const VERSAO = '1.2.0';
+export const VERSAO = '1.3.0';
 
 const NOME = { ipca: 'IPCA', igpm: 'IGP-M', inccdi: 'INCC-DI', selic: 'Selic', cdi: 'CDI', ivgr: 'IVG-R' };
 const ORDEM = ['ipca', 'igpm', 'inccdi', 'selic', 'cdi', 'ivgr'];
@@ -125,8 +127,8 @@ async function telaMes() {
     return `<div class="rz-ano-linha"><span class="rz-ano"><button type="button" data-ano="${y - 1}" aria-label="Ano anterior"${y <= anos[0] ? ' disabled' : ''}><svg data-lucide="chevron-left"></svg></button><b>${y}</b><button type="button" data-ano="${y + 1}" aria-label="Próximo ano"${y >= anoAtual ? ' disabled' : ''}><svg data-lucide="chevron-right"></svg></button></span></div>
         <div class="rz-card" style="padding:8px 0">
             <div style="overflow-x:auto">
-                <table style="border-collapse:separate;border-spacing:0;font-size:13px;min-width:520px;width:100%;font-variant-numeric:tabular-nums">
-                    <thead><tr style="color:var(--muted);font-size:12px">
+                <table style="border-collapse:separate;border-spacing:0;font-size:var(--fs-sec,12.5px);min-width:520px;width:100%;font-variant-numeric:tabular-nums">
+                    <thead><tr style="color:var(--muted);font-size:var(--fs-sec,12.5px)">
                         <th style="text-align:left;padding:8px 12px;position:sticky;left:0;background:var(--card)">Mês</th>
                         ${ORDEM.map(c => `<th style="text-align:right;padding:8px">${NOME[c]}</th>`).join('')}</tr></thead>
                     <tbody>
@@ -154,14 +156,14 @@ async function telaCarteira() {
     return `<div class="rz-card">
             <div class="rz-card-h" style="justify-content:space-between"><b>Contratos por índice</b><span class="rz-desc">${d.contratos} ativos · ${brl(d.receita)}/mês</span></div>
             <div style="display:flex;height:14px;border-radius:7px;overflow:hidden;margin:10px 0 8px">${grupos.map(g => `<i style="display:block;width:${g.pct_receita}%;background:${COR[g.codigo] || 'var(--sage)'}"></i>`).join('')}</div>
-            ${grupos.map(g => `<div style="display:flex;align-items:center;gap:8px;font-size:13px;margin:4px 0"><span style="width:9px;height:9px;border-radius:50%;background:${COR[g.codigo] || 'var(--sage)'}"></span>
+            ${grupos.map(g => `<div style="display:flex;align-items:center;gap:8px;font-size:var(--fs-sec,12.5px);margin:4px 0"><span style="width:9px;height:9px;border-radius:50%;background:${COR[g.codigo] || 'var(--sage)'}"></span>
                 <span style="flex:1">${esc(nomeInd(g.codigo))} · ${g.contratos} contrato${g.contratos > 1 ? 's' : ''}</span><b>${String(g.pct_receita).replace('.', ',')}% da receita</b></div>`).join('')}
         </div>
         <div class="rz-card">
             <div class="rz-card-h" style="justify-content:space-between"><b>Seu índice ponderado × mercado</b></div>
             <div class="rz-chips" style="margin-top:8px">${[12, 24, 36].map(x => `<button type="button" class="rz-chip ${j === x ? 'rz-on' : ''}" data-jc="${x}">${x} meses</button>`).join('')}</div>
             ${comp1.map(x => `<div style="margin:8px 0">
-                <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:4px"><span>${x.n}</span><b style="${x.me ? 'color:var(--sprout)' : ''}">${pct(x.v)}</b></div>
+                <div style="display:flex;justify-content:space-between;font-size:var(--fs-sec,12.5px);margin-bottom:4px"><span>${x.n}</span><b style="${x.me ? 'color:var(--sprout)' : ''}">${pct(x.v)}</b></div>
                 <div style="height:8px;background:var(--tile);border-radius:4px"><i style="display:block;height:100%;border-radius:4px;width:${x.v == null ? 0 : Math.max(0, Number(x.v)) / max * 100}%;background:${x.me ? 'var(--sprout)' : 'var(--sage)'}"></i></div>
             </div>`).join('')}
             <p class="rz-desc" style="margin-top:8px">Índice ponderado = média dos índices dos seus contratos, pesada pelo aluguel de cada um, no acumulado de ${j} meses. Mostra quanto a receita sobe por reajuste, comparado à inflação e aos juros.</p>
@@ -182,17 +184,17 @@ async function telaSimulador() {
     if (!t.contratos) return seletores + `<div class="rz-card"><p class="rz-desc">Nenhum contrato para simular.</p></div>`;
     const dif = Number(t.diferenca_mensal) || 0;
     const linhas = (d.contratos || []).map((c, i) => `<div class="rz-row" style="${i ? '' : 'border-top:0'}">
-        <div class="rz-tx"><b style="display:block;font-weight:600;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(c.nome)}</b>
+        <div class="rz-tx"><b style="display:block;font-weight:600;font-size:var(--fs-corpo,14px);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(c.nome)}</b>
             <span class="rz-desc">${esc(nomeInd(c.indice_atual))} ${c.reajuste_atual == null ? '—' : brl(c.reajuste_atual)} → ${NOME[d.destino]} ${brl(c.reajuste_simulado)}${(c.piso != null || c.teto != null) ? ' · com piso/teto' : ''}</span></div>
-        <div class="rz-rt"><b style="font-size:14px;${c.ja_esta ? '' : (Number(c.diferenca_mensal) >= 0 ? 'color:var(--success)' : 'color:var(--danger)')}">${c.ja_esta ? 'já está' : brlS(c.diferenca_mensal)}</b></div>
+        <div class="rz-rt"><b style="font-size:var(--fs-corpo,14px);${c.ja_esta ? '' : (Number(c.diferenca_mensal) >= 0 ? 'color:var(--success)' : 'color:var(--danger)')}">${c.ja_esta ? 'já está' : brlS(c.diferenca_mensal)}</b></div>
     </div>`).join('');
     return seletores + `
         <div style="background:var(--pine);color:var(--card);border-radius:16px;padding:14px 16px;margin-bottom:12px">
-            <small style="font-size:12px;opacity:.85">${t.mudam ? `Se os ${t.mudam} contrato${t.mudam > 1 ? 's' : ''} fora do ${NOME[d.destino]} mudassem para ele` : `Todos os contratos já estão no ${NOME[d.destino]}`}</small>
+            <small style="font-size:var(--fs-sec,12.5px);opacity:.85">${t.mudam ? `Se os ${t.mudam} contrato${t.mudam > 1 ? 's' : ''} fora do ${NOME[d.destino]} mudassem para ele` : `Todos os contratos já estão no ${NOME[d.destino]}`}</small>
             <div style="font-family:'Bricolage Grotesque',sans-serif;font-size:26px;font-weight:700">${brlS(dif)} por mês</div>
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px;padding-top:10px;border-top:1px solid rgba(255,255,255,.18)">
-                <div><small style="font-size:12px;opacity:.85">No ano</small><b style="display:block;font-size:17px">${brlS(dif * 12)}</b></div>
-                <div><small style="font-size:12px;opacity:.85">Reajuste médio simulado</small><b style="display:block;font-size:17px">${pct(t.reajuste_medio_simulado)}</b></div>
+                <div><small style="font-size:var(--fs-sec,12.5px);opacity:.85">No ano</small><b style="display:block;font-size:var(--fs-titulo,17px)">${brlS(dif * 12)}</b></div>
+                <div><small style="font-size:var(--fs-sec,12.5px);opacity:.85">Reajuste médio simulado</small><b style="display:block;font-size:var(--fs-titulo,17px)">${pct(t.reajuste_medio_simulado)}</b></div>
             </div>
         </div>
         <div class="rz-card">
@@ -200,7 +202,7 @@ async function telaSimulador() {
             ${linhas}
             <p class="rz-desc" style="margin-top:10px">${estado.janelaSim === 12 ? 'Acumulado dos últimos 12 meses fechados.' : `Média por ano equivalente nos últimos ${estado.janelaSim} meses.`} Respeita piso e teto de cada contrato${t.com_piso_ou_teto ? '' : ' (nenhum destes contratos tem piso ou teto cadastrado)'}.</p>
         </div>
-        <div style="border:1px solid var(--line);background:var(--tile);border-radius:14px;padding:12px 14px;margin-bottom:12px;font-size:14px">
+        <div style="border:1px solid var(--line);background:var(--tile);border-radius:14px;padding:12px 14px;margin-bottom:12px;font-size:var(--fs-corpo,14px)">
             <div style="color:var(--pine);font-weight:600;margin-bottom:6px">O que os números dizem</div>
             <p style="margin:0">${esc(d.texto_proposta)}</p>
         </div>`;

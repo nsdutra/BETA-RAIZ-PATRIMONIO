@@ -1,7 +1,10 @@
 // ============================================================================
 // imoveis.js — Raiz Patrimônio · Imóveis (lista · ficha · formulário ·
 //               fotos do Cofre · seletor · status/step do cadastro)
-// Versão: 1.10.0 · 20/10/2026
+// Versão: 1.11.0 · 23/10/2026
+//
+// v1.11.0 (23/10/2026, sessão 20261023-0915-computador-c6, demanda 15146a34; PROTOTIPO_COMPUTADOR_RAIZ v1.1.0 §11, de acordo do Nicola 23/10 08:51) — C6 · escala de letras: 38 tamanhos de letra escritos em número (font-size:13px etc.) trocados pelos da escala (--fs-mini 11 · --fs-sec 12,5 · --fs-corpo 14 · --fs-titulo 17; 16 px fica, por causa do zoom do iPhone em campo, e 18 px ou mais também — herói e números grandes). Nada muda de lugar; só o tamanho passa a ser o mesmo em todas as telas.
+// Versão anterior: 1.10.0 · 20/10/2026
 //
 // v1.10.0 (20/10/2026, sessão 20261020-2245-contratos-lista, demanda a871b47d; de acordo do Nicola 22:45) — o atalho de alerta
 // de contrato deixa de abrir a lista de contratos (retirada) e vai para o Hoje, onde o alerta se trata.
@@ -20,18 +23,11 @@
 // v1.7.1 (07/10/2026, sessão 20261007-1721-rolo-changelog, demanda 2507d554 — VER-06, "de acordo" do Nicola 07/10 17:21) — SÓ
 // CABEÇALHO: as versões além das 5 mais recentes rolaram para o CHANGELOG_MODULOS.md.
 // Nenhuma linha de código mudou — conferido token a token contra o publicado.
-//
-// Versão anterior: 1.7.0 · 04/10/2026
-//
-// v1.7.0 (F0.2b do PLANO_UX, demanda 9e4aca28, sessão 20261003-1707-ux-base; UXR-29/30) — zero diálogo nativo: 11 alert() e 3 confirm() viram
-// rzAvisar/rzPerguntar/rzResumo. Excluir imóvel em Sheet com item vermelho; remover foto
-// (só arquiva) ganha "Desfazer"; divisão ≠ 100% vira aviso, sem "salvar assim" (o banco
-// exige 100%); o (i) de Energia abre resumo.
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.6.1 … v1.6.1): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.7.0 … v1.7.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '1.10.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.11.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 
 
         export function abrirSeletorImovel(callback, permiteTodos) {
@@ -298,7 +294,7 @@ export const VERSAO = '1.10.0'; // v-check: lido por ⚙️ › Conta › Versõ
 
                     <img src="${base64Data}" onclick="abrirLightboxGeral(fotosCarregadasBase64, ${idxFoto})" class="w-10 h-10 object-cover rounded border cursor-pointer active:scale-90 transition">
 
-                    <button type="button" onclick="removerFotoImovel(${idxFoto})" title="Remover" class="absolute flex items-center justify-center leading-none font-bold" style="top:-4px; right:-4px; width:14px; height:14px; font-size:9px; background:var(--danger); color:#fff; border-radius:9999px; border:1.5px solid #fff;"><svg data-lucide="x" style="width:14px;height:14px"></svg></button>
+                    <button type="button" onclick="removerFotoImovel(${idxFoto})" title="Remover" class="absolute flex items-center justify-center leading-none font-bold" style="top:-4px; right:-4px; width:14px; height:14px; font-size:var(--fs-mini,11px); background:var(--danger); color:#fff; border-radius:9999px; border:1.5px solid #fff;"><svg data-lucide="x" style="width:14px;height:14px"></svg></button>
 
                 </div>
 
@@ -1223,27 +1219,27 @@ export const VERSAO = '1.10.0'; // v-check: lido por ⚙️ › Conta › Versõ
             modal.innerHTML = `
                 <div style="background:#fff;border-radius:16px 16px 0 0;max-width:480px;width:100%;padding:16px;max-height:85vh;overflow-y:auto;">
                     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
-                        <h3 style="font-size:14px;font-weight:bold;color:#1e293b;">Detalhes do Imóvel</h3>
+                        <h3 style="font-size:var(--fs-corpo,14px);font-weight:bold;color:#1e293b;">Detalhes do Imóvel</h3>
                         <button onclick="fecharModalCampoContrato()" style="background:#e2e8f0;border:none;border-radius:9999px;width:26px;height:26px;flex:none;">✕</button>
                     </div>
                     <div style="display:flex;flex-direction:column;gap:8px;">
                         <div style="display:flex;gap:8px;">
-                            <div style="flex:1;"><label style="font-size:11px;font-weight:bold;color:#64748b;">Empreendimento <span style="color:var(--danger)">*</span></label><select id="mdi-empreendimento" required style="width:100%;padding:8px;border:1px solid #cbd5e1;border-radius:6px;font-size:13px;margin-top:2px;background:#f8fafc;">${empOpts}</select></div>
-                            <div style="flex:1;"><label style="font-size:11px;font-weight:bold;color:#64748b;">Tipo <span style="color:var(--danger)">*</span></label><select id="mdi-tipo" required style="width:100%;padding:8px;border:1px solid #cbd5e1;border-radius:6px;font-size:13px;margin-top:2px;background:#f8fafc;">${tipoOpts}</select></div>
+                            <div style="flex:1;"><label style="font-size:var(--fs-mini,11px);font-weight:bold;color:#64748b;">Empreendimento <span style="color:var(--danger)">*</span></label><select id="mdi-empreendimento" required style="width:100%;padding:8px;border:1px solid #cbd5e1;border-radius:6px;font-size:var(--fs-sec,12.5px);margin-top:2px;background:#f8fafc;">${empOpts}</select></div>
+                            <div style="flex:1;"><label style="font-size:var(--fs-mini,11px);font-weight:bold;color:#64748b;">Tipo <span style="color:var(--danger)">*</span></label><select id="mdi-tipo" required style="width:100%;padding:8px;border:1px solid #cbd5e1;border-radius:6px;font-size:var(--fs-sec,12.5px);margin-top:2px;background:#f8fafc;">${tipoOpts}</select></div>
                         </div>
-                        <div><label style="font-size:11px;font-weight:bold;color:#64748b;">Endereço (rua/avenida) <span style="color:var(--danger)">*</span></label><input type="text" id="mdi-endereco-rua" required value="${(imo.enderecoRua || '').replace(/"/g, '')}" style="width:100%;padding:8px;border:1px solid #cbd5e1;border-radius:6px;font-size:13px;margin-top:2px;"></div>
+                        <div><label style="font-size:var(--fs-mini,11px);font-weight:bold;color:#64748b;">Endereço (rua/avenida) <span style="color:var(--danger)">*</span></label><input type="text" id="mdi-endereco-rua" required value="${(imo.enderecoRua || '').replace(/"/g, '')}" style="width:100%;padding:8px;border:1px solid #cbd5e1;border-radius:6px;font-size:var(--fs-sec,12.5px);margin-top:2px;"></div>
                         <div style="display:flex;gap:8px;">
-                            <div style="flex:1;"><label style="font-size:11px;font-weight:bold;color:#64748b;">Número <span style="color:var(--danger)">*</span></label><input type="text" id="mdi-endereco-num" required value="${(imo.enderecoNum || '').replace(/"/g, '')}" style="width:100%;padding:8px;border:1px solid #cbd5e1;border-radius:6px;font-size:13px;margin-top:2px;"></div>
-                            <div style="flex:1;"><label style="font-size:11px;font-weight:bold;color:#64748b;">Complemento</label><input type="text" id="mdi-endereco-comp" value="${(imo.enderecoComp || '').replace(/"/g, '')}" style="width:100%;padding:8px;border:1px solid #cbd5e1;border-radius:6px;font-size:13px;margin-top:2px;"></div>
+                            <div style="flex:1;"><label style="font-size:var(--fs-mini,11px);font-weight:bold;color:#64748b;">Número <span style="color:var(--danger)">*</span></label><input type="text" id="mdi-endereco-num" required value="${(imo.enderecoNum || '').replace(/"/g, '')}" style="width:100%;padding:8px;border:1px solid #cbd5e1;border-radius:6px;font-size:var(--fs-sec,12.5px);margin-top:2px;"></div>
+                            <div style="flex:1;"><label style="font-size:var(--fs-mini,11px);font-weight:bold;color:#64748b;">Complemento</label><input type="text" id="mdi-endereco-comp" value="${(imo.enderecoComp || '').replace(/"/g, '')}" style="width:100%;padding:8px;border:1px solid #cbd5e1;border-radius:6px;font-size:var(--fs-sec,12.5px);margin-top:2px;"></div>
                         </div>
                         <div style="display:flex;gap:8px;">
-                            <div style="flex:1;"><label style="font-size:11px;font-weight:bold;color:#64748b;">Bairro <span style="color:var(--danger)">*</span></label><input type="text" id="mdi-endereco-bairro" required value="${(imo.enderecoBairro || '').replace(/"/g, '')}" style="width:100%;padding:8px;border:1px solid #cbd5e1;border-radius:6px;font-size:13px;margin-top:2px;"></div>
-                            <div style="flex:1;"><label style="font-size:11px;font-weight:bold;color:#64748b;">Cidade <span style="color:var(--danger)">*</span></label><input type="text" id="mdi-endereco-cidade" required value="${(imo.enderecoCidade || '').replace(/"/g, '')}" style="width:100%;padding:8px;border:1px solid #cbd5e1;border-radius:6px;font-size:13px;margin-top:2px;"></div>
+                            <div style="flex:1;"><label style="font-size:var(--fs-mini,11px);font-weight:bold;color:#64748b;">Bairro <span style="color:var(--danger)">*</span></label><input type="text" id="mdi-endereco-bairro" required value="${(imo.enderecoBairro || '').replace(/"/g, '')}" style="width:100%;padding:8px;border:1px solid #cbd5e1;border-radius:6px;font-size:var(--fs-sec,12.5px);margin-top:2px;"></div>
+                            <div style="flex:1;"><label style="font-size:var(--fs-mini,11px);font-weight:bold;color:#64748b;">Cidade <span style="color:var(--danger)">*</span></label><input type="text" id="mdi-endereco-cidade" required value="${(imo.enderecoCidade || '').replace(/"/g, '')}" style="width:100%;padding:8px;border:1px solid #cbd5e1;border-radius:6px;font-size:var(--fs-sec,12.5px);margin-top:2px;"></div>
                         </div>
                         <div style="display:flex;gap:8px;">
                             <div style="flex:1;">
-                                <label style="font-size:11px;font-weight:bold;color:#64748b;">Uso do imóvel <span style="color:var(--danger)">*</span></label>
-                                <select id="mdi-finalidade-uso" required style="width:100%;padding:8px;border:1px solid #cbd5e1;border-radius:6px;font-size:13px;margin-top:2px;background:#f8fafc;">
+                                <label style="font-size:var(--fs-mini,11px);font-weight:bold;color:#64748b;">Uso do imóvel <span style="color:var(--danger)">*</span></label>
+                                <select id="mdi-finalidade-uso" required style="width:100%;padding:8px;border:1px solid #cbd5e1;border-radius:6px;font-size:var(--fs-sec,12.5px);margin-top:2px;background:#f8fafc;">
                                     <option value="long_stay">Long Stay (locação)</option>
                                     <option value="uso_proprio">Uso próprio</option>
                                     <option value="temporada">Temporada</option>
@@ -1251,32 +1247,32 @@ export const VERSAO = '1.10.0'; // v-check: lido por ⚙️ › Conta › Versõ
                                     <option value="outro">Outro</option>
                                 </select>
                             </div>
-                            <div style="flex:1;"><label style="font-size:11px;font-weight:bold;color:#64748b;">Tamanho (m²) <span style="color:var(--danger)">*</span></label><input type="number" id="mdi-tamanho" required value="${imo.tamanho || 0}" style="width:100%;padding:8px;border:1px solid #cbd5e1;border-radius:6px;font-size:13px;margin-top:2px;"></div>
+                            <div style="flex:1;"><label style="font-size:var(--fs-mini,11px);font-weight:bold;color:#64748b;">Tamanho (m²) <span style="color:var(--danger)">*</span></label><input type="number" id="mdi-tamanho" required value="${imo.tamanho || 0}" style="width:100%;padding:8px;border:1px solid #cbd5e1;border-radius:6px;font-size:var(--fs-sec,12.5px);margin-top:2px;"></div>
                         </div>
-                        <div><label style="font-size:11px;font-weight:bold;color:#64748b;">Descrição <span style="color:var(--danger)">*</span></label><textarea id="mdi-descricao" required rows="3" placeholder="Ex.: conjunto de salas 901 a 915 do 9º pavimento, com 4 vagas de garagem (números 40, 41, 47 e 48) no pavimento G3" style="width:100%;padding:8px;border:1px solid #cbd5e1;border-radius:6px;font-size:13px;margin-top:2px;">${(imo.descricao || '').replace(/</g, '&lt;')}</textarea><p style="font-size:10px;color:#94a3b8;margin-top:2px;">Inclua aqui detalhes que a minuta pode precisar — numeração de salas/unidades, vagas de garagem, características especiais.</p></div>
+                        <div><label style="font-size:var(--fs-mini,11px);font-weight:bold;color:#64748b;">Descrição <span style="color:var(--danger)">*</span></label><textarea id="mdi-descricao" required rows="3" placeholder="Ex.: conjunto de salas 901 a 915 do 9º pavimento, com 4 vagas de garagem (números 40, 41, 47 e 48) no pavimento G3" style="width:100%;padding:8px;border:1px solid #cbd5e1;border-radius:6px;font-size:var(--fs-sec,12.5px);margin-top:2px;">${(imo.descricao || '').replace(/</g, '&lt;')}</textarea><p style="font-size:var(--fs-mini,11px);color:#94a3b8;margin-top:2px;">Inclua aqui detalhes que a minuta pode precisar — numeração de salas/unidades, vagas de garagem, características especiais.</p></div>
                         <div style="display:flex;gap:8px;">
                             <!-- CORRIGIDO (v1.57.0 — pedido explícito): rótulo
                                  "Valor do aluguel" → "Expectativa aluguel"
                                  (é o valor esperado/anunciado do imóvel, não
                                  o valor do contrato em si — esse fica no
                                  contrato). -->
-                            <div style="flex:1;"><label style="font-size:11px;font-weight:bold;color:#64748b;">Expectativa aluguel (R$) <span style="color:var(--danger)">*</span></label><input type="number" id="mdi-valor" required value="${imo.valor || 0}" style="width:100%;padding:8px;border:1px solid #cbd5e1;border-radius:6px;font-size:13px;margin-top:2px;"></div>
-                            <div style="flex:1;"><label style="font-size:11px;font-weight:bold;color:#64748b;">Valor de mercado (R$)</label><input type="number" id="mdi-valor-mercado" value="${imo.valorMercado || 0}" style="width:100%;padding:8px;border:1px solid #cbd5e1;border-radius:6px;font-size:13px;margin-top:2px;"></div>
+                            <div style="flex:1;"><label style="font-size:var(--fs-mini,11px);font-weight:bold;color:#64748b;">Expectativa aluguel (R$) <span style="color:var(--danger)">*</span></label><input type="number" id="mdi-valor" required value="${imo.valor || 0}" style="width:100%;padding:8px;border:1px solid #cbd5e1;border-radius:6px;font-size:var(--fs-sec,12.5px);margin-top:2px;"></div>
+                            <div style="flex:1;"><label style="font-size:var(--fs-mini,11px);font-weight:bold;color:#64748b;">Valor de mercado (R$)</label><input type="number" id="mdi-valor-mercado" value="${imo.valorMercado || 0}" style="width:100%;padding:8px;border:1px solid #cbd5e1;border-radius:6px;font-size:var(--fs-sec,12.5px);margin-top:2px;"></div>
                         </div>
                         <div style="display:flex;gap:8px;">
-                            <div style="flex:1;"><label style="font-size:11px;font-weight:bold;color:#64748b;">Condomínio (R$)</label><input type="number" id="mdi-condominio" value="${imo.condominio || 0}" style="width:100%;padding:8px;border:1px solid #cbd5e1;border-radius:6px;font-size:13px;margin-top:2px;"></div>
-                            <div style="flex:1;"><label style="font-size:11px;font-weight:bold;color:#64748b;">IPTU (R$)</label><input type="number" id="mdi-iptu" value="${imo.iptu || 0}" style="width:100%;padding:8px;border:1px solid #cbd5e1;border-radius:6px;font-size:13px;margin-top:2px;"></div>
+                            <div style="flex:1;"><label style="font-size:var(--fs-mini,11px);font-weight:bold;color:#64748b;">Condomínio (R$)</label><input type="number" id="mdi-condominio" value="${imo.condominio || 0}" style="width:100%;padding:8px;border:1px solid #cbd5e1;border-radius:6px;font-size:var(--fs-sec,12.5px);margin-top:2px;"></div>
+                            <div style="flex:1;"><label style="font-size:var(--fs-mini,11px);font-weight:bold;color:#64748b;">IPTU (R$)</label><input type="number" id="mdi-iptu" value="${imo.iptu || 0}" style="width:100%;padding:8px;border:1px solid #cbd5e1;border-radius:6px;font-size:var(--fs-sec,12.5px);margin-top:2px;"></div>
                         </div>
                         <div style="display:flex;gap:8px;">
-                            <div style="flex:1;"><label style="font-size:11px;font-weight:bold;color:#64748b;">Código do IPTU</label><input type="text" id="mdi-iptu-codigo" value="${(imo.codigoIPTU || '').replace(/"/g, '')}" style="width:100%;padding:8px;border:1px solid #cbd5e1;border-radius:6px;font-size:13px;margin-top:2px;"></div>
+                            <div style="flex:1;"><label style="font-size:var(--fs-mini,11px);font-weight:bold;color:#64748b;">Código do IPTU</label><input type="text" id="mdi-iptu-codigo" value="${(imo.codigoIPTU || '').replace(/"/g, '')}" style="width:100%;padding:8px;border:1px solid #cbd5e1;border-radius:6px;font-size:var(--fs-sec,12.5px);margin-top:2px;"></div>
                             <div style="flex:1;">
                                 <!-- CORRIGIDO (v1.57.0 — pedido explícito):
                                      "Energia solidária" → "Energia" + ícone
                                      "i" explicando do que se trata. -->
-                                <label style="font-size:11px;font-weight:bold;color:#64748b;display:flex;align-items:center;gap:4px;">Energia
-                                    <button type="button" onclick="rzResumo({ titulo: 'Energia', linhas: ['Identifica se o imóvel pode se beneficiar do saldo de energia gerada por usina solar do proprietário na rede da concessionária.'] })" title="O que é isso?" style="width:15px;height:15px;border-radius:9999px;background:#e2e8f0;color:#475569;font-size:10px;font-weight:bold;border:none;line-height:15px;padding:0;">i</button>
+                                <label style="font-size:var(--fs-mini,11px);font-weight:bold;color:#64748b;display:flex;align-items:center;gap:4px;">Energia
+                                    <button type="button" onclick="rzResumo({ titulo: 'Energia', linhas: ['Identifica se o imóvel pode se beneficiar do saldo de energia gerada por usina solar do proprietário na rede da concessionária.'] })" title="O que é isso?" style="width:15px;height:15px;border-radius:9999px;background:#e2e8f0;color:#475569;font-size:var(--fs-mini,11px);font-weight:bold;border:none;line-height:15px;padding:0;">i</button>
                                 </label>
-                                <select id="mdi-energia-rumo" style="width:100%;padding:8px;border:1px solid #cbd5e1;border-radius:6px;font-size:13px;margin-top:2px;background:#f8fafc;">
+                                <select id="mdi-energia-rumo" style="width:100%;padding:8px;border:1px solid #cbd5e1;border-radius:6px;font-size:var(--fs-sec,12.5px);margin-top:2px;background:#f8fafc;">
                                     <option value="Não" ${imo.energiaRumo !== 'Sim' ? 'selected' : ''}>Não</option>
                                     <option value="Sim" ${imo.energiaRumo === 'Sim' ? 'selected' : ''}>Sim</option>
                                 </select>
@@ -1284,8 +1280,8 @@ export const VERSAO = '1.10.0'; // v-check: lido por ⚙️ › Conta › Versõ
                         </div>
                     </div>
                     <div style="display:flex;gap:8px;margin-top:14px;">
-                        <button onclick="fecharModalCampoContrato()" style="flex:1;background:#f1f5f9;color:#475569;font-weight:bold;font-size:13px;padding:10px;border:none;border-radius:8px;">Fechar</button>
-                        <button onclick="salvarDetalhesImovelPopup('${imo.id}')" style="flex:1;background:var(--sprout);color:#fff;font-weight:bold;font-size:13px;padding:10px;border:none;border-radius:8px;">Salvar</button>
+                        <button onclick="fecharModalCampoContrato()" style="flex:1;background:#f1f5f9;color:#475569;font-weight:bold;font-size:var(--fs-sec,12.5px);padding:10px;border:none;border-radius:8px;">Fechar</button>
+                        <button onclick="salvarDetalhesImovelPopup('${imo.id}')" style="flex:1;background:var(--sprout);color:#fff;font-weight:bold;font-size:var(--fs-sec,12.5px);padding:10px;border:none;border-radius:8px;">Salvar</button>
                     </div>
                 </div>`;
             document.body.appendChild(modal);

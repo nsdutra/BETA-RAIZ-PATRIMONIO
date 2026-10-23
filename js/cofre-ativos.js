@@ -1,6 +1,9 @@
 // ============================================================================
 // cofre-ativos.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.147.0 · 22/10/2026
+// Versão: 1.148.0 · 23/10/2026
+//
+// v1.148.0 (23/10/2026, sessão 20261023-0915-computador-c6, demanda 15146a34; PROTOTIPO_COMPUTADOR_RAIZ v1.1.0 §11, de acordo do Nicola 23/10 08:51) — C6 · escala de letras: 12 tamanhos de letra escritos em número (font-size:13px etc.) trocados pelos da escala (--fs-mini 11 · --fs-sec 12,5 · --fs-corpo 14 · --fs-titulo 17; 16 px fica, por causa do zoom do iPhone em campo, e 18 px ou mais também — herói e números grandes). Nada muda de lugar; só o tamanho passa a ser o mesmo em todas as telas.
+// Versão anterior: 1.147.0 · 22/10/2026
 //
 // v1.147.0 (22/10/2026, sessão 20261022-1035-computador-c1, demanda 15146a34; PROTOTIPO_COMPUTADOR_RAIZ v1.0.0, de acordo do
 //   Nicola 22/10 10:32) — sai o cabeçalho de colunas da tabela do Patrimônio e a ordenação por ele (a linha já se explica;
@@ -23,17 +26,11 @@
 //   detalhe.ativo_id), antes dos itens de controle: "Aluguel · venceu há 36 dias · +2". Antes só os itens de controle
 //   vencidos entravam, e a Rumo, com 50 aluguéis atrasados e poucos itens de controle, ficava sem vermelho. E a lista se
 //   redesenha quando os alertas do Motor chegam depois dela (o chip "Com alerta" chegou a mostrar 1 em vez de 44).
-// Versão anterior: 1.144.0 · 21/10/2026
-//
-// v1.144.0 (21/10/2026, sessão 20261021-1205-ux-onda2, demanda 15146a34; Nicola 21/10 12:02, "vamos avançar") — ONDA 2, lista do Patrimônio: o que está vencido ou vence hoje
-//   deixa de ser o selo "há 11d" ao lado do valor e vira uma linha embaixo, na largura toda, dizendo o quê e quando
-//   ("Dedetização periódica · venceu há 11 dias", "+1" quando há mais); o que vence nos próximos 30 dias continua no
-//   selo azul "Em 9d". Situação (Alugado, Disponível) sem fundo na lista (raiz.css 1.4.0).
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.143.0 … v1.143.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.144.0 … v1.144.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '1.147.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.148.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 import { estado } from './cofre-estado.js';
 import { carregarBiblioteca } from './nucleo/bibliotecas.js'; // bibliotecas pesadas, sob demanda (dem 6b11c602)
 import * as api from './cofre-api.js';
@@ -2553,7 +2550,7 @@ function montarGraficoRecebimentoAtivo(mensal) {
         const alturaPct = Math.max(2, (valores[i] / max) * 100);
         return `<div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%">
             <div title="${NOMES_MES[m.mes - 1]}: ${fmtMoedaAtivo(valores[i])}" style="width:70%;height:${alturaPct}%;border-radius:3px 3px 0 0;background:var(--sprout)"></div>
-            <small style="font-size:9.5px;color:var(--muted);margin-top:3px">${NOMES_MES[m.mes - 1]}</small>
+            <small style="font-size:var(--fs-mini,11px);color:var(--muted);margin-top:3px">${NOMES_MES[m.mes - 1]}</small>
         </div>`;
     }).join('');
     return `<div class="rz-card">
@@ -2611,7 +2608,7 @@ export function abrirInfoPerformanceAtivo() {
         ['Inadimplência', 'Total ainda em atraso nos contratos deste ativo.'],
     ];
     modalGenerico('Sobre o card Performance', `<div class="rz-card"><div class="rz-kv">${
-        itens.map(([r, v]) => `<div class="rz-full"><small>${escapeHtml(r)}</small><b style="font-weight:500;font-size:12.5px">${escapeHtml(v)}</b></div>`).join('')
+        itens.map(([r, v]) => `<div class="rz-full"><small>${escapeHtml(r)}</small><b style="font-weight:500;font-size:var(--fs-sec,12.5px)">${escapeHtml(v)}</b></div>`).join('')
     }</div></div>`);
 }
 
@@ -2624,7 +2621,7 @@ export function abrirInfoCib() {
         ['Por que aparece aqui', 'A partir de 01/12/2026 ele passa a ser exigido na nota fiscal de serviço (NFS-e) de aluguel. Se ainda não tiver o número, pode deixar o campo em branco por enquanto.'],
     ];
     modalGenerico('O que é o CIB?', `<div class="rz-card"><div class="rz-kv">${
-        itens.map(([r, v]) => `<div class="rz-full"><small>${escapeHtml(r)}</small><b style="font-weight:500;font-size:12.5px">${escapeHtml(v)}</b></div>`).join('')
+        itens.map(([r, v]) => `<div class="rz-full"><small>${escapeHtml(r)}</small><b style="font-weight:500;font-size:var(--fs-sec,12.5px)">${escapeHtml(v)}</b></div>`).join('')
     }</div></div>`);
 }
 
@@ -2639,7 +2636,7 @@ export function abrirInfoSituacaoUso() {
         ['Manutenção / Em breve', 'Temporariamente indisponível ou prestes a ficar pronto para uso.'],
     ];
     modalGenerico('Sobre a Situação de uso', `<div class="rz-card"><div class="rz-kv">${
-        itens.map(([r, v]) => `<div class="rz-full"><small>${escapeHtml(r)}</small><b style="font-weight:500;font-size:12.5px">${escapeHtml(v)}</b></div>`).join('')
+        itens.map(([r, v]) => `<div class="rz-full"><small>${escapeHtml(r)}</small><b style="font-weight:500;font-size:var(--fs-sec,12.5px)">${escapeHtml(v)}</b></div>`).join('')
     }</div></div>`);
 }
 
@@ -2652,7 +2649,7 @@ export function abrirInfoDestinacao() {
         ['Por que aparece aqui', 'A partir de 01/12/2026 a NFS-e de aluguel passa a exigir essa classificação.'],
     ];
     modalGenerico('Sobre a Destinação (NFS-e)', `<div class="rz-card"><div class="rz-kv">${
-        itens.map(([r, v]) => `<div class="rz-full"><small>${escapeHtml(r)}</small><b style="font-weight:500;font-size:12.5px">${escapeHtml(v)}</b></div>`).join('')
+        itens.map(([r, v]) => `<div class="rz-full"><small>${escapeHtml(r)}</small><b style="font-weight:500;font-size:var(--fs-sec,12.5px)">${escapeHtml(v)}</b></div>`).join('')
     }</div></div>`);
 }
 
@@ -3055,7 +3052,7 @@ function planoPreenchimento(tipo) {
 function planoSerieHtml(s, i, removivel) {
     const op = (lista, v) => lista.map(([c, t]) => `<option value="${c}"${String(c) === String(v) ? ' selected' : ''}>${t}</option>`).join('');
     return `<div class="rz-card" style="padding:10px;margin:0 0 8px;background:var(--paper)">
-        <div class="rz-card-h" style="justify-content:space-between;margin-bottom:6px"><h3 style="font-size:14px">Série ${i + 1}</h3>${removivel ? `<button type="button" class="rz-btn rz-btn-2 rz-sm" data-pl-del-serie="${i}">Remover</button>` : ''}</div>
+        <div class="rz-card-h" style="justify-content:space-between;margin-bottom:6px"><h3 style="font-size:var(--fs-corpo,14px)">Série ${i + 1}</h3>${removivel ? `<button type="button" class="rz-btn rz-btn-2 rz-sm" data-pl-del-serie="${i}">Remover</button>` : ''}</div>
         <div class="rz-f"><label for="pl-s${i}-nome">Nome</label><input type="text" id="pl-s${i}-nome" maxlength="80" data-pl-s="${i}.nome" value="${escapeHtml(s.nome)}"></div>
         <div class="rz-kv" style="margin-top:0">
           <div class="rz-f"><label for="pl-s${i}-q">Quantas</label><input type="number" inputmode="numeric" min="1" max="600" id="pl-s${i}-q" data-pl-s="${i}.quantidade" value="${s.quantidade}"></div>
@@ -3255,8 +3252,8 @@ async function montarPlanoPagamentoAtivo(a) {
           <div><small>Índice</small><b>${escapeHtml(indTxt)}</b></div>
           ${opPg ? `<div class="rz-full"><small>Como é pago</small><b>${escapeHtml(planoPagamentoTexto(c.pagamento, opPg))}</b></div>` : ''}
         </div>
-        <h3 style="font-size:14px;margin:12px 0 2px">Parcelas</h3><div class="rz-list">${parc.map(linha).join('') || '<p class="rz-desc">Nenhuma série.</p>'}</div>
-        ${custos.length ? `<h3 style="font-size:14px;margin:12px 0 2px">Custos à parte</h3><div class="rz-list">${custos.map(linha).join('')}</div>` : ''}`;
+        <h3 style="font-size:var(--fs-corpo,14px);margin:12px 0 2px">Parcelas</h3><div class="rz-list">${parc.map(linha).join('') || '<p class="rz-desc">Nenhuma série.</p>'}</div>
+        ${custos.length ? `<h3 style="font-size:var(--fs-corpo,14px);margin:12px 0 2px">Custos à parte</h3><div class="rz-list">${custos.map(linha).join('')}</div>` : ''}`;
     card.querySelector('[data-plano-mais]')?.addEventListener('click', () => sheetOuAviso({ titulo: 'Plano de pagamento', sub: a.nome_exibicao, acoes: [
         { icone: 'plus', titulo: 'Nova parcela ou série', codigo: 'planta.plano', sub: 'Chamada extra, renegociação', aoTocar: () => abrirPlanoNovaSerie(a, ap.id, corrige) },
         { icone: 'piggy-bank', titulo: 'Abatimento', codigo: 'planta.plano', sub: 'Antecipar, amortizar…', aoTocar: () => abrirPlanoAbatimento(a, ap.id, corrige, r.series || []) },
@@ -3450,7 +3447,7 @@ function simResultadoHtml(r) {
           ${linha('Fica com você', planoMoeda(s.liquido), 'igual ao pago reajustado')}
         </div>
         ${s.pagamentos_previstos ? `<p class="rz-desc">Inclui ${s.pagamentos_previstos} pagamento${s.pagamentos_previstos === 1 ? '' : 's'} ainda previsto${s.pagamentos_previstos === 1 ? '' : 's'} até ${planoMes(s.mes_venda)}${s.referencia !== 'fixo' && s.ultimo_indice ? ` e o índice projetado depois de ${planoMes(s.ultimo_indice)} (média de 12 meses)` : ''}.</p>` : ''}
-        ${p ? `<h3 style="font-size:14px;margin:12px 0 2px">Se vender por ${planoMoeda(p.valor)}</h3><div class="rz-list">
+        ${p ? `<h3 style="font-size:var(--fs-corpo,14px);margin:12px 0 2px">Se vender por ${planoMoeda(p.valor)}</h3><div class="rz-list">
           ${linha('Fica com você', planoMoeda(p.liquido), `venda − comissão − IR de ${planoMoeda(p.ir)}`)}
           ${linha('Lucro líquido sobre o pago', planoMoeda(p.lucro_liquido))}
           ${linha('Rentabilidade equivalente', simPct(p.rentabilidade_am_pct, 2) + ' ao mês')}
@@ -3850,7 +3847,7 @@ function propriedadeLinhaHtml(l, idx) {
     // horizontal (3 controles + botão remover) — não cabe na gramática
     // .rz-f (vertical, label acima do campo), por isso o estilo é
     // replicado nos tokens em vez de usar a classe.
-    const estiloCampo = 'width:100%;height:38px;padding:0 8px;border:1.5px solid var(--line);border-radius:var(--r-ctl);font-size:12px;background:#fff;color:var(--ink)';
+    const estiloCampo = 'width:100%;height:38px;padding:0 8px;border:1.5px solid var(--line);border-radius:var(--r-ctl);font-size:var(--fs-sec,12.5px);background:#fff;color:var(--ink)';
     return `
         <div class="flex gap-2 items-start" data-propriedade-linha="${idx}">
             <div class="flex-1 space-y-1">
@@ -3954,8 +3951,8 @@ export async function abrirEditarPropriedadeAtivo() {
             <span id="pe-soma">100%</span>
         </div>
         <div class="flex gap-2">
-            <button data-action="fechar-modal-generico" class="flex-1" style="background:#f1f5f9;color:#475569;font-weight:bold;font-size:13px;padding:10px;border:none;border-radius:8px;">Cancelar</button>
-            <button data-action="fa-salvar-propriedade" class="flex-1" style="background:var(--pine);color:#fff;font-weight:bold;font-size:13px;padding:10px;border:none;border-radius:8px;">Salvar</button>
+            <button data-action="fechar-modal-generico" class="flex-1" style="background:#f1f5f9;color:#475569;font-weight:bold;font-size:var(--fs-sec,12.5px);padding:10px;border:none;border-radius:8px;">Cancelar</button>
+            <button data-action="fa-salvar-propriedade" class="flex-1" style="background:var(--pine);color:#fff;font-weight:bold;font-size:var(--fs-sec,12.5px);padding:10px;border:none;border-radius:8px;">Salvar</button>
         </div>
     `);
     renderPropriedadeEditor();

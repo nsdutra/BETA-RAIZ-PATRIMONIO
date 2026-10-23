@@ -1,8 +1,10 @@
 // =====================================================================
 // RAIZ PATRIMÔNIO — js/agenda.js
-// VERSÃO: Beta v1.13.0 (23/10/2026 — demanda 15146a34)
+// VERSÃO: Beta v1.14.0 (23/10/2026 — demanda 15146a34)
 // LINHAS: (ver versoes.json)
 // -----------------------------------------------------------------
+// NOVIDADES (Beta v1.14.0) (23/10/2026, sessão 20261023-0915-computador-c6, demanda 15146a34; PROTOTIPO_COMPUTADOR_RAIZ v1.1.0 §11, de acordo do Nicola 23/10 08:51) — C6 · escala de letras: 5 tamanhos de letra escritos em número (font-size:13px etc.) trocados pelos da escala (--fs-mini 11 · --fs-sec 12,5 · --fs-corpo 14 · --fs-titulo 17; 16 px fica, por causa do zoom do iPhone em campo, e 18 px ou mais também — herói e números grandes). Nada muda de lugar; só o tamanho passa a ser o mesmo em todas as telas.
+// Versão anterior (Beta v1.13.0):
 // NOVIDADES (Beta v1.13.0) (23/10/2026, sessão 20261023-0045-computador-c3, demanda 15146a34; PROTOTIPO_COMPUTADOR_RAIZ v1.0.0
 //   §6, de acordo do Nicola 22/10 10:32 e "siga em frente" 23/10 00:22) — AGENDA NO COMPUTADOR (≥ 1024 px): sem as vistas
 //   Mês · Semana · Alertas no topo. À esquerda o mês (‹ período › e ⋮ no alto da grade) e os filtros (status e Assunto);
@@ -129,7 +131,7 @@
 // formatarMoedaBR, abrirSheet, abrirSheetAcoes, rzSheetCabecalho, fecharSheet, abrirAlertaItemControle,
 // abrirFichaContrato, switchTab, mostrarToast, rzDev.
 
-export const VERSAO = '1.13.0';
+export const VERSAO = '1.14.0';
 
 const TIPOS = {
     ocorrencia:   { rotulo: 'Ocorrência',  icone: 'wrench',          dominio: 'ocorrencias' },
@@ -715,8 +717,8 @@ function revisarCalendario(sh, r, trocarPerfil) {
         const ja = l.situacao === 'ja_na_agenda'
             ? `<span style="color:${l.marcado ? 'var(--warning,#b45309)' : 'var(--success,#2f7a55)'};font-weight:700">${l.marcado ? '⚠ Já está na agenda — vai repetir' : '✓ Já está na agenda'}</span> · ` : '';
         // v1.9.3 — ajustes em chips pequenos: Para · Tipo · Turma · A confirmar numa linha; Aviso na linha de baixo
-        const CH = 'height:28px;padding:0 8px;font-size:12px;gap:2px';
-        const seta = '<span style="font-size:9px;opacity:.6">▼</span>';
+        const CH = 'height:28px;padding:0 8px;font-size:var(--fs-sec,12.5px);gap:2px';
+        const seta = '<span style="font-size:var(--fs-mini,11px);opacity:.6">▼</span>';
         const turmaAtual = l.turmas && l.situacao !== 'escolher_turma' ? l.turmas.find(t => t.data === l.data_inicio) : null;
         const turma = l.turmas
             ? `<button type="button" class="rz-chip${l.situacao === 'escolher_turma' ? ' rz-warn' : ''}" style="${CH}" data-cal-turma="${l.id}">${turmaAtual ? rzEsc(turmaAtual.turma) : 'Turma'}${seta}</button>` : '';
@@ -727,7 +729,7 @@ function revisarCalendario(sh, r, trocarPerfil) {
                     ${turma}
                 </div>
                 <div style="display:flex;flex-wrap:wrap;gap:5px;align-items:center;margin-top:6px">
-                    <span class="rz-sub" style="font-size:12px">Aviso</span>
+                    <span class="rz-sub" style="font-size:var(--fs-sec,12.5px)">Aviso</span>
                     ${[[0, 'Sem'], [1, '1 dia'], [3, '3 dias']].map(([n, t]) => `<button type="button" class="rz-chip${l.aviso === n ? ' rz-on' : ''}" style="${CH}" data-cal-av="${l.id}" data-n="${n}">${t}</button>`).join('')}
                     <span style="width:1px;height:18px;background:var(--line);margin:0 2px"></span>
                     <button type="button" class="rz-chip${l.a_confirmar ? ' rz-on' : ''}" style="${CH}" data-cal-conf="${l.id}">A confirmar</button>
@@ -746,7 +748,7 @@ function revisarCalendario(sh, r, trocarPerfil) {
     const desenhar = () => {
         const marcadas = linhas.filter(l => l.marcado && l.ativo_id);
         const grupos = Object.entries(nomesRec).map(([k, n]) => [k, n, recolhidas().filter(l => l.situacao === k)]).filter(g => g[2].length);
-        const CHP = 'height:28px;padding:0 10px;font-size:12px';
+        const CHP = 'height:28px;padding:0 10px;font-size:var(--fs-sec,12.5px)';
         // v1.10.0 — perfil (dá para trocar) e perguntas de grupo ("Qual o time do Murilo?")
         const perfisHtml = (r.perfis || []).length ? `<div style="display:flex;flex-wrap:wrap;gap:5px;margin:0 0 8px">${r.perfis.map(p =>
             `<button type="button" class="rz-chip${p.codigo === r.perfil ? ' rz-on' : ''}" style="${CHP}" data-cal-perfil="${p.codigo}">${rzEsc(p.nome)}</button>`).join('')}</div>` : '';
@@ -845,7 +847,7 @@ export async function abrirNovoCompromisso(pref = {}) {
     const c = { titulo: pref.titulo || '', data: pref.data || '', hora: pref.hora || '', valor: pref.valor || null, local: pref.local || '',
         tipo: COMP_TIPOS.some(t => t[0] === pref.tipo) ? pref.tipo : 'generico', pessoas: new Set((pref.pessoas || []).filter(id => pessoas.some(p => p.id === id))),
         aviso: pref.aviso_dias != null ? pref.aviso_dias : (pref.valor ? 3 : 1) };
-    const CH = 'height:32px;padding:0 11px;font-size:13px';
+    const CH = 'height:32px;padding:0 11px;font-size:var(--fs-sec,12.5px)';
     const campo = 'width:100%;box-sizing:border-box;height:42px;border:1px solid var(--line);border-radius:10px;padding:0 12px;font:inherit;font-size:16px;background:#fff;color:var(--ink)';
     const rot = (t) => `<small class="rz-sub" style="display:block;margin:12px 0 5px">${t}</small>`;
     const diaSem = () => c.data ? `${calDiaSem(c.data)} ${calData(c.data)}/${c.data.slice(0, 4)}` : '';

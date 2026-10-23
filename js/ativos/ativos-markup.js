@@ -1,6 +1,9 @@
 // ============================================================================
 // js/ativos/ativos-markup.js — Raiz Patrimônio · Módulo Único, fatia frontend 1
-// Versão: 1.68.0 · 20/10/2026
+// Versão: 1.69.0 · 23/10/2026
+//
+// v1.69.0 (23/10/2026, sessão 20261023-0915-computador-c6, demanda 15146a34; PROTOTIPO_COMPUTADOR_RAIZ v1.1.0 §11, de acordo do Nicola 23/10 08:51) — C6 · escala de letras: 9 tamanhos de letra escritos em número (font-size:13px etc.) trocados pelos da escala (--fs-mini 11 · --fs-sec 12,5 · --fs-corpo 14 · --fs-titulo 17; 16 px fica, por causa do zoom do iPhone em campo, e 18 px ou mais também — herói e números grandes). Nada muda de lugar; só o tamanho passa a ser o mesmo em todas as telas.
+// Versão anterior: 1.68.0 · 20/10/2026
 //
 // v1.68.0 (20/10/2026, sessão 20261020-1943-ficha-menu-cards, demanda 9404081c; UXR-49 v1.5.1) — ficha do ativo: os cards
 // Dados do ativo e Propriedade ganham o ⋮ no cabeçalho (Editar dados; Editar divisão e contabilidade), que saíram do ⋮ do topo.
@@ -15,16 +18,11 @@
 //
 // v1.65.0 (15/10/2026, sessão 20261015-0816-convite, demanda c59f09c5) — "Controlar vencimento" do upload ganha o tipo
 // "Eventos e viagens" (convite de festa lido pela IA).
-// Versão anterior: 1.64.0 · 14/10/2026
-//
-// v1.64.0 (14/10/2026, sessão 20261014-2220-usos-fatia4, frente usos-fatia3b, demanda 3022603b; FICHA_FATIA3B v1.1.0,
-// de acordo do Nicola 14/10 22:38–22:58) — Novo ativo: a divisão societária ganha id (#naf-pe-wrapper) para o
-// cofre-ativos.js mostrá-la só quando o catálogo pede (some no subativo e na vida); o botão passa a "Salvar".
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.63.0 … v1.63.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.64.0 … v1.64.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '1.68.0'; // v-check (28/09/2026): lido por Dev › Versões — manter igual ao header
+export const VERSAO = '1.69.0'; // v-check (28/09/2026): lido por Dev › Versões — manter igual ao header
 export const ATIVOS_MARKUP = `<style>
     /* v1.94.1 (31/08/2026, pedido explícito: "anexo uma barra de
        rolagem que fica feia... ao rolar os chips não mostrar a barra")
@@ -250,7 +248,7 @@ export const ATIVOS_MARKUP = `<style>
         <div id="form-ativo-wrapper" class="modal-overlay hidden">
             <div class="modal-box p-4">
                 <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
-                    <h3 style="font-size:14px;font-weight:bold;color:#1e293b;">Novo ativo</h3>
+                    <h3 style="font-size:var(--fs-corpo,14px);font-weight:bold;color:#1e293b;">Novo ativo</h3>
                     <button type="button" data-action="fechar-form-ativo" style="background:#e2e8f0;border:none;border-radius:9999px;width:26px;height:26px;flex:none;">✕</button>
                 </div>
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -331,8 +329,8 @@ export const ATIVOS_MARKUP = `<style>
                     </div>
                 </div>
                 <div style="display:flex;gap:8px;margin-top:14px;">
-                    <button data-action="salvar-ativo" style="flex:1;background:var(--pine);color:#fff;font-weight:bold;font-size:13px;padding:10px;border:none;border-radius:8px;">Salvar</button>
-                    <button type="button" data-action="fechar-form-ativo" style="flex:1;background:#f1f5f9;color:#475569;font-weight:bold;font-size:13px;padding:10px;border:none;border-radius:8px;">Fechar</button>
+                    <button data-action="salvar-ativo" style="flex:1;background:var(--pine);color:#fff;font-weight:bold;font-size:var(--fs-sec,12.5px);padding:10px;border:none;border-radius:8px;">Salvar</button>
+                    <button type="button" data-action="fechar-form-ativo" style="flex:1;background:#f1f5f9;color:#475569;font-weight:bold;font-size:var(--fs-sec,12.5px);padding:10px;border:none;border-radius:8px;">Fechar</button>
                 </div>
                 <p class="raiz-indicador-inline mt-2" id="at-status"></p>
             </div>
@@ -626,8 +624,8 @@ export const ATIVOS_MARKUP = `<style>
         </div>
         <p class="raiz-indicador-inline mt-2" style="color:var(--sage)">Deixe "Repetir a cada" em branco para um item não recorrente (evento único — aí "Parcelas" pode dividir o valor). Preenchido = recorrente; sem data fim = sem fim de vigência. Escolhendo "Fim (retroativo)", as ocorrências são contadas pra trás a partir da data fim, na frequência escolhida. Ao salvar, as ocorrências já são geradas automaticamente.</p>
         <div class="flex gap-2 mt-3">
-            <button type="button" data-action="fechar-form-controle" style="flex:1;background:#f1f5f9;color:#475569;font-weight:bold;font-size:13px;padding:10px;border:none;border-radius:8px;">Fechar</button>
-            <button data-action="salvar-item-controle" style="flex:1;background:var(--pine);color:#fff;font-weight:bold;font-size:13px;padding:10px;border:none;border-radius:8px;">Salvar item de controle</button>
+            <button type="button" data-action="fechar-form-controle" style="flex:1;background:#f1f5f9;color:#475569;font-weight:bold;font-size:var(--fs-sec,12.5px);padding:10px;border:none;border-radius:8px;">Fechar</button>
+            <button data-action="salvar-item-controle" style="flex:1;background:var(--pine);color:#fff;font-weight:bold;font-size:var(--fs-sec,12.5px);padding:10px;border:none;border-radius:8px;">Salvar item de controle</button>
         </div>
     </div>
 </div>
@@ -712,8 +710,8 @@ export const ATIVOS_MARKUP = `<style>
         </div>
         <p class="raiz-indicador-inline mt-2" style="color:var(--sage)">Deixe "Repetir a cada" em branco para um item não recorrente. Mudar a data início, a data fim, a direção ou a frequência impacta os alertas — o Cofre pergunta se quer regerar as ocorrências futuras ou manter as que já existem.</p>
         <div class="flex gap-2 mt-3">
-            <button type="button" data-action="fechar-editar-item" style="flex:1;background:#f1f5f9;color:#475569;font-weight:bold;font-size:13px;padding:10px;border:none;border-radius:8px;">Fechar</button>
-            <button data-action="salvar-edicao-item" style="flex:1;background:var(--pine);color:#fff;font-weight:bold;font-size:13px;padding:10px;border:none;border-radius:8px;">Salvar</button>
+            <button type="button" data-action="fechar-editar-item" style="flex:1;background:#f1f5f9;color:#475569;font-weight:bold;font-size:var(--fs-sec,12.5px);padding:10px;border:none;border-radius:8px;">Fechar</button>
+            <button data-action="salvar-edicao-item" style="flex:1;background:var(--pine);color:#fff;font-weight:bold;font-size:var(--fs-sec,12.5px);padding:10px;border:none;border-radius:8px;">Salvar</button>
         </div>
     </div>
 </div>
@@ -980,8 +978,8 @@ export const ATIVOS_MARKUP = `<style>
         </div>
         </div><!-- /uc-completo -->
         <div class="flex justify-end gap-2 mt-4">
-            <button id="uc-salvar" data-action="salvar-confirmacao-upload" style="flex:1;background:var(--pine);color:#fff;font-weight:bold;font-size:13px;padding:10px;border:none;border-radius:8px;">Salvar</button>
-            <button type="button" data-action="cancelar-confirmacao-upload" style="flex:1;background:#f1f5f9;color:#475569;font-weight:bold;font-size:13px;padding:10px;border:none;border-radius:8px;">Cancelar</button>
+            <button id="uc-salvar" data-action="salvar-confirmacao-upload" style="flex:1;background:var(--pine);color:#fff;font-weight:bold;font-size:var(--fs-sec,12.5px);padding:10px;border:none;border-radius:8px;">Salvar</button>
+            <button type="button" data-action="cancelar-confirmacao-upload" style="flex:1;background:#f1f5f9;color:#475569;font-weight:bold;font-size:var(--fs-sec,12.5px);padding:10px;border:none;border-radius:8px;">Cancelar</button>
         </div>
         <p class="raiz-indicador-inline" id="uc-status"></p>
     </div>

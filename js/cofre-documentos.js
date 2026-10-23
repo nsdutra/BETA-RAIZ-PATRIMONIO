@@ -1,6 +1,9 @@
 // ============================================================================
 // cofre-documentos.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 2.38.0 · 15/10/2026
+// Versão: 2.39.0 · 23/10/2026
+//
+// v2.39.0 (23/10/2026, sessão 20261023-0915-computador-c6, demanda 15146a34; PROTOTIPO_COMPUTADOR_RAIZ v1.1.0 §11, de acordo do Nicola 23/10 08:51) — C6 · escala de letras: 18 tamanhos de letra escritos em número (font-size:13px etc.) trocados pelos da escala (--fs-mini 11 · --fs-sec 12,5 · --fs-corpo 14 · --fs-titulo 17; 16 px fica, por causa do zoom do iPhone em campo, e 18 px ou mais também — herói e números grandes). Nada muda de lugar; só o tamanho passa a ser o mesmo em todas as telas.
+// Versão anterior: 2.38.0 · 15/10/2026
 //
 // v2.38.0 (15/10/2026, sessão 20261015-0816-convite, demanda c59f09c5; FICHA_CONVITE_ANIVERSARIO_RAIZ v1.3.0, de acordo do
 // Nicola 15/10 08:16) — convite de festa: cada pessoa sugerida mostra a razão ("7 anos em 06/11", "quem enviou o convite");
@@ -25,17 +28,11 @@
 // busca universal do Hoje: buscarDocumentosTexto(termo) devolve os documentos com o mesmo critério do
 // "Buscar no Cofre" (nome e descrição), já no formato de linha do resultado. No app, o "Buscar no Cofre"
 // passa a ser a busca universal; o popup fica só para o cofre.html avulso.
-//
-// Versão anterior: 2.34.0 · 08/10/2026
-//
-// v2.34.0 (UX F2.7c-3, demanda b8602a3a, sessão 20261003-1707-ux-base; "De acordo" do Nicola 08/10 14:04) —
-// Documentos arquivados no app vira Sheet por cima da tela atual: linha com ⋮ (Restaurar · Vincular ·
-// Excluir de vez, este vermelho e por último). O modal antigo fica só para o cofre.html avulso.
 // --------------------------------------------------------------------------
-// Versões anteriores (v2.33.0 … v2.33.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v2.34.0 … v2.34.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '2.38.0'; // v-check (22/09/2026): lido por Dev › Versões — manter igual ao header
+export const VERSAO = '2.39.0'; // v-check (22/09/2026): lido por Dev › Versões — manter igual ao header
 import { estado } from './cofre-estado.js';
 // v2.3.1 — import TOLERANTE: na v2.2.0 isto era um import estático. Quando o
 // cofre-imagem.js não subiu no deploy (faltava a linha no manifesto), o import
@@ -215,8 +212,8 @@ export function alertaCardHtml(e) {
             <svg data-lucide="chevron-right" style="width:16px;height:16px;color:#94a3b8;flex-shrink:0"></svg>
         </button>
         <div class="flex gap-2 mt-2 pt-2 border-t border-slate-100">
-            <button data-action="alerta-tratar" data-ocorrencia-id="${e.id}" data-item-id="${e.itemControleId || ''}" style="flex:1;background:var(--pine);color:#fff;font-weight:bold;font-size:11px;padding:6px;border:none;border-radius:6px;">Tratar</button>
-            <button data-action="alerta-acionar" data-item-id="${e.itemControleId || ''}" data-titulo="${escapeHtml(e.titulo)}" data-tipo="${e.tipo || ''}" style="flex:1;background:#f1f5f9;color:#475569;font-weight:bold;font-size:11px;padding:6px;border:none;border-radius:6px;">Acionar</button>
+            <button data-action="alerta-tratar" data-ocorrencia-id="${e.id}" data-item-id="${e.itemControleId || ''}" style="flex:1;background:var(--pine);color:#fff;font-weight:bold;font-size:var(--fs-mini,11px);padding:6px;border:none;border-radius:6px;">Tratar</button>
+            <button data-action="alerta-acionar" data-item-id="${e.itemControleId || ''}" data-titulo="${escapeHtml(e.titulo)}" data-tipo="${e.tipo || ''}" style="flex:1;background:#f1f5f9;color:#475569;font-weight:bold;font-size:var(--fs-mini,11px);padding:6px;border:none;border-radius:6px;">Acionar</button>
         </div>
     </div>`;
 }
@@ -393,8 +390,8 @@ function mostrarBloqueioQualidade(q) {
     el.style.color = 'var(--danger)';
     el.innerHTML = q.bloqueios.map(b => `⚠️ ${escapeHtml(b.mensagem)}`).join('<br>') +
         `<div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap">` +
-        `<button type="button" data-action="up-tentar-outra-foto" style="flex:1;background:var(--pine);color:#fff;border:none;border-radius:8px;padding:10px 14px;font-size:12px;font-weight:700">${up.origemInput === 'up-arquivo' ? 'Escolher outro arquivo' : 'Tirar outra foto'}</button>` +
-        `<button type="button" data-action="up-enviar-assim-mesmo" style="flex:1;background:#f1f5f9;color:#475569;border:none;border-radius:8px;padding:10px 14px;font-size:12px;font-weight:700">Enviar assim mesmo</button>` +
+        `<button type="button" data-action="up-tentar-outra-foto" style="flex:1;background:var(--pine);color:#fff;border:none;border-radius:8px;padding:10px 14px;font-size:var(--fs-sec,12.5px);font-weight:700">${up.origemInput === 'up-arquivo' ? 'Escolher outro arquivo' : 'Tirar outra foto'}</button>` +
+        `<button type="button" data-action="up-enviar-assim-mesmo" style="flex:1;background:#f1f5f9;color:#475569;border:none;border-radius:8px;padding:10px 14px;font-size:var(--fs-sec,12.5px);font-weight:700">Enviar assim mesmo</button>` +
         `</div>`;
     up.arquivo = null;
     ['up-arquivo', 'up-camera'].forEach(id => { const i = document.getElementById(id); if (i) i.value = ''; });
@@ -406,12 +403,12 @@ function mostrarPedidoSenhaPdf(erro = false) {
     const el = statusUpload();
     el.style.color = erro ? 'var(--danger)' : 'var(--sage)';
     el.innerHTML = `${erro ? '⚠️ Senha incorreta — tente de novo.' : '🔒 Este PDF está protegido por senha. Informe a senha pra IA conseguir ler.'}<br>
-        <span style="font-size:11px;color:var(--sage)">A senha é usada só aqui no seu celular e não fica guardada. O arquivo original, ainda protegido, é o que vai pro Cofre.</span>
+        <span style="font-size:var(--fs-mini,11px);color:var(--sage)">A senha é usada só aqui no seu celular e não fica guardada. O arquivo original, ainda protegido, é o que vai pro Cofre.</span>
         <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap">
-            <input type="password" id="up-pdf-senha" inputmode="numeric" autocomplete="off" placeholder="Senha do PDF" style="flex:1;min-width:140px;border:2px solid #cbd5e1;border-radius:8px;padding:8px 10px;font-size:14px">
-            <button type="button" data-action="up-pdf-destravar" style="background:var(--pine);color:#fff;border:none;border-radius:8px;padding:8px 14px;font-size:12px;font-weight:700">Destravar e ler</button>
+            <input type="password" id="up-pdf-senha" inputmode="numeric" autocomplete="off" placeholder="Senha do PDF" style="flex:1;min-width:140px;border:2px solid #cbd5e1;border-radius:8px;padding:8px 10px;font-size:var(--fs-corpo,14px)">
+            <button type="button" data-action="up-pdf-destravar" style="background:var(--pine);color:#fff;border:none;border-radius:8px;padding:8px 14px;font-size:var(--fs-sec,12.5px);font-weight:700">Destravar e ler</button>
         </div>
-        <button type="button" data-action="up-pdf-sem-leitura" style="margin-top:8px;background:#f1f5f9;color:#475569;border:none;border-radius:8px;padding:8px 14px;font-size:12px;font-weight:700">Enviar sem ler (só guardar)</button>`;
+        <button type="button" data-action="up-pdf-sem-leitura" style="margin-top:8px;background:#f1f5f9;color:#475569;border:none;border-radius:8px;padding:8px 14px;font-size:var(--fs-sec,12.5px);font-weight:700">Enviar sem ler (só guardar)</button>`;
     setTimeout(() => document.getElementById('up-pdf-senha')?.focus(), 50);
 }
 
@@ -527,11 +524,11 @@ const CSS_LEITURA = `
 .up-sheet.up-lendo .rz-x,.up-sheet.up-lendo .rz-grab{visibility:hidden}
 #up-sh-status{margin-top:10px}
 #up-sh-status:empty{display:none}
-#up-progresso .up-arq{display:flex;gap:10px;align-items:center;background:var(--tile,#e9ece5);border-radius:10px;padding:9px 11px;font-size:13px;margin:4px 0 14px;overflow-wrap:anywhere}
+#up-progresso .up-arq{display:flex;gap:10px;align-items:center;background:var(--tile,#e9ece5);border-radius:10px;padding:9px 11px;font-size:var(--fs-sec,12.5px);margin:4px 0 14px;overflow-wrap:anywhere}
 #up-progresso .up-arq small{display:block;color:var(--muted,#6f7a76)}
 #up-progresso .up-passos{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:10px}
-#up-progresso .up-passo{display:flex;gap:10px;align-items:center;font-size:14px;color:var(--muted,#6f7a76)}
-#up-progresso .up-bola{width:22px;height:22px;border-radius:50%;border:2px solid var(--line,#e6e3da);flex:none;display:grid;place-items:center;font-size:12px}
+#up-progresso .up-passo{display:flex;gap:10px;align-items:center;font-size:var(--fs-corpo,14px);color:var(--muted,#6f7a76)}
+#up-progresso .up-bola{width:22px;height:22px;border-radius:50%;border:2px solid var(--line,#e6e3da);flex:none;display:grid;place-items:center;font-size:var(--fs-sec,12.5px)}
 #up-progresso .up-passo.feito{color:var(--ink,#17211e)}
 #up-progresso .up-passo.feito .up-bola{background:var(--pine);border-color:var(--pine);color:#fff}
 #up-progresso .up-passo.agora{color:var(--ink,#17211e);font-weight:600}
@@ -541,18 +538,18 @@ const CSS_LEITURA = `
 @media (prefers-reduced-motion:reduce){#up-progresso .up-passo.agora .up-bola{animation:none;border-top-color:var(--brass,#c68a3b)}}
 #up-progresso .up-barra{height:6px;background:var(--tile,#e9ece5);border-radius:3px;margin:16px 0 8px;overflow:hidden}
 #up-progresso .up-barra i{display:block;height:100%;width:0;background:var(--brass,#c68a3b);transition:width .6s}
-#up-progresso .up-tempo{font-size:12.5px;color:var(--muted,#6f7a76)}
-#up-progresso .up-aviso{margin-top:14px;background:var(--brass-bg,#fbf1e2);border-radius:10px;padding:10px 12px;font-size:12.5px;color:var(--brass-deep,#a86f27)}
-#up-progresso .up-trava{font-size:11.5px;color:var(--muted,#6f7a76);text-align:center;margin-top:10px}
+#up-progresso .up-tempo{font-size:var(--fs-sec,12.5px);color:var(--muted,#6f7a76)}
+#up-progresso .up-aviso{margin-top:14px;background:var(--brass-bg,#fbf1e2);border-radius:10px;padding:10px 12px;font-size:var(--fs-sec,12.5px);color:var(--brass-deep,#a86f27)}
+#up-progresso .up-trava{font-size:var(--fs-mini,11px);color:var(--muted,#6f7a76);text-align:center;margin-top:10px}
 #up-progresso .up-res{display:flex;gap:12px;align-items:flex-start;border-radius:12px;padding:12px;margin-bottom:12px;background:var(--tile,#e9ece5)}
 #up-progresso .up-res.ok{background:#e6f0ea}
 #up-progresso .up-res.falha{background:var(--warning-bg,#f3e7e9)}
 #up-progresso .up-res-ic{width:34px;height:34px;border-radius:50%;flex:none;display:grid;place-items:center;font-weight:700;color:#fff;background:var(--pine)}
 #up-progresso .up-res.ok .up-res-ic{background:#2f6b4f}
 #up-progresso .up-res.falha .up-res-ic{background:var(--warning,#7d4b54)}
-#up-progresso .up-res b{display:block;font-size:14.5px}
-#up-progresso .up-res span{display:block;font-size:13px;color:var(--muted,#6f7a76)}
-#up-progresso .up-resumo{border:1px solid var(--line,#e6e3da);border-radius:10px;padding:10px 12px;font-size:13px;margin-bottom:12px}
+#up-progresso .up-res b{display:block;font-size:var(--fs-corpo,14px)}
+#up-progresso .up-res span{display:block;font-size:var(--fs-sec,12.5px);color:var(--muted,#6f7a76)}
+#up-progresso .up-resumo{border:1px solid var(--line,#e6e3da);border-radius:10px;padding:10px 12px;font-size:var(--fs-sec,12.5px);margin-bottom:12px}
 #up-progresso .up-acoes{display:flex;flex-direction:column;gap:8px}
 #up-progresso .up-acoes .rz-btn{width:100%}
 `;
@@ -921,7 +918,7 @@ async function processarArquivoUpload() {
     if (!estado.clienteId) {
         statusEl.style.color = 'var(--danger)';
         statusEl.innerHTML = '⚠️ A empresa ainda está carregando — aguarde um instante.' +
-            `<br><button type="button" data-action="up-tentar-outra-foto" style="margin-top:8px;background:var(--pine);color:#fff;border:none;border-radius:8px;padding:8px 14px;font-size:12px;font-weight:700">Tentar de novo</button>`;
+            `<br><button type="button" data-action="up-tentar-outra-foto" style="margin-top:8px;background:var(--pine);color:#fff;border:none;border-radius:8px;padding:8px 14px;font-size:var(--fs-sec,12.5px);font-weight:700">Tentar de novo</button>`;
         up.arquivo = null;
         return;
     }

@@ -1,7 +1,10 @@
 // ============================================================================
 // contratos.js — Raiz Patrimônio · Contratos (lista · ficha · formulário ·
 //                 status/reajuste/detalhes · fiadores · documentos · histórico)
-// Versão: 1.67.0 · 22/10/2026
+// Versão: 1.68.0 · 23/10/2026
+//
+// v1.68.0 (23/10/2026, sessão 20261023-0915-computador-c6, demanda 15146a34; PROTOTIPO_COMPUTADOR_RAIZ v1.1.0 §11, de acordo do Nicola 23/10 08:51) — C6 · escala de letras: 70 tamanhos de letra escritos em número (font-size:13px etc.) trocados pelos da escala (--fs-mini 11 · --fs-sec 12,5 · --fs-corpo 14 · --fs-titulo 17; 16 px fica, por causa do zoom do iPhone em campo, e 18 px ou mais também — herói e números grandes). Nada muda de lugar; só o tamanho passa a ser o mesmo em todas as telas.
+// Versão anterior: 1.67.0 · 22/10/2026
 //
 // v1.67.0 (22/10/2026, sessão 20261022-1035-computador-c1, demanda 15146a34; PROTOTIPO_COMPUTADOR_RAIZ v1.0.0, de acordo do
 //   Nicola 22/10 10:32) — sai o cabeçalho de colunas da lista de Contratos e a ordenação por ele (mesma decisão do
@@ -24,13 +27,8 @@
 // do topo fica só com a Situação (Ativar, Suspender, Reativar, Encerrar, Excluir) e Gerar minuta. Cada ação vai para o card do
 // assunto: Condições (Dados do contrato, Editar contrato, Renovar), Distribuição (Editar distribuição), Reajuste › Pelo contrato
 // (Reajustar) e Financeiro (linha "Ver no Financeiro"). Adicionar recebimento, parte, locatário e documento já estavam nos cards.
-// Versão anterior: 1.63.0 · 20/10/2026
-//
-// v1.63.0 (20/10/2026, sessão 20261020-2245-contratos-lista, demanda a871b47d; de acordo do Nicola 22:45) — a lista de
-// contratos (Patrimônio › Contratos) saiu. A edição aberta da ficha não troca mais de aba; o Voltar da ficha sem origem vai
-// para o ativo do contrato (ou para o Hoje, se não houver ativo) e o botão diz "Ativo" ou "Hoje", nunca "Contratos".
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.62.0 … v1.62.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.63.0 … v1.63.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
 import { avaliarProntidaoContratoParaMinuta } from './minutas.js'; // v1.0.1
@@ -42,7 +40,7 @@ import { emitirEscrita, aoEscrever } from './raiz-eventos.js'; // v1.18.0 — Fa
 import { renderizarBlocoEndereco, lerBlocoEndereco } from './comum-endereco.js';
 import { formatarEnderecoParte } from './comum-partes.js';
 
-export const VERSAO = '1.67.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.68.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 
 // Faixa do cabeçalho da ficha do contrato: o resumo que se procura primeiro (valor, o que está em aberto e até quando vai).
 // Fim em mês/ano curto ("fev/28"); a data inteira fica no card Condições.
@@ -291,7 +289,7 @@ if (!window.__rzListenerEscritaParteContratoLigado) {
             if (!listaEl) return;
 
             if (fiadoresContratoAtual.length === 0) {
-                listaEl.innerHTML = '<p style="font-size:12px;color:#94a3b8;">Nenhum fiador. Só se a minuta exigir.</p>';
+                listaEl.innerHTML = '<p style="font-size:var(--fs-sec,12.5px);color:#94a3b8;">Nenhum fiador. Só se a minuta exigir.</p>';
                 return;
             }
 
@@ -347,7 +345,7 @@ if (!window.__rzListenerEscritaParteContratoLigado) {
                         <textarea rows="2" onchange="atualizarCampoFiador(${i}, 'endereco_atual', this.value)">${(f.endereco_atual || '').replace(/</g, '&lt;')}</textarea>
                     </div>
                     <label class="rz-row rz-chk" style="padding:8px 0;border-top:0;min-height:44px">
-                        <input type="checkbox" ${f.possui_imovel_proprio ? 'checked' : ''} onchange="atualizarCampoFiador(${i}, 'possui_imovel_proprio', this.checked)"> <span style="font-size:15px">Possui imóvel próprio quitado (garantia patrimonial)</span>
+                        <input type="checkbox" ${f.possui_imovel_proprio ? 'checked' : ''} onchange="atualizarCampoFiador(${i}, 'possui_imovel_proprio', this.checked)"> <span style="font-size:var(--fs-corpo,14px)">Possui imóvel próprio quitado (garantia patrimonial)</span>
                     </label>
                     <div class="rz-f2">
                         ${campo('Matrícula do imóvel', 'imovel_matricula')}
@@ -395,7 +393,7 @@ if (!window.__rzListenerEscritaParteContratoLigado) {
                     <div class="rz-tx"><b>${s.nome}</b></div>
                     <div style="display:flex;align-items:center;gap:6px;flex:none">
                         <input type="number" value="${s.pct}" min="0" max="100" inputmode="decimal" onchange="atualizarPctDivisaoContrato(${index}, this.value)" style="width:84px;text-align:right;font-weight:600">
-                        <span style="font-size:13px;color:var(--muted)">%</span>
+                        <span style="font-size:var(--fs-sec,12.5px);color:var(--muted)">%</span>
                         <button type="button" onclick="removerSocioContrato(${index})" class="rz-ico-btn" style="width:40px;height:40px;box-shadow:none;color:var(--danger)" aria-label="Remover sócio"><svg data-lucide="x" style="width:18px;height:18px"></svg></button>
                     </div>
                 </div>`;
@@ -1152,19 +1150,19 @@ if (!window.__rzListenerEscritaParteContratoLigado) {
             modal.innerHTML = `
                 <div style="background:#fff;border-radius:16px 16px 0 0;max-width:480px;width:100%;padding:16px;max-height:85vh;overflow-y:auto;">
                     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
-                        <h3 style="font-size:14px;font-weight:bold;color:#1e293b;">Dados do Locatário</h3>
+                        <h3 style="font-size:var(--fs-corpo,14px);font-weight:bold;color:#1e293b;">Dados do Locatário</h3>
                         <button onclick="fecharModalCampoContrato()" style="background:#e2e8f0;border:none;border-radius:9999px;width:26px;height:26px;flex:none;">✕</button>
                     </div>
                     <div style="display:flex;flex-direction:column;gap:8px;">
-                        <div><label style="font-size:11px;font-weight:bold;color:#64748b;">Nome do locatário</label><input id="mdl-nome" value="${(con.locatario||'').replace(/"/g,'')}" style="width:100%;padding:8px;border:1px solid #cbd5e1;border-radius:6px;font-size:13px;margin-top:2px;"></div>
-                        <div><label style="font-size:11px;font-weight:bold;color:#64748b;">CPF/CNPJ</label><input id="mdl-cpf" value="${con.cpf||''}" style="width:100%;padding:8px;border:1px solid #cbd5e1;border-radius:6px;font-size:13px;margin-top:2px;"></div>
-                        <div><label style="font-size:11px;font-weight:bold;color:#64748b;">Pessoa de contato</label><input id="mdl-contato" value="${(con.contatoNome||'').replace(/"/g,'')}" style="width:100%;padding:8px;border:1px solid #cbd5e1;border-radius:6px;font-size:13px;margin-top:2px;"></div>
-                        <div><label style="font-size:11px;font-weight:bold;color:#64748b;">WhatsApp</label><input id="mdl-whatsapp" value="${con.whatsapp||''}" style="width:100%;padding:8px;border:1px solid #cbd5e1;border-radius:6px;font-size:13px;margin-top:2px;"></div>
-                        <div><label style="font-size:11px;font-weight:bold;color:#64748b;">E-mail</label><input id="mdl-email" value="${con.email||''}" style="width:100%;padding:8px;border:1px solid #cbd5e1;border-radius:6px;font-size:13px;margin-top:2px;"></div>
-                        <div><label style="font-size:11px;font-weight:bold;color:#64748b;">Endereço do locatário</label><input id="mdl-endereco" value="${(con.locatarioEnderecoAtual||'').replace(/"/g,'')}" style="width:100%;padding:8px;border:1px solid #cbd5e1;border-radius:6px;font-size:13px;margin-top:2px;"></div>
-                        <div><label style="font-size:11px;font-weight:bold;color:#64748b;">Profissão</label><input id="mdl-profissao" value="${(con.locatarioProfissao||'').replace(/"/g,'')}" style="width:100%;padding:8px;border:1px solid #cbd5e1;border-radius:6px;font-size:13px;margin-top:2px;"></div>
-                        <div><label style="font-size:11px;font-weight:bold;color:#64748b;">Estado civil</label>
-                            <select id="mdl-estadocivil" style="width:100%;padding:8px;border:1px solid #cbd5e1;border-radius:6px;font-size:13px;margin-top:2px;background:#f8fafc;">
+                        <div><label style="font-size:var(--fs-mini,11px);font-weight:bold;color:#64748b;">Nome do locatário</label><input id="mdl-nome" value="${(con.locatario||'').replace(/"/g,'')}" style="width:100%;padding:8px;border:1px solid #cbd5e1;border-radius:6px;font-size:var(--fs-sec,12.5px);margin-top:2px;"></div>
+                        <div><label style="font-size:var(--fs-mini,11px);font-weight:bold;color:#64748b;">CPF/CNPJ</label><input id="mdl-cpf" value="${con.cpf||''}" style="width:100%;padding:8px;border:1px solid #cbd5e1;border-radius:6px;font-size:var(--fs-sec,12.5px);margin-top:2px;"></div>
+                        <div><label style="font-size:var(--fs-mini,11px);font-weight:bold;color:#64748b;">Pessoa de contato</label><input id="mdl-contato" value="${(con.contatoNome||'').replace(/"/g,'')}" style="width:100%;padding:8px;border:1px solid #cbd5e1;border-radius:6px;font-size:var(--fs-sec,12.5px);margin-top:2px;"></div>
+                        <div><label style="font-size:var(--fs-mini,11px);font-weight:bold;color:#64748b;">WhatsApp</label><input id="mdl-whatsapp" value="${con.whatsapp||''}" style="width:100%;padding:8px;border:1px solid #cbd5e1;border-radius:6px;font-size:var(--fs-sec,12.5px);margin-top:2px;"></div>
+                        <div><label style="font-size:var(--fs-mini,11px);font-weight:bold;color:#64748b;">E-mail</label><input id="mdl-email" value="${con.email||''}" style="width:100%;padding:8px;border:1px solid #cbd5e1;border-radius:6px;font-size:var(--fs-sec,12.5px);margin-top:2px;"></div>
+                        <div><label style="font-size:var(--fs-mini,11px);font-weight:bold;color:#64748b;">Endereço do locatário</label><input id="mdl-endereco" value="${(con.locatarioEnderecoAtual||'').replace(/"/g,'')}" style="width:100%;padding:8px;border:1px solid #cbd5e1;border-radius:6px;font-size:var(--fs-sec,12.5px);margin-top:2px;"></div>
+                        <div><label style="font-size:var(--fs-mini,11px);font-weight:bold;color:#64748b;">Profissão</label><input id="mdl-profissao" value="${(con.locatarioProfissao||'').replace(/"/g,'')}" style="width:100%;padding:8px;border:1px solid #cbd5e1;border-radius:6px;font-size:var(--fs-sec,12.5px);margin-top:2px;"></div>
+                        <div><label style="font-size:var(--fs-mini,11px);font-weight:bold;color:#64748b;">Estado civil</label>
+                            <select id="mdl-estadocivil" style="width:100%;padding:8px;border:1px solid #cbd5e1;border-radius:6px;font-size:var(--fs-sec,12.5px);margin-top:2px;background:#f8fafc;">
                                 <option value="">-- Selecione --</option>
                                 <option ${con.locatarioEstadoCivil==='Solteiro(a)'?'selected':''}>Solteiro(a)</option>
                                 <option ${con.locatarioEstadoCivil==='Casado(a)'?'selected':''}>Casado(a)</option>
@@ -1173,11 +1171,11 @@ if (!window.__rzListenerEscritaParteContratoLigado) {
                                 <option ${con.locatarioEstadoCivil==='União estável'?'selected':''}>União estável</option>
                             </select>
                         </div>
-                        <div><label style="font-size:11px;font-weight:bold;color:#64748b;">Observação (fica registrada no histórico)</label><textarea id="mdl-obs" rows="2" style="width:100%;padding:8px;border:1px solid #cbd5e1;border-radius:6px;font-size:13px;margin-top:2px;"></textarea></div>
+                        <div><label style="font-size:var(--fs-mini,11px);font-weight:bold;color:#64748b;">Observação (fica registrada no histórico)</label><textarea id="mdl-obs" rows="2" style="width:100%;padding:8px;border:1px solid #cbd5e1;border-radius:6px;font-size:var(--fs-sec,12.5px);margin-top:2px;"></textarea></div>
                     </div>
                     <div style="display:flex;gap:8px;margin-top:14px;">
-                        <button onclick="fecharModalCampoContrato()" style="flex:1;background:#f1f5f9;color:#475569;font-weight:bold;font-size:13px;padding:10px;border:none;border-radius:8px;">Fechar</button>
-                        <button onclick="salvarDadosLocatarioContrato('${con.id}')" style="flex:1;background:var(--pine);color:#fff;font-weight:bold;font-size:13px;padding:10px;border:none;border-radius:8px;">Salvar</button>
+                        <button onclick="fecharModalCampoContrato()" style="flex:1;background:#f1f5f9;color:#475569;font-weight:bold;font-size:var(--fs-sec,12.5px);padding:10px;border:none;border-radius:8px;">Fechar</button>
+                        <button onclick="salvarDadosLocatarioContrato('${con.id}')" style="flex:1;background:var(--pine);color:#fff;font-weight:bold;font-size:var(--fs-sec,12.5px);padding:10px;border:none;border-radius:8px;">Salvar</button>
                     </div>
                 </div>`;
             document.body.appendChild(modal);
@@ -1218,7 +1216,7 @@ if (!window.__rzListenerEscritaParteContratoLigado) {
             modal.innerHTML = `
                 <div style="background:#fff;border-radius:16px 16px 0 0;max-width:480px;width:100%;padding:16px;max-height:85vh;overflow-y:auto;">
                     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
-                        <h3 style="font-size:14px;font-weight:bold;color:#1e293b;">Detalhes do Contrato</h3>
+                        <h3 style="font-size:var(--fs-corpo,14px);font-weight:bold;color:#1e293b;">Detalhes do Contrato</h3>
                         <button onclick="fecharModalCampoContrato()" style="background:#e2e8f0;border:none;border-radius:9999px;width:26px;height:26px;flex:none;">✕</button>
                     </div>
                     <!-- v1.17.0 (NOVO, 02/09/2026, pedido explícito: "as partes
@@ -1238,43 +1236,43 @@ if (!window.__rzListenerEscritaParteContratoLigado) {
                     </div>
                     <div style="display:flex;flex-direction:column;gap:8px;">
                         <div style="display:flex;gap:8px;">
-                            <div style="flex:1;"><label style="font-size:11px;font-weight:bold;color:#64748b;">Início vigência</label><input type="date" id="mdt-inicio" value="${con.inicio||''}" style="width:100%;padding:8px;border:1px solid #cbd5e1;border-radius:6px;font-size:13px;margin-top:2px;"></div>
-                            <div style="flex:1;"><label style="font-size:11px;font-weight:bold;color:#64748b;">Fim vigência</label><input type="date" id="mdt-fim" value="${con.fim||''}" style="width:100%;padding:8px;border:1px solid #cbd5e1;border-radius:6px;font-size:13px;margin-top:2px;"></div>
+                            <div style="flex:1;"><label style="font-size:var(--fs-mini,11px);font-weight:bold;color:#64748b;">Início vigência</label><input type="date" id="mdt-inicio" value="${con.inicio||''}" style="width:100%;padding:8px;border:1px solid #cbd5e1;border-radius:6px;font-size:var(--fs-sec,12.5px);margin-top:2px;"></div>
+                            <div style="flex:1;"><label style="font-size:var(--fs-mini,11px);font-weight:bold;color:#64748b;">Fim vigência</label><input type="date" id="mdt-fim" value="${con.fim||''}" style="width:100%;padding:8px;border:1px solid #cbd5e1;border-radius:6px;font-size:var(--fs-sec,12.5px);margin-top:2px;"></div>
                         </div>
-                        <div><label style="font-size:11px;font-weight:bold;color:#64748b;">Desconto energia (%)</label><input type="number" id="mdt-desconto-energia" value="${con.descontoEnergia||0}" style="width:100%;padding:8px;border:1px solid #cbd5e1;border-radius:6px;font-size:13px;margin-top:2px;"></div>
+                        <div><label style="font-size:var(--fs-mini,11px);font-weight:bold;color:#64748b;">Desconto energia (%)</label><input type="number" id="mdt-desconto-energia" value="${con.descontoEnergia||0}" style="width:100%;padding:8px;border:1px solid #cbd5e1;border-radius:6px;font-size:var(--fs-sec,12.5px);margin-top:2px;"></div>
                         <div style="display:flex;gap:8px;">
-                            <div style="flex:1;"><label style="font-size:11px;font-weight:bold;color:#64748b;">Locatário paga IPTU</label>
-                                <select id="mdt-iptu" style="width:100%;padding:8px;border:1px solid #cbd5e1;border-radius:6px;font-size:13px;margin-top:2px;background:#f8fafc;">
+                            <div style="flex:1;"><label style="font-size:var(--fs-mini,11px);font-weight:bold;color:#64748b;">Locatário paga IPTU</label>
+                                <select id="mdt-iptu" style="width:100%;padding:8px;border:1px solid #cbd5e1;border-radius:6px;font-size:var(--fs-sec,12.5px);margin-top:2px;background:#f8fafc;">
                                     <option value="Não" ${con.locatarioPagaIptu!=='Sim'?'selected':''}>Não</option>
                                     <option value="Sim" ${con.locatarioPagaIptu==='Sim'?'selected':''}>Sim (${formatarMoedaBR(imo?imo.iptu:0)})</option>
                                 </select>
                             </div>
-                            <div style="flex:1;"><label style="font-size:11px;font-weight:bold;color:#64748b;">Locatário paga condomínio</label>
-                                <select id="mdt-condominio" style="width:100%;padding:8px;border:1px solid #cbd5e1;border-radius:6px;font-size:13px;margin-top:2px;background:#f8fafc;">
+                            <div style="flex:1;"><label style="font-size:var(--fs-mini,11px);font-weight:bold;color:#64748b;">Locatário paga condomínio</label>
+                                <select id="mdt-condominio" style="width:100%;padding:8px;border:1px solid #cbd5e1;border-radius:6px;font-size:var(--fs-sec,12.5px);margin-top:2px;background:#f8fafc;">
                                     <option value="Não" ${con.condominioLocatario!=='Sim'?'selected':''}>Não</option>
                                     <option value="Sim" ${con.condominioLocatario==='Sim'?'selected':''}>Sim (${formatarMoedaBR(imo?imo.condominio:0)})</option>
                                 </select>
                             </div>
                         </div>
-                        <div><label style="font-size:11px;font-weight:bold;color:#64748b;">Administradora</label>
-                            <select id="mdt-administradora" style="width:100%;padding:8px;border:1px solid #cbd5e1;border-radius:6px;font-size:13px;margin-top:2px;background:#f8fafc;">
+                        <div><label style="font-size:var(--fs-mini,11px);font-weight:bold;color:#64748b;">Administradora</label>
+                            <select id="mdt-administradora" style="width:100%;padding:8px;border:1px solid #cbd5e1;border-radius:6px;font-size:var(--fs-sec,12.5px);margin-top:2px;background:#f8fafc;">
                                 <option value="">-- Nenhuma --</option>
                                 ${administradoras.map(a => `<option value="${a.id}" ${con.administradoraId===a.id?'selected':''}>${a.nome}</option>`).join('')}
                             </select>
                         </div>
                         <div style="display:flex;gap:8px;">
-                            <div style="flex:1;"><label style="font-size:11px;font-weight:bold;color:#64748b;">Forma de pagamento</label>
-                                <select id="mdt-forma-pgto" style="width:100%;padding:8px;border:1px solid #cbd5e1;border-radius:6px;font-size:13px;margin-top:2px;background:#f8fafc;">
+                            <div style="flex:1;"><label style="font-size:var(--fs-mini,11px);font-weight:bold;color:#64748b;">Forma de pagamento</label>
+                                <select id="mdt-forma-pgto" style="width:100%;padding:8px;border:1px solid #cbd5e1;border-radius:6px;font-size:var(--fs-sec,12.5px);margin-top:2px;background:#f8fafc;">
                                     ${['PIX','Boleto','Dinheiro','Transferência','Cheque'].map(f => `<option ${((con.formaPagamento==='Depósito'?'Transferência':con.formaPagamento)||'PIX')===f?'selected':''}>${f}</option>`).join('')}
                                 </select>
                             </div>
-                            <div style="flex:1;"><label style="font-size:11px;font-weight:bold;color:#64748b;">Índice de reajuste</label><input id="mdt-reajuste" value="${con.reajuste||'IPCA'}" style="width:100%;padding:8px;border:1px solid #cbd5e1;border-radius:6px;font-size:13px;margin-top:2px;"></div>
+                            <div style="flex:1;"><label style="font-size:var(--fs-mini,11px);font-weight:bold;color:#64748b;">Índice de reajuste</label><input id="mdt-reajuste" value="${con.reajuste||'IPCA'}" style="width:100%;padding:8px;border:1px solid #cbd5e1;border-radius:6px;font-size:var(--fs-sec,12.5px);margin-top:2px;"></div>
                         </div>
-                        <div><label style="font-size:11px;font-weight:bold;color:#64748b;">Observação (fica registrada no histórico)</label><textarea id="mdt-obs" rows="2" style="width:100%;padding:8px;border:1px solid #cbd5e1;border-radius:6px;font-size:13px;margin-top:2px;"></textarea></div>
+                        <div><label style="font-size:var(--fs-mini,11px);font-weight:bold;color:#64748b;">Observação (fica registrada no histórico)</label><textarea id="mdt-obs" rows="2" style="width:100%;padding:8px;border:1px solid #cbd5e1;border-radius:6px;font-size:var(--fs-sec,12.5px);margin-top:2px;"></textarea></div>
                     </div>
                     <div style="display:flex;gap:8px;margin-top:14px;">
-                        <button onclick="fecharModalCampoContrato()" style="flex:1;background:#f1f5f9;color:#475569;font-weight:bold;font-size:13px;padding:10px;border:none;border-radius:8px;">Fechar</button>
-                        <button onclick="salvarDetalhesContrato('${con.id}')" style="flex:1;background:var(--pine);color:#fff;font-weight:bold;font-size:13px;padding:10px;border:none;border-radius:8px;">Salvar</button>
+                        <button onclick="fecharModalCampoContrato()" style="flex:1;background:#f1f5f9;color:#475569;font-weight:bold;font-size:var(--fs-sec,12.5px);padding:10px;border:none;border-radius:8px;">Fechar</button>
+                        <button onclick="salvarDetalhesContrato('${con.id}')" style="flex:1;background:var(--pine);color:#fff;font-weight:bold;font-size:var(--fs-sec,12.5px);padding:10px;border:none;border-radius:8px;">Salvar</button>
                     </div>
                 </div>`;
             document.body.appendChild(modal);
@@ -1376,17 +1374,17 @@ if (!window.__rzListenerEscritaParteContratoLigado) {
             modal.innerHTML = `
                 <div style="background:#fff;border-radius:16px 16px 0 0;max-width:480px;width:100%;padding:16px;max-height:85vh;overflow-y:auto;">
                     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
-                        <h3 style="font-size:14px;font-weight:bold;color:#1e293b;">Outros Contratos</h3>
+                        <h3 style="font-size:var(--fs-corpo,14px);font-weight:bold;color:#1e293b;">Outros Contratos</h3>
                         <button onclick="fecharModalCampoContrato()" style="background:#e2e8f0;border:none;border-radius:9999px;width:26px;height:26px;flex:none;">✕</button>
                     </div>
-                    ${antigos.length === 0 ? `<p style="font-size:12px;color:#94a3b8;">Nenhum contrato finalizado.</p>` : antigos.map(con => `
+                    ${antigos.length === 0 ? `<p style="font-size:var(--fs-sec,12.5px);color:#94a3b8;">Nenhum contrato finalizado.</p>` : antigos.map(con => `
                         <div style="border:1px solid #e2e8f0;border-radius:10px;padding:10px;margin-bottom:8px;">
-                            <p style="font-size:12px;font-weight:bold;">${con.locatario || '-'}</p>
-                            <p style="font-size:11px;color:#64748b;">${formatarDataBR(con.inicio)} até ${formatarDataBR(con.fim)} · ${formatarMoedaBR(con.valor)}/mês</p>
+                            <p style="font-size:var(--fs-sec,12.5px);font-weight:bold;">${con.locatario || '-'}</p>
+                            <p style="font-size:var(--fs-mini,11px);color:#64748b;">${formatarDataBR(con.inicio)} até ${formatarDataBR(con.fim)} · ${formatarMoedaBR(con.valor)}/mês</p>
                             <div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap;">
-                                <button onclick="abrirDadosLocatarioContrato('${con.id}')" style="font-size:10px;font-weight:bold;padding:5px 10px;border-radius:9999px;background:#f1f5f9;color:#475569;border:1px solid #cbd5e1;">Dados locatário</button>
-                                <button onclick="abrirDetalhesContrato('${con.id}')" style="font-size:10px;font-weight:bold;padding:5px 10px;border-radius:9999px;background:#f1f5f9;color:#475569;border:1px solid #cbd5e1;">Detalhes</button>
-                                <button onclick="verHistoricoContrato('${con.id}')" style="font-size:10px;font-weight:bold;padding:5px 10px;border-radius:9999px;background:#f1f5f9;color:#475569;border:1px solid #cbd5e1;">Históricos</button>
+                                <button onclick="abrirDadosLocatarioContrato('${con.id}')" style="font-size:var(--fs-mini,11px);font-weight:bold;padding:5px 10px;border-radius:9999px;background:#f1f5f9;color:#475569;border:1px solid #cbd5e1;">Dados locatário</button>
+                                <button onclick="abrirDetalhesContrato('${con.id}')" style="font-size:var(--fs-mini,11px);font-weight:bold;padding:5px 10px;border-radius:9999px;background:#f1f5f9;color:#475569;border:1px solid #cbd5e1;">Detalhes</button>
+                                <button onclick="verHistoricoContrato('${con.id}')" style="font-size:var(--fs-mini,11px);font-weight:bold;padding:5px 10px;border-radius:9999px;background:#f1f5f9;color:#475569;border:1px solid #cbd5e1;">Históricos</button>
                             </div>
                         </div>`).join('')}
                 </div>`;
@@ -2025,7 +2023,7 @@ if (!window.__rzListenerEscritaParteContratoLigado) {
             ];
             abrirSheet(rzSheetCabecalho('Sobre o card "Pelo contrato"') +
                 `<div class="rz-sh-b"><div class="rz-card"><div class="rz-kv">${
-                    itens.map(([r, v]) => `<div class="rz-full"><small>${rzEsc(r)}</small><b style="font-weight:500;font-size:12.5px">${rzEsc(v)}</b></div>`).join('')
+                    itens.map(([r, v]) => `<div class="rz-full"><small>${rzEsc(r)}</small><b style="font-weight:500;font-size:var(--fs-sec,12.5px)">${rzEsc(v)}</b></div>`).join('')
                 }</div></div></div>`);
         }
 
@@ -2039,7 +2037,7 @@ if (!window.__rzListenerEscritaParteContratoLigado) {
             ];
             abrirSheet(rzSheetCabecalho('Sobre o Aluguel Antecipado') +
                 `<div class="rz-sh-b"><div class="rz-card"><div class="rz-kv">${
-                    itens.map(([r, v]) => `<div class="rz-full"><small>${rzEsc(r)}</small><b style="font-weight:500;font-size:12.5px">${rzEsc(v)}</b></div>`).join('')
+                    itens.map(([r, v]) => `<div class="rz-full"><small>${rzEsc(r)}</small><b style="font-weight:500;font-size:var(--fs-sec,12.5px)">${rzEsc(v)}</b></div>`).join('')
                 }</div></div></div>`);
         }
 
@@ -2053,7 +2051,7 @@ if (!window.__rzListenerEscritaParteContratoLigado) {
             ];
             abrirSheet(rzSheetCabecalho('Sobre o Desconto de Energia') +
                 `<div class="rz-sh-b"><div class="rz-card"><div class="rz-kv">${
-                    itens.map(([r, v]) => `<div class="rz-full"><small>${rzEsc(r)}</small><b style="font-weight:500;font-size:12.5px">${rzEsc(v)}</b></div>`).join('')
+                    itens.map(([r, v]) => `<div class="rz-full"><small>${rzEsc(r)}</small><b style="font-weight:500;font-size:var(--fs-sec,12.5px)">${rzEsc(v)}</b></div>`).join('')
                 }</div></div></div>`);
         }
 
@@ -2637,12 +2635,12 @@ if (!window.__rzListenerEscritaParteContratoLigado) {
                 <div class="rz-f2">${campo('Nacionalidade', 'ff-nacionalidade', f.nacionalidade)}${campo('Data de nascimento', 'ff-nascimento', f.data_nascimento, 'date')}</div>
                 <div class="rz-f2">${campo('Profissão', 'ff-profissao', f.profissao)}${sel('Estado civil', 'ff-estado-civil', f.estado_civil, ['Solteiro(a)', 'Casado(a)', 'Divorciado(a)', 'Viúvo(a)', 'União estável'], '— selecione —')}</div>
                 ${sel('Regime de bens', 'ff-regime', f.regime_bens, ['Comunhão parcial de bens', 'Comunhão universal de bens', 'Separação total de bens', 'Separação obrigatória de bens', 'Participação final nos aquestos'], '— se casado(a) —')}
-                <p class="rz-desc" style="font-size:11.5px;margin:0 0 8px">Cônjuge: assina junto se casado(a) fora de separação total/obrigatória (Art. 1.647 do Código Civil).</p>
+                <p class="rz-desc" style="font-size:var(--fs-mini,11px);margin:0 0 8px">Cônjuge: assina junto se casado(a) fora de separação total/obrigatória (Art. 1.647 do Código Civil).</p>
                 <div class="rz-f2">${campo('Nome do cônjuge', 'ff-conj-nome', f.conjuge_nome)}${campo('CPF do cônjuge', 'ff-conj-cpf', f.conjuge_cpf)}</div>
                 <div class="rz-f2">${campo('RG do cônjuge', 'ff-conj-rg', f.conjuge_rg)}${campo('Profissão do cônjuge', 'ff-conj-prof', f.conjuge_profissao)}</div>
                 <div class="rz-f2">${campo('WhatsApp', 'ff-whatsapp', f.whatsapp)}${campo('E-mail', 'ff-email', f.email, 'email')}</div>
                 <div class="rz-f"><label for="ff-endereco">Endereço atual</label><textarea id="ff-endereco" rows="2">${e(f.endereco_atual)}</textarea></div>
-                <label style="display:flex;align-items:center;gap:8px;font-size:13px;margin:4px 0 10px"><input type="checkbox" id="ff-possui-imovel" ${f.possui_imovel_proprio ? 'checked' : ''}> Possui imóvel próprio quitado (garantia)</label>
+                <label style="display:flex;align-items:center;gap:8px;font-size:var(--fs-sec,12.5px);margin:4px 0 10px"><input type="checkbox" id="ff-possui-imovel" ${f.possui_imovel_proprio ? 'checked' : ''}> Possui imóvel próprio quitado (garantia)</label>
                 <div class="rz-f2">${campo('Matrícula do imóvel', 'ff-imovel-matricula', f.imovel_matricula)}${campo('Cartório de registro', 'ff-imovel-cartorio', f.imovel_cartorio_registro)}</div>
                 ${campo('Endereço do imóvel', 'ff-imovel-endereco', f.imovel_endereco)}`;
             abrirSheetForm({
@@ -2853,7 +2851,7 @@ if (!window.__rzListenerEscritaParteContratoLigado) {
             const data = (x) => (x ? rzEsc(formatarDataBR(x)) : vazio);
             const pct = (x) => (x === null || x === undefined || x === '' ? vazio : rzEsc(String(x).replace('.', ',')) + '%');
             const meses = (x) => (x ? rzEsc(String(x)) + (Number(x) === 1 ? ' mês' : ' meses') : vazio);
-            const linha = (r, val, cheio) => `<div${cheio ? ' class="rz-full"' : ''}><small>${rzEsc(r)}</small><b style="font-weight:500;font-size:13px">${val}</b></div>`;
+            const linha = (r, val, cheio) => `<div${cheio ? ' class="rz-full"' : ''}><small>${rzEsc(r)}</small><b style="font-weight:500;font-size:var(--fs-sec,12.5px)">${val}</b></div>`;
             const card = (titulo, linhas) => `<div class="rz-card"><p class="rz-group" style="margin-top:0">${rzEsc(titulo)}</p><div class="rz-kv">${linhas.join('')}</div></div>`;
             const corpo =
                 card('Contrato', [
@@ -3210,14 +3208,14 @@ if (!window.__rzListenerEscritaParteContratoLigado) {
             }
             overlay.innerHTML = `
                 <div style="background:#fff; border-radius:20px 20px 0 0; padding:20px; max-width:420px; width:100%; max-height:70vh; overflow-y:auto;">
-                    <p style="font-weight:800; font-size:15px; color:var(--ink); margin-bottom:4px;">${titulo}</p>
-                    <p style="font-size:12px; color:var(--sage); margin-bottom:12px;">Este imóvel tem mais de um contrato elegível — escolha qual.</p>
+                    <p style="font-weight:800; font-size:var(--fs-corpo,14px); color:var(--ink); margin-bottom:4px;">${titulo}</p>
+                    <p style="font-size:var(--fs-sec,12.5px); color:var(--sage); margin-bottom:12px;">Este imóvel tem mais de um contrato elegível — escolha qual.</p>
                     ${listaContratos.map((con, i) => `
                         <button data-idx-seletor-contrato="${i}" style="width:100%; text-align:left; padding:12px; border:1px solid #e6e3da; border-radius:12px; margin-bottom:8px; background:#fff;">
-                            <b style="font-size:13px;">${(con.locatario || '-').replace(/</g, '')}</b>
-                            <div style="font-size:11px; color:var(--sage);">${con.status}${con.whatsapp ? ' · ' + con.whatsapp : ''}</div>
+                            <b style="font-size:var(--fs-sec,12.5px);">${(con.locatario || '-').replace(/</g, '')}</b>
+                            <div style="font-size:var(--fs-mini,11px); color:var(--sage);">${con.status}${con.whatsapp ? ' · ' + con.whatsapp : ''}</div>
                         </button>`).join('')}
-                    <button id="btn-cancelar-seletor-contrato-acao" style="width:100%; text-align:center; padding:10px; color:var(--sage); font-weight:700; font-size:13px; background:none; border:none;">Cancelar</button>
+                    <button id="btn-cancelar-seletor-contrato-acao" style="width:100%; text-align:center; padding:10px; color:var(--sage); font-weight:700; font-size:var(--fs-sec,12.5px); background:none; border:none;">Cancelar</button>
                 </div>`;
             overlay.querySelectorAll('[data-idx-seletor-contrato]').forEach(btn => {
                 btn.onclick = () => { overlay.remove(); callback(listaContratos[parseInt(btn.dataset.idxSeletorContrato, 10)]); };
@@ -4273,7 +4271,7 @@ if (!window.__rzListenerEscritaParteContratoLigado) {
             const corpo = `<p class="rz-desc" style="margin:0 2px 10px">Cada contrato tem o seu item de ${faltando.map(e => e.nome).join(' e de ')} em ${anoRef}, proporcional ao período dele no ano: <b>${periodoTxt}</b>. O período sem contrato fica num item "vago" do proprietário, criado automaticamente.</p>` +
                 faltando.map(e => `
                 <div class="rz-card" data-encargo="${e.codigo}">
-                    <label style="display:flex;align-items:center;gap:8px;font-weight:600;font-size:14px;color:var(--ink)">
+                    <label style="display:flex;align-items:center;gap:8px;font-weight:600;font-size:var(--fs-corpo,14px);color:var(--ink)">
                         <input type="checkbox" data-campo="criar" checked> ${e.nome} ${anoRef} deste contrato
                         <span class="rz-st rz-${e.paga(con) ? 'run' : 'neu'}" style="margin-left:auto">${e.paga(con) ? 'Paga: locatário' : 'Paga: proprietário'}</span>
                     </label>
@@ -4507,7 +4505,7 @@ if (!window.__rzListenerEscritaParteContratoLigado) {
             fiadoresContratoAtual = [];
             fiadoresContratoAtualPertenceAoId = null;
             const listaFiadoresEl = document.getElementById('con-fiadores-lista');
-            if (listaFiadoresEl) listaFiadoresEl.innerHTML = '<p style="font-size:12px;color:var(--muted)">Carregando fiadores...</p>';
+            if (listaFiadoresEl) listaFiadoresEl.innerHTML = '<p style="font-size:var(--fs-sec,12.5px);color:var(--muted)">Carregando fiadores...</p>';
             (async function() {
                 let cid = con.id;
                 if (!idEhUuidValido(cid)) { await aguardarIdRealDoContrato(con); cid = con.id; }
@@ -5158,7 +5156,7 @@ if (!window.__rzListenerEscritaParteContratoLigado) {
 
             if (historico.length === 0) {
 
-                corpoHtml = `<p style="color:#64748b; font-size:13px;">Nenhuma alteração registrada ainda.</p>`;
+                corpoHtml = `<p style="color:#64748b; font-size:var(--fs-sec,12.5px);">Nenhuma alteração registrada ainda.</p>`;
 
             } else {
 
@@ -5170,7 +5168,7 @@ if (!window.__rzListenerEscritaParteContratoLigado) {
 
                     const listaAlteracoes = (h.alteracoes || []).map(a =>
 
-                        `<div style="font-size:13px; color:#1e293b; padding-left:4px;">• <strong>${a.campo}:</strong> ${a.de} → ${a.para}</div>`
+                        `<div style="font-size:var(--fs-sec,12.5px); color:#1e293b; padding-left:4px;">• <strong>${a.campo}:</strong> ${a.de} → ${a.para}</div>`
 
                     ).join('');
 
@@ -5183,13 +5181,13 @@ if (!window.__rzListenerEscritaParteContratoLigado) {
                     // status) usa "descricao" (texto livre, com a observação
                     // já embutida), então aparecia como linha vazia, sem
                     // nenhum texto visível.
-                    const linhaDescricao = h.descricao ? `<div style="font-size:13px; color:#1e293b; padding-left:4px;">${h.descricao}</div>` : '';
+                    const linhaDescricao = h.descricao ? `<div style="font-size:var(--fs-sec,12.5px); color:#1e293b; padding-left:4px;">${h.descricao}</div>` : '';
 
                     return `
 
                         <div style="border-bottom:1px solid #e2e8f0; padding:8px 0;">
 
-                            <div style="font-size:11px; color:#94a3b8;">${dataFormatada}${h.vigenteDesde ? ' — vigente desde ' + vigenciaFormatada : ''}</div>
+                            <div style="font-size:var(--fs-mini,11px); color:#94a3b8;">${dataFormatada}${h.vigenteDesde ? ' — vigente desde ' + vigenciaFormatada : ''}</div>
 
                             ${linhaDescricao}
 
@@ -5228,7 +5226,7 @@ if (!window.__rzListenerEscritaParteContratoLigado) {
 
                     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
 
-                        <h3 style="font-size:14px; font-weight:bold; color:#1e293b;">Histórico — ${con.locatario}</h3>
+                        <h3 style="font-size:var(--fs-corpo,14px); font-weight:bold; color:#1e293b;">Histórico — ${con.locatario}</h3>
 
                         <button onclick="document.getElementById('modal-historico-contrato').remove()" style="background:#e2e8f0;border:none;border-radius:9999px;width:26px;height:26px;flex:none;">✕</button>
 

@@ -4,6 +4,16 @@ Histórico completo de versões do `index.html`, movido automaticamente pelo `ge
 
 ---
 
+NOVIDADES (Beta v1.476.0) — C2: ações presas ao botão (raiz-ui 1.7.0).
+Versão anterior (Beta v1.475.0):
+DATA: 23/10/2026 (sessão 20261023-0023-controles-lista, demanda 6946fc07)
+------------------------------------------------------------------
+Versões anteriores (v1.475.0 … v1.475.0): CHANGELOG_APP.md, na raiz do
+repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
+das 5 versões mais recentes deste cabeçalho.
+
+---
+
 NOVIDADES (Beta v1.475.0) — selo da Agenda sem informativo; cofre-controles 1.69.0; icones-raiz 1.1.0.
 Versão anterior (Beta v1.474.1):
 DATA: 23/10/2026 (sessão 20261023-0003-zeladoria-p2, demanda f9621340)

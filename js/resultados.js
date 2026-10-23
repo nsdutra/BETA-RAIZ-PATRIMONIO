@@ -1,8 +1,10 @@
 // =====================================================================
 // RAIZ PATRIMÔNIO — js/resultados.js
-// VERSÃO: Beta v2.18.0 (23/10/2026 — demanda 15146a34)
+// VERSÃO: Beta v2.19.0 (23/10/2026 — demanda 15146a34)
 // LINHAS: (ver versoes.json)
 // -----------------------------------------------------------------
+// NOVIDADES (Beta v2.19.0) (23/10/2026, sessão 20261023-0915-computador-c6, demanda 15146a34; PROTOTIPO_COMPUTADOR_RAIZ v1.1.0 §11, de acordo do Nicola 23/10 08:51) — C6 · escala de letras: 12 tamanhos de letra escritos em número (font-size:13px etc.) trocados pelos da escala (--fs-mini 11 · --fs-sec 12,5 · --fs-corpo 14 · --fs-titulo 17; 16 px fica, por causa do zoom do iPhone em campo, e 18 px ou mais também — herói e números grandes). Nada muda de lugar; só o tamanho passa a ser o mesmo em todas as telas.
+// Versão anterior (Beta v2.18.0):
 // NOVIDADES (Beta v2.18.0) (23/10/2026, sessão 20261023-0855-computador-c5, demanda 15146a34; PROTOTIPO_COMPUTADOR_RAIZ v1.1.0 §3,
 //   de acordo do Nicola 23/10 08:51) — Hoje no computador em 3 colunas iguais: Como vai (resultado por ramo, cards do ramo,
 //   mês a mês, por grupo, performance) · O que vem (reajustes, revisionais, contratos por índice, dependência de locatário) ·
@@ -106,7 +108,7 @@
 // Versões anteriores (v2.4.0 … v2.4.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '2.18.0';
+export const VERSAO = '2.19.0';
 
 // ---------------------------------------------------------------------
 // Estado do filtro (module-scoped — sobrevive entre renders porque o
@@ -1318,7 +1320,7 @@ function montarConcentracao(linhas) {
     // nunca quebrar), só que aqui não tinha essas duas propriedades.
     const rows = principais.map(l => `
         <div style="margin-bottom:10px">
-            <div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px;font-size:12.5px;margin-bottom:3px">
+            <div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px;font-size:var(--fs-sec,12.5px);margin-bottom:3px">
                 <b style="font-weight:600;color:${l.concentrado ? 'var(--danger)' : 'var(--ink)'};flex:1;min-width:0">${rzEsc(l.locatario || '—')}</b>
                 <span style="color:${l.concentrado ? 'var(--danger)' : 'var(--muted)'};flex:none;white-space:nowrap">${l.percentual_pct}% · ${formatarMoedaBR(l.valor_ano, { semCentavos: true })}</span>
             </div>
@@ -1326,7 +1328,7 @@ function montarConcentracao(linhas) {
         </div>`).join('');
     const rowOutros = resto.length ? `
         <div>
-            <div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px;font-size:12.5px;margin-bottom:3px">
+            <div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px;font-size:var(--fs-sec,12.5px);margin-bottom:3px">
                 <b style="font-weight:600;color:var(--muted);flex:1;min-width:0">Outros ${resto.length} locatário${resto.length > 1 ? 's' : ''}</b>
                 <span style="color:var(--muted);flex:none;white-space:nowrap">${restoPct}% · ${formatarMoedaBR(restoValor, { semCentavos: true })}</span>
             </div>
@@ -1493,7 +1495,7 @@ export function abrirInfoReajustes() {
     ];
     abrirSheet(rzSheetCabecalho('Como funciona o calendário de reajustes') +
         `<div class="rz-sh-b"><div class="rz-card"><div class="rz-kv">${
-            itens.map(([r, v]) => `<div class="rz-full"><small>${rzEsc(r)}</small><b style="font-weight:500;font-size:12.5px">${rzEsc(v)}</b></div>`).join('')
+            itens.map(([r, v]) => `<div class="rz-full"><small>${rzEsc(r)}</small><b style="font-weight:500;font-size:var(--fs-sec,12.5px)">${rzEsc(v)}</b></div>`).join('')
         }</div></div></div>`);
 }
 
@@ -1507,7 +1509,7 @@ export function abrirInfoRevisionais() {
     ];
     abrirSheet(rzSheetCabecalho('Como funciona o calendário de revisionais/renovações') +
         `<div class="rz-sh-b"><div class="rz-card"><div class="rz-kv">${
-            itens.map(([r, v]) => `<div class="rz-full"><small>${rzEsc(r)}</small><b style="font-weight:500;font-size:12.5px">${rzEsc(v)}</b></div>`).join('')
+            itens.map(([r, v]) => `<div class="rz-full"><small>${rzEsc(r)}</small><b style="font-weight:500;font-size:var(--fs-sec,12.5px)">${rzEsc(v)}</b></div>`).join('')
         }</div></div></div>`);
 }
 
@@ -1518,9 +1520,9 @@ export function abrirInfoRevisionais() {
 function botaoVerTodosIndicadores(rotulo = 'Ver todos') {
     const pode = typeof podeUsar === 'function' ? podeUsar('resultados.indicadores') : true;
     if (pode === false) {
-        return `<button type="button" disabled title="Disponível nos planos com Resultados" style="display:flex;align-items:center;justify-content:center;gap:6px;width:100%;margin-top:12px;padding-top:12px;border:0;border-top:1px solid var(--line);background:none;color:var(--muted);font-weight:600;font-size:14px;min-height:44px"><svg data-lucide="lock" style="width:14px;height:14px"></svg>${rzEsc(rotulo)} — disponível nos planos com Resultados</button>`;
+        return `<button type="button" disabled title="Disponível nos planos com Resultados" style="display:flex;align-items:center;justify-content:center;gap:6px;width:100%;margin-top:12px;padding-top:12px;border:0;border-top:1px solid var(--line);background:none;color:var(--muted);font-weight:600;font-size:var(--fs-corpo,14px);min-height:44px"><svg data-lucide="lock" style="width:14px;height:14px"></svg>${rzEsc(rotulo)} — disponível nos planos com Resultados</button>`;
     }
-    return `<button type="button" onclick="abrirIndicadores()" style="display:flex;align-items:center;justify-content:center;gap:4px;width:100%;margin-top:12px;padding-top:12px;border:0;border-top:1px solid var(--line);background:none;color:var(--sprout);font-weight:600;font-size:14px;min-height:44px">${rzEsc(rotulo)}<svg data-lucide="chevron-right" style="width:16px;height:16px"></svg></button>`;
+    return `<button type="button" onclick="abrirIndicadores()" style="display:flex;align-items:center;justify-content:center;gap:4px;width:100%;margin-top:12px;padding-top:12px;border:0;border-top:1px solid var(--line);background:none;color:var(--sprout);font-weight:600;font-size:var(--fs-corpo,14px);min-height:44px">${rzEsc(rotulo)}<svg data-lucide="chevron-right" style="width:16px;height:16px"></svg></button>`;
 }
 
 export function abrirIndicadores() {
@@ -1538,7 +1540,7 @@ export function abrirInfoIndicadores() {
     ];
     abrirSheet(rzSheetCabecalho('O que cada indicador mede') +
         `<div class="rz-sh-b"><div class="rz-card"><div class="rz-kv">${
-            itens.map(([r, v]) => `<div class="rz-full"><small>${rzEsc(r)}</small><b style="font-weight:500;font-size:12.5px">${rzEsc(v)}</b></div>`).join('')
+            itens.map(([r, v]) => `<div class="rz-full"><small>${rzEsc(r)}</small><b style="font-weight:500;font-size:var(--fs-sec,12.5px)">${rzEsc(v)}</b></div>`).join('')
         }</div></div></div>`);
 }
 
@@ -1550,7 +1552,7 @@ export function abrirInfoResultadoMensal() {
     ];
     abrirSheet(rzSheetCabecalho('Sobre o card Resultado mês a mês') +
         `<div class="rz-sh-b"><div class="rz-card"><div class="rz-kv">${
-            itens.map(([r, v]) => `<div class="rz-full"><small>${rzEsc(r)}</small><b style="font-weight:500;font-size:12.5px">${rzEsc(v)}</b></div>`).join('')
+            itens.map(([r, v]) => `<div class="rz-full"><small>${rzEsc(r)}</small><b style="font-weight:500;font-size:var(--fs-sec,12.5px)">${rzEsc(v)}</b></div>`).join('')
         }</div></div></div>`);
 }
 
@@ -1562,7 +1564,7 @@ export function abrirInfoContratosIndice() {
     ];
     abrirSheet(rzSheetCabecalho('Sobre o card Contratos por índice') +
         `<div class="rz-sh-b"><div class="rz-card"><div class="rz-kv">${
-            itens.map(([r, v]) => `<div class="rz-full"><small>${rzEsc(r)}</small><b style="font-weight:500;font-size:12.5px">${rzEsc(v)}</b></div>`).join('')
+            itens.map(([r, v]) => `<div class="rz-full"><small>${rzEsc(r)}</small><b style="font-weight:500;font-size:var(--fs-sec,12.5px)">${rzEsc(v)}</b></div>`).join('')
         }</div></div></div>`);
 }
 
@@ -1574,7 +1576,7 @@ export function abrirInfoGraficoIndicador() {
     ];
     abrirSheet(rzSheetCabecalho('Sobre o card Sua carteira × indicador') +
         `<div class="rz-sh-b"><div class="rz-card"><div class="rz-kv">${
-            itens.map(([r, v]) => `<div class="rz-full"><small>${rzEsc(r)}</small><b style="font-weight:500;font-size:12.5px">${rzEsc(v)}</b></div>`).join('')
+            itens.map(([r, v]) => `<div class="rz-full"><small>${rzEsc(r)}</small><b style="font-weight:500;font-size:var(--fs-sec,12.5px)">${rzEsc(v)}</b></div>`).join('')
         }</div></div></div>`);
 }
 
@@ -1587,7 +1589,7 @@ export function abrirInfoConcentracao() {
     ];
     abrirSheet(rzSheetCabecalho('Sobre o card Dependência de locatário') +
         `<div class="rz-sh-b"><div class="rz-card"><div class="rz-kv">${
-            itens.map(([r, v]) => `<div class="rz-full"><small>${rzEsc(r)}</small><b style="font-weight:500;font-size:12.5px">${rzEsc(v)}</b></div>`).join('')
+            itens.map(([r, v]) => `<div class="rz-full"><small>${rzEsc(r)}</small><b style="font-weight:500;font-size:var(--fs-sec,12.5px)">${rzEsc(v)}</b></div>`).join('')
         }</div></div></div>`);
 }
 
@@ -1603,7 +1605,7 @@ export function abrirInfoPerformanceGrid() {
     ];
     abrirSheet(rzSheetCabecalho('Sobre o card Performance') +
         `<div class="rz-sh-b"><div class="rz-card"><div class="rz-kv">${
-            itens.map(([r, v]) => `<div class="rz-full"><small>${rzEsc(r)}</small><b style="font-weight:500;font-size:12.5px">${rzEsc(v)}</b></div>`).join('')
+            itens.map(([r, v]) => `<div class="rz-full"><small>${rzEsc(r)}</small><b style="font-weight:500;font-size:var(--fs-sec,12.5px)">${rzEsc(v)}</b></div>`).join('')
         }</div></div></div>`);
 }
 

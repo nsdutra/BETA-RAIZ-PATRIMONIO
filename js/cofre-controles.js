@@ -1,6 +1,9 @@
 // ============================================================================
 // cofre-controles.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.70.0 · 23/10/2026
+// Versão: 1.71.0 · 23/10/2026
+//
+// v1.71.0 (23/10/2026, sessão 20261023-0915-computador-c6, demanda 15146a34; PROTOTIPO_COMPUTADOR_RAIZ v1.1.0 §11, de acordo do Nicola 23/10 08:51) — C6 · escala de letras: 8 tamanhos de letra escritos em número (font-size:13px etc.) trocados pelos da escala (--fs-mini 11 · --fs-sec 12,5 · --fs-corpo 14 · --fs-titulo 17; 16 px fica, por causa do zoom do iPhone em campo, e 18 px ou mais também — herói e números grandes). Nada muda de lugar; só o tamanho passa a ser o mesmo em todas as telas.
+// Versão anterior: 1.70.0 · 23/10/2026
 //
 // v1.70.0 (23/10/2026, sessão 20261023-0831-controles-linha, demanda f8c764fd; de acordo do Nicola 23/10 08:31) — SÓ A DATA
 //   EM TODOS OS GRUPOS: documento e seguro com fim ficam "Válido até dd/mm/aaaa", sem o "· em conjunto" (as pessoas estão
@@ -23,16 +26,11 @@
 //   do Nicola 22/10 11:55) — UM ITEM, VÁRIAS PESSOAS: a ficha do item ganha a linha "Pessoas" (quem está ligado, tabela
 //   vinculos) com toque para incluir ou tirar (fn_vinculos_item_definir); os Controles da pessoa mostram também os itens em
 //   que ela está ligada (a viagem do Nicola nos Controles do Murilo), com "em conjunto" na linha de baixo.
-// Versão anterior: 1.66.0 · 21/10/2026
-//
-// v1.66.0 (21/10/2026, sessão 20261021-1205-ux-onda2, demanda 15146a34; Nicola 21/10 12:02, "vamos avançar") — chip Controles da ficha: o cabeçalho "Itens de controle" não
-//   diz mais "Em dia" quando algum item da lista está vencido (o Motor pode estar sem o alerta, adiado ou desligado): vale o
-//   pior entre o Motor e os itens. A linha do item não repete o título embaixo ("IPTU / IPTU").
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.65.0 … v1.65.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.66.0 … v1.66.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '1.70.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.71.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 import { estado } from './cofre-estado.js';
 import * as api from './cofre-api.js';
 import { mostrarToast, refrescarIcones, abrirModal, fecharModal, modalGenerico, perguntar, escolher, avisarComDesfazer } from './cofre-ui.js';
@@ -1432,9 +1430,9 @@ function partesItemLinhaHtml(l, idx) {
     return `
         <div class="flex gap-2 items-start" data-partes-item-linha="${idx}">
             <div class="flex-1 space-y-1">
-                <select onchange="window.__piMudarParte(${idx}, this.value)" style="width:100%;padding:6px;border:1px solid #cbd5e1;border-radius:6px;font-size:12px;background:#f8fafc;"><option value="">— selecionar parte —</option>${optsPartes}<option value="__nova__" ${l.parte_id === '__nova__' ? 'selected' : ''}>+ Nova parte</option></select>
-                ${l.parte_id === '__nova__' ? `<input type="text" value="${escapeHtml(l.nomeNovo || '')}" oninput="window.__piMudarNomeNovo(${idx}, this.value)" placeholder="Nome da nova parte" style="width:100%;padding:6px;border:1px solid #cbd5e1;border-radius:6px;font-size:12px;">` : ''}
-                <select onchange="window.__piMudarPapel(${idx}, this.value)" style="width:100%;padding:6px;border:1px solid #cbd5e1;border-radius:6px;font-size:12px;background:#f8fafc;">${optsPapeis}</select>
+                <select onchange="window.__piMudarParte(${idx}, this.value)" style="width:100%;padding:6px;border:1px solid #cbd5e1;border-radius:6px;font-size:var(--fs-sec,12.5px);background:#f8fafc;"><option value="">— selecionar parte —</option>${optsPartes}<option value="__nova__" ${l.parte_id === '__nova__' ? 'selected' : ''}>+ Nova parte</option></select>
+                ${l.parte_id === '__nova__' ? `<input type="text" value="${escapeHtml(l.nomeNovo || '')}" oninput="window.__piMudarNomeNovo(${idx}, this.value)" placeholder="Nome da nova parte" style="width:100%;padding:6px;border:1px solid #cbd5e1;border-radius:6px;font-size:var(--fs-sec,12.5px);">` : ''}
+                <select onchange="window.__piMudarPapel(${idx}, this.value)" style="width:100%;padding:6px;border:1px solid #cbd5e1;border-radius:6px;font-size:var(--fs-sec,12.5px);background:#f8fafc;">${optsPapeis}</select>
             </div>
             <button onclick="window.__piRemoverLinha(${idx})" style="background:transparent;border:none;color:var(--danger);flex:none;padding:6px 0;"><i data-lucide="x" style="width:16px;height:16px"></i></button>
         </div>`;
@@ -1486,8 +1484,8 @@ export async function abrirEditarPartesItem() {
             <i data-lucide="plus" style="width:11px;height:11px"></i> Adicionar parte
         </button>
         <div class="flex gap-2">
-            <button data-action="fechar-modal-generico" class="flex-1" style="background:#f1f5f9;color:#475569;font-weight:bold;font-size:13px;padding:10px;border:none;border-radius:8px;">Cancelar</button>
-            <button data-action="fi-salvar-partes-item" class="flex-1" style="background:var(--pine);color:#fff;font-weight:bold;font-size:13px;padding:10px;border:none;border-radius:8px;">Salvar</button>
+            <button data-action="fechar-modal-generico" class="flex-1" style="background:#f1f5f9;color:#475569;font-weight:bold;font-size:var(--fs-sec,12.5px);padding:10px;border:none;border-radius:8px;">Cancelar</button>
+            <button data-action="fi-salvar-partes-item" class="flex-1" style="background:var(--pine);color:#fff;font-weight:bold;font-size:var(--fs-sec,12.5px);padding:10px;border:none;border-radius:8px;">Salvar</button>
         </div>
     `);
     renderPartesItemEditor();
@@ -1971,7 +1969,7 @@ export async function abrirFecharRateio(item) {
         return { p, pid, conta: conta?.id || '', levar: Number(p.parte) > 0, itens: Object.entries(mapa).map(([cat, valor]) => ({ cat, valor })) };
     });
     const hoje = new Date(); const hojeISO = `${hoje.getFullYear()}-${String(hoje.getMonth() + 1).padStart(2, '0')}-${String(hoje.getDate()).padStart(2, '0')}`;
-    const est = 'height:44px;padding:0 8px;border:1.5px solid var(--line);border-radius:var(--r-ctl);font:inherit;font-size:15px;background:var(--card);color:var(--ink)';
+    const est = 'height:44px;padding:0 8px;border:1.5px solid var(--line);border-radius:var(--r-ctl);font:inherit;font-size:var(--fs-corpo,14px);background:var(--card);color:var(--ink)';
     const opCat = (sel) => `<option value="">— escolha a categoria —</option>` + cats.map(c => `<option value="${c.codigo}"${c.codigo === sel ? ' selected' : ''}>${grupoEsc(c.nome)}</option>`).join('');
     const opConta = (sel) => contas.map(c => `<option value="${c.id}"${c.id === sel ? ' selected' : ''}>${grupoEsc(c.nome)}</option>`).join('');
     const sheet = window.abrirSheet(window.rzSheetCabecalho('Fechar o rateio', `${item.titulo} · ${moedaBR(d.total || 0)}`) + `<div class="rz-sh-b" data-fr-corpo></div>
@@ -2910,8 +2908,8 @@ export async function abrirFichaParte(parteId) {
                 ${renderizarResumoParte(p)}
             </div>
             <div style="display:flex;gap:8px;margin-top:4px">
-                ${p.whatsapp ? `<button type="button" onclick="window.__rzPartesItem_whatsapp('${escapeHtml(p.whatsapp)}')" style="flex:1;background:var(--tile);color:var(--success);font-weight:bold;font-size:12.5px;padding:9px;border:none;border-radius:8px;display:flex;align-items:center;justify-content:center;gap:6px"><svg data-lucide="message-circle" style="width:14px;height:14px"></svg> WhatsApp</button>` : ''}
-                ${p.email ? `<button type="button" onclick="window.__rzPartesItem_email('${escapeHtml(p.email)}')" style="flex:1;background:var(--tile);color:var(--pine);font-weight:bold;font-size:12.5px;padding:9px;border:none;border-radius:8px;display:flex;align-items:center;justify-content:center;gap:6px"><svg data-lucide="mail" style="width:14px;height:14px"></svg> E-mail</button>` : ''}
+                ${p.whatsapp ? `<button type="button" onclick="window.__rzPartesItem_whatsapp('${escapeHtml(p.whatsapp)}')" style="flex:1;background:var(--tile);color:var(--success);font-weight:bold;font-size:var(--fs-sec,12.5px);padding:9px;border:none;border-radius:8px;display:flex;align-items:center;justify-content:center;gap:6px"><svg data-lucide="message-circle" style="width:14px;height:14px"></svg> WhatsApp</button>` : ''}
+                ${p.email ? `<button type="button" onclick="window.__rzPartesItem_email('${escapeHtml(p.email)}')" style="flex:1;background:var(--tile);color:var(--pine);font-weight:bold;font-size:var(--fs-sec,12.5px);padding:9px;border:none;border-radius:8px;display:flex;align-items:center;justify-content:center;gap:6px"><svg data-lucide="mail" style="width:14px;height:14px"></svg> E-mail</button>` : ''}
             </div>
         </div>`);
     if (typeof lucide !== 'undefined') lucide.createIcons();
