@@ -1,6 +1,11 @@
 // ============================================================================
 // cofre-controles.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.67.0 · 22/10/2026
+// Versão: 1.68.0 · 22/10/2026
+//
+// v1.68.0 (22/10/2026, sessão 20261022-2353-agenda-visual, demanda 4568a519; FICHA_AGENDA_ROBO_VISUAL_RAIZ v1.0.0, de acordo do
+//   Nicola 22/10 23:53) — chip Controles da ficha: os itens (soltos, em cada grupo e em cada programa) vêm pela data do próximo
+//   aviso em aberto, do mais perto para o mais longe; item sem nada pela frente vai para o fim.
+// Versão anterior: 1.67.0 · 22/10/2026
 //
 // v1.67.0 (22/10/2026, sessão 20261022-1155-vinculos-compromisso, demanda 0e70b85a; FICHA_RAIZ_IA_COMPROMISSO_RAIZ v1.2.0, de acordo
 //   do Nicola 22/10 11:55) — UM ITEM, VÁRIAS PESSOAS: a ficha do item ganha a linha "Pessoas" (quem está ligado, tabela
@@ -29,17 +34,11 @@
 // que ele criou, as safras/etapas e as ocorrências em aberto; o item que já existia no ativo antes do aceite só sai do programa.
 // Com vínculo (lançamento, ocorrência tratada, documento, rateio), o banco recusa com a lista e a dica de usar Concluir.
 // Depois o programa volta a aparecer como sugerido.
-// Versão anterior: 1.63.1 · 19/10/2026
-//
-// v1.63.1 (19/10/2026, sessão 20261019-2141-carga-silva-safra2, demanda 9404081c item 54; print do Nicola 19/10 21:38) — na tela
-// da safra: os itens (Agora, Da safra inteira, Do programa) voltam a ocupar a largura toda, alinhados à esquerda (a linha
-// solta fora de .rz-list ficava estreita e centrada); o ⋮ da fase e "Corrigir <safra>" abrem por cima da safra (empilhar),
-// então escolher Corrigir datas, Voltar, Pular ou Editar não fecha a tela da safra, e ela volta atualizada ao salvar.
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.63.0 … v1.63.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.63.1 … v1.63.1): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '1.67.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.68.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 import { estado } from './cofre-estado.js';
 import * as api from './cofre-api.js';
 import { mostrarToast, refrescarIcones, abrirModal, fecharModal, modalGenerico, perguntar, escolher, avisarComDesfazer } from './cofre-ui.js';
@@ -342,7 +341,10 @@ function renderizarListaControles() {
     const alvo = document.getElementById('fa-tab-controles');
     if (!alvo) return;
     atualizarEstadoChipControles();
-    const lista = itensFiltrados(); // v1.20.0
+    // pela data da próxima ocorrência em aberto (a mais perto primeiro); sem ocorrência aberta, no fim, pelo título
+    const proxima = (i) => ((i.cofre_ocorrencias_controle || []).filter(o => o.status_execucao === 'aberto')
+        .map(o => o.data_prevista_atual).filter(Boolean).sort()[0]) || '9999-12-31';
+    const lista = itensFiltrados().slice().sort((a, b) => proxima(a).localeCompare(proxima(b)) || String(a.titulo || '').localeCompare(String(b.titulo || '')));
     const sugeridos = filtroControles === 'ativos' ? programasSugeridosHtml() : ''; // v1.60.0 (fatia 4)
     if (!itensDoAtivoAtual.length) {
         // v1.13.0 — vazio no formato único (REGRAS §9): a ação fica no

@@ -4,6 +4,16 @@ Histórico completo de versões do `index.html`, movido automaticamente pelo `ge
 
 ---
 
+NOVIDADES (Beta v1.470.0) — ONDA 5c: cabeçalho que ordena e Contratos em tabela no computador.
+Versão anterior (Beta v1.469.0):
+DATA: 21/10/2026 (sessão 20261021-2310-ux-onda5b, demanda 15146a34)
+------------------------------------------------------------------
+Versões anteriores (v1.469.0 … v1.469.0): CHANGELOG_APP.md, na raiz do
+repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
+das 5 versões mais recentes deste cabeçalho.
+
+---
+
 NOVIDADES (Beta v1.469.0) — ONDA 5b (raiz.css 1.8.0): Patrimônio em tabela no computador.
 Versão anterior (Beta v1.468.0):
 DATA: 21/10/2026 (sessão 20261021-2225-ux-onda5, demanda 15146a34)
