@@ -1,6 +1,12 @@
 // ============================================================================
 // cofre-controles.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.71.0 · 23/10/2026
+// Versão: 1.72.0 · 23/10/2026
+//
+// v1.72.0 (23/10/2026, sessão 20261023-0910-isolamento, demanda a4935151; de acordo do Nicola 23/10 09:09) — varredura de
+// estado de módulo: a lista de partes usada nos seletores do item de controle passa a ser relida quando uma parte é
+// criada, editada ou excluída em outra tela (evento 'parte' do raiz-eventos.js). Antes, parte cadastrada em Partes só
+// aparecia no seletor depois de recarregar o app.
+// Versão anterior: 1.71.0 · 23/10/2026
 //
 // v1.71.0 (23/10/2026, sessão 20261023-0915-computador-c6, demanda 15146a34; PROTOTIPO_COMPUTADOR_RAIZ v1.1.0 §11, de acordo do Nicola 23/10 08:51) — C6 · escala de letras: 8 tamanhos de letra escritos em número (font-size:13px etc.) trocados pelos da escala (--fs-mini 11 · --fs-sec 12,5 · --fs-corpo 14 · --fs-titulo 17; 16 px fica, por causa do zoom do iPhone em campo, e 18 px ou mais também — herói e números grandes). Nada muda de lugar; só o tamanho passa a ser o mesmo em todas as telas.
 // Versão anterior: 1.70.0 · 23/10/2026
@@ -20,17 +26,11 @@
 // v1.68.0 (22/10/2026, sessão 20261022-2353-agenda-visual, demanda 4568a519; FICHA_AGENDA_ROBO_VISUAL_RAIZ v1.0.0, de acordo do
 //   Nicola 22/10 23:53) — chip Controles da ficha: os itens (soltos, em cada grupo e em cada programa) vêm pela data do próximo
 //   aviso em aberto, do mais perto para o mais longe; item sem nada pela frente vai para o fim.
-// Versão anterior: 1.67.0 · 22/10/2026
-//
-// v1.67.0 (22/10/2026, sessão 20261022-1155-vinculos-compromisso, demanda 0e70b85a; FICHA_RAIZ_IA_COMPROMISSO_RAIZ v1.2.0, de acordo
-//   do Nicola 22/10 11:55) — UM ITEM, VÁRIAS PESSOAS: a ficha do item ganha a linha "Pessoas" (quem está ligado, tabela
-//   vinculos) com toque para incluir ou tirar (fn_vinculos_item_definir); os Controles da pessoa mostram também os itens em
-//   que ela está ligada (a viagem do Nicola nos Controles do Murilo), com "em conjunto" na linha de baixo.
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.66.0 … v1.66.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.67.0 … v1.67.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '1.71.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.72.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 import { estado } from './cofre-estado.js';
 import * as api from './cofre-api.js';
 import { mostrarToast, refrescarIcones, abrirModal, fecharModal, modalGenerico, perguntar, escolher, avisarComDesfazer } from './cofre-ui.js';
@@ -1337,6 +1337,11 @@ function rotuloPapelParteItem(v) {
 
 let partesItemLinhasEmEdicao = [];
 let partesClienteCache = null; // null = ainda não carregado
+// Parte criada, editada ou excluída em outra tela muda a lista: descarta a guardada (dem a4935151).
+if (!window.__rzOuvinteParteControles) {
+    window.__rzOuvinteParteControles = true;
+    aoEscrever('parte', () => { partesClienteCache = null; });
+}
 
 async function montarPartesItemControle(item) {
     const mount = document.getElementById('fic-partes');

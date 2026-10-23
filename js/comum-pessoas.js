@@ -1,6 +1,11 @@
 // ============================================================================
 // comum-pessoas.js — Raiz Patrimônio · Administração compartilhada
-// Versão: 1.216.0 · 19/10/2026
+// Versão: 1.217.0 · 23/10/2026
+//
+// v1.217.0 (23/10/2026, sessão 20261023-0910-isolamento, demanda a4935151; de acordo do Nicola 23/10 09:09) — criar, editar
+// e excluir pessoa passam a avisar o resto do app pelo raiz-eventos.js (entidade 'pessoa'). Quem guarda lista de pessoas
+// (o editor de propriedade do ativo) relê na próxima abertura, sem precisar recarregar o app.
+// Versão anterior: 1.216.0 · 19/10/2026
 //
 // v1.216.0 (19/10/2026, sessão 20261018-2344-temas, demanda 91a30125; FICHA_ROTINAS_E_ALERTAS_POR_TEMA_RAIZ v1.0.0, de acordo do Nicola 18/10 23:44) — avisos AGRUPADOS POR TEMA (Fiscal, Contador, Cartões…). buscarProativasDisponiveis
 // passa a listar os avisos de verdade: toda funcionalidade de um tipo de alerta ativo (entra o índice publicado, que não
@@ -23,19 +28,15 @@
 // v1.213.0 (14/10/2026, sessão 20261014-2145-onda9c-textos, demanda a05ad2ee; onda 9c do estudo PROTOTIPO_UX_DENSIDADE_RAMOS_RAIZ
 // v1.2.0, D6 seção 10) — textos no limite: ação até 24 caracteres, descrição até 28, aviso até 40 com o resultado e tela
 // vazia em 1 frase de até 40. A explicação longa fica na confirmação, quando existe. Nada de comportamento mudou.
-// Versão anterior: 1.212.0 · 14/10/2026
-//
-// v1.212.0 (14/10/2026, sessão 20261014-0010-ativo-pessoa, demanda d6a6f577; de acordo do Nicola 14/10 00:08) — ações da
-// pessoa ganham "Ativo da pessoa": abre o ativo vida ligado a ela; sem ativo, oferece ligar a um ativo vida que ainda
-// não tem pessoa (fn_ativo_pessoa_vincular) ou criar o ativo dela já ligado (fn_ativo_pessoa_garantir). Não cria pessoa.
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.211.0 … v1.211.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.212.0 … v1.212.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '1.216.0'; // v-check (18/09/2026): lido por Dev › Versões — manter igual ao header
+export const VERSAO = '1.217.0'; // v-check (18/09/2026): lido por Dev › Versões — manter igual ao header
 import { perguntar, avisarComDesfazer } from './cofre-ui.js'; // v1.203.0 (F0.2b) — sem diálogo nativo
 import { buscarContas, contasListaHtml, abrirFichaConta, abrirAcoesConta } from './comum-minha-empresa.js'; // v1.204.0 — contas da pessoa (P4a)
 import { rzMostrarBloqueio as rzBloqueio } from './comum-licenca.js'; // v1.204.0
+import { emitirEscrita } from './raiz-eventos.js';
 export const COMUM_PESSOAS_VERSAO = '2.1.0';
 // v1.204.0 — rótulos do escopo de contas (pessoas.escopo_contas)
 const ESCOPO_CONTAS_ROTULO = { propria_mais_empresa: 'Vê as contas dela e as da empresa', propria: 'Vê só as contas dela', todas: 'Vê todas as contas' };
@@ -696,6 +697,7 @@ export async function montarAbaPessoas(mountEl, ctx) {
         }
         onToast?.(id ? 'Pessoa atualizada.' : 'Pessoa cadastrada.', 'success');
         registrarLog?.(id ? 'pessoas.editar' : 'pessoas.criar', { pessoaId: id });
+        emitirEscrita('pessoa', { id, acao: id ? 'editar' : 'criar' });
         pessoas = await listarPessoas(dbAuth, clienteId);
         renderLista();
     }
@@ -941,6 +943,7 @@ export async function montarAbaPessoas(mountEl, ctx) {
             if (error) throw error;
             pessoas = pessoas.filter(p => p.id !== id);
             registrarLog?.('pessoas.excluir', { pessoaId: id });
+            emitirEscrita('pessoa', { id, acao: 'excluir' });
             onToast?.('Pessoa excluída.', 'success');
             renderLista();
         } catch (err) {

@@ -4,6 +4,16 @@ Histórico completo de versões do `index.html`, movido automaticamente pelo `ge
 
 ---
 
+NOVIDADES (Beta v1.478.0) — Exportar em .xlsx no padrão; ficha sem barra.
+Versão anterior (Beta v1.477.0):
+DATA: 23/10/2026 (sessão 20261023-0045-computador-c3, demanda 15146a34)
+------------------------------------------------------------------
+Versões anteriores (v1.477.0 … v1.477.0): CHANGELOG_APP.md, na raiz do
+repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
+das 5 versões mais recentes deste cabeçalho.
+
+---
+
 NOVIDADES (Beta v1.477.0) — C3: Agenda no computador (agenda 1.13.0).
 Versão anterior (Beta v1.476.0):
 DATA: 23/10/2026 (sessão 20261023-0025-computador-c2, demanda 15146a34)

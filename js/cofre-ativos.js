@@ -1,6 +1,13 @@
 // ============================================================================
 // cofre-ativos.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.148.0 · 23/10/2026
+// Versão: 1.149.0 · 23/10/2026
+//
+// v1.149.0 (23/10/2026, sessão 20261023-0910-isolamento, demanda a4935151; de acordo do Nicola 23/10 09:09) — varredura de
+// estado de módulo: (1) empreendimento criado pelo "Novo empreendimento" do formulário não aparecia no seletor da próxima
+// abertura até recarregar o app (a lista ficava guardada desde a 1ª leitura); agora a lista é relida depois de criar.
+// (2) a lista de sócios do editor de propriedade passa a ser relida quando uma pessoa é criada, editada ou excluída em
+// Pessoas (evento 'pessoa' do raiz-eventos.js); antes, pessoa nova só aparecia depois de recarregar.
+// Versão anterior: 1.148.0 · 23/10/2026
 //
 // v1.148.0 (23/10/2026, sessão 20261023-0915-computador-c6, demanda 15146a34; PROTOTIPO_COMPUTADOR_RAIZ v1.1.0 §11, de acordo do Nicola 23/10 08:51) — C6 · escala de letras: 12 tamanhos de letra escritos em número (font-size:13px etc.) trocados pelos da escala (--fs-mini 11 · --fs-sec 12,5 · --fs-corpo 14 · --fs-titulo 17; 16 px fica, por causa do zoom do iPhone em campo, e 18 px ou mais também — herói e números grandes). Nada muda de lugar; só o tamanho passa a ser o mesmo em todas as telas.
 // Versão anterior: 1.147.0 · 22/10/2026
@@ -19,18 +26,11 @@
 // v1.145.1 (21/10/2026, sessão 20261021-1735-ux-onda4, demanda 15146a34) — correção da 1.145.0, achada na conferência no ar
 //   (Rumo sem a linha do aluguel): os alertas do Motor vivem em alertasVisiveisTodos só depois de abrir a Agenda; antes
 //   disso estão em geralVisiveisTodos (o Hoje). A linha do aluguel e a espera passam a ler as duas, como o chip "Com alerta".
-// Versão anterior: 1.145.0 · 21/10/2026
-//
-// v1.145.0 (21/10/2026, sessão 20261021-1735-ux-onda4, demanda 15146a34; Nicola 21/10 17:31: "pq a visão da Rumo está sem os
-//   alertas vermelhos") — a linha do alerta passa a mostrar também o aluguel em atraso (alerta atraso_pagamento do Motor,
-//   detalhe.ativo_id), antes dos itens de controle: "Aluguel · venceu há 36 dias · +2". Antes só os itens de controle
-//   vencidos entravam, e a Rumo, com 50 aluguéis atrasados e poucos itens de controle, ficava sem vermelho. E a lista se
-//   redesenha quando os alertas do Motor chegam depois dela (o chip "Com alerta" chegou a mostrar 1 em vez de 44).
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.144.0 … v1.144.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.145.0 … v1.145.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '1.148.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.149.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 import { estado } from './cofre-estado.js';
 import { carregarBiblioteca } from './nucleo/bibliotecas.js'; // bibliotecas pesadas, sob demanda (dem 6b11c602)
 import * as api from './cofre-api.js';
@@ -52,7 +52,7 @@ import { renderizarBlocoEndereco, lerBlocoEndereco } from './comum-endereco.js';
 // ativos continua existindo do jeito que está, só serve o Cofre por
 // dentro). Piloto único desta entrega: salvarEdicaoAtivo() (ver
 // changelog do topo do arquivo).
-import { emitirEscrita } from './raiz-eventos.js';
+import { emitirEscrita, aoEscrever } from './raiz-eventos.js';
 import { rzEditarDivisao } from './raiz-ui.js'; // v1.76.0 — editor único de divisão
 import { rzMostrarBloqueio, recarregarFuncionalidadesLiberadas } from './comum-licenca.js'; // v1.62.0 — porta de licença
 
@@ -343,6 +343,7 @@ async function lerBlocoEmpreendimentoValor(prefixo, clienteId) {
     if (empreendimentoId === '__novo__') {
         const nomeNovo = document.getElementById(prefixo + 'empreendimento-novo-nome')?.value.trim();
         empreendimentoId = nomeNovo ? (await api.criarEmpreendimentoRapido(clienteId, nomeNovo)).id : '';
+        if (empreendimentoId) _empreendimentosCache = null; // a lista guardada não tem o novo: relê na próxima abertura (dem a4935151)
     }
     const valorEl = document.getElementById(prefixo + 'valor-referencia');
     const valorReferencia = valorEl?.value?.trim() ? parseFloat(valorEl.value.trim()) : null;
@@ -3783,6 +3784,12 @@ export function abrirSaidasDoAtivo() {
 // ============================================================================
 let propriedadeLinhasEmEdicao = [];
 let propriedadePessoasCache = null; // null = ainda não carregado
+// Pessoa criada, editada ou excluída em outra tela muda a lista de sócios: descarta a guardada (dem a4935151).
+// A guarda evita registrar o ouvinte duas vezes se o módulo for avaliado de novo.
+if (!window.__rzOuvintePessoaAtivos) {
+    window.__rzOuvintePessoaAtivos = true;
+    aoEscrever('pessoa', () => { propriedadePessoasCache = null; });
+}
 // v1.13.0 (02/09/2026) — o MESMO editor (linhas + soma) agora é usado em
 // 2 lugares: o popup de "Editar divisão" do chip Propriedade (ids
 // pe-linhas/pe-soma, dentro do modal-generico) E embutido no formulário
