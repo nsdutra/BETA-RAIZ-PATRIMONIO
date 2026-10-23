@@ -4,6 +4,16 @@ Histórico completo de versões do `index.html`, movido automaticamente pelo `ge
 
 ---
 
+NOVIDADES (Beta v1.473.0) — financeiro.js 1.77.0 (fatura × prevista); import map.
+Versão anterior (Beta v1.472.0):
+DATA: 22/10/2026 (sessão 20261022-1155-vinculos-compromisso, demanda 0e70b85a)
+------------------------------------------------------------------
+Versões anteriores (v1.472.0 … v1.472.0): CHANGELOG_APP.md, na raiz do
+repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
+das 5 versões mais recentes deste cabeçalho.
+
+---
+
 NOVIDADES (Beta v1.472.0) — Raiz IA: compromisso, agenda e calendário vão para o agenda.js.
 Versão anterior (Beta v1.471.1):
 DATA: 22/10/2026 (sessão 20261022-1120-computador-c1b, demanda 15146a34)

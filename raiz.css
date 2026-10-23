@@ -1,6 +1,10 @@
 /* ============================================================================
    raiz.css — Raiz Patrimônio · estilos do app (index.html)
-   Versão: 1.12.0 · 23/10/2026
+   Versão: 1.13.0 · 23/10/2026
+
+   v1.13.0 (23/10/2026, sessão 20261023-0045-computador-c3, demanda 15146a34; PROTOTIPO_COMPUTADOR_RAIZ v1.0.0 §6) — Agenda no
+   computador: mês e filtros numa coluna de 300 px à esquerda (parada ao rolar); Pendentes, o dia e os próximos 7 dias à
+   direita, até 820 px (agenda.js 1.13.0).
 
    v1.12.0 (23/10/2026, sessão 20261023-0025-computador-c2, demanda 15146a34; PROTOTIPO_COMPUTADOR_RAIZ v1.0.0 §7) — sheets
    no computador: ações em popover de 300 px preso ao botão (raiz-ui.js 1.7.0 põe a classe e a posição), sem véu escuro;
@@ -1994,4 +1998,18 @@ html.rz-plat-web body:not(.rz-split-con) #ficha-contrato-conteudo > .rz-entity:f
     #rz-sheet.rz-dk-pop .rz-act .rz-ic{width:28px;height:28px;border-radius:8px}
     #rz-sheet.rz-dk-pop .rz-card.rz-list{padding:0;border:0;box-shadow:none;margin:0}
     #rz-sheet.rz-dk-pop .rz-group{margin:6px 8px 2px}
+}
+
+/* Computador C3 (raiz.css 1.13.0, dem 15146a34) — Agenda: .rz-ag-dk vem do agenda.js 1.13.0, só no computador */
+@media (min-width:1024px){
+    .rz-ag-dk{display:grid;grid-template-columns:300px minmax(0,820px);gap:20px;align-items:start}
+    .rz-ag-dk-e{position:sticky;top:calc(var(--rz-hdr-h,72px) + 12px)}
+    .rz-ag-dk-topo{display:flex;align-items:center;gap:2px;margin:-4px -6px 6px}
+    .rz-ag-dk-topo b{flex:1;text-align:center;font:600 var(--fs-card,15px) var(--font-title);text-transform:capitalize}
+    .rz-ag-dk-topo .rz-ico-btn{background:none;box-shadow:none;border:0;color:var(--ink);width:36px;height:36px}
+    .rz-ag-dk .rz-ag-grade{gap:2px;margin:0}
+    .rz-ag-dk .rz-ag-cel{min-height:38px;padding:4px 0 3px;gap:2px}
+    .rz-ag-dk .rz-ag-chips{flex-wrap:wrap;overflow:visible}
+    .rz-ag-dk-d > #ag-pend-slot > .rz-group:first-child,.rz-ag-dk-d #ag-corpo > .rz-group:first-child{margin-top:0}
+    .rz-ag-dk-d #agenda-lista{margin-bottom:14px}
 }

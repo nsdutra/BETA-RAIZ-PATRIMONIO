@@ -1,8 +1,14 @@
 // =====================================================================
 // RAIZ PATRIMÔNIO — js/agenda.js
-// VERSÃO: Beta v1.12.0 (22/10/2026 — demanda 0e70b85a)
+// VERSÃO: Beta v1.13.0 (23/10/2026 — demanda 15146a34)
 // LINHAS: (ver versoes.json)
 // -----------------------------------------------------------------
+// NOVIDADES (Beta v1.13.0) (23/10/2026, sessão 20261023-0045-computador-c3, demanda 15146a34; PROTOTIPO_COMPUTADOR_RAIZ v1.0.0
+//   §6, de acordo do Nicola 22/10 10:32 e "siga em frente" 23/10 00:22) — AGENDA NO COMPUTADOR (≥ 1024 px): sem as vistas
+//   Mês · Semana · Alertas no topo. À esquerda o mês (‹ período › e ⋮ no alto da grade) e os filtros (status e Assunto);
+//   à direita, nesta ordem, Pendentes (a lista de alertas de sempre, #agenda-lista do index), o dia escolhido e os
+//   próximos 7 dias. No celular nada muda.
+// Versão anterior (Beta v1.12.0):
 // NOVIDADES (Beta v1.12.0) (22/10/2026, sessão 20261022-1155-vinculos-compromisso, demanda 0e70b85a; FICHA_RAIZ_IA_COMPROMISSO_RAIZ
 //   v1.2.0, de acordo do Nicola 22/10 11:55) — NOVO COMPROMISSO: cortina "Novo compromisso" (o quê, data com dia da semana,
 //   hora, para quem em chips — várias pessoas —, tipo, aviso Sem · 1 dia · 3 dias, valor e local), aberta pelo ⋮ da Agenda e
@@ -123,7 +129,7 @@
 // formatarMoedaBR, abrirSheet, abrirSheetAcoes, rzSheetCabecalho, fecharSheet, abrirAlertaItemControle,
 // abrirFichaContrato, switchTab, mostrarToast, rzDev.
 
-export const VERSAO = '1.12.0';
+export const VERSAO = '1.13.0';
 
 const TIPOS = {
     ocorrencia:   { rotulo: 'Ocorrência',  icone: 'wrench',          dominio: 'ocorrencias' },
@@ -254,6 +260,7 @@ export async function montarAgenda(vista, el) {
     st.el = el || st.el;
     if (!st.el) return;
     st.vista = ['semana', 'mes', 'alertas'].includes(vista) ? vista : (st.vista || 'mes'); // v1.6.0 — + Alertas; sem vista: mantém a atual
+    if (agDesk()) st.vista = 'mes'; // v1.13.0 — no computador o mês e os pendentes estão sempre à vista
     if (!st.mes) st.mes = new Date(hoje().getFullYear(), hoje().getMonth(), 1);
     if (!st.dia) st.dia = iso(hoje());
     if (!st.semana) st.semana = inicioSemana(hoje());
@@ -263,12 +270,15 @@ export async function montarAgenda(vista, el) {
 }
 
 // v1.6.0 (item 36) — a vista Alertas é a lista de alertas de sempre (#agenda-lista do index), logo abaixo das abas
+// v1.13.0 — no computador ela é o bloco Pendentes da coluna da direita (desenharComputador a põe lá)
 function mostrarListaAlertas(mostrar) {
     const lista = document.getElementById('agenda-lista');
     if (!lista || !st.el) return;
+    if (agDesk()) return;
     if (lista.previousElementSibling !== st.el) st.el.after(lista);
     lista.hidden = !mostrar;
 }
+const agDesk = () => typeof window !== 'undefined' && typeof window.matchMedia === 'function' && window.matchMedia('(min-width:1024px)').matches;
 
 async function carregar() {
     const meu = ++st.seq;
@@ -299,6 +309,10 @@ async function carregar() {
 
 // ---- moldura: título (linha 1), vistas (linha 2), filtros (linha 3), corpo
 function desenhar(carregando) {
+    // ARMADILHA: no computador a #agenda-lista (do index) mora dentro de st.el; sai antes do innerHTML, senão é destruída
+    const listaAl = document.getElementById('agenda-lista');
+    if (listaAl && st.el && st.el.contains(listaAl)) st.el.after(listaAl);
+    if (agDesk() && st.vista !== 'alertas') return desenharComputador(carregando);
     const [de, ate] = intervaloContado();
     const base = carregando ? [] : universo(de, ate).filter(it => passaAssunto(it.assunto));
     const conta = (s) => base.filter(it => it.status === s).length;
@@ -413,10 +427,69 @@ function semanaHtml() {
         <p class="rz-ag-resumo"><b>${its.length}</b> na semana${crit ? ` · <span class="rz-ag-txt-critico"><b>${crit}</b> crítico${crit > 1 ? 's' : ''}</span>` : ''}</p>${listaDoDia(its)}`;
 }
 
+// ---- Computador (v1.13.0): mês e filtros à esquerda; Pendentes, o dia e os próximos 7 dias à direita
+function desenharComputador(carregando) {
+    const [de, ate] = intervaloContado();
+    const base = carregando ? [] : universo(de, ate).filter(it => passaAssunto(it.assunto));
+    const conta = (s) => base.filter(it => it.status === s).length;
+    const todos = st.assuntos.size === ASSUNTOS.length;
+    const rotAss = todos ? 'Assunto' : !st.assuntos.size ? 'Nenhum assunto' : st.assuntos.size === 1 ? ASSUNTOS.find(a => st.assuntos.has(a[0]))[1] : `Assunto · ${st.assuntos.size} de ${ASSUNTOS.length}`;
+    let grade = '', direita = '';
+    if (carregando) { grade = typeof rzSkeleton === 'function' ? rzSkeleton('cards', 1) : ''; direita = typeof rzSkeleton === 'function' ? rzSkeleton('lista', 4) : ''; }
+    else {
+        const [pd, pa] = periodo();
+        const its = universo(iso(pd), iso(pa)).filter(visivel);
+        grade = gradeMesHtml(its);
+        direita = listaDoDia(its) + proximosDiasHtml(its);
+    }
+    st.el.innerHTML = `<div class="rz-ag-dk">
+        <div class="rz-ag-dk-e">
+            <div class="rz-card rz-ag-dk-mes">
+                <div class="rz-ag-dk-topo">
+                    <button type="button" class="rz-ico-btn" data-ag-nav="-1" aria-label="Anterior"><svg data-lucide="chevron-left"></svg></button>
+                    <b>${rzEsc(tituloPeriodo())}</b>
+                    <button type="button" class="rz-ico-btn" data-ag-nav="1" aria-label="Próximo"><svg data-lucide="chevron-right"></svg></button>
+                    <button type="button" class="rz-ico-btn rz-ag-mais" data-ag-mais aria-label="Mais ações"><svg data-lucide="more-vertical"></svg></button>
+                </div>${grade}
+            </div>
+            <div class="rz-card"><div class="rz-card-h"><h3>Mostrar</h3></div>
+                <div class="rz-chips rz-ag-chips">
+                    ${STATUS.map(([k, n]) => `<button type="button" class="rz-chip${st.status.has(k) ? ' rz-on' : ''}" data-ag-st="${k}"><span class="rz-ag-pt rz-ag-${k}"></span>${n}${carregando ? '' : ` <span class="rz-n">${conta(k)}</span>`}</button>`).join('')}
+                    <button type="button" class="rz-chip rz-ag-ass${todos ? '' : ' rz-on'}" data-ag-ass>${rzEsc(rotAss)} <svg data-lucide="chevron-down"></svg></button>
+                </div>
+            </div>
+        </div>
+        <div class="rz-ag-dk-d"><div id="ag-pend-slot"><div class="rz-group">Pendentes</div></div><div id="ag-corpo">${direita}</div></div>
+    </div>`;
+    const lista = document.getElementById('agenda-lista'), slot = st.el.querySelector('#ag-pend-slot');
+    if (lista && slot) { slot.appendChild(lista); lista.hidden = false; }
+    ligar();
+    if (!carregando && typeof rzLigarGestosAlertas === 'function') {
+        const m = st.el.querySelector('#ag-corpo');
+        if (m && m.querySelector('[data-rz-alerta],[data-rz-grupo]')) rzLigarGestosAlertas(m);
+    }
+    rzIcones();
+}
+function proximosDiasHtml(its) {
+    const linhas = [];
+    for (let k = 1; k <= 7; k++) {
+        const d = somaDias(deIso(st.dia), k), di = iso(d);
+        const doDia = its.filter(it => it.dia === di);
+        if (!doDia.length) continue;
+        const nomes = doDia.map(it => it.tipo === 'c' ? (it.r.titulo || '') : (it.a.titulo || '')).filter(Boolean);
+        linhas.push(`<button type="button" class="rz-row rz-link" data-ag-dia="${di}"><div class="rz-tx"><b>${DIA_SEM[d.getDay()]} ${d.getDate()} · ${doDia.length} ${doDia.length > 1 ? 'itens' : 'item'}</b><span>${rzEsc(nomes.slice(0, 3).join(' · '))}</span></div><svg data-lucide="chevron-right" class="rz-chev"></svg></button>`);
+    }
+    return linhas.length ? `<div class="rz-group">Próximos 7 dias</div><div class="rz-card rz-list">${linhas.join('')}</div>` : '';
+}
+
 // ---- Mês
 function mesHtml() {
     const [de, ate] = periodo();
     const its = universo(iso(de), iso(ate)).filter(visivel);
+    return `${gradeMesHtml(its)}${listaDoDia(its)}`;
+}
+function gradeMesHtml(its) {
+    const [de] = periodo();
     const mesAtual = st.mes.getMonth();
     let grade = ['S', 'T', 'Q', 'Q', 'S', 'S', 'D'].map(s => `<div class="rz-ag-sem">${s}</div>`).join('');
     for (let k = 0; k < 42; k++) {
@@ -425,7 +498,7 @@ function mesHtml() {
         grade += `<button type="button" class="rz-ag-cel${d.getMonth() !== mesAtual ? ' rz-ag-fora' : ''}${di === st.dia ? ' rz-on' : ''}${di === iso(hoje()) ? ' rz-ag-cel-hoje' : ''}" data-ag-dia="${di}">
             <b>${d.getDate()}</b>${pontosDe(its, di)}</button>`;
     }
-    return `<div class="rz-ag-grade" style="touch-action:pan-x">${grade}</div>${listaDoDia(its)}`;
+    return `<div class="rz-ag-grade" style="touch-action:pan-x">${grade}</div>`;
 }
 
 // ---- eventos
