@@ -1,6 +1,11 @@
 // ============================================================================
 // raiz-ui.js — Raiz Patrimônio · Diálogos sem diálogo nativo (UXR-29/30)
-// Versão: 1.8.0 · 23/10/2026
+// Versão: 1.9.0 · 23/10/2026
+//
+// v1.9.0 (23/10/2026, sessão 20261023-0935-computador-c4, demanda 15146a34; PROTOTIPO_COMPUTADOR_RAIZ v1.1.0 §7 e §9 C4) —
+// rzConfirmar abre com a classe rz-conf: no computador, a pergunta ("Excluir este contrato?") vira uma caixa pequena no
+// centro da tela, em vez do painel de altura toda à direita. No celular nada muda.
+// Versão anterior: 1.8.0 · 23/10/2026
 //
 // v1.8.0 (23/10/2026, sessão 20261023-0915-computador-c6, demanda 15146a34; PROTOTIPO_COMPUTADOR_RAIZ v1.1.0 §11, de acordo do Nicola 23/10 08:51) — C6 · escala de letras: 17 tamanhos de letra escritos em número (font-size:13px etc.) trocados pelos da escala (--fs-mini 11 · --fs-sec 12,5 · --fs-corpo 14 · --fs-titulo 17; 16 px fica, por causa do zoom do iPhone em campo, e 18 px ou mais também — herói e números grandes). Nada muda de lugar; só o tamanho passa a ser o mesmo em todas as telas.
 // Versão anterior: 1.7.0 · 23/10/2026
@@ -23,17 +28,11 @@
 // tempo decorrido com o tempo típico, "mantenha o app aberto") vira componente único, para importar fatura e extrato
 // com a mesma experiência. Desenha dentro de um elemento (sheet já aberto) ou numa camada própria por cima da tela.
 // Mantém a tela acesa e avisa antes de sair enquanto lê. Também em window.rzProgressoLeitura.
-//
-// Versão anterior: 1.5.0 · 14/10/2026
-//
-// v1.5.0 (14/10/2026, sessão 20261014-2145-onda9c-textos, demanda a05ad2ee; onda 9c do estudo PROTOTIPO_UX_DENSIDADE_RAMOS_RAIZ
-// v1.2.0, D6 seção 10) — textos no limite: ação até 24 caracteres, descrição até 28, aviso até 40 com o resultado e tela
-// vazia em 1 frase de até 40. A explicação longa fica na confirmação, quando existe. Nada de comportamento mudou.
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.4.0 … v1.4.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.5.0 … v1.5.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '1.8.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.9.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 
 const esc = (v) => String(v ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 const g = (nome) => (typeof window !== 'undefined' && typeof window[nome] === 'function') ? window[nome] : null;
@@ -102,7 +101,7 @@ export function rzConfirmar({ titulo = 'Confirmar', impacto = '', destrutivo = f
                 `<div class="rz-sh-f"><button type="button" class="rz-btn rz-btn-2" data-rz-cancelar>${esc(rotuloCancelar)}</button>` +
                 `<button type="button" class="rz-btn rz-btn-1" data-rz-ok>${esc(rotuloConfirmar)}</button></div>`;
         }
-        const sheet = abrir(html, { aoFechar: () => decidir(false), empilhar: true });
+        const sheet = abrir(html, { aoFechar: () => decidir(false), empilhar: true, classe: 'rz-conf' }); // v1.9.0 — no computador, caixa pequena no centro (raiz.css 1.17.0)
         sheet.querySelector('[data-rz-ok]')?.addEventListener('click', () => { decidir(true); fechar(); });
         sheet.querySelector('[data-rz-cancelar]')?.addEventListener('click', () => { decidir(false); fechar(); });
     });

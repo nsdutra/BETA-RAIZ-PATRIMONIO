@@ -1,6 +1,9 @@
 /* ============================================================================
    raiz.css — Raiz Patrimônio · estilos do app (index.html)
-   Versão: 1.16.0 · 23/10/2026
+   Versão: 1.17.0 · 23/10/2026
+
+   v1.17.0 (23/10/2026, sessão 20261023-0935-computador-c4, demanda 15146a34; PROTOTIPO_COMPUTADOR_RAIZ v1.1.0 §7) — confirmação
+   (.rz-conf, raiz-ui.js 1.9.0) no computador: caixa de 400 px no centro da tela, cantos arredondados, sem a alça.
 
    v1.16.0 (23/10/2026, sessão 20261023-0915-computador-c6, demanda 15146a34; PROTOTIPO_COMPUTADOR_RAIZ v1.1.0 §11, de acordo
    do Nicola 23/10 08:51) — C6 · escala de letras: tokens novos --fs-mini (11, selo e chip) e --fs-tela (22, título da tela e
@@ -2049,4 +2052,11 @@ html.rz-plat-web body:not(.rz-split-con) #ficha-contrato-conteudo > .rz-entity:f
     .rz-ag-dk .rz-ag-chips{flex-wrap:wrap;overflow:visible}
     .rz-ag-dk-d > #ag-pend-slot > .rz-group:first-child,.rz-ag-dk-d #ag-corpo > .rz-group:first-child{margin-top:0}
     .rz-ag-dk-d #agenda-lista{margin-bottom:14px}
+}
+
+/* v1.17.0 (C4) — confirmação no computador: caixa pequena no centro (rz-conf vem do rzConfirmar, nível 1 ou 2) */
+@media (min-width:1024px){
+    .rz-veil .rz-sheet.rz-conf{position:fixed;left:50%;top:50%;right:auto;bottom:auto;margin:0;width:400px;max-width:calc(100vw - 32px);height:auto;
+        max-height:80vh;border-radius:14px;transform:translate(-50%,-50%)!important;box-shadow:0 24px 60px -20px rgba(23,33,30,.5)}
+    .rz-sheet.rz-conf .rz-grab{display:none}
 }

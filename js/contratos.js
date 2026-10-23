@@ -1,7 +1,13 @@
 // ============================================================================
 // contratos.js — Raiz Patrimônio · Contratos (lista · ficha · formulário ·
 //                 status/reajuste/detalhes · fiadores · documentos · histórico)
-// Versão: 1.68.0 · 23/10/2026
+// Versão: 1.69.0 · 23/10/2026
+//
+// v1.69.0 (23/10/2026, sessão 20261023-0935-computador-c4, demanda 15146a34; PROTOTIPO_COMPUTADOR_RAIZ v1.1.0 §9 C4, de acordo
+// do Nicola 23/10 08:51) — CONTRATO NO CONTEXTO: o ‹ da ficha do contrato volta para onde ela foi aberta — da lista de
+// Contratos, para a lista (antes caía no ativo do contrato); do ativo, para o ativo (como já era); de outro lugar, para o
+// ativo do contrato ou o Hoje. A linha da lista marca a origem (fichaContratoOrigem = {tipo:'lista'}).
+// Versão anterior: 1.68.0 · 23/10/2026
 //
 // v1.68.0 (23/10/2026, sessão 20261023-0915-computador-c6, demanda 15146a34; PROTOTIPO_COMPUTADOR_RAIZ v1.1.0 §11, de acordo do Nicola 23/10 08:51) — C6 · escala de letras: 70 tamanhos de letra escritos em número (font-size:13px etc.) trocados pelos da escala (--fs-mini 11 · --fs-sec 12,5 · --fs-corpo 14 · --fs-titulo 17; 16 px fica, por causa do zoom do iPhone em campo, e 18 px ou mais também — herói e números grandes). Nada muda de lugar; só o tamanho passa a ser o mesmo em todas as telas.
 // Versão anterior: 1.67.0 · 22/10/2026
@@ -21,14 +27,8 @@
 //   locatário vai na linha de baixo (antes o nome do locatário quebrava em 2 linhas e o valor partia no meio); abaixo, a faixa
 //   Aluguel · Em aberto · Fim. As Condições continuam com Início e Fim inteiros. Estilo no raiz.css 1.5.0. Achado: "Editar
 //   contrato" com descrição dentro do limite ("Datas, valor e índice").
-// Versão anterior: 1.64.0 · 20/10/2026
-//
-// v1.64.0 (20/10/2026, sessão 20261020-2302-contrato-menu, demanda e83c2a46; de acordo do Nicola 23:02) — ficha do contrato: o ⋮
-// do topo fica só com a Situação (Ativar, Suspender, Reativar, Encerrar, Excluir) e Gerar minuta. Cada ação vai para o card do
-// assunto: Condições (Dados do contrato, Editar contrato, Renovar), Distribuição (Editar distribuição), Reajuste › Pelo contrato
-// (Reajustar) e Financeiro (linha "Ver no Financeiro"). Adicionar recebimento, parte, locatário e documento já estavam nos cards.
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.63.0 … v1.63.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.64.0 … v1.64.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
 import { avaliarProntidaoContratoParaMinuta } from './minutas.js'; // v1.0.1
@@ -40,7 +40,7 @@ import { emitirEscrita, aoEscrever } from './raiz-eventos.js'; // v1.18.0 — Fa
 import { renderizarBlocoEndereco, lerBlocoEndereco } from './comum-endereco.js';
 import { formatarEnderecoParte } from './comum-partes.js';
 
-export const VERSAO = '1.68.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.69.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 
 // Faixa do cabeçalho da ficha do contrato: o resumo que se procura primeiro (valor, o que está em aberto e até quando vai).
 // Fim em mês/ano curto ("fev/28"); a data inteira fica no card Condições.
@@ -1824,7 +1824,7 @@ if (!window.__rzListenerEscritaParteContratoLigado) {
                     </div>
                 </div>`;
             const btnVoltar = document.getElementById('fc-voltar');
-            if (btnVoltar) btnVoltar.innerHTML = `<svg data-lucide="chevron-left"></svg> ${window.fichaContratoOrigem?.tipo === 'ativo' || (Array.isArray(contratos) && contratos.find(c => c.id === con.id)?.imovelId) ? 'Ativo' : 'Hoje'}`;
+            if (btnVoltar) btnVoltar.innerHTML = `<svg data-lucide="chevron-left"></svg> ${window.fichaContratoOrigem?.tipo === 'lista' ? 'Contratos' : window.fichaContratoOrigem?.tipo === 'ativo' || (Array.isArray(contratos) && contratos.find(c => c.id === con.id)?.imovelId) ? 'Ativo' : 'Hoje'}`;
             switchTab('tab-contrato-ficha');
             if (typeof lucide !== 'undefined') lucide.createIcons();
             if (abreArquivos) montarDocumentosContrato(con.id);
@@ -3106,6 +3106,8 @@ if (!window.__rzListenerEscritaParteContratoLigado) {
             // deixa window.fichaContratoOrigem = {tipo:'ativo', id}; aqui o
             // Voltar respeita a origem real (REGRAS §3: "‹ Pai real").
             const origem = window.fichaContratoOrigem; window.fichaContratoOrigem = null;
+            // v1.69.0 (C4) — aberto pela lista de Contratos, o ‹ volta para a lista; do ativo, para o ativo
+            if (origem && origem.tipo === 'lista') { switchTab('tab-contratos'); return; }
             if (origem && origem.tipo === 'ativo' && origem.id && typeof window.abrirFichaAtivoNoChip === 'function') {
                 switchTab('tab-ativos');
                 window.abrirFichaAtivoNoChip(origem.id, 'contratos');
@@ -5054,7 +5056,7 @@ if (!window.__rzListenerEscritaParteContratoLigado) {
                 // v1.66.0 — a linha de baixo em partes: no celular lê igual (imóvel · extras · até …), no computador vira colunas
                 const subT = `<span class="rz-c-sub"><i class="rz-c-imo">${escapeHtmlSaidas(endereco)}</i>${extras.length ? `<i class="rz-c-x">${escapeHtmlSaidas(extras.join(' · '))}</i>` : ''}${con.fim ? `<i class="rz-c-fim">até ${formatarDataBR(con.fim)}</i>` : '<i class="rz-c-fim rz-c-vazio">—</i>'}</span>`;
                 html += `
-                    <div class="rz-row rz-link" data-grade-con="1" role="button" tabindex="0" onclick="abrirFichaContrato('${con.id}')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault(); abrirFichaContrato('${con.id}');}">
+                    <div class="rz-row rz-link" data-grade-con="1" role="button" tabindex="0" onclick="window.fichaContratoOrigem={tipo:'lista'};abrirFichaContrato('${con.id}')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault(); window.fichaContratoOrigem={tipo:'lista'}; abrirFichaContrato('${con.id}');}">
                         <div class="rz-ic${classeIc}"><svg data-lucide="${icone}"></svg></div>
                         <div class="rz-tx"><b>${escapeHtmlSaidas(con.locatario || 'Locatário não informado')}</b>${subT}</div>
                         <div class="rz-rt"><b>${formatarMoedaBR(con.valor)}</b>${statusContratoHtml(con)}</div>

@@ -4,6 +4,16 @@ Histórico completo de versões do `index.html`, movido automaticamente pelo `ge
 
 ---
 
+NOVIDADES (Beta v1.477.0) — C3: Agenda no computador (agenda 1.13.0).
+Versão anterior (Beta v1.476.0):
+DATA: 23/10/2026 (sessão 20261023-0025-computador-c2, demanda 15146a34)
+------------------------------------------------------------------
+Versões anteriores (v1.476.0 … v1.476.0): CHANGELOG_APP.md, na raiz do
+repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
+das 5 versões mais recentes deste cabeçalho.
+
+---
+
 NOVIDADES (Beta v1.476.0) — C2: ações presas ao botão (raiz-ui 1.7.0).
 Versão anterior (Beta v1.475.0):
 DATA: 23/10/2026 (sessão 20261023-0023-controles-lista, demanda 6946fc07)
