@@ -4,6 +4,16 @@ Histórico completo de versões do `index.html`, movido automaticamente pelo `ge
 
 ---
 
+NOVIDADES (Beta v1.469.0) — ONDA 5b (raiz.css 1.8.0): Patrimônio em tabela no computador.
+Versão anterior (Beta v1.468.0):
+DATA: 21/10/2026 (sessão 20261021-2225-ux-onda5, demanda 15146a34)
+------------------------------------------------------------------
+Versões anteriores (v1.468.0 … v1.468.0): CHANGELOG_APP.md, na raiz do
+repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
+das 5 versões mais recentes deste cabeçalho.
+
+---
+
 NOVIDADES (Beta v1.468.0) — ONDA 5a: computador (raiz.css 1.7.0).
 Versão anterior (Beta v1.467.1):
 DATA: 21/10/2026 (sessão 20261021-1735-ux-onda4, demanda 15146a34)

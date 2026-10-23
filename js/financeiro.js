@@ -1,7 +1,14 @@
 // ============================================================================
 // financeiro.js — Raiz Patrimônio · Financeiro (Recebimentos · Atrasados · Saídas
 //                  · conciliação de extrato · recibo · detalhe do recebimento)
-// Versão: 1.76.0 · 21/10/2026
+// Versão: 1.77.0 · 22/10/2026
+//
+// v1.77.0 (22/10/2026, sessão 20261022-2255-fatura-sugestoes, demanda 279ab311; FICHA_CARTAO_COMPRA_ANTECIPADA_RAIZ v1.1.0, de
+// acordo do Nicola 22/10 22:55) — FATURA × DESPESA PREVISTA: na fatura, as compras que parecem uma despesa prevista em aberto
+// (a inscrição de R$ 360 que foi paga no cartão) aparecem no topo, em "Parecem despesas previstas", com a % de semelhança
+// (fn_fatura_listar) e o botão Confirmar (fn_fatura_casar_prevista): a prevista sai, a compra fica ligada ao item e a
+// ocorrência fica concluída. Nada casa sozinho.
+// Versão anterior: 1.76.0 · 21/10/2026
 //
 // v1.76.0 (21/10/2026, sessão 20261021-0857-libs-sob-demanda, demanda 6b11c602; de acordo do Nicola 21/10 08:57) — a leitura de extrato em planilha carrega o xlsx na hora
 // (bibliotecas.js), em vez de contar com ele no <head> do index.
@@ -26,18 +33,11 @@
 // v1.73.0 (20/10/2026, sessão 20261020-1013-planta-ajustes, demanda 83968339; de acordo do Nicola 10:13) — o card "Simulação
 // de venda" sai de Saídas (Financeiro geral): a simulação, com o Excel, passa a ser ação do ⋮ do plano de pagamento no
 // próprio ativo (cofre-ativos 1.132.0).
-// Versão anterior: 1.72.0 · 20/10/2026
-//
-// v1.72.0 (20/10/2026, sessão 20261020-0027-compra-planta, demanda 83968339; de acordo do Nicola 01:12) — card "Simulação de
-// venda" em Saídas, para cada imóvel com plano de pagamento (Construção coletiva ou Na planta): preço mínimo de venda para o
-// pago render pelo menos o IPCA, IGP-M, Selic, um % fixo ao mês ou o índice + % ao mês, com 6% de comissão e 15% de IR sobre
-// o lucro (editáveis); "E se vender por" com o líquido, o lucro e a rentabilidade ao mês; exportação para Excel direto do
-// card (Resumo, Mês a mês e Premissas). A conta mora no banco (fn_simulacao_venda_imovel).
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.71.0 … v1.71.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.72.0 … v1.72.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '1.76.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.77.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 
 // v1.17.0 (Fase 1 do wrapper de escrita, rollout Financeiro) — emitirEscrita
 // é o evento padrão pra "algo mudou que módulos DE FORA deste arquivo podem
@@ -1486,6 +1486,18 @@ function financeiroRenderCabecalho(aba) {
                     <div class="rz-rt">${valorTxt}${temSug ? `<span class="rz-ia-tag"><svg data-lucide="sparkles"></svg>${confSug}%</span>` : ''}</div>
                 </div>`;
             };
+            // v1.77.0 — compra que parece uma despesa prevista em aberto (fn_fatura_listar → prevista, com a %); o usuário confirma
+            const prevs = f.parcial ? [] : itens.filter(i => i.prevista && i.prevista.id);
+            const linhaPrevista = (i) => {
+                const pv = i.prevista;
+                const nome = pv.item_titulo || pv.descricao || 'Despesa prevista';
+                return `<div class="rz-row">
+                    <div class="rz-ic rz-ia"><svg data-lucide="link-2"></svg></div>
+                    <div class="rz-tx"><b>${escapeHtmlSaidas(i.descricao)} · ${formatarMoedaBR(i.valor)}</b><span>Parece <b>${escapeHtmlSaidas(nome)}</b>, prevista para ${pv.vencimento ? formatarDataBR(pv.vencimento) : '—'} (${formatarMoedaBR(pv.valor)})</span></div>
+                    <div class="rz-rt"><span class="rz-ia-tag"><svg data-lucide="sparkles"></svg>${Math.round(Number(pv.pct || 0))}%</span>
+                        <button type="button" class="rz-btn rz-btn-1" style="height:32px;padding:0 12px;margin-top:4px" data-fat-casar="${i.id}" data-prev="${pv.id}">Confirmar</button></div>
+                </div>`;
+            };
             const classificadas = itens.length - ac.length;
             const pct = itens.length ? Math.round(classificadas * 100 / itens.length) : 100;
             const quem = f.titular_tipo === 'pessoa' ? `Cartão de ${f.titular_nome}` : 'Empresa';
@@ -1506,6 +1518,7 @@ function financeiroRenderCabecalho(aba) {
                     ${ac.length && podeClassificar ? `<button type="button" class="rz-btn rz-btn-2" style="flex:1" data-fat-selecionar>${selecionando ? 'Cancelar seleção' : 'Selecionar'}</button>` : ''}
                     ${f.status !== 'paga' && !f.parcial ? `<button type="button" class="rz-btn rz-btn-2" style="flex:1" data-fat-baixar>Marcar como paga</button>` : ''}
                 </div>
+                ${prevs.length ? `<div class="rz-group">Parecem despesas previstas · ${prevs.length}</div><div class="rz-card rz-list">${prevs.map(linhaPrevista).join('')}</div>` : ''}
                 ${ac.length ? `<div class="rz-group">A classificar · ${ac.length}</div><div class="rz-card rz-list">${ac.map(i => linha(i, true)).join('')}</div>` : ''}
                 ${ok.length ? `<div class="rz-group">Classificadas · ${ok.length}</div><div class="rz-card rz-list">${ok.map(i => linha(i, false)).join('')}</div>` : ''}
                 ${ac.length ? '' : '<span class="rz-hint" style="display:block;margin-top:8px">Tudo classificado. Da próxima fatura, o Raiz já usa o que você ensinou.</span>'}`;
@@ -1528,6 +1541,16 @@ function financeiroRenderCabecalho(aba) {
                 financeiroAbrirFatura(faturaId, { semReler: true, cartao: v === filtroCartao ? null : v });
             }));
             sheet.querySelector('[data-fat-baixar]')?.addEventListener('click', () => financeiroBaixarFatura(f));
+            sheet.querySelectorAll('[data-fat-casar]').forEach(b => b.addEventListener('click', async (ev) => { // v1.77.0
+                ev.stopPropagation();
+                b.disabled = true; b.textContent = '…';
+                const { data, error } = await dbAuth.rpc('fn_fatura_casar_prevista', { p_compra_id: b.dataset.fatCasar, p_prevista_id: b.dataset.prev });
+                if (error || !data?.ok) { rzToast(error?.message || data?.mensagem || 'Não consegui conciliar.', { tipo: 'danger' }); b.disabled = false; b.textContent = 'Confirmar'; return; }
+                rzToast(data.mensagem, { tipo: 'success' });
+                emitirEscrita('despesa', { id: data.id, acao: 'casar_prevista' });
+                financeiroRecarregarSaidas();
+                financeiroAbrirFatura(faturaId, { manterRolagem: true });
+            }));
             sheet.querySelector('[data-fat-lote]')?.addEventListener('click', () => financeiroClassificarItens(itens.filter(i => sel.has(i.id)), faturaId));
             sheet.querySelectorAll('[data-fat-item]').forEach(row => row.addEventListener('click', () => {
                 const id = row.dataset.fatItem;
