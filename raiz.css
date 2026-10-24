@@ -1,6 +1,12 @@
 /* ============================================================================
    raiz.css — Raiz Patrimônio · estilos do app (index.html)
-   Versão: 1.19.0 · 23/10/2026
+   Versão: 1.20.0 · 24/10/2026
+
+   v1.20.0 (24/10/2026, sessão 20261024-1158-ux-largura, demanda 15146a34, testes fc3a853c e 85374ce5; plano aprovado pelo
+   Nicola 24/10) — a lista do Patrimônio escolhe o formato pelo espaço que ela tem (container query rzlista), não pela
+   largura da janela: com a ficha aberta em janela de 1.280 px (tela de 1.920 com escala de 150 %) o nome sumia e os valores
+   saíam da lista. ≥ 1.100 px colunas de antes; 760–1.099 px colunas curtas; < 760 px linha em 2 andares. No celular some a
+   barra de rolagem à direita ao rolar o Patrimônio.
 
    v1.19.0 (23/10/2026, sessão 20261023-2110-ux-escala, demandas 15146a34 e a05ad2ee; de acordo do Nicola 23/10 21:10) —
    Financeiro em tabela no computador na mesma escala das outras listas: nome mais leve (500) e local/data em 12,5 px
@@ -2082,4 +2088,53 @@ html.rz-plat-web body:not(.rz-split-con) #ficha-contrato-conteudo > .rz-entity:f
 @media (min-width:1024px) and (max-width:1439px){
     .rz-heroi > .rz-heroi-res{grid-template-columns:minmax(0,1fr)}
     .rz-heroi-res > .rz-heroi-3{grid-column:1;grid-row:auto;margin-top:10px}
+}
+
+/* v1.20.0 (dem 15146a34, testes fc3a853c e 85374ce5) — a lista de ativos escolhe o formato pelo espaço que ELA tem
+   (container query), não pela largura da janela. Com escala do Windows em 125–150 %, uma tela de 1.920 px vira uma janela de
+   1.280–1.536 px: com a ficha aberta a lista ficava com ~420 px e as colunas fixas (~430 px) comiam o nome.
+   Faixas: lista ≥ 1.100 px → colunas de antes (Onda 5b/C1b); 760–1.099 px → colunas curtas (Ativo · Situação · Aluguel ·
+   Valor, sem o locatário), também sem a ficha; < 760 px → a linha em 2 andares do celular. Nos limites o nome fica com
+   pelo menos 40 % da linha. ARMADILHA: os seletores levam "html body:is(...)" para vencer os de body.rz-split-at /
+   body:not(.rz-split) — mesma especificidade + 1 elemento. */
+#ativos-lista{container:rzlista / inline-size}
+@container rzlista (min-width:760px) and (max-width:1099px){
+    html body:is(.rz-split-at,:not(.rz-split)) #ativos-lista .rz-row[data-grade]{grid-template-columns:36px minmax(0,1fr) 110px 110px 96px 20px;column-gap:12px;align-items:center}
+    html body:is(.rz-split-at,:not(.rz-split)) #ativos-lista .rz-row[data-grade]>.rz-ic{grid-column:1;grid-row:1 / span 2}
+    html body:is(.rz-split-at,:not(.rz-split)) #ativos-lista .rz-row[data-grade]>.rz-tx>b{grid-column:2;grid-row:1}
+    html body:is(.rz-split-at,:not(.rz-split)) #ativos-lista .rz-row[data-grade]>.rz-tx>.rz-tx-st{grid-column:3;grid-row:1}
+    html body:is(.rz-split-at,:not(.rz-split)) #ativos-lista .rz-row[data-grade]>.rz-tx>span:not(.rz-al){display:none}
+    html body:is(.rz-split-at,:not(.rz-split)) #ativos-lista .rz-row[data-grade]>.rz-rt>*{grid-column:3;grid-row:2;justify-self:start;align-self:center}
+    html body:is(.rz-split-at,:not(.rz-split)) #ativos-lista .rz-row[data-grade]>.rz-rt>.rz-rt-al{display:block;grid-column:4;grid-row:1;justify-self:end;margin:0}
+    html body:is(.rz-split-at,:not(.rz-split)) #ativos-lista .rz-row[data-grade]>.rz-rt>.rz-rt-v,
+    html body:is(.rz-split-at,:not(.rz-split)) #ativos-lista .rz-row[data-grade]>.rz-rt>.rz-rt-vazio{grid-column:5;grid-row:1;justify-self:end;align-self:center}
+    html body:is(.rz-split-at,:not(.rz-split)) #ativos-lista .rz-row[data-grade]>.rz-tx>.rz-al{grid-column:2 / 6;grid-row:2}
+    html body:is(.rz-split-at,:not(.rz-split)) #ativos-lista .rz-row[data-grade]>.rz-chev,
+    html body:is(.rz-split-at,:not(.rz-split)) #ativos-lista .rz-row[data-grade]>.rz-subs-toggle{grid-column:6;grid-row:1 / span 2}
+    html body:is(.rz-split-at,:not(.rz-split)) #ativos-lista .rz-group.rz-group-t b{margin-right:45px}
+    html body:is(.rz-split-at,:not(.rz-split)) #ativos-lista .rz-ramo-faixa > b{margin-right:4px}
+}
+@container rzlista (max-width:759px){
+    html body:is(.rz-split-at,:not(.rz-split)) #ativos-lista .rz-row[data-grade]{grid-template-columns:auto minmax(0,1fr) auto auto;column-gap:10px;align-items:start}
+    html body:is(.rz-split-at,:not(.rz-split)) #ativos-lista .rz-row[data-grade]>.rz-ic{grid-column:1;grid-row:1 / span 3;align-self:center}
+    html body:is(.rz-split-at,:not(.rz-split)) #ativos-lista .rz-row[data-grade]>.rz-tx>b{grid-column:2;grid-row:1}
+    html body:is(.rz-split-at,:not(.rz-split)) #ativos-lista .rz-row[data-grade]>.rz-tx>.rz-tx-st{grid-column:2;grid-row:2}
+    html body:is(.rz-split-at,:not(.rz-split)) #ativos-lista .rz-row[data-grade]>.rz-tx>span:not(.rz-al){display:block;grid-column:2;grid-row:3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    html body:is(.rz-split-at,:not(.rz-split)) #ativos-lista .rz-row[data-grade]>.rz-rt>*{grid-column:3;grid-row:2;justify-self:end;align-self:center}
+    html body:is(.rz-split-at,:not(.rz-split)) #ativos-lista .rz-row[data-grade]>.rz-rt>.rz-rt-v,
+    html body:is(.rz-split-at,:not(.rz-split)) #ativos-lista .rz-row[data-grade]>.rz-rt>.rz-rt-vazio{grid-column:3;grid-row:1;justify-self:end;align-self:start}
+    html body:is(.rz-split-at,:not(.rz-split)) #ativos-lista .rz-row[data-grade]>.rz-rt>.rz-rt-al{display:block;grid-column:3;grid-row:3;justify-self:end;align-self:start;margin:1px 0 0}
+    html body:is(.rz-split-at,:not(.rz-split)) #ativos-lista .rz-row[data-grade]>.rz-tx>.rz-al{grid-column:2 / 4;grid-row:4}
+    html body:is(.rz-split-at,:not(.rz-split)) #ativos-lista .rz-row[data-grade]>.rz-chev,
+    html body:is(.rz-split-at,:not(.rz-split)) #ativos-lista .rz-row[data-grade]>.rz-subs-toggle{grid-column:4;grid-row:1 / span 3;align-self:center}
+    html body:is(.rz-split-at,:not(.rz-split)) #ativos-lista .rz-row[data-grade]:has(.rz-al)>:is(.rz-ic,.rz-chev,.rz-subs-toggle){grid-row:1 / span 4}
+    html body:is(.rz-split-at,:not(.rz-split)) #ativos-lista .rz-subs>.rz-sub-row[data-grade]{grid-template-columns:26px minmax(0,1fr) auto auto;column-gap:8px}
+    html body:is(.rz-split-at,:not(.rz-split)) #ativos-lista .rz-group.rz-group-t b{margin-right:41px}
+    html body:is(.rz-split-at,:not(.rz-split)) #ativos-lista .rz-ramo-faixa > b{margin-right:-2px}
+}
+/* v1.20.0 (teste 85374ce5) — no celular o Patrimônio rola a página inteira; a barra que o navegador desenha à direita ao
+   rolar some (a lista continua rolando pelo dedo). Só no toque e só com a aba Patrimônio aberta. */
+@media (max-width:1023px) and (pointer:coarse){
+    html:has(#tab-ativos.active){scrollbar-width:none}
+    html:has(#tab-ativos.active)::-webkit-scrollbar{display:none}
 }
