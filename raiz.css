@@ -1,6 +1,11 @@
 /* ============================================================================
    raiz.css — Raiz Patrimônio · estilos do app (index.html)
-   Versão: 1.18.0 · 23/10/2026
+   Versão: 1.19.0 · 23/10/2026
+
+   v1.19.0 (23/10/2026, sessão 20261023-2110-ux-escala, demandas 15146a34 e a05ad2ee; de acordo do Nicola 23/10 21:10) —
+   Financeiro em tabela no computador na mesma escala das outras listas: nome mais leve (500) e local/data em 12,5 px
+   (--fs-sec); traço da aba ativa da ficha do ativo na cor do ramo do ativo (--fa-ramo, posto pela ficha), com o verde
+   de antes quando o ativo não tem ramo.
 
    v1.18.0 (23/10/2026, sessão 20261023-0955-computador-ajustes, demanda 15146a34; prints do Nicola 23/10 09:49) — Patrimônio: a
    linha do empreendimento e o seu total no mesmo tamanho do nome e do valor do ativo (--fs-corpo); Hoje no computador: entre
@@ -1481,6 +1486,7 @@
         #hoje-chips,#fc-chips,#fa-chips,#cme-chips,#lic-chips{gap:20px;box-shadow:inset 0 -1px 0 var(--line);padding-top:0;padding-bottom:0}
         #hoje-chips .rz-chip,#fc-chips .rz-chip,#fa-chips .rz-chip,#cme-chips .rz-chip,#lic-chips .rz-chip{height:40px;padding:0;border:0;border-bottom:2px solid transparent;border-radius:0;background:none;font:600 14px var(--font-body);color:var(--muted);gap:5px}
         #hoje-chips .rz-chip.rz-on,#fc-chips .rz-chip.rz-on,#fa-chips .rz-chip.rz-on,#cme-chips .rz-chip.rz-on,#lic-chips .rz-chip.rz-on{background:none;color:var(--ink);border-bottom-color:var(--ramo-acc)}
+        #fa-chips .rz-chip.rz-on{border-bottom-color:var(--fa-ramo,var(--ramo-acc))} /* ficha: cor do ramo do próprio ativo (dem a05ad2ee) */
         #hoje-chips .rz-chip.rz-on .rz-pt,#fc-chips .rz-chip.rz-on .rz-pt,#fa-chips .rz-chip.rz-on .rz-pt,#cme-chips .rz-chip.rz-on .rz-pt,#lic-chips .rz-chip.rz-on .rz-pt{box-shadow:none}
         .rz-chip .rz-n,.rz-chip.rz-on .rz-n,.rz-chip.rz-warn .rz-n{background:none;padding:0;font-size:12px;font-weight:600}
         .rz-chip .rz-n{color:var(--muted)}
@@ -1677,8 +1683,8 @@
         .rz-ft-lin:hover{background:var(--tile)}
         .rz-ft-lin.rz-on{background:color-mix(in srgb, var(--ramo-acc, var(--sprout)) 9%, var(--card))}
         .rz-ft-lin:focus-visible{outline:2px solid var(--sprout);outline-offset:-2px}
-        .rz-ft-nome{font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-        .rz-ft-local,.rz-ft-data{color:var(--muted);font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+        .rz-ft-nome{font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+        .rz-ft-local,.rz-ft-data{color:var(--muted);font-size:var(--fs-sec,12.5px);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
         .rz-ft-valor{text-align:right;font-weight:600;font-variant-numeric:tabular-nums}
         .rz-ft-chk{display:flex;align-items:center;justify-content:center;min-height:44px}
         .rz-ft-chk input{width:18px;height:18px;accent-color:var(--ramo-acc, var(--sprout));cursor:pointer}

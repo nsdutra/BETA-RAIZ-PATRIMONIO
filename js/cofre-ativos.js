@@ -1,6 +1,10 @@
 // ============================================================================
 // cofre-ativos.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.149.0 · 23/10/2026
+// Versão: 1.150.0 · 23/10/2026
+//
+// v1.150.0 (23/10/2026, sessão 20261023-2110-ux-escala, demanda a05ad2ee; de acordo do Nicola 23/10 21:10) — o traço da aba
+// ativa da ficha usa a cor do ramo do ativo (imóvel em azul, família em lilás…), não mais a da lente do cabeçalho.
+// Versão anterior: 1.149.0 · 23/10/2026
 //
 // v1.149.0 (23/10/2026, sessão 20261023-0910-isolamento, demanda a4935151; de acordo do Nicola 23/10 09:09) — varredura de
 // estado de módulo: (1) empreendimento criado pelo "Novo empreendimento" do formulário não aparecia no seletor da próxima
@@ -21,16 +25,11 @@
 //   a tabela do Patrimônio ganha o cabeçalho das colunas (Ativo · Situação · Locatário · Aluguel/mês · Valor) logo abaixo da
 //   faixa do ramo, e o toque no cabeçalho ordena dentro de cada empreendimento (toque de novo inverte). Só aparece a partir de
 //   1024 px e sem a ficha aberta (raiz.css 1.9.0). Situação não ordena.
-// Versão anterior: 1.145.1 · 21/10/2026
-//
-// v1.145.1 (21/10/2026, sessão 20261021-1735-ux-onda4, demanda 15146a34) — correção da 1.145.0, achada na conferência no ar
-//   (Rumo sem a linha do aluguel): os alertas do Motor vivem em alertasVisiveisTodos só depois de abrir a Agenda; antes
-//   disso estão em geralVisiveisTodos (o Hoje). A linha do aluguel e a espera passam a ler as duas, como o chip "Com alerta".
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.145.0 … v1.145.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.145.1 … v1.145.1): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '1.149.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.150.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 import { estado } from './cofre-estado.js';
 import { carregarBiblioteca } from './nucleo/bibliotecas.js'; // bibliotecas pesadas, sob demanda (dem 6b11c602)
 import * as api from './cofre-api.js';
@@ -1678,6 +1677,9 @@ export async function abrirFichaAtivo(id, chipInicial = 'resumo') {
     await garantirCatalogoTiposAtivo();
     ativoAtualId = id;
     estado.ativoEmFoco = a;
+    // traço da aba ativa na cor do ramo deste ativo; sem ramo, o CSS cai na cor da lente (dem a05ad2ee)
+    const chipsFicha = document.getElementById('fa-chips');
+    if (chipsFicha) { if (a.ramo) chipsFicha.style.setProperty('--fa-ramo', `var(--ramo-cor-${String(a.ramo).replace(/[^a-z_]/g, '')})`); else chipsFicha.style.removeProperty('--fa-ramo'); }
 
     // v1.93.0 (pedido explícito, "evoluir a exemplo do protótipo") —
     // fa-cabecalho deixou de viver DENTRO do box "Dados do ativo" e virou
