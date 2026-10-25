@@ -4,6 +4,16 @@ Histórico completo de versões do `index.html`, movido automaticamente pelo `ge
 
 ---
 
+NOVIDADES (Beta v1.481.0) — C6: escala de letras em 12 módulos.
+Versão anterior (Beta v1.480.0):
+DATA: 23/10/2026 (sessão 20261023-0855-computador-c5, demanda 15146a34)
+------------------------------------------------------------------
+Versões anteriores (v1.480.0 … v1.480.0): CHANGELOG_APP.md, na raiz do
+repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
+das 5 versões mais recentes deste cabeçalho.
+
+---
+
 NOVIDADES (Beta v1.480.0) — C5: Hoje em 3 colunas (resultados 2.18.0).
 Versão anterior (Beta v1.479.0):
 DATA: 23/10/2026 (sessão 20261023-0831-controles-linha, demanda f8c764fd)

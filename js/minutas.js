@@ -1,7 +1,12 @@
 // ============================================================================
 // minutas.js — Raiz Patrimônio · Minutas de contrato (modelos, placeholders,
 //               geração da minuta preenchida, minutização de um contrato real)
-// Versão: 1.7.0 · 21/10/2026
+// Versão: 1.8.0 · 24/10/2026
+//
+// v1.8.0 (24/10/2026, sessão 20261024-2300-minutas-topo; pedido do Nicola 24/10 22:58, "Inclua um menu de 3 pontos com opção de
+// incluir minuta assim como o padrão em outras telas") — os dois botões redondos do topo (✦ e +) dão lugar ao ⋮ da aba, igual a
+// Links de imóveis: abrirAcoesTopoMinutas() abre Gerar de contrato real (Raiz IA) e Enviar modelo .docx. A tela vazia não muda.
+// Versão anterior: 1.7.0 · 21/10/2026
 //
 // v1.7.0 (21/10/2026, sessão 20261021-0857-libs-sob-demanda, demanda 6b11c602; de acordo do Nicola 21/10 08:57) — JSZip e pdf.js carregam na hora (bibliotecas.js): gerar a
 // minuta, ler o .docx e ler o PDF de um contrato real esperam a biblioteca antes de começar.
@@ -21,22 +26,14 @@
 // "Minuta ainda indisponível" deixa de listar chaves técnicas (locador_cnpj, imovel_endereco…): o que falta vem
 // em português, agrupado por onde se preenche (Contrato e locatário, Fiadores, Minha empresa, Imóvel, Modelo),
 // com o botão que abre a tela certa. Textos sem "vitrine".
-//
-// Versão anterior: 1.3.0 · 08/10/2026
-//
-// v1.3.0 (UX F2.7c-3, demanda b8602a3a, sessão 20261003-1707-ux-base; "De acordo" do Nicola 08/10 14:04) —
-// "Gerar de um contrato real" vira Sheet de 2 passos (o formulário fixo do index saiu); ajuda de
-// placeholders vira Sheet empilhado (antes abria ATRÁS do formulário da minuta, z-index 96 < 97);
-// escolha entre minutas aplicáveis vira Sheet de ações; formulário da minuta em .rz-f; lista vazia
-// vira o vazio que convida (IA lê um contrato real; manual: enviar o .docx).
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.2.0 … v1.2.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.3.0 … v1.3.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
 import { carregarBiblioteca } from './nucleo/bibliotecas.js'; // bibliotecas pesadas, sob demanda (dem 6b11c602)
 import { emitirEscrita, aoEscrever } from './raiz-eventos.js'; // v1.1.0 — Fase 1 do wrapper de escrita
 
-export const VERSAO = '1.7.0'; // v-check: manter igual ao header
+export const VERSAO = '1.8.0'; // v-check: manter igual ao header
 
 /** Ponto de entrada do switchTab('tab-minutas'). */
 export function montarAbaMinutas() {
@@ -587,6 +584,15 @@ if (!window.__rzListenerEscritaMinutaLigado) {
             acoes.push({ icone: 'pencil', titulo: 'Editar', codigo: 'minutas.editar', aoTocar: () => abrirFormMinutaSheet(m.id) });
             acoes.push({ icone: 'trash-2', titulo: 'Excluir', codigo: 'minutas.excluir', tipo: 'bad', aoTocar: () => excluirMinuta(m.id) });
             abrirSheetAcoes({ titulo: m.nome, sub: 'Minuta de contrato', acoes });
+        }
+
+        // ⋮ do topo da aba Minutas: as duas formas de incluir um modelo, no padrão de ações das outras telas.
+        export function abrirAcoesTopoMinutas() {
+            if (typeof abrirSheetAcoes !== 'function') return;
+            abrirSheetAcoes({ titulo: 'Modelos de contrato', sub: 'Incluir minuta', acoes: [
+                { icone: 'sparkles', tipo: 'ia', titulo: 'Gerar de contrato real', codigo: 'minutas.minutizar_ia', sub: 'A Raiz IA monta o modelo', aoTocar: () => abrirWizardMinutizacao() },
+                { icone: 'upload', titulo: 'Enviar modelo .docx', codigo: 'minutas.criar', sub: 'Com campos entre chaves', aoTocar: () => abrirFormMinutaSheet() },
+            ] });
         }
 
         // v1.42.0 — janela de ajuda com a lista de placeholders disponíveis
