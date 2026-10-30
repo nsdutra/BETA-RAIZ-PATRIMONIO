@@ -1,8 +1,13 @@
 // =====================================================================
 // RAIZ PATRIMÔNIO — js/agenda.js
-// VERSÃO: Beta v1.14.0 (23/10/2026 — demanda 15146a34)
+// VERSÃO: Beta v1.15.0 (30/10/2026 — demanda 2441dd55)
 // LINHAS: (ver versoes.json)
 // -----------------------------------------------------------------
+// NOVIDADES (Beta v1.15.0) (30/10/2026, sessão 20261030-0014-compromisso-bem, demanda 2441dd55; de acordo do Nicola 29/10
+//   14:14 e 30/10 00:14) — NOVO COMPROMISSO: "Para quem" vira "Vincular a", com pessoas e bens (imóvel, veículo) na ordem
+//   da natureza do pedido; o bem citado à Raiz IA ("apartamento RSVP") já vem marcado; um item só, ligado a todos. Tipo
+//   novo "Manutenção". Data dita só com o mês ou o ano: chips Início · Fim · Mesmo dia de hoje embaixo da data.
+// Versão anterior (Beta v1.14.0):
 // NOVIDADES (Beta v1.14.0) (23/10/2026, sessão 20261023-0915-computador-c6, demanda 15146a34; PROTOTIPO_COMPUTADOR_RAIZ v1.1.0 §11, de acordo do Nicola 23/10 08:51) — C6 · escala de letras: 5 tamanhos de letra escritos em número (font-size:13px etc.) trocados pelos da escala (--fs-mini 11 · --fs-sec 12,5 · --fs-corpo 14 · --fs-titulo 17; 16 px fica, por causa do zoom do iPhone em campo, e 18 px ou mais também — herói e números grandes). Nada muda de lugar; só o tamanho passa a ser o mesmo em todas as telas.
 // Versão anterior (Beta v1.13.0):
 // NOVIDADES (Beta v1.13.0) (23/10/2026, sessão 20261023-0045-computador-c3, demanda 15146a34; PROTOTIPO_COMPUTADOR_RAIZ v1.0.0
@@ -131,7 +136,7 @@
 // formatarMoedaBR, abrirSheet, abrirSheetAcoes, rzSheetCabecalho, fecharSheet, abrirAlertaItemControle,
 // abrirFichaContrato, switchTab, mostrarToast, rzDev.
 
-export const VERSAO = '1.14.0';
+export const VERSAO = '1.15.0';
 
 const TIPOS = {
     ocorrencia:   { rotulo: 'Ocorrência',  icone: 'wrench',          dominio: 'ocorrencias' },
@@ -830,7 +835,24 @@ function revisarCalendario(sh, r, trocarPerfil) {
 
 // ---- v1.12.0 (0e70b85a) — NOVO COMPROMISSO (⋮ da Agenda e Raiz IA). Um item só, com as pessoas em `vinculos`
 // (fn_agenda_compromisso_criar). Sem valor: aviso 1 dia; com valor: 3 dias e de novo 1 dia (vira despesa prevista).
-const COMP_TIPOS = [['generico', 'Compromisso'], ['esporte', 'Esporte'], ['escola', 'Escola'], ['atividade', 'Curso'], ['festa', 'Festa'], ['viagem', 'Viagem']];
+const COMP_TIPOS = [['generico', 'Compromisso'], ['esporte', 'Esporte'], ['escola', 'Escola'], ['atividade', 'Curso'], ['festa', 'Festa'], ['viagem', 'Viagem'], ['manutencao', 'Manutenção']];
+// "Vincular a": pessoas da família (sem o grupo) e os bens ativos, na ordem da natureza do pedido (imóvel, veículo ou pessoa)
+async function alvosVincular(natureza) {
+    const { data } = await dbAuth.from('cofre_ativos').select('id, nome_exibicao, ativo_principal_id, tipo_ativo')
+        .eq('cliente_id', CLIENTE_ID_SUPABASE).eq('status', 'ativo').limit(200);
+    const lista = data || [];
+    const principais = new Set(lista.filter(a => a.tipo_ativo === 'vida').map(a => a.ativo_principal_id).filter(Boolean));
+    const ordem = (t) => {
+        const imo = /^imovel/.test(t), vei = t === 'veiculo', pes = t === 'vida';
+        if (natureza === 'imovel') return imo ? 0 : pes ? 1 : vei ? 3 : 2;
+        if (natureza === 'veiculo') return vei ? 0 : pes ? 1 : imo ? 3 : 2;
+        return pes ? 0 : imo ? 1 : vei ? 2 : 3;
+    };
+    return lista.filter(a => !(a.tipo_ativo === 'vida' && principais.has(a.id)))
+        .map(a => ({ id: a.id, tipo: a.tipo_ativo, completo: a.nome_exibicao,
+            nome: a.tipo_ativo === 'vida' ? String(a.nome_exibicao || '').split(/\s+/)[0] : String(a.nome_exibicao || '') }))
+        .sort((x, y) => ordem(x.tipo) - ordem(y.tipo) || x.nome.localeCompare(y.nome));
+}
 async function pessoasDaFamilia() {
     const { data } = await dbAuth.from('cofre_ativos').select('id, nome_exibicao, ativo_principal_id')
         .eq('cliente_id', CLIENTE_ID_SUPABASE).eq('tipo_ativo', 'vida').eq('status', 'ativo').limit(60);
@@ -843,10 +865,21 @@ export async function abrirNovoCompromisso(pref = {}) {
     const sh = abrirSheet(rzSheetCabecalho('Novo compromisso', 'Entra na agenda de cada pessoa escolhida') + '<div class="rz-sh-b" id="cp-corpo"><p class="rz-sub">Carregando…</p></div>');
     const corpo = sh.querySelector('#cp-corpo');
     let pessoas = [];
-    try { pessoas = await pessoasDaFamilia(); } catch (_) { /* sem pessoas: o aviso abaixo explica */ }
+    try { pessoas = await alvosVincular(pref.natureza); } catch (_) { /* sem lista: o aviso abaixo explica */ }
     const c = { titulo: pref.titulo || '', data: pref.data || '', hora: pref.hora || '', valor: pref.valor || null, local: pref.local || '',
         tipo: COMP_TIPOS.some(t => t[0] === pref.tipo) ? pref.tipo : 'generico', pessoas: new Set((pref.pessoas || []).filter(id => pessoas.some(p => p.id === id))),
-        aviso: pref.aviso_dias != null ? pref.aviso_dias : (pref.valor ? 3 : 1) };
+        aviso: pref.aviso_dias != null ? pref.aviso_dias : (pref.valor ? 3 : 1),
+        precisao: ['mes', 'ano'].includes(pref.data_precisao) && pref.data ? pref.data_precisao : 'dia' };
+    // data dita só com o mês ou só com o ano: Início · Fim · Mesmo dia de hoje
+    const opcoesVagas = () => {
+        if (c.precisao === 'dia' || !c.data) return [];
+        const a = Number(c.data.slice(0, 4)), m = Number(c.data.slice(5, 7)), h = new Date();
+        const ult = (aa, mm) => new Date(aa, mm, 0).getDate();
+        const d = (aa, mm, dd) => `${aa}-${String(mm).padStart(2, '0')}-${String(Math.min(dd, ult(aa, mm))).padStart(2, '0')}`;
+        return c.precisao === 'ano'
+            ? [['Início', d(a, 1, 1)], ['Fim do ano', d(a, 12, 31)], ['Mesmo dia de hoje', d(a, h.getMonth() + 1, h.getDate())]]
+            : [['Início', d(a, m, 1)], ['Fim do mês', d(a, m, 31)], ['Mesmo dia de hoje', d(a, m, h.getDate())]];
+    };
     const CH = 'height:32px;padding:0 11px;font-size:var(--fs-sec,12.5px)';
     const campo = 'width:100%;box-sizing:border-box;height:42px;border:1px solid var(--line);border-radius:10px;padding:0 12px;font:inherit;font-size:16px;background:#fff;color:var(--ink)';
     const rot = (t) => `<small class="rz-sub" style="display:block;margin:12px 0 5px">${t}</small>`;
@@ -857,10 +890,12 @@ export async function abrirNovoCompromisso(pref = {}) {
             ${rot('O quê')}<input id="cp-tit" style="${campo}" maxlength="140" placeholder="Ex.: exame de faixa de jiu-jitsu" value="${rzEsc(c.titulo)}">
             ${rot('Quando' + (c.data ? ` · <b>${diaSem()}</b>` : ''))}
             <div style="display:flex;gap:8px"><input id="cp-data" type="date" style="${campo};flex:1.4" value="${c.data}"><input id="cp-hora" type="time" style="${campo};flex:1" value="${c.hora}"></div>
-            ${rot('Para quem')}<div style="display:flex;flex-wrap:wrap;gap:6px">${pessoas.length ? pessoas.map(p =>
+            ${opcoesVagas().length ? `<small class="rz-sub" style="display:block;margin:8px 0 5px">Você disse só ${c.precisao === 'ano' ? 'o ano' : 'o mês'}. Quando?</small><div style="display:flex;flex-wrap:wrap;gap:6px">${opcoesVagas().map(([t, d]) =>
+                `<button type="button" class="rz-chip" style="${CH}" data-cp-d="${d}">${t} · ${calData(d)}</button>`).join('')}</div>` : ''}
+            ${rot('Vincular a')}<div style="display:flex;flex-wrap:wrap;gap:6px">${pessoas.length ? pessoas.map(p =>
                 `<button type="button" class="rz-chip${c.pessoas.has(p.id) ? ' rz-on' : ''}" style="${CH}" data-cp-p="${p.id}">${rzEsc(p.nome)}</button>`).join('')
-                + (pessoas.length > 1 ? `<button type="button" class="rz-chip" style="${CH}" data-cp-todos>${c.pessoas.size === pessoas.length ? 'Nenhum' : 'Todos'}</button>` : '')
-                : '<span class="rz-sub">Cadastre as pessoas em Família para escolher aqui.</span>'}</div>
+                + (pessoas.filter(p => p.tipo === 'vida').length > 1 ? `<button type="button" class="rz-chip" style="${CH}" data-cp-todos>${pessoas.filter(p => p.tipo === 'vida').every(p => c.pessoas.has(p.id)) ? 'Nenhuma pessoa' : 'Todas as pessoas'}</button>` : '')
+                : '<span class="rz-sub">Cadastre pessoas em Família ou bens em Patrimônio para escolher aqui.</span>'}</div>
             ${rot('Tipo')}<div style="display:flex;flex-wrap:wrap;gap:6px">${COMP_TIPOS.map(([k, n]) => `<button type="button" class="rz-chip${c.tipo === k ? ' rz-on' : ''}" style="${CH}" data-cp-t="${k}">${n}</button>`).join('')}</div>
             ${rot('Aviso')}<div style="display:flex;flex-wrap:wrap;gap:6px">${[[0, 'Sem'], [1, '1 dia antes'], [3, c.valor ? '3 e 1 dia antes' : '3 dias antes']].map(([n, t]) =>
                 `<button type="button" class="rz-chip${c.aviso === n ? ' rz-on' : ''}" style="${CH}" data-cp-a="${n}">${t}</button>`).join('')}</div>
@@ -869,7 +904,7 @@ export async function abrirNovoCompromisso(pref = {}) {
                 <div style="flex:1.4">${rot('Local (opcional)')}<input id="cp-local" style="${campo}" maxlength="120" value="${rzEsc(c.local)}"></div>
             </div>
             ${c.valor ? '<small class="rz-sub" style="display:block;margin-top:6px">O valor entra como despesa prevista no Financeiro.</small>' : ''}
-            <button type="button" class="rz-btn rz-btn-1 rz-ag-bt" id="cp-salvar"${ok ? '' : ' disabled'} style="margin-top:16px">${ok ? 'Salvar na agenda' : !c.titulo.trim() ? 'Diga o que é' : !c.data ? 'Escolha a data' : 'Escolha para quem'}</button>
+            <button type="button" class="rz-btn rz-btn-1 rz-ag-bt" id="cp-salvar"${ok ? '' : ' disabled'} style="margin-top:16px">${ok ? 'Salvar na agenda' : !c.titulo.trim() ? 'Diga o que é' : !c.data ? 'Escolha a data' : 'Escolha a que vincular'}</button>
             <button type="button" class="rz-btn rz-ag-bt" id="cp-cancelar">Cancelar</button>`;
         ligar();
     };
@@ -883,10 +918,15 @@ export async function abrirNovoCompromisso(pref = {}) {
     const ligar = () => {
         ['#cp-tit', '#cp-local'].forEach(q => corpo.querySelector(q).addEventListener('change', redesenhar));
         corpo.querySelector('#cp-tit').addEventListener('input', () => { const b = corpo.querySelector('#cp-salvar'); ler(); b.disabled = !(c.titulo.trim() && c.data && c.pessoas.size); });
-        ['#cp-data', '#cp-hora', '#cp-valor'].forEach(q => corpo.querySelector(q).addEventListener('change', redesenhar));
+        corpo.querySelector('#cp-data').addEventListener('change', () => { c.precisao = 'dia'; redesenhar(); });
+        ['#cp-hora', '#cp-valor'].forEach(q => corpo.querySelector(q).addEventListener('change', redesenhar));
         corpo.querySelectorAll('[data-cp-p]').forEach(b => b.addEventListener('click', () => { ler(); const id = b.dataset.cpP; c.pessoas.has(id) ? c.pessoas.delete(id) : c.pessoas.add(id); desenhar(); }));
         const todos = corpo.querySelector('[data-cp-todos]');
-        if (todos) todos.addEventListener('click', () => { ler(); c.pessoas = c.pessoas.size === pessoas.length ? new Set() : new Set(pessoas.map(p => p.id)); desenhar(); });
+        if (todos) todos.addEventListener('click', () => {
+            ler(); const vidas = pessoas.filter(p => p.tipo === 'vida').map(p => p.id);
+            const todas = vidas.every(id => c.pessoas.has(id)); vidas.forEach(id => todas ? c.pessoas.delete(id) : c.pessoas.add(id)); desenhar();
+        });
+        corpo.querySelectorAll('[data-cp-d]').forEach(b => b.addEventListener('click', () => { ler(); c.data = b.dataset.cpD; c.precisao = 'dia'; desenhar(); }));
         corpo.querySelectorAll('[data-cp-t]').forEach(b => b.addEventListener('click', () => { ler(); c.tipo = b.dataset.cpT; desenhar(); }));
         corpo.querySelectorAll('[data-cp-a]').forEach(b => b.addEventListener('click', () => { ler(); c.aviso = Number(b.dataset.cpA); desenhar(); }));
         corpo.querySelector('#cp-cancelar').addEventListener('click', () => fecharSheet(true));
@@ -914,7 +954,8 @@ export function rzIaAgenda(ac, texto) {
     if (ac.intencao === 'compromisso') {
         if ((p.pessoas_nao_achadas || []).length) (window.rzToast || mostrarToast)(`Não achei: ${p.pessoas_nao_achadas.join(', ')} — escolha abaixo.`, { tipo: 'info' });
         return abrirNovoCompromisso({ titulo: p.descricao || texto || '', data: p.data || '', hora: p.hora || '', valor: p.valor || null, local: p.local || '',
-            tipo: p.tipo_compromisso || 'generico', aviso_dias: p.aviso_dias, pessoas: p.pessoas_ids || [] });
+            tipo: p.tipo_compromisso || 'generico', aviso_dias: p.aviso_dias, pessoas: p.pessoas_ids || [],
+            natureza: p.natureza || null, data_precisao: p.data_precisao || 'dia' });
     }
     // agenda: abre a Agenda no período falado (Semana até 7 dias; senão o Mês)
     const de = p.data ? deIso(p.data) : hoje();
