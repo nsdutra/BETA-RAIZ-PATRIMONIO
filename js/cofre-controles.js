@@ -26,13 +26,8 @@
 //   EVENTO: embaixo do título vai só a data do evento, ou o período quando tem início e fim ("03 a 27/11/2026"); antes ia
 //   "Subtipo · fim", e o item de período parecia fora da ordem. ÍCONES iguais aos do robô no WhatsApp: aniversário (bolo),
 //   presente, show (ingresso), escola (mochila), seguro (escudo), feriado (palmeira); os demais seguem o catálogo.
-// Versão anterior: 1.68.0 · 22/10/2026
-//
-// v1.68.0 (22/10/2026, sessão 20261022-2353-agenda-visual, demanda 4568a519; FICHA_AGENDA_ROBO_VISUAL_RAIZ v1.0.0, de acordo do
-//   Nicola 22/10 23:53) — chip Controles da ficha: os itens (soltos, em cada grupo e em cada programa) vêm pela data do próximo
-//   aviso em aberto, do mais perto para o mais longe; item sem nada pela frente vai para o fim.
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.67.0 … v1.67.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.68.0 … v1.68.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
 export const VERSAO = '1.72.1'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header

@@ -30,12 +30,8 @@
 // (a inscrição de R$ 360 que foi paga no cartão) aparecem no topo, em "Parecem despesas previstas", com a % de semelhança
 // (fn_fatura_listar) e o botão Confirmar (fn_fatura_casar_prevista): a prevista sai, a compra fica ligada ao item e a
 // ocorrência fica concluída. Nada casa sozinho.
-// Versão anterior: 1.76.0 · 21/10/2026
-//
-// v1.76.0 (21/10/2026, sessão 20261021-0857-libs-sob-demanda, demanda 6b11c602; de acordo do Nicola 21/10 08:57) — a leitura de extrato em planilha carrega o xlsx na hora
-// (bibliotecas.js), em vez de contar com ele no <head> do index.
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.75.0 … v1.75.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.76.0 … v1.76.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
 export const VERSAO = '1.80.1'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
