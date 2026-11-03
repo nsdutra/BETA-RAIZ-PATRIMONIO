@@ -1,6 +1,11 @@
 // ============================================================================
 // cofre-controles.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.72.0 · 23/10/2026
+// Versão: 1.72.1 · 03/11/2026
+//
+// v1.72.1 (03/11/2026, sessão 20261103-0956-fluxo-empresa-fin, demanda 9efdd18f; de acordo do Nicola 03/11 09:56) — o + de
+//   Controles em Minha empresa abre o formulário do novo item por cima de Minha empresa: antes trocava a tela de baixo
+//   para Ativos. Ao salvar ou fechar, o card da empresa é redesenhado no lugar. Abrir um item existente não muda.
+// Versão anterior: 1.72.0 · 23/10/2026
 //
 // v1.72.0 (23/10/2026, sessão 20261023-0910-isolamento, demanda a4935151; de acordo do Nicola 23/10 09:09) — varredura de
 // estado de módulo: a lista de partes usada nos seletores do item de controle passa a ser relida quando uma parte é
@@ -30,7 +35,7 @@
 // Versões anteriores (v1.67.0 … v1.67.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '1.72.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.72.1'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 import { estado } from './cofre-estado.js';
 import * as api from './cofre-api.js';
 import { mostrarToast, refrescarIcones, abrirModal, fecharModal, modalGenerico, perguntar, escolher, avisarComDesfazer } from './cofre-ui.js';
@@ -103,8 +108,15 @@ function clienteIdDisponivel() {
     // eslint-disable-next-line no-undef
     return estado.clienteId || (typeof CLIENTE_ID_SUPABASE !== 'undefined' ? CLIENTE_ID_SUPABASE : null);
 }
-async function garantirCofrePronto() {
-    if (typeof window.switchTab === 'function') window.switchTab('tab-ativos');
+// ficarNaTela: carrega o Cofre sem mostrar Ativos. O formulário depende de estado.clienteId e estado.pessoa,
+// que só existem depois do boot do Cofre (montarAtivosTab é idempotente).
+async function garantirCofrePronto(opcoes) {
+    if (opcoes?.ficarNaTela) {
+        if (!document.querySelector('#ativos-mount-point #app-cofre')) {
+            try { const m = await import('./ativos/ativos-boot.js'); m.montarAtivosTab(clienteIdDisponivel()); }
+            catch (err) { console.warn('[controles] boot do Cofre:', err.message); }
+        }
+    } else if (typeof window.switchTab === 'function') window.switchTab('tab-ativos');
     if (!estado.clienteId) {
         await new Promise(resolve => {
             window.addEventListener('cofre:dados-carregados', resolve, { once: true });
@@ -155,7 +167,11 @@ export async function abrirItemControleDaEmpresa(itemId) {
     itemControleOrigemTela = 'empresa-app';
 }
 export async function abrirNovoItemEmpresa() {
-    await garantirCofrePronto();
+    await garantirCofrePronto({ ficarNaTela: true });
+    // O modal nasce dentro da aba Ativos (cofre.html), que fica display:none fora dela. Levá-lo para o body o mostra por
+    // cima de Minha empresa; os cliques continuam funcionando porque o cofre-app.js escuta no document.
+    const modal = document.getElementById('modal-criar-item-controle');
+    if (modal && modal.parentElement !== document.body) document.body.appendChild(modal);
     await abrirFormControle({ vinculo: 'empresa' });
 }
 window.addEventListener('cofre:recarregar-eventos', () => {
@@ -3204,7 +3220,8 @@ export function fecharFormControle() {
     // v1.49.0 (demanda a30da78b) — aberto pelo card da empresa: volta para Minha empresa
     if (novoItemVinculo === 'empresa') {
         novoItemVinculo = null;
-        if (typeof window.switchTab === 'function') window.switchTab('tab-minha-empresa');
+        if (document.getElementById('tab-minha-empresa')?.classList.contains('active')) montarBoxControlesEmpresa();
+        else if (typeof window.switchTab === 'function') window.switchTab('tab-minha-empresa');
     }
 }
 

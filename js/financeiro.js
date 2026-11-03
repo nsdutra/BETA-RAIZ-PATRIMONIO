@@ -1,7 +1,12 @@
 // ============================================================================
 // financeiro.js — Raiz Patrimônio · Financeiro (Recebimentos · Atrasados · Saídas
 //                  · conciliação de extrato · recibo · detalhe do recebimento)
-// Versão: 1.80.0 · 23/10/2026
+// Versão: 1.80.1 · 03/11/2026
+//
+// v1.80.1 (03/11/2026, sessão 20261103-0956-fluxo-empresa-fin, demanda c0d72a50; de acordo do Nicola 03/11 09:56) — Lançar ›
+// Adicionar saída leva para Saídas, e Adicionar recebimento leva para Recebimentos, antes de abrir o formulário: antes a
+// tela ficava na aba em que se estava, e o lançamento salvo não aparecia na lista.
+// Versão anterior: 1.80.0 · 23/10/2026
 //
 // v1.80.0 (23/10/2026, sessão 20261023-0955-computador-ajustes, demanda 15146a34; print do Nicola 23/10 09:49 "ao lançar a
 // despesa nem todos estão do mesmo tamanho") — Nova despesa / Detalhes da despesa: os campos antigos (Vínculo, Descrição,
@@ -33,7 +38,7 @@
 // Versões anteriores (v1.75.0 … v1.75.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '1.80.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.80.1'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 
 // v1.17.0 (Fase 1 do wrapper de escrita, rollout Financeiro) — emitirEscrita
 // é o evento padrão pra "algo mudou que módulos DE FORA deste arquivo podem
@@ -377,12 +382,15 @@ export function abrirLancarFinanceiro(aba) {
     if (typeof abrirSheetAcoes !== 'function') return;
     const fechada = (typeof window !== 'undefined') && window.RZ_FIN_FECHAMENTO?.status === 'concluido';
     const avisoFechada = () => rzToast('Mês fechado. Reabra em Rotinas.', { tipo: 'info' });
+    // O formulário abre por cima da aba atual e o render pós-salvar só redesenha a aba ativa: sem trocar antes, a saída
+    // lançada a partir de Recebimentos (ou o recebimento a partir de Saídas) some da vista.
+    const irPara = (tab) => { if (!document.getElementById(tab)?.classList.contains('active') && typeof switchTab === 'function') switchTab(tab); };
     const acoes = [
         { icone: 'file-down', tipo: 'ia', titulo: 'Importar extrato (IA)', codigo: 'conciliacao.importar', sub: 'Excel, PDF ou foto', aoTocar: () => document.getElementById('extrato-file-input')?.click() },
         { icone: 'credit-card', tipo: 'ia', titulo: 'Importar fatura (IA)', codigo: 'cartao.importar', sub: 'PDF ou foto', aoTocar: () => financeiroImportarFatura() }, // v1.37.0 (P5a)
         { icone: 'file-plus', tipo: 'ia', titulo: 'Ler um documento (IA)', codigo: 'cofre.analisar_ia', sub: 'Comprovante, boleto, nota', aoTocar: () => { if (typeof abrirUploadDocumentoNoApp === 'function') abrirUploadDocumentoNoApp(); } },
-        { icone: 'arrow-down-left', titulo: 'Adicionar recebimento', sub: fechada ? 'Mês fechado: reabra' : 'Com ou sem contrato', aoTocar: () => fechada ? avisoFechada() : abrirAdicionarRecebimento() },
-        { icone: 'arrow-up-right', titulo: 'Adicionar saída', sub: fechada ? 'Mês fechado: reabra' : 'Despesa, tributo, manutenção', aoTocar: () => fechada ? avisoFechada() : abrirNovaDespesa() },
+        { icone: 'arrow-down-left', titulo: 'Adicionar recebimento', sub: fechada ? 'Mês fechado: reabra' : 'Com ou sem contrato', aoTocar: () => { if (fechada) return avisoFechada(); irPara('tab-mensal'); abrirAdicionarRecebimento(); } },
+        { icone: 'arrow-up-right', titulo: 'Adicionar saída', sub: fechada ? 'Mês fechado: reabra' : 'Despesa, tributo, manutenção', aoTocar: () => { if (fechada) return avisoFechada(); irPara('tab-saidas'); abrirNovaDespesa(); } },
     ];
     if (aba === 'conciliacao') {
         acoes.push({ icone: 'refresh-cw', titulo: 'Reprocessar pendências', codigo: 'conciliacao.resolver', sub: 'Compara de novo', aoTocar: () => reprocessarConciliacaoPendente() });
