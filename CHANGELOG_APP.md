@@ -4,6 +4,16 @@ Histórico completo de versões do `index.html`, movido automaticamente pelo `ge
 
 ---
 
+NOVIDADES (Beta v1.486.0) — lista do Patrimônio pela largura dela.
+Versão anterior (Beta v1.484.0):
+DATA: 23/10/2026 (sessão 20261023-0955-computador-ajustes, demanda 15146a34)
+------------------------------------------------------------------
+Versões anteriores (v1.484.0 … v1.484.0): CHANGELOG_APP.md, na raiz do
+repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
+das 5 versões mais recentes deste cabeçalho.
+
+---
+
 NOVIDADES (Beta v1.484.0) — ajustes C5/C6.
 Versão anterior (Beta v1.483.0):
 DATA: 23/10/2026 (sessão 20261023-0910-isolamento, demanda a4935151)

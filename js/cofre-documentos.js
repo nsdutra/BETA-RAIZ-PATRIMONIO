@@ -1,6 +1,12 @@
 // ============================================================================
 // cofre-documentos.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 2.39.0 · 23/10/2026
+// Versão: 2.39.1 · 06/11/2026
+//
+// v2.39.1 (06/11/2026, sessão 20261106-0859-hotfix-confira, demanda 2f81d543) — CORREÇÃO: "Conferir e salvar" não abria
+// a conferência quando o tipo lido não gera controle (ex.: Matrícula). aplicarSubtipoUpload usava `vencido`, variável que
+// só existe em atualizarDisponibilidadeControleUpload; com gera_controle=false o ReferenceError parava o fluxo depois de
+// fechar o painel, e nada era gravado. Passa a ler o vencido do próprio motor (m.vencimento?.vencido).
+// Versão anterior: 2.39.0 · 23/10/2026
 //
 // v2.39.0 (23/10/2026, sessão 20261023-0915-computador-c6, demanda 15146a34; PROTOTIPO_COMPUTADOR_RAIZ v1.1.0 §11, de acordo do Nicola 23/10 08:51) — C6 · escala de letras: 18 tamanhos de letra escritos em número (font-size:13px etc.) trocados pelos da escala (--fs-mini 11 · --fs-sec 12,5 · --fs-corpo 14 · --fs-titulo 17; 16 px fica, por causa do zoom do iPhone em campo, e 18 px ou mais também — herói e números grandes). Nada muda de lugar; só o tamanho passa a ser o mesmo em todas as telas.
 // Versão anterior: 2.38.0 · 15/10/2026
@@ -21,18 +27,11 @@
 // "Confirmar e controlar"; "Editar detalhes" abre o formulário completo, e qualquer dúvida da leitura cai nele.
 // (b) Cada data uma vez só: o campo do tipo que repete "Data do documento", "Vence em" ou a vigência fica escondido
 // e é regravado no salvar; o "Início" do controle some quando o controle é de documento.
-//
-// Versão anterior: 2.35.0 · 09/10/2026
-//
-// v2.35.0 (UX F2.3b, demanda fcd3008d, sessão 20261003-1707-ux-base; plano F2.3 aprovado pelo Nicola 09/10 20:52 ("Estou de acordo com f2.3 e opcao a")) —
-// busca universal do Hoje: buscarDocumentosTexto(termo) devolve os documentos com o mesmo critério do
-// "Buscar no Cofre" (nome e descrição), já no formato de linha do resultado. No app, o "Buscar no Cofre"
-// passa a ser a busca universal; o popup fica só para o cofre.html avulso.
 // --------------------------------------------------------------------------
-// Versões anteriores (v2.34.0 … v2.34.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v2.35.0 … v2.35.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '2.39.0'; // v-check (22/09/2026): lido por Dev › Versões — manter igual ao header
+export const VERSAO = '2.39.1'; // v-check (22/09/2026): lido por Dev › Versões — manter igual ao header
 import { estado } from './cofre-estado.js';
 // v2.3.1 — import TOLERANTE: na v2.2.0 isto era um import estático. Quando o
 // cofre-imagem.js não subiu no deploy (faltava a linha no manifesto), o import
@@ -1469,7 +1468,7 @@ export function aplicarSubtipoUpload(primeira = false) {
     const permite = atualizarDisponibilidadeControleUpload();
     const chk = g('uc-controlar');
     const geraPadrao = s ? !!s.gera_controle_padrao : !!up.padroes.controleTipo;
-    const bloqueadoPorValidacao = mesmoDaIA && m.gera_controle === false && !vencido;
+    const bloqueadoPorValidacao = mesmoDaIA && m.gera_controle === false && !m.vencimento?.vencido;
     chk.checked = permite && geraPadrao && !!g('uc-validade').value && !bloqueadoPorValidacao;
     g('uc-controle-bloco').classList.toggle('hidden', !chk.checked);
     if (up.padroes.controleTipo) g('uc-ctl-tipo').value = up.padroes.controleTipo;
