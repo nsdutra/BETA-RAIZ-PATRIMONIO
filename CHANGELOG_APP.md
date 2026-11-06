@@ -4,6 +4,16 @@ Histórico completo de versões do `index.html`, movido automaticamente pelo `ge
 
 ---
 
+NOVIDADES (Beta v1.484.0) — ajustes C5/C6.
+Versão anterior (Beta v1.483.0):
+DATA: 23/10/2026 (sessão 20261023-0910-isolamento, demanda a4935151)
+------------------------------------------------------------------
+Versões anteriores (v1.483.0 … v1.483.0): CHANGELOG_APP.md, na raiz do
+repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
+das 5 versões mais recentes deste cabeçalho.
+
+---
+
 NOVIDADES (Beta v1.483.0) — listas relidas após criar/editar; import map.
 Versão anterior (Beta v1.482.0):
 DATA: 23/10/2026 (sessão 20261023-0935-computador-c4, demanda 15146a34)
