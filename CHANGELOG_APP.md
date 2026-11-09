@@ -4,6 +4,16 @@ Histórico completo de versões do `index.html`, movido automaticamente pelo `ge
 
 ---
 
+NOVIDADES (Beta v1.488.0) — agenda.js 1.15.0 (Vincular a: bens e pessoas; data vaga); import map.
+Versão anterior (Beta v1.487.0):
+DATA: 24/10/2026 (sessão 20261024-2300-minutas-topo, pedido do Nicola 24/10 22:58)
+------------------------------------------------------------------
+Versões anteriores (v1.487.0 … v1.487.0): CHANGELOG_APP.md, na raiz do
+repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
+das 5 versões mais recentes deste cabeçalho.
+
+---
+
 NOVIDADES (Beta v1.487.0) — Minutas: os dois botões do topo viram o ⋮ (Gerar de contrato real · Enviar modelo .docx).
 Versão anterior (Beta v1.486.0):
 DATA: 23/10/2026 (sessão 20261023-2110-ux-escala, demanda 15146a34)

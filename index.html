@@ -6,8 +6,11 @@
    (base derivada do RUMO v7.4.2 — histórico de versões anteriores
    preservado abaixo para referência técnica)
 
-   VERSÃO: Beta v1.488.4
-   LINHAS: 15608
+   VERSÃO: Beta v1.489.0
+   LINHAS: 15607
+   DATA: 09/11/2026 (sessão 20261109-0917-doc-agenda-nome, demanda 16996755)
+   NOVIDADES (Beta v1.489.0) — cofre-documentos.js 2.40.0 (ver o documento no app); import map.
+   Versão anterior (Beta v1.488.4):
    DATA: 08/11/2026 (demanda babfb8eb)
    NOVIDADES (Beta v1.488.4) — contratos.js 1.70.0 (cobrança do mês); import map.
    Versão anterior (Beta v1.488.3):
@@ -21,11 +24,8 @@
    NOVIDADES (Beta v1.488.1) — import map.
    Versão anterior (Beta v1.488.0):
    DATA: 30/10/2026 (sessão 20261030-0014-compromisso-bem, demanda 2441dd55)
-   NOVIDADES (Beta v1.488.0) — agenda.js 1.15.0 (Vincular a: bens e pessoas; data vaga); import map.
-   Versão anterior (Beta v1.487.0):
-   DATA: 24/10/2026 (sessão 20261024-2300-minutas-topo, pedido do Nicola 24/10 22:58)
    ------------------------------------------------------------------
-   Versões anteriores (v1.487.0 … v1.487.0): CHANGELOG_APP.md, na raiz do
+   Versões anteriores (v1.488.0 … v1.488.0): CHANGELOG_APP.md, na raiz do
    repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
    das 5 versões mais recentes deste cabeçalho.
 
@@ -53,7 +53,7 @@
          O navegador aplica o mapa também aos imports estáticos dentro dos
          módulos (cofre-app.js → ./cofre-api.js etc.). -->
     <!-- RZ-IMPORTMAP:INICIO -->
-    <script type="importmap">{"imports":{"./js/cadastros.js":"./js/cadastros.js?v=1.3.0","./js/financeiro.js":"./js/financeiro.js?v=1.80.1","./js/fechamento.js":"./js/fechamento.js?v=1.16.0","./js/contratos.js":"./js/contratos.js?v=1.70.0","./js/minutas.js":"./js/minutas.js?v=1.8.0","./js/vitrine.js":"./js/vitrine.js?v=1.6.0","./js/imoveis.js":"./js/imoveis.js?v=1.11.0","./js/cofre-api.js":"./js/cofre-api.js?v=1.55.0","./js/cofre-app.js":"./js/cofre-app.js?v=1.52.0","./js/cofre-ativos.js":"./js/cofre-ativos.js?v=1.150.0","./js/cofre-controles.js":"./js/cofre-controles.js?v=1.72.1","./js/cofre-documentos.js":"./js/cofre-documentos.js?v=2.39.1","./js/cofre-imagem.js":"./js/cofre-imagem.js?v=1.2.0","./js/cofre-estado.js":"./js/cofre-estado.js?v=1.5.2","./js/cofre-navegacao.js":"./js/cofre-navegacao.js?v=1.10.0","./js/cofre-ui.js":"./js/cofre-ui.js?v=1.7.2","./js/cofre-validacoes.js":"./js/cofre-validacoes.js?v=2.14.0","./js/comum-licenca.js":"./js/comum-licenca.js?v=1.9.0","./js/comum-renovacao.js":"./js/comum-renovacao.js?v=1.4.0","./js/comum-minha-empresa.js":"./js/comum-minha-empresa.js?v=1.21.0","./js/comum-pessoas.js":"./js/comum-pessoas.js?v=1.217.0","./js/comum-sobre.js":"./js/comum-sobre.js?v=1.5.0","./js/comum-endereco.js":"./js/comum-endereco.js?v=1.2.0","./js/comum-partes.js":"./js/comum-partes.js?v=1.0.0","./js/resultados.js":"./js/resultados.js?v=2.20.0","./js/indicadores.js":"./js/indicadores.js?v=1.3.0","./js/configuracao-inicial.js":"./js/configuracao-inicial.js?v=1.2.0","./js/relatorios-executivos.js":"./js/relatorios-executivos.js?v=1.7.0","./js/raiz-eventos.js":"./js/raiz-eventos.js?v=1.0.0","./js/raiz-device.js":"./js/raiz-device.js?v=1.1.0","./js/raiz-ui.js":"./js/raiz-ui.js?v=1.9.0","./js/fiscal.js":"./js/fiscal.js?v=1.7.0","./js/ativos/ativos-boot.js":"./js/ativos/ativos-boot.js?v=1.4.0","./js/ativos/ativos-markup.js":"./js/ativos/ativos-markup.js?v=1.69.0","./js/nucleo/porta.js":"./js/nucleo/porta.js?v=1.7.0","./js/partes.js":"./js/partes.js?v=1.1.0","./js/conta.js":"./js/conta.js?v=1.5.0","./js/grupo-visao.js":"./js/grupo-visao.js?v=1.0.0","./js/agenda.js":"./js/agenda.js?v=1.15.0","./js/cofre-membros.js":"./js/cofre-membros.js?v=1.0.0","./js/cockpit-metas.js":"./js/cockpit-metas.js?v=1.0.0","./js/nucleo/bibliotecas.js":"./js/nucleo/bibliotecas.js?v=1.0.0"}}</script>
+    <script type="importmap">{"imports":{"./js/cadastros.js":"./js/cadastros.js?v=1.3.0","./js/financeiro.js":"./js/financeiro.js?v=1.80.1","./js/fechamento.js":"./js/fechamento.js?v=1.16.0","./js/contratos.js":"./js/contratos.js?v=1.70.0","./js/minutas.js":"./js/minutas.js?v=1.8.0","./js/vitrine.js":"./js/vitrine.js?v=1.6.0","./js/imoveis.js":"./js/imoveis.js?v=1.11.0","./js/cofre-api.js":"./js/cofre-api.js?v=1.55.0","./js/cofre-app.js":"./js/cofre-app.js?v=1.52.0","./js/cofre-ativos.js":"./js/cofre-ativos.js?v=1.150.0","./js/cofre-controles.js":"./js/cofre-controles.js?v=1.72.1","./js/cofre-documentos.js":"./js/cofre-documentos.js?v=2.40.0","./js/cofre-imagem.js":"./js/cofre-imagem.js?v=1.2.0","./js/cofre-estado.js":"./js/cofre-estado.js?v=1.5.2","./js/cofre-navegacao.js":"./js/cofre-navegacao.js?v=1.10.0","./js/cofre-ui.js":"./js/cofre-ui.js?v=1.7.2","./js/cofre-validacoes.js":"./js/cofre-validacoes.js?v=2.14.0","./js/comum-licenca.js":"./js/comum-licenca.js?v=1.9.0","./js/comum-renovacao.js":"./js/comum-renovacao.js?v=1.4.0","./js/comum-minha-empresa.js":"./js/comum-minha-empresa.js?v=1.21.0","./js/comum-pessoas.js":"./js/comum-pessoas.js?v=1.217.0","./js/comum-sobre.js":"./js/comum-sobre.js?v=1.5.0","./js/comum-endereco.js":"./js/comum-endereco.js?v=1.2.0","./js/comum-partes.js":"./js/comum-partes.js?v=1.0.0","./js/resultados.js":"./js/resultados.js?v=2.20.0","./js/indicadores.js":"./js/indicadores.js?v=1.3.0","./js/configuracao-inicial.js":"./js/configuracao-inicial.js?v=1.2.0","./js/relatorios-executivos.js":"./js/relatorios-executivos.js?v=1.7.0","./js/raiz-eventos.js":"./js/raiz-eventos.js?v=1.0.0","./js/raiz-device.js":"./js/raiz-device.js?v=1.1.0","./js/raiz-ui.js":"./js/raiz-ui.js?v=1.9.0","./js/fiscal.js":"./js/fiscal.js?v=1.7.0","./js/ativos/ativos-boot.js":"./js/ativos/ativos-boot.js?v=1.4.0","./js/ativos/ativos-markup.js":"./js/ativos/ativos-markup.js?v=1.69.0","./js/nucleo/porta.js":"./js/nucleo/porta.js?v=1.7.0","./js/partes.js":"./js/partes.js?v=1.1.0","./js/conta.js":"./js/conta.js?v=1.5.0","./js/grupo-visao.js":"./js/grupo-visao.js?v=1.0.0","./js/agenda.js":"./js/agenda.js?v=1.15.0","./js/cofre-membros.js":"./js/cofre-membros.js?v=1.0.0","./js/cockpit-metas.js":"./js/cockpit-metas.js?v=1.0.0","./js/nucleo/bibliotecas.js":"./js/nucleo/bibliotecas.js?v=1.0.0"}}</script>
     <!-- RZ-IMPORTMAP:FIM -->
 
     <!-- ===== PWA: permite "instalar" o app no celular (Android e iPhone) ===== -->
@@ -2899,7 +2899,7 @@
         // texto certo toda vez (esqueci 5 versões seguidas, de v1.37.1 até
         // v1.38.3). Agora só precisa mudar UMA linha aqui a cada release;
         // window.onload aplica nos dois lugares automaticamente.
-        const APP_VERSAO = "Beta v1.488.4"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
+        const APP_VERSAO = "Beta v1.489.0"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
 
         // ====================================================================
         // v1.105.0 — HELPERS DE SUPERFÍCIE DA GRAMÁTICA ÚNICA
@@ -3688,8 +3688,7 @@
         // Aplica o CONFIG_CLIENTE aos elementos estáticos da página (logo do topo,
         // cabeçalho interno, recibo em PDF). Roda uma vez, assim que o script carrega
         // — os elementos-alvo já estão no DOM porque vêm antes desta <script> no HTML.
-        // v1.381.0 (UX onda 2, D8) — marca da empresa no topo: o logo numa placa clara de 36 px; logo quadrado vem com o
-        // nome ao lado; logo largo vem sozinho; sem logo, o nome. Nunca iniciais.
+        // v1.381.0 — marca da empresa no topo: logo numa placa clara; sem logo, o nome.
         function rzMarcaHeader(nome) {
             const el = document.getElementById('logo-header');
             if (!el) return;

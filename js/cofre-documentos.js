@@ -1,6 +1,12 @@
 // ============================================================================
 // cofre-documentos.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 2.39.1 · 06/11/2026
+// Versão: 2.40.0 · 09/11/2026
+//
+// v2.40.0 (09/11/2026, sessão 20261109-0917-doc-agenda-nome, demanda 16996755; pedido do Nicola 09/11 09:17) — VER O DOCUMENTO
+// NO APP: a ficha do documento mostra a miniatura da imagem e, para PDF, "Ver o documento"; tocar abre o visualizador em tela
+// cheia (imagem com zoom do aparelho; PDF página a página pelo pdf.js de bibliotecas.js), com Baixar e Fechar. Vale em todo
+// lugar que abre a ficha (Cofre, Anexos do ativo, contrato, item). Outros formatos continuam só com Baixar.
+// Versão anterior: 2.39.1 · 06/11/2026
 //
 // v2.39.1 (06/11/2026, sessão 20261106-0859-hotfix-confira, demanda 2f81d543) — CORREÇÃO: "Conferir e salvar" não abria
 // a conferência quando o tipo lido não gera controle (ex.: Matrícula). aplicarSubtipoUpload usava `vencido`, variável que
@@ -19,19 +25,11 @@
 // v2.37.0 (14/10/2026, sessão 20261014-2145-onda9c-textos, demanda a05ad2ee; onda 9c do estudo PROTOTIPO_UX_DENSIDADE_RAMOS_RAIZ
 // v1.2.0, D6 seção 10) — textos no limite: ação até 24 caracteres, descrição até 28, aviso até 40 com o resultado e tela
 // vazia em 1 frase de até 40. A explicação longa fica na confirmação, quando existe. Nada de comportamento mudou.
-// Versão anterior: 2.36.0 · 14/10/2026
-//
-// v2.36.0 (14/10/2026, sessão 20261014-0830-upload-rapido, demanda 7b0d407b; "De acordo" do Nicola 14/10 08:24) —
-// "Confira o documento" mais curto. (a) Confirmação rápida: documento de pessoa lido com confiança, titular forte,
-// vencimento impresso e controle permitido vira um cartão (titular, número, emissão → validade, aviso) e o botão
-// "Confirmar e controlar"; "Editar detalhes" abre o formulário completo, e qualquer dúvida da leitura cai nele.
-// (b) Cada data uma vez só: o campo do tipo que repete "Data do documento", "Vence em" ou a vigência fica escondido
-// e é regravado no salvar; o "Início" do controle some quando o controle é de documento.
 // --------------------------------------------------------------------------
-// Versões anteriores (v2.35.0 … v2.35.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v2.36.0 … v2.36.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '2.39.1'; // v-check (22/09/2026): lido por Dev › Versões — manter igual ao header
+export const VERSAO = '2.40.0'; // v-check (22/09/2026): lido por Dev › Versões — manter igual ao header
 import { estado } from './cofre-estado.js';
 // v2.3.1 — import TOLERANTE: na v2.2.0 isto era um import estático. Quando o
 // cofre-imagem.js não subiu no deploy (faltava a linha no manifesto), o import
@@ -2175,6 +2173,8 @@ export async function abrirFichaDocumento(id) {
         ${d.descricao ? `<p><strong>Descrição:</strong> ${escapeHtml(d.descricao)}</p>` : ''}
     `;
 
+    montarPreviewDocumento(d); // v2.40.0 — miniatura / "Ver o documento"
+
     const vincs = d.cofre_documento_vinculos || [];
     const emTriagem = vincs.length === 0;
     document.getElementById('fd-vincular-agora-wrapper').classList.toggle('hidden', !emTriagem);
@@ -2198,6 +2198,90 @@ export async function abrirFichaDocumento(id) {
 }
 
 export function fecharFichaDoc() { fecharModal('modal-ficha-doc'); }
+
+// v2.40.0 — VER O DOCUMENTO NO APP: imagem e PDF abrem na tela; o resto segue com Baixar.
+function tipoVisualizavel(d) {
+    const m = String(d?.mime_type || '').toLowerCase(), e = String(d?.extensao || '').toLowerCase();
+    if (m.startsWith('image/') || ['jpg', 'jpeg', 'png', 'webp', 'gif'].includes(e)) return 'imagem';
+    if (m === 'application/pdf' || e === 'pdf') return 'pdf';
+    return null;
+}
+async function montarPreviewDocumento(d) {
+    let box = document.getElementById('fd-preview');
+    if (!box) {
+        box = document.createElement('div');
+        box.id = 'fd-preview';
+        box.style.cssText = 'margin:10px 0 6px';
+        document.getElementById('fd-meta')?.insertAdjacentElement('beforebegin', box);
+    }
+    box.innerHTML = '';
+    const tipo = d.arquivo_mantido === false ? null : tipoVisualizavel(d);
+    if (!tipo) return;
+    const id = d.id;
+    if (tipo === 'imagem') {
+        box.innerHTML = `<button type="button" data-fd-ver aria-label="Ver a imagem" style="display:block;width:100%;padding:0;border:1px solid var(--line);border-radius:12px;overflow:hidden;background:#fff;cursor:zoom-in"><div style="height:160px;display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:13px">Carregando a imagem…</div></button>`;
+        try {
+            const url = await api.gerarSignedUrl(d.bucket, d.storage_path, 600);
+            if (docAtualId !== id) return;
+            box.querySelector('[data-fd-ver]').innerHTML = `<img src="${url}" alt="" style="display:block;width:100%;max-height:240px;object-fit:contain;background:#fff">`;
+        } catch (e) { console.warn('[cofre-documentos] miniatura:', e?.message || e); box.innerHTML = ''; return; }
+    } else {
+        box.innerHTML = `<button type="button" data-fd-ver class="rz-btn" style="width:100%;height:44px;display:flex;align-items:center;justify-content:center;gap:8px"><i data-lucide="file-text"></i>Ver o documento</button>`;
+        refrescarIcones();
+    }
+    box.querySelector('[data-fd-ver]')?.addEventListener('click', () => abrirVisualizadorDocumento(d));
+}
+export async function abrirVisualizadorDocumento(d) {
+    const tipo = tipoVisualizavel(d);
+    if (!tipo || d.arquivo_mantido === false) return baixarDocumentoAtual();
+    document.getElementById('rz-visualizador')?.remove();
+    const ov = document.createElement('div');
+    ov.id = 'rz-visualizador';
+    ov.setAttribute('role', 'dialog');
+    ov.style.cssText = 'position:fixed;inset:0;z-index:9999;background:rgba(14,20,17,.96);display:flex;flex-direction:column';
+    const bt = 'background:rgba(255,255,255,.14);color:#fff;border:0;border-radius:10px;height:38px;font:inherit;cursor:pointer';
+    ov.innerHTML = `<div style="display:flex;align-items:center;gap:8px;padding:calc(10px + env(safe-area-inset-top)) 12px 10px;color:#fff">
+            <b style="flex:1;min-width:0;font-size:15px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escapeHtml(d.nome_exibicao || 'Documento')}</b>
+            <button type="button" data-vz-baixar style="${bt};padding:0 14px">Baixar</button>
+            <button type="button" data-vz-fechar aria-label="Fechar" style="${bt};width:38px;font-size:18px">✕</button></div>
+        <div data-vz-corpo style="flex:1;overflow:auto;-webkit-overflow-scrolling:touch;display:flex;flex-direction:column;align-items:center;gap:8px;padding:0 8px 24px;color:#fff"><p style="margin-top:48px">Abrindo…</p></div>`;
+    document.body.appendChild(ov);
+    const esc = (e) => { if (e.key === 'Escape') fechar(); };
+    const fechar = () => { ov.remove(); document.removeEventListener('keydown', esc); };
+    document.addEventListener('keydown', esc);
+    ov.querySelector('[data-vz-fechar]').addEventListener('click', fechar);
+    ov.querySelector('[data-vz-baixar]').addEventListener('click', () => baixarDocumentoAtual());
+    const corpo = ov.querySelector('[data-vz-corpo]');
+    try {
+        const url = await api.gerarSignedUrl(d.bucket, d.storage_path, 600);
+        api.registrarLogAcessos(estado.clienteId, estado.pessoa?.id, 'cofre.download', { documento_id: d.id, visualizar: true });
+        if (tipo === 'imagem') {
+            corpo.innerHTML = `<img src="${url}" alt="" style="max-width:100%;height:auto;margin:auto 0;touch-action:pinch-zoom">`;
+            return;
+        }
+        const { carregarBiblioteca } = await import('./nucleo/bibliotecas.js');
+        const pdfjsLib = await carregarBiblioteca('pdfjs');
+        const pdf = await pdfjsLib.getDocument(url).promise;
+        corpo.innerHTML = '';
+        const largura = Math.min(window.innerWidth - 16, 900);
+        const limite = Math.min(pdf.numPages, 30);
+        for (let n = 1; n <= limite; n++) {
+            if (!ov.isConnected) return;
+            const pg = await pdf.getPage(n);
+            const base = pg.getViewport({ scale: 1 });
+            const vp = pg.getViewport({ scale: (largura / base.width) * Math.min(window.devicePixelRatio || 1, 2) });
+            const cv = document.createElement('canvas');
+            cv.width = vp.width; cv.height = vp.height;
+            cv.style.cssText = `width:${largura}px;height:auto;background:#fff;border-radius:4px`;
+            corpo.appendChild(cv);
+            await pg.render({ canvasContext: cv.getContext('2d'), viewport: vp }).promise;
+        }
+        if (pdf.numPages > limite) corpo.insertAdjacentHTML('beforeend', `<p>Mostrando ${limite} de ${pdf.numPages} páginas. Baixe para ver tudo.</p>`);
+    } catch (e) {
+        console.warn('[cofre-documentos] visualizador:', e?.message || e);
+        corpo.innerHTML = '<p style="margin-top:48px;text-align:center">Não consegui abrir aqui.<br>Toque em Baixar.</p>';
+    }
+}
 
 export async function irParaVinculo(tipo, id) {
     fecharFichaDoc();
