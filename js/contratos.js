@@ -1,7 +1,15 @@
 // ============================================================================
 // contratos.js — Raiz Patrimônio · Contratos (lista · ficha · formulário ·
 //                 status/reajuste/detalhes · fiadores · documentos · histórico)
-// Versão: 1.69.0 · 23/10/2026
+// Versão: 1.70.0 · 08/11/2026
+//
+// v1.70.0 (08/11/2026, sessão 20261108-2127-encargos-generico, demanda babfb8eb; FICHA_ESTEIRA_ENCARGOS_INQUILINO_ETAPA1_RAIZ
+// v1.2.0, de acordo do Nicola 08/11 21:40) — COBRANÇA DO MÊS: card novo na ficha do contrato (abaixo de Condições) com a regra
+// do condomínio e do IPTU (inquilino paga direto · proprietário cobra junto no aluguel · reembolso à parte · não repassa) e o
+// envio; o ⋮ abre o formulário, que grava pela fn_contrato_cobranca_definir (a mesma do robô) e pergunta uma vez se o imóvel
+// tem condomínio. Só aparece com a esteira de encargos no plano. Código no fim do arquivo (montarCobrancaContrato,
+// abrirCobrancaContrato).
+// Versão anterior: 1.69.0 · 23/10/2026
 //
 // v1.69.0 (23/10/2026, sessão 20261023-0935-computador-c4, demanda 15146a34; PROTOTIPO_COMPUTADOR_RAIZ v1.1.0 §9 C4, de acordo
 // do Nicola 23/10 08:51) — CONTRATO NO CONTEXTO: o ‹ da ficha do contrato volta para onde ela foi aberta — da lista de
@@ -21,14 +29,8 @@
 //   a lista de Contratos vira tabela (Locatário · Imóvel · Fim · Aluguel · Situação) com cabeçalho que ordena dentro de cada
 //   empreendimento; a linha de baixo do celular continua igual (imóvel · anexos · até dd/mm/aaaa), agora em partes (<i>) que
 //   o raiz.css 1.9.0 distribui em colunas. Com a ficha aberta, a lista fica à esquerda e a ficha em painel de 560 px.
-// Versão anterior: 1.65.0 · 21/10/2026
-//
-// v1.65.0 (21/10/2026, sessão 20261021-1235-ux-onda3, demanda 15146a34; Nicola 21/10 12:33, "pode fazer a onda 3") — ONDA 3, cabeçalho da ficha do contrato: o título é o imóvel e o
-//   locatário vai na linha de baixo (antes o nome do locatário quebrava em 2 linhas e o valor partia no meio); abaixo, a faixa
-//   Aluguel · Em aberto · Fim. As Condições continuam com Início e Fim inteiros. Estilo no raiz.css 1.5.0. Achado: "Editar
-//   contrato" com descrição dentro do limite ("Datas, valor e índice").
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.64.0 … v1.64.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.65.0 … v1.65.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
 import { avaliarProntidaoContratoParaMinuta } from './minutas.js'; // v1.0.1
@@ -40,7 +42,7 @@ import { emitirEscrita, aoEscrever } from './raiz-eventos.js'; // v1.18.0 — Fa
 import { renderizarBlocoEndereco, lerBlocoEndereco } from './comum-endereco.js';
 import { formatarEnderecoParte } from './comum-partes.js';
 
-export const VERSAO = '1.69.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.70.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 
 // Faixa do cabeçalho da ficha do contrato: o resumo que se procura primeiro (valor, o que está em aberto e até quando vai).
 // Fim em mês/ano curto ("fev/28"); a data inteira fica no card Condições.
@@ -1682,6 +1684,7 @@ if (!window.__rzListenerEscritaParteContratoLigado) {
                             ${kv('Imóvel', escapeHtmlSaidas(imo ? `${imo.empreendimento || ''} · ${enderecoCurto}` : '—'))}
                         </div>
                     </div>
+                    ${rzCobCardHtml(con.id)}
                     <div class="rz-card" id="fc-card-ocorrencias">
                         <div class="rz-card-h"><h3>Ocorrências</h3><span class="rz-sub" id="fc-ocorrencias-status"></span></div>
                         <div id="fc-ocorrencias">${rzSk('linhas', 2)}</div>
@@ -1831,6 +1834,7 @@ if (!window.__rzListenerEscritaParteContratoLigado) {
             montarOcorrenciasContrato(con.id); // v1.1.0 — A.10
             montarPartesEncerradasContrato(con.id); // v1.43.0 — demanda b94ef7d5
             montarDistribuicaoContrato(con.id); // NOVO (19/09/2026, rodada 10)
+            montarCobrancaContrato(con.id); // v1.70.0 — cobrança do mês
             montarSimulacaoReajusteContrato(con.id); // v1.14.0 (B1.2)
             montarItensControleContrato(con.id); // v1.27.0 (Bloco B)
             if (typeof window.rzFinCompetencias === 'function') window.rzFinCompetencias('fc-fin-comp', { contratoId: con.id }); // v1.51.0
@@ -5252,3 +5256,133 @@ function rzSk(tipo, n) {
         ? window.rzSkeleton(tipo, n)
         : '<p class="rz-desc">Carregando…</p>';
 }
+
+// ============================================================================
+// v1.70.0 (08/11/2026, sessão 20261108-2127-encargos-generico, demanda babfb8eb; FICHA_ESTEIRA_ENCARGOS_INQUILINO_ETAPA1_RAIZ
+// v1.2.0, de acordo do Nicola 08/11 21:40) — COBRANÇA DO MÊS. Card na ficha do contrato com a regra de cada encargo
+// (condomínio e IPTU) e o envio; o ⋮ abre o formulário que grava pela fn_contrato_cobranca_definir — a mesma função que o
+// robô usa (CAN-02). Quem paga continua nos campos de sempre (condominio_locatario / locatario_paga_iptu): a função os
+// acerta. Imóvel marcado "Tem condomínio: Não" não mostra a linha do condomínio; vazio pergunta uma vez. Sem a esteira no
+// plano (encargos.esteira), o card não aparece.
+// ============================================================================
+const RZ_COB_REGRAS = [
+    ['inquilino_direto', 'Inquilino paga direto'],
+    ['proprietario_junto', 'Proprietário paga e cobra junto no aluguel'],
+    ['proprietario_reembolso', 'Proprietário paga e cobra reembolso à parte'],
+    ['proprietario_nao_repassa', 'Proprietário paga e não repassa'],
+];
+const RZ_COB_ENVIO = [['gestor', 'Mensagem pronta para você'], ['robo', 'O robô manda ao inquilino'], ['desligado', 'Desligado']];
+const rzCobRotulo = (lista, v) => (lista.find(x => x[0] === v) || [null, '—'])[1];
+function rzCobLiberada() {
+    return typeof podeUsar === 'function' ? !!podeUsar('encargos.esteira')?.ok : false;
+}
+function rzCobCardHtml(contratoId) {
+    if (!rzCobLiberada()) return '';
+    return `<div class="rz-card" id="fc-card-cobranca">
+                        <div class="rz-card-h"><h3>Cobrança do mês</h3><span class="rz-sub">Condomínio e IPTU</span><button type="button" onclick="abrirCobrancaContrato('${contratoId}')" class="rz-more" aria-label="Editar a cobrança do mês"><svg data-lucide="ellipsis-vertical"></svg></button></div>
+                        <div id="fc-cobranca">${rzSk('linhas', 2)}</div>
+                    </div>`;
+}
+async function rzCobLer(contratoId) {
+    const { data, error } = await dbAuth.rpc('fn_contrato_cobranca_regras', { p_contrato: contratoId });
+    if (error) throw error;
+    return data;
+}
+function rzCobDetalhe(e) {
+    const p = [];
+    if (e?.regra === 'proprietario_reembolso') p.push(`vence ${e.dias_reembolso ?? 5} dias após o boleto`);
+    if ((e?.regra === 'proprietario_junto' || e?.regra === 'proprietario_reembolso') && e.aprovar_ate_pct != null) p.push(`aprova sozinho até ${e.aprovar_ate_pct}%`);
+    return p.length ? ` · ${p.join(' · ')}` : '';
+}
+export async function montarCobrancaContrato(contratoId) {
+    const el = document.getElementById('fc-cobranca');
+    if (!el || fichaContratoAtualId !== contratoId) return;
+    try {
+        const r = await rzCobLer(contratoId);
+        const semCond = r?.possui_condominio === 'Não';
+        const kvC = (rot, v) => `<div class="rz-full"><small>${rot}</small><b style="font-weight:500">${v}</b></div>`;
+        el.innerHTML = `<div class="rz-kv">
+            ${semCond ? kvC('Condomínio', 'Imóvel sem condomínio') : kvC('Condomínio', escapeHtmlSaidas(rzCobRotulo(RZ_COB_REGRAS, r?.encargos?.condominio?.regra) + rzCobDetalhe(r?.encargos?.condominio)))}
+            ${kvC('IPTU', escapeHtmlSaidas(rzCobRotulo(RZ_COB_REGRAS, r?.encargos?.iptu?.regra) + rzCobDetalhe(r?.encargos?.iptu)))}
+            ${kvC('Envio', escapeHtmlSaidas(`${rzCobRotulo(RZ_COB_ENVIO, r?.envio)} · ${r?.dias_antes ?? 5} dias antes · recibo ${r?.recibo_auto ? 'automático' : 'manual'}`))}
+        </div>`;
+    } catch (err) {
+        el.innerHTML = `<p class="rz-desc">Não consegui carregar a cobrança do mês.</p>`;
+        console.warn('[contratos] cobrança do mês:', err.message);
+    }
+}
+function rzCobSelect(id, lista, valor) {
+    return `<select id="${id}">${lista.map(([v, t]) => `<option value="${v}"${v === valor ? ' selected' : ''}>${escapeHtmlSaidas(t)}</option>`).join('')}</select>`;
+}
+function rzCobBlocoEncargo(cod, nome, e) {
+    const repassa = e?.regra === 'proprietario_junto' || e?.regra === 'proprietario_reembolso';
+    return `<div class="rz-f" data-cob-enc="${cod}"><label>${nome}</label>${rzCobSelect(`cob-${cod}-regra`, RZ_COB_REGRAS, e?.regra || 'proprietario_nao_repassa')}</div>
+        <div class="rz-f2" data-cob-extra="${cod}"${repassa ? '' : ' style="display:none"'}>
+            <div class="rz-f"><label>Aprovar sozinho até (%)</label><input type="number" min="0" max="100" step="1" id="cob-${cod}-pct" value="${e?.aprovar_ate_pct ?? ''}"><span class="rz-hint">Vazio = você confere sempre</span></div>
+            <div class="rz-f" data-cob-dias="${cod}"${e?.regra === 'proprietario_reembolso' ? '' : ' style="visibility:hidden"'}><label>Vence após o boleto (dias)</label><input type="number" min="0" max="30" step="1" id="cob-${cod}-dias" value="${e?.dias_reembolso ?? 5}"></div>
+        </div>`;
+}
+export async function abrirCobrancaContrato(contratoId) {
+    if (typeof podeUsar === 'function' && rzMostrarBloqueio('encargos.esteira')) return;
+    const con = contratos.find(c => c.id === contratoId);
+    let r;
+    try { r = await rzCobLer(contratoId); } catch (err) { mostrarToast('Não consegui abrir a cobrança', 'danger'); return; }
+    const pc = r?.possui_condominio || '';
+    const corpo = `<p class="rz-desc" style="margin:0 2px 10px">Quem paga cada conta e como ela chega ao inquilino. Vale do mês seguinte em diante; o que já foi lançado não muda.</p>
+        ${pc ? '' : `<div class="rz-f"><label>O imóvel tem condomínio?</label>${rzCobSelect('cob-tem-cond', [['', 'Não sei ainda'], ['Sim', 'Sim'], ['Não', 'Não (casa de rua)']], '')}<span class="rz-hint">Fica guardado no imóvel</span></div>`}
+        <div id="cob-bloco-cond"${pc === 'Não' ? ' style="display:none"' : ''}>${rzCobBlocoEncargo('condominio', 'Condomínio', r?.encargos?.condominio)}</div>
+        ${rzCobBlocoEncargo('iptu', 'IPTU', r?.encargos?.iptu)}
+        <div class="rz-f"><label>Envio da cobrança</label>${rzCobSelect('cob-envio', RZ_COB_ENVIO, r?.envio || 'gestor')}<span class="rz-hint">O envio direto pelo robô começa quando os modelos de mensagem forem aprovados pelo WhatsApp</span></div>
+        <div class="rz-f2">
+            <div class="rz-f"><label>Dias antes do vencimento</label><input type="number" min="0" max="20" step="1" id="cob-dias" value="${r?.dias_antes ?? 5}"></div>
+            <div class="rz-f"><label>Recibo</label>${rzCobSelect('cob-recibo', [['sim', 'Automático'], ['nao', 'Manual']], r?.recibo_auto === false ? 'nao' : 'sim')}</div>
+        </div>`;
+    abrirSheetForm({
+        titulo: 'Cobrança do mês', sub: con?.locatario || '', corpo: (el) => {
+            el.innerHTML = corpo;
+            const ajustar = () => {
+                ['condominio', 'iptu'].forEach(cod => {
+                    const v = el.querySelector(`#cob-${cod}-regra`)?.value;
+                    const extra = el.querySelector(`[data-cob-extra="${cod}"]`);
+                    if (extra) extra.style.display = (v === 'proprietario_junto' || v === 'proprietario_reembolso') ? '' : 'none';
+                    const dias = el.querySelector(`[data-cob-dias="${cod}"]`);
+                    if (dias) dias.style.visibility = v === 'proprietario_reembolso' ? 'visible' : 'hidden';
+                });
+                const tc = el.querySelector('#cob-tem-cond');
+                if (tc) el.querySelector('#cob-bloco-cond').style.display = tc.value === 'Não' ? 'none' : '';
+            };
+            el.addEventListener('change', ajustar);
+        },
+        aoSalvar: async (el) => {
+            const num = (id) => { const v = el.querySelector(id)?.value; return v === '' || v == null ? null : Number(v); };
+            const tc = el.querySelector('#cob-tem-cond')?.value || '';
+            const semCond = (pc || tc) === 'Não';
+            if (tc && con?.imovelId) {
+                const { data: atv } = await dbAuth.from('cofre_ativos').select('dados_especificos').eq('id', con.imovelId).maybeSingle();
+                const { error: eAt } = await dbAuth.from('cofre_ativos').update({ dados_especificos: { ...(atv?.dados_especificos || {}), possui_condominio: tc } }).eq('id', con.imovelId);
+                if (eAt) throw eAt;
+                emitirEscrita('ativo', { id: con.imovelId, acao: 'editar' });
+            }
+            const encargos = {};
+            ['condominio', 'iptu'].forEach(cod => {
+                if (cod === 'condominio' && semCond) return;
+                encargos[cod] = { regra: el.querySelector(`#cob-${cod}-regra`).value, aprovar_ate_pct: num(`#cob-${cod}-pct`), dias_reembolso: num(`#cob-${cod}-dias`) };
+            });
+            const { data, error } = await dbAuth.rpc('fn_contrato_cobranca_definir', {
+                p_contrato: contratoId, p_envio: el.querySelector('#cob-envio').value, p_dias_antes: num('#cob-dias') ?? 5,
+                p_recibo_auto: el.querySelector('#cob-recibo').value === 'sim', p_encargos: encargos, p_pessoa_id: null, p_canal: null,
+            });
+            if (error) throw error;
+            if (con) Object.assign(con, {
+                condominioLocatario: data?.encargos?.condominio?.regra === 'inquilino_direto' ? 'Sim' : 'Não',
+                locatarioPagaIptu: data?.encargos?.iptu?.regra === 'inquilino_direto' ? 'Sim' : 'Não',
+            });
+            emitirEscrita('contrato', { id: contratoId, acao: 'cobranca' });
+            mostrarToast('Cobrança salva', 'success');
+            registrarLog('encargos.esteira', { contratoId, o_que: 'Cobrança do mês' });
+            if (fichaContratoAtualId === contratoId) abrirFichaContrato(contratoId);
+            return true;
+        },
+    });
+}
+if (typeof window !== 'undefined') window.abrirCobrancaContrato = abrirCobrancaContrato;
