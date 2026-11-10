@@ -1,6 +1,9 @@
 /* ============================================================================
    raiz.css — Raiz Patrimônio · estilos do app (index.html)
-   Versão: 1.20.0 · 24/10/2026
+   Versão: 1.20.1 · 09/11/2026
+
+   v1.20.1 (09/11/2026, sessão 20261109-2222-bot-ajustes, demanda 6458fe9e; de acordo do Nicola 09/11 22:22) — o ⋮ do
+   Patrimônio fica à direita também com a carteira vazia: sem os chips na linha, a margem 0 tirava o empurrão para a ponta.
 
    v1.20.0 (24/10/2026, sessão 20261024-1158-ux-largura, demanda 15146a34, testes fc3a853c e 85374ce5; plano aprovado pelo
    Nicola 24/10) — a lista do Patrimônio escolhe o formato pelo espaço que ela tem (container query rzlista), não pela
@@ -400,7 +403,7 @@
         .rz-chips-linha>.rz-chips{flex:1;min-width:0;margin:0 0 0 -16px;padding:2px 10px 2px 16px;gap:5px;
             -webkit-mask-image:linear-gradient(to right,black calc(100% - 18px),transparent);mask-image:linear-gradient(to right,black calc(100% - 18px),transparent)}
         .rz-chips-linha .rz-chip{padding:0 10px;gap:5px}
-        .rz-chips-linha>.rz-more{margin:0 -8px 0 0;align-self:center}
+        .rz-chips-linha>.rz-more{margin:0 -8px 0 auto;align-self:center}
         .rz-ramo-ic{width:28px;height:28px;border-radius:9px;display:inline-flex;align-items:center;justify-content:center;color:var(--card);flex:none}
         .rz-ramo-ic svg{width:15px;height:15px}
         /* v1.436.1 (dem 9404081c, ajuste do Nicola 19/10 09:17) — na lista de Ativos a etiqueta de status fica embaixo do nome */
