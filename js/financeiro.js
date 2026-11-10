@@ -1,7 +1,13 @@
 // ============================================================================
 // financeiro.js — Raiz Patrimônio · Financeiro (Recebimentos · Atrasados · Saídas
 //                  · conciliação de extrato · recibo · detalhe do recebimento)
-// Versão: 1.80.1 · 03/11/2026
+// Versão: 1.81.0 · 09/11/2026
+//
+// v1.81.0 (09/11/2026, sessão 20261109-2210-encargos-fecho, demanda babfb8eb; F4 da FICHA_ESTEIRA_ENCARGOS_INQUILINO_ETAPA1_RAIZ
+// v1.2.0, aprovada 08/11 21:40) — RECIBO DETALHADO: quando o inquilino pagou junto com o aluguel um encargo da esteira
+// (condomínio ou IPTU cobrado "junto", lançamento de ressarcimento já recebido na mesma competência), o recibo soma o encargo
+// no valor e no extenso e ganha a frase "Valor composto por: aluguel R$ …; Condomínio 11/2026 R$ …". Sem encargo, o recibo
+// fica igual. Versão anterior: 1.80.1 · 03/11/2026
 //
 // v1.80.1 (03/11/2026, sessão 20261103-0956-fluxo-empresa-fin, demanda c0d72a50; de acordo do Nicola 03/11 09:56) — Lançar ›
 // Adicionar saída leva para Saídas, e Adicionar recebimento leva para Recebimentos, antes de abrir o formulário: antes a
@@ -23,18 +29,11 @@
 // carteira (relatorios-executivos.js 1.7.0, baixarPlanilhaLista; PADRAO_RELATORIOS v1.6.0, REL-61 a REL-66): empresa e
 // competência no topo, 4 números com fórmula (linhas, total, em atraso, pago), Data como data, Valor como número, linha
 // Total que acompanha o filtro, "Em atraso" em vermelho, ordem cronológica (REL-28) e aba Sobre.
-// Versão anterior: 1.77.0 · 22/10/2026
-//
-// v1.77.0 (22/10/2026, sessão 20261022-2255-fatura-sugestoes, demanda 279ab311; FICHA_CARTAO_COMPRA_ANTECIPADA_RAIZ v1.1.0, de
-// acordo do Nicola 22/10 22:55) — FATURA × DESPESA PREVISTA: na fatura, as compras que parecem uma despesa prevista em aberto
-// (a inscrição de R$ 360 que foi paga no cartão) aparecem no topo, em "Parecem despesas previstas", com a % de semelhança
-// (fn_fatura_listar) e o botão Confirmar (fn_fatura_casar_prevista): a prevista sai, a compra fica ligada ao item e a
-// ocorrência fica concluída. Nada casa sozinho.
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.76.0 … v1.76.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.77.0 … v1.77.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '1.80.1'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.81.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 
 // v1.17.0 (Fase 1 do wrapper de escrita, rollout Financeiro) — emitirEscrita
 // é o evento padrão pra "algo mudou que módulos DE FORA deste arquivo podem
@@ -5375,6 +5374,7 @@ function financeiroRenderCabecalho(aba) {
             }
 
             document.getElementById('pdf-data-emissao').innerText = new Date().toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' });
+            rzReciboComEncargos(con, men); // v1.81.0 — encargos pagos junto entram no recibo
 
             const campoObsRecibo = document.getElementById('modal-recibo-observacoes');
             if (campoObsRecibo) campoObsRecibo.value = men.observacaoRecibo || '';
@@ -5388,6 +5388,29 @@ function financeiroRenderCabecalho(aba) {
                     : (CONFIG_CLIENTE.cidade || '');
             }
 
+        }
+
+        // v1.81.0 — encargos da esteira (ressarcimento recebido "junto", mesma competência) somados ao recibo, com a composição.
+        async function rzReciboComEncargos(con, men) {
+            const obs = document.getElementById('pdf-obs-texto');
+            let comp = document.getElementById('pdf-composicao');
+            if (!comp && obs) { obs.insertAdjacentHTML('beforebegin', '<span id="pdf-composicao"></span>'); comp = document.getElementById('pdf-composicao'); }
+            if (comp) comp.textContent = '';
+            try {
+                const { data: m } = await dbAuth.from('mensalidades').select('competencia').eq('id', men.id).maybeSingle();
+                if (!m?.competencia || activeMenId !== men.id) return;
+                const { data: ls } = await dbAuth.from('lancamentos').select('descricao, valor')
+                    .eq('contrato_id', con.id).eq('direcao', 'entrada').eq('categoria', 'ressarcimento_recebido').eq('status', 'realizado')
+                    .eq('competencia', m.competencia).like('observacao', '%modo:junto%');
+                if (!ls?.length || activeMenId !== men.id) return;
+                const aluguel = Number(men.valorConfirmado || 0);
+                const total = Math.round((aluguel + ls.reduce((t, l) => t + Number(l.valor || 0), 0)) * 100) / 100;
+                const fmt = (v) => Number(v).toLocaleString('pt-BR', { minimumFractionDigits: 2 });
+                document.getElementById('pdf-valor').innerText = fmt(total);
+                document.getElementById('pdf-extenso').innerText = valorPorExtenso(total);
+                if (comp) comp.textContent = ` Valor composto por: aluguel R$ ${fmt(aluguel)}; ` +
+                    ls.map(l => `${String(l.descricao || '').replace(/\s*—\s*reembolso do inquilino$/i, '')} R$ ${fmt(l.valor)}`).join('; ') + '. ';
+            } catch (e) { console.warn('[recibo] encargos:', e?.message); }
         }
 
         // Salva a observação DO RECIBO direto na mensalidade (campo separado da
