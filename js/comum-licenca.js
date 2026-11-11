@@ -1,6 +1,12 @@
 // ============================================================================
 // comum-licenca.js — Raiz Patrimônio · Administração compartilhada
-// Versão: 1.9.0 · 14/10/2026
+// Versão: 1.10.0 · 11/11/2026
+//
+// v1.10.0 (11/11/2026, sessão 20261111-1341-porta-mensagem, demandas b3d771d7 e c5e23028; FICHA_PORTA_MENSAGEM_UNICA_RAIZ
+// v1.0.0, de acordo do Nicola 11/11 13:41) — a frase de bloqueio e de aviso vem do banco. Junto da lista de liberações, o
+// boot lê fn_porta_mensagem (mapa só do que está bloqueado ou em aviso) e podeUsar devolve o título, o texto, o aviso, a
+// oferta de upsell e a ação de lá — as frases copiadas da fn_porta_texto saem daqui (CAN-03). O contrato de podeUsar e de
+// rzMostrarBloqueio não muda; ganha aviso, oferta e acao. Versão anterior: 1.9.0 · 14/10/2026
 //
 // v1.9.0 (14/10/2026, sessão 20261014-2145-onda9c-textos, demanda a05ad2ee; onda 9c do estudo PROTOTIPO_UX_DENSIDADE_RAMOS_RAIZ
 // v1.2.0, D6 seção 10) — textos no limite: ação até 24 caracteres, descrição até 28, aviso até 40 com o resultado e tela
@@ -47,7 +53,7 @@
 // Versões anteriores (v1.5.2 … v1.5.2): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '1.9.0'; // v-check (22/09/2026): lido por Dev › Versões — manter igual ao header
+export const VERSAO = '1.10.0'; // v-check (22/09/2026): lido por Dev › Versões — manter igual ao header
 export const COMUM_LICENCA_VERSAO = '1.0.0';
 
 // ----------------------------------------------------------------------------
@@ -57,12 +63,14 @@ export const COMUM_LICENCA_VERSAO = '1.0.0';
 // Cofre resolvem para o mesmo arquivo).
 // ----------------------------------------------------------------------------
 let _liberadas = new Map();
+let _mensagens = {};           // fn_porta_mensagem: { codigo: { titulo, texto, aviso, oferta, acao } } — só bloqueado ou em aviso
 let _ultimaCarga = null;       // { dbAuth, clienteId, perfil }
 let _toast = null;             // (texto, tipo) => void, fornecido pelo host
 
 export async function carregarFuncionalidadesLiberadas(dbAuth, clienteId, perfil, opcoes = {}) {
     if (typeof opcoes.toast === 'function') _toast = opcoes.toast;
     _liberadas = new Map();
+    _mensagens = {};
     if (!dbAuth || !clienteId || !perfil) return _liberadas;
     _ultimaCarga = { dbAuth, clienteId, perfil };
     try {
@@ -71,6 +79,13 @@ export async function carregarFuncionalidadesLiberadas(dbAuth, clienteId, perfil
         (data || []).forEach(f => _liberadas.set(f.codigo, f));
     } catch (err) {
         console.warn('[comum-licenca] carregarFuncionalidadesLiberadas:', err.message);
+    }
+    try {
+        const { data, error } = await dbAuth.rpc('fn_porta_mensagem', { p_cliente_id: clienteId });
+        if (error) throw error;
+        _mensagens = data || {};
+    } catch (err) {
+        console.warn('[comum-licenca] fn_porta_mensagem:', err.message);
     }
     return _liberadas;
 }
@@ -85,10 +100,9 @@ export async function recarregarFuncionalidadesLiberadas() {
 
 export function funcionalidadesLiberadasCarregadas() { return _liberadas.size > 0; }
 
-// Retorna { ok, motivo, rotulo, limite, usado, avisar, textoCurto, textoLongo }.
-// Código ausente do catálogo = liberado (não inventa bloqueio) — mas avisa no
-// console pra virar linha no catálogo depois. As frases batem com
-// fn_porta_texto() no banco (migration c3_porta_amigos_v1): mudou aqui, muda lá.
+// Retorna { ok, motivo, rotulo, limite, usado, avisar, textoCurto, textoLongo, aviso, oferta, acao }.
+// Código ausente do catálogo = liberado (não inventa bloqueio) — mas avisa no console pra virar linha no catálogo
+// depois. As frases vêm do banco (fn_porta_mensagem → fn_porta_texto), as mesmas do bot; aqui só o fallback de falha.
 export function podeUsar(codigo) {
     if (!codigo) return { ok: true, motivo: null };
     const f = _liberadas.get(codigo);
@@ -97,17 +111,13 @@ export function podeUsar(codigo) {
         return { ok: true, motivo: null, rotulo: codigo };
     }
     const rot = f.rotulo || codigo;
-    const t = {
-        sem_licenca:     ['Não incluído no plano',      f.aviso_padrao || `"${rot}" não faz parte do plano atual da empresa. Fale com a Raiz pra ampliar.`],
-        // estoque = teto do que existe; bytes = MB; mensal = eventos do mês.
-        limite_atingido: f.cota_tipo === 'estoque'
-            ? [`Limite do plano (${f.usado} de ${f.limite})`, f.aviso_padrao || `Sua empresa chegou ao teto de ${f.limite} em "${rot}" do plano atual. Fale com a Raiz pra ampliar.`]
-            : f.cota_tipo === 'bytes'
-            ? [`Espaço esgotado (${f.usado} de ${f.limite} MB)`, f.aviso_padrao || `Sua empresa usou os ${f.limite} MB de armazenamento do plano atual. Fale com a Raiz pra ampliar.`]
-            : [`Limite do mês (${f.usado} de ${f.limite})`, f.aviso_padrao || `Sua empresa já usou os ${f.limite} de "${rot}" deste mês. Fale com a Raiz pra ampliar.`],
-        sem_perfil:      ['Sem permissão no seu perfil', `Seu perfil não tem "${rot}". Peça ao administrador da empresa.`],
-    }[f.motivo] || [null, null];
-    return { ok: !f.motivo, motivo: f.motivo, rotulo: rot, limite: f.limite, usado: f.usado, avisar: f.avisar, textoCurto: t[0], textoLongo: t[1] };
+    const m = _mensagens[codigo] || {};
+    return {
+        ok: !f.motivo, motivo: f.motivo, rotulo: rot, limite: f.limite, usado: f.usado, avisar: f.avisar,
+        textoCurto: m.titulo || (f.motivo ? 'Indisponível' : null),
+        textoLongo: m.texto || (f.motivo ? `"${rot}" não está disponível agora.` : null),
+        aviso: m.aviso || null, oferta: m.oferta || null, acao: m.acao || null,
+    };
 }
 
 // true = bloqueado (e já avisou). Mesmo contrato do inline antigo do index.
