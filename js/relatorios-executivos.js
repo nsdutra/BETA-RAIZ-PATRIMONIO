@@ -1,6 +1,16 @@
 // ============================================================================
 // relatorios-executivos.js — Raiz Patrimônio · Relatórios no modelo executivo
-// Versão: 1.7.0 · 23/10/2026
+// Versão: 1.8.0 · 11/11/2026
+//
+// v1.8.0 (11/11/2026, sessão 20261111-0905-rel-acompanhamento, demanda add3d7a0; FICHA_REL_ACOMPANHAMENTO_MES v1.0.0, de acordo
+//   do Nicola 11/11 08:59: "Vamos fazer só o relatório do mês, inclui uma visão do resultado por ativo neste relatório como uma
+//   aba") — relatório novo "Acompanhamento do mês" (relatorios.acompanhamento_mes), lido de fn_relatorio_acompanhamento_mes:
+//   tela com mês e empreendimento, 4 números (a receber, recebido, diferença, despesas), aviso de extrato não importado e abas
+//   Recebimentos (filtros em aberto / com diferença / com observação), Despesas (com origem: extrato, administradora, manual,
+//   extrato a classificar; bloco fora do resultado) e Por imóvel. Tocar abre as ações do Financeiro (rzAcoesMensalidade,
+//   rzAcoesDespesa) ou grava a Observação; o relatório se atualiza ao fechar o sheet. Planilha com 5 abas (Recebimentos,
+//   Despesas, Por imóvel, Gráficos em imagem, Sobre), colunas amarelas para o cliente preencher. abrirRelatorioAcompanhamentoMes().
+// Versão anterior: 1.7.0 · 23/10/2026
 //
 // v1.7.0 (23/10/2026, sessão 20261023-0830-computador-c4, demanda 15146a34; Nicola 23/10 08:26: "ao exportar recebimentos, não
 //   está saindo com formatação padrão de relatórios do Raiz … use o exportar pendências de cadastro como padrão e escreva") —
@@ -34,22 +44,15 @@
 // Abas Carteira (filtro em todas as colunas), Por empreendimento (escolha na célula B5) e Sobre. ExcelJS 4.4.0 carregado
 // sob demanda (jsdelivr, cdnjs de reserva); símbolo da marca desenhado em PNG na hora. abrirRelatorioCadastroCarteira()
 // abre a escolha do empreendimento e baixa o arquivo (exceção à REL-36 registrada na demanda).
-// Versão anterior: 1.4.0 · 14/10/2026
-//
-// v1.4.0 (14/10/2026, sessão 20261014-2145-onda9c-textos, demanda a05ad2ee; onda 9c do estudo PROTOTIPO_UX_DENSIDADE_RAMOS_RAIZ
-// v1.2.0, D6 seção 10) — textos no limite: ação até 24 caracteres, descrição até 28, aviso até 40 com o resultado e tela
-// vazia em 1 frase de até 40. A explicação longa fica na confirmação, quando existe. Nada de comportamento mudou.
-// Também: o resumo do topo do relatório troca o style com cor solta por uma classe (.acao-sub.rx-resumo) — zera o
-// hex_solto_style deste arquivo no verificar_gramatica.py.
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.3.0 … v1.3.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.4.0 … v1.4.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
 import { rzMostrarBloqueio } from './comum-licenca.js';
 import { rzToast } from './raiz-ui.js';
 import RaizDevice from './raiz-device.js';
 
-export const VERSAO = '1.7.0';
+export const VERSAO = '1.8.0';
 
 // ---------------------------------------------------------------------------
 // Formatos (REL-13 a REL-17)
@@ -1375,6 +1378,486 @@ export async function abrirRelatorioCadastroCarteira() {
         { icone: 'layers', titulo: 'Todos os empreendimentos', sub: 'Baixar planilha', codigo: CADASTRO_CODIGO, aoTocar: () => baixarPlanilhaCadastro(null, null) },
         ...emps.map(e => ({ icone: 'building-2', titulo: e.nome, sub: 'Baixar planilha', codigo: CADASTRO_CODIGO, aoTocar: () => baixarPlanilhaCadastro(e.id, e.nome) })),
     ] });
+}
+
+// ---------------------------------------------------------------------------
+// Acompanhamento do mês (v1.8.0) — relatorios.acompanhamento_mes, dados de fn_relatorio_acompanhamento_mes (REL-02:
+// a tela e a planilha só formatam). Tela interativa: o mês e o empreendimento no topo, 4 números, aviso quando o
+// extrato do mês não foi importado, e três abas (Recebimentos, Despesas, Por imóvel). Tocar numa linha abre as ações
+// que já existem no Financeiro (Dar baixa, Ajustar valores, Estornar, a despesa) e "Observação", que grava em
+// mensalidades.observacao / lancamentos.observacao com as mesmas permissões da tela de origem. A planilha tem 5 abas:
+// Recebimentos, Despesas, Por imóvel, Gráficos (imagem: o ExcelJS não gera gráfico nativo) e Sobre; as colunas
+// "Correção do recebido" e "Observação" vêm em amarelo para o cliente preencher e devolver.
+// FICHA_REL_ACOMPANHAMENTO_MES v1.0.0 + aba "Por imóvel" (de acordo do Nicola 11/11 08:59), demanda add3d7a0.
+// ---------------------------------------------------------------------------
+const ACOMP_CODIGO = 'relatorios.acompanhamento_mes';
+let acomp = null; // { comp, empId, empNome, dados, aba, filtro }
+const ACOMP_CSS = `
+ #rz-relexec .ra{width:100%;max-width:720px;display:flex;flex-direction:column;gap:12px;font-family:Inter,system-ui,sans-serif;color:var(--ink,#17211e)}
+ #rz-relexec .ra-k{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+ @media(min-width:720px){#rz-relexec .ra-k{grid-template-columns:repeat(4,1fr)}}
+ #rz-relexec .ra-k div{background:var(--card,#fff);border:1px solid var(--line,#e6e3da);border-radius:12px;padding:10px 12px}
+ #rz-relexec .ra-k small{display:block;font-size:var(--fs-min);color:var(--muted,#6f7a76)}
+ #rz-relexec .ra-k b{font-size:var(--fs-titulo);font-variant-numeric:tabular-nums;color:var(--pine,#1e3a32)}
+ #rz-relexec .ra-k .neg b{color:var(--danger,#c1463a)}
+ #rz-relexec .ra-av{background:#f7ecd9;color:#6b4415;border-radius:12px;padding:10px 12px;font-size:var(--fs-sec)}
+ #rz-relexec .ra-tabs{display:flex;gap:6px}
+ #rz-relexec .ra-tabs button{flex:1;min-width:0;min-height:40px;border-radius:10px;border:1px solid var(--line,#e6e3da);background:var(--card,#fff);font:600 12px Inter,system-ui,sans-serif;color:var(--ink,#17211e);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding:0 6px}
+ #rz-relexec .ra-tabs button.on{border-color:var(--pine,#1e3a32);color:var(--pine,#1e3a32);box-shadow:inset 0 -2px 0 var(--pine,#1e3a32)}
+ #rz-relexec .ra-f{display:flex;gap:6px;overflow-x:auto;padding-bottom:2px}
+ #rz-relexec .ra-f button{flex:none;border:1px solid var(--line,#e6e3da);background:var(--card,#fff);border-radius:999px;padding:5px 11px;font:500 12px Inter,system-ui,sans-serif;color:var(--muted,#6f7a76)}
+ #rz-relexec .ra-f button.on{color:var(--pine,#1e3a32);border-color:var(--pine,#1e3a32)}
+ #rz-relexec .ra-g{font-size:var(--fs-mini);font-weight:700;color:var(--muted,#6f7a76);text-transform:uppercase;letter-spacing:.04em;margin:6px 0 -4px}
+ #rz-relexec .ra-l{background:var(--card,#fff);border:1px solid var(--line,#e6e3da);border-radius:12px;padding:10px 12px;cursor:pointer;text-align:left;width:100%;font:inherit;color:inherit}
+ #rz-relexec .ra-l1,#rz-relexec .ra-l2{display:flex;justify-content:space-between;gap:10px}
+ #rz-relexec .ra-l1 b{font-weight:600}#rz-relexec .ra-l1 span{font-variant-numeric:tabular-nums;white-space:nowrap}
+ #rz-relexec .ra-l2{font-size:var(--fs-min);color:var(--muted,#6f7a76);margin-top:2px}
+ #rz-relexec .ra-l2 .n{color:var(--danger,#c1463a);font-weight:600}#rz-relexec .ra-l2 .p{color:var(--sprout,#2f6a51);font-weight:600}
+ #rz-relexec .ra-d{display:inline-block;width:7px;height:7px;border-radius:50%;margin-right:5px;vertical-align:middle}
+ #rz-relexec .ra-ok{background:#2f6a51}#rz-relexec .ra-bad{background:#c1463a}#rz-relexec .ra-warn{background:#8a5a1f}#rz-relexec .ra-neu{background:#9aa39f}
+ #rz-relexec .ra-o{font-size:var(--fs-min);color:#6b4415;margin-top:4px}
+ #rz-relexec .ra-v{text-align:center;color:var(--muted,#6f7a76);padding:24px 8px;font-size:var(--fs-corpo)}
+ #rz-relexec .ra-n{font-size:var(--fs-min);color:var(--muted,#6f7a76)}`;
+const ACOMP_ORIGEM = { extrato: 'Extrato', administradora: 'Administradora', manual: 'Manual', extrato_pendente: 'Extrato · a classificar' };
+// a observação do recebimento também guarda a nota automática da conciliação ("Conciliado …"): ela não aparece como
+// observação do cliente e é preservada ao salvar
+const ACOMP_NOTA_SISTEMA = /^Conciliado\b/;
+function obsUsuario(o) { return String(o || '').split('\n').filter(l => l.trim() && !ACOMP_NOTA_SISTEMA.test(l.trim())).join('\n'); }
+function obsJuntar(usuario, original) {
+    const sistema = String(original || '').split('\n').filter(l => ACOMP_NOTA_SISTEMA.test(l.trim()));
+    return [String(usuario || '').trim(), ...sistema].filter(Boolean).join('\n') || null;
+}
+function acompSituacao(r) {
+    if (r.recebido == null) return { t: 'Em aberto', c: 'ra-bad' };
+    const d = num(r.diferenca);
+    if (Math.abs(d) < 1) return { t: 'Recebido', c: 'ra-ok' };
+    return d > 0 ? { t: 'Recebido a mais', c: 'ra-warn' } : { t: 'Recebido a menos', c: 'ra-warn' };
+}
+function acompTotais(d) {
+    const rec = d.recebimentos || [], desp = (d.despesas || []).filter(x => x.situacao === 'realizado');
+    const aReceber = rec.reduce((s, r) => s + num(r.a_receber), 0);
+    const recebido = rec.reduce((s, r) => s + num(r.recebido) + (r.recebido != null ? num(r.taxa_adm) : 0), 0);
+    return { aReceber, recebido, diferenca: rec.reduce((s, r) => s + num(r.diferenca), 0), despesas: desp.reduce((s, x) => s + num(x.valor), 0),
+             abertos: rec.filter(r => r.recebido == null).length, comDif: rec.filter(r => r.recebido != null && Math.abs(num(r.diferenca)) >= 1).length,
+             comObs: rec.filter(r => obsUsuario(r.observacao)).length };
+}
+function acompTelaHtml() {
+    return `<div class="rx-top">
+        <button type="button" class="rx-voltar" data-ra="fechar" aria-label="Voltar para Relatórios"><svg data-lucide="chevron-left"></svg>Relatórios</button>
+        <span class="rx-sp"></span>
+        <button type="button" data-ra="mes"><svg data-lucide="calendar"></svg>${esc(comp(acomp.comp))}<svg data-lucide="chevron-down"></svg></button>
+        <button type="button" data-ra="emp"><svg data-lucide="building-2"></svg>${esc(acomp.empNome || 'Todos')}<svg data-lucide="chevron-down"></svg></button>
+      </div>
+      <div class="rx-corpo" aria-live="polite"><div class="rx-msg">Montando o acompanhamento…</div></div>
+      <div class="rx-pe"><button type="button" class="rx-sec" data-ra="compartilhar"><svg data-lucide="share-2"></svg>Compartilhar</button><button type="button" class="rx-pri" data-ra="planilha"><svg data-lucide="sheet"></svg>Exportar planilha</button></div>`;
+}
+function acompCorpoHtml() {
+    const d = acomp.dados, t = acompTotais(d), ext = d.extrato || {};
+    const semExtrato = !num(ext.linhas_no_mes);
+    const aviso = semExtrato
+        ? `<div class="ra-av">O extrato de ${esc(mesLongo(acomp.comp))} ainda não foi importado${ext.ultima_data ? ` (o último vai até ${esc(dma(ext.ultima_data))})` : ''}. ${t.abertos ? `${t.abertos} ${t.abertos === 1 ? 'recebimento em aberto pode' : 'recebimentos em aberto podem'} já ter caído no banco.` : ''}</div>`
+        : (num(ext.pendentes_entrada_mes) + num(ext.pendentes_saida_mes) ? `<div class="ra-av">${num(ext.pendentes_entrada_mes) + num(ext.pendentes_saida_mes)} linhas do extrato deste mês ainda sem classificar na Conciliação.</div>` : '');
+    const k = `<div class="ra-k"><div><small>A receber no mês</small><b>${brl(t.aReceber)}</b></div><div><small>Recebido</small><b>${brl(t.recebido)}</b></div>
+        <div class="${t.diferenca < -0.99 ? 'neg' : ''}"><small>Diferença</small><b>${brl(t.diferenca)}</b></div><div><small>Despesas do mês</small><b>${brl(t.despesas)}</b></div></div>`;
+    const nDesp = (d.despesas || []).length + (d.fora_resultado || []).length;
+    const tabs = `<div class="ra-tabs"><button type="button" data-ra-aba="rec" class="${acomp.aba === 'rec' ? 'on' : ''}">Recebimentos · ${(d.recebimentos || []).length}</button>
+        <button type="button" data-ra-aba="desp" class="${acomp.aba === 'desp' ? 'on' : ''}">Despesas · ${nDesp}</button>
+        <button type="button" data-ra-aba="ativo" class="${acomp.aba === 'ativo' ? 'on' : ''}">Por imóvel</button></div>`;
+    let lista = '';
+    if (acomp.aba === 'rec') {
+        const f = acomp.filtro;
+        const filtros = [['todos', 'Todos'], ['aberto', `Em aberto · ${t.abertos}`], ['dif', `Com diferença · ${t.comDif}`], ['obs', `Com observação · ${t.comObs}`]];
+        lista += `<div class="ra-f">${filtros.map(([c, r]) => `<button type="button" data-ra-f="${c}" class="${f === c ? 'on' : ''}">${esc(r)}</button>`).join('')}</div>`;
+        const rows = (d.recebimentos || []).filter(r => f === 'aberto' ? r.recebido == null : f === 'dif' ? (r.recebido != null && Math.abs(num(r.diferenca)) >= 1) : f === 'obs' ? obsUsuario(r.observacao) : true);
+        let g = null;
+        rows.forEach(r => {
+            if (r.empreendimento !== g) { g = r.empreendimento; lista += `<div class="ra-g">${esc(g)}</div>`; }
+            const s = acompSituacao(r), dif = num(r.diferenca);
+            lista += `<button type="button" class="ra-l" data-ra-rec="${esc(r.mensalidade_id)}"><div class="ra-l1"><b>${esc(r.imovel || 'Sem imóvel')}</b><span>${r.recebido == null ? '—' : brl(r.recebido)}</span></div>
+              <div class="ra-l2"><span><i class="ra-d ${s.c}"></i>${esc(s.t)} · ${esc(r.locatario || '')}</span><span class="${dif < -0.99 ? 'n' : dif > 0.99 ? 'p' : ''}">${Math.abs(dif) < 1 ? 'a receber ' + brl(r.a_receber) : (dif > 0 ? '+' : '') + brl(dif)}</span></div>
+              ${obsUsuario(r.observacao) ? `<div class="ra-o">✎ ${esc(obsUsuario(r.observacao))}</div>` : ''}</button>`;
+        });
+        if (!rows.length) lista += `<div class="ra-v">Nada neste filtro.</div>`;
+    } else if (acomp.aba === 'desp') {
+        const desp = d.despesas || [], fora = d.fora_resultado || [];
+        if (!desp.length && !fora.length) lista += `<div class="ra-v">Nenhuma despesa neste mês.${semExtrato ? ' Importe o extrato para as saídas do banco aparecerem aqui.' : ''}</div>`;
+        desp.forEach((x, i) => {
+            lista += `<button type="button" class="ra-l" data-ra-desp="${i}"><div class="ra-l1"><b>${esc(x.descricao || x.categoria_nome || 'Despesa')}</b><span>${brl(x.valor)}</span></div>
+              <div class="ra-l2"><span>${esc(x.data ? dma(x.data) : '')} · ${esc(x.categoria_nome || '')}${x.imovel ? ' · ' + esc(x.imovel) : ''}</span><span>${esc(ACOMP_ORIGEM[x.origem] || '')}${x.situacao === 'previsto' ? ' · a pagar' : ''}</span></div>
+              ${obsUsuario(x.observacao) ? `<div class="ra-o">✎ ${esc(obsUsuario(x.observacao))}</div>` : ''}</button>`;
+        });
+        if (fora.length) {
+            lista += `<div class="ra-g">Fora do resultado</div>`;
+            fora.forEach((x, i) => {
+                lista += `<button type="button" class="ra-l" data-ra-fora="${i}"><div class="ra-l1"><b>${esc(x.descricao || '')}</b><span>${brl(x.valor)}</span></div>
+                  <div class="ra-l2"><span>${esc(x.data ? dma(x.data) : '')} · ${esc(x.natureza || '')}</span><span>${esc(ACOMP_ORIGEM[x.origem] || '')}</span></div></button>`;
+            });
+        }
+    } else {
+        const at = d.por_ativo || [];
+        if (!at.length) lista += `<div class="ra-v">Nenhum imóvel com movimento neste mês.</div>`;
+        let g = null;
+        at.forEach(a => {
+            if (a.empreendimento !== g) { g = a.empreendimento; lista += `<div class="ra-g">${esc(g)}</div>`; }
+            const desp = num(a.taxa_adm) + num(a.condominio) + num(a.iptu) + num(a.manutencao) + num(a.outras), liq = num(a.liquido);
+            lista += `<div class="ra-l" style="cursor:default"><div class="ra-l1"><b>${esc(a.imovel)}</b><span>${brl(liq)}</span></div>
+              <div class="ra-l2"><span>recebido ${brl(a.bruto_recebido)} · saiu ${brl(desp)}</span><span class="${liq < -0.99 ? 'n' : ''}">líquido</span></div></div>`;
+        });
+        if (num(d.despesas_sem_ativo?.valor)) lista += `<p class="ra-n">Despesas sem imóvel no mês (empresa): ${brl(d.despesas_sem_ativo.valor)}, fora desta visão.</p>`;
+    }
+    return `<div class="ra">${aviso}${k}${tabs}${lista}<p class="ra-n">Toque numa linha para corrigir o recebimento ou escrever uma observação. A planilha sai com o que está aqui.</p></div>`;
+}
+async function acompBuscar() {
+    const [{ data, error }, quem] = await Promise.all([
+        dbAuth.rpc('fn_relatorio_acompanhamento_mes', { p_cliente_id: CLIENTE_ID_SUPABASE, p_competencia: acomp.comp, p_empreendimento_id: acomp.empId || null }),
+        quemGera()]);
+    if (error) throw new Error(error.message);
+    if (!data?.ok) throw new Error(data?.mensagem || 'O relatório não veio.');
+    return { ...data, gerado_por: quem };
+}
+async function acompCarregar() {
+    const el = document.getElementById('rz-relexec'); if (!el || !acomp) return;
+    el.innerHTML = acompTelaHtml();
+    el.querySelectorAll('[data-ra]').forEach(b => b.addEventListener('click', () => acompAcao(b.dataset.ra)));
+    if (typeof rzIcones === 'function') rzIcones();
+    const corpo = el.querySelector('.rx-corpo');
+    try {
+        acomp.dados = await acompBuscar();
+        acompDesenhar();
+    } catch (e) {
+        console.error('[rz] acompanhamento', e);
+        corpo.innerHTML = `<div class="rx-msg">Não foi possível montar o acompanhamento.<br><small>${esc(e.message || e)}</small></div>`;
+    }
+}
+function acompDesenhar() {
+    const corpo = document.querySelector('#rz-relexec .rx-corpo'); if (!corpo || !acomp?.dados) return;
+    corpo.innerHTML = acompCorpoHtml();
+    corpo.querySelectorAll('[data-ra-aba]').forEach(b => b.addEventListener('click', () => { acomp.aba = b.dataset.raAba; acompDesenhar(); }));
+    corpo.querySelectorAll('[data-ra-f]').forEach(b => b.addEventListener('click', () => { acomp.filtro = b.dataset.raF; acompDesenhar(); }));
+    corpo.querySelectorAll('[data-ra-rec]').forEach(b => b.addEventListener('click', () => acompTocarRecebimento(b.dataset.raRec)));
+    corpo.querySelectorAll('[data-ra-desp]').forEach(b => b.addEventListener('click', () => acompTocarDespesa((acomp.dados.despesas || [])[Number(b.dataset.raDesp)])));
+}
+function acompAcao(a) {
+    if (a === 'fechar') { fecharRelatorioExecutivo(); acomp = null; return; }
+    if (a === 'mes') {
+        const hoje = new Date(), m0 = new Date(hoje.getFullYear(), hoje.getMonth(), 1);
+        abrirSheetAcoes({ titulo: 'Mês', sub: 'Acompanhamento do mês', acoes: Array.from({ length: 13 }, (_, i) => iso(somaMeses(m0, 1 - i))).map(c => ({
+            icone: 'calendar', titulo: comp(c), sub: c === iso(m0) ? 'mês atual' : '', aoTocar: () => { acomp.comp = c; acompCarregar(); } })) });
+    } else if (a === 'emp') {
+        const emps = acomp.dados?.empreendimentos || [];
+        abrirSheetAcoes({ titulo: 'Empreendimento', sub: 'Acompanhamento do mês', acoes: [
+            { icone: 'layers', titulo: 'Todos', aoTocar: () => { Object.assign(acomp, { empId: null, empNome: null }); acompCarregar(); } },
+            ...emps.map(e => ({ icone: 'building-2', titulo: e.nome, aoTocar: () => { Object.assign(acomp, { empId: e.id, empNome: e.nome }); acompCarregar(); } }))] });
+    } else if (a === 'planilha') baixarPlanilhaAcompanhamento();
+    else if (a === 'compartilhar') acompCompartilhar();
+}
+function acompObservacao(tabela, id, atual, titulo) {
+    abrirSheetForm({ titulo: 'Observação', sub: titulo, rotuloSalvar: 'Salvar observação',
+        corpo: `<div class="rz-f"><label>Observação</label><textarea id="ra-obs" rows="3" maxlength="500" placeholder="Ex.: desconto combinado até dezembro">${esc(obsUsuario(atual))}</textarea></div>`,
+        aoSalvar: async (el) => {
+            const texto = obsJuntar(el.querySelector('#ra-obs')?.value, atual);
+            const { error } = await dbAuth.from(tabela).update({ observacao: texto }).eq('cliente_id', CLIENTE_ID_SUPABASE).eq('id', id);
+            if (error) throw new Error(error.message);
+            rzToast('Observação salva');
+            acompCarregar();
+            return true;
+        } });
+}
+function acompTocarRecebimento(id) {
+    const r = (acomp.dados.recebimentos || []).find(x => x.mensalidade_id === id); if (!r) return;
+    const sub = `${r.locatario || ''} · ${comp(acomp.comp)} · a receber ${brl(r.a_receber)}${r.recebido != null ? ' · recebido ' + brl(r.recebido) : ''}`;
+    abrirSheetAcoes({ titulo: r.imovel || 'Recebimento', sub, acoes: [
+        { icone: 'pencil', titulo: r.recebido == null ? 'Dar baixa' : 'Corrigir o recebimento', sub: r.recebido == null ? 'Registrar o que entrou' : 'Ajustar valores ou estornar',
+          codigo: 'mensal.baixar', aoTocar: () => acompAbrirRecebimento(r) },
+        { icone: 'message-square', titulo: 'Observação', sub: obsUsuario(r.observacao) ? 'Editar' : 'Escrever', codigo: 'mensal.baixar',
+          aoTocar: () => acompObservacao('mensalidades', r.mensalidade_id, r.observacao, `${r.imovel || ''} · ${comp(acomp.comp)}`) },
+    ] });
+}
+function acompAbrirRecebimento(r) {
+    // mesmas ações de Financeiro › Recebimentos (rzAcoesMensalidade); a lista do Financeiro precisa ter o recebimento em memória
+    if (typeof window.rzAcoesMensalidade !== 'function') { rzToast('Abra em Financeiro › Recebimentos.', 'warning'); return; }
+    window.rzAcoesMensalidade(r.mensalidade_id);
+    setTimeout(() => { if (!acompSheetAberto()) rzToast('Abra em Recebimentos, mês ' + comp(acomp.comp) + '.', 'warning'); }, 400);
+    acompRecarregarAoVoltar();
+}
+function acompTocarDespesa(x) {
+    if (!x) return;
+    const acoes = [];
+    if (x.tipo === 'lancamento' && typeof window.rzAcoesDespesa === 'function') {
+        acoes.push({ icone: 'pencil', titulo: 'Abrir a despesa', sub: 'Ver, editar ou pagar', aoTocar: () => { window.rzAcoesDespesa(x.id); acompRecarregarAoVoltar(); } });
+        acoes.push({ icone: 'message-square', titulo: 'Observação', sub: obsUsuario(x.observacao) ? 'Editar' : 'Escrever', codigo: 'saidas.registrar',
+            aoTocar: () => acompObservacao('lancamentos', x.id, x.observacao, x.descricao || '') });
+    } else if (x.tipo === 'taxa_adm') {
+        acoes.push({ icone: 'pencil', titulo: 'Abrir o recebimento', sub: 'Taxa vem do recebimento', codigo: 'mensal.baixar',
+            aoTocar: () => acompAbrirRecebimento({ mensalidade_id: x.id }) });
+    } else if (x.tipo === 'extrato') {
+        acoes.push({ icone: 'git-compare', titulo: 'Classificar no extrato', sub: 'Financeiro › Conciliação', aoTocar: () => rzToast('Classifique em Conciliação.') });
+    }
+    if (!acoes.length) return;
+    abrirSheetAcoes({ titulo: x.descricao || 'Despesa', sub: `${x.data ? dma(x.data) : ''} · ${brl(x.valor)} · ${ACOMP_ORIGEM[x.origem] || ''}`, acoes });
+}
+const acompSheetAberto = () => !!document.getElementById('rz-veil')?.classList.contains('rz-on');
+// depois de usar uma ação do Financeiro, o relatório se atualiza ao fechar o sheet (sem recarregar a página)
+function acompRecarregarAoVoltar() {
+    let vezes = 0;
+    const t = setInterval(() => {
+        vezes++;
+        if (!acomp || vezes > 600) { clearInterval(t); return; }
+        if (!acompSheetAberto() && vezes > 1) { clearInterval(t); acompCarregar(); }
+    }, 1000);
+}
+async function acompCompartilhar() {
+    if (!acomp?.dados) return;
+    const t = acompTotais(acomp.dados);
+    const l1 = `Acompanhamento de ${comp(acomp.comp)} · ${acomp.dados.empresa || ''}`;
+    const l2 = `A receber ${brl(t.aReceber)} · recebido ${brl(t.recebido)} · diferença ${brl(t.diferenca)}`;
+    const l3 = `${t.abertos} em aberto · despesas ${brl(t.despesas)}`;
+    const r = await RaizDevice.share({ titulo: l1, texto: `${l1}\n${l2}\n${l3}` });
+    if (r && r.ok === false && r.motivo === 'sem_share') {
+        try { await navigator.clipboard.writeText(`${l1}\n${l2}\n${l3}`); rzToast('Resumo copiado'); } catch (e) { rzToast('Sem compartilhar aqui. Use a planilha.', 'warning'); }
+    }
+}
+export function abrirRelatorioAcompanhamentoMes(opcoes = {}) {
+    if (rzMostrarBloqueio(ACOMP_CODIGO)) return; // ACE-04
+    garantirCss();
+    if (!document.getElementById('rz-relacomp-css')) { const st = document.createElement('style'); st.id = 'rz-relacomp-css'; st.textContent = ACOMP_CSS; document.head.appendChild(st); }
+    fecharRelatorioExecutivo();
+    const hoje = new Date();
+    acomp = { comp: opcoes.competencia || iso(somaMeses(new Date(hoje.getFullYear(), hoje.getMonth(), 1), -1)), empId: null, empNome: null, dados: null, aba: 'rec', filtro: 'todos' };
+    const el = document.createElement('div');
+    el.id = 'rz-relexec'; el.setAttribute('role', 'dialog'); el.setAttribute('aria-modal', 'true'); el.setAttribute('aria-label', 'Acompanhamento do mês');
+    document.body.appendChild(el);
+    acompCarregar();
+}
+
+// gráfico em PNG para a aba Gráficos (canvas; o ExcelJS não gera gráfico nativo do Excel)
+function acompGraficoPng(o) {
+    const W = 760, H = 360, c = document.createElement('canvas'); c.width = W; c.height = H;
+    const g = c.getContext('2d'); g.fillStyle = '#ffffff'; g.fillRect(0, 0, W, H);
+    g.fillStyle = '#17211e'; g.font = '600 18px Arial'; g.fillText(o.titulo, 20, 30);
+    const cores = o.cores || ['#c9d0ca', '#1e3a32'], series = o.series, cats = o.categorias;
+    const L = o.horizontal ? 210 : 70, T = 60, R = o.horizontal ? 80 : 30, B = o.horizontal ? 30 : 70, pw = W - L - R, ph = H - T - B;
+    const vals = series.flatMap(s => s.valores.map(num)); const mx = Math.max(0, ...vals), mn = Math.min(0, ...vals), amp = (mx - mn) || 1;
+    const fmt = v => (Math.abs(v) >= 1000 ? (v / 1000).toLocaleString('pt-BR', { maximumFractionDigits: 1 }) + ' mil' : num(v).toLocaleString('pt-BR', { maximumFractionDigits: 0 }));
+    g.font = '12px Arial';
+    if (!o.horizontal) {
+        const y = v => T + (mx - v) / amp * ph, band = pw / Math.max(cats.length, 1), bw = Math.min(30, band * 0.8 / series.length);
+        g.strokeStyle = '#e3e6e0'; g.beginPath(); g.moveTo(L, y(0)); g.lineTo(W - R, y(0)); g.stroke();
+        cats.forEach((cat, i) => {
+            series.forEach((s, k) => {
+                const v = num(s.valores[i]), x = L + band * i + (band - bw * series.length) / 2 + bw * k;
+                g.fillStyle = cores[k % cores.length]; g.fillRect(x, Math.min(y(v), y(0)), bw - 2, Math.max(Math.abs(y(v) - y(0)), 1));
+            });
+            g.fillStyle = '#5b6662'; g.textAlign = 'center'; g.fillText(String(cat).slice(0, 16), L + band * i + band / 2, H - B + 18);
+        });
+        g.textAlign = 'left';
+        series.forEach((s, k) => { g.fillStyle = cores[k % cores.length]; g.fillRect(L + k * 150, H - 26, 12, 12); g.fillStyle = '#17211e'; g.fillText(s.nome, L + k * 150 + 18, H - 16); });
+        g.fillStyle = '#5b6662'; g.textAlign = 'right'; g.fillText(fmt(mx), L - 8, T + 4); if (mn < 0) g.fillText(fmt(mn), L - 8, T + ph); g.fillText('0', L - 8, y(0) + 4);
+    } else {
+        const x = v => L + (v - mn) / amp * pw, band = ph / Math.max(cats.length, 1), bh = Math.min(22, band * 0.7), s = series[0];
+        cats.forEach((cat, i) => {
+            const v = num(s.valores[i]), yy = T + band * i + (band - bh) / 2;
+            g.fillStyle = v < 0 ? '#c1463a' : cores[1]; g.fillRect(Math.min(x(v), x(0)), yy, Math.max(Math.abs(x(v) - x(0)), 1), bh);
+            g.fillStyle = '#17211e'; g.textAlign = 'right'; g.fillText(String(cat).slice(0, 28), L - 8, yy + bh / 2 + 4);
+            g.textAlign = v < 0 ? 'left' : 'left'; g.fillText(fmt(v), v < 0 ? x(0) + 4 : x(v) + 4, yy + bh / 2 + 4);
+        });
+        g.strokeStyle = '#17211e'; g.beginPath(); g.moveTo(x(0), T); g.lineTo(x(0), T + ph); g.stroke();
+    }
+    return c.toDataURL('image/png');
+}
+
+async function baixarPlanilhaAcompanhamento() {
+    const d = acomp?.dados; if (!d) return;
+    rzToast('Montando a planilha…');
+    try {
+        const ExcelJS = await carregarExcelJs();
+        const empresa = d.empresa || 'Empresa', quem = d.gerado_por || '';
+        const agora = new Date(), p2 = n => String(n).padStart(2, '0');
+        const quando = `${p2(agora.getDate())}/${p2(agora.getMonth() + 1)}/${agora.getFullYear()} às ${p2(agora.getHours())}:${p2(agora.getMinutes())}`;
+        const recorte = `${MESES_LONGO[dataIso(acomp.comp).getMonth()]}/${dataIso(acomp.comp).getFullYear()} · ${acomp.empNome || 'todos os empreendimentos'}`;
+        const F = (sz = 9, b = false, cor = CC.ink, i = false) => ({ name: 'Arial', size: sz, bold: b, italic: i, color: { argb: cor } });
+        const fundo = c => ({ type: 'pattern', pattern: 'solid', fgColor: { argb: c } });
+        const fio = { style: 'thin', color: { argb: CC.line } }, med = { style: 'medium', color: { argb: CC.pine } };
+        const png = await simboloPng();
+        const wb = new ExcelJS.Workbook(); wb.creator = 'Raiz Patrimônio'; wb.title = `Acompanhamento do mês · ${empresa}`; wb.created = agora;
+        wb.calcProperties = { fullCalcOnLoad: true };
+        const topo = (ws, titulo, linhas, nc) => {
+            ws.getRow(1).height = 30;
+            ws.getCell('A1').value = empresa; ws.getCell('A1').font = F(18, true, CC.pine);
+            ws.getCell('A2').value = titulo; ws.getCell('A2').font = F(12, true);
+            ws.getCell('A3').value = `${recorte} · gerado em ${quando}${quem ? ' por ' + quem : ''}${linhas != null ? ` · ${linhas} ${linhas === 1 ? 'linha' : 'linhas'}` : ''}`; ws.getCell('A3').font = F(9, false, CC.muted);
+            const cm = Math.max(3, nc - 1);
+            if (png) { const id = wb.addImage({ base64: png, extension: 'png' }); ws.addImage(id, { tl: { col: cm - 1, row: 0 }, ext: { width: 30, height: 38 } }); }
+            ws.getCell(1, cm + 1).value = 'Raiz'; ws.getCell(1, cm + 1).font = F(12, true, CC.pine);
+            ws.getCell(2, cm + 1).value = 'Patrimônio'; ws.getCell(2, cm + 1).font = F(8, true, CC.sprout);
+            ws.headerFooter.oddFooter = `&L&8${titulo.replace(/&/g, '&&')} · ${empresa.replace(/&/g, '&&')} · gerado em ${quando}&R&8Página &P de &N`;
+        };
+        const kpis = (ws, itens, nc) => itens.forEach(([rot, formula, fmt], i) => {
+            const c0 = 1 + i * 2, a = ws.getCell(5, c0), b = ws.getCell(6, c0);
+            if ((ws.getColumn(c0).width || 0) < 15) ws.getColumn(c0).width = 15; // o número de 14 pt cabe sem ###
+            a.value = rot; a.font = F(8, false, CC.muted); b.value = { formula }; b.font = F(14, true, CC.pine); b.numFmt = fmt; b.alignment = { horizontal: 'left' };
+            [5, 6].forEach(rr => [c0, c0 + 1].forEach(cc => { if (cc <= Math.max(nc, 8)) ws.getCell(rr, cc).fill = fundo(CC.paper); }));
+        });
+        // tabela padrão (REL-64/65): cols [cab, larg, fmt, ler, {edit, total}]
+        const tabela = (ws, HDR, cols, linhas, o = {}) => {
+            cols.forEach((c, i) => {
+                ws.getColumn(i + 1).width = c[1];
+                const cl = ws.getCell(HDR, i + 1); cl.value = c[0]; cl.font = F(9, true, c[4]?.edit ? CC.brassTx : CC.pine); cl.fill = fundo(c[4]?.edit ? CC.brassBg : CC.paper);
+                cl.alignment = { wrapText: true, vertical: 'middle', horizontal: c[2] && c[2] !== 'dd/mm/yyyy' ? 'right' : 'left' }; cl.border = { bottom: med };
+            });
+            ws.getRow(HDR).height = 32;
+            const INI = HDR + 1, FIM = Math.max(INI, INI + linhas.length - 1);
+            linhas.forEach((r, k) => cols.forEach((c, i) => {
+                const cl = ws.getCell(INI + k, i + 1); let v = c[3](r, INI + k);
+                if (v && typeof v === 'object' && v.formula) cl.value = v; else if (c[2] === 'dd/mm/yyyy') cl.value = dataXl(v); else if (c[2]) cl.value = nOuNulo(v); else cl.value = tOuNulo(v);
+                cl.font = F(9); cl.border = { bottom: fio }; if (c[2]) cl.numFmt = c[2];
+                if (c[2] && c[2] !== 'dd/mm/yyyy') cl.alignment = { horizontal: 'right' };
+                if (c[4]?.edit) { cl.fill = fundo(CC.brassBg); cl.font = F(9, false, CC.brassTx); cl.protection = { locked: false }; } else if (k % 2 === 1) cl.fill = fundo(CC.zebra);
+                if (c[4]?.alerta && c[4].alerta(r)) cl.font = F(9, true, CC.danger);
+            }));
+            ws.autoFilter = { from: { row: HDR, column: 1 }, to: { row: FIM, column: cols.length } };
+            ws.views = [{ state: 'frozen', xSplit: o.xSplit || 0, ySplit: HDR, showGridLines: false }];
+            const TR = FIM + 1;
+            ws.getCell(TR, 1).value = o.rotTotal || 'Total'; ws.getCell(TR, 1).font = F(9, true);
+            cols.forEach((c, i) => { const cl = ws.getCell(TR, i + 1); cl.border = { top: med };
+                if (c[4]?.total) { const L = colLetra(i + 1); cl.value = { formula: `SUBTOTAL(9,${L}${INI}:${L}${FIM})` }; cl.numFmt = c[2]; cl.font = F(9, true); cl.alignment = { horizontal: 'right' }; } });
+            ws.pageSetup = { orientation: cols.length > 6 ? 'landscape' : 'portrait', fitToPage: true, fitToWidth: 1, fitToHeight: 0, printTitlesRow: `${HDR}:${HDR}` };
+            return { INI, FIM, TR };
+        };
+        const MO = '#,##0.00;[Red]-#,##0.00', DT = 'dd/mm/yyyy';
+        const fonte = (ws, row, txt) => { ws.getCell(row, 1).value = `Fonte: Raiz · Acompanhamento do mês · ${txt} · situação em ${quando.slice(0, 10)} · Raiz Patrimônio · raizpatrimonio.com.br`; ws.getCell(row, 1).font = F(8, false, CC.muted, true); };
+
+        // 1. Recebimentos
+        const rec = d.recebimentos || [];
+        const wr = wb.addWorksheet('Recebimentos');
+        const rcols = [
+            ['Empreendimento', 16, null, r => r.empreendimento], ['Imóvel', 28, null, r => r.imovel], ['Locatário', 30, null, r => r.locatario],
+            ['Dia venc.', 8, '0', r => r.vencimento_dia], ['A receber (bruto)', 13, MO, r => r.a_receber, { total: true }],
+            ['Recebido (líquido)', 13, MO, r => r.recebido, { total: true }], ['Taxa adm.', 11, MO, r => (r.recebido != null ? r.taxa_adm : null), { total: true }],
+            ['Data do recebimento', 12, DT, r => r.data_recebimento],
+            ['Diferença', 12, MO, (r, n) => ({ formula: `IF(F${n}="",-E${n},F${n}+N(G${n})-E${n})` }), { total: true }],
+            ['Situação', 15, null, (r, n) => ({ formula: `IF(F${n}="","Em aberto",IF(ABS(F${n}+N(G${n})-E${n})<1,"Recebido",IF(F${n}+N(G${n})>E${n},"Recebido a mais","Recebido a menos")))` })],
+            ['Origem da baixa', 14, null, r => ACOMP_ORIGEM[r.origem] || null], ['Administradora', 18, null, r => r.administradora],
+            ['Correção do recebido (opcional)', 14, MO, () => null, { edit: true }], ['Observação (pode escrever)', 40, null, r => obsUsuario(r.observacao), { edit: true }],
+        ];
+        topo(wr, 'Acompanhamento do mês · Recebimentos', rec.length, rcols.length);
+        const tr = tabela(wr, 9, rcols, rec, { xSplit: 2 });
+        wr.getRow(8).height = 16;
+        [[1, 4, 'IMÓVEL E CONTRATO', CC.pine], [5, 10, 'O COMBINADO E O RECEBIDO', CC.sprout], [11, 12, 'ORIGEM', CC.loc], [13, 14, 'PARA VOCÊ PREENCHER', CC.brass]].forEach(([a, b, t, cor]) => {
+            wr.mergeCells(8, a, 8, b); const g = wr.getCell(8, a); g.value = t; g.font = F(8, true, CC.branco); g.fill = fundo(cor); g.alignment = { horizontal: 'center' }; });
+        kpis(wr, [['A receber no mês', `SUBTOTAL(9,E${tr.INI}:E${tr.FIM})`, MO], ['Recebido (líquido + taxa)', `SUBTOTAL(9,F${tr.INI}:F${tr.FIM})+SUBTOTAL(9,G${tr.INI}:G${tr.FIM})`, MO],
+                  ['Diferença', `SUBTOTAL(9,I${tr.INI}:I${tr.FIM})`, MO], ['Em aberto', `COUNTIF(J${tr.INI}:J${tr.FIM},"Em aberto")`, '0']], rcols.length);
+        wr.addConditionalFormatting({ ref: `I${tr.INI}:I${tr.FIM}`, rules: [{ type: 'cellIs', operator: 'lessThan', formulae: ['-0.99'], style: { font: { bold: true, color: { argb: CC.danger } } } }] });
+        wr.addConditionalFormatting({ ref: `J${tr.INI}:J${tr.FIM}`, rules: [{ type: 'containsText', operator: 'containsText', text: 'Em aberto', style: { font: { bold: true, color: { argb: CC.danger } } } }] });
+        let rr = tr.TR + 2;
+        const ext = d.extrato || {};
+        const recs = [
+            !num(ext.linhas_no_mes) ? `Importar o extrato de ${mesLongo(acomp.comp)} (arquivo original do banco): os recebimentos em aberto que já caíram ficam recebidos sozinhos. Raiz › Financeiro › Importar › Importar extrato.` : null,
+            'Conferir as diferenças em vermelho: desconto combinado, pagamento de mais de um mês ou valor do contrato desatualizado.',
+            'Escreva na coluna "Observação" ou corrija o valor recebido e devolva a planilha à Raiz pelo WhatsApp: a Raiz confere e atualiza no sistema.',
+        ].filter(Boolean);
+        wr.getCell(rr, 1).value = 'Recomendações'; wr.getCell(rr, 1).font = F(10, true, CC.pine);
+        recs.forEach((t, i) => { wr.getCell(rr + 1 + i, 1).value = `${i + 1}. ${t}`; wr.getCell(rr + 1 + i, 1).font = F(9); });
+        fonte(wr, rr + recs.length + 2, `recebimentos de ${comp(acomp.comp)}`);
+
+        // 2. Despesas
+        const desp = d.despesas || [], fora = d.fora_resultado || [];
+        const wd = wb.addWorksheet('Despesas');
+        const dcols = [
+            ['Data', 12, DT, x => x.data], ['Descrição', 38, null, x => x.descricao], ['Categoria', 22, null, x => x.categoria_nome],
+            ['Imóvel', 24, null, x => x.imovel], ['Valor', 13, MO, x => x.valor, { total: true }], ['Origem', 18, null, x => ACOMP_ORIGEM[x.origem] || null],
+            ['Situação', 10, null, x => (x.situacao === 'previsto' ? 'A pagar' : 'Pago')], ['Observação (pode escrever)', 40, null, x => obsUsuario(x.observacao), { edit: true }],
+        ];
+        topo(wd, 'Acompanhamento do mês · Despesas', desp.length, dcols.length);
+        const td = tabela(wd, 8, dcols, desp, { rotTotal: 'Total das despesas' });
+        kpis(wd, [['Despesas pagas no mês', `SUMIF(G${td.INI}:G${td.FIM},"Pago",E${td.INI}:E${td.FIM})`, MO], ['Condomínio', `SUMIF(C${td.INI}:C${td.FIM},"*ondom*",E${td.INI}:E${td.FIM})`, MO],
+                  ['Taxa de administração', `SUMIF(C${td.INI}:C${td.FIM},"Taxa*",E${td.INI}:E${td.FIM})`, MO], ['A classificar (extrato)', `SUMIF(F${td.INI}:F${td.FIM},"Extrato · a classificar",E${td.INI}:E${td.FIM})`, MO]], dcols.length);
+        let fr = td.TR + 3;
+        wd.getCell(fr - 1, 1).value = 'Saídas fora do resultado (distribuição, retirada, compra de imóvel, repasse)'; wd.getCell(fr - 1, 1).font = F(10, true, CC.pine);
+        ['Data', 'Para quem / descrição', 'Natureza', '', 'Valor', 'Origem', '', 'Observação'].forEach((t, i) => { const c = wd.getCell(fr, i + 1); c.value = t || null; c.font = F(9, true, CC.pine); c.fill = fundo(CC.paper); c.border = { bottom: med }; });
+        fora.forEach((x, k) => {
+            const row = fr + 1 + k;
+            [[1, dataXl(x.data), DT], [2, tOuNulo(x.descricao)], [3, tOuNulo(x.natureza)], [5, nOuNulo(x.valor), MO], [6, ACOMP_ORIGEM[x.origem] || null], [8, tOuNulo(obsUsuario(x.observacao))]]
+                .forEach(([c, v, f]) => { const cl = wd.getCell(row, c); cl.value = v; cl.font = F(9); cl.border = { bottom: fio }; if (f) cl.numFmt = f; });
+        });
+        const ffim = fr + fora.length;
+        wd.getCell(ffim + 1, 1).value = 'Total fora do resultado'; wd.getCell(ffim + 1, 1).font = F(9, true);
+        const tf = wd.getCell(ffim + 1, 5); tf.value = fora.length ? { formula: `SUM(E${fr + 1}:E${ffim})` } : 0; tf.numFmt = MO; tf.font = F(9, true);
+        fonte(wd, ffim + 3, `saídas de ${comp(acomp.comp)}`);
+
+        // 3. Por imóvel
+        const at = d.por_ativo || [];
+        const wa = wb.addWorksheet('Por imóvel');
+        const acols = [
+            ['Empreendimento', 16, null, a => a.empreendimento], ['Imóvel', 30, null, a => a.imovel], ['A receber', 13, MO, a => a.a_receber, { total: true }],
+            ['Recebido (bruto)', 13, MO, a => a.bruto_recebido, { total: true }], ['Taxa adm.', 11, MO, a => a.taxa_adm, { total: true }],
+            ['Condomínio', 11, MO, a => a.condominio, { total: true }], ['IPTU', 10, MO, a => a.iptu, { total: true }], ['Manutenção', 11, MO, a => a.manutencao, { total: true }],
+            ['Outras', 10, MO, a => a.outras, { total: true }], ['Líquido', 13, MO, (a, n) => ({ formula: `D${n}-E${n}-F${n}-G${n}-H${n}-I${n}` }), { total: true }],
+        ];
+        topo(wa, 'Acompanhamento do mês · Resultado por imóvel', at.length, acols.length);
+        const ta = tabela(wa, 8, acols, at, { xSplit: 2 });
+        wa.addConditionalFormatting({ ref: `J${ta.INI}:J${ta.FIM}`, rules: [{ type: 'cellIs', operator: 'lessThan', formulae: ['-0.99'], style: { font: { bold: true, color: { argb: CC.danger } } } }] });
+        kpis(wa, [['Recebido (bruto)', `SUBTOTAL(9,D${ta.INI}:D${ta.FIM})`, MO], ['O que saiu do dono', `SUBTOTAL(9,E${ta.INI}:I${ta.FIM})`, MO],
+                  ['Líquido dos imóveis', `SUBTOTAL(9,J${ta.INI}:J${ta.FIM})`, MO], ['Margem', `IFERROR(SUBTOTAL(9,J${ta.INI}:J${ta.FIM})/SUBTOTAL(9,D${ta.INI}:D${ta.FIM}),0)`, '0.0%']], acols.length);
+        wa.getCell(ta.TR + 2, 1).value = num(d.despesas_sem_ativo?.valor) ? `Despesas sem imóvel ligado (da empresa) no mês: ${brl(d.despesas_sem_ativo.valor)} — ficam fora desta aba.` : 'Todas as despesas do mês estão ligadas a um imóvel.';
+        wa.getCell(ta.TR + 2, 1).font = F(9, false, CC.muted);
+        fonte(wa, ta.TR + 4, `resultado por imóvel de ${comp(acomp.comp)} · pela data do pagamento`);
+
+        // 4. Gráficos (imagens)
+        const wg = wb.addWorksheet('Gráficos', { views: [{ showGridLines: false }] });
+        for (let c = 1; c <= 16; c++) wg.getColumn(c).width = 10;
+        wg.pageSetup = { orientation: 'landscape', fitToPage: true, fitToWidth: 1, fitToHeight: 1 };
+        topo(wg, 'Acompanhamento do mês · Gráficos', null, 12);
+        const porEmp = {}; rec.forEach(r => { const e = porEmp[r.empreendimento] || (porEmp[r.empreendimento] = { a: 0, r: 0 }); e.a += num(r.a_receber); e.r += num(r.recebido) + (r.recebido != null ? num(r.taxa_adm) : 0); });
+        const emps = Object.keys(porEmp);
+        const h6 = d.historico_6m || [];
+        const porCat = {}; desp.filter(x => x.situacao === 'realizado').forEach(x => { porCat[x.categoria_nome || 'Outras'] = (porCat[x.categoria_nome || 'Outras'] || 0) + num(x.valor); });
+        const cats = Object.entries(porCat).sort((a, b) => b[1] - a[1]).slice(0, 8);
+        const faltas = rec.map(r => [r.imovel || '', num(r.diferenca)]).filter(x => x[1] < -0.99).sort((a, b) => a[1] - b[1]).slice(0, 8);
+        const graficos = [
+            emps.length ? acompGraficoPng({ titulo: 'A receber × recebido por empreendimento', categorias: emps, series: [{ nome: 'A receber', valores: emps.map(e => porEmp[e].a) }, { nome: 'Recebido', valores: emps.map(e => porEmp[e].r) }] }) : null,
+            h6.length ? acompGraficoPng({ titulo: 'Últimos 6 meses · a receber × recebido', categorias: h6.map(h => comp(h.competencia)), series: [{ nome: 'A receber', valores: h6.map(h => h.a_receber) }, { nome: 'Recebido', valores: h6.map(h => h.recebido) }], cores: ['#c9d0ca', '#2f6a51'] }) : null,
+            cats.length ? acompGraficoPng({ titulo: 'Despesas do mês por categoria', horizontal: true, categorias: cats.map(c => c[0]), series: [{ nome: 'Despesas', valores: cats.map(c => c[1]) }] }) : null,
+            faltas.length ? acompGraficoPng({ titulo: 'Maiores faltas do mês (recebido − a receber)', horizontal: true, categorias: faltas.map(f => f[0]), series: [{ nome: 'Diferença', valores: faltas.map(f => f[1]) }] }) : null,
+        ];
+        graficos.forEach((b64, i) => {
+            if (!b64) return;
+            const id = wb.addImage({ base64: b64, extension: 'png' });
+            wg.addImage(id, { tl: { col: (i % 2) * 8, row: 4 + Math.floor(i / 2) * 19 }, ext: { width: 500, height: 237 } });
+        });
+        if (!graficos.some(Boolean)) wg.getCell('A6').value = 'Sem dados para gráficos neste mês.';
+        fonte(wg, 46, `${comp(acomp.comp)}`);
+
+        // 5. Sobre
+        const wsb = wb.addWorksheet('Sobre', { views: [{ showGridLines: false }] });
+        wsb.getColumn(1).width = 30; wsb.getColumn(2).width = 100;
+        wsb.getCell('A1').value = 'Sobre esta planilha'; wsb.getCell('A1').font = F(14, true, CC.pine);
+        [['O que é uma linha (Recebimentos)', 'Um recebimento de aluguel do mês escolhido: o que estava combinado receber e o que entrou.'],
+         ['A receber (bruto)', 'O aluguel cheio do mês, antes da taxa da administradora. Num mês com reajuste no meio do caminho, vale o valor atual do contrato.'],
+         ['Recebido (líquido)', 'O que entrou de fato, pelo valor que caiu no banco ou que foi baixado à mão. Com administradora, é o que ela repassou, já sem a taxa.'],
+         ['Diferença', 'Recebido + taxa da administradora − a receber. Em aberto, aparece o valor inteiro como falta (negativo).'],
+         ['Origem da baixa', 'Extrato: reconhecido no extrato importado. Administradora: veio no repasse da imobiliária. Manual: baixado à mão no app ou no robô.'],
+         ['Despesas', 'Saídas do mês pela data de pagamento: lançadas no app ou no robô, importadas do extrato e a taxa das administradoras. "Extrato · a classificar" é saída do banco que ainda não foi classificada na Conciliação.'],
+         ['Fora do resultado', 'Distribuição a sócios, retirada, compra de imóvel e repasses: saem do caixa, mas não são despesa dos imóveis.'],
+         ['Por imóvel', 'Recebido bruto menos taxa, condomínio, IPTU, manutenção e outras despesas ligadas ao imóvel, no mês. Despesa sem imóvel ligado fica fora. Leitura de gestão; a apuração do imposto é do contador.'],
+         ['Gráficos', 'Imagens geradas com os números desta planilha no momento da exportação.'],
+         ['O que você pode editar', 'As colunas em amarelo: "Correção do recebido" e "Observação". Devolva a planilha à Raiz pelo WhatsApp: a Raiz confere e atualiza no sistema. No app, o mesmo se faz tocando na linha.'],
+         ['Total', 'A linha Total soma só as linhas visíveis: ao filtrar uma coluna, o total acompanha o filtro.'],
+         ['Origem', `Exportado do Raiz em ${quando}${quem ? ' por ' + quem : ''} (fn_relatorio_acompanhamento_mes v${d.versao_regras || 1}).`],
+         ['Dados pessoais', 'Contém nomes e valores de locatários. Guarde em local seguro e não repasse a terceiros (LGPD).'],
+        ].forEach(([a, b], k) => { wsb.getCell(3 + k, 1).value = a; wsb.getCell(3 + k, 1).font = F(9, true, CC.pine); const c = wsb.getCell(3 + k, 2); c.value = b; c.font = F(9); c.alignment = { wrapText: true, vertical: 'top' }; });
+
+        const buf = await wb.xlsx.writeBuffer();
+        const s = t => String(t || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '');
+        const nome = `raiz_acompanhamento_mes_${s(empresa) || 'empresa'}${acomp.empNome ? '_' + s(acomp.empNome) : ''}_${acomp.comp.slice(0, 7).replace('-', '_')}.xlsx`;
+        const url = URL.createObjectURL(new Blob([buf], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }));
+        const a = document.createElement('a'); a.href = url; a.download = nome; document.body.appendChild(a); a.click(); a.remove();
+        setTimeout(() => URL.revokeObjectURL(url), 30000);
+        rzToast('Planilha baixada');
+    } catch (e) {
+        console.error('[rz] planilha do acompanhamento', e);
+        rzToast('Não foi possível gerar a planilha: ' + (e?.message || e), 'danger');
+    }
 }
 
 // usados por testes e pelo protótipo
