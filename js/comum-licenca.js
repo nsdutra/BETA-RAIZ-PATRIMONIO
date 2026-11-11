@@ -36,21 +36,8 @@
 // (Maia, Rumo, Albuquerque). Teste agora é: plano 'trial', ou licença com término que não veio de
 // pagamento nem de plano contratado (id_item_pagamento e id_plano_contratado vazios). Licença paga
 // ou sem término mostra "Indicar o Raiz".
-//
-// Versão anterior: 1.6.0 · 08/10/2026
-//
-// v1.6.0 (UX F2.7c-1, demanda b8602a3a, sessão 20261003-1707-ux-base; plano F2.7c-1 aprovado pelo Nicola 08/10 12:51) — a tela Sobre saiu do
-// app e o que era de plano veio para cá:
-//   · "Contratar e convidar" (teste): "Quero contratar" pelo WhatsApp e o convite para o mesmo teste
-//     (até 5 pessoas); licença paga: "Indicar o Raiz". htmlContratarConvidar/ligarContratarConvidar são
-//     exportadas e a Sobre do cofre.html usa as mesmas (uma fonte só).
-//   · "Dúvidas sobre o plano?" leva à página de contatos da Raiz (LINK_CONTATOS_RAIZ, raizpatrimonio.com.br/#falar).
-//   · Tela no padrão: descrição no topo, status do plano numa das 5 semânticas, plano e vigência em
-//     .rz-kv, limites em linhas com barra .rz-uso-bar; sem texto abaixo de 12 px nem cor Tailwind;
-//     esqueleto no carregamento. ctx ganha pessoaId (log do convite).
-//   · Vigência e dias restantes leem a data como dia local (antes mostravam um dia a menos).
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.5.2 … v1.5.2): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.6.0 … v1.6.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
 export const VERSAO = '1.10.0'; // v-check (22/09/2026): lido por Dev › Versões — manter igual ao header
