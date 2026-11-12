@@ -29,18 +29,11 @@
 // Versão anterior: 1.79.0 · 23/10/2026
 //
 // v1.79.0 (23/10/2026, sessão 20261023-0915-computador-c6, demanda 15146a34; PROTOTIPO_COMPUTADOR_RAIZ v1.1.0 §11, de acordo do Nicola 23/10 08:51) — C6 · escala de letras: 61 tamanhos de letra escritos em número (font-size:13px etc.) trocados pelos da escala (--fs-mini 11 · --fs-sec 12,5 · --fs-corpo 14 · --fs-titulo 17; 16 px fica, por causa do zoom do iPhone em campo, e 18 px ou mais também — herói e números grandes). Nada muda de lugar; só o tamanho passa a ser o mesmo em todas as telas.
-// Versão anterior: 1.78.0 · 23/10/2026
-//
-// v1.78.0 (23/10/2026, sessão 20261023-0830-computador-c4, demanda 15146a34; Nicola 23/10 08:26) — EXPORTAR NO PADRÃO DO RAIZ:
-// Recebimentos e Saídas › selecionar › Exportar deixa de baixar um CSV cru e baixa a planilha .xlsx no molde do Cadastro da
-// carteira (relatorios-executivos.js 1.7.0, baixarPlanilhaLista; PADRAO_RELATORIOS v1.6.0, REL-61 a REL-66): empresa e
-// competência no topo, 4 números com fórmula (linhas, total, em atraso, pago), Data como data, Valor como número, linha
-// Total que acompanha o filtro, "Em atraso" em vermelho, ordem cronológica (REL-28) e aba Sobre.
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.77.0 … v1.77.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.78.0 … v1.78.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '1.81.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.82.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 
 // v1.17.0 (Fase 1 do wrapper de escrita, rollout Financeiro) — emitirEscrita
 // é o evento padrão pra "algo mudou que módulos DE FORA deste arquivo podem

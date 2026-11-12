@@ -4,6 +4,16 @@ Histórico completo de versões do `index.html`, movido automaticamente pelo `ge
 
 ---
 
+NOVIDADES (Beta v1.489.0) — cofre-documentos.js 2.40.0 (ver o documento no app); import map.
+Versão anterior (Beta v1.488.4):
+DATA: 08/11/2026 (demanda babfb8eb)
+------------------------------------------------------------------
+Versões anteriores (v1.488.4 … v1.488.4): CHANGELOG_APP.md, na raiz do
+repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
+das 5 versões mais recentes deste cabeçalho.
+
+---
+
 NOVIDADES (Beta v1.488.4) — contratos.js 1.70.0 (cobrança do mês); import map.
 Versão anterior (Beta v1.488.3):
 DATA: 06/11/2026 (demanda 2f81d543)
