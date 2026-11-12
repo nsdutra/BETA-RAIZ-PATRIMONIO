@@ -1,7 +1,14 @@
 // ============================================================================
 // financeiro.js — Raiz Patrimônio · Financeiro (Recebimentos · Atrasados · Saídas
 //                  · conciliação de extrato · recibo · detalhe do recebimento)
-// Versão: 1.81.0 · 09/11/2026
+// Versão: 1.82.0 · 11/11/2026
+//
+// v1.82.0 (11/11/2026, sessão 20261111-2236-financeiro-competencia, demanda 2abbc942; de acordo do Nicola 11/11 22:36) —
+// COMPETÊNCIA: (1) despesa: a lista passa a ter os 12 meses anteriores, o atual e os 3 seguintes (antes só o padrão e os 3
+// seguintes, sem meses passados); o padrão continua vindo do vencimento. (2) Receita sem contrato ganha o campo Competência,
+// com a mesma lista; ele segue o mês da Data até a pessoa escolher outro (antes gravava sempre o mês da Data). (3) O subtítulo
+// da receita deixa de dizer "Vai para Outras receitas" (a categoria é escolhida desde a v1.34.0). Competência fechada
+// continua recusada pelo banco. Versão anterior: 1.81.0 · 09/11/2026
 //
 // v1.81.0 (09/11/2026, sessão 20261109-2210-encargos-fecho, demanda babfb8eb; F4 da FICHA_ESTEIRA_ENCARGOS_INQUILINO_ETAPA1_RAIZ
 // v1.2.0, aprovada 08/11 21:40) — RECIBO DETALHADO: quando o inquilino pagou junto com o aluguel um encargo da esteira
@@ -2160,7 +2167,7 @@ function financeiroRenderCabecalho(aba) {
             // competência precisa seguir junto, senão o dropdown mostra o
             // mês corrente enquanto o vencimento mostra outro mês.
             const competenciaPadrao = d ? dataParaCompetencia(d.competencia) : dataParaCompetencia(sugestoes?.vencimento || new Date().toISOString().slice(0, 10));
-            const opcoesComp = [...new Set([competenciaPadrao, ...gerarProximasCompetencias(3)])];
+            const opcoesComp = janelaCompetencias(competenciaPadrao); // v1.82.0 — inclui os 12 meses anteriores
             const optsCompetencia = opcoesComp.map(c => `<option value="${c}" ${c === competenciaPadrao ? 'selected' : ''}>${c}</option>`).join('');
 
             const modal = document.createElement('div');
@@ -2344,6 +2351,18 @@ function financeiroRenderCabecalho(aba) {
                 lista.push(String(d.getMonth() + 1).padStart(2, '0') + '/' + d.getFullYear());
             }
             return lista;
+        }
+
+        // v1.82.0 — janela de competências "MM/AAAA": N meses antes de hoje, o atual e M depois, em ordem; garante a padrão.
+        export function janelaCompetencias(padrao, antes = 12, depois = 3) {
+            const base = new Date(), lista = [];
+            for (let i = -antes; i <= depois; i++) {
+                const d = new Date(base.getFullYear(), base.getMonth() + i, 1);
+                lista.push(String(d.getMonth() + 1).padStart(2, '0') + '/' + d.getFullYear());
+            }
+            if (padrao && !lista.includes(padrao)) lista.push(padrao);
+            const chave = (c) => c.slice(3) + c.slice(0, 2);
+            return lista.sort((a, b) => chave(a).localeCompare(chave(b)));
         }
 
         export function alternarNovoFornecedor(valor) {
@@ -5786,6 +5805,7 @@ export async function abrirReceitaAvulsa(sugestoes) { // v1.67.0 — sugestoes d
             <div class="rz-f"><label>Valor (R$) <i>*</i></label><input type="number" step="0.01" inputmode="decimal" id="rav-valor"></div>
             <div class="rz-f"><label>Data <i>*</i></label><input type="date" id="rav-data" value="${hoje}"></div>
         </div>
+        <div class="rz-f"><label for="rav-competencia">Competência <i>*</i></label><select id="rav-competencia">${janelaCompetencias(dataParaCompetencia(hoje)).map(c => `<option value="${c}" ${c === dataParaCompetencia(hoje) ? 'selected' : ''}>${c}</option>`).join('')}</select></div>
         <div class="rz-f"><label>Situação</label>
             <input type="hidden" id="rav-situacao" value="recebido">
             <div class="rz-seg" id="rav-seg">
@@ -5794,7 +5814,7 @@ export async function abrirReceitaAvulsa(sugestoes) { // v1.67.0 — sugestoes d
             </div>
         </div>`;
     const sheet = abrirSheetForm({
-        titulo: 'Receita sem contrato', sub: 'Vai para Outras receitas',
+        titulo: 'Receita sem contrato', sub: 'Escolha a categoria e a competência',
         corpo, rotuloSalvar: 'Registrar receita',
         aoSalvar: () => salvarReceitaAvulsa(),
     });
@@ -5827,6 +5847,18 @@ export async function abrirReceitaAvulsa(sugestoes) { // v1.67.0 — sugestoes d
         }
     }
     atualizarRav();
+    // v1.82.0 — a competência acompanha a Data até a pessoa escolher outra
+    const selComp = sheet?.querySelector('#rav-competencia'), inData = sheet?.querySelector('#rav-data');
+    let compTocada = false;
+    selComp?.addEventListener('change', () => { compTocada = true; });
+    const seguirData = () => {
+        if (compTocada || !selComp || !inData?.value) return;
+        const c = dataParaCompetencia(inData.value);
+        if (![...selComp.options].some(o => o.value === c)) selComp.add(new Option(c, c));
+        selComp.value = c;
+    };
+    inData?.addEventListener('change', seguirData);
+    seguirData();
     sheet?.querySelectorAll('#rav-seg button').forEach(b => b.addEventListener('click', () => {
         sheet.querySelectorAll('#rav-seg button').forEach(x => x.classList.toggle('rz-on', x === b));
         sheet.querySelector('#rav-situacao').value = b.dataset.v;
@@ -5845,9 +5877,10 @@ async function salvarReceitaAvulsa() {
     if (!categoria) { rzToast('Escolha a categoria e a subcategoria.', { tipo: 'danger' }); return false; }
     if (!(valor > 0)) { rzToast('Informe um valor maior que zero.', { tipo: 'danger' }); return false; }
     if (!data) { rzToast('Informe a data.', { tipo: 'danger' }); return false; }
+    const compSel = document.getElementById('rav-competencia')?.value; // v1.82.0
     const linha = {
         cliente_id: CLIENTE_ID_SUPABASE, direcao: 'entrada', categoria, incluir_contabilidade: incluirContab, descricao, valor, // v1.34.0
-        competencia: data.slice(0, 8) + '01', vencimento: data, data_pagamento: recebido ? data : null,
+        competencia: compSel ? competenciaParaData(compSel) : data.slice(0, 8) + '01', vencimento: data, data_pagamento: recebido ? data : null,
         status: recebido ? 'realizado' : 'previsto', ativo_id: ativoId, origem_tipo: 'manual', reembolsavel: false,
     };
     const { data: ins, error } = await dbAuth.from('lancamentos').insert(linha).select('id').single();
