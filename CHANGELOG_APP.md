@@ -4,6 +4,16 @@ Histórico completo de versões do `index.html`, movido automaticamente pelo `ge
 
 ---
 
+NOVIDADES (Beta v1.489.2) — raiz.css 1.20.1 (⋮ à direita).
+Versão anterior (Beta v1.489.1):
+DATA: 09/11/2026 (demanda babfb8eb)
+------------------------------------------------------------------
+Versões anteriores (v1.489.1 … v1.489.1): CHANGELOG_APP.md, na raiz do
+repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
+das 5 versões mais recentes deste cabeçalho.
+
+---
+
 NOVIDADES (Beta v1.489.1) — financeiro.js 1.81.0 (recibo); import map.
 Versão anterior (Beta v1.489.0):
 DATA: 09/11/2026 (sessão 20261109-0917-doc-agenda-nome, demanda 16996755)

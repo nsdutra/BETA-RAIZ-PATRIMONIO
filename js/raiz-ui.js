@@ -1,6 +1,13 @@
 // ============================================================================
 // raiz-ui.js — Raiz Patrimônio · Diálogos sem diálogo nativo (UXR-29/30)
-// Versão: 1.9.0 · 23/10/2026
+// Versão: 1.10.0 · 12/11/2026
+//
+// v1.10.0 (12/11/2026, sessão 20261112-1516-rodrigo-ajustes, demanda 8a7e8fd4; de acordo do Nicola 12/11 15:16 "Trate tb
+// as msg de erro na tela") — rzTraduzirErro, NOVO: tradutor central de erro técnico para texto de usuário. O toast de
+// erro do app (mostrarToast 'danger', pelo rzMensagemDeErro do index) passa por ele: chave repetida, vínculo, permissão,
+// sessão expirada, campo obrigatório, formato, tempo esgotado e rede viram frase em português; o texto original vai
+// para o console (console.warn) para o suporte. Mensagem que já é de usuário passa intacta. Também em window.rzTraduzirErro.
+// Versão anterior: 1.9.0 · 23/10/2026
 //
 // v1.9.0 (23/10/2026, sessão 20261023-0935-computador-c4, demanda 15146a34; PROTOTIPO_COMPUTADOR_RAIZ v1.1.0 §7 e §9 C4) —
 // rzConfirmar abre com a classe rz-conf: no computador, a pergunta ("Excluir este contrato?") vira uma caixa pequena no
@@ -21,18 +28,11 @@
 // carregamento ao passar de 45 s, apenas ao chegar nos 60 s") — rzProgressoLeitura: a barra parava no tempo típico e só
 // mudava o texto em 1,5× esse tempo. Agora a barra segue andando devagar (curva que nunca chega ao fim) e o texto passa por
 // três estados: dentro do tempo típico · "um pouco mais que o normal, ainda lendo" · "arquivo longo… até 2 min".
-// Versão anterior: 1.6.0 · 20/10/2026
-//
-// v1.6.0 (20/10/2026, sessão 20261019-2331-fatura-analise, demanda c36b09b2 — de acordo do Nicola 19/10 23:50) —
-// rzProgressoLeitura, NOVO: o progresso por etapas da leitura de documento (cartão do arquivo, passos com ✓, barra,
-// tempo decorrido com o tempo típico, "mantenha o app aberto") vira componente único, para importar fatura e extrato
-// com a mesma experiência. Desenha dentro de um elemento (sheet já aberto) ou numa camada própria por cima da tela.
-// Mantém a tela acesa e avisa antes de sair enquanto lê. Também em window.rzProgressoLeitura.
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.5.0 … v1.5.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.6.0 … v1.6.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '1.9.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.10.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 
 const esc = (v) => String(v ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 const g = (nome) => (typeof window !== 'undefined' && typeof window[nome] === 'function') ? window[nome] : null;
@@ -424,8 +424,37 @@ if (typeof window !== 'undefined' && typeof document !== 'undefined') {
     }
 }
 
+// v1.10.0 — erro técnico → texto de usuário. Ordem importa: do mais específico ao genérico.
+const RZ_ERROS = [
+    [/Failed to fetch|NetworkError|Load failed|network request failed|ERR_INTERNET_DISCONNECTED/i, 'Sem conexão. Tente de novo quando a rede voltar.'],
+    [/duplicate key|23505|already exists|violates unique/i, 'Isso já estava registrado — nada foi duplicado. Atualize a tela e confira.'],
+    [/foreign key|23503/i, 'Este registro está ligado a outro e não pode ser alterado assim.'],
+    [/row-level security|permission denied|42501|not allowed|sem permiss/i, 'Você não tem permissão para fazer isso nesta empresa.'],
+    [/JWT|token is expired|invalid claim|refresh token|not authenticated/i, 'Sua sessão expirou. Entre de novo para continuar.'],
+    [/null value in column|23502|not-null/i, 'Falta preencher um campo obrigatório.'],
+    [/check constraint|23514/i, 'Algum valor não é aceito. Confira os campos.'],
+    [/invalid input syntax|22P02|22007|22008|date\/time field value out of range|out of range/i, 'Algum campo está num formato inválido. Confira datas e valores.'],
+    [/statement timeout|57014|timed out|timeout/i, 'Demorou demais para responder. Tente de novo.'],
+    [/violates|relation "|column "|function .*does not exist|syntax error|PGRST|schema cache|SQLSTATE|undefined|is not a function|Cannot read propert/i, 'Não foi possível concluir. Tente de novo; se continuar, fale com o suporte.'],
+];
+export function rzTraduzirErro(msg) {
+    const original = String((msg && msg.message) || msg || '');
+    if (!original) return original;
+    for (const [re, texto] of RZ_ERROS) {
+        if (re.test(original)) {
+            try { console.warn('[erro original]', original); } catch (_) {}
+            // mantém o contexto que o módulo pôs antes do erro ("Erro ao salvar o contrato: …"), sem o "Erro:" solto
+            const pre = original.split(/:\s/)[0];
+            const contexto = original.includes(': ') && pre.length <= 40 && !re.test(pre) && !/^erro$/i.test(pre.trim()) ? pre.trim() + ': ' : '';
+            return contexto + texto;
+        }
+    }
+    return original;
+}
+
 if (typeof window !== 'undefined') {
     window.rzProgressoLeitura = rzProgressoLeitura;
+    window.rzTraduzirErro = rzTraduzirErro;
     window.rzEditarDivisao = rzEditarDivisao;
     window.rzToast = rzToast;
     window.rzConfirmar = rzConfirmar;

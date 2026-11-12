@@ -1,6 +1,12 @@
 // ============================================================================
 // cofre-api.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.55.0 · 22/10/2026
+// Versão: 1.55.1 · 12/11/2026
+//
+// v1.55.1 (12/11/2026, sessão 20261112-1516-rodrigo-ajustes, demanda 8a7e8fd4) — CORREÇÃO: criarOcorrenciasControleBatch
+//   insere com ON CONFLICT DO NOTHING em (item_controle_id, data_prevista_original). Editar um item com parcelas já
+//   tratadas e escolher "Salvar e regerar" recriava a parcela tratada e o lote inteiro caía em "duplicate key ...
+//   cofre_ocorrencias_controle_unica" — com o item já gravado e as abertas já apagadas. Lote vazio não chama o banco.
+// Versão anterior: 1.55.0 · 22/10/2026
 //
 // v1.55.0 (22/10/2026, sessão 20261022-1155-vinculos-compromisso, demanda 0e70b85a; FICHA_RAIZ_IA_COMPROMISSO_RAIZ v1.2.0) —
 //   itens de controle do ativo trazem também os itens em que a pessoa está LIGADA (tabela vinculos: a viagem do Nicola
@@ -19,15 +25,11 @@
 // v1.52.0 (18/10/2026, sessão 20261018-2343-carga-silva-l4a, demanda 9404081c, L4-C) — listarTiposAtivo devolve, por tipo,
 // os ramos dos usos próprios de ramo que o tipo aceita (ramos_uso), o uso a iniciar em cada ramo (usos_por_ramo) e se o tipo
 // aceita uso de renda (tem_uso_renda: aluguel, temporada, arrendamento), que decide o "Aluguel esperado".
-// Versão anterior: 1.51.0 · 14/10/2026
-//
-// v1.51.0 (usos fatia 3 · subativos, demanda 3022603b, sessão 20261014-1020-usos-fatia3; de acordo do Nicola 14/10) —
-// criarImovelEAtivo aceita imovelDados.ativo_principal_id: a unidade nasce dentro do principal.
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.50.0 … v1.50.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.51.0 … v1.51.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '1.55.0'; // v-check (22/09/2026): lido por Dev › Versões — manter igual ao header
+export const VERSAO = '1.55.1'; // v-check (22/09/2026): lido por Dev › Versões — manter igual ao header
 const SUPABASE_URL = 'https://oduwpttbbemypiypjsux.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9kdXdwdHRiYmVteXBpeXBqc3V4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODUyODEyOTcsImV4cCI6MjEwMDg1NzI5N30.9-cu1CV1wPbo5UH1G2eAsWqsvS54AWNuQZOlifc9a7w';
 
@@ -1421,7 +1423,10 @@ export async function buscarItemControlePorId(id) {
 // está definida mais acima, junto com encontrarOuCriarParte.
 
 export async function criarOcorrenciasControleBatch(payloads) {
-    const { error } = await dbAuth.from('cofre_ocorrencias_controle').insert(payloads);
+    if (!payloads || !payloads.length) return;
+    // v1.55.1 — data que o item já tem (ex.: parcela tratada que o "regerar" não apaga) é pulada, não derruba o lote
+    const { error } = await dbAuth.from('cofre_ocorrencias_controle')
+        .upsert(payloads, { onConflict: 'item_controle_id,data_prevista_original', ignoreDuplicates: true });
     if (error) throw error;
 }
 
