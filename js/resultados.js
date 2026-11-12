@@ -1,8 +1,12 @@
 // =====================================================================
 // RAIZ PATRIMÔNIO — js/resultados.js
-// VERSÃO: Beta v2.20.0 (23/10/2026 — demanda 15146a34)
+// VERSÃO: Beta v2.21.0 (11/11/2026 — demanda 3cd0817a)
 // LINHAS: (ver versoes.json)
 // -----------------------------------------------------------------
+// NOVIDADES (Beta v2.21.0) (11/11/2026, sessão 20261111-2330-agro-receita-safra, demanda 3cd0817a; de acordo do Nicola 11/11 23:30)
+//   — lente Agro do Hoje: cada safra aberta mostra o recebido e o resultado (recebido − pago) quando houver receita com destino
+//   nela; a última safra fechada mostra receita e resultado ao lado do custo, das sacas e do custo por saca.
+// Versão anterior (Beta v2.20.0):
 // NOVIDADES (Beta v2.20.0) (23/10/2026, sessão 20261023-0955-computador-ajustes, demanda 15146a34; prints do Nicola 23/10 09:49
 //   "quando muda de ramo nem todos se encaixam nas 3 colunas") — numa lente, o anel "<Ramo> por segmento" sai da largura toda
 //   e vai para o topo da 3ª coluna (como a Sua árvore); a lente Família (ramo de contagem) também abre em 3 colunas.
@@ -112,7 +116,7 @@
 // Versões anteriores (v2.4.0 … v2.4.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '2.20.0';
+export const VERSAO = '2.21.0';
 
 // ---------------------------------------------------------------------
 // Estado do filtro (module-scoped — sobrevive entre renders porque o
@@ -965,7 +969,7 @@ function montarCardsDoRamo(ramo, ind) {
             const prev = nOuNull(c.previsto);
             return linha({ ic: ramo === 'agro' ? 'sprout' : 'fence', tit: `${c.ativo} · ${c.nome || c.programa || ''}`, sub,
                 extra: barraBala({ pago: c.pago, aPagar: c.a_pagar, previsto: prev, marcador: tot ? pos / tot * 100 : null,
-                    esquerda: `pago ${moedaCurta(c.pago)}${Number(c.a_pagar) ? ` · a pagar ${moedaCurta(c.a_pagar)}` : ''}`,
+                    esquerda: `pago ${moedaCurta(c.pago)}${Number(c.a_pagar) ? ` · a pagar ${moedaCurta(c.a_pagar)}` : ''}${Number(c.recebido) ? ` · recebido ${moedaCurta(c.recebido)} · resultado ${moedaCurta(Number(c.recebido) - Number(c.pago || 0))}` : ''}`, // v2.21.0
                     direita: prev ? `previsto ${moedaCurta(prev)}` : 'sem previsto' }) });
         }).join('');
         cards.push(card(ramo === 'agro' ? 'Safras abertas' : 'Ciclos abertos', '', corpo, 'Fase atual e o custo até agora. Traço = onde a fase está.'));
@@ -979,7 +983,9 @@ function montarCardsDoRamo(ramo, ind) {
                 if (v == null) return '';
                 return String(f.unidade || '').startsWith('R$') ? `${f.rotulo}: ${moedaInteira(v)}` : `${f.rotulo}: ${fmtNum(v, 0)} ${f.unidade || ''}`.trim();
             }).filter(Boolean).join(' · ');
-            return linha({ ic: 'wheat', tit: `${c.ativo} · ${c.nome || ''}`, sub: partes || 'Fechada sem resultado informado', rt: r.custo != null ? moedaCurta(r.custo) : null, rtSub: 'custo' });
+            const rec = nOuNull(r.receita); // v2.21.0 — receita e resultado da safra fechada
+            const partesRec = rec ? [partes, `Receita: ${moedaInteira(rec)}`, r.custo != null ? `Resultado: ${moedaInteira(rec - Number(r.custo))}` : ''].filter(Boolean).join(' · ') : partes;
+            return linha({ ic: 'wheat', tit: `${c.ativo} · ${c.nome || ''}`, sub: partesRec || 'Fechada sem resultado informado', rt: r.custo != null ? moedaCurta(r.custo) : null, rtSub: 'custo' });
         }).join('');
         cards.push(card('Última safra fechada', '', corpo));
     }

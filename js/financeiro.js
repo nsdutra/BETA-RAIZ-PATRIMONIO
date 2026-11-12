@@ -1,7 +1,11 @@
 // ============================================================================
 // financeiro.js — Raiz Patrimônio · Financeiro (Recebimentos · Atrasados · Saídas
 //                  · conciliação de extrato · recibo · detalhe do recebimento)
-// Versão: 1.82.0 · 11/11/2026
+// Versão: 1.83.0 · 11/11/2026
+//
+// v1.83.0 (11/11/2026, sessão 20261111-2330-agro-receita-safra, demanda 3cd0817a; de acordo do Nicola 11/11 23:30) — DESTINO
+// TAMBÉM NA RECEITA: em Outras receitas, o ⋮ de uma receita ligada a um ativo ganha "Destino" (safra, fase, obra ou item),
+// o mesmo da despesa (fn_lancamento_destinar). A receita passa a contar no "recebido" da safra. Versão anterior: 1.82.0
 //
 // v1.82.0 (11/11/2026, sessão 20261111-2236-financeiro-competencia, demanda 2abbc942; de acordo do Nicola 11/11 22:36) —
 // COMPETÊNCIA: (1) despesa: a lista passa a ter os 12 meses anteriores, o atual e os 3 seguintes (antes só o padrão e os 3
@@ -26,14 +30,11 @@
 // Valor, Vencimento, Competência, Fornecedor, Observação, Dar baixa) passam ao padrão .rz-f dos campos novos (Categoria,
 // Subcategoria): mesmo rótulo, mesma caixa, mesmo tamanho de letra; Reembolsável vira caixa de marcar como "Dividir com
 // outras pessoas"; título, Fechar e Salvar no padrão dos sheets.
-// Versão anterior: 1.79.0 · 23/10/2026
-//
-// v1.79.0 (23/10/2026, sessão 20261023-0915-computador-c6, demanda 15146a34; PROTOTIPO_COMPUTADOR_RAIZ v1.1.0 §11, de acordo do Nicola 23/10 08:51) — C6 · escala de letras: 61 tamanhos de letra escritos em número (font-size:13px etc.) trocados pelos da escala (--fs-mini 11 · --fs-sec 12,5 · --fs-corpo 14 · --fs-titulo 17; 16 px fica, por causa do zoom do iPhone em campo, e 18 px ou mais também — herói e números grandes). Nada muda de lugar; só o tamanho passa a ser o mesmo em todas as telas.
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.78.0 … v1.78.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.79.0 … v1.79.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '1.82.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.83.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 
 // v1.17.0 (Fase 1 do wrapper de escrita, rollout Financeiro) — emitirEscrita
 // é o evento padrão pra "algo mudou que módulos DE FORA deste arquivo podem
@@ -1060,7 +1061,8 @@ function financeiroRenderCabecalho(aba) {
                 if (error) { rzToast(error.message || 'Não foi possível.', { tipo: 'danger' }); return; }
                 fecharSheet();
                 rzToast(b.dataset.dest ? 'Destino gravado.' : 'Destino retirado.');
-                await recarregarSaidasDepoisDe(d.id, 'destino');
+                if (typeof d.aposGravar === 'function') { emitirEscrita('receita', { id: d.id, acao: 'destino' }); d.aposGravar(); } // v1.83.0 — receita
+                else await recarregarSaidasDepoisDe(d.id, 'destino');
             }));
         }
         async function financeiroDividirLancamento(d, extras) {
@@ -5893,7 +5895,7 @@ export async function renderOutrasReceitas() {
     let linhas = [];
     try {
         const { data, error } = await dbAuth.from('lancamentos')
-            .select('id, descricao, valor, status, vencimento, data_pagamento, origem_tipo, conta_id, divisao_excecao') // v1.36.0
+            .select('id, descricao, valor, status, vencimento, data_pagamento, origem_tipo, conta_id, divisao_excecao, ativo_id, ciclo_id, ativo_fase_id, item_controle_id, ativo_programa_id') // v1.36.0; v1.83.0 destino
             .eq('cliente_id', CLIENTE_ID_SUPABASE).eq('direcao', 'entrada').eq('competencia', comp)
             .match(financeiroContaFiltro ? { conta_id: financeiroContaFiltro } : {}) // v1.33.0
             .order('vencimento', { ascending: true });
@@ -5926,6 +5928,12 @@ export function rzAcoesReceitaAvulsa(id) {
     if (manual) {
         if (l.status !== 'realizado') acoes.push({ icone: 'check', titulo: 'Marcar como recebida', sub: 'Usa a data de hoje', aoTocar: () => alterarReceitaAvulsa(id, 'receber') });
         else acoes.push({ icone: 'undo-2', titulo: 'Voltar para a receber', aoTocar: () => alterarReceitaAvulsa(id, 'estornar') });
+    }
+    // v1.83.0 — Destino também na receita (safra, fase, obra ou item do ativo)
+    if (l.ativo_id) {
+        const temDest = l.ciclo_id || l.ativo_fase_id || l.item_controle_id || l.ativo_programa_id;
+        acoes.push({ icone: 'git-branch', titulo: 'Destino', sub: temDest ? 'Já tem destino · trocar' : 'Safra, fase, obra ou item',
+            aoTocar: () => financeiroAbrirDestino({ id, ativoId: l.ativo_id, descricao: l.descricao || 'Receita', valor: Number(l.valor || 0), aposGravar: () => renderOutrasReceitas() }) });
     }
     acoes.push(...financeiroAcaoConta('lancamento', id, l.conta_id, (v) => { l.conta_id = v; renderOutrasReceitas(); })); // v1.36.0
     acoes.push(...financeiroAcaoDivisao('lancamento', id, Number(l.valor || 0), !!l.divisao_excecao, () => renderOutrasReceitas())); // v1.36.0 (D39)

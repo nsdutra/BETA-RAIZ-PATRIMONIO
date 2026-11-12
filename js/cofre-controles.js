@@ -1,6 +1,10 @@
 // ============================================================================
 // cofre-controles.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.72.1 · 03/11/2026
+// Versão: 1.73.0 · 11/11/2026
+//
+// v1.73.0 (11/11/2026, sessão 20261111-2330-agro-receita-safra, demanda 3cd0817a; de acordo do Nicola 11/11 23:30) — "Ver a
+//   safra" mostra também o recebido (receitas com destino na safra, nas fases ou nos itens dela — fn_execucao_detalhe) e o
+//   resultado (recebido − pago), quando houver receita. Versão anterior: 1.72.1 · 03/11/2026
 //
 // v1.72.1 (03/11/2026, sessão 20261103-0956-fluxo-empresa-fin, demanda 9efdd18f; de acordo do Nicola 03/11 09:56) — o + de
 //   Controles em Minha empresa abre o formulário do novo item por cima de Minha empresa: antes trocava a tela de baixo
@@ -20,17 +24,11 @@
 //   EM TODOS OS GRUPOS: documento e seguro com fim ficam "Válido até dd/mm/aaaa", sem o "· em conjunto" (as pessoas estão
 //   dentro do item); itens que se repetem (conta, taxa, tributo, manutenção, rotina, despesa) mostram só a data do próximo
 //   vencimento em aberto, como os eventos; sem vencimento em aberto, o nome do tipo.
-// Versão anterior: 1.69.0 · 23/10/2026
-//
-// v1.69.0 (23/10/2026, sessão 20261023-0023-controles-lista, demanda 6946fc07; de acordo do Nicola 23/10 00:23) — LINHA DO
-//   EVENTO: embaixo do título vai só a data do evento, ou o período quando tem início e fim ("03 a 27/11/2026"); antes ia
-//   "Subtipo · fim", e o item de período parecia fora da ordem. ÍCONES iguais aos do robô no WhatsApp: aniversário (bolo),
-//   presente, show (ingresso), escola (mochila), seguro (escudo), feriado (palmeira); os demais seguem o catálogo.
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.68.0 … v1.68.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.69.0 … v1.69.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '1.72.1'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.73.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 import { estado } from './cofre-estado.js';
 import * as api from './cofre-api.js';
 import { mostrarToast, refrescarIcones, abrirModal, fecharModal, modalGenerico, perguntar, escolher, avisarComDesfazer } from './cofre-ui.js';
@@ -671,7 +669,9 @@ export async function abrirExecucao(apId, cicloId = null) {
     const custo = d.custo || {};
     const res = C?.resultado && C.situacao === 'fechado' ? (P.resultado_campos || []).map(rc => C.resultado[rc.campo] != null
         ? `<span><b>${rc.unidade && rc.unidade.startsWith('R$') ? moedaBR(C.resultado[rc.campo]) : escapeHtml(String(C.resultado[rc.campo]))}</b> ${escapeHtml(rc.unidade && !rc.unidade.startsWith('R$') ? rc.unidade : '')} ${escapeHtml(rc.rotulo)}</span>` : '').join('') : '';
-    const custoHtml = d.aberta ? `<div class="rz-exec-custo"><span><b>${moedaBR(custo.realizado || 0)}</b> pago</span><span><b>${moedaBR(custo.a_pagar || 0)}</b> a pagar</span>${custo.previsto ? `<span><b>${moedaBR(custo.previsto)}</b> previsto</span>` : ''}${res}</div>` : '';
+    const recebido = Number(custo.recebido || 0); // v1.73.0
+    const recHtml = recebido ? `<span><b>${moedaBR(recebido)}</b> recebido</span><span><b>${moedaBR(recebido - Number(custo.realizado || 0))}</b> resultado</span>` : '';
+    const custoHtml = d.aberta ? `<div class="rz-exec-custo"><span><b>${moedaBR(custo.realizado || 0)}</b> pago</span><span><b>${moedaBR(custo.a_pagar || 0)}</b> a pagar</span>${custo.previsto ? `<span><b>${moedaBR(custo.previsto)}</b> previsto</span>` : ''}${recHtml}${res}</div>` : '';
     const porEscopo = (e) => (d.itens || []).filter(i => i.escopo === e);
     const grupo = (rot, lista) => lista.length ? `<div class="rz-group rz-group-t"><span>${escapeHtml(rot)} · ${lista.length}</span></div><div class="rz-list" style="padding:0">` + lista.map(linhaItemExecHtml).join('') + '</div>' : ''; // v1.63.1
     const itensHtml = d.aberta && C?.situacao !== 'fechado'
