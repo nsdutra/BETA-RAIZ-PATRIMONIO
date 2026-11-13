@@ -1,7 +1,13 @@
 // ============================================================================
 // financeiro.js — Raiz Patrimônio · Financeiro (Recebimentos · Atrasados · Saídas
 //                  · conciliação de extrato · recibo · detalhe do recebimento)
-// Versão: 1.85.0 · 12/11/2026
+// Versão: 1.86.0 · 13/11/2026
+//
+// v1.86.0 (13/11/2026, sessão 20261113-1530-dividir-recebimento, demanda 76a2f670; FICHA_PRESTACAO_CONTAS_ADMINISTRADORA_RAIZ v1.2.0
+// fase P1 + PROTOTIPO_DIVISAO_RECEBIMENTO v1.0.0, de acordo do Nicola 13/11 14:05) — "Dividir recebimento" na linha de entrada
+// pendente da Conciliação: o depósito vira a baixa de vários aluguéis (bruto, taxa e líquido), receitas sem contrato, descontos
+// da administradora e ajuste de centavos até R$ 0,05; o botão só fecha quando a soma bate (fn_extrato_dividir_recebimento).
+// Linha dividida abre a lista do que foi feito e "Desfazer divisão". Versão anterior: 1.85.0
 //
 // v1.85.0 (12/11/2026, sessão 20261112-2233-xlsx-import, demanda 89abec4f; de acordo do Nicola 12/11 22:33) — IMPORTAR
 // EXTRATO NÃO PERDE MAIS O ARQUIVO: (1) as linhas vão para o banco por financeiroGravarFingerprints, sempre com a situação
@@ -28,17 +34,11 @@
 // com a mesma lista; ele segue o mês da Data até a pessoa escolher outro (antes gravava sempre o mês da Data). (3) O subtítulo
 // da receita deixa de dizer "Vai para Outras receitas" (a categoria é escolhida desde a v1.34.0). Competência fechada
 // continua recusada pelo banco. Versão anterior: 1.81.0 · 09/11/2026
-//
-// v1.81.0 (09/11/2026, sessão 20261109-2210-encargos-fecho, demanda babfb8eb; F4 da FICHA_ESTEIRA_ENCARGOS_INQUILINO_ETAPA1_RAIZ
-// v1.2.0, aprovada 08/11 21:40) — RECIBO DETALHADO: quando o inquilino pagou junto com o aluguel um encargo da esteira
-// (condomínio ou IPTU cobrado "junto", lançamento de ressarcimento já recebido na mesma competência), o recibo soma o encargo
-// no valor e no extenso e ganha a frase "Valor composto por: aluguel R$ …; Condomínio 11/2026 R$ …". Sem encargo, o recibo
-// fica igual. Versão anterior: 1.80.1 · 03/11/2026
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.80.1 … v1.80.1): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.81.0 … v1.81.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '1.85.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.86.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 
 // v1.17.0 (Fase 1 do wrapper de escrita, rollout Financeiro) — emitirEscrita
 // é o evento padrão pra "algo mudou que módulos DE FORA deste arquivo podem
@@ -4027,6 +4027,14 @@ function financeiroRenderCabecalho(aba) {
             const rs = (sem, t) => (typeof renderStatus === 'function') ? renderStatus(sem, t) : `<span class="rz-st rz-${sem}">${t}</span>`;
             const valorSpan = `<b class="${entrada ? 'rz-in' : 'rz-out'}">${entrada ? '+' : '−'} ${valorFmt}</b>`;
 
+            if (f.status_conciliacao === 'conciliado' && f.destino_tipo === 'dividido') { // v1.86.0
+                return `<div class="rz-row rz-link" onclick="abrirAcoesConciliacaoLinha('${f.id}')">
+                    <div class="rz-ic rz-ia"><svg data-lucide="split"></svg></div>
+                    <div class="rz-tx"><b>${escapeHtmlSaidas(limparRotuloConciliacao(f.razao_social))}</b><span>Conciliado · dividido</span></div>
+                    <div class="rz-rt">${valorSpan}</div>
+                    <svg data-lucide="ellipsis-vertical" class="rz-chev"></svg>
+                </div>`;
+            }
             if (automatica) {
                 const nomeRegra = nomeRegraConc(f.regra_codigo);
                 return `<div class="rz-row rz-link" onclick="abrirAcoesConciliacaoLinha('${f.id}')">
@@ -4289,6 +4297,159 @@ function financeiroRenderCabecalho(aba) {
             return abrirAcoesConciliacaoLinha(fingerprintId);
         }
 
+        // ===================================================================
+        // v1.86.0 (demanda 76a2f670, P1 da FICHA_PRESTACAO_CONTAS_ADMINISTRADORA v1.2.0) — DIVIDIR RECEBIMENTO
+        // Um depósito (ex.: repasse da administradora) vira o pagamento de vários aluguéis, receitas sem contrato,
+        // descontos (condomínio, conta) e um ajuste de centavos até R$ 0,05. Grava pela fn_extrato_dividir_recebimento
+        // (a soma tem de fechar). Desfazer: "Desfazer divisão" (fn_extrato_estornar_vinculo, destino 'dividido').
+        // ===================================================================
+        const divEsc = (s) => String(s ?? '').replace(/[&<>"']/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]));
+        const divNum = (v) => { const n = parseFloat(String(v ?? '').replace(/\./g, '').replace(',', '.')); return isNaN(n) ? 0 : Math.round(n * 100) / 100; };
+        const divFmt = (v) => Number(v || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+        export async function abrirDividirRecebimento(fingerprintId) {
+            const f = conciliacaoUniCache.find(x => x.id === fingerprintId);
+            if (!f) return;
+            fecharSheet();
+            const deposito = Math.abs(parseFloat(f.valor));
+            mostrarCarregamentoGlobal('Carregando recebimentos em aberto…');
+            let abertos = [], sugeridos = [];
+            try {
+                const [r1, r2] = await Promise.all([
+                    dbAuth.from('mensalidades').select('id, contrato_id, competencia, valor_confirmado, valor_bruto, valor_taxa_adm, status')
+                        .eq('cliente_id', CLIENTE_ID_SUPABASE).in('status', ['pendente', 'atrasado']).order('competencia'),
+                    dbAuth.rpc('fn_extrato_sugerir_recebimento', { p_fingerprint_id: fingerprintId }),
+                ]);
+                abertos = r1.data || [];
+                sugeridos = (r2.data || []).map(c => c.mensalidade_id);
+            } catch (e) { /* segue com o que veio */ }
+            esconderCarregamentoGlobal();
+            const conNome = (cid) => contratos.find(c => c.id === cid)?.locatario || 'Contrato';
+            const ref = (comp) => String(comp || '').slice(5, 7) + '/' + String(comp || '').slice(0, 4);
+            const partes = []; // { k, tipo, mensalidade_id?, rotulo, bruto, taxa, liquido, valor, descricao, categoria }
+            let seq = 0;
+            const addMens = (m) => {
+                if (partes.some(p => p.mensalidade_id === m.id)) return;
+                const liq = Number(m.valor_confirmado || 0), bruto = Number(m.valor_bruto || liq), taxa = Number(m.valor_taxa_adm || Math.max(0, bruto - liq));
+                partes.push({ k: ++seq, tipo: 'mensalidade', mensalidade_id: m.id, rotulo: `${conNome(m.contrato_id)} · ${ref(m.competencia)}`, bruto, taxa, liquido: Math.round((bruto - taxa) * 100) / 100 });
+            };
+            sugeridos.slice(0, 1).forEach(id => { const m = abertos.find(x => x.id === id); if (m) addMens(m); });
+
+            const corpo = `<div id="div-corpo"></div>`;
+            const sheet = abrirSheetForm({
+                titulo: 'Dividir recebimento', sub: `${limparRotuloConciliacao(f.razao_social) || 'Entrada'} · R$ ${divFmt(deposito)} · ${formatarDataBR(f.data)}`,
+                corpo, rotuloSalvar: 'Confirmar divisão',
+                aoSalvar: async () => {
+                    const { falta } = somar();
+                    if (Math.abs(falta) > 0.05) { rzToast('A divisão ainda não fecha com o depósito.', { tipo: 'danger' }); return false; }
+                    const envio = partes.map(p => p.tipo === 'mensalidade'
+                        ? { tipo: 'mensalidade', mensalidade_id: p.mensalidade_id, bruto: p.bruto, taxa: p.taxa, liquido: p.liquido }
+                        : { tipo: p.tipo, valor: p.valor, descricao: p.descricao || null, categoria: p.categoria || null });
+                    if (Math.abs(falta) >= 0.005) envio.push({ tipo: 'ajuste', valor: falta });
+                    mostrarCarregamentoGlobal('Dividindo…');
+                    try {
+                        const { data, error } = await dbAuth.rpc('fn_extrato_dividir_recebimento', { p_fingerprint_id: fingerprintId, p_partes: envio, p_canal: 'app' });
+                        if (error) throw error;
+                        mensalidades = await carregarMensalidadesSupabase();
+                        lancamentos = await carregarLancamentosSupabase();
+                        emitirEscrita('conciliacao', { id: fingerprintId, acao: 'dividir' });
+                        registrarLog('conciliacao.dividir', { fingerprintId });
+                        esconderCarregamentoGlobal();
+                        const nd = (data?.diferencas || []).length;
+                        mostrarToast(`Recebimento dividido · ${data?.baixas || 0} baixa(s)${nd ? ` · ${nd} diferença(s) no Acompanhamento do mês` : ''}`, 'success');
+                        await carregarConciliacaoUnificada();
+                        return true;
+                    } catch (err) {
+                        esconderCarregamentoGlobal();
+                        rzToast('Não consegui dividir: ' + (err.message || err), { tipo: 'danger' });
+                        return false;
+                    }
+                },
+            });
+            const raiz = sheet || document;
+            function somar() {
+                const soma = partes.reduce((t, p) => t + (p.tipo === 'mensalidade' ? p.liquido : p.tipo === 'desconto' ? -p.valor : p.valor), 0);
+                return { soma: Math.round(soma * 100) / 100, falta: Math.round((deposito - soma) * 100) / 100 };
+            }
+            function desenhar(busca = '') {
+                const el = raiz.querySelector('#div-corpo'); if (!el) return;
+                const termo = busca.trim().toLowerCase();
+                const achados = termo ? abertos.filter(m => !partes.some(p => p.mensalidade_id === m.id) && (conNome(m.contrato_id).toLowerCase().includes(termo) || ref(m.competencia).includes(termo))).slice(0, 8) : [];
+                const sug = !termo ? sugeridos.map(id => abertos.find(x => x.id === id)).filter(m => m && !partes.some(p => p.mensalidade_id === m.id)).slice(0, 4) : [];
+                const linhaMens = (p) => `<div class="rz-card" style="margin-bottom:8px;padding:10px">
+                        <div style="display:flex;justify-content:space-between;gap:8px;align-items:center"><b style="font-size:13.5px">${divEsc(p.rotulo)}</b>
+                        <button type="button" class="rz-ico-btn" data-div-rem="${p.k}" aria-label="Tirar da divisão"><svg data-lucide="x"></svg></button></div>
+                        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:6px">
+                            <label class="rz-desc">Bruto<input inputmode="decimal" data-div-k="${p.k}" data-div-c="bruto" value="${divFmt(p.bruto)}" class="w-full p-2 border rounded text-sm" style="text-align:right"></label>
+                            <label class="rz-desc">Taxa${p.bruto > 0 ? ` (${divFmt(p.taxa / p.bruto * 100)}%)` : ''}<input inputmode="decimal" data-div-k="${p.k}" data-div-c="taxa" value="${divFmt(p.taxa)}" class="w-full p-2 border rounded text-sm" style="text-align:right"></label>
+                            <label class="rz-desc">Líquido<input value="${divFmt(p.liquido)}" readonly class="w-full p-2 border rounded text-sm" style="text-align:right;background:var(--tile)"></label>
+                        </div></div>`;
+                const linhaValor = (p) => `<div class="rz-card" style="margin-bottom:8px;padding:10px">
+                        <div style="display:flex;justify-content:space-between;gap:8px;align-items:center"><b style="font-size:13.5px">${p.tipo === 'desconto' ? 'Desconto da administradora' : 'Receita sem contrato'}</b>
+                        <button type="button" class="rz-ico-btn" data-div-rem="${p.k}" aria-label="Tirar da divisão"><svg data-lucide="x"></svg></button></div>
+                        <div style="display:grid;grid-template-columns:2fr 1fr;gap:6px;margin-top:6px">
+                            <input data-div-k="${p.k}" data-div-c="descricao" value="${divEsc(p.descricao || '')}" placeholder="${p.tipo === 'desconto' ? 'Ex.: condomínio da sala 202' : 'Ex.: Loja 04'}" class="w-full p-2 border rounded text-sm">
+                            <input inputmode="decimal" data-div-k="${p.k}" data-div-c="valor" value="${divFmt(p.valor)}" class="w-full p-2 border rounded text-sm" style="text-align:right">
+                        </div>
+                        ${p.tipo === 'desconto' ? `<select data-div-k="${p.k}" data-div-c="categoria" class="w-full p-2 border rounded text-sm" style="margin-top:6px">
+                            <option value="condominio"${p.categoria === 'condominio' ? ' selected' : ''}>Condomínio</option>
+                            <option value="taxa_adm"${p.categoria === 'taxa_adm' ? ' selected' : ''}>Taxa administrativa</option>
+                            <option value="outro"${p.categoria === 'outro' ? ' selected' : ''}>Outra despesa</option></select>` : ''}</div>`;
+                const { soma, falta } = somar();
+                const fecha = Math.abs(falta) < 0.005, centavos = !fecha && Math.abs(falta) <= 0.05;
+                el.innerHTML = `
+                    <div class="rz-group">Aluguéis (bruto − taxa = líquido)</div>
+                    ${partes.filter(p => p.tipo === 'mensalidade').map(linhaMens).join('') || '<p class="rz-desc">Nenhum aluguel ainda.</p>'}
+                    <input type="search" id="div-busca" value="${divEsc(busca)}" placeholder="Buscar recebimento em aberto (locatário ou mês)" class="w-full p-2 border rounded text-sm" style="margin:4px 0 6px">
+                    ${[...sug, ...achados].map(m => `<button type="button" class="rz-row rz-link" data-div-add="${m.id}"><div class="rz-tx"><b>${divEsc(conNome(m.contrato_id))} · ${ref(m.competencia)}</b><span>R$ ${divFmt(m.valor_confirmado)}${sugeridos.includes(m.id) ? ' · sugerido' : ''}</span></div><svg data-lucide="plus" class="rz-chev"></svg></button>`).join('')}
+                    <div class="rz-group" style="margin-top:10px">Outros</div>
+                    ${partes.filter(p => p.tipo !== 'mensalidade').map(linhaValor).join('')}
+                    <div style="display:flex;gap:6px;flex-wrap:wrap">
+                        <button type="button" class="rz-chip" data-div-novo="receita">+ Receita sem contrato</button>
+                        <button type="button" class="rz-chip" data-div-novo="desconto">+ Desconto (condomínio, conta)</button>
+                    </div>
+                    <div class="rz-card" style="margin-top:12px;padding:10px;background:${fecha || centavos ? 'var(--success-bg,#e8f5ed)' : 'var(--tile)'}">
+                        <div style="display:flex;justify-content:space-between"><span>Depósito</span><b>R$ ${divFmt(deposito)}</b></div>
+                        <div style="display:flex;justify-content:space-between"><span>Dividido</span><b>R$ ${divFmt(soma)}</b></div>
+                        <div style="display:flex;justify-content:space-between;font-weight:700;margin-top:4px;color:${fecha || centavos ? 'var(--success,#2f8b57)' : 'var(--warning,#7d4b54)'}">
+                            <span>${fecha ? 'Fecha ✓' : centavos ? 'Fecha com ajuste de centavos' : falta > 0 ? 'Falta dividir' : 'Passou do depósito'}</span><span>${fecha ? '' : 'R$ ' + divFmt(Math.abs(falta))}</span></div>
+                        ${centavos ? '<p class="rz-desc" style="margin-top:4px">A diferença vira um lançamento de arredondamento e aparece no Acompanhamento do mês.</p>' : ''}
+                    </div>`;
+                el.querySelectorAll('[data-div-add]').forEach(b => b.addEventListener('click', () => { const m = abertos.find(x => x.id === b.dataset.divAdd); if (m) addMens(m); desenhar(''); }));
+                el.querySelectorAll('[data-div-rem]').forEach(b => b.addEventListener('click', () => { const i = partes.findIndex(p => p.k === Number(b.dataset.divRem)); if (i >= 0) partes.splice(i, 1); desenhar(busca); }));
+                el.querySelectorAll('[data-div-novo]').forEach(b => b.addEventListener('click', () => {
+                    const t = b.dataset.divNovo, { falta: fl } = somar();
+                    partes.push({ k: ++seq, tipo: t, valor: t === 'receita' ? Math.max(0, fl) : 0, descricao: '', categoria: t === 'desconto' ? 'condominio' : null });
+                    desenhar(busca);
+                }));
+                el.querySelectorAll('[data-div-k]').forEach(inp => inp.addEventListener('change', () => {
+                    const p = partes.find(x => x.k === Number(inp.dataset.divK)); if (!p) return;
+                    const c = inp.dataset.divC;
+                    if (c === 'descricao' || c === 'categoria') p[c] = inp.value;
+                    else p[c] = Math.abs(divNum(inp.value));
+                    if (p.tipo === 'mensalidade') p.liquido = Math.round((p.bruto - p.taxa) * 100) / 100;
+                    desenhar(busca);
+                }));
+                const bx = el.querySelector('#div-busca');
+                if (bx) bx.addEventListener('input', () => { const pos = bx.selectionStart; desenhar(bx.value); const nb = raiz.querySelector('#div-busca'); if (nb) { nb.focus(); try { nb.setSelectionRange(pos, pos); } catch (e) { /* ok */ } } });
+                if (typeof lucide !== 'undefined') lucide.createIcons();
+            }
+            desenhar('');
+        }
+
+        function abrirDivisaoConciliada(f) {
+            const sub = `+ R$ ${divFmt(Math.abs(parseFloat(f.valor)))} · ${formatarDataBR(f.data)} · Dividido`;
+            const mens = mensalidades.filter(m => f.chave && m.chaveTransacaoOrigem === f.chave);
+            const lancs = lancamentos.filter(l => (l.origemId || l.origem_id) === f.id);
+            const acoes = [
+                ...mens.map(m => ({ icone: 'key-round', titulo: `${contratos.find(c => c.id === m.contratoId)?.locatario || 'Recebimento'} · ${m.referencia}`, sub: `Líquido R$ ${divFmt(m.valorConfirmado)}`, aoTocar: () => abrirRecebimentoDetalhe(m.id, true) })),
+                ...lancs.map(l => ({ icone: l.direcao === 'saida' ? 'minus' : 'plus', titulo: l.descricao || l.categoria || 'Lançamento', sub: `${l.direcao === 'saida' ? '−' : '+'} R$ ${divFmt(l.valor)}`, aoTocar: () => abrirEditarDespesa(l.id) })),
+                { icone: 'undo-2', titulo: 'Desfazer divisão', sub: 'Recebimentos voltam como estavam', tipo: 'bad', aoTocar: () => confirmarEstornarConciliacaoSaida(f.id) },
+                { icone: 'info', titulo: 'Resumo da conciliação', sub: 'Data, origem, modo e canal', aoTocar: () => abrirResumoConciliacao(f.id) },
+            ];
+            abrirSheetAcoes({ titulo: limparRotuloConciliacao(f.razao_social), sub, acoes });
+        }
+
         export async function abrirAcoesConciliacaoLinha(fingerprintId) {
             const f = conciliacaoUniCache.find(x => x.id === fingerprintId);
             if (!f) return;
@@ -4302,6 +4463,7 @@ function financeiroRenderCabecalho(aba) {
             // direto pra tela nativa — Desfazer deixou de ser um ícone
             // avulso na linha, agora é opção do menu, igual pendente/não
             // controlado.
+            if (f.status_conciliacao === 'conciliado' && f.destino_tipo === 'dividido') { abrirDivisaoConciliada(f); return; } // v1.86.0
             if (f.status_conciliacao === 'conciliado' && f.destino_id) {
                 const nomeRegra = f.regra_codigo ? nomeRegraConc(f.regra_codigo) : null;
                 // v1.25.0 (demanda fb6576c1) — canal='bot' já é gravado pela Edge
@@ -4374,6 +4536,7 @@ function financeiroRenderCabecalho(aba) {
                     });
                 });
                 acoes.push({ icone: 'search', titulo: 'Buscar manualmente', sub: candidatos.length ? 'Outros em aberto' : 'Sem sugestão: escolha', aoTocar: () => abrirBuscarMensalidadeManual(fingerprintId) });
+                acoes.push({ icone: 'split', titulo: 'Dividir recebimento', sub: 'Vários aluguéis, descontos da administradora', codigo: 'mensal.baixar', aoTocar: () => abrirDividirRecebimento(fingerprintId) }); // v1.86.0
             } else {
                 candidatos.forEach((c, i) => {
                     const mesmoDoMotor = i === 0 && sugCache && sugCache.destino_id === c.lancamento_id;

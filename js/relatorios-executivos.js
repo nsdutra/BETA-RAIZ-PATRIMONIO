@@ -1,6 +1,12 @@
 // ============================================================================
 // relatorios-executivos.js — Raiz Patrimônio · Relatórios no modelo executivo
-// Versão: 1.9.0 · 13/11/2026
+// Versão: 1.10.0 · 13/11/2026
+//
+// v1.10.0 (13/11/2026, sessão 20261113-1530-dividir-recebimento, demanda 76a2f670 E8; D2 do Nicola 13/11 13:35 "usar a do
+//   documento e garantir que vai sair no relatório das diferenças" + 14:05 "Diferenças = acompanhamento do mês") — Acompanhamento
+//   do mês ganha o bloco "Diferenças da prestação de contas" (tela e aba "Diferenças" na planilha), lido de
+//   fn_relatorio_acompanhamento_mes.diferencas_prestacao: taxa e aluguel cobrados × contrato e arredondamento das divisões de
+//   recebimento do mês. Versão anterior: 1.9.0
 //
 // v1.9.0 (13/11/2026, sessão 20261113-1500-rel-cadastro-partes, demanda 35ff0daf; FICHA_RELATORIO_CADASTRO_PARTES_RAIZ v1.0.0,
 //   de acordo do Nicola 13/11 14:05) — relatório novo "Cadastro de partes e pessoas" (relatorios.cadastro_partes), lido de
@@ -30,27 +36,15 @@
 //   celular o relatório não corta mais a lateral: o texto das células quebra linha (descrição longa como
 //   "MERCADOLIVRE*MERCADOLIV" empurrava o valor para fora), a coluna Δ % da tabela "Por conta" fica só no PDF (classe hm,
 //   como as outras colunas secundárias) e, se ainda passar da tela, a página rola de lado em vez de cortar. O PDF não muda.
-// Versão anterior: 1.6.0 · 19/10/2026
-//
-// v1.6.0 (19/10/2026, sessão 20261018-2336-usos-lotes, demanda 63649288; FICHA_COCKPIT_METAS_RELATORIO_RAIZ v1.0.0 e protótipo
-// v1.0.0, telas 4 a 7, de acordo do Nicola 18/10 23:36) — cockpit C3, relatório novo "Relatório executivo"
-// (relatorios.executivo), lido de fn_relatorio_executivo:
-//   · do ramo, 2 páginas: capa com manchete e 3 pontos montados a partir dos números (D-CK6), os 4 números (resultado,
-//     receita, despesa, margem), o resultado acumulado real × ano anterior × meta e a ponte da meta ao real por grupo
-//     (sem meta: a composição do resultado); página 2 com o demonstrativo na ordem da DRE (real até o mês, ano anterior,
-//     meta, Δ meta) e o resultado por ativo;
-//   · consolidado: uma página-resumo (uma linha por ramo, Geral e Consolidado, a mesma soma do Hoje) e as 2 de cada ramo;
-//   · notação REL-57: real em cor cheia escura, ano anterior em cinza claro, meta em contorno; verde e vermelho só na
-//     variação; filtro de ano e de ramo; abrirRelatorioExecutivo('executivo', { ramo, ramoNome }).
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.5.0 … v1.5.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.6.0 … v1.6.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
 import { rzMostrarBloqueio } from './comum-licenca.js';
 import { rzToast } from './raiz-ui.js';
 import RaizDevice from './raiz-device.js';
 
-export const VERSAO = '1.9.0';
+export const VERSAO = '1.10.0';
 
 // ---------------------------------------------------------------------------
 // Formatos (REL-13 a REL-17)
@@ -1646,7 +1640,12 @@ function acompCorpoHtml() {
         });
         if (num(d.despesas_sem_ativo?.valor)) lista += `<p class="ra-n">Despesas sem imóvel no mês (empresa): ${brl(d.despesas_sem_ativo.valor)}, fora desta visão.</p>`;
     }
-    return `<div class="ra">${aviso}${k}${tabs}${lista}<p class="ra-n">Toque numa linha para corrigir o recebimento ou escrever uma observação. A planilha sai com o que está aqui.</p></div>`;
+    const difs = d.diferencas_prestacao || []; // v1.10.0 — E8
+    const difTxt = (x, v) => x.tipo === 'taxa' ? `${String(num(v)).replace('.', ',')}%` : brl(v);
+    const difHtml = difs.length ? `<div class="ra-av" style="text-align:left"><b>Diferenças da prestação de contas · ${difs.length}</b>
+        ${difs.map(x => `<div style="display:flex;justify-content:space-between;gap:8px;margin-top:4px"><span>${esc(x.locatario || '')} · ${esc(x.rotulo || x.tipo)}</span><span>contrato ${esc(difTxt(x, x.contrato))} · cobrado ${esc(difTxt(x, x.cobrado))}</span></div>`).join('')}
+        <div style="margin-top:4px;opacity:.8">Gravado o que a administradora cobrou. Ajuste o contrato ou fale com a administradora.</div></div>` : '';
+    return `<div class="ra">${aviso}${k}${difHtml}${tabs}${lista}<p class="ra-n">Toque numa linha para corrigir o recebimento ou escrever uma observação. A planilha sai com o que está aqui.</p></div>`;
 }
 async function acompBuscar() {
     const [{ data, error }, quem] = await Promise.all([
@@ -1943,6 +1942,24 @@ async function baixarPlanilhaAcompanhamento() {
         wa.getCell(ta.TR + 2, 1).value = num(d.despesas_sem_ativo?.valor) ? `Despesas sem imóvel ligado (da empresa) no mês: ${brl(d.despesas_sem_ativo.valor)} — ficam fora desta aba.` : 'Todas as despesas do mês estão ligadas a um imóvel.';
         wa.getCell(ta.TR + 2, 1).font = F(9, false, CC.muted);
         fonte(wa, ta.TR + 4, `resultado por imóvel de ${comp(acomp.comp)} · pela data do pagamento`);
+
+        // 3b. Diferenças da prestação de contas (v1.10.0 — E8)
+        const dfs = d.diferencas_prestacao || [];
+        if (dfs.length) {
+            const wf = wb.addWorksheet('Diferenças');
+            const pctOuBrl = (x, v) => x.tipo === 'taxa' ? `${String(num(v)).replace('.', ',')}%` : brl(v);
+            const fcols = [
+                ['Locatário / pagador', 34, null, x => x.locatario || ''], ['O quê', 22, null, x => x.rotulo || x.tipo],
+                ['Pelo contrato', 16, null, x => pctOuBrl(x, x.contrato)], ['Cobrado', 16, null, x => pctOuBrl(x, x.cobrado)],
+                ['Valor da taxa', 13, MO, x => (x.tipo === 'taxa' ? num(x.valor) : null)], ['Depósito', 12, null, x => (x.data_deposito ? dma(x.data_deposito) : '')],
+                ['Administradora', 30, null, x => x.pagador || ''],
+            ];
+            topo(wf, 'Acompanhamento do mês · Diferenças da prestação de contas', dfs.length, fcols.length);
+            const tf2 = tabela(wf, 8, fcols, dfs, {});
+            wf.getCell(tf2.TR + 2, 1).value = 'Gravado o que a administradora cobrou (decisão D2). A diferença fica aqui até o contrato ou a administradora serem ajustados.';
+            wf.getCell(tf2.TR + 2, 1).font = F(9, false, CC.muted);
+            fonte(wf, tf2.TR + 4, `divisões de recebimento de ${comp(acomp.comp)}`);
+        }
 
         // 4. Gráficos (imagens)
         const wg = wb.addWorksheet('Gráficos', { views: [{ showGridLines: false }] });
