@@ -1,6 +1,12 @@
 // ============================================================================
 // relatorios-executivos.js — Raiz Patrimônio · Relatórios no modelo executivo
-// Versão: 1.11.0 · 13/11/2026
+// Versão: 1.12.0 · 13/11/2026
+//
+// v1.12.0 (13/11/2026, sessão 20261113-2040-cadastro-em-tela, demanda c4fb7da1; PLANO_RELATORIOS_CADASTRO_EM_TELA v1.0.0, de acordo
+//   do Nicola 13/11 20:33) — Cadastro da carteira e Cadastro de partes e pessoas abrem EM TELA (casca do Acompanhamento): números,
+//   abas, filtros, linhas tocáveis com as ações que já existem e rodapé Compartilhar · Exportar planilha (planilhas de sempre).
+//   Sem mudança no banco: a parte é achada pelo nome (e CPF/CNPJ quando há nome repetido); o imóvel e o contrato pelas listas do
+//   app. Versão anterior: 1.11.0
 //
 // v1.11.0 (13/11/2026, sessão 20261113-1910-reajuste-desde; achados do Nicola 19:06) — Acompanhamento do mês: a fileira de filtros
 //   sem barra de rolagem; recebido sem diferença mostra "sem diferença" (antes repetia "a receber R$ X" ao lado do recebido, o que
@@ -27,23 +33,15 @@
 //   extrato a classificar; bloco fora do resultado) e Por imóvel. Tocar abre as ações do Financeiro (rzAcoesMensalidade,
 //   rzAcoesDespesa) ou grava a Observação; o relatório se atualiza ao fechar o sheet. Planilha com 5 abas (Recebimentos,
 //   Despesas, Por imóvel, Gráficos em imagem, Sobre), colunas amarelas para o cliente preencher. abrirRelatorioAcompanhamentoMes().
-// Versão anterior: 1.7.0 · 23/10/2026
-//
-// v1.7.0 (23/10/2026, sessão 20261023-0830-computador-c4, demanda 15146a34; Nicola 23/10 08:26: "ao exportar recebimentos, não
-//   está saindo com formatação padrão de relatórios do Raiz … use o exportar pendências de cadastro como padrão e escreva") —
-//   baixarPlanilhaLista(): o molde da planilha do Cadastro da carteira vira a casca de TODA exportação de lista do app
-//   (PADRAO_RELATORIOS v1.6.0, REL-61 a REL-66): empresa, título e linha de situação no topo, símbolo Raiz, até 4 números com
-//   fórmula, cabeçalho congelado com filtro, número como número, data como data, zebra, linha Total com fórmula, fonte,
-//   rodapé de impressão com página e uma aba "Sobre". Primeiro uso: Financeiro › Recebimentos e Saídas › Exportar.
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.6.1 … v1.6.1): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.7.0 … v1.7.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
 import { rzMostrarBloqueio } from './comum-licenca.js';
 import { rzToast } from './raiz-ui.js';
 import RaizDevice from './raiz-device.js';
 
-export const VERSAO = '1.11.0';
+export const VERSAO = '1.12.0';
 
 // ---------------------------------------------------------------------------
 // Formatos (REL-13 a REL-17)
@@ -1364,8 +1362,7 @@ export async function baixarPlanilhaLista(o) {
 // só formata; os achados vêm do banco). Abas Resumo · Empresa · Partes · Pessoas · Sobre.
 // ---------------------------------------------------------------------------
 const CADPARTES_CODIGO = 'relatorios.cadastro_partes';
-export async function abrirRelatorioCadastroPartes() {
-    if (rzMostrarBloqueio(CADPARTES_CODIGO)) return; // ACE-04
+async function baixarPlanilhaCadastroPartes() {
     rzToast('Montando a planilha…');
     try {
         const [ExcelJS, resp, quem] = await Promise.all([
@@ -1502,18 +1499,192 @@ export async function abrirRelatorioCadastroPartes() {
     }
 }
 
-export async function abrirRelatorioCadastroCarteira() {
+export function abrirRelatorioCadastroCarteira() { // v1.12.0 — em tela; a planilha fica no Exportar
     if (rzMostrarBloqueio(CADASTRO_CODIGO)) return; // ACE-04
-    let emps = [];
+    cadAbrir('carteira');
+}
+export function abrirRelatorioCadastroPartes() { // v1.12.0
+    if (rzMostrarBloqueio(CADPARTES_CODIGO)) return; // ACE-04
+    cadAbrir('partes');
+}
+
+// ---------------------------------------------------------------------------
+// v1.12.0 (dem c4fb7da1; PLANO_RELATORIOS_CADASTRO_EM_TELA v1.0.0, de acordo do Nicola 13/11 20:33) — Cadastro da carteira e
+// Cadastro de partes e pessoas EM TELA, na casca do Acompanhamento do mês: topo, números, abas, filtros, linhas tocáveis e rodapé
+// Compartilhar · Exportar planilha (a planilha é a de sempre). Tocar abre as ações que já existem (contrato e parte em sheet,
+// sobre o relatório; imóvel abre a ficha). Ao fechar o sheet, a tela relê os dados. Nada novo no banco.
+// ---------------------------------------------------------------------------
+let cad = null; // { tipo: 'carteira'|'partes', empId, empNome, dados, aba, filtro, partesIds }
+const cadNorm = (s) => String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/\s+/g, ' ').trim();
+function cadAbrir(tipo) {
+    garantirCss();
+    if (!document.getElementById('rz-relacomp-css')) { const s = document.createElement('style'); s.id = 'rz-relacomp-css'; s.textContent = ACOMP_CSS; document.head.appendChild(s); }
+    fecharRelatorioExecutivo(); acomp = null;
+    cad = { tipo, empId: null, empNome: null, dados: null, aba: tipo === 'carteira' ? 'carteira' : 'partes', filtro: 'todos', partesIds: null };
+    const el = document.createElement('div');
+    el.id = 'rz-relexec'; el.setAttribute('role', 'dialog'); el.setAttribute('aria-modal', 'true');
+    el.setAttribute('aria-label', tipo === 'carteira' ? 'Cadastro da carteira' : 'Cadastro de partes e pessoas');
+    document.body.appendChild(el);
+    cadCarregar();
+}
+async function cadCarregar() {
+    const el = document.getElementById('rz-relexec'); if (!el || !cad) return;
+    el.innerHTML = `<div class="rx-top">
+        <button type="button" class="rx-voltar" data-cad="fechar" aria-label="Voltar para Relatórios"><svg data-lucide="chevron-left"></svg>Relatórios</button>
+        <span class="rx-sp"></span>
+        ${cad.tipo === 'carteira' ? `<button type="button" data-cad="emp"><svg data-lucide="building-2"></svg>${esc(cad.empNome || 'Todos')}<svg data-lucide="chevron-down"></svg></button>` : '<b style="font:600 14px Inter,system-ui,sans-serif">Partes e pessoas</b>'}
+      </div>
+      <div class="rx-corpo" aria-live="polite"><div class="rx-msg">Montando…</div></div>
+      <div class="rx-pe"><button type="button" class="rx-sec" data-cad="compartilhar"><svg data-lucide="share-2"></svg>Compartilhar</button><button type="button" class="rx-pri" data-cad="planilha"><svg data-lucide="sheet"></svg>Exportar planilha</button></div>`;
+    el.querySelectorAll('[data-cad]').forEach(b => b.addEventListener('click', () => cadAcao(b.dataset.cad)));
+    if (typeof rzIcones === 'function') rzIcones();
     try {
-        const { data, error } = await dbAuth.from('empreendimentos').select('id, nome').eq('cliente_id', CLIENTE_ID_SUPABASE).order('nome');
-        if (!error && Array.isArray(data)) emps = data;
-    } catch (e) { /* sem a lista, segue só com "Todos" */ }
-    abrirSheetAcoes({ titulo: 'Cadastro da carteira', sub: 'Planilha para o Excel', acoes: [
-        { icone: 'layers', titulo: 'Todos os empreendimentos', sub: 'Baixar planilha', codigo: CADASTRO_CODIGO, aoTocar: () => baixarPlanilhaCadastro(null, null) },
-        ...emps.map(e => ({ icone: 'building-2', titulo: e.nome, sub: 'Baixar planilha', codigo: CADASTRO_CODIGO, aoTocar: () => baixarPlanilhaCadastro(e.id, e.nome) })),
+        const r = cad.tipo === 'carteira'
+            ? await dbAuth.rpc('fn_relatorio_cadastro_carteira', { p_cliente_id: CLIENTE_ID_SUPABASE, p_empreendimento_id: cad.empId || null })
+            : await dbAuth.rpc('fn_relatorio_cadastro_partes', { p_cliente_id: CLIENTE_ID_SUPABASE });
+        if (r.error) throw new Error(r.error.message);
+        cad.dados = r.data || {};
+        if (cad.tipo === 'partes' && !cad.partesIds) {
+            const { data } = await dbAuth.from('partes').select('id, nome, documento').eq('cliente_id', CLIENTE_ID_SUPABASE);
+            cad.partesIds = data || [];
+        }
+        cadDesenhar();
+    } catch (e) {
+        console.error('[rz] cadastro em tela', e);
+        el.querySelector('.rx-corpo').innerHTML = `<div class="rx-msg">Não foi possível montar o relatório.<br><small>${esc(e.message || e)}</small></div>`;
+    }
+}
+function cadAcao(a) {
+    if (a === 'fechar') { fecharRelatorioExecutivo(); cad = null; return; }
+    if (a === 'emp') {
+        const emps = cad.dados?.empreendimentos || [];
+        abrirSheetAcoes({ titulo: 'Empreendimento', sub: 'Cadastro da carteira', acoes: [
+            { icone: 'layers', titulo: 'Todos', aoTocar: () => { Object.assign(cad, { empId: null, empNome: null }); cadCarregar(); } },
+            ...emps.map(e => ({ icone: 'building-2', titulo: e.nome, aoTocar: () => { Object.assign(cad, { empId: e.id, empNome: e.nome }); cadCarregar(); } }))] });
+    } else if (a === 'planilha') {
+        if (cad.tipo === 'carteira') baixarPlanilhaCadastro(cad.empId, cad.empNome); else baixarPlanilhaCadastroPartes();
+    } else if (a === 'compartilhar') cadCompartilhar();
+}
+function cadNumeros() {
+    const d = cad.dados || {};
+    if (cad.tipo === 'carteira') {
+        const l = d.linhas || [];
+        const ativos = l.filter(x => x.contrato_situacao === 'ativo');
+        return [['Imóveis', new Set(l.map(x => x.imovel)).size], ['Contratos ativos', ativos.length],
+            ['Aluguel mensal', brl(ativos.reduce((t, x) => t + num(x.aluguel), 0))], ['Com diagnóstico', l.filter(x => x.diagnostico).length]];
+    }
+    const r = d.resumo || {};
+    return [['Partes', num(r.partes)], ['Sem vínculo', num(r.sem_vinculo)], ['Sem CPF/CNPJ', num(r.sem_documento)], ['Nome repetido', num(r.nome_repetido)]];
+}
+function cadDesenhar() {
+    const corpo = document.querySelector('#rz-relexec .rx-corpo'); if (!corpo || !cad?.dados) return;
+    const d = cad.dados, f = cad.filtro;
+    const k = `<div class="ra-k">${cadNumeros().map(([r, v]) => `<div><small>${esc(r)}</small><b>${esc(String(v))}</b></div>`).join('')}</div>`;
+    let tabs = '', filtros = [], lista = '';
+    const fil = (lst) => `<div class="ra-f">${lst.map(([c, r]) => `<button type="button" data-cad-f="${c}" class="${f === c ? 'on' : ''}">${esc(r)}</button>`).join('')}</div>`;
+    if (cad.tipo === 'carteira') {
+        const l = d.linhas || [];
+        tabs = `<div class="ra-tabs"><button type="button" data-cad-aba="carteira" class="${cad.aba === 'carteira' ? 'on' : ''}">Carteira · ${l.length}</button>
+            <button type="button" data-cad-aba="emp" class="${cad.aba === 'emp' ? 'on' : ''}">Por empreendimento</button></div>`;
+        if (cad.aba === 'carteira') {
+            const diag = l.filter(x => x.diagnostico).length, vagos = l.filter(x => !x.locatario).length, semdoc = l.filter(x => x.locatario && !x.documento).length;
+            lista += fil([['todos', 'Todos'], ['diag', `Com diagnóstico · ${diag}`], ['vagos', `Vagos · ${vagos}`], ['semdoc', `Sem CPF/CNPJ · ${semdoc}`]]);
+            const rows = l.map((x, i) => ({ x, i })).filter(({ x }) => f === 'diag' ? !!x.diagnostico : f === 'vagos' ? !x.locatario : f === 'semdoc' ? (x.locatario && !x.documento) : true);
+            let g = null;
+            rows.forEach(({ x, i }) => {
+                if (x.empreendimento !== g) { g = x.empreendimento; lista += `<div class="ra-g">${esc(g || 'Sem empreendimento')}</div>`; }
+                lista += `<button type="button" class="ra-l" data-cad-i="${i}"><div class="ra-l1"><b>${esc(x.imovel || 'Imóvel')}</b><span>${x.aluguel != null ? brl(x.aluguel) : '—'}</span></div>
+                  <div class="ra-l2"><span><i class="ra-d ${x.locatario ? 'ra-ok' : 'ra-bad'}"></i>${esc(x.locatario || 'Vago')}${x.documento ? ' · ' + esc(x.doc_tipo || '') + ' ' + esc(x.documento) : ''}</span><span>${esc(x.contrato_tipo || x.tipo || '')}</span></div>
+                  ${x.diagnostico ? `<div class="ra-o">⚠ ${esc(x.diagnostico)}</div>` : ''}</button>`;
+            });
+            if (!rows.length) lista += '<div class="ra-v">Nada neste filtro.</div>';
+        } else {
+            const por = {};
+            l.forEach(x => { const e = por[x.empreendimento || 'Sem empreendimento'] || (por[x.empreendimento || 'Sem empreendimento'] = { im: new Set(), c: 0, al: 0, dg: 0 });
+                e.im.add(x.imovel); if (x.contrato_situacao === 'ativo') { e.c++; e.al += num(x.aluguel); } if (x.diagnostico) e.dg++; });
+            Object.entries(por).forEach(([n, e]) => {
+                lista += `<div class="ra-l" style="cursor:default"><div class="ra-l1"><b>${esc(n)}</b><span>${brl(e.al)}</span></div>
+                  <div class="ra-l2"><span>${e.im.size} imóve${e.im.size === 1 ? 'l' : 'is'} · ${e.c} contrato${e.c === 1 ? '' : 's'} ativo${e.c === 1 ? '' : 's'}</span><span class="${e.dg ? 'n' : ''}">${e.dg ? e.dg + ' com diagnóstico' : 'ok'}</span></div></div>`;
+            });
+        }
+    } else {
+        const p = d.partes || [], pe = d.pessoas || [];
+        tabs = `<div class="ra-tabs"><button type="button" data-cad-aba="partes" class="${cad.aba === 'partes' ? 'on' : ''}">Partes · ${p.length}</button>
+            <button type="button" data-cad-aba="pessoas" class="${cad.aba === 'pessoas' ? 'on' : ''}">Pessoas · ${pe.length}</button>
+            <button type="button" data-cad-aba="empresa" class="${cad.aba === 'empresa' ? 'on' : ''}">Empresa</button></div>`;
+        const tem = (x, a) => (x.achados || []).includes(a);
+        if (cad.aba === 'partes') {
+            lista += fil([['todos', 'Todas'], ['achado', `Com achado · ${p.filter(x => (x.achados || []).length).length}`], ['semvinc', `Sem vínculo · ${p.filter(x => tem(x, 'sem vínculo')).length}`],
+                ['semdoc', `Sem CPF/CNPJ · ${p.filter(x => tem(x, 'sem CPF/CNPJ')).length}`], ['rep', `Nome repetido · ${p.filter(x => tem(x, 'nome repetido')).length}`], ['inv', `CPF/CNPJ inválido · ${p.filter(x => tem(x, 'CPF/CNPJ inválido')).length}`]]);
+            const rows = p.map((x, i) => ({ x, i })).filter(({ x }) => f === 'achado' ? (x.achados || []).length : f === 'semvinc' ? tem(x, 'sem vínculo') : f === 'semdoc' ? tem(x, 'sem CPF/CNPJ') : f === 'rep' ? tem(x, 'nome repetido') : f === 'inv' ? tem(x, 'CPF/CNPJ inválido') : true);
+            rows.forEach(({ x, i }) => {
+                lista += `<button type="button" class="ra-l" data-cad-i="${i}"><div class="ra-l1"><b>${esc(x.nome || '')}</b><span>${num(x.vinculos)} vínculo${num(x.vinculos) === 1 ? '' : 's'}</span></div>
+                  <div class="ra-l2"><span><i class="ra-d ${(x.achados || []).length ? 'ra-warn' : 'ra-ok'}"></i>${esc(x.documento ? (x.doc_tipo || '') + ' ' + x.documento : 'sem CPF/CNPJ')}</span><span>${esc(x.papeis || '')}</span></div>
+                  ${(x.achados || []).length ? `<div class="ra-o">⚠ ${esc(x.achados.join(' · '))}</div>` : ''}</button>`;
+            });
+            if (!rows.length) lista += '<div class="ra-v">Nada neste filtro.</div>';
+        } else if (cad.aba === 'pessoas') {
+            pe.forEach(x => {
+                lista += `<div class="ra-l" style="cursor:default"><div class="ra-l1"><b>${esc(x.nome || '')}</b><span>${x.cota != null ? esc(String(x.cota).replace('.', ',')) + '%' : ''}</span></div>
+                  <div class="ra-l2"><span><i class="ra-d ${(x.achados || []).length ? 'ra-warn' : 'ra-ok'}"></i>${esc([x.perfil, x.funcao].filter(Boolean).join(' · '))}</span><span>${x.login ? 'acessa o app' : 'sem acesso'}</span></div>
+                  ${(x.achados || []).length ? `<div class="ra-o">${esc(x.achados.join(' · '))}</div>` : ''}</div>`;
+            });
+            if (d.resumo && d.resumo.cotas_ok === false) lista += `<div class="ra-av">As cotas das pessoas somam ${esc(String(d.resumo.cotas_pessoas))}% (deveria ser 100%).</div>`;
+        } else {
+            const e = d.empresa || {};
+            lista += [['Nome', e.nome], ['Razão social', e.razao], ['Documento', [e.doc_tipo, e.documento].filter(Boolean).join(' ')], ['Cidade/UF', [e.cidade, e.uf].filter(Boolean).join('/')],
+                ['Natureza', e.natureza], ['Regime tributário', e.regime], ['Plano', e.plano], ['No Raiz desde', e.desde ? dma(e.desde) : '']]
+                .map(([a, b]) => `<div class="ra-l" style="cursor:default"><div class="ra-l1"><span>${esc(a)}</span><b>${esc(b || '—')}</b></div></div>`).join('');
+        }
+    }
+    corpo.innerHTML = `<div class="ra">${k}${tabs}${lista}<p class="ra-n">${cad.tipo === 'carteira' ? 'Toque num imóvel para corrigir o contrato e o locatário ou abrir o imóvel.' : 'Toque numa parte para editar, ver os vínculos ou excluir.'} A planilha sai com o que está aqui.</p></div>`;
+    corpo.querySelectorAll('[data-cad-aba]').forEach(b => b.addEventListener('click', () => { cad.aba = b.dataset.cadAba; cad.filtro = 'todos'; cadDesenhar(); }));
+    corpo.querySelectorAll('[data-cad-f]').forEach(b => b.addEventListener('click', () => { cad.filtro = b.dataset.cadF; cadDesenhar(); }));
+    corpo.querySelectorAll('[data-cad-i]').forEach(b => b.addEventListener('click', () => cad.tipo === 'carteira' ? cadTocarImovel(d.linhas[Number(b.dataset.cadI)]) : cadTocarParte(d.partes[Number(b.dataset.cadI)])));
+}
+function cadTocarImovel(x) {
+    if (!x) return;
+    const imo = (typeof imoveis !== 'undefined' ? imoveis : []).find(i => cadNorm(i.nomeExibicao) === cadNorm(x.imovel));
+    const con = x.locatario && imo ? (typeof contratos !== 'undefined' ? contratos : []).find(c => c.imovelId === imo.id && cadNorm(c.locatario) === cadNorm(x.locatario) && c.status !== 'Finalizado') : null;
+    const acoes = [];
+    if (con) {
+        acoes.push({ icone: 'user-round-pen', titulo: 'Corrigir o locatário', sub: 'Nome, CPF/CNPJ e contato', codigo: 'contratos.editar', aoTocar: () => { window.abrirEditarLocatarioContrato(con.id); cadRecarregarAoVoltar(); } });
+        acoes.push({ icone: 'file-pen', titulo: 'Corrigir o contrato', sub: 'Valor, vencimento, reajuste', codigo: 'contratos.editar', aoTocar: () => { window.abrirDetalhesContrato(con.id); cadRecarregarAoVoltar(); } });
+    }
+    if (imo) acoes.push({ icone: 'building-2', titulo: 'Abrir o imóvel', sub: 'Sai do relatório', aoTocar: () => { fecharRelatorioExecutivo(); cad = null; switchTab('tab-ativos'); window.dispatchEvent(new CustomEvent('cofre:abrir-ativo', { detail: { id: imo.id } })); } });
+    if (!acoes.length) { rzToast('Não achei este imóvel na lista do app. Abra por Patrimônio.', 'warning'); return; }
+    abrirSheetAcoes({ titulo: x.imovel || 'Imóvel', sub: [x.locatario || 'Vago', x.diagnostico].filter(Boolean).join(' · '), acoes });
+}
+async function cadTocarParte(x) {
+    if (!x) return;
+    const dig = (s) => String(s || '').replace(/\D/g, '');
+    const cands = (cad.partesIds || []).filter(p => cadNorm(p.nome) === cadNorm(x.nome));
+    const pt = cands.length > 1 && x.documento ? (cands.find(p => dig(p.documento) && dig(x.documento).startsWith(dig(p.documento).slice(0, 3)) && dig(p.documento).endsWith(dig(x.documento).slice(-2))) || cands[0]) : cands[0];
+    if (!pt) { rzToast('Não achei esta parte. Abra por Cadastros › Partes.', 'warning'); return; }
+    try { if (typeof window.carregarPartes === 'function') await window.carregarPartes(); } catch (e) { /* segue */ }
+    abrirSheetAcoes({ titulo: x.nome, sub: (x.achados || []).join(' · ') || (x.papeis || ''), acoes: [
+        { icone: 'pencil', titulo: 'Editar a parte', sub: 'Nome, CPF/CNPJ, contato', codigo: 'partes.editar', aoTocar: () => { window.abrirFormParteSheet(pt.id); cadRecarregarAoVoltar(); } },
+        { icone: 'more-horizontal', titulo: 'Vínculos, papel e excluir', sub: 'As ações de Partes', codigo: 'partes.ver', aoTocar: () => { window.abrirAcoesParte(pt.id); cadRecarregarAoVoltar(); } },
     ] });
 }
+function cadRecarregarAoVoltar() {
+    let vezes = 0;
+    const t = setInterval(() => {
+        vezes++;
+        if (!cad || vezes > 600) { clearInterval(t); return; }
+        if (!acompSheetAberto() && vezes > 1) { clearInterval(t); cad.partesIds = null; cadCarregar(); }
+    }, 1000);
+}
+async function cadCompartilhar() {
+    if (!cad?.dados) return;
+    const tit = cad.tipo === 'carteira' ? `Cadastro da carteira · ${cad.dados.empresa || ''}${cad.empNome ? ' · ' + cad.empNome : ''}` : `Cadastro de partes e pessoas · ${cad.dados.empresa?.nome || ''}`;
+    const texto = `${tit}\n${cadNumeros().map(([r, v]) => `${r}: ${v}`).join(' · ')}`;
+    const r = await RaizDevice.share({ titulo: tit, texto });
+    if (r && r.ok === false && r.motivo === 'sem_share') {
+        try { await navigator.clipboard.writeText(texto); rzToast('Resumo copiado'); } catch (e) { rzToast('Sem compartilhar aqui. Use a planilha.', 'warning'); }
+    }
+}
+
 
 // ---------------------------------------------------------------------------
 // Acompanhamento do mês (v1.8.0) — relatorios.acompanhamento_mes, dados de fn_relatorio_acompanhamento_mes (REL-02:
