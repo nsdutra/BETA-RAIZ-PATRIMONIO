@@ -4,6 +4,16 @@ Histórico completo de versões do `index.html`, movido automaticamente pelo `ge
 
 ---
 
+NOVIDADES (Beta v1.490.7) — lupa por administradora; import map.
+Versão anterior (Beta v1.490.6):
+DATA: 12/11/2026 (demanda 89abec4f)
+------------------------------------------------------------------
+Versões anteriores (v1.490.6 … v1.490.6): CHANGELOG_APP.md, na raiz do
+repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
+das 5 versões mais recentes deste cabeçalho.
+
+---
+
 NOVIDADES (Beta v1.490.6) — financeiro.js 1.85.0 (importar extrato); import map.
 Versão anterior (Beta v1.490.5):
 DATA: 12/11/2026 (demanda c4fd93e6)

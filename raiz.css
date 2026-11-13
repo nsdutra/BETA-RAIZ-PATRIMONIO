@@ -1,6 +1,10 @@
 /* ============================================================================
    raiz.css — Raiz Patrimônio · estilos do app (index.html)
-   Versão: 1.21.0 · 13/11/2026
+   Versão: 1.22.0 · 13/11/2026
+
+   v1.22.0 (13/11/2026, sessão 20261113-1405-f2a-ajustes; testes T-2945 e T-2949 do Nicola 13/11 14:05) — legenda ganha "hoje"
+   (.rz-cal-leg i.hj, na cor do ramo como o traço do dia); calendário do Usos abre fechado (.rz-usos-cal-tg) e usa a barra do
+   mês da Agenda (.rz-usos-cal .rz-mes-bar); sai .rz-usos-cal-topo. Versão anterior: 1.21.0
 
    v1.21.0 (13/11/2026, sessão 20261113-0712-crm-f2a; FICHA_CRM_AGENDA_OCUPACAO_RAIZ v1.2.0 F2a, aprovada pelo Nicola 12/11 08:44)
    — calendário único (DESIGN_SYSTEM v2.51.0 §6.3): classes .rz-cal-* do componente js/nucleo/calendario.js, usadas pelo mês
@@ -2165,5 +2169,6 @@ html.rz-plat-web body:not(.rz-split-con) #ficha-contrato-conteudo > .rz-entity:f
 .rz-cal-leg i.pt{width:6px;height:6px;border-radius:50%;vertical-align:1px}
 .rz-ag-calmes{margin:4px 0 8px}
 .rz-usos-cal{margin-top:12px;padding-top:10px;border-top:1px solid var(--line)}
-.rz-usos-cal-topo{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px}
-.rz-usos-cal-topo b{font-size:var(--fs-corpo,14px);text-transform:capitalize}
+.rz-usos-cal-tg{padding-left:0;padding-right:0}
+.rz-usos-cal .rz-mes-bar{margin:6px 0 8px}
+.rz-cal-leg i.hj{width:12px;height:0;border-radius:0;border-bottom:3px solid var(--ramo-acc,var(--sage));vertical-align:3px}

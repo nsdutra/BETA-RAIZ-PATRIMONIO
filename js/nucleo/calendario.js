@@ -1,6 +1,10 @@
 // ============================================================================
 // nucleo/calendario.js — Raiz Patrimônio · Núcleo de plataforma · calendário único (rzCalendario)
-// Versão: 1.0.0 · 13/11/2026
+// Versão: 1.1.0 · 13/11/2026
+//
+// v1.1.0 (13/11/2026, sessão 20261113-1405-f2a-ajustes; teste T-2945 do Nicola 13/11 14:05: "exibir uma legenda") — no modo
+// 'app' a legenda é sempre a mesma e completa (confirmado, aguardando, crítico, atenção, informativo e hoje), e não só o que
+// aparece no mês; "bloqueado pelo uso" entra quando há dia bloqueado. Versão anterior: 1.0.0
 //
 // v1.0.0 (13/11/2026, sessão 20261113-0712-crm-f2a; FICHA_CRM_AGENDA_OCUPACAO_RAIZ v1.2.0 F2a, aprovada pelo Nicola 12/11 08:44;
 // PLANO_EXECUCAO_CRM_F2A_RAIZ v1.0.0, ida 13/11 07:12) — criação. Um componente só para o mês: Agenda, chip Usos da ficha do
@@ -21,7 +25,7 @@
 //                  st: 'critico'|'atencao'|'informativo' }], bloqueados: ['2026-11-20', …], sel: '2026-11-14', modo: 'app'|'publico' })
 // ============================================================================
 
-export const VERSAO = '1.0.0';
+export const VERSAO = '1.1.0';
 
 const DW = ['D', 'S', 'T', 'Q', 'Q', 'S', 'S'];
 const pad = (n) => String(n).padStart(2, '0');
@@ -64,12 +68,13 @@ export function rzCalendario({ ano, mes, itens = [], bloqueados = [], sel = null
         const hach = 'background:repeating-linear-gradient(45deg,var(--tile),var(--tile) 3px,var(--card) 3px,var(--card) 6px)';
         leg = modo === 'publico'
             ? `<span><i style="${hach}"></i>indisponível</span><span><i style="background:var(--tile)"></i>livre</span>`
-            : [tem.conf && '<span><i style="background:var(--info-bg);border:1px solid var(--info)"></i>confirmado</span>',
-               tem.pend && '<span><i style="background:var(--warning-bg);border:1px dashed var(--warning)"></i>aguardando</span>',
-               tem.bloq && `<span><i style="${hach}"></i>bloqueado pelo uso</span>`,
-               tem.cr && '<span><i class="pt" style="background:var(--danger)"></i>crítico</span>',
-               tem.at && '<span><i class="pt" style="background:var(--warning)"></i>atenção</span>',
-               tem.in && '<span><i class="pt" style="background:var(--sage)"></i>informativo</span>'].filter(Boolean).join('');
+            : ['<span><i style="background:var(--info-bg);border:1px solid var(--info)"></i>confirmado</span>',
+               '<span><i style="background:var(--warning-bg);border:1px dashed var(--warning)"></i>aguardando</span>',
+               (tem.bloq || bloq.size) && `<span><i style="${hach}"></i>bloqueado pelo uso</span>`,
+               '<span><i class="pt" style="background:var(--danger)"></i>crítico</span>',
+               '<span><i class="pt" style="background:var(--warning)"></i>atenção</span>',
+               '<span><i class="pt" style="background:var(--sage)"></i>informativo</span>',
+               '<span><i class="hj"></i>hoje</span>'].filter(Boolean).join('');
     }
     return `<div class="rz-cal" role="grid" aria-label="Calendário">${h}</div>${leg ? `<div class="rz-cal-leg">${leg}</div>` : ''}`;
 }

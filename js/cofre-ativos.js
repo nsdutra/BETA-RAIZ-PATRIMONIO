@@ -1,6 +1,11 @@
 // ============================================================================
 // cofre-ativos.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.152.0 · 13/11/2026
+// Versão: 1.153.0 · 13/11/2026
+//
+// v1.153.0 (13/11/2026, sessão 20261113-1405-f2a-ajustes; teste T-2949 do Nicola 13/11 14:05) — o calendário do chip Usos
+// abre FECHADO: uma linha "Calendário do mês" que abre e fecha; só busca a agenda quando aberto. Aberto/fechado fica lembrado
+// por bem neste aparelho. A troca de mês segue o padrão da Agenda: barra do mês (rz-mes-bar) com setas e arrastar para
+// cima/baixo na grade (para cima = próximo). Versão anterior: 1.152.0
 //
 // v1.152.0 (13/11/2026, sessão 20261113-0712-crm-f2a; FICHA_CRM_AGENDA_OCUPACAO_RAIZ v1.2.0 F2a, aprovada pelo Nicola 12/11 08:44;
 // PLANO_EXECUCAO_CRM_F2A_RAIZ v1.0.0, ida 13/11 07:12) — chip Usos: embaixo da barra do ano, o calendário do mês do bem (o
@@ -20,14 +25,11 @@
 // abertura até recarregar o app (a lista ficava guardada desde a 1ª leitura); agora a lista é relida depois de criar.
 // (2) a lista de sócios do editor de propriedade passa a ser relida quando uma pessoa é criada, editada ou excluída em
 // Pessoas (evento 'pessoa' do raiz-eventos.js); antes, pessoa nova só aparecia depois de recarregar.
-// Versão anterior: 1.148.0 · 23/10/2026
-//
-// v1.148.0 (23/10/2026, sessão 20261023-0915-computador-c6, demanda 15146a34; PROTOTIPO_COMPUTADOR_RAIZ v1.1.0 §11, de acordo do Nicola 23/10 08:51) — C6 · escala de letras: 12 tamanhos de letra escritos em número (font-size:13px etc.) trocados pelos da escala (--fs-mini 11 · --fs-sec 12,5 · --fs-corpo 14 · --fs-titulo 17; 16 px fica, por causa do zoom do iPhone em campo, e 18 px ou mais também — herói e números grandes). Nada muda de lugar; só o tamanho passa a ser o mesmo em todas as telas.
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.147.0 … v1.147.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.148.0 … v1.148.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '1.152.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.153.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 import { estado } from './cofre-estado.js';
 import { rzCalendario, rzCalItemDaAgenda } from './nucleo/calendario.js'; // v1.152.0 — calendário único (DS §6.3)
 import { carregarBiblioteca } from './nucleo/bibliotecas.js'; // bibliotecas pesadas, sob demanda (dem 6b11c602)
@@ -2417,18 +2419,23 @@ export async function montarUsosAtivo(a) {
 const USOS_CAL_MESES = ['janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho', 'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro'];
 let usosCal = null; // { ativo, ano, mes, dia, dados }
 const isoLocalUso = (d) => d.toLocaleDateString('sv-SE');
+// v1.153.0 — aberto/fechado por bem, lembrado só neste aparelho (conveniência; some se o navegador limpar)
+const usosCalChave = (id) => `rz.usosCal.${id}`;
+function usosCalAberto(id) { try { return localStorage.getItem(usosCalChave(id)) === '1'; } catch (e) { return false; } }
+function usosCalGuardar(id, aberto) { try { aberto ? localStorage.setItem(usosCalChave(id), '1') : localStorage.removeItem(usosCalChave(id)); } catch (e) { /* sem armazenamento: só não lembra */ } }
 async function montarCalendarioUsos(a) {
     const painel = document.getElementById('fa-usos-lista'); if (!painel) return;
     let box = document.getElementById('fa-usos-cal');
     if (!box) { box = document.createElement('div'); box.id = 'fa-usos-cal'; box.className = 'rz-usos-cal'; painel.after(box); }
-    if (!usosCal || usosCal.ativo !== a.id) { const h = new Date(); usosCal = { ativo: a.id, ano: h.getFullYear(), mes: h.getMonth(), dia: isoLocalUso(h), dados: [] }; }
+    if (!usosCal || usosCal.ativo !== a.id) { const h = new Date(); usosCal = { ativo: a.id, ano: h.getFullYear(), mes: h.getMonth(), dia: isoLocalUso(h), dados: [], carregado: false }; }
+    if (!usosCalAberto(a.id)) { desenharCalendarioUsos(a); return; } // v1.153.0 — fechado: não busca nada
     const { ano, mes } = usosCal;
     const de = isoLocalUso(new Date(ano, mes, 1)), ate = isoLocalUso(new Date(ano, mes + 1, 0));
     try {
         const { data, error } = await api.dbAuth.rpc('fn_agenda_periodo_v2', { p_cliente_id: estado.clienteId, p_de: de, p_ate: ate, p_ativos: [a.id] });
         if (error) throw error;
         if ((ativoAtualId && ativoAtualId !== a.id) || usosCal.ativo !== a.id || usosCal.ano !== ano || usosCal.mes !== mes) return;
-        usosCal.dados = data || [];
+        usosCal.dados = data || []; usosCal.carregado = true;
     } catch (err) {
         console.warn('[cofre-ativos] calendário do Usos:', err?.message || err);
         box.innerHTML = '<p class="rz-desc">Não consegui carregar o calendário agora.</p>';
@@ -2436,34 +2443,61 @@ async function montarCalendarioUsos(a) {
     }
     desenharCalendarioUsos(a);
 }
+function usosCalIrMes(a, n) {
+    const novo = new Date(usosCal.ano, usosCal.mes + n, 1);
+    usosCal.ano = novo.getFullYear(); usosCal.mes = novo.getMonth();
+    const h = new Date(); usosCal.dia = (novo.getFullYear() === h.getFullYear() && novo.getMonth() === h.getMonth()) ? isoLocalUso(h) : isoLocalUso(novo);
+    usosCal.carregado = false;
+    montarCalendarioUsos(a);
+}
 function desenharCalendarioUsos(a) {
     const box = document.getElementById('fa-usos-cal'); if (!box || !usosCal) return;
-    const { ano, mes, dia, dados } = usosCal;
-    const itens = dados.map(r => rzCalItemDaAgenda(r, r.severidade));
-    const fimLocal = (r) => r.fim_em ? isoLocalUso(new Date(r.fim_em)) : r.data;
-    const doDia = dados.filter(r => r.data === dia || (r.fim_em && r.data <= dia && fimLocal(r) >= dia));
-    const hm = (x) => new Date(x).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
-    const selo = (r) => r.situacao === 'aguardando' ? '<span class="rz-st rz-warn">Aguardando</span>' : (r.inicio_em ? '<span class="rz-st rz-run">Confirmado</span>' : '');
-    const linha = (r) => `<div class="rz-row"><div class="rz-tx"><b>${escapeHtml(r.titulo || '')}</b><span>${escapeHtml([r.inicio_em ? hm(r.inicio_em) + (r.fim_em ? '–' + hm(r.fim_em) : '') : '', r.sub].filter(Boolean).join(' · '))}</span></div>${selo(r)}</div>`;
-    const semHora = doDia.filter(r => !r.inicio_em), comHora = doDia.filter(r => r.inicio_em).sort((x, y) => String(x.inicio_em).localeCompare(String(y.inicio_em)));
-    const [y, m, d] = dia.split('-').map(Number);
-    const lista = doDia.length
-        ? `<div class="rz-list">${semHora.length ? `<div class="rz-ag-hora">Dia todo</div>${semHora.map(linha).join('')}` : ''}${comHora.length ? `<div class="rz-ag-hora">Por hora</div>${comHora.map(linha).join('')}` : ''}</div>`
-        : '<p class="rz-desc" style="margin:4px 0 0">Nada neste dia.</p>';
-    box.innerHTML = `<div class="rz-usos-cal-topo">
-            <button type="button" class="rz-ico-btn" data-uso-cal-nav="-1" aria-label="Mês anterior"><i data-lucide="chevron-left"></i></button>
-            <b>${USOS_CAL_MESES[mes]} ${ano}</b>
-            <button type="button" class="rz-ico-btn" data-uso-cal-nav="1" aria-label="Próximo mês"><i data-lucide="chevron-right"></i></button>
-        </div>${rzCalendario({ ano, mes, itens, sel: dia })}
-        <div class="rz-group" style="margin-top:10px">${d} de ${USOS_CAL_MESES[m - 1]}<span>${doDia.length || '—'}</span></div>${lista}`;
-    box.querySelectorAll('[data-cal-dia]').forEach(b => b.addEventListener('click', () => { usosCal.dia = b.dataset.calDia; desenharCalendarioUsos(a); }));
-    box.querySelectorAll('[data-uso-cal-nav]').forEach(b => b.addEventListener('click', () => {
-        const n = new Date(usosCal.ano, usosCal.mes + Number(b.dataset.usoCalNav), 1);
-        usosCal.ano = n.getFullYear(); usosCal.mes = n.getMonth();
-        const h = new Date(); usosCal.dia = (n.getFullYear() === h.getFullYear() && n.getMonth() === h.getMonth()) ? isoLocalUso(h) : isoLocalUso(n);
-        box.innerHTML = '<p class="rz-desc">Carregando…</p>';
-        montarCalendarioUsos(a);
-    }));
+    const aberto = usosCalAberto(a.id);
+    const cab = `<button type="button" class="rz-row rz-link rz-usos-cal-tg" data-uso-cal-tg aria-expanded="${aberto}">
+            <div class="rz-tx"><b>Calendário do mês</b><span>${aberto ? 'Ocupação e compromissos deste bem' : 'Toque para ver a ocupação dia a dia'}</span></div>
+            <svg data-lucide="${aberto ? 'chevron-up' : 'chevron-down'}" class="rz-chev"></svg></button>`;
+    if (!aberto) {
+        box.innerHTML = cab;
+    } else if (!usosCal.carregado) {
+        box.innerHTML = cab + '<p class="rz-desc">Carregando…</p>';
+    } else {
+        const { ano, mes, dia, dados } = usosCal;
+        const itens = dados.map(r => rzCalItemDaAgenda(r, r.severidade));
+        const fimLocal = (r) => r.fim_em ? isoLocalUso(new Date(r.fim_em)) : r.data;
+        const doDia = dados.filter(r => r.data === dia || (r.fim_em && r.data <= dia && fimLocal(r) >= dia));
+        const hm = (x) => new Date(x).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+        const selo = (r) => r.situacao === 'aguardando' ? '<span class="rz-st rz-warn">Aguardando</span>' : (r.inicio_em ? '<span class="rz-st rz-run">Confirmado</span>' : '');
+        const linha = (r) => `<div class="rz-row"><div class="rz-tx"><b>${escapeHtml(r.titulo || '')}</b><span>${escapeHtml([r.inicio_em ? hm(r.inicio_em) + (r.fim_em ? '–' + hm(r.fim_em) : '') : '', r.sub].filter(Boolean).join(' · '))}</span></div>${selo(r)}</div>`;
+        const semHora = doDia.filter(r => !r.inicio_em), comHora = doDia.filter(r => r.inicio_em).sort((x, y) => String(x.inicio_em).localeCompare(String(y.inicio_em)));
+        const [, m, d] = dia.split('-').map(Number);
+        const lista = doDia.length
+            ? `<div class="rz-list">${semHora.length ? `<div class="rz-ag-hora">Dia todo</div>${semHora.map(linha).join('')}` : ''}${comHora.length ? `<div class="rz-ag-hora">Por hora</div>${comHora.map(linha).join('')}` : ''}</div>`
+            : '<p class="rz-desc" style="margin:4px 0 0">Nada neste dia.</p>';
+        // v1.153.0 — barra do mês no padrão da Agenda (rz-mes-bar) e arrastar para cima/baixo na grade
+        box.innerHTML = `${cab}<div class="rz-mes-bar rz-usos-cal-mes">
+                <button type="button" class="rz-ico-btn" data-uso-cal-nav="-1" aria-label="Mês anterior"><svg data-lucide="chevron-left"></svg></button>
+                <span class="rz-mes-centro"><b class="rz-mes-label">${USOS_CAL_MESES[mes]} de ${ano}</b></span>
+                <button type="button" class="rz-ico-btn" data-uso-cal-nav="1" aria-label="Próximo mês"><svg data-lucide="chevron-right"></svg></button>
+            </div><div class="rz-usos-cal-grade" style="touch-action:pan-x">${rzCalendario({ ano, mes, itens, sel: dia })}</div>
+            <div class="rz-group" style="margin-top:10px">${d} de ${USOS_CAL_MESES[m - 1]}<span>${doDia.length || '—'}</span></div>${lista}`;
+        box.querySelectorAll('[data-cal-dia]').forEach(b => b.addEventListener('click', () => { usosCal.dia = b.dataset.calDia; desenharCalendarioUsos(a); }));
+        box.querySelectorAll('[data-uso-cal-nav]').forEach(b => b.addEventListener('click', () => usosCalIrMes(a, Number(b.dataset.usoCalNav))));
+        const grade = box.querySelector('.rz-usos-cal-grade');
+        if (grade) {
+            let x0 = null, y0 = null;
+            grade.addEventListener('touchstart', (e) => { const t = e.touches[0]; x0 = t.clientX; y0 = t.clientY; }, { passive: true });
+            grade.addEventListener('touchend', (e) => {
+                if (x0 === null) return;
+                const t = e.changedTouches[0], dx = t.clientX - x0, dy = t.clientY - y0; x0 = y0 = null;
+                if (Math.abs(dy) > 40 && Math.abs(dy) > Math.abs(dx) * 1.3) usosCalIrMes(a, dy < 0 ? 1 : -1);
+            }, { passive: true });
+        }
+    }
+    box.querySelector('[data-uso-cal-tg]')?.addEventListener('click', () => {
+        const abrir = !usosCalAberto(a.id);
+        usosCalGuardar(a.id, abrir);
+        if (abrir && !usosCal.carregado) { desenharCalendarioUsos(a); montarCalendarioUsos(a); } else desenharCalendarioUsos(a);
+    });
     refrescarIcones();
 }
 
