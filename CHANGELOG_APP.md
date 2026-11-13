@@ -4,6 +4,16 @@ Histórico completo de versões do `index.html`, movido automaticamente pelo `ge
 
 ---
 
+NOVIDADES (Beta v1.490.0) — Relatórios › Acompanhamento do mês (relatorios-executivos.js 1.8.0).
+Versão anterior (Beta v1.489.2):
+DATA: 09/11/2026 (demanda 6458fe9e)
+------------------------------------------------------------------
+Versões anteriores (v1.489.2 … v1.489.2): CHANGELOG_APP.md, na raiz do
+repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
+das 5 versões mais recentes deste cabeçalho.
+
+---
+
 NOVIDADES (Beta v1.489.2) — raiz.css 1.20.1 (⋮ à direita).
 Versão anterior (Beta v1.489.1):
 DATA: 09/11/2026 (demanda babfb8eb)

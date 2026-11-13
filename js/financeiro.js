@@ -1,7 +1,13 @@
 // ============================================================================
 // financeiro.js — Raiz Patrimônio · Financeiro (Recebimentos · Atrasados · Saídas
 //                  · conciliação de extrato · recibo · detalhe do recebimento)
-// Versão: 1.83.0 · 11/11/2026
+// Versão: 1.84.0 · 12/11/2026
+//
+// v1.84.0 (12/11/2026, sessão 20261112-2139-conc-descartar, demanda c4fd93e6; de acordo do Nicola 12/11 21:39) — DESCARTAR
+// PENDENTES DO MÊS: no "+" da Conciliação, "Descartar pendentes do mês" (funcionalidade nova conciliacao.descartar, mesmos
+// perfis e planos de importar). Mostra quantas linhas pendentes do mês (e da conta filtrada) saem e quantas ficam, pede
+// confirmação e apaga só as pendentes sem vínculo (fn_extrato_descartar_pendentes). Serve para importar de novo um extrato
+// mais completo (ex.: com CPF/CNPJ). Versão anterior: 1.83.0
 //
 // v1.83.0 (11/11/2026, sessão 20261111-2330-agro-receita-safra, demanda 3cd0817a; de acordo do Nicola 11/11 23:30) — DESTINO
 // TAMBÉM NA RECEITA: em Outras receitas, o ⋮ de uma receita ligada a um ativo ganha "Destino" (safra, fase, obra ou item),
@@ -23,18 +29,11 @@
 // v1.80.1 (03/11/2026, sessão 20261103-0956-fluxo-empresa-fin, demanda c0d72a50; de acordo do Nicola 03/11 09:56) — Lançar ›
 // Adicionar saída leva para Saídas, e Adicionar recebimento leva para Recebimentos, antes de abrir o formulário: antes a
 // tela ficava na aba em que se estava, e o lançamento salvo não aparecia na lista.
-// Versão anterior: 1.80.0 · 23/10/2026
-//
-// v1.80.0 (23/10/2026, sessão 20261023-0955-computador-ajustes, demanda 15146a34; print do Nicola 23/10 09:49 "ao lançar a
-// despesa nem todos estão do mesmo tamanho") — Nova despesa / Detalhes da despesa: os campos antigos (Vínculo, Descrição,
-// Valor, Vencimento, Competência, Fornecedor, Observação, Dar baixa) passam ao padrão .rz-f dos campos novos (Categoria,
-// Subcategoria): mesmo rótulo, mesma caixa, mesmo tamanho de letra; Reembolsável vira caixa de marcar como "Dividir com
-// outras pessoas"; título, Fechar e Salvar no padrão dos sheets.
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.79.0 … v1.79.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.80.0 … v1.80.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '1.83.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.84.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 
 // v1.17.0 (Fase 1 do wrapper de escrita, rollout Financeiro) — emitirEscrita
 // é o evento padrão pra "algo mudou que módulos DE FORA deste arquivo podem
@@ -390,8 +389,34 @@ export function abrirLancarFinanceiro(aba) {
     ];
     if (aba === 'conciliacao') {
         acoes.push({ icone: 'refresh-cw', titulo: 'Reprocessar pendências', codigo: 'conciliacao.resolver', sub: 'Compara de novo', aoTocar: () => reprocessarConciliacaoPendente() });
+        acoes.push({ icone: 'trash-2', titulo: 'Descartar pendentes do mês', codigo: 'conciliacao.descartar', sub: 'Para importar o extrato de novo', aoTocar: () => financeiroDescartarPendentesMes() }); // v1.84.0
     }
     abrirSheetAcoes({ titulo: 'Lançar', sub: financeiroCompetenciaLabel(financeiroCompetenciaAtual || financeiroCompetenciaHojeISO()), acoes });
+}
+
+// v1.84.0 (demanda c4fd93e6) — descarta do mês (e da conta filtrada) as linhas do extrato ainda pendentes e sem vínculo,
+// para importar de novo. Primeiro simula (quantas saem, quantas ficam), depois confirma como ação destrutiva.
+export async function financeiroDescartarPendentesMes() {
+    const comp = financeiroCompetenciaAtual || financeiroCompetenciaHojeISO();
+    const conta = financeiroContaFiltro || null;
+    const args = { p_cliente_id: CLIENTE_ID_SUPABASE, p_competencia: comp, p_conta_id: conta };
+    const { data: sim, error: e1 } = await dbAuth.rpc('fn_extrato_descartar_pendentes', { ...args, p_simular: true });
+    if (e1) { rzToast(window.rzMensagemDeErro ? window.rzMensagemDeErro(e1) : e1.message, { tipo: 'danger' }); return; }
+    const mes = financeiroCompetenciaLabel(comp);
+    if (!sim || !sim.qtd) { rzToast(`Nenhuma linha pendente em ${mes}${conta ? ' nesta conta' : ''}.`, { tipo: 'info' }); return; }
+    const moeda = (v) => (typeof formatarMoedaBR === 'function' ? formatarMoedaBR(v) : 'R$ ' + Number(v || 0).toFixed(2));
+    const contas = (sim.por_conta || []).length > 1 ? ' (' + sim.por_conta.map(c => `${c.conta}: ${c.qtd}`).join(' · ') + ')' : '';
+    const ok = await rzConfirmar({
+        titulo: `Descartar ${sim.qtd} ${sim.qtd === 1 ? 'linha pendente' : 'linhas pendentes'} de ${mes}?`,
+        impacto: `${moeda(sim.total)} em linhas do extrato ainda não conciliadas${contas} saem ${conta ? 'desta conta' : 'de todas as contas'}. ` +
+                 `${sim.ficam ? `${sim.ficam} já ${sim.ficam === 1 ? 'tratada fica' : 'tratadas ficam'} como estão. ` : ''}Depois, importe o extrato de novo.`,
+        destrutivo: true, rotuloConfirmar: 'Descartar e importar de novo'
+    });
+    if (!ok) return;
+    const { data: r, error: e2 } = await dbAuth.rpc('fn_extrato_descartar_pendentes', { ...args, p_simular: false });
+    if (e2) { rzToast(window.rzMensagemDeErro ? window.rzMensagemDeErro(e2) : e2.message, { tipo: 'danger' }); return; }
+    rzToast(`${r?.qtd || 0} ${r?.qtd === 1 ? 'linha descartada' : 'linhas descartadas'}. Agora importe o extrato de ${mes}.`, { tipo: 'success' });
+    if (typeof carregarConciliacaoUnificada === 'function') await carregarConciliacaoUnificada();
 }
 
 // v1.28.0 — barra de busca do topo (UXR-10/11): abre o filtro da lista da aba
