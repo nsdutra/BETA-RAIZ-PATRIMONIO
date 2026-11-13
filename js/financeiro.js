@@ -1,7 +1,16 @@
 // ============================================================================
 // financeiro.js — Raiz Patrimônio · Financeiro (Recebimentos · Atrasados · Saídas
 //                  · conciliação de extrato · recibo · detalhe do recebimento)
-// Versão: 1.84.0 · 12/11/2026
+// Versão: 1.85.0 · 12/11/2026
+//
+// v1.85.0 (12/11/2026, sessão 20261112-2233-xlsx-import, demanda 89abec4f; de acordo do Nicola 12/11 22:33) — IMPORTAR
+// EXTRATO NÃO PERDE MAIS O ARQUIVO: (1) as linhas vão para o banco por financeiroGravarFingerprints, sempre com a situação
+// preenchida (antes a linha sem conciliação ia com status nulo e o lote inteiro era recusado) e, se o lote falhar, uma a
+// uma; (2) a baixa do aluguel só vale se a linha do extrato gravou — linha recusada ou já existente desfaz a baixa em
+// memória e vira pendência; o registro mensal.baixar sai depois disso; (3) dois pagamentos no mesmo arquivo não casam com o
+// mesmo aluguel: o segundo fica pendente para você escolher o mês; (4) retirada de sócio usa o nome completo (era só o
+// primeiro nome, que não acha a pessoa: "Sócio Renato não encontrado"), na importação e no "É repasse" da Conciliação.
+// Caso real: Rumo, agosto/2026. Versão anterior: 1.84.0
 //
 // v1.84.0 (12/11/2026, sessão 20261112-2139-conc-descartar, demanda c4fd93e6; de acordo do Nicola 12/11 21:39) — DESCARTAR
 // PENDENTES DO MÊS: no "+" da Conciliação, "Descartar pendentes do mês" (funcionalidade nova conciliacao.descartar, mesmos
@@ -25,15 +34,11 @@
 // (condomínio ou IPTU cobrado "junto", lançamento de ressarcimento já recebido na mesma competência), o recibo soma o encargo
 // no valor e no extenso e ganha a frase "Valor composto por: aluguel R$ …; Condomínio 11/2026 R$ …". Sem encargo, o recibo
 // fica igual. Versão anterior: 1.80.1 · 03/11/2026
-//
-// v1.80.1 (03/11/2026, sessão 20261103-0956-fluxo-empresa-fin, demanda c0d72a50; de acordo do Nicola 03/11 09:56) — Lançar ›
-// Adicionar saída leva para Saídas, e Adicionar recebimento leva para Recebimentos, antes de abrir o formulário: antes a
-// tela ficava na aba em que se estava, e o lançamento salvo não aparecia na lista.
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.80.0 … v1.80.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.80.1 … v1.80.1): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '1.84.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.85.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 
 // v1.17.0 (Fase 1 do wrapper de escrita, rollout Financeiro) — emitirEscrita
 // é o evento padrão pra "algo mudou que módulos DE FORA deste arquivo podem
@@ -3258,6 +3263,34 @@ function financeiroRenderCabecalho(aba) {
         // bancoOrigem agora é parâmetro — .xlsx (Itaú, formato próprio) usa o
         // default; IA passa o banco detectado (ou 'Banco (PDF/foto)' se a IA
         // não identificar).
+        // v1.85.0 (demanda 89abec4f) — grava as linhas do extrato importado. Toda linha leva a situação preenchida (o insert em
+        // lote preenche com null a coluna que falta em alguma linha, e status nulo derrubava o lote inteiro). Se o lote falhar,
+        // tenta uma a uma. Devolve as linhas que NÃO entraram (recusadas, ou ignoradas pelo banco por já existirem — mesma
+        // data e valor), para a importação desfazer a baixa que dependia delas.
+        async function financeiroGravarFingerprints(novos) {
+            if (!novos || !novos.length) return [];
+            const agora = new Date().toISOString();
+            const linha = (f) => ({
+                cliente_id: CLIENTE_ID_SUPABASE, banco_origem: f.banco || 'Itaú', chave: f.chave, data: f.data, valor: f.valor,
+                razao_social: f.razaoSocial || null, documento_original: f.documento || null,
+                status_conciliacao: f.statusConciliacao || 'pendente', destino_tipo: f.statusConciliacao ? (f.destinoTipo || null) : null,
+                destino_id: f.statusConciliacao ? (f.destinoId || null) : null, conciliado_em: f.statusConciliacao ? agora : null
+            });
+            const gravadas = new Set();
+            const { data, error } = await dbAuth.from('extrato_fingerprints').insert(novos.map(linha)).select('chave');
+            if (!error) {
+                (data || []).forEach(r => gravadas.add(r.chave));
+            } else {
+                devLog('ERRO_CONCILIACAO', 'Lote de linhas do extrato recusado, gravando uma a uma: ' + error.message);
+                for (const f of novos) {
+                    const r = await dbAuth.from('extrato_fingerprints').insert(linha(f)).select('chave');
+                    if (r.error) devLog('ERRO_CONCILIACAO', `Linha do extrato recusada (${f.chave}): ${r.error.message}`);
+                    else (r.data || []).forEach(x => gravadas.add(x.chave));
+                }
+            }
+            return novos.filter(f => !gravadas.has(f.chave));
+        }
+
         export async function conciliarTransacoes(transacoes, tituloResumo, bancoOrigem = 'Itaú') {
 
             // IMPORTANTE: os "fingerprints" continuam sendo registrados para fins de
@@ -3288,6 +3321,9 @@ function financeiroRenderCabecalho(aba) {
             // princípio já aplicado nos botões pontuais de pendência
             // (v1.66.7), agora estendido pro caminho de importação em lote.
             const idsMensalidadesAlteradas = [];
+            const mensalidadesUsadasNoLote = new Set(); // v1.85.0 — um aluguel só por arquivo
+            const baixasAntes = {};                      // v1.85.0 — estado antes da baixa, para desfazer se a linha não gravar
+            const logsBaixa = [];                        // v1.85.0 — mensal.baixar só depois de gravar a linha
 
             let qtdConciliados = 0, qtdRepasses = 0, qtdPendencias = 0, qtdIgnorados = 0, qtdJaProcessadas = 0;
 
@@ -3444,6 +3480,10 @@ function financeiroRenderCabecalho(aba) {
                     // mais (a RPC compartilhada parou de retorná-la — ver
                     // migration dropar_pendencias_extrato_e_codigo_morto).
 
+                    if (cls && cls.classificacao === 'match_unico' && cls.mensalidade_id && mensalidadesUsadasNoLote.has(cls.mensalidade_id)) {
+                        qtdPendencias++; // v1.85.0 — 2º pagamento para o mesmo aluguel no mesmo arquivo: fica para você escolher o mês
+                        continue;
+                    }
                     if (cls && cls.classificacao === 'match_unico' && cls.mensalidade_id) {
 
                         const idx = mensalidades.findIndex(m => m.id === cls.mensalidade_id);
@@ -3457,6 +3497,8 @@ function financeiroRenderCabecalho(aba) {
                             continue;
                         }
 
+                        mensalidadesUsadasNoLote.add(cls.mensalidade_id);
+                        baixasAntes[cls.mensalidade_id] = { ...mensalidades[idx] };
                         mensalidades[idx].status = 'Pago';
 
                         mensalidades[idx].banco = 'PIX/TED (extrato)';
@@ -3484,7 +3526,7 @@ function financeiroRenderCabecalho(aba) {
 
                         idsMensalidadesAlteradas.push(mensalidades[idx].id);
 
-                        registrarLog('mensal.baixar', { mensalidadeId: cls.mensalidade_id, referencia: referenciaEsperada, valor: t.valor, banco: 'PIX/TED (extrato)', via: 'conciliacao_automatica' });
+                        logsBaixa.push({ chave, detalhe: { mensalidadeId: cls.mensalidade_id, referencia: referenciaEsperada, valor: t.valor, banco: 'PIX/TED (extrato)', via: 'conciliacao_automatica' } });
 
                         qtdConciliados++;
 
@@ -3565,7 +3607,7 @@ function financeiroRenderCabecalho(aba) {
 
                             id: 'rep_' + Date.now() + Math.random().toString(36).substr(2, 4),
 
-                            socio: primeiroNomeFormatado, mes: referenciaDoMes, valor: Math.abs(t.valor),
+                            socio: nomeSocio, mes: referenciaDoMes, valor: Math.abs(t.valor), // v1.85.0 — nome completo (pessoas.nome)
 
                             dataReal: dataBR, timestamp: Date.now(), chaveTransacaoOrigem: chave
 
@@ -3585,9 +3627,21 @@ function financeiroRenderCabecalho(aba) {
 
             esconderBannerPendencia();
 
-            await gravarFingerprintsExtratoSupabase(novosFingerprints);
+            // v1.85.0 — grava as linhas e desfaz a baixa das que não gravaram (recusadas ou já existentes no banco).
+            const naoGravadas = await financeiroGravarFingerprints(novosFingerprints);
+            const chavesNaoGravadas = new Set(naoGravadas.map(f => f.chave));
+            naoGravadas.forEach(f => {
+                if (f.destinoTipo !== 'mensalidade' || !f.destinoId || !baixasAntes[f.destinoId]) return;
+                const idx = mensalidades.findIndex(m => m.id === f.destinoId);
+                if (idx !== -1) mensalidades[idx] = baixasAntes[f.destinoId];
+                const pos = idsMensalidadesAlteradas.indexOf(f.destinoId);
+                if (pos !== -1) idsMensalidadesAlteradas.splice(pos, 1);
+                qtdConciliados--; qtdPendencias++;
+            });
+            logsBaixa.filter(l => !chavesNaoGravadas.has(l.chave)).forEach(l => registrarLog('mensal.baixar', l.detalhe));
+            const novosGravados = novosFingerprints.filter(f => !chavesNaoGravadas.has(f.chave));
 
-            extratoFingerprints = extratoFingerprints.concat(novosFingerprints);
+            extratoFingerprints = extratoFingerprints.concat(novosGravados);
 
             // v1.6.0 — Etapa 8 do plano: fim da importação chama o motor de
             // regras novo (fn_conciliacao_aplicar, banco) uma vez só — trata
@@ -4446,7 +4500,7 @@ function financeiroRenderCabecalho(aba) {
                 const primeiroNomeFormatado = primeiroNome.charAt(0) + primeiroNome.slice(1).toLowerCase();
                 const rep = {
                     id: 'rep_' + Date.now() + Math.random().toString(36).substr(2, 4),
-                    socio: primeiroNomeFormatado, mes: dataParaCompetencia(f.data), valor: Math.abs(f.valor),
+                    socio: nomeSocioCompleto, mes: dataParaCompetencia(f.data), valor: Math.abs(f.valor), // v1.85.0 — nome completo
                     dataReal: formatarDataBR(f.data), timestamp: Date.now(), chaveTransacaoOrigem: f.chave || null
                 };
                 await sincronizarRepasseSupabase(rep);
