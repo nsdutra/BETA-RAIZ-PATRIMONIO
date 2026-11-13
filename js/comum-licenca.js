@@ -1,6 +1,14 @@
 // ============================================================================
 // comum-licenca.js — Raiz Patrimônio · Administração compartilhada
-// Versão: 1.10.0 · 11/11/2026
+// Versão: 1.11.0 · 13/11/2026
+//
+// v1.11.0 (13/11/2026, sessão 20261113-0654-upsell-licencas, demanda e619156c; PLANO_EXECUCAO_UPSELL_LICENCAS_RAIZ v1.0.0
+// F2, de acordo do Nicola 13/11 06:54) — gancho de oferta (G1 cadeado, G2 limite): rzMostrarBloqueio abre um sheet em vez do
+// toast quando o bloqueio é de plano ou de limite. O sheet mostra o que a função faz, o plano que resolve e quanto custa a
+// mais por mês, com o preço de tabela riscado — tudo da oferta de fn_porta_mensagem v2 (quem não contrata não recebe preço;
+// "Agora não" grava fn_porta_oferta_dispensar e silencia o preço por 30 dias; função só do Premium leva para a conversa).
+// "Ver o plano" abre a renovação já no plano oferecido. podeUsar devolve também a descrição comercial.
+// Versão anterior: 1.10.0 · 11/11/2026
 //
 // v1.10.0 (11/11/2026, sessão 20261111-1341-porta-mensagem, demandas b3d771d7 e c5e23028; FICHA_PORTA_MENSAGEM_UNICA_RAIZ
 // v1.0.0, de acordo do Nicola 11/11 13:41) — a frase de bloqueio e de aviso vem do banco. Junto da lista de liberações, o
@@ -28,19 +36,11 @@
 //     o mesmo padrão de pendência no chip da Minha empresa).
 //   O texto de topo sai (a tela abre direto no chip Plano). Pagamentos fica para quando houver leitura do histórico
 //   pelo cliente: as tabelas comercial.plano_contratado* só abrem para o master (ficha pendente do de acordo).
-//
-// Versão anterior: 1.6.1 · 08/10/2026
-//
-// v1.6.1 (UX F2.7c-1, correção do teste do Nicola 08/10 13:48; demanda b8602a3a) — "Contratar e
-// convidar" tratava como teste toda licença com data de término, e plano pago também tem término
-// (Maia, Rumo, Albuquerque). Teste agora é: plano 'trial', ou licença com término que não veio de
-// pagamento nem de plano contratado (id_item_pagamento e id_plano_contratado vazios). Licença paga
-// ou sem término mostra "Indicar o Raiz".
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.6.0 … v1.6.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.6.1 … v1.6.1): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '1.10.0'; // v-check (22/09/2026): lido por Dev › Versões — manter igual ao header
+export const VERSAO = '1.11.0'; // v-check (22/09/2026): lido por Dev › Versões — manter igual ao header
 export const COMUM_LICENCA_VERSAO = '1.0.0';
 
 // ----------------------------------------------------------------------------
@@ -104,6 +104,7 @@ export function podeUsar(codigo) {
         textoCurto: m.titulo || (f.motivo ? 'Indisponível' : null),
         textoLongo: m.texto || (f.motivo ? `"${rot}" não está disponível agora.` : null),
         aviso: m.aviso || null, oferta: m.oferta || null, acao: m.acao || null,
+        descricao: m.descricao_comercial || f.descricao_comercial || null,
     };
 }
 
@@ -111,9 +112,70 @@ export function podeUsar(codigo) {
 export function rzMostrarBloqueio(codigo) {
     const b = podeUsar(codigo);
     if (b.ok) return false;
+    if ((b.motivo === 'sem_licenca' || b.motivo === 'limite_atingido') && typeof window !== 'undefined' &&
+        typeof window.abrirSheetForm === 'function') {
+        abrirSheetOferta(codigo, b);
+        return true;
+    }
     if (_toast) _toast(b.textoLongo, b.motivo === 'sem_perfil' ? 'danger' : 'info');
     else console.warn('[comum-licenca] bloqueado:', b.textoLongo);
     return true;
+}
+
+// G1/G2 — o preço só aparece aqui, depois do toque (nunca na linha bloqueada) e só se a porta mandou (quem contrata e não
+// dispensou nos últimos 30 dias). Nada de regra de oferta aqui: a escolha do plano e do preço é da fn_porta_mensagem.
+const _brl = (n) => Number(n || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 });
+function abrirSheetOferta(codigo, b) {
+    const o = b.oferta;
+    const g2 = b.motivo === 'limite_atingido';
+    const lead = g2 ? b.textoLongo : (b.descricao || b.textoLongo);
+    let card = '', botoes = '';
+    if (o && b.acao === 'conversar_premium') {
+        card = `<div class="rz-card" style="margin-top:12px"><p class="text-sm" style="margin:0"><b>Disponível no Premium</b>, com o Método R.A.I.Z e atendimento personalizado.</p></div>`;
+        botoes = `<button type="button" class="rz-btn rz-btn-1" data-rz-of="premium">Conversar sobre o Premium</button>`;
+    } else if (o && b.acao === 'ampliar_plano' && o.preco != null) {
+        const de = o.preco_referencia ? `<s style="color:var(--muted)">${_brl(o.preco_referencia)}</s> ` : '';
+        card = `<div class="rz-card" style="margin-top:12px;border:1px solid var(--sprout)"><div style="display:flex;gap:12px;align-items:center">` +
+            `<div style="flex:1"><b>${g2 ? 'Com o' : 'Vem no plano'} ${esc(o.plano_nome)}</b>` +
+            `<p class="text-xs" style="color:var(--muted);margin:2px 0 0">${de}${_brl(o.preco)} por mês${o.preco_referencia ? ', com o desconto de lançamento' : ''}</p></div>` +
+            `<div style="text-align:right;white-space:nowrap"><b style="font-size:var(--fs-titulo,17px)">+${_brl(o.diferenca_mensal)}</b>` +
+            `<p class="text-xs" style="color:var(--muted);margin:0">por mês</p></div></div></div>`;
+        botoes = `<button type="button" class="rz-btn rz-btn-1" data-rz-of="plano">Ver o plano ${esc(o.plano_nome)}</button>` +
+            `<button type="button" class="rz-btn rz-btn-3" data-rz-of="agora">Agora não</button>`;
+    } else if (o && b.acao === 'ampliar_plano') {
+        card = `<p class="text-sm" style="margin:12px 0 0;color:var(--muted)">Vem no plano ${esc(o.plano_nome)}.</p>`;
+        botoes = `<button type="button" class="rz-btn rz-btn-2" data-rz-of="plano">Ver o plano</button>`;
+    } else if (b.acao === 'falar_com_admin') {
+        card = `<p class="text-sm" style="margin:12px 0 0;color:var(--muted)">Quem administra o plano da empresa pode incluir.</p>`;
+    }
+    window.abrirSheetForm({
+        titulo: b.rotulo, sub: b.textoCurto || '', semRodape: true, empilhar: true,
+        corpo: `<p class="text-sm" style="margin:0">${esc(lead || '')}</p>${card}` +
+            (botoes ? `<div style="display:flex;flex-direction:column;gap:6px;margin-top:16px">${botoes}</div>` : ''),
+    });
+    const sh = document.getElementById('rz-sheet-2') || document.getElementById('rz-sheet');
+    if (!sh) return;
+    sh.querySelectorAll('[data-rz-of]').forEach((el) => el.addEventListener('click', async () => {
+        const qual = el.dataset.rzOf;
+        const fechar = () => { if (typeof window.fecharSheet === 'function') window.fecharSheet(); };
+        const ctx = _ultimaCarga || {};
+        if (qual === 'premium') { window.open(SITE_RAIZ + '/premium/#agendar', '_blank', 'noopener'); fechar(); return; }
+        if (qual === 'agora') {
+            fechar();
+            try {
+                if (ctx.dbAuth) await ctx.dbAuth.rpc('fn_porta_oferta_dispensar', { p_cliente_id: ctx.clienteId, p_codigo: codigo, p_gancho: o?.gancho || null });
+                await recarregarFuncionalidadesLiberadas();
+            } catch (e) { console.warn('[comum-licenca] oferta_dispensar:', e.message); }
+            return;
+        }
+        if (qual === 'plano') {
+            fechar();
+            try {
+                const { abrirRenovacao } = await import('./comum-renovacao.js');
+                await abrirRenovacao({ dbAuth: ctx.dbAuth, clienteId: ctx.clienteId, toast: _toast, planoPreferido: o?.plano_codigo || null });
+            } catch (e) { console.warn('[comum-licenca] abrir renovação:', e.message); }
+        }
+    }));
 }
 
 // ACE-04 — elemento com data-rz-codigo fica opaco, com cadeado e o motivo no
