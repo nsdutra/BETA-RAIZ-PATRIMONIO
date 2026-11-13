@@ -1,6 +1,12 @@
 // ============================================================================
 // relatorios-executivos.js — Raiz Patrimônio · Relatórios no modelo executivo
-// Versão: 1.8.0 · 11/11/2026
+// Versão: 1.9.0 · 13/11/2026
+//
+// v1.9.0 (13/11/2026, sessão 20261113-1500-rel-cadastro-partes, demanda 35ff0daf; FICHA_RELATORIO_CADASTRO_PARTES_RAIZ v1.0.0,
+//   de acordo do Nicola 13/11 14:05) — relatório novo "Cadastro de partes e pessoas" (relatorios.cadastro_partes), lido de
+//   fn_relatorio_cadastro_partes (só da empresa aberta; achados calculados no banco, CAN-01). Planilha com 5 abas: Resumo
+//   (contagens por fórmula), Empresa, Partes (papéis, vínculos e achados, com filtro), Pessoas e Sobre. CPF/CNPJ vem mascarado
+//   do banco para quem não é admin. abrirRelatorioCadastroPartes().
 //
 // v1.8.0 (11/11/2026, sessão 20261111-0905-rel-acompanhamento, demanda add3d7a0; FICHA_REL_ACOMPANHAMENTO_MES v1.0.0, de acordo
 //   do Nicola 11/11 08:59: "Vamos fazer só o relatório do mês, inclui uma visão do resultado por ativo neste relatório como uma
@@ -36,23 +42,15 @@
 //   · consolidado: uma página-resumo (uma linha por ramo, Geral e Consolidado, a mesma soma do Hoje) e as 2 de cada ramo;
 //   · notação REL-57: real em cor cheia escura, ano anterior em cinza claro, meta em contorno; verde e vermelho só na
 //     variação; filtro de ano e de ramo; abrirRelatorioExecutivo('executivo', { ramo, ramoNome }).
-// Versão anterior: 1.5.0 · 16/10/2026
-//
-// v1.5.0 (16/10/2026, sessão 20261016-2010-rel-cadastro, demanda 91e3516e; de acordo do Nicola 16/10 20:08) — relatório
-// novo "Cadastro da carteira" (relatorios.cadastro_carteira): planilha .xlsx com imóveis, contratos e locatários, uma
-// linha por imóvel × contrato ativo, coluna Diagnóstico e Recomendações no fim, lida de fn_relatorio_cadastro_carteira.
-// Abas Carteira (filtro em todas as colunas), Por empreendimento (escolha na célula B5) e Sobre. ExcelJS 4.4.0 carregado
-// sob demanda (jsdelivr, cdnjs de reserva); símbolo da marca desenhado em PNG na hora. abrirRelatorioCadastroCarteira()
-// abre a escolha do empreendimento e baixa o arquivo (exceção à REL-36 registrada na demanda).
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.4.0 … v1.4.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.5.0 … v1.5.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
 import { rzMostrarBloqueio } from './comum-licenca.js';
 import { rzToast } from './raiz-ui.js';
 import RaizDevice from './raiz-device.js';
 
-export const VERSAO = '1.8.0';
+export const VERSAO = '1.9.0';
 
 // ---------------------------------------------------------------------------
 // Formatos (REL-13 a REL-17)
@@ -1363,6 +1361,149 @@ export async function baixarPlanilhaLista(o) {
         rzToast(`Planilha baixada · ${linhas.length} ${linhas.length === 1 ? 'linha' : 'linhas'}`);
     } catch (e) {
         console.error('[rz] planilha de lista', e);
+        rzToast('Não foi possível gerar a planilha: ' + (e?.message || e), 'danger');
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Cadastro de partes e pessoas (v1.9.0) — relatorios.cadastro_partes, dados de fn_relatorio_cadastro_partes (REL-02: a planilha
+// só formata; os achados vêm do banco). Abas Resumo · Empresa · Partes · Pessoas · Sobre.
+// ---------------------------------------------------------------------------
+const CADPARTES_CODIGO = 'relatorios.cadastro_partes';
+export async function abrirRelatorioCadastroPartes() {
+    if (rzMostrarBloqueio(CADPARTES_CODIGO)) return; // ACE-04
+    rzToast('Montando a planilha…');
+    try {
+        const [ExcelJS, resp, quem] = await Promise.all([
+            carregarExcelJs(), dbAuth.rpc('fn_relatorio_cadastro_partes', { p_cliente_id: CLIENTE_ID_SUPABASE }), quemGera(),
+        ]);
+        if (resp.error) throw resp.error;
+        const d = resp.data || {};
+        const emp = d.empresa || {}, partes = d.partes || [], pessoas = d.pessoas || [];
+        const empresa = emp.nome || 'Empresa';
+        const agora = new Date(), p2 = (n) => String(n).padStart(2, '0');
+        const quando = `${p2(agora.getDate())}/${p2(agora.getMonth() + 1)}/${agora.getFullYear()} às ${p2(agora.getHours())}:${p2(agora.getMinutes())}`;
+        const F = (sz = 10, b = false, cor = CC.ink, i = false) => ({ name: 'Arial', size: sz, bold: b, italic: i, color: { argb: cor } });
+        const fundo = (c) => ({ type: 'pattern', pattern: 'solid', fgColor: { argb: c } });
+        const fio = { style: 'thin', color: { argb: CC.line } };
+        const wb = new ExcelJS.Workbook();
+        wb.creator = 'Raiz Patrimônio'; wb.title = `Cadastro de partes e pessoas · ${empresa}`; wb.created = agora;
+        wb.calcProperties = { fullCalcOnLoad: true };
+        const png = await simboloPng();
+        const cabecalho = (ws, subtitulo, ncols) => {
+            ws.getRow(1).height = 30;
+            ws.getCell('A1').value = empresa; ws.getCell('A1').font = F(18, true, CC.pine);
+            ws.getCell('A2').value = subtitulo; ws.getCell('A2').font = F(12, true);
+            ws.getCell('A3').value = `Situação em ${quando.slice(0, 10)} · gerado em ${quando}${quem ? ' por ' + quem : ''}`; ws.getCell('A3').font = F(9, false, CC.muted);
+            const cm = Math.max(3, ncols - 1);
+            if (png) { const id = wb.addImage({ base64: png, extension: 'png' }); ws.addImage(id, { tl: { col: cm - 1, row: 0 }, ext: { width: 30, height: 38 } }); }
+            ws.getCell(1, cm + 1).value = 'Raiz'; ws.getCell(1, cm + 1).font = F(12, true, CC.pine);
+            ws.getCell(2, cm + 1).value = 'Patrimônio'; ws.getCell(2, cm + 1).font = F(8, true, CC.sprout);
+            ws.headerFooter.oddFooter = `&L&8Cadastro de partes e pessoas · ${empresa.replace(/&/g, '&&')} · gerado em ${quando}&R&8Página &P de &N`;
+        };
+        const tabela = (ws, HDR, cols, linhas) => {
+            cols.forEach((c, i) => {
+                ws.getColumn(i + 1).width = c.larg || 16;
+                const cl = ws.getCell(HDR, i + 1); cl.value = c.cab; cl.font = F(9, true, CC.pine); cl.fill = fundo(CC.paper);
+                cl.alignment = { wrapText: true, vertical: 'middle', horizontal: c.num ? 'right' : 'left' };
+                cl.border = { bottom: { style: 'medium', color: { argb: CC.pine } } };
+            });
+            ws.getRow(HDR).height = 30;
+            linhas.forEach((r, k) => cols.forEach((c, i) => {
+                const cl = ws.getCell(HDR + 1 + k, i + 1);
+                let v = c.ler(r); v = c.num ? nOuNulo(v) : c.data ? dataXl(v) : tOuNulo(v);
+                cl.value = v; cl.font = F(9); cl.border = { bottom: fio };
+                if (c.num) { cl.alignment = { horizontal: 'right' }; cl.numFmt = c.fmt || '0'; }
+                if (c.data) cl.numFmt = 'dd/mm/yyyy';
+                if (k % 2 === 1) cl.fill = fundo(CC.zebra);
+                if (c.alerta && v) cl.font = F(9, true, CC.danger);
+            }));
+            const fim = HDR + Math.max(1, linhas.length);
+            ws.autoFilter = { from: { row: HDR, column: 1 }, to: { row: fim, column: cols.length } };
+            return fim;
+        };
+        const sn = (b) => (b ? 'sim' : 'não');
+        const achados = (r) => (r.achados || []).join('; ');
+
+        // Partes
+        const colsP = [
+            { cab: 'Nome', larg: 38, ler: r => r.nome }, { cab: 'Nome fantasia', larg: 22, ler: r => r.nome_fantasia },
+            { cab: 'Tipo doc.', larg: 8, ler: r => r.doc_tipo }, { cab: 'CPF/CNPJ', larg: 20, ler: r => r.documento },
+            { cab: 'Prestador', larg: 14, ler: r => r.tipo_prestador }, { cab: 'Taxa adm. (%)', larg: 10, num: true, fmt: '0.00', ler: r => r.taxa_adm },
+            { cab: 'Cidade/UF', larg: 18, ler: r => [r.cidade, r.uf].filter(Boolean).join('/') },
+            { cab: 'WhatsApp', larg: 9, ler: r => sn(r.whatsapp) }, { cab: 'E-mail', larg: 8, ler: r => sn(r.email) },
+            { cab: 'Papéis', larg: 34, ler: r => r.papeis }, { cab: 'Lançamentos', larg: 11, num: true, ler: r => r.lancamentos },
+            { cab: 'Itens de controle', larg: 10, num: true, ler: r => r.itens }, { cab: 'Usos', larg: 7, num: true, ler: r => r.usos },
+            { cab: 'Vínculos (total)', larg: 10, num: true, ler: r => r.vinculos }, { cab: 'Cadastrada em', larg: 12, data: true, ler: r => r.criado_em },
+            { cab: 'Achados', larg: 40, alerta: true, ler: achados },
+        ];
+        const wp = wb.addWorksheet('Partes', { views: [{ state: 'frozen', xSplit: 1, ySplit: 5, showGridLines: false }],
+            pageSetup: { orientation: 'landscape', fitToPage: true, fitToWidth: 1, fitToHeight: 0, printTitlesRow: '5:5' } });
+        cabecalho(wp, 'Partes · locatários, administradoras, condomínios, prestadores e demais', colsP.length);
+        const fimP = tabela(wp, 5, colsP, partes);
+        const achP = `P6:P${fimP}`;
+
+        // Pessoas
+        const colsE = [
+            { cab: 'Nome', larg: 34, ler: r => r.nome }, { cab: 'Perfil', larg: 12, ler: r => r.perfil }, { cab: 'Função', larg: 22, ler: r => r.funcao },
+            { cab: 'Acessa o app', larg: 10, ler: r => sn(r.login) }, { cab: 'WhatsApp', larg: 9, ler: r => sn(r.whatsapp) }, { cab: 'E-mail', larg: 8, ler: r => sn(r.email) },
+            { cab: 'Cota (%)', larg: 9, num: true, fmt: '0.00', ler: r => r.cota }, { cab: 'Desde', larg: 12, data: true, ler: r => r.desde },
+            { cab: 'Achados', larg: 30, alerta: true, ler: achados },
+        ];
+        const we = wb.addWorksheet('Pessoas', { views: [{ state: 'frozen', xSplit: 1, ySplit: 5, showGridLines: false }] });
+        cabecalho(we, 'Pessoas · quem participa e acessa a empresa', colsE.length);
+        const fimE = tabela(we, 5, colsE, pessoas);
+
+        // Empresa
+        const wm = wb.addWorksheet('Empresa', { views: [{ showGridLines: false }] });
+        cabecalho(wm, 'Empresa', 4);
+        wm.getColumn(1).width = 22; wm.getColumn(2).width = 60;
+        [['Nome', emp.nome], ['Razão social', emp.razao], ['Documento', [emp.doc_tipo, emp.documento].filter(Boolean).join(' ')],
+         ['Cidade/UF', [emp.cidade, emp.uf].filter(Boolean).join('/')], ['Natureza', emp.natureza], ['Regime tributário', emp.regime],
+         ['Plano', emp.plano], ['No Raiz desde', emp.desde ? dataXl(emp.desde) : null]].forEach(([a, b], k) => {
+            wm.getCell(5 + k, 1).value = a; wm.getCell(5 + k, 1).font = F(9, true, CC.pine);
+            const cl = wm.getCell(5 + k, 2); cl.value = b || '—'; cl.font = F(10); if (b instanceof Date) cl.numFmt = 'dd/mm/yyyy';
+        });
+
+        // Resumo (fórmulas sobre as abas)
+        const wr = wb.addWorksheet('Resumo', { views: [{ showGridLines: false }] });
+        cabecalho(wr, 'Cadastro de partes e pessoas · resumo', 4);
+        wr.getColumn(1).width = 44; wr.getColumn(2).width = 14;
+        [['Partes', `COUNTA(Partes!A6:A${fimP})`], ['Partes sem CPF/CNPJ', `COUNTIF(Partes!${achP},"*sem CPF/CNPJ*")`],
+         ['Partes com CPF/CNPJ inválido', `COUNTIF(Partes!${achP},"*inválido*")`], ['Partes com nome repetido', `COUNTIF(Partes!${achP},"*nome repetido*")`],
+         ['Partes sem nenhum vínculo', `COUNTIF(Partes!${achP},"*sem vínculo*")`], ['Pessoas', `COUNTA(Pessoas!A6:A${fimE})`],
+         ['Pessoas sem acesso ao app', `COUNTIF(Pessoas!D6:D${fimE},"não")`], ['Soma das cotas das pessoas (%)', `SUM(Pessoas!G6:G${fimE})`]].forEach(([a, f], k) => {
+            wr.getCell(5 + k, 1).value = a; wr.getCell(5 + k, 1).font = F(10);
+            const cl = wr.getCell(5 + k, 2); cl.value = { formula: f }; cl.font = F(12, true, CC.pine); cl.numFmt = k === 7 ? '0.00' : '0';
+        });
+        wr.getCell(14, 1).value = d.resumo && d.resumo.cotas_ok === false ? 'Atenção: as cotas das pessoas não somam 100%.' : null;
+        wr.getCell(14, 1).font = F(9, true, CC.danger);
+        const ORDEM = ['Resumo', 'Empresa', 'Partes', 'Pessoas'];
+        wb.worksheets.forEach(ws => { ws.orderNo = ORDEM.indexOf(ws.name); }); // a aba Resumo abre primeiro
+
+        // Sobre
+        const wsb = wb.addWorksheet('Sobre', { views: [{ showGridLines: false }] });
+        wsb.getColumn(1).width = 30; wsb.getColumn(2).width = 100;
+        wsb.getCell('A1').value = 'Sobre esta planilha'; wsb.getCell('A1').font = F(14, true, CC.pine);
+        [['Só esta empresa', 'A planilha traz apenas as partes e pessoas da empresa aberta no app.'],
+         ['Vínculos', 'Soma de papéis ativos (contrato, ativo, empreendimento, item), lançamentos, itens e ocorrências de controle, usos, notas fiscais (tomador), vínculos de pessoa e processos de contratação.'],
+         ['Achados', 'CPF/CNPJ inválido (dígito verificador) · sem CPF/CNPJ · nome repetido (mesmo nome, sem acento e maiúsculas) · sem vínculo (nenhum uso no app).'],
+         ['Como corrigir', 'Cadastros › Partes › tocar na parte › ⋮ › Editar ou Excluir. Pessoas: ⚙️ › Pessoas.'],
+         ['Dados pessoais', d.documento_completo ? 'CPF/CNPJ completos (perfil administrador). Guarde e compartilhe com cuidado.' : 'CPF/CNPJ mascarados: só o perfil administrador vê o número completo (LGPD).'],
+         ['Origem', `fn_relatorio_cadastro_partes v${d.versao || 1} · exportado do Raiz em ${quando}${quem ? ' por ' + quem : ''}.`]].forEach(([a, b], k) => {
+            wsb.getCell(3 + k, 1).value = a; wsb.getCell(3 + k, 1).font = F(9, true, CC.pine);
+            const cl = wsb.getCell(3 + k, 2); cl.value = b; cl.font = F(9); cl.alignment = { wrapText: true, vertical: 'top' };
+        });
+
+        const buf = await wb.xlsx.writeBuffer();
+        const s = (x) => String(x || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '');
+        const nome = `raiz_cadastro_partes_pessoas_${s(empresa) || 'empresa'}_${agora.getFullYear()}-${p2(agora.getMonth() + 1)}-${p2(agora.getDate())}.xlsx`;
+        const url = URL.createObjectURL(new Blob([buf], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }));
+        const a = document.createElement('a'); a.href = url; a.download = nome; document.body.appendChild(a); a.click(); a.remove();
+        setTimeout(() => URL.revokeObjectURL(url), 30000);
+        rzToast(`Planilha baixada · ${partes.length} partes · ${pessoas.length} pessoas`);
+    } catch (e) {
+        console.error('[rz] cadastro de partes', e);
         rzToast('Não foi possível gerar a planilha: ' + (e?.message || e), 'danger');
     }
 }
