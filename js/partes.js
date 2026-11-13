@@ -1,7 +1,11 @@
 // ============================================================================
 // partes.js — Raiz Patrimônio · Partes (pessoas do negócio): lista, busca,
 //             ficha, papéis, vínculos, empreendimentos e acesso de sócio
-// Versão: 1.1.0 · 14/10/2026
+// Versão: 1.2.0 · 12/11/2026
+//
+// v1.2.0 (12/11/2026, sessão 20261112-2258-lupa-partes, demanda f6be5483; de acordo do Nicola 12/11 22:58) — a ficha da parte › Vínculos mostra também os contratos que ela
+// administra (fn_vinculos_da_parte v2, papel Administradora). Essas linhas abrem o contrato e não têm ⋮ (não são um
+// papel gravado na parte; mudar a administradora é no próprio contrato). Versão anterior: 1.1.0
 //
 // v1.1.0 (14/10/2026, sessão 20261014-2145-onda9c-textos, demanda a05ad2ee; onda 9c do estudo PROTOTIPO_UX_DENSIDADE_RAMOS_RAIZ
 // v1.2.0, D6 seção 10) — textos no limite: ação até 24 caracteres, descrição até 28, aviso até 40 com o resultado e tela
@@ -50,7 +54,7 @@
 // mesmo rzPonteModulo dos outros módulos R8.
 // ============================================================================
 
-export const VERSAO = '1.1.0';  // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.2.0';  // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 
 // FORMULÁRIO — abrirSheetForm; campos base sempre, campos de
 // prestador aparecem quando o papel escolhido pede (pedido: "a
@@ -327,7 +331,7 @@ export async function carregarVinculosFichaParte(sheet, pt) {
                 <div class="rz-ic"><svg data-lucide="${PARTES_ICONE_PAPEL[v.papel] || 'link'}"></svg></div>
                 <div class="rz-tx"><b>${rzEsc(v.rotulo || tipo || 'Vínculo')}</b><span>${rzEsc(sub)}</span></div>
                 ${st}
-                <button type="button" onclick="event.stopPropagation(); abrirAcoesVinculoParte('${pt.id}','${v.papel_id}')" class="rz-more" aria-label="Ações do vínculo"><svg data-lucide="ellipsis-vertical"></svg></button>
+                ${v.papel_id === v.entidade_id ? '' : `<button type="button" onclick="event.stopPropagation(); abrirAcoesVinculoParte('${pt.id}','${v.papel_id}')" class="rz-more" aria-label="Ações do vínculo"><svg data-lucide="ellipsis-vertical"></svg></button>`}
             </div>`;
         };
         listaEl.innerHTML =

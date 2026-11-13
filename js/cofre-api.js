@@ -1,6 +1,10 @@
 // ============================================================================
 // cofre-api.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.55.1 · 12/11/2026
+// Versão: 1.56.0 · 12/11/2026
+//
+// v1.56.0 (12/11/2026, sessão 20261112-2258-lupa-partes, demanda f6be5483; de acordo do Nicola 12/11 22:58) — buscarResumoImoveisParaCards monta também os nomes das pessoas
+// relacionadas a cada ativo e contrato (locatários, administradora e partes com papel no contrato ou no ativo) em
+// window.__rzRelacionadosPorAtivo / __rzRelacionadosPorContrato, para a lupa achar pela administradora. Versão anterior: 1.55.1
 //
 // v1.55.1 (12/11/2026, sessão 20261112-1516-rodrigo-ajustes, demanda 8a7e8fd4) — CORREÇÃO: criarOcorrenciasControleBatch
 //   insere com ON CONFLICT DO NOTHING em (item_controle_id, data_prevista_original). Editar um item com parcelas já
@@ -20,16 +24,11 @@
 //
 // v1.53.0 (19/10/2026, sessão 20261019-0935-carga-silva-l5b, demanda 9404081c, L5-B; ficha F2 com de acordo do Nicola 18/10
 // 23:43) — listarAtivosArquivados (chip Arquivados) e excluirAtivoDeVerdade (fn_ativo_excluir).
-// Versão anterior: 1.52.0 · 18/10/2026
-//
-// v1.52.0 (18/10/2026, sessão 20261018-2343-carga-silva-l4a, demanda 9404081c, L4-C) — listarTiposAtivo devolve, por tipo,
-// os ramos dos usos próprios de ramo que o tipo aceita (ramos_uso), o uso a iniciar em cada ramo (usos_por_ramo) e se o tipo
-// aceita uso de renda (tem_uso_renda: aluguel, temporada, arrendamento), que decide o "Aluguel esperado".
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.51.0 … v1.51.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.52.0 … v1.52.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '1.55.1'; // v-check (22/09/2026): lido por Dev › Versões — manter igual ao header
+export const VERSAO = '1.56.0'; // v-check (22/09/2026): lido por Dev › Versões — manter igual ao header
 const SUPABASE_URL = 'https://oduwpttbbemypiypjsux.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9kdXdwdHRiYmVteXBpeXBqc3V4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODUyODEyOTcsImV4cCI6MjEwMDg1NzI5N30.9-cu1CV1wPbo5UH1G2eAsWqsvS54AWNuQZOlifc9a7w';
 
@@ -959,7 +958,7 @@ export async function buscarResumoImoveisParaCards(clienteId) {
         // v1.17.0 — as 2 consultas em paralelo (eram em fila; 1 ida a menos no 4G)
         const [{ data: ativosRows, error: e1 }, { data: contratosRows, error: e2 }] = await Promise.all([
             dbAuth.from('cofre_ativos').select('id, situacao_uso, finalidade_uso, dados_especificos, ativo_tipos(nome), empreendimentos(nome)').eq('cliente_id', clienteId).in('tipo_ativo', ['imovel_predial', 'imovel_territorial']),
-            dbAuth.from('contratos').select('ativo_id, status, locatario, valor').eq('cliente_id', clienteId),
+            dbAuth.from('contratos').select('id, ativo_id, status, locatario, valor, prestadores(nome)').eq('cliente_id', clienteId),
         ]);
         if (e1) throw e1;
         if (e2) throw e2;
@@ -979,6 +978,25 @@ export async function buscarResumoImoveisParaCards(clienteId) {
                 contratoPrincipal: contratosDoImovel[0] || null
             });
         });
+        // v1.56.0 — nomes das pessoas relacionadas, para a lupa: locatários de todos os contratos, administradora e as
+        // partes com papel no contrato ou no ativo (fiador, proprietário, síndico…). Mapas em window para Ativos e Contratos.
+        const porAtivo = new Map(), porContrato = new Map();
+        const somar = (mapa, id, nome) => { if (!id || !nome) return; mapa.set(id, ((mapa.get(id) || '') + ' ' + String(nome)).toLowerCase()); };
+        const ativoDoContrato = new Map();
+        (contratosRows || []).forEach(c => {
+            ativoDoContrato.set(c.id, c.ativo_id);
+            [c.locatario, c.prestadores?.nome].forEach(n => { somar(porContrato, c.id, n); somar(porAtivo, c.ativo_id, n); });
+        });
+        try {
+            const { data: papeis } = await dbAuth.from('partes_papeis').select('entidade_tipo, entidade_id, partes!inner(nome, cliente_id)')
+                .eq('partes.cliente_id', clienteId).eq('ativo', true).in('entidade_tipo', ['contrato', 'ativo']);
+            (papeis || []).forEach(p => {
+                const nome = p.partes?.nome;
+                if (p.entidade_tipo === 'contrato') { somar(porContrato, p.entidade_id, nome); somar(porAtivo, ativoDoContrato.get(p.entidade_id), nome); }
+                else somar(porAtivo, p.entidade_id, nome);
+            });
+        } catch (e2) { console.warn('[cofre-api] partes relacionadas:', e2); }
+        if (typeof window !== 'undefined') { window.__rzRelacionadosPorAtivo = porAtivo; window.__rzRelacionadosPorContrato = porContrato; }
     } catch (e) {
         console.warn('[cofre-api] buscarResumoImoveisParaCards falhou:', e);
     }

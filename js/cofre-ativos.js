@@ -1,6 +1,10 @@
 // ============================================================================
 // cofre-ativos.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.150.0 · 23/10/2026
+// Versão: 1.151.0 · 12/11/2026
+//
+// v1.151.0 (12/11/2026, sessão 20261112-2258-lupa-partes, demanda f6be5483; de acordo do Nicola 12/11 22:58) — a busca de Ativos (barra e lupa) acha também pelas pessoas
+// relacionadas: administradora, locatários de todos os contratos, fiador, proprietário, síndico (cofre-api 1.56.0).
+// Versão anterior: 1.150.0
 //
 // v1.150.0 (23/10/2026, sessão 20261023-2110-ux-escala, demanda a05ad2ee; de acordo do Nicola 23/10 21:10) — o traço da aba
 // ativa da ficha usa a cor do ramo do ativo (imóvel em azul, família em lilás…), não mais a da lente do cabeçalho.
@@ -19,17 +23,11 @@
 // v1.147.0 (22/10/2026, sessão 20261022-1035-computador-c1, demanda 15146a34; PROTOTIPO_COMPUTADOR_RAIZ v1.0.0, de acordo do
 //   Nicola 22/10 10:32) — sai o cabeçalho de colunas da tabela do Patrimônio e a ordenação por ele (a linha já se explica;
 //   Nicola 09:51: "não acho que precisa do cabeçalho"). As colunas alinhadas ficam (raiz.css).
-// Versão anterior: 1.146.0 · 22/10/2026
-//
-// v1.146.0 (22/10/2026, sessão 20261022-0850-ux-onda5c, demanda 15146a34; Nicola 22/10 08:45, "pode seguir") — onda 5c, computador:
-//   a tabela do Patrimônio ganha o cabeçalho das colunas (Ativo · Situação · Locatário · Aluguel/mês · Valor) logo abaixo da
-//   faixa do ramo, e o toque no cabeçalho ordena dentro de cada empreendimento (toque de novo inverte). Só aparece a partir de
-//   1024 px e sem a ficha aberta (raiz.css 1.9.0). Situação não ordena.
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.145.1 … v1.145.1): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.146.0 … v1.146.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '1.150.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.151.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 import { estado } from './cofre-estado.js';
 import { carregarBiblioteca } from './nucleo/bibliotecas.js'; // bibliotecas pesadas, sob demanda (dem 6b11c602)
 import * as api from './cofre-api.js';
@@ -930,6 +928,7 @@ function redesenharComFiltros() {
 function ativoBateComTexto(a, resumo, termo, ocorrenciasPorAtivo) {
     if ((a.nome_exibicao || '').toLowerCase().includes(termo)) return true;
     if (resumo?.contratoPrincipal?.locatario && resumo.contratoPrincipal.locatario.toLowerCase().includes(termo)) return true;
+    if ((window.__rzRelacionadosPorAtivo?.get(a.id) || '').includes(termo)) return true; // v1.151.0 — administradora, fiador, proprietário…
     const ocorrencias = ocorrenciasPorAtivo[a.id] || [];
     return ocorrencias.some(oc => (oc.cofre_itens_controle?.titulo || '').toLowerCase().includes(termo));
 }

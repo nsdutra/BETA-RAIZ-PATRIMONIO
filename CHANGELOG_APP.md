@@ -4,6 +4,16 @@ Histórico completo de versões do `index.html`, movido automaticamente pelo `ge
 
 ---
 
+NOVIDADES (Beta v1.490.2) — financeiro.js 1.82.0 (competência); import map.
+Versão anterior (Beta v1.490.1):
+DATA: 11/11/2026 (demanda b3d771d7)
+------------------------------------------------------------------
+Versões anteriores (v1.490.1 … v1.490.1): CHANGELOG_APP.md, na raiz do
+repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
+das 5 versões mais recentes deste cabeçalho.
+
+---
+
 NOVIDADES (Beta v1.490.1) — comum-licenca.js 1.10.0 (frase de bloqueio do banco); import map.
 Versão anterior (Beta v1.490.0):
 DATA: 11/11/2026 (demanda add3d7a0)

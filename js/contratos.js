@@ -1,7 +1,10 @@
 // ============================================================================
 // contratos.js — Raiz Patrimônio · Contratos (lista · ficha · formulário ·
 //                 status/reajuste/detalhes · fiadores · documentos · histórico)
-// Versão: 1.70.0 · 08/11/2026
+// Versão: 1.71.0 · 12/11/2026
+//
+// v1.71.0 (12/11/2026, sessão 20261112-2258-lupa-partes, demanda f6be5483; de acordo do Nicola 12/11 22:58) — a busca de Contratos (barra e lupa) acha também pela administradora
+// e pelas partes com papel no contrato (fiador, cônjuge anuente…). Versão anterior: 1.70.0
 //
 // v1.70.0 (08/11/2026, sessão 20261108-2127-encargos-generico, demanda babfb8eb; FICHA_ESTEIRA_ENCARGOS_INQUILINO_ETAPA1_RAIZ
 // v1.2.0, de acordo do Nicola 08/11 21:40) — COBRANÇA DO MÊS: card novo na ficha do contrato (abaixo de Condições) com a regra
@@ -23,14 +26,8 @@
 // v1.67.0 (22/10/2026, sessão 20261022-1035-computador-c1, demanda 15146a34; PROTOTIPO_COMPUTADOR_RAIZ v1.0.0, de acordo do
 //   Nicola 22/10 10:32) — sai o cabeçalho de colunas da lista de Contratos e a ordenação por ele (mesma decisão do
 //   Patrimônio). As colunas e a linha de baixo em partes ficam.
-// Versão anterior: 1.66.0 · 22/10/2026
-//
-// v1.66.0 (22/10/2026, sessão 20261022-0850-ux-onda5c, demanda 15146a34; Nicola 22/10 08:45, "pode seguir") — onda 5c, computador:
-//   a lista de Contratos vira tabela (Locatário · Imóvel · Fim · Aluguel · Situação) com cabeçalho que ordena dentro de cada
-//   empreendimento; a linha de baixo do celular continua igual (imóvel · anexos · até dd/mm/aaaa), agora em partes (<i>) que
-//   o raiz.css 1.9.0 distribui em colunas. Com a ficha aberta, a lista fica à esquerda e a ficha em painel de 560 px.
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.65.0 … v1.65.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.66.0 … v1.66.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
 import { avaliarProntidaoContratoParaMinuta } from './minutas.js'; // v1.0.1
@@ -42,7 +39,7 @@ import { emitirEscrita, aoEscrever } from './raiz-eventos.js'; // v1.18.0 — Fa
 import { renderizarBlocoEndereco, lerBlocoEndereco } from './comum-endereco.js';
 import { formatarEnderecoParte } from './comum-partes.js';
 
-export const VERSAO = '1.70.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.71.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 
 // Faixa do cabeçalho da ficha do contrato: o resumo que se procura primeiro (valor, o que está em aberto e até quando vai).
 // Fim em mês/ano curto ("fev/28"); a data inteira fica no card Condições.
@@ -4895,8 +4892,11 @@ if (!window.__rzListenerEscritaParteContratoLigado) {
         // tNorm já normalizado (sem acento, minúsculas); tDig = só os dígitos do termo.
         const normTextoCon = (s) => String(s || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
         function contratoBateTexto(con, imo, tNorm, tDig) {
+            // v1.71.0 — + administradora do contrato e as partes com papel nele (fiador, cônjuge…), quando a lista de ativos já carregou
+            const adm = (typeof administradoras !== 'undefined' && Array.isArray(administradoras)) ? (administradoras.find(a => a.id === con.administradoraId)?.nome || '') : '';
+            const rel = (typeof window !== 'undefined' && window.__rzRelacionadosPorContrato?.get(con.id)) || '';
             const alvo = normTextoCon([con.locatario, con.cpf, imo?.nomeExibicao, imo?.empreendimento,
-                imo?.enderecoRua, imo?.enderecoNum, imo?.enderecoBairro, imo?.enderecoCidade].join(' '));
+                imo?.enderecoRua, imo?.enderecoNum, imo?.enderecoBairro, imo?.enderecoCidade, adm, rel].join(' '));
             const docOk = tDig.length >= 3 && String(con.cpf || '').replace(/\D/g, '').includes(tDig);
             return alvo.includes(tNorm) || docOk;
         }
