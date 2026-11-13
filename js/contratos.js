@@ -1,7 +1,15 @@
 // ============================================================================
 // contratos.js — Raiz Patrimônio · Contratos (lista · ficha · formulário ·
 //                 status/reajuste/detalhes · fiadores · documentos · histórico)
-// Versão: 1.72.0 · 12/11/2026
+// Versão: 1.73.0 · 13/11/2026
+//
+// v1.73.0 (13/11/2026, sessão 20261113-1430-encerrar-contrato, demanda fed20783; FICHA_ENCERRAR_E_REATIVAR_CONTRATO_RAIZ v1.0.0,
+// de acordo do Nicola 13/11 14:05) — "Encerrar contrato" ganha tela própria (abrirEncerrarContrato) que separa os recebimentos
+// em aberto pela data de encerramento: até a data (manter em aberto · baixa como pago COM a data do pagamento · baixa sem
+// pagamento) e depois da data (cancelar · manter). Grava pela fn_contrato_encerrar (uma transação, com log do "antes") — sai o
+// update/delete direto do navegador, que dava baixa nos futuros com a data de vigência (caso Maria Tereza, 13/11).
+// "Reativar contrato" no ⋮ do contrato encerrado, pela fn_contrato_reativar (recusa se o bem tem outro contrato em vigor).
+// Versão anterior: 1.72.0
 //
 // v1.72.0 (12/11/2026, sessão 20261112-2342-prest-partes-m3, demanda f6be5483; FICHA_MIGRACAO_PRESTADORES_PARA_PARTES_RAIZ v1.0.0 M3,
 // de acordo do Nicola 12/11 23:08 e 23:42) — Detalhes do contrato › Administradora grava pelo papel da parte no contrato
@@ -23,11 +31,8 @@
 // do Nicola 23/10 08:51) — CONTRATO NO CONTEXTO: o ‹ da ficha do contrato volta para onde ela foi aberta — da lista de
 // Contratos, para a lista (antes caía no ativo do contrato); do ativo, para o ativo (como já era); de outro lugar, para o
 // ativo do contrato ou o Hoje. A linha da lista marca a origem (fichaContratoOrigem = {tipo:'lista'}).
-// Versão anterior: 1.68.0 · 23/10/2026
-//
-// v1.68.0 (23/10/2026, sessão 20261023-0915-computador-c6, demanda 15146a34; PROTOTIPO_COMPUTADOR_RAIZ v1.1.0 §11, de acordo do Nicola 23/10 08:51) — C6 · escala de letras: 70 tamanhos de letra escritos em número (font-size:13px etc.) trocados pelos da escala (--fs-mini 11 · --fs-sec 12,5 · --fs-corpo 14 · --fs-titulo 17; 16 px fica, por causa do zoom do iPhone em campo, e 18 px ou mais também — herói e números grandes). Nada muda de lugar; só o tamanho passa a ser o mesmo em todas as telas.
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.67.0 … v1.67.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.68.0 … v1.68.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
 import { avaliarProntidaoContratoParaMinuta } from './minutas.js'; // v1.0.1
@@ -40,7 +45,7 @@ import { renderizarBlocoEndereco, lerBlocoEndereco } from './comum-endereco.js';
 import { formatarEnderecoParte } from './comum-partes.js';
 import { sincronizarAdministradoraContrato } from './nucleo/porta.js'; // v1.72.0 — M3 prestadores→partes
 
-export const VERSAO = '1.72.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.73.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 
 // Faixa do cabeçalho da ficha do contrato: o resumo que se procura primeiro (valor, o que está em aberto e até quando vai).
 // Fim em mês/ano curto ("fev/28"); a data inteira fica no card Condições.
@@ -829,9 +834,10 @@ if (!window.__rzListenerEscritaParteContratoLigado) {
                 { valor: 'Ativo', rotulo: 'Marcar como Ativo' },
                 { valor: 'Assinando', rotulo: 'Marcar como Assinando' },
                 { valor: 'Suspenso', rotulo: 'Suspender contrato' },
-                { valor: 'Finalizado', rotulo: 'Encerrar contrato' },
                 { valor: 'excluir', rotulo: 'Excluir contrato' },
             ];
+            // v1.73.0 — encerrar tem tela própria (abrirEncerrarContrato); contrato encerrado só reativa (função) ou exclui
+            if (con.status === 'Finalizado') { reativarContrato(contratoId); return; }
             const opcoesDisponiveis = todasOpcoes.filter(o => {
                 if (o.valor === 'excluir') return true;
                 if (o.valor === con.status) return false;
@@ -866,6 +872,124 @@ if (!window.__rzListenerEscritaParteContratoLigado) {
                 titulo: 'Alterar status do contrato', sub: con.locatario || '', corpo, rotuloSalvar: 'Salvar',
                 aoSalvar: () => { salvarAlterarStatusContrato(con.id); return false; },
             });
+        }
+
+        // ===================================================================
+        // v1.73.0 (demanda fed20783) — ENCERRAR e REATIVAR pelas funções do banco
+        // ===================================================================
+        // Vencimento de um recebimento como o banco calcula (fn_contrato_encerrar / rotina de vencidos):
+        // competência + (antecipado ? 0 : 1 mês) + (dia de vencimento − 1).
+        function vencimentoRecebimentoIso(con, m) {
+            const [mm, aa] = String(m.referencia || '').split('/').map(Number);
+            if (!mm || !aa) return null;
+            const antecipado = String(con.alugelAntecipado || 'Sim').toLowerCase().startsWith('s');
+            const d = new Date(aa, mm - 1 + (antecipado ? 0 : 1), Number(con.vencimentoDia || 15));
+            return d.toLocaleDateString('sv-SE');
+        }
+        export function abrirEncerrarContrato(contratoId) {
+            const con = contratos.find(c => c.id === contratoId);
+            if (!con) return;
+            if (con.status === 'Finalizado') { mostrarToast('Este contrato já está encerrado.', 'info'); return; }
+            const hoje = new Date().toLocaleDateString('sv-SE');
+            const abertos = mensalidades.filter(m => m.contratoId === contratoId && m.status === 'Inadimplente' && !m.chaveTransacaoOrigem);
+            const corpo = `
+                <div class="rz-f"><label>Data de encerramento <span style="color:var(--danger)">*</span></label><input type="date" id="enc-data" value="${hoje}"></div>
+                <div id="enc-blocos"></div>
+                <div class="rz-f"><label>Observação</label><textarea id="enc-obs" rows="2" placeholder="Opcional — motivo do encerramento"></textarea></div>
+                <p class="rz-desc">Recebimentos pagos, ligados ao extrato, com cobrança enviada ou com nota fiscal não mudam.</p>`;
+            abrirSheetForm({
+                titulo: 'Encerrar contrato', sub: con.locatario || '', corpo, rotuloSalvar: 'Encerrar contrato',
+                aoSalvar: () => { salvarEncerrarContrato(contratoId); return false; },
+            });
+            const desenhar = () => {
+                const data = document.getElementById('enc-data')?.value || hoje;
+                const passado = abertos.filter(m => { const v = vencimentoRecebimentoIso(con, m); return v && v <= data; });
+                const futuro = abertos.filter(m => { const v = vencimentoRecebimentoIso(con, m); return v && v > data; });
+                const el = document.getElementById('enc-blocos'); if (!el) return;
+                const selPas = document.getElementById('enc-passado')?.value || 'manter';
+                const selFut = document.getElementById('enc-futuro')?.value || 'cancelar';
+                const dtPg = document.getElementById('enc-data-pgto')?.value || data;
+                const refs = (l) => l.map(m => m.referencia).join(', ');
+                el.innerHTML = `
+                    <div class="rz-card" style="margin-bottom:10px">
+                        <b>Até o encerramento</b> <span class="rz-desc">· ${passado.length ? `${passado.length} em aberto (${rzEsc(refs(passado))})` : 'nada em aberto'}</span>
+                        ${passado.length ? `<select id="enc-passado" class="w-full p-2 border rounded text-sm mt-2">
+                            <option value="manter"${selPas === 'manter' ? ' selected' : ''}>Manter em aberto (continua cobrando)</option>
+                            <option value="pago"${selPas === 'pago' ? ' selected' : ''}>Dar baixa como pago</option>
+                            <option value="isento"${selPas === 'isento' ? ' selected' : ''}>Dar baixa sem pagamento</option></select>
+                        ${selPas === 'pago' ? `<div class="rz-f" style="margin-top:8px"><label>Pago em <span style="color:var(--danger)">*</span></label><input type="date" id="enc-data-pgto" value="${dtPg}"></div>` : ''}` : ''}
+                    </div>
+                    <div class="rz-card" style="margin-bottom:10px">
+                        <b>Depois do encerramento</b> <span class="rz-desc">· ${futuro.length ? `${futuro.length} previsto(s) (${rzEsc(refs(futuro))})` : 'nada previsto'}</span>
+                        ${futuro.length ? `<select id="enc-futuro" class="w-full p-2 border rounded text-sm mt-2">
+                            <option value="cancelar"${selFut === 'cancelar' ? ' selected' : ''}>Cancelar (sai da agenda, do previsto e da cobrança)</option>
+                            <option value="manter"${selFut === 'manter' ? ' selected' : ''}>Manter</option></select>` : ''}
+                    </div>`;
+                document.getElementById('enc-passado')?.addEventListener('change', desenhar);
+            };
+            document.getElementById('enc-data')?.addEventListener('change', desenhar);
+            desenhar();
+        }
+
+        export async function salvarEncerrarContrato(contratoId) {
+            const con = contratos.find(c => c.id === contratoId);
+            if (!con) return;
+            const data = document.getElementById('enc-data')?.value;
+            const passado = document.getElementById('enc-passado')?.value || 'manter';
+            const futuro = document.getElementById('enc-futuro')?.value || 'cancelar';
+            const dataPgto = passado === 'pago' ? (document.getElementById('enc-data-pgto')?.value || '') : null;
+            const obs = (document.getElementById('enc-obs')?.value || '').trim();
+            if (!data) { mostrarToast('Informe a data de encerramento.', 'danger'); return; }
+            if (passado === 'pago' && !dataPgto) { mostrarToast('Informe a data em que foi pago.', 'danger'); return; }
+            mostrarCarregamentoGlobal('Encerrando contrato...');
+            try {
+                const { data: r, error } = await dbAuth.rpc('fn_contrato_encerrar', {
+                    p_contrato_id: contratoId, p_data: data, p_passado: passado, p_data_pgto: dataPgto, p_futuro: futuro, p_motivo: obs || null, p_canal: 'app',
+                });
+                if (error) throw error;
+                const statusAntigo = con.status;
+                con.status = 'Finalizado';
+                mensalidades = await carregarMensalidadesSupabase();
+                const imo = imoveis.find(i => i.id === con.imovelId);
+                if (imo && r?.bem_vago) imo.status = 'Vago';
+                emitirEscrita('contrato', { id: contratoId, acao: 'status' });
+                registrarLog('contratos.editar', { contratoId, o_que: 'status', statusAntigo, statusNovo: 'Finalizado' });
+                esconderCarregamentoGlobal();
+                fecharModalCampoContrato();
+                const partes = [r?.baixados ? `${r.baixados} baixado(s)` : '', r?.cancelados ? `${r.cancelados} futuro(s) cancelado(s)` : ''].filter(Boolean);
+                mostrarToast('Contrato encerrado.' + (partes.length ? ' ' + partes.join(' · ') + '.' : ''), 'success');
+                if (fichaContratoAtualId === contratoId) abrirFichaContrato(contratoId);
+                else if (fichaImovelAtualId === con.imovelId) renderFichaImovelUnica(imoveis.find(i => i.id === con.imovelId));
+                if (document.querySelector('.tab-content.active')?.id === 'tab-imoveis') renderImoveis();
+            } catch (err) {
+                esconderCarregamentoGlobal();
+                rzAvisar('Não consegui encerrar o contrato: ' + (err.message || String(err)), 'danger');
+            }
+        }
+
+        export async function reativarContrato(contratoId) {
+            const con = contratos.find(c => c.id === contratoId);
+            if (!con) return;
+            if (!await rzPerguntar({ titulo: 'Reativar contrato', impacto: 'O contrato volta a ativo e os próximos recebimentos voltam a ser gerados. O que já foi pago não muda.', rotuloConfirmar: 'Reativar' })) return;
+            mostrarCarregamentoGlobal('Reativando...');
+            try {
+                const { error } = await dbAuth.rpc('fn_contrato_reativar', { p_contrato_id: contratoId, p_motivo: null, p_canal: 'app' });
+                if (error) throw error;
+                con.status = 'Ativo';
+                mensalidades = await carregarMensalidadesSupabase();
+                const imo = imoveis.find(i => i.id === con.imovelId);
+                if (imo) imo.status = 'Alugado';
+                emitirEscrita('contrato', { id: contratoId, acao: 'status' });
+                registrarLog('contratos.editar', { contratoId, o_que: 'status', statusAntigo: 'Finalizado', statusNovo: 'Ativo' });
+                esconderCarregamentoGlobal();
+                mostrarToast('Contrato reativado.', 'success');
+                if (fichaContratoAtualId === contratoId) abrirFichaContrato(contratoId);
+                else if (fichaImovelAtualId === con.imovelId) renderFichaImovelUnica(imoveis.find(i => i.id === con.imovelId));
+                if (document.querySelector('.tab-content.active')?.id === 'tab-imoveis') renderImoveis();
+            } catch (err) {
+                esconderCarregamentoGlobal();
+                rzAvisar('Não consegui reativar: ' + (err.message || String(err)), 'danger');
+            }
         }
 
         export async function aguardarIdRealDoContrato(con, tentativasMax = 20) {
@@ -2805,6 +2929,9 @@ if (!window.__rzListenerEscritaParteContratoLigado) {
                 acoes.push({ icone: 'play-circle', titulo: 'Reativar contrato', codigo: 'contratos.editar', aoTocar: () => abrirAcaoStatusContrato(con.id, 'Ativo') });
                 acoes.push({ icone: 'square-check-big', titulo: 'Encerrar contrato', codigo: 'contratos.editar', aoTocar: () => abrirAcaoStatusContrato(con.id, 'Finalizado') });
             }
+            if (con.status === 'Finalizado') { // v1.73.0
+                acoes.push({ icone: 'rotate-ccw', titulo: 'Reativar contrato', codigo: 'contratos.editar', sub: 'Se o bem não tiver outro em vigor', aoTocar: () => reativarContrato(con.id) });
+            }
             acoes.push({ icone: 'trash-2', titulo: 'Excluir contrato', codigo: 'contratos.excluir', tipo: 'bad', aoTocar: () => excluirContrato(con.id) });
             // v1.52.0 (UX onda 3, D11) — é o ⋮ do topo da ficha: todas as ações do contrato, em grupos curtos; os ⋮ dos
             // cabeçalhos dos cards saíram. As de situação (suspender, reativar, encerrar, excluir) ficam por último.
@@ -2921,6 +3048,7 @@ if (!window.__rzListenerEscritaParteContratoLigado) {
         }
 
         export function abrirAcaoStatusContrato(contratoId, valorAcao) {
+            if (valorAcao === 'Finalizado') { abrirEncerrarContrato(contratoId); return; } // v1.73.0
             abrirAlterarStatusContrato(contratoId);
             const sel = document.getElementById('asc-acao');
             if (sel && [...sel.options].some(o => o.value === valorAcao)) sel.value = valorAcao;
