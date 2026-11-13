@@ -1,7 +1,12 @@
 // ============================================================================
 // contratos.js — Raiz Patrimônio · Contratos (lista · ficha · formulário ·
 //                 status/reajuste/detalhes · fiadores · documentos · histórico)
-// Versão: 1.71.0 · 12/11/2026
+// Versão: 1.72.0 · 12/11/2026
+//
+// v1.72.0 (12/11/2026, sessão 20261112-2342-prest-partes-m3, demanda f6be5483; FICHA_MIGRACAO_PRESTADORES_PARA_PARTES_RAIZ v1.0.0 M3,
+// de acordo do Nicola 12/11 23:08 e 23:42) — Detalhes do contrato › Administradora grava pelo papel da parte no contrato
+// (sincronizarAdministradoraContrato, nucleo/porta.js 1.8.0 → fn_contrato_definir_administradora). Se o banco recusar, avisa e
+// não salva o resto. Versão anterior: 1.71.0
 //
 // v1.71.0 (12/11/2026, sessão 20261112-2258-lupa-partes, demanda f6be5483; de acordo do Nicola 12/11 22:58) — a busca de Contratos (barra e lupa) acha também pela administradora
 // e pelas partes com papel no contrato (fiador, cônjuge anuente…). Versão anterior: 1.70.0
@@ -21,13 +26,8 @@
 // Versão anterior: 1.68.0 · 23/10/2026
 //
 // v1.68.0 (23/10/2026, sessão 20261023-0915-computador-c6, demanda 15146a34; PROTOTIPO_COMPUTADOR_RAIZ v1.1.0 §11, de acordo do Nicola 23/10 08:51) — C6 · escala de letras: 70 tamanhos de letra escritos em número (font-size:13px etc.) trocados pelos da escala (--fs-mini 11 · --fs-sec 12,5 · --fs-corpo 14 · --fs-titulo 17; 16 px fica, por causa do zoom do iPhone em campo, e 18 px ou mais também — herói e números grandes). Nada muda de lugar; só o tamanho passa a ser o mesmo em todas as telas.
-// Versão anterior: 1.67.0 · 22/10/2026
-//
-// v1.67.0 (22/10/2026, sessão 20261022-1035-computador-c1, demanda 15146a34; PROTOTIPO_COMPUTADOR_RAIZ v1.0.0, de acordo do
-//   Nicola 22/10 10:32) — sai o cabeçalho de colunas da lista de Contratos e a ordenação por ele (mesma decisão do
-//   Patrimônio). As colunas e a linha de baixo em partes ficam.
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.66.0 … v1.66.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.67.0 … v1.67.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
 import { avaliarProntidaoContratoParaMinuta } from './minutas.js'; // v1.0.1
@@ -38,8 +38,9 @@ import { emitirEscrita, aoEscrever } from './raiz-eventos.js'; // v1.18.0 — Fa
 // importam nada.
 import { renderizarBlocoEndereco, lerBlocoEndereco } from './comum-endereco.js';
 import { formatarEnderecoParte } from './comum-partes.js';
+import { sincronizarAdministradoraContrato } from './nucleo/porta.js'; // v1.72.0 — M3 prestadores→partes
 
-export const VERSAO = '1.71.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.72.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 
 // Faixa do cabeçalho da ficha do contrato: o resumo que se procura primeiro (valor, o que está em aberto e até quando vai).
 // Fim em mês/ano curto ("fev/28"); a data inteira fica no card Condições.
@@ -1332,14 +1333,22 @@ if (!window.__rzListenerEscritaParteContratoLigado) {
         // type boolean: 'Sim'". condominio_locatario é boolean no banco
         // (confirmado no schema), mas eu mandava a STRING 'Sim'/'Não' direto
         // — só locatario_paga_iptu (linha acima) já convertia certo.
-        export function salvarDetalhesContrato(contratoId) {
+        export async function salvarDetalhesContrato(contratoId) {
+            // v1.72.0 (M3) — a administradora grava primeiro, pelo papel da parte (o banco acerta administradora_id).
+            const admEscolhida = document.getElementById('mdt-administradora').value || null;
+            try {
+                await sincronizarAdministradoraContrato(dbAuth, contratoId, admEscolhida);
+            } catch (e) {
+                console.error('[contratos] administradora', e);
+                alert('Não consegui gravar a administradora: ' + (e && e.message ? e.message : e));
+                return;
+            }
             const patch = {
                 inicio: document.getElementById('mdt-inicio').value || null,
                 fim: document.getElementById('mdt-fim').value || null,
                 desconto_energia: parseFloat(document.getElementById('mdt-desconto-energia').value) || 0,
                 locatario_paga_iptu: document.getElementById('mdt-iptu').value === 'Sim',
                 condominio_locatario: document.getElementById('mdt-condominio').value === 'Sim',
-                administradora_id: document.getElementById('mdt-administradora').value || null,
                 forma_pagamento: document.getElementById('mdt-forma-pgto').value,
                 reajuste: document.getElementById('mdt-reajuste').value.trim() || 'IPCA',
             };
@@ -1347,7 +1356,7 @@ if (!window.__rzListenerEscritaParteContratoLigado) {
                 inicio: patch.inicio, fim: patch.fim, descontoEnergia: patch.desconto_energia,
                 locatarioPagaIptu: patch.locatario_paga_iptu ? 'Sim' : 'Não',
                 condominioLocatario: patch.condominio_locatario ? 'Sim' : 'Não',
-                administradoraId: patch.administradora_id || '',
+                administradoraId: admEscolhida || '',
                 formaPagamento: patch.forma_pagamento, reajuste: patch.reajuste,
             };
             const obs = document.getElementById('mdt-obs').value.trim();

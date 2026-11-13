@@ -1,13 +1,13 @@
 {
   "app": "patrimonio",
-  "gerado_em": "2026-11-13T02:00:57",
+  "gerado_em": "2026-11-13T02:48:52",
   "arquivos": {
-    "index.html": "1.490.7",
+    "index.html": "1.490.8",
     "sw.js": "3.4",
     "js/cadastros.js": "1.3.0",
     "js/financeiro.js": "1.85.0",
     "js/fechamento.js": "1.16.0",
-    "js/contratos.js": "1.71.0",
+    "js/contratos.js": "1.72.0",
     "js/minutas.js": "1.8.0",
     "js/vitrine.js": "1.6.0",
     "js/imoveis.js": "1.11.0",
@@ -38,7 +38,7 @@
     "js/fiscal.js": "1.7.0",
     "js/ativos/ativos-boot.js": "1.4.0",
     "js/ativos/ativos-markup.js": "1.69.0",
-    "js/nucleo/porta.js": "1.7.0",
+    "js/nucleo/porta.js": "1.8.0",
     "js/partes.js": "1.2.0",
     "js/conta.js": "1.5.0",
     "grupo.html": "1.0.0",
@@ -52,7 +52,7 @@
   },
   "detalhes": {
     "index.html": {
-      "linhas": 15609,
+      "linhas": 15606,
       "funcoes": 75
     },
     "sw.js": {
@@ -72,7 +72,7 @@
       "funcoes": 30
     },
     "js/contratos.js": {
-      "linhas": 5388,
+      "linhas": 5397,
       "funcoes": 158
     },
     "js/minutas.js": {
@@ -196,8 +196,8 @@
       "funcoes": 0
     },
     "js/nucleo/porta.js": {
-      "linhas": 1391,
-      "funcoes": 31
+      "linhas": 1414,
+      "funcoes": 32
     },
     "js/partes.js": {
       "linhas": 861,

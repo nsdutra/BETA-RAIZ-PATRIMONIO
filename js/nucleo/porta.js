@@ -4,7 +4,14 @@
 //                   o estado do app (ativos, contratos, mensalidades, repasses,
 //                   lançamentos, prestadores, pessoas, empreendimentos, tipos,
 //                   minutas, links da vitrine, logs e a vitrine pública)
-// Versão: 1.7.0 · 19/10/2026
+// Versão: 1.8.0 · 12/11/2026
+//
+// v1.8.0 (12/11/2026, sessão 20261112-2342-prest-partes-m3, demanda f6be5483; FICHA_MIGRACAO_PRESTADORES_PARA_PARTES_RAIZ v1.0.0 M3,
+// de acordo do Nicola 12/11 23:08 e 23:42) — a administradora do contrato passa a valer pelo PAPEL da parte no contrato. Novo
+// sincronizarAdministradoraContrato(db, contratoId, prestadorId): acha a parte do cadastro escolhido e grava pela
+// fn_contrato_definir_administradora (encerra o papel anterior, cria o novo, mantém contratos.administradora_id e grava log).
+// O salvar do contrato chama depois de gravar; a tela Detalhes do contrato (contratos.js) também.
+// Versão anterior: 1.7.0 · 19/10/2026
 //
 // v1.7.0 (19/10/2026, sessão 20261019-2217-carga-silva-arrend, demanda 9404081c item 55) — o contrato lê e grava
 // contratos.dados_modelo (campos do tipo; no arrendamento: atividade, área, pagamento anual/colheita, produto, ITR,
@@ -27,17 +34,11 @@
 // repasses do boot (lista que alimenta Resultados, o extrato e o PDF por sócio) passa a trazer só a retirada do FLUXO:
 // da empresa para um sócio, natureza distribuição. Ficam fora a retirada extraordinária (fora do fluxo dos imóveis) e
 // os acertos entre pessoas que a tabela guarda desde a F13.6 (antes eles entravam como "repasse" do sócio).
-// Versão anterior: 1.3.0.
-//
-// v1.3.0 (10/10/2026, sessão 20261008-1231-pessoas-ativos, demanda a3f4c73f — F25c, Nicola 10/10 21:19) — contrato NOVO
-// grava contratos.modelo quando o "Adicionar" da ficha do ativo escolheu um (window.rzContratoModeloNovo, válido só
-// para aquele ativo e por 30 min). Sem escolha, o banco põe 'aluguel'. Edição não mexe no modelo.
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.2.0 … v1.2.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.3.0 … v1.3.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-
-export const VERSAO = '1.7.0';  // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.8.0';  // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 
 // ----------------------------------------------------------------------------
 // Injeção do host (index.html ou cofre.html). Os leitores abaixo usam estes
@@ -941,6 +942,9 @@ export async function sincronizarContratoSupabase(con) {
         con.id = contratoId;
     }
 
+    // v1.8.0 (M3 prestadores→partes) — a administradora vale pelo papel da parte no contrato.
+    await sincronizarAdministradoraContrato(dbAuth, contratoId, linha.administradora_id);
+
     // Histórico: grava só as entradas que ainda não têm confirmação de já
     // terem sido persistidas (marcadas com _salvo=true em memória depois
     // do primeiro save) — evita duplicar entradas antigas a cada edição.
@@ -1388,4 +1392,23 @@ export function chamar(nome, args) {
         throw new Error('[porta] ' + nome + ' sem CLIENTE_ID_SUPABASE — chamado antes de entrar numa empresa');
     }
     return fn(...args);
+}
+
+// ----------------------------------------------------------------------------
+// v1.8.0 (12/11/2026, M3 prestadores→partes, demanda f6be5483) — grava a administradora do contrato como papel da parte.
+// prestadorId = id do cadastro escolhido no seletor (vazio = sem administradora). O banco encerra o papel anterior, cria o
+// novo e acerta contratos.administradora_id; sem mudança, não grava nada. `db` vem de quem chama (o cliente autenticado).
+export async function sincronizarAdministradoraContrato(db, contratoId, prestadorId) {
+    if (!db || !contratoId) return null;
+    let parteId = null;
+    if (prestadorId) {
+        const { data, error } = await db.from('partes_papeis').select('parte_id')
+            .eq('papel', 'prestador').eq('entidade_tipo', 'prestador').eq('entidade_id', prestadorId).eq('ativo', true).limit(1);
+        if (error) throw error;
+        parteId = (data && data[0]) ? data[0].parte_id : null;
+        if (!parteId) throw new Error('A administradora escolhida não está em Partes. Abra Partes e salve o cadastro dela.');
+    }
+    const { data, error } = await db.rpc('fn_contrato_definir_administradora', { p_contrato_id: contratoId, p_parte_id: parteId, p_canal: 'app' });
+    if (error) throw error;
+    return data;
 }
