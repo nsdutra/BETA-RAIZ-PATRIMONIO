@@ -1,7 +1,11 @@
 // ============================================================================
 // contratos.js — Raiz Patrimônio · Contratos (lista · ficha · formulário ·
 //                 status/reajuste/detalhes · fiadores · documentos · histórico)
-// Versão: 1.73.0 · 13/11/2026
+// Versão: 1.74.0 · 13/11/2026
+//
+// v1.74.0 (13/11/2026, sessão 20261113-1910-reajuste-desde, demanda 9dfa59ee; de acordo do Nicola 13/11 19:06) — Reajustar pergunta
+// o que fazer com os recebimentos em aberto: "Atualizar desde a data do reajuste" (padrão; fn_mensalidades_realinhar com p_desde =
+// vale a partir de) ou "Não mexer". Antes refazia sempre, sem perguntar, e só do mês atual em diante. Versão anterior: 1.73.0
 //
 // v1.73.0 (13/11/2026, sessão 20261113-1430-encerrar-contrato, demanda fed20783; FICHA_ENCERRAR_E_REATIVAR_CONTRATO_RAIZ v1.0.0,
 // de acordo do Nicola 13/11 14:05) — "Encerrar contrato" ganha tela própria (abrirEncerrarContrato) que separa os recebimentos
@@ -25,14 +29,8 @@
 // envio; o ⋮ abre o formulário, que grava pela fn_contrato_cobranca_definir (a mesma do robô) e pergunta uma vez se o imóvel
 // tem condomínio. Só aparece com a esteira de encargos no plano. Código no fim do arquivo (montarCobrancaContrato,
 // abrirCobrancaContrato).
-// Versão anterior: 1.69.0 · 23/10/2026
-//
-// v1.69.0 (23/10/2026, sessão 20261023-0935-computador-c4, demanda 15146a34; PROTOTIPO_COMPUTADOR_RAIZ v1.1.0 §9 C4, de acordo
-// do Nicola 23/10 08:51) — CONTRATO NO CONTEXTO: o ‹ da ficha do contrato volta para onde ela foi aberta — da lista de
-// Contratos, para a lista (antes caía no ativo do contrato); do ativo, para o ativo (como já era); de outro lugar, para o
-// ativo do contrato ou o Hoje. A linha da lista marca a origem (fichaContratoOrigem = {tipo:'lista'}).
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.68.0 … v1.68.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.69.0 … v1.69.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
 import { avaliarProntidaoContratoParaMinuta } from './minutas.js'; // v1.0.1
@@ -45,7 +43,7 @@ import { renderizarBlocoEndereco, lerBlocoEndereco } from './comum-endereco.js';
 import { formatarEnderecoParte } from './comum-partes.js';
 import { sincronizarAdministradoraContrato } from './nucleo/porta.js'; // v1.72.0 — M3 prestadores→partes
 
-export const VERSAO = '1.73.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.74.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 
 // Faixa do cabeçalho da ficha do contrato: o resumo que se procura primeiro (valor, o que está em aberto e até quando vai).
 // Fim em mês/ano curto ("fev/28"); a data inteira fica no card Condições.
@@ -663,7 +661,8 @@ if (!window.__rzListenerEscritaParteContratoLigado) {
                     <div><label class="block text-xs font-bold text-gray-600">Novo valor (R$) <span style="color:var(--danger)">*</span></label><input type="number" step="0.01" id="rj-valor" oninput="calcularPctReajustePopup(${con.valor})" class="w-full p-2 border rounded text-sm mt-1"></div>
                     <div><label class="block text-xs font-bold text-gray-600">% de ${ehRevisional ? 'variação' : 'reajuste'}</label><input type="number" step="0.01" id="rj-pct" oninput="calcularValorReajustePopup(${con.valor})" class="w-full p-2 border rounded text-sm mt-1"></div>
                 </div>
-                <div class="mb-3"><label class="block text-xs font-bold text-gray-600">Vale a partir de <span style="color:var(--danger)">*</span></label><input type="date" id="rj-vigencia" value="${hoje}" class="w-full p-2 border rounded text-sm mt-1"><p class="text-[10.5px] text-slate-500 mt-1">O valor vigente do contrato é atualizado agora; cobranças já geradas não mudam.</p></div>
+                <div class="mb-3"><label class="block text-xs font-bold text-gray-600">Vale a partir de <span style="color:var(--danger)">*</span></label><input type="date" id="rj-vigencia" value="${hoje}" class="w-full p-2 border rounded text-sm mt-1"></div>
+                <div class="mb-3"><label class="block text-xs font-bold text-gray-600">Recebimentos em aberto</label><select id="rj-realinhar" class="w-full p-2 border rounded text-sm mt-1 bg-gray-50"><option value="desde">Atualizar para o novo valor desde a data acima</option><option value="nao">Não mexer (só os próximos a gerar)</option></select><p class="text-[10.5px] text-slate-500 mt-1">Pagos, ligados ao extrato, com cobrança enviada ou com nota fiscal nunca mudam.</p></div>
                 <div class="mb-3"><label class="block text-xs font-bold text-gray-600">Observação</label><textarea id="rj-obs" rows="2" placeholder="${ehRevisional ? 'Ex.: revisão judicial/negociada, conforme cláusula X' : 'Ex.: IGP-M acumulado 12 meses, conforme cláusula 5'}" class="w-full p-2 border rounded text-sm mt-1"></textarea></div>
                 <div class="mb-1"><label class="block text-xs font-bold text-gray-600">Documento ${ehRevisional ? 'da revisão' : 'do reajuste'}</label><input type="file" id="rj-arquivo" accept=".pdf,.jpg,.jpeg,.png,.docx" class="w-full text-sm mt-1"><p class="text-[10.5px] text-slate-500 mt-1">Aditivo, notificação ou cálculo. Vai pro Cofre, vinculado a este contrato.</p></div>`;
             abrirSheetForm({
@@ -721,6 +720,7 @@ if (!window.__rzListenerEscritaParteContratoLigado) {
             const pct = parseFloat(document.getElementById('rj-pct').value) || 0;
             const vigencia = document.getElementById('rj-vigencia').value;
             const obs = document.getElementById('rj-obs').value.trim();
+            const realinharEmAberto = (document.getElementById('rj-realinhar')?.value || 'desde') === 'desde'; // v1.74.0
 
             const arquivoReajuste = document.getElementById('rj-arquivo')?.files?.[0] || null; // v1.133
             if (isNaN(novoValor) || novoValor <= 0) { mostrarToast('Informe o novo valor.', 'danger'); return; }
@@ -770,8 +770,8 @@ if (!window.__rzListenerEscritaParteContratoLigado) {
                 // transação, sem recibo enviado e sem documento fiscal
                 // (fn_mensalidades_realinhar já filtra isso no banco).
                 let mensalidadesRealinhadas = 0;
-                try {
-                    const { data: realinhadas, error: errRealinhar } = await dbAuth.rpc('fn_mensalidades_realinhar', { p_contrato_id: contratoId });
+                if (realinharEmAberto) try { // v1.74.0 — só se a pessoa pediu; desde a data do reajuste
+                    const { data: realinhadas, error: errRealinhar } = await dbAuth.rpc('fn_mensalidades_realinhar', { p_contrato_id: contratoId, p_desde: vigencia });
                     if (errRealinhar) throw errRealinhar;
                     mensalidadesRealinhadas = (realinhadas || []).length;
                 } catch (errRealinhar) {

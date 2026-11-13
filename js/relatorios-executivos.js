@@ -1,6 +1,11 @@
 // ============================================================================
 // relatorios-executivos.js — Raiz Patrimônio · Relatórios no modelo executivo
-// Versão: 1.10.0 · 13/11/2026
+// Versão: 1.11.0 · 13/11/2026
+//
+// v1.11.0 (13/11/2026, sessão 20261113-1910-reajuste-desde; achados do Nicola 19:06) — Acompanhamento do mês: a fileira de filtros
+//   sem barra de rolagem; recebido sem diferença mostra "sem diferença" (antes repetia "a receber R$ X" ao lado do recebido, o que
+//   confundia); a barra do topo não passa da largura da tela; ao fechar o relatório a página volta para a posição horizontal 0
+//   (a tela de Relatórios ficava deslocada para o lado até reabrir o app). Versão anterior: 1.10.0
 //
 // v1.10.0 (13/11/2026, sessão 20261113-1530-dividir-recebimento, demanda 76a2f670 E8; D2 do Nicola 13/11 13:35 "usar a do
 //   documento e garantir que vai sair no relatório das diferenças" + 14:05 "Diferenças = acompanhamento do mês") — Acompanhamento
@@ -30,21 +35,15 @@
 //   (PADRAO_RELATORIOS v1.6.0, REL-61 a REL-66): empresa, título e linha de situação no topo, símbolo Raiz, até 4 números com
 //   fórmula, cabeçalho congelado com filtro, número como número, data como data, zebra, linha Total com fórmula, fonte,
 //   rodapé de impressão com página e uma aba "Sobre". Primeiro uso: Financeiro › Recebimentos e Saídas › Exportar.
-// Versão anterior: 1.6.1 · 20/10/2026
-//
-// v1.6.1 (20/10/2026, sessão 20261020-1846-balanco-ativo, demanda b8ff7e8d; prints do Nicola 18:37, de acordo 19:12) — no
-//   celular o relatório não corta mais a lateral: o texto das células quebra linha (descrição longa como
-//   "MERCADOLIVRE*MERCADOLIV" empurrava o valor para fora), a coluna Δ % da tabela "Por conta" fica só no PDF (classe hm,
-//   como as outras colunas secundárias) e, se ainda passar da tela, a página rola de lado em vez de cortar. O PDF não muda.
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.6.0 … v1.6.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.6.1 … v1.6.1): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
 import { rzMostrarBloqueio } from './comum-licenca.js';
 import { rzToast } from './raiz-ui.js';
 import RaizDevice from './raiz-device.js';
 
-export const VERSAO = '1.10.0';
+export const VERSAO = '1.11.0';
 
 // ---------------------------------------------------------------------------
 // Formatos (REL-13 a REL-17)
@@ -565,8 +564,8 @@ function montarExecutivo(d) {
 // ---------------------------------------------------------------------------
 const CSS = `
 /* camada 80 (DESIGN_SYSTEM §5): acima do cabeçalho e da barra inferior, abaixo do véu dos sheets (97) */
-#rz-relexec{position:fixed;inset:0;z-index:80;background:var(--paper,#f4f3ee);display:flex;flex-direction:column}
-#rz-relexec .rx-top{display:flex;align-items:center;gap:8px;padding:10px 12px;background:var(--card,#fff);border-bottom:1px solid var(--line,#e6e3da)}
+#rz-relexec{position:fixed;inset:0;z-index:80;overflow:hidden;background:var(--paper,#f4f3ee);display:flex;flex-direction:column}
+#rz-relexec .rx-top{display:flex;align-items:center;gap:8px;overflow-x:auto;scrollbar-width:none;max-width:100vw;padding:10px 12px;background:var(--card,#fff);border-bottom:1px solid var(--line,#e6e3da)}
 #rz-relexec .rx-top button{font:600 14px Inter,system-ui,sans-serif;min-height:44px;border-radius:999px;border:1px solid var(--line,#e6e3da);background:var(--card,#fff);color:var(--ink,#17211e);padding:8px 14px;display:inline-flex;align-items:center;gap:6px;cursor:pointer}
 #rz-relexec .rx-top .rx-voltar{border:0;padding:8px 6px}
 #rz-relexec .rx-top .rx-sp{flex:1}
@@ -936,6 +935,7 @@ async function compartilhar() {
 
 export function fecharRelatorioExecutivo() {
     document.getElementById('rz-relexec')?.remove();
+    if (window.scrollX) window.scrollTo(0, window.scrollY); // v1.11.0 — a página não fica deslocada para o lado
     window.removeEventListener('resize', aplicarVista);
     estado = null;
 }
@@ -1539,7 +1539,8 @@ const ACOMP_CSS = `
  #rz-relexec .ra-tabs{display:flex;gap:6px}
  #rz-relexec .ra-tabs button{flex:1;min-width:0;min-height:40px;border-radius:10px;border:1px solid var(--line,#e6e3da);background:var(--card,#fff);font:600 12px Inter,system-ui,sans-serif;color:var(--ink,#17211e);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding:0 6px}
  #rz-relexec .ra-tabs button.on{border-color:var(--pine,#1e3a32);color:var(--pine,#1e3a32);box-shadow:inset 0 -2px 0 var(--pine,#1e3a32)}
- #rz-relexec .ra-f{display:flex;gap:6px;overflow-x:auto;padding-bottom:2px}
+ #rz-relexec .ra-f{display:flex;gap:6px;overflow-x:auto;padding-bottom:2px;scrollbar-width:none}
+ #rz-relexec .ra-f::-webkit-scrollbar{display:none}
  #rz-relexec .ra-f button{flex:none;border:1px solid var(--line,#e6e3da);background:var(--card,#fff);border-radius:999px;padding:5px 11px;font:500 12px Inter,system-ui,sans-serif;color:var(--muted,#6f7a76)}
  #rz-relexec .ra-f button.on{color:var(--pine,#1e3a32);border-color:var(--pine,#1e3a32)}
  #rz-relexec .ra-g{font-size:var(--fs-mini);font-weight:700;color:var(--muted,#6f7a76);text-transform:uppercase;letter-spacing:.04em;margin:6px 0 -4px}
@@ -1609,7 +1610,7 @@ function acompCorpoHtml() {
             if (r.empreendimento !== g) { g = r.empreendimento; lista += `<div class="ra-g">${esc(g)}</div>`; }
             const s = acompSituacao(r), dif = num(r.diferenca);
             lista += `<button type="button" class="ra-l" data-ra-rec="${esc(r.mensalidade_id)}"><div class="ra-l1"><b>${esc(r.imovel || 'Sem imóvel')}</b><span>${r.recebido == null ? '—' : brl(r.recebido)}</span></div>
-              <div class="ra-l2"><span><i class="ra-d ${s.c}"></i>${esc(s.t)} · ${esc(r.locatario || '')}</span><span class="${dif < -0.99 ? 'n' : dif > 0.99 ? 'p' : ''}">${Math.abs(dif) < 1 ? 'a receber ' + brl(r.a_receber) : (dif > 0 ? '+' : '') + brl(dif)}</span></div>
+              <div class="ra-l2"><span><i class="ra-d ${s.c}"></i>${esc(s.t)} · ${esc(r.locatario || '')}</span><span class="${dif < -0.99 ? 'n' : dif > 0.99 ? 'p' : ''}">${Math.abs(dif) < 1 ? (r.recebido == null ? 'a receber ' + brl(r.a_receber) : 'sem diferença') : (dif > 0 ? '+' : '') + brl(dif)}</span></div>
               ${obsUsuario(r.observacao) ? `<div class="ra-o">✎ ${esc(obsUsuario(r.observacao))}</div>` : ''}</button>`;
         });
         if (!rows.length) lista += `<div class="ra-v">Nada neste filtro.</div>`;

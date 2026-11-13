@@ -1,7 +1,12 @@
 // =====================================================================
 // RAIZ PATRIMÔNIO — js/agenda.js
-// VERSÃO: Beta v1.16.0 (13/11/2026 — CRM F2a)
+// VERSÃO: Beta v1.17.0 (13/11/2026 — sem arrastar)
 // LINHAS: (ver versoes.json)
+// -----------------------------------------------------------------
+// NOVIDADES (Beta v1.17.0) (13/11/2026, sessão 20261113-1910-reajuste-desde; Nicola 13/11 19:06: "Retire a opção de movimentar
+// os meses e semanas com dedo. Está atrapalhando rolar os compromissos.") — sai o arrastar do Mês e da Semana e o touch-action
+// que travava a rolagem por cima do calendário; troca só pelas setas. Exporta linhaCompromissoHtml e abrirCompromissoAgenda para
+// o card Calendário da ficha do ativo. Versão anterior: 1.16.0
 // -----------------------------------------------------------------
 // NOVIDADES (Beta v1.16.0) (13/11/2026, sessão 20261113-0712-crm-f2a; FICHA_CRM_AGENDA_OCUPACAO_RAIZ v1.2.0 F2a, aprovada pelo
 //   Nicola 12/11 08:44; PLANO_EXECUCAO_CRM_F2A_RAIZ v1.0.0, ida 13/11 07:12) — CALENDÁRIO ÚNICO E AGENDA POR HORA:
@@ -147,7 +152,7 @@
 
 import { rzCalendario, rzCalItemDaAgenda } from './nucleo/calendario.js'; // v1.16.0 — calendário único (DS §6.3)
 
-export const VERSAO = '1.16.0';
+export const VERSAO = '1.17.0';
 
 const TIPOS = {
     ocorrencia:   { rotulo: 'Ocorrência',  icone: 'wrench',          dominio: 'ocorrencias' },
@@ -453,7 +458,7 @@ function semanaHtml() {
             <small>${DIA_SEM[d.getDay()]}</small><b>${d.getDate()}</b>${pontosDe(its, di)}</button>`;
     }
     const crit = its.filter(it => it.status === 'critico').length;
-    return `<div class="rz-ag-grade" style="touch-action:pan-y">${faixa}</div>
+    return `<div class="rz-ag-grade">${faixa}</div>
         <p class="rz-ag-resumo"><b>${its.length}</b> na semana${crit ? ` · <span class="rz-ag-txt-critico"><b>${crit}</b> crítico${crit > 1 ? 's' : ''}</span>` : ''}</p>${listaDoDia(its)}`;
 }
 
@@ -523,7 +528,7 @@ function mesHtml() {
 // Compromisso com hora ou aguardando pinta o dia (situação); o resto vira ponto na cor do status.
 function gradeMesHtml(its) {
     const itens = its.map(it => it.tipo === 'c' ? rzCalItemDaAgenda(it.r, it.status) : { dia: it.dia, sit: null, st: it.status });
-    return `<div class="rz-ag-calmes" style="touch-action:pan-x">${rzCalendario({ ano: st.mes.getFullYear(), mes: st.mes.getMonth(), itens, sel: st.dia })}</div>`;
+    return `<div class="rz-ag-calmes">${rzCalendario({ ano: st.mes.getFullYear(), mes: st.mes.getMonth(), itens, sel: st.dia })}</div>`;
 }
 // v1.16.0 — chip do filtro por bem
 function chipAtivoHtml() {
@@ -558,18 +563,7 @@ function ligar() {
         carregar();
     }));
     st.el.querySelectorAll('[data-ag-nav]').forEach(b => b.addEventListener('click', () => navegar(Number(b.dataset.agNav))));
-    // v1.6.0 (item 35) — arrastar: Semana para os lados, Mês para cima/baixo (para cima/esquerda = próximo)
-    const grade = st.el.querySelector('.rz-ag-grade, .rz-ag-calmes'); // v1.16.0 — + o mês do componente
-    if (grade) {
-        let x0 = null, y0 = null;
-        grade.addEventListener('touchstart', (e) => { const t = e.touches[0]; x0 = t.clientX; y0 = t.clientY; }, { passive: true });
-        grade.addEventListener('touchend', (e) => {
-            if (x0 === null) return;
-            const t = e.changedTouches[0], dx = t.clientX - x0, dy = t.clientY - y0; x0 = y0 = null;
-            if (st.vista === 'semana' && Math.abs(dx) > 40 && Math.abs(dx) > Math.abs(dy) * 1.3) navegar(dx < 0 ? 1 : -1);
-            else if (st.vista === 'mes' && Math.abs(dy) > 40 && Math.abs(dy) > Math.abs(dx) * 1.3) navegar(dy < 0 ? 1 : -1);
-        }, { passive: true });
-    }
+    // v1.17.0 (Nicola 13/11 19:06) — sem arrastar para trocar mês/semana: atrapalhava rolar os compromissos. Só as setas.
     st.el.querySelectorAll('[data-ag-st]').forEach(b => b.addEventListener('click', () => {
         const k = b.dataset.agSt; st.status.has(k) ? st.status.delete(k) : st.status.add(k); desenhar(false);
     }));
@@ -631,6 +625,9 @@ function abrirAssunto() {
 }
 
 // Toque no compromisso: abre o lugar dele pelos caminhos que já existem.
+// v1.17.0 — a linha e o toque da Agenda para o card Calendário da ficha do ativo (cofre-ativos.js 1.154.0)
+export function linhaCompromissoHtml(r, i) { return linhaHtml(r, i); }
+export function abrirCompromissoAgenda(r) { return abrirCompromisso(r); }
 function abrirCompromisso(r) {
     if (!r) return;
     if (r.tipo === 'feriado') { if (typeof mostrarToast === 'function') mostrarToast(`${r.titulo} · ${r.sub || 'Nacional'}`); return; } // v1.8.0

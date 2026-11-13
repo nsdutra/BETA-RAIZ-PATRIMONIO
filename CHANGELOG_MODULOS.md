@@ -977,6 +977,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/cofre-api.js`
 
 // Versão anterior: 1.52.0 · 18/10/2026
@@ -1479,6 +1481,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 // supabase-js diretamente (Diretriz Arquitetural — Passo 2: responsabilidade
 // única por módulo).
 // ============================================================================
+
+---
 
 ---
 
@@ -2610,7 +2614,21 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/cofre-ativos.js`
+
+// Versão anterior: 1.149.0 · 23/10/2026
+//
+// v1.149.0 (23/10/2026, sessão 20261023-0910-isolamento, demanda a4935151; de acordo do Nicola 23/10 09:09) — varredura de
+// estado de módulo: (1) empreendimento criado pelo "Novo empreendimento" do formulário não aparecia no seletor da próxima
+// abertura até recarregar o app (a lista ficava guardada desde a 1ª leitura); agora a lista é relida depois de criar.
+// (2) a lista de sócios do editor de propriedade passa a ser relida quando uma pessoa é criada, editada ou excluída em
+// Pessoas (evento 'pessoa' do raiz-eventos.js); antes, pessoa nova só aparecia depois de recarregar.
+// --------------------------------------------------------------------------
+// Versões anteriores (v1.148.0 … v1.148.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
+// mais recentes deste cabeçalho (VER-06).
 
 // Versão anterior: 1.148.0 · 23/10/2026
 //
@@ -4669,6 +4687,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/cofre-controles.js`
 
 // Versão anterior: 1.69.0 · 23/10/2026
@@ -5568,6 +5588,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 // não está implementado (geração automática de ocorrências recorrentes,
 // Central de Alertas consolidada).
 // ============================================================================
+
+---
 
 ---
 
@@ -6926,6 +6948,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/cofre-estado.js`
 
 //
@@ -7071,6 +7095,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 // v1.21.6 (Arquivar/RLS, sessão paralela) nem esta entrega — fechado
 // agora. Ver changelog completo em cofre.html v1.22.0 (merge das 2
 // sessões paralelas + badge fix + form fix + função Vendido).
+
+---
 
 ---
 
@@ -7887,6 +7913,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/cofre-ui.js`
 
 //
@@ -7918,6 +7946,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 // genérica, template de card, indicador de "liga/desliga" (Design System
 // v1.43.0 §2). Não importa cofre-api.js — não sabe nada de Supabase.
 // ============================================================================
+
+---
 
 ---
 
@@ -8799,6 +8829,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/comum-licenca.js`
 
 //
@@ -8972,6 +9004,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 // hospeda (index.html, cofre.html, ou um módulo futuro) é quem decide
 // COMO obtém esse client; este arquivo só usa o que recebe.
 // ============================================================================
+
+---
 
 ---
 
@@ -9522,6 +9556,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 // `dbAuth` já autenticado do host, por parâmetro (ver nota completa em
 // comum-licenca.js).
 // ============================================================================
+
+---
 
 ---
 
@@ -10578,6 +10614,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/comum-renovacao.js`
 
 //
@@ -10651,6 +10689,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 // jsdelivr (mesma origem já usada pelo app); se não carregar, o "copia e cola"
 // continua funcionando sozinho.
 // ============================================================================
+
+---
 
 ---
 
@@ -11405,6 +11445,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/conta.js`
 
 // Versão anterior: 1.0.1 · 10/10/2026
@@ -11530,7 +11572,20 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/contratos.js`
+
+// Versão anterior: 1.69.0 · 23/10/2026
+//
+// v1.69.0 (23/10/2026, sessão 20261023-0935-computador-c4, demanda 15146a34; PROTOTIPO_COMPUTADOR_RAIZ v1.1.0 §9 C4, de acordo
+// do Nicola 23/10 08:51) — CONTRATO NO CONTEXTO: o ‹ da ficha do contrato volta para onde ela foi aberta — da lista de
+// Contratos, para a lista (antes caía no ativo do contrato); do ativo, para o ativo (como já era); de outro lugar, para o
+// ativo do contrato ou o Hoje. A linha da lista marca a origem (fichaContratoOrigem = {tipo:'lista'}).
+// --------------------------------------------------------------------------
+// Versões anteriores (v1.68.0 … v1.68.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
+// mais recentes deste cabeçalho (VER-06).
 
 // Versão anterior: 1.68.0 · 23/10/2026
 //
@@ -12889,6 +12944,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/fechamento.js`
 
 //
@@ -13232,6 +13289,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 // window.jspdf, CONFIG_CLIENTE (todos já globais no index.html clássico —
 // mesmo acesso que financeiro.js já faz).
 // ============================================================================
+
+---
 
 ---
 
@@ -15480,6 +15539,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/fiscal.js`
 
 //
@@ -15576,6 +15637,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 // abrirSheet, abrirSheetAcoes, abrirSheetForm, rzSheetCabecalho, fecharSheet,
 // mostrarToast, switchTab, rzIcones, podeUsar, window.fechamentoAbrirChecklistFiscalAtualizado.
 // ============================================================================
+
+---
 
 ---
 
@@ -16397,6 +16460,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/minutas.js`
 
 //
@@ -16667,6 +16732,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/nucleo/porta.js`
 
 // Versão anterior: 1.3.0.
@@ -16726,6 +16793,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 // mapStatus*ParaAntigo) ficaram no index porque os sincronizar* também os usam —
 // duplicar seria violação da CAN-03. Entram aqui por injeção.
 // ============================================================================
+
+---
 
 ---
 
@@ -17122,7 +17191,20 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/relatorios-executivos.js`
+
+// Versão anterior: 1.6.1 · 20/10/2026
+//
+// v1.6.1 (20/10/2026, sessão 20261020-1846-balanco-ativo, demanda b8ff7e8d; prints do Nicola 18:37, de acordo 19:12) — no
+//   celular o relatório não corta mais a lateral: o texto das células quebra linha (descrição longa como
+//   "MERCADOLIVRE*MERCADOLIV" empurrava o valor para fora), a coluna Δ % da tabela "Por conta" fica só no PDF (classe hm,
+//   como as outras colunas secundárias) e, se ainda passar da tela, a página rola de lado em vez de cortar. O PDF não muda.
+// --------------------------------------------------------------------------
+// Versões anteriores (v1.6.0 … v1.6.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
+// mais recentes deste cabeçalho (VER-06).
 
 // Versão anterior: 1.6.0 · 19/10/2026
 //
@@ -17241,6 +17323,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 // que o bot usa); aqui só se monta o texto e o desenho — nunca se recalcula
 // (REL-02). Protótipo: raiz\docs\PROTOTIPO_RELATORIOS_FLUXO_GERENCIAL v1.1.0.
 // ============================================================================
+
+---
 
 ---
 
@@ -18092,6 +18176,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/vitrine.js`
 
 //
@@ -18212,6 +18298,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 // CLIENTE_ID_SUPABASE, dbAuth. Exclusivo (4) virou nível de módulo.
 // Indentação de origem mantida. Strict verificado.
 // ============================================================================
+
+---
 
 ---
 

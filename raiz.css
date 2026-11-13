@@ -1,6 +1,10 @@
 /* ============================================================================
    raiz.css — Raiz Patrimônio · estilos do app (index.html)
-   Versão: 1.22.0 · 13/11/2026
+   Versão: 1.23.0 · 13/11/2026
+
+   v1.23.0 (13/11/2026, sessão 20261113-1910-reajuste-desde; Nicola 13/11 19:06) — o calendário vira card próprio na ficha do ativo:
+   volta o topo do mês sem fundo (.rz-usos-cal-topo, como na 1.21.0); saem .rz-usos-cal-tg e .rz-usos-cal .rz-mes-bar.
+   Relatórios: a tela não rola para o lado (#tab-relatorios-catalogo overflow-x:clip). Versão anterior: 1.22.0
 
    v1.22.0 (13/11/2026, sessão 20261113-1405-f2a-ajustes; testes T-2945 e T-2949 do Nicola 13/11 14:05) — legenda ganha "hoje"
    (.rz-cal-leg i.hj, na cor do ramo como o traço do dia); calendário do Usos abre fechado (.rz-usos-cal-tg) e usa a barra do
@@ -2169,6 +2173,7 @@ html.rz-plat-web body:not(.rz-split-con) #ficha-contrato-conteudo > .rz-entity:f
 .rz-cal-leg i.pt{width:6px;height:6px;border-radius:50%;vertical-align:1px}
 .rz-ag-calmes{margin:4px 0 8px}
 .rz-usos-cal{margin-top:12px;padding-top:10px;border-top:1px solid var(--line)}
-.rz-usos-cal-tg{padding-left:0;padding-right:0}
-.rz-usos-cal .rz-mes-bar{margin:6px 0 8px}
+.rz-usos-cal-topo{display:flex;align-items:center;justify-content:space-between;margin:2px 0 6px}
+.rz-usos-cal-topo b{font-size:var(--fs-corpo,14px);text-transform:capitalize}
+#tab-relatorios-catalogo{overflow-x:clip}
 .rz-cal-leg i.hj{width:12px;height:0;border-radius:0;border-bottom:3px solid var(--ramo-acc,var(--sage));vertical-align:3px}

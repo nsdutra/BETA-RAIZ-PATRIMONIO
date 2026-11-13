@@ -1,6 +1,13 @@
 // ============================================================================
 // cofre-ativos.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.153.0 · 13/11/2026
+// Versão: 1.154.0 · 13/11/2026
+//
+// v1.154.0 (13/11/2026, sessão 20261113-1910-reajuste-desde; Nicola 13/11 19:06: "criar um card calendário separado do uso, na
+// mesma chip de usos e contratos. Este card só será ativado por ativo pelo parâmetro exibir calendário"; "retire a opção de
+// movimentar os meses com o dedo"; fundo "melhor como estava") — o calendário sai do card Usos (que volta a ser como na 1.151.0)
+// e vira o card "Calendário" (#fa-card-calendario), só quando dados_especificos.exibir_calendario_usos = true; liga e desliga
+// no ⋮ do ativo. Lista do dia com as linhas e o toque da Agenda (agenda.js linhaCompromissoHtml / abrirCompromissoAgenda).
+// Sem arrastar; topo do mês sem fundo. Editar o ativo preserva o parâmetro. Versão anterior: 1.153.0
 //
 // v1.153.0 (13/11/2026, sessão 20261113-1405-f2a-ajustes; teste T-2949 do Nicola 13/11 14:05) — o calendário do chip Usos
 // abre FECHADO: uma linha "Calendário do mês" que abre e fecha; só busca a agenda quando aberto. Aberto/fechado fica lembrado
@@ -18,18 +25,11 @@
 //
 // v1.150.0 (23/10/2026, sessão 20261023-2110-ux-escala, demanda a05ad2ee; de acordo do Nicola 23/10 21:10) — o traço da aba
 // ativa da ficha usa a cor do ramo do ativo (imóvel em azul, família em lilás…), não mais a da lente do cabeçalho.
-// Versão anterior: 1.149.0 · 23/10/2026
-//
-// v1.149.0 (23/10/2026, sessão 20261023-0910-isolamento, demanda a4935151; de acordo do Nicola 23/10 09:09) — varredura de
-// estado de módulo: (1) empreendimento criado pelo "Novo empreendimento" do formulário não aparecia no seletor da próxima
-// abertura até recarregar o app (a lista ficava guardada desde a 1ª leitura); agora a lista é relida depois de criar.
-// (2) a lista de sócios do editor de propriedade passa a ser relida quando uma pessoa é criada, editada ou excluída em
-// Pessoas (evento 'pessoa' do raiz-eventos.js); antes, pessoa nova só aparecia depois de recarregar.
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.148.0 … v1.148.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.149.0 … v1.149.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '1.153.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.154.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 import { estado } from './cofre-estado.js';
 import { rzCalendario, rzCalItemDaAgenda } from './nucleo/calendario.js'; // v1.152.0 — calendário único (DS §6.3)
 import { carregarBiblioteca } from './nucleo/bibliotecas.js'; // bibliotecas pesadas, sob demanda (dem 6b11c602)
@@ -1895,6 +1895,7 @@ export async function abrirAcoesAtivo() {
         { titulo: 'Ativo', acoes: [
             { icone: 'sparkles', tipo: 'ia', titulo: 'Raiz IA', sub: 'Pergunte ou registre', aoTocar: () => abrirRaizIaDoAtivo(a) },
             ...acoes.filter(x => !situacaoAntiga.includes(x)),
+            { icone: 'calendar-days', titulo: calendarioLigado(a) ? 'Ocultar calendário' : 'Exibir calendário', codigo: 'cofre.editar', sub: 'Card no chip Usos e contratos', aoTocar: () => alternarCalendarioAtivo(a) }, // v1.154.0
         ] },
         { titulo: 'Situação', acoes: situacao },
     ].filter(g => g.acoes.length);
@@ -2402,11 +2403,11 @@ export async function montarUsosAtivo(a) {
         if (sub) sub.textContent = '';
         if (!usosLinhas.length) {
             painel.innerHTML = `<p class="rz-desc" style="margin:2px 0 6px">Nenhum uso ainda.</p>`;
-            montarCalendarioUsos(a); // v1.152.0
+            montarCardCalendarioAtivo(a); // v1.154.0 — card próprio, só com o parâmetro ligado
             return;
         }
         await desenharUsosAno(a, vig);
-        montarCalendarioUsos(a); // v1.152.0
+        montarCardCalendarioAtivo(a); // v1.154.0 — card próprio, só com o parâmetro ligado
     } catch (err) {
         console.warn('[cofre-ativos] montarUsosAtivo falhou:', err?.message || err);
     } finally {
@@ -2415,90 +2416,79 @@ export async function montarUsosAtivo(a) {
     }
 }
 
-// v1.152.0 (CRM F2a) — calendário do mês do bem no card Usos: o mesmo da Agenda (rzCalendario) e a lista do dia tocado.
+// v1.154.0 (Nicola 13/11 19:06) — o calendário sai de dentro do card Usos e vira um CARD PRÓPRIO no chip Usos e contratos,
+// ligado por bem no parâmetro dados_especificos.exibir_calendario_usos (⋮ do ativo › Exibir calendário). Mesma leitura da
+// Agenda: mês pelo componente único, a lista do dia logo abaixo com as linhas da Agenda e o toque abrindo o compromisso.
+// Sem arrastar com o dedo (atrapalhava rolar a lista); troca de mês só pelas setas. Topo sem fundo, como era antes.
 const USOS_CAL_MESES = ['janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho', 'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro'];
-let usosCal = null; // { ativo, ano, mes, dia, dados }
+let usosCal = null; // { ativo, ano, mes, dia, dados, carregado }
 const isoLocalUso = (d) => d.toLocaleDateString('sv-SE');
-// v1.153.0 — aberto/fechado por bem, lembrado só neste aparelho (conveniência; some se o navegador limpar)
-const usosCalChave = (id) => `rz.usosCal.${id}`;
-function usosCalAberto(id) { try { return localStorage.getItem(usosCalChave(id)) === '1'; } catch (e) { return false; } }
-function usosCalGuardar(id, aberto) { try { aberto ? localStorage.setItem(usosCalChave(id), '1') : localStorage.removeItem(usosCalChave(id)); } catch (e) { /* sem armazenamento: só não lembra */ } }
-async function montarCalendarioUsos(a) {
-    const painel = document.getElementById('fa-usos-lista'); if (!painel) return;
-    let box = document.getElementById('fa-usos-cal');
-    if (!box) { box = document.createElement('div'); box.id = 'fa-usos-cal'; box.className = 'rz-usos-cal'; painel.after(box); }
+const calendarioLigado = (a) => !!(a && a.dados_especificos && a.dados_especificos.exibir_calendario_usos);
+async function montarCardCalendarioAtivo(a) {
+    let card = document.getElementById('fa-card-calendario');
+    if (!calendarioLigado(a)) { card?.remove(); return; }
+    const usos = document.getElementById('fa-card-usos'); if (!usos) return;
+    if (!card) { card = document.createElement('div'); card.id = 'fa-card-calendario'; card.className = 'rz-card'; usos.after(card); }
     if (!usosCal || usosCal.ativo !== a.id) { const h = new Date(); usosCal = { ativo: a.id, ano: h.getFullYear(), mes: h.getMonth(), dia: isoLocalUso(h), dados: [], carregado: false }; }
-    if (!usosCalAberto(a.id)) { desenharCalendarioUsos(a); return; } // v1.153.0 — fechado: não busca nada
     const { ano, mes } = usosCal;
-    const de = isoLocalUso(new Date(ano, mes, 1)), ate = isoLocalUso(new Date(ano, mes + 1, 0));
+    desenharCardCalendario(a);
     try {
-        const { data, error } = await api.dbAuth.rpc('fn_agenda_periodo_v2', { p_cliente_id: estado.clienteId, p_de: de, p_ate: ate, p_ativos: [a.id] });
+        const { data, error } = await api.dbAuth.rpc('fn_agenda_periodo_v2', { p_cliente_id: estado.clienteId, p_de: isoLocalUso(new Date(ano, mes, 1)), p_ate: isoLocalUso(new Date(ano, mes + 1, 0)), p_ativos: [a.id] });
         if (error) throw error;
         if ((ativoAtualId && ativoAtualId !== a.id) || usosCal.ativo !== a.id || usosCal.ano !== ano || usosCal.mes !== mes) return;
         usosCal.dados = data || []; usosCal.carregado = true;
     } catch (err) {
-        console.warn('[cofre-ativos] calendário do Usos:', err?.message || err);
-        box.innerHTML = '<p class="rz-desc">Não consegui carregar o calendário agora.</p>';
-        return;
+        console.warn('[cofre-ativos] calendário do ativo:', err?.message || err);
+        usosCal.erro = true;
     }
-    desenharCalendarioUsos(a);
+    desenharCardCalendario(a);
 }
-function usosCalIrMes(a, n) {
-    const novo = new Date(usosCal.ano, usosCal.mes + n, 1);
-    usosCal.ano = novo.getFullYear(); usosCal.mes = novo.getMonth();
-    const h = new Date(); usosCal.dia = (novo.getFullYear() === h.getFullYear() && novo.getMonth() === h.getMonth()) ? isoLocalUso(h) : isoLocalUso(novo);
-    usosCal.carregado = false;
-    montarCalendarioUsos(a);
-}
-function desenharCalendarioUsos(a) {
-    const box = document.getElementById('fa-usos-cal'); if (!box || !usosCal) return;
-    const aberto = usosCalAberto(a.id);
-    const cab = `<button type="button" class="rz-row rz-link rz-usos-cal-tg" data-uso-cal-tg aria-expanded="${aberto}">
-            <div class="rz-tx"><b>Calendário do mês</b><span>${aberto ? 'Ocupação e compromissos deste bem' : 'Toque para ver a ocupação dia a dia'}</span></div>
-            <svg data-lucide="${aberto ? 'chevron-up' : 'chevron-down'}" class="rz-chev"></svg></button>`;
-    if (!aberto) {
-        box.innerHTML = cab;
-    } else if (!usosCal.carregado) {
-        box.innerHTML = cab + '<p class="rz-desc">Carregando…</p>';
+async function desenharCardCalendario(a) {
+    const card = document.getElementById('fa-card-calendario'); if (!card || !usosCal) return;
+    const { ano, mes, dia, dados, carregado } = usosCal;
+    const topo = `<div class="rz-card-h"><h3>Calendário</h3><span class="rz-sub">Ocupação e compromissos</span></div>
+        <div class="rz-usos-cal-topo">
+            <button type="button" class="rz-ico-btn" data-uso-cal-nav="-1" aria-label="Mês anterior"><i data-lucide="chevron-left"></i></button>
+            <b>${USOS_CAL_MESES[mes]} ${ano}</b>
+            <button type="button" class="rz-ico-btn" data-uso-cal-nav="1" aria-label="Próximo mês"><i data-lucide="chevron-right"></i></button>
+        </div>`;
+    if (!carregado) {
+        card.innerHTML = topo + (usosCal.erro ? '<p class="rz-desc">Não consegui carregar o calendário agora.</p>' : '<p class="rz-desc">Carregando…</p>');
     } else {
-        const { ano, mes, dia, dados } = usosCal;
-        const itens = dados.map(r => rzCalItemDaAgenda(r, r.severidade));
+        let ag = null;
+        try { ag = await import('./agenda.js'); } catch (e) { /* sem as linhas da Agenda, desenha simples */ }
         const fimLocal = (r) => r.fim_em ? isoLocalUso(new Date(r.fim_em)) : r.data;
-        const doDia = dados.filter(r => r.data === dia || (r.fim_em && r.data <= dia && fimLocal(r) >= dia));
-        const hm = (x) => new Date(x).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
-        const selo = (r) => r.situacao === 'aguardando' ? '<span class="rz-st rz-warn">Aguardando</span>' : (r.inicio_em ? '<span class="rz-st rz-run">Confirmado</span>' : '');
-        const linha = (r) => `<div class="rz-row"><div class="rz-tx"><b>${escapeHtml(r.titulo || '')}</b><span>${escapeHtml([r.inicio_em ? hm(r.inicio_em) + (r.fim_em ? '–' + hm(r.fim_em) : '') : '', r.sub].filter(Boolean).join(' · '))}</span></div>${selo(r)}</div>`;
-        const semHora = doDia.filter(r => !r.inicio_em), comHora = doDia.filter(r => r.inicio_em).sort((x, y) => String(x.inicio_em).localeCompare(String(y.inicio_em)));
+        const doDia = dados.map((r, i) => ({ r, i })).filter(({ r }) => r.data === dia || (r.fim_em && r.data <= dia && fimLocal(r) >= dia));
         const [, m, d] = dia.split('-').map(Number);
-        const lista = doDia.length
-            ? `<div class="rz-list">${semHora.length ? `<div class="rz-ag-hora">Dia todo</div>${semHora.map(linha).join('')}` : ''}${comHora.length ? `<div class="rz-ag-hora">Por hora</div>${comHora.map(linha).join('')}` : ''}</div>`
-            : '<p class="rz-desc" style="margin:4px 0 0">Nada neste dia.</p>';
-        // v1.153.0 — barra do mês no padrão da Agenda (rz-mes-bar) e arrastar para cima/baixo na grade
-        box.innerHTML = `${cab}<div class="rz-mes-bar rz-usos-cal-mes">
-                <button type="button" class="rz-ico-btn" data-uso-cal-nav="-1" aria-label="Mês anterior"><svg data-lucide="chevron-left"></svg></button>
-                <span class="rz-mes-centro"><b class="rz-mes-label">${USOS_CAL_MESES[mes]} de ${ano}</b></span>
-                <button type="button" class="rz-ico-btn" data-uso-cal-nav="1" aria-label="Próximo mês"><svg data-lucide="chevron-right"></svg></button>
-            </div><div class="rz-usos-cal-grade" style="touch-action:pan-x">${rzCalendario({ ano, mes, itens, sel: dia })}</div>
-            <div class="rz-group" style="margin-top:10px">${d} de ${USOS_CAL_MESES[m - 1]}<span>${doDia.length || '—'}</span></div>${lista}`;
-        box.querySelectorAll('[data-cal-dia]').forEach(b => b.addEventListener('click', () => { usosCal.dia = b.dataset.calDia; desenharCalendarioUsos(a); }));
-        box.querySelectorAll('[data-uso-cal-nav]').forEach(b => b.addEventListener('click', () => usosCalIrMes(a, Number(b.dataset.usoCalNav))));
-        const grade = box.querySelector('.rz-usos-cal-grade');
-        if (grade) {
-            let x0 = null, y0 = null;
-            grade.addEventListener('touchstart', (e) => { const t = e.touches[0]; x0 = t.clientX; y0 = t.clientY; }, { passive: true });
-            grade.addEventListener('touchend', (e) => {
-                if (x0 === null) return;
-                const t = e.changedTouches[0], dx = t.clientX - x0, dy = t.clientY - y0; x0 = y0 = null;
-                if (Math.abs(dy) > 40 && Math.abs(dy) > Math.abs(dx) * 1.3) usosCalIrMes(a, dy < 0 ? 1 : -1);
-            }, { passive: true });
-        }
+        const linha = ({ r, i }) => ag && ag.linhaCompromissoHtml ? ag.linhaCompromissoHtml(r, i)
+            : `<button type="button" class="rz-row rz-link" data-ag-i="${i}"><div class="rz-tx"><b>${escapeHtml(r.titulo || '')}</b><span>${escapeHtml(r.sub || '')}</span></div></button>`;
+        card.innerHTML = `${topo}${rzCalendario({ ano, mes, itens: dados.map(r => rzCalItemDaAgenda(r, r.severidade)), sel: dia })}
+            <div class="rz-group" style="margin-top:10px">${d} de ${USOS_CAL_MESES[m - 1]}<span>${doDia.length || '—'}</span></div>
+            ${doDia.length ? `<div class="rz-list">${doDia.map(linha).join('')}</div>` : '<p class="rz-desc" style="margin:4px 0 0">Nada neste dia.</p>'}`;
+        card.querySelectorAll('[data-cal-dia]').forEach(b => b.addEventListener('click', () => { usosCal.dia = b.dataset.calDia; desenharCardCalendario(a); }));
+        card.querySelectorAll('[data-ag-i]').forEach(b => b.addEventListener('click', () => {
+            const r = dados[Number(b.dataset.agI)];
+            if (r && ag && ag.abrirCompromissoAgenda) ag.abrirCompromissoAgenda(r);
+        }));
     }
-    box.querySelector('[data-uso-cal-tg]')?.addEventListener('click', () => {
-        const abrir = !usosCalAberto(a.id);
-        usosCalGuardar(a.id, abrir);
-        if (abrir && !usosCal.carregado) { desenharCalendarioUsos(a); montarCalendarioUsos(a); } else desenharCalendarioUsos(a);
-    });
+    card.querySelectorAll('[data-uso-cal-nav]').forEach(b => b.addEventListener('click', () => {
+        const novo = new Date(usosCal.ano, usosCal.mes + Number(b.dataset.usoCalNav), 1);
+        usosCal.ano = novo.getFullYear(); usosCal.mes = novo.getMonth(); usosCal.carregado = false; usosCal.erro = false;
+        const h = new Date(); usosCal.dia = (novo.getFullYear() === h.getFullYear() && novo.getMonth() === h.getMonth()) ? isoLocalUso(h) : isoLocalUso(novo);
+        montarCardCalendarioAtivo(a);
+    }));
     refrescarIcones();
+}
+// ⋮ do ativo › Exibir/Ocultar calendário — grava só a chave no dados_especificos (de acordo do Nicola 13/11 19:06)
+async function alternarCalendarioAtivo(a) {
+    const ligar = !calendarioLigado(a);
+    const dados = { ...(a.dados_especificos || {}) };
+    if (ligar) dados.exibir_calendario_usos = true; else delete dados.exibir_calendario_usos;
+    const { error } = await api.dbAuth.from('cofre_ativos').update({ dados_especificos: dados }).eq('id', a.id);
+    if (error) { mostrarToast('Não consegui salvar: ' + error.message, 'erro'); return; }
+    a.dados_especificos = dados;
+    mostrarToast(ligar ? 'Calendário ligado neste bem (chip Usos e contratos).' : 'Calendário desligado neste bem.');
+    montarCardCalendarioAtivo(a);
 }
 
 async function desenharUsosAno(a, vig) {
@@ -4502,6 +4492,7 @@ export async function salvarEdicaoAtivo() {
     const dados = lerCamposEstruturados(a.tipo_ativo, 'fa-editar-campo-', tipoDetalheId, a.ativo_principal_id ? 'subativo' : 'ativo');
     const errosEd = validarCamposAtivo(a.tipo_ativo, nome, dados, tipoDetalheId, a.ativo_principal_id ? 'subativo' : 'ativo').filter(e => !/obrigatório/.test(e));
     if (errosEd.length) { mostrarToast(errosEd[0], 'erro'); return false; } // v1.117.0 — coordenadas e tamanho também na edição
+    if (calendarioLigado(a)) dados.exibir_calendario_usos = true; // v1.154.0 — o formulário não tem este parâmetro; não perder
     const patch = { nome_exibicao: nome, tipo_detalhe_id: tipoDetalheId, dados_especificos: dados };
     // Onda 12 (16/09/2026) — empreendimento/valor de referência são
     // universais (qualquer tipo de ativo); entram no mesmo `patch` pra
