@@ -4,6 +4,16 @@ Histórico completo de versões do `index.html`, movido automaticamente pelo `ge
 
 ---
 
+NOVIDADES (Beta v1.490.4) — erro em texto de usuário; import map.
+Versão anterior (Beta v1.490.3):
+DATA: 11/11/2026 (demanda 3cd0817a)
+------------------------------------------------------------------
+Versões anteriores (v1.490.3 … v1.490.3): CHANGELOG_APP.md, na raiz do
+repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
+das 5 versões mais recentes deste cabeçalho.
+
+---
+
 NOVIDADES (Beta v1.490.3) — receita na safra; import map.
 Versão anterior (Beta v1.490.2):
 DATA: 11/11/2026 (demanda 2abbc942)

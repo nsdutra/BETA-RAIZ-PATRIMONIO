@@ -1,6 +1,9 @@
 // ============================================================================
 // comum-renovacao.js — Raiz Patrimônio · Renovação e ampliação de plano por Pix
-// Versão: 1.4.0 · 23/10/2026
+// Versão: 1.5.0 · 13/11/2026
+//
+// v1.5.0 (13/11/2026, sessão 20261113-0654-upsell-licencas, demanda e619156c; PLANO_EXECUCAO_UPSELL_LICENCAS_RAIZ v1.0.0 F1, de acordo do Nicola 13/11 06:54) — preço de tabela: quando a oferta traz preco_referencia (fn_ofertas_renovacao v2), o valor de tabela aparece riscado com "Desconto de lançamento"; sem ele, vale a economia do anual de antes. Período "trimestral" (3 meses, à vista), com a nota de entrada pelo trimestre no plano que o tem.
+// Versão anterior: 1.4.0 · 23/10/2026
 //
 // v1.4.0 (23/10/2026, sessão 20261023-0915-computador-c6, demanda 15146a34; PROTOTIPO_COMPUTADOR_RAIZ v1.1.0 §11, de acordo do Nicola 23/10 08:51) — C6 · escala de letras: 5 tamanhos de letra escritos em número (font-size:13px etc.) trocados pelos da escala (--fs-mini 11 · --fs-sec 12,5 · --fs-corpo 14 · --fs-titulo 17; 16 px fica, por causa do zoom do iPhone em campo, e 18 px ou mais também — herói e números grandes). Nada muda de lugar; só o tamanho passa a ser o mesmo em todas as telas.
 // Versão anterior: 1.3.5 · 07/10/2026
@@ -20,18 +23,11 @@
 // empresa fica vinculada ao PAGAMENTO da licença (vínculo 'pagamento', id do
 // item — a origem da despesa), não à empresa; é por esse vínculo que a despesa
 // mostra "Ver comprovante". Versão anterior: 1.3.1.
-//
-// v1.3.1 — pedido do Nicola no teste da F11 (02/10 01:07): a tela depois do
-// "Já paguei" deixa de falar em conferência do Pix e em plano que volta (o
-// público não é de calote; se não pagar, a Raiz entra em contato). No lugar,
-// um resumo da licença: vigência atual × nova vigência (expira_anterior vem
-// do banco). A cópia do comprovante no Cofre da empresa já nasce vinculada à
-// empresa (não vira "documento sem vínculo").
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.3.0 … v1.3.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.3.1 … v1.3.1): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '1.4.0'; // v-check (30/09/2026): lido por Dev › Versões — manter igual ao header
+export const VERSAO = '1.5.0'; // v-check (30/09/2026): lido por Dev › Versões — manter igual ao header
 
 const QR_URL = 'https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js';
 let _qrPromessa = null;
@@ -78,7 +74,8 @@ export async function buscarOfertas(dbAuth, clienteId) {
         (b.eh_renovacao - a.eh_renovacao) || (b.eh_ampliado_sugerido - a.eh_ampliado_sugerido) || (a.preco - b.preco));
 }
 
-export const rotuloPeriodo = (p) => (p === 'anual' ? 'anual' : 'mensal');
+export const rotuloPeriodo = (p) => (p === 'anual' ? 'anual' : p === 'trimestral' ? 'trimestral' : 'mensal');
+const rotuloPrazo = (p) => (p === 'anual' ? '12 meses, à vista' : p === 'trimestral' ? '3 meses, à vista' : 'todo mês');
 
 const ROTULO_CAPACIDADE = {
     'Novo ativo': ['ativos', 1], 'Novo contrato': ['contratos', 2], 'Nova pessoa': ['pessoas', 3],
@@ -113,8 +110,14 @@ const rotuloOferta = (o) => {
     return r.charAt(0).toUpperCase() + r.slice(1);
 };
 
-// Cheio do anual = 12 × maior mensal do mesmo plano; só aparece quando de fato há economia.
+// O "de" vem do banco (preco_referencia, desconto de lançamento). Sem ele, o cheio do anual = 12 × maior mensal do
+// mesmo plano, e só aparece quando de fato há economia.
 function economiaAnual(o, ofertas) {
+    const ref = Number(o.preco_referencia);
+    if (ref > Number(o.preco)) {
+        const eco = ref - Number(o.preco);
+        return { cheio: ref, eco, pct: Math.round((eco / ref) * 100), lancamento: true };
+    }
     if (o.periodo !== 'anual') return null;
     const mensais = ofertas.filter((x) => x.plano_codigo === o.plano_codigo && x.periodo === 'mensal').map((x) => Number(x.preco));
     if (!mensais.length) return null;
@@ -128,10 +131,10 @@ function linhaOferta(o, i, ofertas) {
     const e = economiaAnual(o, ofertas);
     const precoHtml = e
         ? `<span style="white-space:nowrap"><s style="color:var(--muted);font-size:var(--fs-sec,12.5px);font-weight:500">${brl(e.cheio)}</s> <b>${brl(o.preco)}</b></span>` +
-          `<small style="color:var(--success);font-size:var(--fs-mini,11px);font-weight:600;white-space:nowrap">Economize ${brl(e.eco)} (${e.pct}%)</small>`
+          `<small style="color:var(--success);font-size:var(--fs-mini,11px);font-weight:600;white-space:nowrap">${e.lancamento ? 'Desconto de lançamento' : 'Economize'} ${brl(e.eco)} (${e.pct}%)</small>`
         : `<b>${brl(o.preco)}</b>`;
     return `<div class="rz-row rz-link" data-i="${i}" style="padding:9px 0;gap:8px"><div class="rz-tx"><b>${esc(rotuloOferta(o))}</b>` +
-        `<span>${o.periodo === 'anual' ? '12 meses, à vista' : 'todo mês'}</span></div>` +
+        `<span>${rotuloPrazo(o.periodo)}</span></div>` +
         `<div class="rz-rt" style="gap:1px">${precoHtml}</div>` +
         `<span style="display:flex;align-items:center;color:var(--pine);font-size:var(--fs-sec,12.5px);font-weight:600;flex:none">Escolher<svg data-lucide="chevron-right" style="width:16px;height:16px"></svg></span></div>`;
 }
@@ -141,7 +144,8 @@ function blocoPlano(grupo, caps) {
     const tag = grupo.some((g) => g.o.eh_renovacao) ? window.renderStatus('run', 'Seu plano')
         : o.eh_ampliado_sugerido ? window.renderStatus('ok', 'Sugerido') : '';
     return `<div class="rz-card rz-list"><div style="padding:10px 0 2px"><div style="display:flex;justify-content:space-between;gap:8px;align-items:center"><b style="font-size:var(--fs-corpo,14px)">${esc(o.plano_nome)}</b>${tag}</div>` +
-        (caps[o.plano_codigo] ? `<p class="text-xs" style="color:var(--muted);margin:2px 0 0">Até ${esc(caps[o.plano_codigo])}</p>` : '') + '</div>' +
+        (caps[o.plano_codigo] ? `<p class="text-xs" style="color:var(--muted);margin:2px 0 0">Até ${esc(caps[o.plano_codigo])}</p>` : '') +
+        (grupo.some((g) => g.o.periodo === 'trimestral') ? '<p class="text-xs" style="color:var(--muted);margin:2px 0 0">Para começar, o 1º trimestre é pago antecipado. O mensal fica disponível a partir do 4º mês.</p>' : '') + '</div>' +
         grupo.map((g) => linhaOferta(g.o, g.i, g.todas)).join('') + '</div>';
 }
 
@@ -166,6 +170,7 @@ function avisoTopo(vig, nomeAtual) {
     return '<div class="rz-card" style="border-left:4px solid var(--info)">' +
         (venc ? `<p class="text-sm" style="margin:0 0 6px">${venc}</p>` : '') +
         '<p class="text-xs" style="color:var(--muted);margin:0 0 4px">Os planos mudam na capacidade: ativos, contratos, pessoas, itens de controle, perguntas à Raiz IA por mês e espaço no Cofre. O Ampliado é o mesmo plano com mais capacidade, e o anual sai mais barato que 12 meses no mensal.</p>' +
+        '<p class="text-xs" style="color:var(--muted);margin:0 0 4px">O desconto de lançamento fica garantido enquanto o seu plano estiver ativo.</p>' +
         '<p class="text-xs" style="color:var(--muted);margin:0 0 4px">Ao trocar de plano, o que você ainda não usou do atual entra como crédito. O valor final é calculado quando você escolhe a opção.</p>' +
         '<p class="text-xs" style="margin:0"><b>Por enquanto, aceitamos pagamento só por Pix.</b></p></div>';
 }
