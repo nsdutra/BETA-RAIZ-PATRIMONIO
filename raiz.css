@@ -1,6 +1,11 @@
 /* ============================================================================
    raiz.css — Raiz Patrimônio · estilos do app (index.html)
-   Versão: 1.20.1 · 09/11/2026
+   Versão: 1.21.0 · 13/11/2026
+
+   v1.21.0 (13/11/2026, sessão 20261113-0712-crm-f2a; FICHA_CRM_AGENDA_OCUPACAO_RAIZ v1.2.0 F2a, aprovada pelo Nicola 12/11 08:44)
+   — calendário único (DESIGN_SYSTEM v2.51.0 §6.3): classes .rz-cal-* do componente js/nucleo/calendario.js, usadas pelo mês
+   da Agenda e pelo chip Usos da ficha do ativo. Fundo do dia por situação (confirmado --info, aguardando --warning tracejado,
+   bloqueado hachurado), nunca por ramo; hoje = traço do ramo. Versão anterior: 1.20.1.
 
    v1.20.1 (09/11/2026, sessão 20261109-2222-bot-ajustes, demanda 6458fe9e; de acordo do Nicola 09/11 22:22) — o ⋮ do
    Patrimônio fica à direita também com a carteira vazia: sem os chips na linha, a margem 0 tirava o empurrão para a ponta.
@@ -2141,3 +2146,24 @@ html.rz-plat-web body:not(.rz-split-con) #ficha-contrato-conteudo > .rz-entity:f
     html:has(#tab-ativos.active){scrollbar-width:none}
     html:has(#tab-ativos.active)::-webkit-scrollbar{display:none}
 }
+
+/* v1.21.0 (CRM F2a) — calendário único, DESIGN_SYSTEM v2.51.0 §6.3 (js/nucleo/calendario.js) */
+.rz-cal{display:grid;grid-template-columns:repeat(7,1fr);gap:3px;font-size:12px}
+.rz-cal-dw{text-align:center;color:var(--muted);font-weight:600;padding:2px 0}
+.rz-cal-d{aspect-ratio:1/1;border-radius:8px;background:var(--tile);display:flex;align-items:center;justify-content:center;position:relative;border:2px solid transparent;cursor:pointer;font-weight:600;font-size:inherit;color:var(--ink);padding:0;min-width:0;font-family:inherit}
+.rz-cal-d.rz-cal-vz{background:none;cursor:default}
+.rz-cal-conf{background:var(--info-bg);color:var(--info)}
+.rz-cal-pend{background:var(--warning-bg);color:var(--warning);outline:1.5px dashed var(--warning);outline-offset:-3px}
+.rz-cal-bloq{background:repeating-linear-gradient(45deg,var(--tile),var(--tile) 4px,var(--card) 4px,var(--card) 8px);color:var(--muted);font-weight:500}
+.rz-cal-sel{border-color:var(--ink)}
+.rz-cal-hoje{box-shadow:inset 0 -3px var(--ramo-acc,var(--sage))}
+.rz-cal-pts{position:absolute;bottom:3px;left:0;right:0;display:flex;gap:2px;justify-content:center}
+.rz-cal-pts i{width:5px;height:5px;border-radius:50%;background:var(--sage)}
+.rz-cal-pts i.cr{background:var(--danger)}.rz-cal-pts i.at{background:var(--warning)}
+.rz-cal-leg{display:flex;flex-wrap:wrap;gap:4px 10px;font-size:12px;color:var(--muted);margin-top:8px}
+.rz-cal-leg i{display:inline-block;width:11px;height:11px;border-radius:3px;margin-right:4px;vertical-align:-1px}
+.rz-cal-leg i.pt{width:6px;height:6px;border-radius:50%;vertical-align:1px}
+.rz-ag-calmes{margin:4px 0 8px}
+.rz-usos-cal{margin-top:12px;padding-top:10px;border-top:1px solid var(--line)}
+.rz-usos-cal-topo{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px}
+.rz-usos-cal-topo b{font-size:var(--fs-corpo,14px);text-transform:capitalize}

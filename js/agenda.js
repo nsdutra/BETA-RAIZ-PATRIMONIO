@@ -1,8 +1,17 @@
 // =====================================================================
 // RAIZ PATRIMÔNIO — js/agenda.js
-// VERSÃO: Beta v1.15.0 (30/10/2026 — demanda 2441dd55)
+// VERSÃO: Beta v1.16.0 (13/11/2026 — CRM F2a)
 // LINHAS: (ver versoes.json)
 // -----------------------------------------------------------------
+// NOVIDADES (Beta v1.16.0) (13/11/2026, sessão 20261113-0712-crm-f2a; FICHA_CRM_AGENDA_OCUPACAO_RAIZ v1.2.0 F2a, aprovada pelo
+//   Nicola 12/11 08:44; PLANO_EXECUCAO_CRM_F2A_RAIZ v1.0.0, ida 13/11 07:12) — CALENDÁRIO ÚNICO E AGENDA POR HORA:
+//   (1) o mês passa a ser desenhado pelo componente único js/nucleo/calendario.js (rzCalendario, DS §6.3): semana de
+//   domingo a sábado, dia pintado pela situação (confirmado · aguardando tracejado), pontos na cor do status para o que
+//   só tem data, hoje com o traço do ramo, legenda só do que aparece; (2) lê fn_agenda_periodo_v2 — severidade com a
+//   antecedência do próprio item, assunto, hora de início e fim e situação vêm do banco (absorve a demanda 09277cba);
+//   (3) chip "Ativo ▾": filtra a agenda por um bem (✕ limpa); a lupa do topo, na Agenda, abre o mesmo filtro;
+//   (4) a linha com hora mostra início e fim; pedido de reserva (aguardando) entra na lista. Versão anterior: 1.15.0.
+// Versão anterior (Beta v1.15.0):
 // NOVIDADES (Beta v1.15.0) (30/10/2026, sessão 20261030-0014-compromisso-bem, demanda 2441dd55; de acordo do Nicola 29/10
 //   14:14 e 30/10 00:14) — NOVO COMPROMISSO: "Para quem" vira "Vincular a", com pessoas e bens (imóvel, veículo) na ordem
 //   da natureza do pedido; o bem citado à Raiz IA ("apartamento RSVP") já vem marcado; um item só, ligado a todos. Tipo
@@ -136,7 +145,9 @@
 // formatarMoedaBR, abrirSheet, abrirSheetAcoes, rzSheetCabecalho, fecharSheet, abrirAlertaItemControle,
 // abrirFichaContrato, switchTab, mostrarToast, rzDev.
 
-export const VERSAO = '1.15.0';
+import { rzCalendario, rzCalItemDaAgenda } from './nucleo/calendario.js'; // v1.16.0 — calendário único (DS §6.3)
+
+export const VERSAO = '1.16.0';
 
 const TIPOS = {
     ocorrencia:   { rotulo: 'Ocorrência',  icone: 'wrench',          dominio: 'ocorrencias' },
@@ -147,6 +158,7 @@ const TIPOS = {
     documento:    { rotulo: 'Documento',   icone: 'file-clock',      dominio: 'documentos' },
     membro:       { rotulo: 'Rebanho',     icone: 'beef',            dominio: 'ativos' }, // v1.5.0 (fatia 7)
     feriado:      { rotulo: 'Feriado',     icone: 'party-popper',    dominio: 'feriados' }, // v1.8.0 (bf1c1ba7)
+    pedido_reserva: { rotulo: 'Pedido de reserva', icone: 'calendar-clock', dominio: 'ocorrencias' }, // v1.16.0 (CRM F2a)
 };
 const ASSUNTOS = [['ativos', 'Ativos'], ['itens', 'Itens de controle'], ['contratos', 'Contratos e usos'], ['ocorrencias', 'Ocorrências'], ['financeiro', 'Financeiro'], ['documentos', 'Documentos'], ['feriados', 'Feriados']]; // v1.8.0 — feriados
 const STATUS = [['critico', 'Crítico'], ['atencao', 'Atenção'], ['informativo', 'Informativo']];
@@ -155,7 +167,8 @@ const MES_CURTO = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set'
 const DIA_SEM = ['dom', 'seg', 'ter', 'qua', 'qui', 'sex', 'sáb'];
 const JANELA_ATENCAO = 7; // D7.10
 
-const st = { vista: 'mes', semana: null, mes: null, dia: null, status: new Set(), assuntos: null, dados: [], seq: 0, el: null, icones: new Map() };
+const st = { vista: 'mes', semana: null, mes: null, dia: null, status: new Set(), assuntos: null, dados: [], seq: 0, el: null, icones: new Map(),
+    ativo: null }; // v1.16.0 — { id, nome } do filtro por bem (chip Ativo ▾ e lupa)
 
 // v1.11.0 — ícone do item de controle (id → nome lucide), na regra de Controles (iconeDoItem, cofre-controles.js):
 // subtipo › tipo no catálogo › conta (cartão ou banco) › prancheta. Lê só os ids que ainda não tem.
@@ -245,6 +258,7 @@ function universo(de, ate) {
     const limiteDup = iso(somaDias(hoje(), JANELA_ATENCAO));
     const itens = [];
     alertas.forEach(a => {
+        if (st.ativo && ((a.detalhe && a.detalhe.ativo_id) || (a.entidade_tipo === 'ativo' ? a.entidade_id : null)) !== st.ativo.id) return; // v1.16.0 — filtro por bem
         const dia = dataAlerta(a);
         if (dia >= de && dia <= ate) itens.push({ tipo: 'a', dia, status: statusAlerta(a), assunto: assuntoAlerta(a), a });
     });
@@ -296,8 +310,15 @@ async function carregar() {
     let dados = [];
     try {
         const ramo = (typeof geralRamoFiltro !== 'undefined' && geralRamoFiltro && geralRamoFiltro !== 'tudo') ? geralRamoFiltro : null;
-        const { data, error } = await dbAuth.rpc('fn_agenda_periodo', { p_cliente_id: CLIENTE_ID_SUPABASE, p_de: iso(de), p_ate: iso(ate), p_ramo: ramo });
-        if (error) throw error;
+        // v1.16.0 — v2: severidade, assunto, hora e situação vêm do banco; filtro por bem (p_ativos)
+        const args = { p_cliente_id: CLIENTE_ID_SUPABASE, p_de: iso(de), p_ate: iso(ate), p_ramo: ramo };
+        let { data, error } = await dbAuth.rpc('fn_agenda_periodo_v2', { ...args, p_ativos: st.ativo ? [st.ativo.id] : null });
+        if (error) { // reserva: a v1 de sempre (sem filtro por bem no banco — filtra aqui)
+            console.warn('[agenda] fn_agenda_periodo_v2:', error.message);
+            ({ data, error } = await dbAuth.rpc('fn_agenda_periodo', args));
+            if (error) throw error;
+            if (st.ativo) data = (data || []).filter(r => r.ativo_id === st.ativo.id);
+        }
         dados = data || [];
     } catch (e) {
         if (meu !== st.seq) return;
@@ -345,8 +366,9 @@ function desenhar(carregando) {
         <div class="rz-chips rz-ag-chips">
             ${STATUS.map(([k, n]) => `<button type="button" class="rz-chip${st.status.has(k) ? ' rz-on' : ''}" data-ag-st="${k}"><span class="rz-ag-pt rz-ag-${k}"></span>${n}${carregando ? '' : ` <span class="rz-n">${conta(k)}</span>`}</button>`).join('')}
             <button type="button" class="rz-chip rz-ag-ass${todos ? '' : ' rz-on'}" data-ag-ass>${rzEsc(rotAss)} <svg data-lucide="chevron-down"></svg></button>
+                    ${chipAtivoHtml()}
         </div>
-        <div id="ag-corpo">${carregando ? (typeof rzSkeleton === 'function' ? rzSkeleton('lista', 4) : '') : (st.vista === 'semana' ? semanaHtml() : mesHtml())}</div>`;
+        <div id="ag-corpo">${carregando ? (typeof rzSkeleton === 'function' ? rzSkeleton('lista', 4) : '') : (st.vista === 'semana' ? semanaHtml() : mesHtml())}</div>${buscaLupaHtml()}`;
     ligar();
     if (!carregando && typeof rzLigarGestosAlertas === 'function') {
         const m = st.el.querySelector('#ag-corpo');
@@ -363,7 +385,8 @@ function linhaHtml(r, i) {
         : r.entidade_tipo === 'item_controle' ? { icone: iconeDoItemAgenda(r.entidade_id), rotulo: 'Item de controle' } // v1.11.0
         : (TIPOS[r.tipo] || { icone: 'circle', rotulo: '' }); // v1.9.0
     const s = statusCompromisso(r);
-    const sub = [r.sub, r.situacao === 'realizado' ? 'realizado' : ''].filter(Boolean).join(' · ') || t.rotulo;
+    const faixa = r.inicio_em ? [r.inicio_em, r.fim_em].filter(Boolean).map(x => new Date(x).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })).join('–') : ''; // v1.16.0
+    const sub = [faixa, r.sub, r.situacao === 'realizado' ? 'realizado' : '', r.situacao === 'aguardando' ? 'aguardando' : ''].filter(Boolean).join(' · ') || t.rotulo;
     const diasAtraso = r.atrasado ? Math.round((hoje() - deIso(r.data)) / 86400000) : 0;
     const selo = diasAtraso > 0 ? ((typeof renderStatus === 'function') ? renderStatus('bad', `Há ${diasAtraso}d`) : `<span class="rz-st rz-bad">Há ${diasAtraso}d</span>`) : '';
     return `<button type="button" class="rz-row rz-link rz-ag-linha rz-ag-${s}" data-ag-i="${i}">
@@ -463,11 +486,12 @@ function desenharComputador(carregando) {
                 <div class="rz-chips rz-ag-chips">
                     ${STATUS.map(([k, n]) => `<button type="button" class="rz-chip${st.status.has(k) ? ' rz-on' : ''}" data-ag-st="${k}"><span class="rz-ag-pt rz-ag-${k}"></span>${n}${carregando ? '' : ` <span class="rz-n">${conta(k)}</span>`}</button>`).join('')}
                     <button type="button" class="rz-chip rz-ag-ass${todos ? '' : ' rz-on'}" data-ag-ass>${rzEsc(rotAss)} <svg data-lucide="chevron-down"></svg></button>
+                    ${chipAtivoHtml()}
                 </div>
             </div>
         </div>
         <div class="rz-ag-dk-d"><div id="ag-pend-slot"><div class="rz-group">Pendentes</div></div><div id="ag-corpo">${direita}</div></div>
-    </div>`;
+    </div>${buscaLupaHtml()}`;
     const lista = document.getElementById('agenda-lista'), slot = st.el.querySelector('#ag-pend-slot');
     if (lista && slot) { slot.appendChild(lista); lista.hidden = false; }
     ligar();
@@ -495,18 +519,33 @@ function mesHtml() {
     const its = universo(iso(de), iso(ate)).filter(visivel);
     return `${gradeMesHtml(its)}${listaDoDia(its)}`;
 }
+// v1.16.0 (CRM F2a) — o mês é o componente único (js/nucleo/calendario.js, DS §6.3); a grade própria saiu.
+// Compromisso com hora ou aguardando pinta o dia (situação); o resto vira ponto na cor do status.
 function gradeMesHtml(its) {
-    const [de] = periodo();
-    const mesAtual = st.mes.getMonth();
-    let grade = ['S', 'T', 'Q', 'Q', 'S', 'S', 'D'].map(s => `<div class="rz-ag-sem">${s}</div>`).join('');
-    for (let k = 0; k < 42; k++) {
-        const d = somaDias(de, k), di = iso(d);
-        if (k >= 35 && d.getMonth() !== mesAtual) break; // 5 semanas bastam
-        grade += `<button type="button" class="rz-ag-cel${d.getMonth() !== mesAtual ? ' rz-ag-fora' : ''}${di === st.dia ? ' rz-on' : ''}${di === iso(hoje()) ? ' rz-ag-cel-hoje' : ''}" data-ag-dia="${di}">
-            <b>${d.getDate()}</b>${pontosDe(its, di)}</button>`;
-    }
-    return `<div class="rz-ag-grade" style="touch-action:pan-x">${grade}</div>`;
+    const itens = its.map(it => it.tipo === 'c' ? rzCalItemDaAgenda(it.r, it.status) : { dia: it.dia, sit: null, st: it.status });
+    return `<div class="rz-ag-calmes" style="touch-action:pan-x">${rzCalendario({ ano: st.mes.getFullYear(), mes: st.mes.getMonth(), itens, sel: st.dia })}</div>`;
 }
+// v1.16.0 — chip do filtro por bem
+function chipAtivoHtml() {
+    return st.ativo
+        ? `<button type="button" class="rz-chip rz-on" data-ag-ativo>${rzEsc(st.ativo.nome)} <svg data-lucide="x" data-ag-ativo-x></svg></button>`
+        : `<button type="button" class="rz-chip" data-ag-ativo>Ativo <svg data-lucide="chevron-down"></svg></button>`;
+}
+let ativosAgenda = null;
+async function escolherAtivoAgenda() {
+    if (!ativosAgenda) {
+        const { data, error } = await dbAuth.from('cofre_ativos').select('id,nome_exibicao,tipo_ativo')
+            .eq('cliente_id', CLIENTE_ID_SUPABASE).eq('status', 'ativo').order('nome_exibicao');
+        if (error) { console.warn('[agenda] ativos:', error.message); if (typeof mostrarToast === 'function') mostrarToast('Não consegui carregar os bens.'); return; }
+        ativosAgenda = (data || []).filter(a => a.nome_exibicao);
+    }
+    const acoes = ativosAgenda.map(a => ({ icone: 'box', titulo: a.nome_exibicao, sub: a.tipo_ativo || '',
+        aoTocar: () => { st.ativo = { id: a.id, nome: a.nome_exibicao }; carregar(); } }));
+    if (st.ativo) acoes.unshift({ icone: 'x', titulo: 'Todos os bens', sub: 'Tirar o filtro', aoTocar: () => { st.ativo = null; carregar(); } });
+    abrirSheetAcoes({ titulo: 'Agenda de um bem', sub: 'O calendário mostra só o que é dele', acoes });
+}
+// v1.16.0 — a lupa do topo (rzHdrBusca, index) aciona o .rz-search visível da tela: na Agenda ele abre o filtro por bem
+const buscaLupaHtml = () => '<button type="button" class="rz-search" data-ag-busca style="display:none" tabindex="-1" aria-hidden="true"></button>';
 
 // ---- eventos
 function ligar() {
@@ -520,7 +559,7 @@ function ligar() {
     }));
     st.el.querySelectorAll('[data-ag-nav]').forEach(b => b.addEventListener('click', () => navegar(Number(b.dataset.agNav))));
     // v1.6.0 (item 35) — arrastar: Semana para os lados, Mês para cima/baixo (para cima/esquerda = próximo)
-    const grade = st.el.querySelector('.rz-ag-grade');
+    const grade = st.el.querySelector('.rz-ag-grade, .rz-ag-calmes'); // v1.16.0 — + o mês do componente
     if (grade) {
         let x0 = null, y0 = null;
         grade.addEventListener('touchstart', (e) => { const t = e.touches[0]; x0 = t.clientX; y0 = t.clientY; }, { passive: true });
@@ -537,6 +576,14 @@ function ligar() {
     const ass = st.el.querySelector('[data-ag-ass]');
     if (ass) ass.addEventListener('click', abrirAssunto);
     st.el.querySelectorAll('[data-ag-dia]').forEach(b => b.addEventListener('click', () => { st.dia = b.dataset.agDia; desenhar(false); }));
+    st.el.querySelectorAll('[data-cal-dia]').forEach(b => b.addEventListener('click', () => { st.dia = b.dataset.calDia; desenhar(false); })); // v1.16.0
+    const chipAt = st.el.querySelector('[data-ag-ativo]');
+    if (chipAt) chipAt.addEventListener('click', (ev) => {
+        if (st.ativo && ev.target.closest('[data-ag-ativo-x]')) { st.ativo = null; carregar(); return; }
+        escolherAtivoAgenda();
+    });
+    const lupa = st.el.querySelector('[data-ag-busca]');
+    if (lupa) lupa.addEventListener('click', () => (st.ativo ? (st.ativo = null, carregar()) : escolherAtivoAgenda()));
     st.el.querySelectorAll('[data-ag-i]').forEach(b => b.addEventListener('click', () => abrirCompromisso(st.dados[Number(b.dataset.agI)])));
     const mais = st.el.querySelector('[data-ag-mais]');
     if (mais) mais.addEventListener('click', () => abrirSheetAcoes({ titulo: 'Agenda', sub: tituloPeriodo(), acoes: [
@@ -587,6 +634,7 @@ function abrirAssunto() {
 function abrirCompromisso(r) {
     if (!r) return;
     if (r.tipo === 'feriado') { if (typeof mostrarToast === 'function') mostrarToast(`${r.titulo} · ${r.sub || 'Nacional'}`); return; } // v1.8.0
+    if (r.entidade_tipo === 'processo') { if (typeof mostrarToast === 'function') mostrarToast(`${r.titulo} · aguardando aprovação`); return; } // v1.16.0 (aprovar chega na F2b)
     if (r.entidade_tipo === 'item_controle') { abrirAlertaItemControle(r.entidade_id, r.ativo_id || ''); return; }
     if (r.entidade_tipo === 'contrato') { abrirFichaContrato(r.entidade_id); return; }
     if (r.entidade_tipo === 'membro') { import('./cofre-membros.js').then(m => m.abrirFichaMembro(r.entidade_id)).catch(() => mostrarToast('Não consegui abrir.')); return; } // v1.5.0
