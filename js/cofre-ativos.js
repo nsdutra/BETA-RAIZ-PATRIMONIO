@@ -1,6 +1,11 @@
 // ============================================================================
 // cofre-ativos.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.154.0 · 13/11/2026
+// Versão: 1.155.0 · 14/11/2026
+//
+// v1.155.0 (14/11/2026, sessão 20261114-1115-crm-f2b-2b; FICHA_DISPONIBILIDADE_SALVAR_RAIZ v1.0.0, de acordo do Nicola 14/11 11:12)
+// — ⋮ do uso ganha "Disponibilidade" nos modelos com agenda (temporada, short stay, cowork, atendimento): abre a tela do módulo
+// ativo-disponibilidade.js, que grava por fn_ativo_disponibilidade_salvar. O ⋮ passa a aparecer nesses usos mesmo sem outra ação.
+// Versão anterior: 1.154.0
 //
 // v1.154.0 (13/11/2026, sessão 20261113-1910-reajuste-desde; Nicola 13/11 19:06: "criar um card calendário separado do uso, na
 // mesma chip de usos e contratos. Este card só será ativado por ativo pelo parâmetro exibir calendário"; "retire a opção de
@@ -21,15 +26,11 @@
 //
 // v1.151.0 (12/11/2026, sessão 20261112-2258-lupa-partes, demanda f6be5483; de acordo do Nicola 12/11 22:58) — a busca de Ativos (barra e lupa) acha também pelas pessoas
 // relacionadas: administradora, locatários de todos os contratos, fiador, proprietário, síndico (cofre-api 1.56.0).
-// Versão anterior: 1.150.0
-//
-// v1.150.0 (23/10/2026, sessão 20261023-2110-ux-escala, demanda a05ad2ee; de acordo do Nicola 23/10 21:10) — o traço da aba
-// ativa da ficha usa a cor do ramo do ativo (imóvel em azul, família em lilás…), não mais a da lente do cabeçalho.
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.149.0 … v1.149.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.150.0 … v1.150.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '1.154.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.155.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 import { estado } from './cofre-estado.js';
 import { rzCalendario, rzCalItemDaAgenda } from './nucleo/calendario.js'; // v1.152.0 — calendário único (DS §6.3)
 import { carregarBiblioteca } from './nucleo/bibliotecas.js'; // bibliotecas pesadas, sob demanda (dem 6b11c602)
@@ -1986,12 +1987,17 @@ async function abrirTransicaoAtivo(a, m) {
     });
 }
 // ⋮ de um uso: Concluir e Excluir, como a máquina deixa (fn_ativo_usos → acoes)
+const MODELOS_AGENDA_USO = ['temporada', 'short_stay', 'cowork', 'atendimento']; // v1.155.0 — iguais a ativo-disponibilidade.js
+const usoTemAgenda = (u) => !u.repouso && MODELOS_AGENDA_USO.includes(u.modelo);
 function acoesDoUso(a, u) {
-    return (u.acoes || []).map(m => m.acao === 'vender'
+    const disp = usoTemAgenda(u) ? [{ icone: 'sliders-horizontal', titulo: 'Disponibilidade', codigo: 'ativo.disponibilidade', sub: 'Noites, horários, preços e bloqueios',
+        aoTocar: () => import('./ativo-disponibilidade.js').then(m => m.abrirDisponibilidadeUso({ usoId: u.uso_id, modelo: u.modelo, nomeUso: u.nome, nomeBem: a.nome_exibicao }))
+            .catch(e => mostrarToast('Não consegui abrir: ' + (e?.message || e), 'erro')) }] : [];
+    return disp.concat((u.acoes || []).map(m => m.acao === 'vender'
         ? { icone: 'tag', titulo: 'Registrar venda', codigo: m.codigo, sub: 'Encerra a revenda', aoTocar: () => abrirVendaPelaRevenda(a, u) }
         : m.acao === 'concluir'
         ? { icone: 'flag', titulo: 'Concluir ' + u.nome.toLowerCase(), codigo: m.codigo, sub: 'O ativo volta ao repouso', aoTocar: () => abrirConcluirUsoAtivo(a, u) }
-        : { icone: 'trash-2', titulo: 'Excluir ' + u.nome.toLowerCase(), codigo: m.codigo, tipo: 'bad', sub: 'Lançado por engano', aoTocar: () => abrirExcluirUsoAtivo(a, u) });
+        : { icone: 'trash-2', titulo: 'Excluir ' + u.nome.toLowerCase(), codigo: m.codigo, tipo: 'bad', sub: 'Lançado por engano', aoTocar: () => abrirExcluirUsoAtivo(a, u) }));
 }
 function abrirExcluirUsoAtivo(a, u) {
     if (typeof window.abrirSheetForm !== 'function') { mostrarToast('Abra pelo app principal.', 'erro'); return; }
@@ -2519,7 +2525,7 @@ async function desenharUsosAno(a, vig) {
     if (doAno.length) {
         const vigenteHoje = (u) => u.inicio <= hoje && (!u.fim || u.fim >= hoje);
         const linhas = doAno.map((u, i) => {
-            const acao = !u.contrato_id && (u.acoes || []).length > 0; // v1.99.0 — o que a máquina deixa (Concluir, Excluir)
+            const acao = !u.contrato_id && ((u.acoes || []).length > 0 || usoTemAgenda(u)); // v1.99.0 (+ v1.155.0 Disponibilidade) — o que a máquina deixa (Concluir, Excluir)
             const per = `${formatarDataBR(u.inicio)} → ${fimTxt(u)}${vigenteHoje(u) ? ' · hoje' : (u.inicio > hoje ? ' · a começar' : '')}`;
             return `<div class="rz-row${u.contrato_id ? ' rz-link' : ''}" data-uso-i="${i}"${u.contrato_id ? ' role="button" tabindex="0"' : ''}>
                 <div class="rz-ic"><i data-lucide="${u.contrato_id ? 'file-text' : 'user-check'}"></i></div>
