@@ -1,6 +1,9 @@
 /* ============================================================================
    raiz.css — Raiz Patrimônio · estilos do app (index.html)
-   Versão: 1.23.0 · 13/11/2026
+   Versão: 1.24.0 · 14/11/2026
+
+   v1.24.0 (14/11/2026, sessão 20261114-1045-crm-f2b-2; Nicola 14/11 08:39 "calendário A") — dia do calendário com tom translúcido
+   (5% da cor do texto) no lugar de --tile: funciona no cinza da Agenda e no branco do card. Versão anterior: 1.23.0
 
    v1.23.0 (13/11/2026, sessão 20261113-1910-reajuste-desde; Nicola 13/11 19:06) — o calendário vira card próprio na ficha do ativo:
    volta o topo do mês sem fundo (.rz-usos-cal-topo, como na 1.21.0); saem .rz-usos-cal-tg e .rz-usos-cal .rz-mes-bar.
@@ -2158,7 +2161,7 @@ html.rz-plat-web body:not(.rz-split-con) #ficha-contrato-conteudo > .rz-entity:f
 /* v1.21.0 (CRM F2a) — calendário único, DESIGN_SYSTEM v2.51.0 §6.3 (js/nucleo/calendario.js) */
 .rz-cal{display:grid;grid-template-columns:repeat(7,1fr);gap:3px;font-size:12px}
 .rz-cal-dw{text-align:center;color:var(--muted);font-weight:600;padding:2px 0}
-.rz-cal-d{aspect-ratio:1/1;border-radius:8px;background:var(--tile);display:flex;align-items:center;justify-content:center;position:relative;border:2px solid transparent;cursor:pointer;font-weight:600;font-size:inherit;color:var(--ink);padding:0;min-width:0;font-family:inherit}
+.rz-cal-d{aspect-ratio:1/1;border-radius:8px;background:rgba(23,33,30,.05);display:flex;align-items:center;justify-content:center;position:relative;border:2px solid transparent;cursor:pointer;font-weight:600;font-size:inherit;color:var(--ink);padding:0;min-width:0;font-family:inherit}
 .rz-cal-d.rz-cal-vz{background:none;cursor:default}
 .rz-cal-conf{background:var(--info-bg);color:var(--info)}
 .rz-cal-pend{background:var(--warning-bg);color:var(--warning);outline:1.5px dashed var(--warning);outline-offset:-3px}

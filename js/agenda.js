@@ -1,7 +1,11 @@
 // =====================================================================
 // RAIZ PATRIMÔNIO — js/agenda.js
-// VERSÃO: Beta v1.17.0 (13/11/2026 — sem arrastar)
+// VERSÃO: Beta v1.18.0 (14/11/2026 — formulário único e pedidos)
 // LINHAS: (ver versoes.json)
+// -----------------------------------------------------------------
+// NOVIDADES (Beta v1.18.0) (14/11/2026, sessão 20261114-1045-crm-f2b-2, demanda 09277cba; PLANO_EXECUCAO_CRM_F2B_A_F4 v1.0.1,
+// entrega 2) — ⋮ da Agenda ganha "Reserva ou reunião com hora" (js/agenda-form.js: formulário único com aviso de conflito);
+// tocar num pedido aguardando (reunião tracejada ou pré-reserva) abre Aprovar · Outra data · Recusar. Versão anterior: 1.17.0
 // -----------------------------------------------------------------
 // NOVIDADES (Beta v1.17.0) (13/11/2026, sessão 20261113-1910-reajuste-desde; Nicola 13/11 19:06: "Retire a opção de movimentar
 // os meses e semanas com dedo. Está atrapalhando rolar os compromissos.") — sai o arrastar do Mês e da Semana e o touch-action
@@ -152,7 +156,7 @@
 
 import { rzCalendario, rzCalItemDaAgenda } from './nucleo/calendario.js'; // v1.16.0 — calendário único (DS §6.3)
 
-export const VERSAO = '1.17.0';
+export const VERSAO = '1.18.0';
 
 const TIPOS = {
     ocorrencia:   { rotulo: 'Ocorrência',  icone: 'wrench',          dominio: 'ocorrencias' },
@@ -581,6 +585,7 @@ function ligar() {
     st.el.querySelectorAll('[data-ag-i]').forEach(b => b.addEventListener('click', () => abrirCompromisso(st.dados[Number(b.dataset.agI)])));
     const mais = st.el.querySelector('[data-ag-mais]');
     if (mais) mais.addEventListener('click', () => abrirSheetAcoes({ titulo: 'Agenda', sub: tituloPeriodo(), acoes: [
+        { icone: 'calendar-clock', titulo: 'Reserva ou reunião com hora', sub: 'Com aviso de conflito no bem', codigo: 'agenda.reservar', aoTocar: () => setTimeout(() => import('./agenda-form.js').then(m => m.abrirFormularioAgenda({ ativoId: st.ativo?.id, data: st.dia, aoSalvar: carregar })), 50) }, // v1.18.0
         { icone: 'calendar-plus', titulo: 'Novo compromisso', sub: 'Para uma ou mais pessoas', aoTocar: () => setTimeout(() => abrirNovoCompromisso(), 50) }, // v1.12.0
         { icone: 'send', titulo: 'Enviar a semana', sub: 'Compartilhar com uma pessoa', aoTocar: enviarSemana },
         { icone: 'file-up', titulo: 'Importar calendário', sub: 'Escola, esporte, curso · PDF ou foto', aoTocar: () => setTimeout(abrirImportarCalendario, 50) }, // v1.10.0
@@ -631,7 +636,7 @@ export function abrirCompromissoAgenda(r) { return abrirCompromisso(r); }
 function abrirCompromisso(r) {
     if (!r) return;
     if (r.tipo === 'feriado') { if (typeof mostrarToast === 'function') mostrarToast(`${r.titulo} · ${r.sub || 'Nacional'}`); return; } // v1.8.0
-    if (r.entidade_tipo === 'processo') { if (typeof mostrarToast === 'function') mostrarToast(`${r.titulo} · aguardando aprovação`); return; } // v1.16.0 (aprovar chega na F2b)
+    if (r.entidade_tipo === 'processo' || r.situacao === 'aguardando') { import('./agenda-form.js').then(m => m.abrirDecisaoPedido(r, carregar)); return; } // v1.18.0 — Aprovar · Outra data · Recusar
     if (r.entidade_tipo === 'item_controle') { abrirAlertaItemControle(r.entidade_id, r.ativo_id || ''); return; }
     if (r.entidade_tipo === 'contrato') { abrirFichaContrato(r.entidade_id); return; }
     if (r.entidade_tipo === 'membro') { import('./cofre-membros.js').then(m => m.abrirFichaMembro(r.entidade_id)).catch(() => mostrarToast('Não consegui abrir.')); return; } // v1.5.0

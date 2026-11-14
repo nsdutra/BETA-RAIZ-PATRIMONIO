@@ -1,6 +1,11 @@
 // ============================================================================
 // comum-minha-empresa.js — Raiz Patrimônio · Administração compartilhada
-// Versão: 1.21.0 · 19/10/2026
+// Versão: 1.22.0 · 14/11/2026
+//
+// v1.22.0 (14/11/2026, sessão 20261114-1045-crm-f2b-2, demanda 09277cba; FICHA_CRM_AGENDA_OCUPACAO_RAIZ v1.2.0 E5 + PLANO_EXECUCAO_CRM
+// F2B_A_F4 v1.0.1, entrega 2) — Rotinas e alertas ganha a linha "Pedidos de reserva e reunião": prazo em horas (1 a 168, padrão 12)
+// que um pedido fica aguardando antes de expirar (clientes.pedido_validade_horas). Muda quem aprova pedidos (agenda.aprovar).
+// Versão anterior: 1.21.0
 //
 // v1.21.0 (19/10/2026, sessão 20261018-2344-temas, demanda 91a30125; FICHA_ROTINAS_E_ALERTAS_POR_TEMA_RAIZ v1.0.0, de acordo
 // do Nicola 18/10 23:44) — chip Rotinas vira "Rotinas e alertas": uma linha por TEMA (Fiscal, Contador, Cartões, Contratos,
@@ -24,18 +29,11 @@
 // v1.18.0 (14/10/2026, sessão 20261014-2145-onda9c-textos, demanda a05ad2ee; onda 9c do estudo PROTOTIPO_UX_DENSIDADE_RAMOS_RAIZ
 // v1.2.0, D6 seção 10) — textos no limite: ação até 24 caracteres, descrição até 28, aviso até 40 com o resultado e tela
 // vazia em 1 frase de até 40. A explicação longa fica na confirmação, quando existe. Nada de comportamento mudou.
-// Versão anterior: 1.17.0 · 14/10/2026
-//
-// v1.17.0 (14/10/2026, sessão 20261014-1355-cartao-adicional, demanda c63d7f9f; FICHA_CARTAO_ADICIONAL_F10_F11 v1.1.0, de
-// acordo do Nicola 14/10 13:52) — a ficha da conta ganha o tipo "Cartão adicional" (só com titular pessoa): escolhe o cartão
-// principal (fechamento e vencimento são os dele) e a conta em que o adicional cai — o padrão é a conta de quem usa
-// (R4: dívida dela no Balanço; trocando para a conta do titular do principal, vira despesa dela sem cobrança). Na lista,
-// o adicional mostra "adicional do <principal>".
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.16.0 … v1.16.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.17.0 … v1.17.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '1.21.0'; // v-check (20/09/2026): lido por Dev › Versões — manter igual ao header
+export const VERSAO = '1.22.0'; // v-check (20/09/2026): lido por Dev › Versões — manter igual ao header
 import { perguntar } from './cofre-ui.js'; // v1.9.0 (F0.2b) — sem diálogo nativo
 import { rzMostrarBloqueio as rzBloqueio, podeUsar as podeUsarMod } from './comum-licenca.js'; // v1.10.0 — porta de licença (contas)
 export const COMUM_MINHA_EMPRESA_VERSAO = '1.0.0';
@@ -602,6 +600,8 @@ export async function montarAbaMinhaEmpresa(mountEl, ctx) {
             return;
         }
         const partesRet = await buscarPartesRetiradas(dbAuth, clienteId); // v1.15.0 — F13.8
+        let prazoPedido = null; // v1.22.0 — E5
+        try { const { data: cl } = await dbAuth.from('clientes').select('pedido_validade_horas').eq('id', clienteId).single(); prazoPedido = cl?.pedido_validade_horas ?? null; } catch (e) { prazoPedido = null; }
         if (!temas.length && !partesRet) { alvo.innerHTML = '<div class="rz-card"><p class="rz-desc">Nenhuma rotina disponível.</p></div>'; return; }
 
         const r = typeof window.renderStatus === 'function' ? window.renderStatus : (c, t) => `<span class="rz-st rz-${esc(c)}">${esc(t || c)}</span>`;
@@ -623,10 +623,26 @@ export async function montarAbaMinhaEmpresa(mountEl, ctx) {
                             <button type="button" class="rz-more" aria-label="Mais ações"><i data-lucide="ellipsis-vertical"></i></button>
                         </div>`).join('')}
                     ${partesLinhaHtml(partesRet)}
+                    ${prazoPedido != null ? `<div class="rz-row" data-prazo-pedido style="cursor:pointer"><div class="rz-ic"><i data-lucide="hourglass"></i></div>
+                        <div class="rz-tx"><b>Pedidos de reserva e reunião</b><span>Aguardam sua resposta por ${prazoPedido} h; depois expiram</span></div><i data-lucide="chevron-right" class="rz-chev"></i></div>` : ''}
                 </div>
                 <span class="rz-hint" style="display:block;margin-top:8px">Alertas desligados não aparecem no app nem no WhatsApp. Rotina ligada vira controle da empresa.</span>
             </div>`;
         if (typeof window !== 'undefined' && window.lucide) window.lucide.createIcons();
+        alvo.querySelector('[data-prazo-pedido]')?.addEventListener('click', () => { // v1.22.0
+            if (window.podeUsar && !window.podeUsar('agenda.aprovar').ok) { onToast?.('Só quem aprova pedidos muda o prazo.', 'danger'); return; }
+            if (typeof window.abrirSheetForm !== 'function') return;
+            window.abrirSheetForm({ titulo: 'Prazo dos pedidos', sub: 'Reserva e reunião aguardando resposta', rotuloSalvar: 'Salvar',
+                corpo: `<div class="rz-f"><label>Horas (1 a 168)</label><input type="number" min="1" max="168" id="cme-prazo" value="${prazoPedido}"></div>
+                        <p class="rz-desc">Depois desse prazo o pedido sai da agenda e o horário fica livre (a rotina confere uma vez por dia).</p>`,
+                aoSalvar: async (el) => {
+                    const v = parseInt(el.querySelector('#cme-prazo')?.value, 10);
+                    if (!(v >= 1 && v <= 168)) { onToast?.('Informe de 1 a 168 horas.', 'danger'); return false; }
+                    const { error } = await dbAuth.from('clientes').update({ pedido_validade_horas: v }).eq('id', clienteId);
+                    if (error) { onToast?.(error.message, 'danger'); return false; }
+                    onToast?.('Prazo salvo.', 'success'); renderRotinasCard(); return true;
+                } });
+        });
         alvo.querySelector('[data-partes-ret]')?.addEventListener('click', () => abrirAcoesPartesRetiradas({ dbAuth, clienteId, pt: partesRet, onToast, aoMudar: renderRotinasCard }));
 
         alvo.querySelectorAll('[data-tema]').forEach(row => row.addEventListener('click', () => {
