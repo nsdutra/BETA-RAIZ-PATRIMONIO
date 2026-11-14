@@ -1,6 +1,10 @@
 // ============================================================================
 // cofre-ativos.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.155.0 · 14/11/2026
+// Versão: 1.156.0 · 14/11/2026
+//
+// v1.156.0 (14/11/2026, sessão 20261114-1415-crm-f3-1; FICHA_CRM_AGENDA_OCUPACAO_RAIZ v1.2.0 F3) — card "Pedidos e interessados" no
+// chip Usos e contratos, logo depois do Calendário: módulo ativo-interessados.js (pré-reservas aguardando, interessados com a
+// etapa da esteira, ficha com próximo passo e comunicações). Versão anterior: 1.155.0
 //
 // v1.155.0 (14/11/2026, sessão 20261114-1115-crm-f2b-2b; FICHA_DISPONIBILIDADE_SALVAR_RAIZ v1.0.0, de acordo do Nicola 14/11 11:12)
 // — ⋮ do uso ganha "Disponibilidade" nos modelos com agenda (temporada, short stay, cowork, atendimento): abre a tela do módulo
@@ -23,14 +27,11 @@
 // PLANO_EXECUCAO_CRM_F2A_RAIZ v1.0.0, ida 13/11 07:12) — chip Usos: embaixo da barra do ano, o calendário do mês do bem (o
 // mesmo componente da Agenda, js/nucleo/calendario.js) com o que está marcado para ele (fn_agenda_periodo_v2 filtrada pelo
 // bem) e a lista do dia tocado — "Dia todo" e os horários, com Confirmado / Aguardando. Versão anterior: 1.151.0
-//
-// v1.151.0 (12/11/2026, sessão 20261112-2258-lupa-partes, demanda f6be5483; de acordo do Nicola 12/11 22:58) — a busca de Ativos (barra e lupa) acha também pelas pessoas
-// relacionadas: administradora, locatários de todos os contratos, fiador, proprietário, síndico (cofre-api 1.56.0).
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.150.0 … v1.150.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.151.0 … v1.151.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '1.155.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.156.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 import { estado } from './cofre-estado.js';
 import { rzCalendario, rzCalItemDaAgenda } from './nucleo/calendario.js'; // v1.152.0 — calendário único (DS §6.3)
 import { carregarBiblioteca } from './nucleo/bibliotecas.js'; // bibliotecas pesadas, sob demanda (dem 6b11c602)
@@ -1987,6 +1988,11 @@ async function abrirTransicaoAtivo(a, m) {
     });
 }
 // ⋮ de um uso: Concluir e Excluir, como a máquina deixa (fn_ativo_usos → acoes)
+// v1.156.0 — card "Pedidos e interessados" (F3), módulo carregado sob demanda
+function montarInteressadosAtivo(a, usos) {
+    import('./ativo-interessados.js').then(m => { if (!ativoAtualId || ativoAtualId === a.id) m.montarCardInteressados(a, usos); })
+        .catch(e => console.warn('[cofre-ativos] interessados:', e?.message || e));
+}
 const MODELOS_AGENDA_USO = ['temporada', 'short_stay', 'cowork', 'atendimento']; // v1.155.0 — iguais a ativo-disponibilidade.js
 const usoTemAgenda = (u) => !u.repouso && MODELOS_AGENDA_USO.includes(u.modelo);
 function acoesDoUso(a, u) {
@@ -2410,10 +2416,12 @@ export async function montarUsosAtivo(a) {
         if (!usosLinhas.length) {
             painel.innerHTML = `<p class="rz-desc" style="margin:2px 0 6px">Nenhum uso ainda.</p>`;
             montarCardCalendarioAtivo(a); // v1.154.0 — card próprio, só com o parâmetro ligado
+            montarInteressadosAtivo(a, []); // v1.156.0
             return;
         }
         await desenharUsosAno(a, vig);
         montarCardCalendarioAtivo(a); // v1.154.0 — card próprio, só com o parâmetro ligado
+        montarInteressadosAtivo(a, usosLinhasTodas); // v1.156.0
     } catch (err) {
         console.warn('[cofre-ativos] montarUsosAtivo falhou:', err?.message || err);
     } finally {
