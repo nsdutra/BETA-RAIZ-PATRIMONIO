@@ -1,7 +1,10 @@
 // =====================================================================
 // RAIZ PATRIMÔNIO — js/ativo-interessados.js
-// Versão: 1.1.0 · 14/11/2026
+// Versão: 1.2.0 · 14/11/2026
 // -----------------------------------------------------------------
+// v1.2.0 (14/11/2026, sessão 20261114-1910-crm-reuniao-1; FICHA_REUNIAO_LEAD_GOOGLE_MEET_RAIZ v1.0.2) — lead da Raiz (Venda de
+//   licença) com WhatsApp ganha "Propor reunião" na ficha: até 3 faixas de dias, duração, prévia dos horários e envio do convite
+//   (Edge agenda-google, só master). Preferências, adoção e dores ficam na ficha do Gestão › Leads. Versão anterior: 1.1.0
 // v1.1.0 (14/11/2026, sessão 20261114-1710-crm-f3-3; FICHA_LEADS_AJUSTES_RAIZ v1.0.0 A3) — na ficha do interessado, o
 //   significado da etapa escolhida (fluxo_etapas.descricao) aparece embaixo dos chips e muda junto com a escolha.
 //   Versão anterior: 1.0.0
@@ -14,7 +17,7 @@
 //     comunicações da pessoa (fn_comunicacoes_pessoa: robô, comunicações, app e esteira). Grava por fn_interessado_mover.
 //   · O card aparece no bem com uso de agenda (temporada, short stay, cowork, atendimento) ou que já tenha interessado/pedido.
 // =====================================================================
-export const VERSAO = '1.1.0';
+export const VERSAO = '1.2.0';
 
 const MODELOS_AGENDA = ['temporada', 'short_stay', 'cowork', 'atendimento'];
 const esc = (s) => (typeof rzEsc === 'function' ? rzEsc(s) : String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])));
@@ -119,6 +122,7 @@ async function abrirFichaInteressado(a, i, aoMudar) {
     const wa = String(i.partes?.whatsapp || '').replace(/\D/g, '');
     const corpo = `
         ${wa ? `<p class="rz-desc" style="margin:0 0 8px"><a href="https://wa.me/${wa}" target="_blank" rel="noopener">${esc(telVisivel(wa))} · abrir o WhatsApp</a></p>` : ''}
+        ${wa && i.fluxo_codigo === 'venda_licenca' ? '<button type="button" class="rz-btn rz-btn-2 rz-sm" id="ai-propor" style="margin:0 0 10px"><i data-lucide="video"></i> Propor reunião</button>' : ''}
         ${cat.length ? `<div class="rz-group">Etapa${cat[0] ? ' · ' + esc(cat[0].fluxo_nome) : ''}<span></span></div>
         <div class="rz-chips" id="ai-etapas" style="margin:0 0 4px">${cat.filter(e => !e.opcional).map(chip).join('')}</div>
         ${cat.some(e => e.opcional) ? `<div class="rz-chips" style="margin:0 0 4px"><span class="rz-desc" style="align-self:center;margin-right:4px">Opcional:</span>${cat.filter(e => e.opcional).map(chip).join('')}</div>` : ''}
@@ -143,6 +147,7 @@ async function abrirFichaInteressado(a, i, aoMudar) {
         },
     });
     const raiz = sheet || document;
+    raiz.querySelector('#ai-propor')?.addEventListener('click', () => setTimeout(() => abrirProporReuniao(a, i), 50)); // v1.2.0
     raiz.querySelectorAll('[data-ai-et]').forEach(b => b.addEventListener('click', () => {
         st.etapa = b.dataset.aiEt;
         raiz.querySelectorAll('[data-ai-et]').forEach(x => x.classList.toggle('rz-on', x.dataset.aiEt === st.etapa));
@@ -157,4 +162,38 @@ async function abrirFichaInteressado(a, i, aoMudar) {
             <div class="rz-tx"><b>${esc(c.titulo || c.fonte)}</b><span>${esc(dmh(c.quando))}${c.texto ? ' · ' + esc(c.texto) : ''}</span></div></div>`).join('')}</div>`
         : '<p class="rz-desc">Nenhuma comunicação registrada com esse número.</p>';
     icones();
+}
+
+// v1.2.0 — Propor reunião (lead da Raiz): faixas de dias + duração → prévia → convite pelo WhatsApp (Edge agenda-google)
+async function edgeAgenda(body) {
+    const { data, error } = await dbAuth.functions.invoke('agenda-google', { body });
+    if (error) { let m = error.message; try { const j = await error.context.json(); m = j.mensagem || m; } catch (_) { /* sem corpo */ } return { ok: false, mensagem: m }; }
+    return data || { ok: false, mensagem: 'Sem resposta.' };
+}
+function abrirProporReuniao(a, i) {
+    const faixa = (k) => `<div class="grid grid-cols-2 gap-2"><div class="rz-f"><label>Faixa ${k} · de</label><input type="date" id="pr-de${k}"></div><div class="rz-f"><label>até</label><input type="date" id="pr-ate${k}"></div></div>`;
+    let raiz = document;
+    const ler = () => ({
+        faixas: [1, 2, 3].map(k => ({ de: raiz.querySelector('#pr-de' + k)?.value, ate: raiz.querySelector('#pr-ate' + k)?.value || raiz.querySelector('#pr-de' + k)?.value })).filter(f => f.de),
+        duracao: Number(raiz.querySelector('#pr-du')?.value || 30),
+    });
+    const sheet = abrirSheetForm({
+        titulo: 'Propor reunião', sub: i.partes?.nome || '', rotuloSalvar: 'Enviar convite',
+        corpo: `<p class="rz-desc" style="margin:0 0 8px">Até 3 faixas de dias (sem faixa: próximos 5 dias úteis). Os horários respeitam sua agenda, o Google da Raiz e as preferências do lead.</p>
+            ${faixa(1)}${faixa(2)}${faixa(3)}
+            <div class="rz-f"><label>Duração</label><select id="pr-du"><option value="30">30 min</option><option value="60">1 hora</option></select></div>
+            <button type="button" class="rz-btn rz-btn-2 rz-sm" id="pr-ver">Ver horários</button>
+            <div id="pr-res" class="rz-desc" style="margin-top:8px"></div>`,
+        aoSalvar: async () => {
+            const r = await edgeAgenda({ acao: 'propor', papel_id: i.id, ...ler() });
+            toast(r.mensagem || (r.ok ? 'Convite enviado.' : 'Não deu certo.'), r.ok ? 'sucesso' : 'erro');
+            return !!r.ok;
+        },
+    });
+    raiz = sheet || document;
+    raiz.querySelector('#pr-ver')?.addEventListener('click', async () => {
+        const el = raiz.querySelector('#pr-res'); if (el) el.textContent = 'Calculando…';
+        const r = await edgeAgenda({ acao: 'previa', papel_id: i.id, ...ler() });
+        if (el) el.textContent = r.ok ? ((r.horarios_txt || []).length ? `${r.horarios_txt.length} horário(s): ${r.horarios_txt.join(' · ')}` : 'Nenhum horário livre com essas faixas e preferências.') : (r.mensagem || 'Não deu certo.');
+    });
 }

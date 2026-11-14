@@ -1,7 +1,11 @@
 // =====================================================================
 // RAIZ PATRIMÔNIO — js/agenda.js
-// VERSÃO: Beta v1.18.0 (14/11/2026 — formulário único e pedidos)
+// VERSÃO: Beta v1.19.0 (14/11/2026 — Entrar no Meet)
 // LINHAS: (ver versoes.json)
+// -----------------------------------------------------------------
+// NOVIDADES (Beta v1.19.0) (14/11/2026, sessão 20261114-1910-crm-reuniao-1; FICHA_REUNIAO_LEAD_GOOGLE_MEET_RAIZ v1.0.2) — reunião
+// confirmada com link do Google Meet (cofre_ocorrencias_controle.evento_externo) abre "Entrar no Meet" e "Detalhes".
+// Versão anterior: 1.18.0
 // -----------------------------------------------------------------
 // NOVIDADES (Beta v1.18.0) (14/11/2026, sessão 20261114-1045-crm-f2b-2, demanda 09277cba; PLANO_EXECUCAO_CRM_F2B_A_F4 v1.0.1,
 // entrega 2) — ⋮ da Agenda ganha "Reserva ou reunião com hora" (js/agenda-form.js: formulário único com aviso de conflito);
@@ -156,7 +160,7 @@
 
 import { rzCalendario, rzCalItemDaAgenda } from './nucleo/calendario.js'; // v1.16.0 — calendário único (DS §6.3)
 
-export const VERSAO = '1.18.0';
+export const VERSAO = '1.19.0';
 
 const TIPOS = {
     ocorrencia:   { rotulo: 'Ocorrência',  icone: 'wrench',          dominio: 'ocorrencias' },
@@ -637,6 +641,17 @@ function abrirCompromisso(r) {
     if (!r) return;
     if (r.tipo === 'feriado') { if (typeof mostrarToast === 'function') mostrarToast(`${r.titulo} · ${r.sub || 'Nacional'}`); return; } // v1.8.0
     if (r.entidade_tipo === 'processo' || r.situacao === 'aguardando') { import('./agenda-form.js').then(m => m.abrirDecisaoPedido(r, carregar)); return; } // v1.18.0 — Aprovar · Outra data · Recusar
+    if (r.entidade_tipo === 'item_controle' && r.ocorrencia_id && r.inicio_em && !r._semMeet) { // v1.19.0 — reunião com Meet
+        dbAuth.from('cofre_ocorrencias_controle').select('evento_externo').eq('id', r.ocorrencia_id).maybeSingle().then(({ data }) => {
+            const link = data && data.evento_externo && !data.evento_externo.cancelado_em ? data.evento_externo.link : '';
+            if (!link || typeof abrirSheetAcoes !== 'function') return abrirCompromisso({ ...r, _semMeet: true });
+            abrirSheetAcoes({ titulo: r.titulo || 'Reunião', sub: 'Google Meet', acoes: [
+                { icone: 'video', titulo: 'Entrar no Meet', sub: link.replace('https://', ''), aoTocar: () => window.open(link, '_blank', 'noopener') },
+                { icone: 'file-text', titulo: 'Detalhes', sub: 'Item de controle', aoTocar: () => abrirAlertaItemControle(r.entidade_id, r.ativo_id || '') },
+            ] });
+        });
+        return;
+    }
     if (r.entidade_tipo === 'item_controle') { abrirAlertaItemControle(r.entidade_id, r.ativo_id || ''); return; }
     if (r.entidade_tipo === 'contrato') { abrirFichaContrato(r.entidade_id); return; }
     if (r.entidade_tipo === 'membro') { import('./cofre-membros.js').then(m => m.abrirFichaMembro(r.entidade_id)).catch(() => mostrarToast('Não consegui abrir.')); return; } // v1.5.0

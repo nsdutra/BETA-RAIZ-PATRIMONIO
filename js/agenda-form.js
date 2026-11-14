@@ -1,7 +1,10 @@
 // =====================================================================
 // RAIZ PATRIMÔNIO — js/agenda-form.js
-// Versão: 1.0.0 · 14/11/2026
+// Versão: 1.1.0 · 14/11/2026
 // -----------------------------------------------------------------
+// v1.1.0 (14/11/2026, sessão 20261114-1910-crm-reuniao-1; FICHA_REUNIAO_LEAD_GOOGLE_MEET_RAIZ v1.0.2) — depois de decidir um pedido de
+// reunião, chama a Edge agenda-google (sincronizar): reunião de lead aprovada vira evento no Google com Meet e o lead recebe o
+// link; recusada, o evento sai e o lead é avisado. Outras agendas não são tocadas (a Edge confere). Versão anterior: 1.0.0
 // v1.0.0 (14/11/2026, sessão 20261114-0839-crm-f2b, demanda 09277cba; FICHA_CRM_AGENDA_OCUPACAO_RAIZ v1.2.0 F2b +
 // PLANO_EXECUCAO_CRM_F2B_A_F4 v1.0.1, de acordo do Nicola 14/11 08:39 e 10:41) — criação.
 //   · FORMULÁRIO ÚNICO (abrirFormularioAgenda): Reserva · Reunião · Compromisso · Manutenção, no bem escolhido, com hora;
@@ -11,7 +14,7 @@
 //     (fn_agenda_pedido_decidir). Aprovar pré-reserva gera o contrato na F4 (até lá o banco avisa).
 // Nada de banco novo aqui: tudo pelas funções da migration crm_f2b_motor_agenda (v1–v3).
 // =====================================================================
-export const VERSAO = '1.0.0';
+export const VERSAO = '1.1.0';
 
 const TIPOS = [['reuniao', 'Reunião', 'users'], ['compromisso', 'Compromisso', 'calendar-check'], ['manutencao', 'Manutenção', 'wrench'], ['reserva', 'Reserva', 'bed-double']];
 const esc = (s) => (typeof rzEsc === 'function' ? rzEsc(s) : String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])));
@@ -136,6 +139,8 @@ export function abrirDecisaoPedido(r, aoMudar) {
         if (error) { toast(error.message, 'danger'); return false; }
         if (data && data.ok === false) { toast(data.mensagem || 'Não deu certo.', 'danger'); return false; }
         toast(decisao === 'aprovar' ? 'Aprovado.' : decisao === 'recusar' ? 'Recusado.' : 'Nova data proposta.', 'success');
+        if (tipo === 'ocorrencia' && dbAuth.functions) dbAuth.functions.invoke('agenda-google', { body: { acao: 'sincronizar', ocorrencia_id: id } })
+            .then(({ data }) => { if (data && data.link) toast('Meet criado e enviado ao lead.', 'success'); }).catch(() => {}); // v1.1.0
         if (typeof aoMudar === 'function') setTimeout(aoMudar, 50);
         return true;
     };
