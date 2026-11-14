@@ -4,7 +4,10 @@
 //                   o estado do app (ativos, contratos, mensalidades, repasses,
 //                   lançamentos, prestadores, pessoas, empreendimentos, tipos,
 //                   minutas, links da vitrine, logs e a vitrine pública)
-// Versão: 1.8.0 · 12/11/2026
+// Versão: 1.9.0 · 14/11/2026
+//
+// v1.9.0 (14/11/2026, sessão 20261114-1255-crm-f2c-2, demanda 09277cba; CRM F2c entrega 4) — resolverVitrinePublicaSupabase passa
+// adiante o bloco "temporada" de fn_vitrine_publica_obter (regras públicas e calendário só livre/indisponível). Versão anterior: 1.8.0
 //
 // v1.8.0 (12/11/2026, sessão 20261112-2342-prest-partes-m3, demanda f6be5483; FICHA_MIGRACAO_PRESTADORES_PARA_PARTES_RAIZ v1.0.0 M3,
 // de acordo do Nicola 12/11 23:08 e 23:42) — a administradora do contrato passa a valer pelo PAPEL da parte no contrato. Novo
@@ -28,17 +31,11 @@
 // v1.5.0 (14/10/2026, sessão 20261014-0045-usos-fatia2, demanda 3022603b; FICHA_FATIA2_CONTRATOS_POR_TIPO_RAIZ v1.0.0) — o
 // contrato carrega e grava o tipo (contratos.tipo_contrato): o leitor traz modelo e tipoContrato; a escrita manda o tipo
 // do formulário ou, no contrato novo, o escolhido em "Adicionar uso" (window.rzContratoModeloNovo.tipo_contrato).
-// Versão anterior: 1.4.0.
-//
-// v1.4.0 (11/10/2026, sessão 20261008-1231-pessoas-ativos, demanda f3e6cd27 — F13.7, Nicola 11/10 12:29) — o leitor de
-// repasses do boot (lista que alimenta Resultados, o extrato e o PDF por sócio) passa a trazer só a retirada do FLUXO:
-// da empresa para um sócio, natureza distribuição. Ficam fora a retirada extraordinária (fora do fluxo dos imóveis) e
-// os acertos entre pessoas que a tabela guarda desde a F13.6 (antes eles entravam como "repasse" do sócio).
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.3.0 … v1.3.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.4.0 … v1.4.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '1.8.0';  // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.9.0';  // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 
 // ----------------------------------------------------------------------------
 // Injeção do host (index.html ou cofre.html). Os leitores abaixo usam estes
@@ -782,7 +779,8 @@ export async function resolverVitrinePublicaSupabase(token) {
             energiaRumo: row.energia ? 'Sim' : 'Não',
             valor: Number(row.aluguel) || 0,
             fotos: (row.fotos || []).map(function(caminho) { return dbAuth.storage.from('imoveis-fotos').getPublicUrl(caminho).data.publicUrl; }),
-            status: mapStatusSupabaseParaAntigo(row.situacao_uso)
+            status: mapStatusSupabaseParaAntigo(row.situacao_uso),
+            temporada: row.temporada || null // v1.9.0 — vitrine de temporada (F2c)
         };
     });
 }

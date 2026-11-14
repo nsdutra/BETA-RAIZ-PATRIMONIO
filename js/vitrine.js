@@ -1,7 +1,14 @@
 // ============================================================================
 // vitrine.js — Raiz Patrimônio · Compartilhar imóveis (links públicos de imóveis, lightbox)
 //               e contratação pública (formulário do interessado via link)
-// Versão: 1.6.0 · 14/10/2026
+// Versão: 1.7.0 · 14/11/2026
+//
+// v1.7.0 (14/11/2026, sessão 20261114-1255-crm-f2c-2, demanda 09277cba; FICHA_CRM_AGENDA_OCUPACAO_RAIZ v1.2.0 F2c +
+// PLANO_EXECUCAO_CRM_F2B_A_F4 v1.0.1 entrega 4) — vitrine de temporada. Imóvel em Temporada/Short stay ganha, no mesmo card
+// (estrutura e .rz-pub-* intactas), o bloco da temporada: diária a partir de, mínimo de noites, entrada/saída, hóspedes, o
+// calendário público (rzCalendario modo 'publico': só livre/indisponível, 90 dias, lido de fn_vitrine_publica_obter) e
+// "Pedir reserva": toca a entrada e a saída, confere mínimo e dia indisponível no meio, mostra a estimativa e abre o
+// WhatsApp do robô com o imóvel e o período. Nada de nome nem valor de terceiros. Versão anterior: 1.6.0
 //
 // v1.6.0 (14/10/2026, sessão 20261014-2145-onda9c-textos, demanda a05ad2ee; onda 9c do estudo PROTOTIPO_UX_DENSIDADE_RAMOS_RAIZ
 // v1.2.0, D6 seção 10) — textos no limite: ação até 24 caracteres, descrição até 28, aviso até 40 com o resultado e tela
@@ -27,25 +34,14 @@
 // pública no tema claro do app (fundo --paper, cards brancos, nome da empresa em --pine) com "Fechar" no padrão de
 // botão-ícone (era um "Sair" escuro mal formatado); a tela "Compartilhar imóveis" relê os imóveis ao abrir — o imóvel
 // recém-cadastrado só aparecia depois de sair e entrar no app.
-//
-// Versão anterior: 1.4.0 · 08/10/2026
-//
-// v1.4.0 (UX F2.8, demandas ed5accfe, 5a84b9aa, b056f2ff e cf0f8f2e, sessão 20261003-1707-ux-base; "Sim. Faça 1 e 2
-// agora" do Nicola 08/10 20:09) — "Vitrine" vira "Compartilhar". Um imóvel: compartilharImovelDoAtivo abre o
-// WhatsApp já com os dados e o link (⋮ da ficha do ativo). Vários: a tela vira lista com seleção e o botão
-// "Compartilhar n imóveis" (WhatsApp, Copiar link, Abrir a página), com um link só. Mensagem e lista mostram só o
-// que está preenchido (some ", , ," e "R$ 0"). O link é gerado com código aleatório forte e salvo uma vez; o falso
-// "Falha de conexão" (chamava dev_carregarLinks, removida na v1.199.0 do index) sai. Página pública: lê pela
-// fn_vitrine_publica_obter (visitante sem login), mostra o nome da empresa e esconde campo vazio. Contratação:
-// reaproveita o link pendente e válido do mesmo imóvel em vez de criar outro a cada toque; o formulário público
-// manda o endereço também separado (rua, número, complemento, bairro, cidade, UF, CEP).
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.3.4 … v1.3.4): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.4.0 … v1.4.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
 import { encontrarMinutaParaImovel } from './minutas.js'; // retorno usado de forma síncrona — import, não ponte
+import { rzCalendario } from './nucleo/calendario.js'; // v1.7.0 — calendário único, modo público
 
-export const VERSAO = '1.6.0'; // v-check: manter igual ao header
+export const VERSAO = '1.7.0'; // v-check: manter igual ao header
 
 /** Ponto de entrada do switchTab('tab-vitrine'). */
 export async function montarAbaVitrine() {
@@ -783,7 +779,7 @@ export async function montarAbaVitrine() {
                             ${imo.descricao ? `<p class="rz-pub-desc">${escV(imo.descricao)}</p>` : ''}
                             ${badgeEnergia}
                             ${slideFotos}
-                            <div class="rz-pub-valor"><span>Aluguel</span><b>${Number(imo.valor) > 0 ? 'R$ ' + moedaV(imo.valor) + '/mês' : 'Sob consulta'}</b></div>
+                            ${imo.temporada ? blocoTemporadaPublico(imo) : `<div class="rz-pub-valor"><span>Aluguel</span><b>${Number(imo.valor) > 0 ? 'R$ ' + moedaV(imo.valor) + '/mês' : 'Sob consulta'}</b></div>`}
                         </article>
                     `;
 
@@ -794,6 +790,7 @@ export async function montarAbaVitrine() {
             if (exibidos === 0) {
                 listContainer.innerHTML = '<p class="rz-pub-msg">Os imóveis deste link não estão mais disponíveis.</p>';
             }
+            ligarTemporadasPublicas(imoveis); // v1.7.0
             if (typeof lucide !== 'undefined') lucide.createIcons();
 
         }
@@ -862,3 +859,90 @@ export async function montarAbaVitrine() {
             document.getElementById('lightbox-vitrine-contador').innerText = `${lightboxVitrineIndex + 1} / ${lightboxVitrineFotos.length}`;
 
         }
+
+// ============================================================================
+// v1.7.0 — VITRINE DE TEMPORADA (F2c). Só lê o bloco "temporada" de fn_vitrine_publica_obter (já sem dados de terceiros).
+// ============================================================================
+const NUMERO_BOT_VITRINE = '5511978950609'; // robô (o mesmo de abrirBotWhatsapp no index)
+const MESES_PUB = ['janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho', 'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro'];
+const estTemp = {}; // id do imóvel → { ano, mes, ent, sai }
+const dmPub = (iso) => iso ? iso.slice(8, 10) + '/' + iso.slice(5, 7) : '';
+const somaDia = (iso, n) => { const d = new Date(iso + 'T12:00:00'); d.setDate(d.getDate() + n); return d.toLocaleDateString('sv-SE'); };
+
+function blocoTemporadaPublico(imo) {
+    const t = imo.temporada || {};
+    const regras = [
+        t.minimo ? `Mínimo de ${t.minimo} ${Number(t.minimo) > 1 ? 'noites' : 'noite'}` : '',
+        t.entrada ? `Entrada a partir das ${escV(t.entrada)}` : '', t.saida ? `Saída até ${escV(t.saida)}` : '',
+        t.hospedes_max ? `Até ${t.hospedes_max} ${Number(t.hospedes_max) > 1 ? 'hóspedes' : 'hóspede'}` : '',
+    ].filter(Boolean);
+    return `
+        ${regras.length ? `<p class="rz-pub-info"><svg data-lucide="calendar-days"></svg>${regras.join(' · ')}</p>` : ''}
+        <div data-temp-id="${escV(imo.id)}" style="margin-top:10px"></div>
+        <div class="rz-pub-valor"><span>Diária</span><b>${Number(t.diaria) > 0 ? 'a partir de R$ ' + moedaV(t.diaria) : 'Sob consulta'}</b></div>`;
+}
+
+function ligarTemporadasPublicas(lista) {
+    (lista || []).filter(i => i.temporada && Array.isArray(i.temporada.dias)).forEach(imo => {
+        if (!estTemp[imo.id]) { const h = new Date(); estTemp[imo.id] = { ano: h.getFullYear(), mes: h.getMonth(), ent: null, sai: null }; }
+        desenharTemporadaPublica(imo);
+    });
+}
+
+function avaliarPeriodo(imo) {
+    const st = estTemp[imo.id], t = imo.temporada;
+    if (!st.ent || !st.sai) return null;
+    const porDia = new Map(t.dias.map(d => [d.data, d]));
+    let noites = 0, total = 0, semPreco = false, minimo = Number(t.minimo) || 1, bloqueado = false;
+    for (let d = st.ent; d < st.sai; d = somaDia(d, 1)) {
+        const x = porDia.get(d);
+        noites++;
+        if (!x || x.status !== 'livre') { bloqueado = true; continue; }
+        if (x.minimo) minimo = Math.max(minimo, Number(x.minimo));
+        if (Number(x.preco) > 0) total += Number(x.preco); else semPreco = true;
+    }
+    return { noites, total: semPreco ? null : total, minimo, bloqueado };
+}
+
+function desenharTemporadaPublica(imo) {
+    const el = document.querySelector(`[data-temp-id="${CSS.escape(imo.id)}"]`); if (!el) return;
+    const st = estTemp[imo.id], t = imo.temporada;
+    const indisp = t.dias.filter(d => d.status !== 'livre').map(d => d.data);
+    const primeiro = t.dias.length ? t.dias[0].data : null, ultimo = t.dias.length ? t.dias[t.dias.length - 1].data : null;
+    // fora da janela de 90 dias também é indisponível (não sabemos)
+    const nDias = new Date(st.ano, st.mes + 1, 0).getDate(), foraJanela = [];
+    for (let d = 1; d <= nDias; d++) { const iso = `${st.ano}-${String(st.mes + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`; if ((primeiro && iso < primeiro) || (ultimo && iso > ultimo)) foraJanela.push(iso); }
+    const av = avaliarPeriodo(imo);
+    let resumo = 'Toque no dia da entrada e depois no da saída.';
+    let ok = false;
+    if (st.ent && !st.sai) resumo = `Entrada ${dmPub(st.ent)}. Agora toque no dia da saída.`;
+    if (av) {
+        const per = `${dmPub(st.ent)} a ${dmPub(st.sai)} · ${av.noites} ${av.noites > 1 ? 'noites' : 'noite'}`;
+        if (av.bloqueado) resumo = `${per}: tem dia indisponível no meio. Escolha outro período.`;
+        else if (av.noites < av.minimo) resumo = `${per}: neste período o mínimo é de ${av.minimo} noites.`;
+        else { ok = true; resumo = per + (av.total ? ` · estimativa R$ ${moedaV(av.total)}` : ''); }
+    }
+    el.innerHTML = `
+        <div class="rz-usos-cal-topo">
+            <button type="button" class="rz-ico-btn" data-temp-nav="-1" aria-label="Mês anterior"><svg data-lucide="chevron-left"></svg></button>
+            <b>${MESES_PUB[st.mes]} ${st.ano}</b>
+            <button type="button" class="rz-ico-btn" data-temp-nav="1" aria-label="Próximo mês"><svg data-lucide="chevron-right"></svg></button>
+        </div>
+        ${rzCalendario({ ano: st.ano, mes: st.mes, bloqueados: indisp.concat(foraJanela), sel: st.sai || st.ent, modo: 'publico' })}
+        <p class="rz-pub-info" style="margin-top:8px" aria-live="polite">${escV(resumo)}</p>
+        <button type="button" class="rz-btn rz-btn-1 rz-wide" data-temp-pedir style="margin-top:8px"${ok ? '' : ' disabled'}><svg data-lucide="message-circle"></svg> Pedir reserva</button>`;
+    el.querySelectorAll('[data-temp-nav]').forEach(b => b.addEventListener('click', () => {
+        const n = new Date(st.ano, st.mes + Number(b.dataset.tempNav), 1); st.ano = n.getFullYear(); st.mes = n.getMonth(); desenharTemporadaPublica(imo);
+    }));
+    el.querySelectorAll('[data-cal-dia]').forEach(b => b.addEventListener('click', () => {
+        const d = b.dataset.calDia;
+        if (!st.ent || st.sai || d <= st.ent) { st.ent = d; st.sai = null; } else st.sai = d;
+        desenharTemporadaPublica(imo);
+    }));
+    el.querySelector('[data-temp-pedir]')?.addEventListener('click', () => {
+        const a = avaliarPeriodo(imo); if (!a) return;
+        const txt = `Olá! Vi na vitrine e quero pedir reserva de *${tituloImovelCompartilhar(imo)}*: entrada ${dmPub(st.ent)}, saída ${dmPub(st.sai)} (${a.noites} ${a.noites > 1 ? 'noites' : 'noite'}).`;
+        window.open('https://wa.me/' + NUMERO_BOT_VITRINE + '?text=' + encodeURIComponent(txt), '_blank', 'noopener');
+    });
+    if (typeof lucide !== 'undefined') lucide.createIcons();
+}
