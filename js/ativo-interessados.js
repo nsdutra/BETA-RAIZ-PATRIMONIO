@@ -1,7 +1,10 @@
 // =====================================================================
 // RAIZ PATRIMÔNIO — js/ativo-interessados.js
-// Versão: 1.0.0 · 14/11/2026
+// Versão: 1.1.0 · 14/11/2026
 // -----------------------------------------------------------------
+// v1.1.0 (14/11/2026, sessão 20261114-1710-crm-f3-3; FICHA_LEADS_AJUSTES_RAIZ v1.0.0 A3) — na ficha do interessado, o
+//   significado da etapa escolhida (fluxo_etapas.descricao) aparece embaixo dos chips e muda junto com a escolha.
+//   Versão anterior: 1.0.0
 // v1.0.0 (14/11/2026, sessão 20261114-1415-crm-f3-1, demanda 09277cba; FICHA_CRM_AGENDA_OCUPACAO_RAIZ v1.2.0 F3 — de acordo
 // do Nicola 12/11 08:40; ida 14/11 14:15) — criação.
 //   · Card "Pedidos e interessados" no chip Usos e contratos do bem: pré-reservas aguardando (toque → Aprovar · Outra data ·
@@ -11,7 +14,7 @@
 //     comunicações da pessoa (fn_comunicacoes_pessoa: robô, comunicações, app e esteira). Grava por fn_interessado_mover.
 //   · O card aparece no bem com uso de agenda (temporada, short stay, cowork, atendimento) ou que já tenha interessado/pedido.
 // =====================================================================
-export const VERSAO = '1.0.0';
+export const VERSAO = '1.1.0';
 
 const MODELOS_AGENDA = ['temporada', 'short_stay', 'cowork', 'atendimento'];
 const esc = (s) => (typeof rzEsc === 'function' ? rzEsc(s) : String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])));
@@ -25,7 +28,7 @@ const telVisivel = (t) => { const d = String(t || '').replace(/\D/g, ''); const 
 let etapasCache = null;
 async function etapas() {
     if (etapasCache) return etapasCache;
-    const { data } = await dbAuth.from('fluxo_etapas').select('fluxo_codigo, fluxo_nome, etapa_codigo, etapa_nome, ordem, opcional, natureza, prazo_dias').eq('ativo', true).order('ordem');
+    const { data } = await dbAuth.from('fluxo_etapas').select('fluxo_codigo, fluxo_nome, etapa_codigo, etapa_nome, ordem, opcional, natureza, prazo_dias, descricao').eq('ativo', true).order('ordem');
     etapasCache = data || [];
     return etapasCache;
 }
@@ -118,7 +121,8 @@ async function abrirFichaInteressado(a, i, aoMudar) {
         ${wa ? `<p class="rz-desc" style="margin:0 0 8px"><a href="https://wa.me/${wa}" target="_blank" rel="noopener">${esc(telVisivel(wa))} · abrir o WhatsApp</a></p>` : ''}
         ${cat.length ? `<div class="rz-group">Etapa${cat[0] ? ' · ' + esc(cat[0].fluxo_nome) : ''}<span></span></div>
         <div class="rz-chips" id="ai-etapas" style="margin:0 0 4px">${cat.filter(e => !e.opcional).map(chip).join('')}</div>
-        ${cat.some(e => e.opcional) ? `<div class="rz-chips" style="margin:0 0 10px"><span class="rz-desc" style="align-self:center;margin-right:4px">Opcional:</span>${cat.filter(e => e.opcional).map(chip).join('')}</div>` : ''}`
+        ${cat.some(e => e.opcional) ? `<div class="rz-chips" style="margin:0 0 4px"><span class="rz-desc" style="align-self:center;margin-right:4px">Opcional:</span>${cat.filter(e => e.opcional).map(chip).join('')}</div>` : ''}
+        <p class="rz-desc" id="ai-et-desc" style="margin:0 0 10px">${esc((cat.find(e => e.etapa_codigo === st.etapa) || {}).descricao || '')}</p>`
         : '<p class="rz-desc">Este interessado não está numa esteira (o bem não tem uso de temporada, cowork ou atendimento).</p>'}
         <div class="rz-f"><label for="ai-pp">Próximo passo</label><input type="text" id="ai-pp" maxlength="160" value="${esc(i.proximo_passo || '')}" placeholder="Ex.: mandar proposta"></div>
         <div class="rz-f"><label for="ai-em">Até quando</label><input type="date" id="ai-em" value="${esc(i.proximo_passo_em || '')}"></div>
@@ -142,6 +146,7 @@ async function abrirFichaInteressado(a, i, aoMudar) {
     raiz.querySelectorAll('[data-ai-et]').forEach(b => b.addEventListener('click', () => {
         st.etapa = b.dataset.aiEt;
         raiz.querySelectorAll('[data-ai-et]').forEach(x => x.classList.toggle('rz-on', x.dataset.aiEt === st.etapa));
+        const d = raiz.querySelector('#ai-et-desc'); if (d) d.textContent = (cat.find(e => e.etapa_codigo === st.etapa) || {}).descricao || '';
     }));
     icones();
     const { data, error } = await dbAuth.rpc('fn_comunicacoes_pessoa', { p_cliente_id: a.cliente_id || CLIENTE_ID_SUPABASE, p_parte_id: i.parte_id, p_whatsapp: null, p_limite: 30 });
