@@ -1,6 +1,12 @@
 // ============================================================================
 // cofre-ativos.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.157.0 · 14/11/2026
+// Versão: 1.158.0 · 15/11/2026
+//
+// v1.158.0 (15/11/2026, sessão 20261114-2342-investimentos-patrimonio, demanda fd3898f7; Fase 2 do
+// PLANO_EXECUCAO_INVESTIMENTOS_PATRIMONIO_RAIZ v1.1.0, de acordo do Nicola 15/11 00:33) — COMPRA E VALOR DO BEM. Cadastro e edição
+// ganham "Valor de compra" e "Data da compra" (opcionais), gravados na série ativo_valores por fn_ativo_valor_registrar;
+// compra nova oferece lançar a saída no financeiro (categoria Compra de bem), sem criar sozinha. Card "Valor do bem" no
+// Resumo da ficha: compra, valor atual, variação e o histórico (compra, revisões, edições). Versão anterior: 1.157.0
 //
 // v1.157.0 (14/11/2026, sessão 20261114-0830-ficha-receita, demanda 285a0058) — dica da finalidade: "contam como Renda; o resto, e o
 // vazio, como Uso próprio" (os nomes do seletor de uso; Comercial passa a ser o nome do ramo). Versão anterior: 1.156.0
@@ -20,16 +26,11 @@
 // e vira o card "Calendário" (#fa-card-calendario), só quando dados_especificos.exibir_calendario_usos = true; liga e desliga
 // no ⋮ do ativo. Lista do dia com as linhas e o toque da Agenda (agenda.js linhaCompromissoHtml / abrirCompromissoAgenda).
 // Sem arrastar; topo do mês sem fundo. Editar o ativo preserva o parâmetro. Versão anterior: 1.153.0
-//
-// v1.153.0 (13/11/2026, sessão 20261113-1405-f2a-ajustes; teste T-2949 do Nicola 13/11 14:05) — o calendário do chip Usos
-// abre FECHADO: uma linha "Calendário do mês" que abre e fecha; só busca a agenda quando aberto. Aberto/fechado fica lembrado
-// por bem neste aparelho. A troca de mês segue o padrão da Agenda: barra do mês (rz-mes-bar) com setas e arrastar para
-// cima/baixo na grade (para cima = próximo). Versão anterior: 1.152.0
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.152.0 … v1.152.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.153.0 … v1.153.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '1.157.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.158.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 import { estado } from './cofre-estado.js';
 import { rzCalendario, rzCalItemDaAgenda } from './nucleo/calendario.js'; // v1.152.0 — calendário único (DS §6.3)
 import { carregarBiblioteca } from './nucleo/bibliotecas.js'; // bibliotecas pesadas, sob demanda (dem 6b11c602)
@@ -325,6 +326,7 @@ function renderizarBlocoEmpreendimentoValor(prefixo, v = {}, empreendimentos = [
             <label>Valor de referência (R$)</label>
             <input type="number" step="0.01" id="${prefixo}valor-referencia" value="${v.valor_referencia ?? ''}">
         </div>
+        ${renderizarCamposCompra(prefixo, v)}
         ${''/* Finalidade de uso vem do uso vigente (dem 091b87d4, 9404081c): fora do formulário */}
     `;
 }
@@ -356,6 +358,149 @@ async function lerBlocoEmpreendimentoValor(prefixo, clienteId) {
     const selFinalidade = document.getElementById(prefixo + 'finalidade-uso');
     if (selFinalidade) lido.finalidade_uso = selFinalidade.value || null;
     return lido;
+}
+
+// ---- Compra e valor do bem (série ativo_valores, dem fd3898f7) ----------------------------------------------
+// A compra é um fato único por bem; o valor de mercado é a série. Os dois moram em ativo_valores: a compra entra
+// por fn_ativo_valor_registrar; cada mudança de valor de referência entra pelo gatilho do banco.
+const FONTE_VALOR_ROTULO = { cadastro: 'Cadastro', edicao: 'Edição', revisao: 'Revisão anual', migracao: 'Valor inicial', importacao: 'Importação', ia: 'Raiz IA' };
+const fmtMoedaValor = (v) => Number(v || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+
+function renderizarCamposCompra(prefixo, v = {}) {
+    // na edição (v.id), os campos são preenchidos depois de entrarem na tela
+    if (v && v.id) preencherCamposCompra(prefixo, v.id);
+    return `
+        <div class="rz-f">
+            <label for="${prefixo}compra-valor">Valor de compra (R$)</label>
+            <input type="number" step="0.01" min="0" inputmode="decimal" id="${prefixo}compra-valor">
+        </div>
+        <div class="rz-f">
+            <label for="${prefixo}compra-data">Data da compra</label>
+            <input type="date" id="${prefixo}compra-data">
+            <span class="rz-hint">Opcional. Fica no histórico de valor do bem.</span>
+        </div>`;
+}
+
+// Armadilha: o formulário pode entrar no DOM um pouco depois do HTML ser montado (sheet); tenta por até 1,5 s.
+async function preencherCamposCompra(prefixo, ativoId) {
+    let compra = null;
+    try {
+        const { data } = await api.dbAuth.from('ativo_valores').select('valor, data_base').eq('ativo_id', ativoId).eq('tipo', 'aquisicao').maybeSingle();
+        compra = data || null;
+    } catch (_) { return; }
+    if (!compra) return;
+    for (let i = 0; i < 15; i++) {
+        const v = document.getElementById(prefixo + 'compra-valor');
+        const d = document.getElementById(prefixo + 'compra-data');
+        if (v && d) {
+            if (!v.value) v.value = compra.valor;
+            if (!d.value) d.value = compra.data_base;
+            v.dataset.original = String(Number(compra.valor));
+            d.dataset.original = compra.data_base;
+            return;
+        }
+        await new Promise(r => setTimeout(r, 100));
+    }
+}
+
+// null = campos não estão na tela; { erro } = preenchido pela metade ou data futura
+function lerCamposCompra(prefixo) {
+    const v = document.getElementById(prefixo + 'compra-valor');
+    const d = document.getElementById(prefixo + 'compra-data');
+    if (!v || !d) return null;
+    const valor = v.value.trim() ? parseFloat(v.value.trim()) : null;
+    const data = d.value || null;
+    const lida = { valor, data, valorOriginal: v.dataset.original || '', dataOriginal: d.dataset.original || '' };
+    if ((valor === null) !== (data === null)) lida.erro = 'Informe o valor e a data da compra, ou deixe os dois em branco.';
+    else if (valor !== null && !(valor > 0)) lida.erro = 'O valor da compra precisa ser maior que zero.';
+    else if (data && data > hojeLocalUso()) lida.erro = 'A data da compra não pode ser futura.';
+    return lida;
+}
+
+// Grava a compra quando foi informada ou mudou. Não desfaz o cadastro se falhar. Compra nova oferece o lançamento.
+async function gravarCompraSeInformada(a, lida) {
+    if (!lida || lida.erro || lida.valor === null) return;
+    const mudou = String(Number(lida.valor)) !== lida.valorOriginal || lida.data !== lida.dataOriginal;
+    if (!mudou) return;
+    const { data: r, error } = await api.dbAuth.rpc('fn_ativo_valor_registrar', {
+        p_ativo_id: a.id, p_tipo: 'aquisicao', p_data_base: lida.data, p_valor: lida.valor,
+        p_lancamento_id: null, p_observacao: null, p_canal: 'app',
+    });
+    if (error) { mostrarToast('Salvo, mas a compra não foi registrada: ' + (error.message || 'erro'), 'aviso'); return; }
+    if (r?.acao === 'registrada') setTimeout(() => oferecerLancamentoCompra(a, lida.valor, lida.data), 400);
+}
+
+async function oferecerLancamentoCompra(a, valor, data) {
+    if (typeof window.switchTab !== 'function' || typeof window.abrirNovaDespesa !== 'function') return;
+    const ok = await perguntar({
+        titulo: 'Lançar a compra no financeiro?',
+        impacto: `Abre uma saída de ${fmtMoedaValor(valor)}, já como investimento, para entrar no relatório de investimentos. Bem comprado há muito tempo pode ficar sem lançamento.`,
+        rotuloConfirmar: 'Lançar a compra', rotuloCancelar: 'Agora não', icone: 'arrow-up-right',
+    });
+    if (!ok) return;
+    window.switchTab('tab-saidas');
+    window.abrirNovaDespesa(a.id, {
+        descricao: `Compra — ${a.nome_exibicao || ''}`.trim(),
+        categoria: ehCategoriaImovel(a.tipo_ativo) ? undefined : 'invest_compra_bem',
+        valor, vencimento: data,
+    });
+}
+
+// Card "Valor do bem" no Resumo da ficha, logo abaixo de Dados do ativo
+async function montarValorDoBem(a) {
+    const dados = document.getElementById('fa-dados-imovel-grid')?.closest('.rz-card');
+    let card = document.getElementById('fa-card-valor-bem');
+    if (a.tipo_ativo === 'vida') { card?.remove(); return; }
+    const { data, error } = await api.dbAuth.from('ativo_valores').select('id, tipo, data_base, valor, fonte, criado_em')
+        .eq('ativo_id', a.id).order('data_base', { ascending: false }).order('criado_em', { ascending: false }).limit(30);
+    if (error) throw error;
+    if (ativoAtualId && ativoAtualId !== a.id) return;
+    if (!card) {
+        if (!dados) return;
+        card = document.createElement('div'); card.className = 'rz-card'; card.id = 'fa-card-valor-bem';
+        dados.insertAdjacentElement('afterend', card);
+    }
+    const linhas = data || [];
+    const compra = linhas.find(x => x.tipo === 'aquisicao') || null;
+    const mercado = linhas.filter(x => x.tipo === 'mercado');
+    const atual = mercado[0] || null;
+    const variacao = compra && atual ? (Number(atual.valor) / Number(compra.valor) - 1) : null;
+    const varTxt = variacao === null ? '' : `${variacao >= 0 ? '+' : ''}${(variacao * 100).toLocaleString('pt-BR', { maximumFractionDigits: 1 })}%`;
+    const rot = (x) => x.tipo === 'aquisicao' ? 'Compra' : (FONTE_VALOR_ROTULO[x.fonte] || x.fonte);
+    const hist = linhas.slice(0, 6).map(x => `<div class="rz-row"><div class="rz-tx"><b>${escapeHtml(fmtMoedaValor(x.valor))}</b><span>${escapeHtml(formatarDataBR(x.data_base))} · ${escapeHtml(rot(x))}</span></div></div>`).join('');
+    card.innerHTML = `<div class="rz-card-h"><h3>Valor do bem</h3><button type="button" class="rz-more" data-valor-bem-menu aria-label="Ações do valor do bem"><i data-lucide="ellipsis-vertical"></i></button></div>
+        <div class="rz-kv">
+            <div><small>Compra</small><b>${compra ? escapeHtml(fmtMoedaValor(compra.valor)) : 'Não informada'}</b>${compra ? `<small>${escapeHtml(formatarDataBR(compra.data_base))}</small>` : ''}</div>
+            <div><small>Valor atual</small><b>${atual ? escapeHtml(fmtMoedaValor(atual.valor)) : '—'}</b>${atual ? `<small>${escapeHtml(formatarDataBR(atual.data_base))} · ${escapeHtml(rot(atual))}</small>` : ''}</div>
+            ${varTxt ? `<div class="rz-full"><small>Desde a compra</small><b>${escapeHtml(varTxt)}</b></div>` : ''}
+        </div>
+        ${linhas.length > 1 ? `<div class="rz-list">${hist}</div>` : ''}`;
+    card.querySelector('[data-valor-bem-menu]')?.addEventListener('click', () => sheetOuAviso({
+        titulo: 'Valor do bem', sub: a.nome_exibicao,
+        acoes: [{ icone: 'receipt', titulo: compra ? 'Corrigir compra' : 'Informar compra', codigo: 'cofre.editar', sub: 'Valor e data da compra',
+            aoTocar: () => abrirFormCompra(a, compra) }],
+    }));
+    refrescarIcones?.();
+}
+
+function abrirFormCompra(a, compra) {
+    if (typeof window.abrirSheetForm !== 'function') { mostrarToast('Abra pelo app principal.', 'erro'); return; }
+    const hoje = hojeLocalUso();
+    window.abrirSheetForm({
+        titulo: compra ? 'Corrigir compra' : 'Informar compra', sub: a.nome_exibicao, rotuloSalvar: 'Salvar',
+        corpo: `<div class="rz-f"><label for="fa-compra-valor">Valor de compra (R$)</label><input type="number" step="0.01" min="0" inputmode="decimal" id="fa-compra-valor" value="${compra ? Number(compra.valor) : ''}"></div>
+            <div class="rz-f" style="margin-bottom:0"><label for="fa-compra-data">Data da compra</label><input type="date" id="fa-compra-data" max="${hoje}" value="${compra ? compra.data_base : ''}"></div>`,
+        aoSalvar: async () => {
+            const lida = lerCamposCompra('fa-');
+            if (!lida || lida.valor === null) { mostrarToast('Informe o valor e a data da compra.', 'erro'); return false; }
+            if (lida.erro) { mostrarToast(lida.erro, 'erro'); return false; }
+            lida.valorOriginal = compra ? String(Number(compra.valor)) : '';
+            lida.dataOriginal = compra ? compra.data_base : '';
+            await gravarCompraSeInformada(a, lida);
+            montarValorDoBem(a).catch(() => {});
+            return true;
+        },
+    });
 }
 
 // Só categoria imóvel. Aluguel esperado (achado no teste real: pergunta
@@ -1548,6 +1693,8 @@ export async function salvarAtivo() {
 
     const erros = validarCamposAtivo(tipo, nome, dadosEspecificos, tipoDetalheId, contextoForm);
     if (erros.length) { erroInline(statusEl, '⚠️ ' + erros[0]); return; }
+    const compraCad = lerCamposCompra('at-empval-'); // dem fd3898f7
+    if (compraCad?.erro) { erroInline(statusEl, '⚠️ ' + compraCad.erro); return; }
 
     // v1.107.0 (fatia 3b) — divisão societária só quando o formulário mostrou o bloco; o subativo herda a do principal
     const comDivisao = blocosFormAtual ? blocosFormAtual.tem('divisao_societaria') : true;
@@ -1654,6 +1801,7 @@ export async function salvarAtivo() {
         try { if (typeof window.rzRecarregarUsosRamo === 'function') await window.rzRecarregarUsosRamo(); } catch (e) { console.warn('[cofre-ativos] status:', e?.message || e); }
         window.dispatchEvent(new CustomEvent('cofre:recarregar-ativos'));
         recarregarFuncionalidadesLiberadas().catch(() => {}); // v1.62.0 — cota mudou
+        gravarCompraSeInformada({ id: novoAtivo.ativo_id || novoAtivo.id, nome_exibicao: nome, tipo_ativo: tipo }, compraCad).catch(() => {});
         // v1.102.0 — volta para a ficha do principal com o card atualizado
         if (principal && ativoAtualId === principal.id && estado.ativoEmFoco) montarSubativosAtivo(estado.ativoEmFoco).catch(() => {});
     } catch (err) {
@@ -1721,6 +1869,7 @@ export async function abrirFichaAtivo(id, chipInicial = 'resumo') {
     const seguro = (fn, nome) => fn(a).catch(err => console.warn(`[cofre-ativos] ${nome} falhou:`, err?.message || err));
     await Promise.all([
         seguro(montarDadosAtivo, 'montarDadosAtivo'),
+        seguro(montarValorDoBem, 'montarValorDoBem'), // dem fd3898f7
         seguro(montarControlesAtivo, 'montarControlesAtivo'),
         seguro(montarContratosAtivo, 'montarContratosAtivo'),
         seguro(montarUsosAtivo, 'montarUsosAtivo'), // v1.86.0 (F25)
@@ -4503,7 +4652,9 @@ export async function salvarEdicaoAtivo() {
     const tipoDetalheId = selDetalhe ? (selDetalhe.value || null) : a.tipo_detalhe_id;
     const dados = lerCamposEstruturados(a.tipo_ativo, 'fa-editar-campo-', tipoDetalheId, a.ativo_principal_id ? 'subativo' : 'ativo');
     const errosEd = validarCamposAtivo(a.tipo_ativo, nome, dados, tipoDetalheId, a.ativo_principal_id ? 'subativo' : 'ativo').filter(e => !/obrigatório/.test(e));
-    if (errosEd.length) { mostrarToast(errosEd[0], 'erro'); return false; } // v1.117.0 — coordenadas e tamanho também na edição
+    if (errosEd.length) { mostrarToast(errosEd[0], 'erro'); return false; }
+    const compraEd = lerCamposCompra('fa-editar-empval-'); // dem fd3898f7
+    if (compraEd?.erro) { mostrarToast(compraEd.erro, 'erro'); return false; } // v1.117.0 — coordenadas e tamanho também na edição
     if (calendarioLigado(a)) dados.exibir_calendario_usos = true; // v1.154.0 — o formulário não tem este parâmetro; não perder
     const patch = { nome_exibicao: nome, tipo_detalhe_id: tipoDetalheId, dados_especificos: dados };
     // Onda 12 (16/09/2026) — empreendimento/valor de referência são
@@ -4578,6 +4729,7 @@ export async function salvarEdicaoAtivo() {
             if (fresco) { a.destinacao = fresco.destinacao; a.destinacao_origem = fresco.destinacao_origem; }
         }
         await api.registrarLogAcessos(estado.clienteId, estado.pessoa.id, 'cofre.editar', { ativoId: a.id, acao: 'editar_ativo' });
+        await gravarCompraSeInformada(a, compraEd);
         mostrarToast('Ativo atualizado');
         window.dispatchEvent(new CustomEvent('cofre:recarregar-ativos'));
         // v1.59.0 (Fase 1 do wrapper de escrita, piloto) — index.html escuta

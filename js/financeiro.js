@@ -1,7 +1,12 @@
 // ============================================================================
 // financeiro.js — Raiz Patrimônio · Financeiro (Recebimentos · Atrasados · Saídas
 //                  · conciliação de extrato · recibo · detalhe do recebimento)
-// Versão: 1.89.0 · 15/11/2026
+// Versão: 1.90.0 · 15/11/2026
+//
+// v1.90.0 (15/11/2026, sessão 20261114-2342-investimentos-patrimonio, demanda fd3898f7; Fase 2 do
+// PLANO_EXECUCAO_INVESTIMENTOS_PATRIMONIO_RAIZ v1.1.0) — NATUREZA NA SAÍDA. O formulário de saída mostra a natureza econômica
+// que vem da subcategoria (operação, investimento, financiamento, pessoal) e deixa trocar só na exceção; a escolha vai em
+// lancamentos.natureza_economica (nulo = segue a categoria). Catálogo lido com natureza_economica. Versão anterior: 1.89.0
 //
 // v1.89.0 (15/11/2026, sessão 20261115-1430-conciliacao-c, demandas 2a51055a e 5eb9e2cf; de acordo do Nicola 15/11 14:23 "Pode
 // juntar e fazer") — UM MENU SÓ PARA A LINHA PENDENTE DA CONCILIAÇÃO. (D) Tocar na linha (com ou sem %) abre o mesmo menu: no topo
@@ -37,20 +42,11 @@
 // pendente da Conciliação: o depósito vira a baixa de vários aluguéis (bruto, taxa e líquido), receitas sem contrato, descontos
 // da administradora e ajuste de centavos até R$ 0,05; o botão só fecha quando a soma bate (fn_extrato_dividir_recebimento).
 // Linha dividida abre a lista do que foi feito e "Desfazer divisão". Versão anterior: 1.85.0
-//
-// v1.85.0 (12/11/2026, sessão 20261112-2233-xlsx-import, demanda 89abec4f; de acordo do Nicola 12/11 22:33) — IMPORTAR
-// EXTRATO NÃO PERDE MAIS O ARQUIVO: (1) as linhas vão para o banco por financeiroGravarFingerprints, sempre com a situação
-// preenchida (antes a linha sem conciliação ia com status nulo e o lote inteiro era recusado) e, se o lote falhar, uma a
-// uma; (2) a baixa do aluguel só vale se a linha do extrato gravou — linha recusada ou já existente desfaz a baixa em
-// memória e vira pendência; o registro mensal.baixar sai depois disso; (3) dois pagamentos no mesmo arquivo não casam com o
-// mesmo aluguel: o segundo fica pendente para você escolher o mês; (4) retirada de sócio usa o nome completo (era só o
-// primeiro nome, que não acha a pessoa: "Sócio Renato não encontrado"), na importação e no "É repasse" da Conciliação.
-// Caso real: Rumo, agosto/2026. Versão anterior: 1.84.0
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.84.0 … v1.84.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.85.0 … v1.85.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '1.89.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.90.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 
 // v1.17.0 (Fase 1 do wrapper de escrita, rollout Financeiro) — emitirEscrita
 // é o evento padrão pra "algo mudou que módulos DE FORA deste arquivo podem
@@ -2035,7 +2031,7 @@ function financeiroRenderCabecalho(aba) {
                 catalogoCategoriasCarregando = (async () => {
                     try {
                         const { data, error } = await dbAuth.from('lancamento_categorias')
-                            .select('codigo,nome,direcao,categoria_pai,icone,ordem,grupo_resultado,contabilidade_padrao,tipos_ativo,tipos_detalhe').eq('ativo', true).order('ordem'); // v1.34.0
+                            .select('codigo,nome,direcao,categoria_pai,icone,ordem,grupo_resultado,contabilidade_padrao,tipos_ativo,tipos_detalhe,natureza_economica').eq('ativo', true).order('ordem'); // v1.34.0
                         if (error) throw error;
                         catalogoCategoriasLanc = data || [];
                     } catch (err) { console.warn('[financeiro] catálogo de categorias:', err.message); }
@@ -2068,6 +2064,9 @@ function financeiroRenderCabecalho(aba) {
             return o ? { tipo: o.dataset.tipo || '', detalhe: o.dataset.detalhe || '' } : '';
         }
         // v1.34.0 — chips de classificação da folha: resultado (grupo_resultado) e contabilidade
+        // Rótulos da natureza econômica (lancamento_categorias.natureza_economica; exceção em lancamentos) — dem fd3898f7
+        const NATUREZA_LANC_ROTULO = { operacao: 'Operação', investimento: 'Investimento', financiamento: 'Financiamento', pessoal: 'Pessoal' };
+
         function chipsClassificacaoLanc(folha, contab) {
             const partes = [];
             if (folha) partes.push(folha.grupo_resultado === 'fora_resultado' ? 'Fora do resultado' : 'Entra no resultado');
@@ -2233,6 +2232,11 @@ function financeiroRenderCabecalho(aba) {
                             <label for="desp-categoria">Subcategoria <i>*</i></label>
                             <select id="desp-categoria">${optsCategorias}</select>
                         </div>
+                        <div class="rz-f">
+                            <label for="desp-natureza">Natureza</label>
+                            <select id="desp-natureza"><option value="">Da subcategoria</option>${Object.entries(NATUREZA_LANC_ROTULO).map(([v, r]) => `<option value="${v}">${r}</option>`).join('')}</select>
+                            <span class="rz-hint">Troque só na exceção, como uma reforma que foi só manutenção.</span>
+                        </div>
                         ${ehEdicao ? '' : `<label class="rz-row rz-chk"><input type="checkbox" id="desp-contab" checked><div class="rz-tx"><b>Entra na contabilidade</b><span>Vai no pacote do contador; sugerido pela subcategoria</span></div></label>`}` : ''}
                         <div class="grid grid-cols-2 gap-2">
                             <div class="rz-f${usarArvoreDesp ? ' hidden' : ''}">
@@ -2316,6 +2320,11 @@ function financeiroRenderCabecalho(aba) {
             modal.onclick = (ev) => { if (ev.target === modal) modal.remove(); };
             despContabEdicao = ehEdicao ? d?.incluirContabilidade !== false : null; // v1.34.0
             ligarCascataCategoriaDesp(); // v1.32.0
+            if (ehEdicao && d?.id) { // dem fd3898f7 — a exceção gravada não vem na lista de lançamentos
+                dbAuth.from('lancamentos').select('natureza_economica').eq('id', d.id).maybeSingle().then(({ data: n }) => {
+                    const sel = document.getElementById('desp-natureza'); if (sel && n?.natureza_economica) sel.value = n.natureza_economica;
+                }).catch(() => {});
+            }
             if (typeof lucide !== 'undefined') lucide.createIcons();
         }
 
@@ -2341,6 +2350,8 @@ function financeiroRenderCabecalho(aba) {
                 const classif = chipsClassificacaoLanc(selSub.value ? categoriaDoCatalogo(selSub.value) : null, chkContab ? chkContab.checked : despContabEdicao);
                 const partes = ['Saída', nomeAtivo, grupo, sub, isNaN(valor) ? '' : valor.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }), ...classif].filter(Boolean);
                 caminho.innerHTML = partes.map(p => `<span class="rz-chip">${escapeHtmlSaidas(p)}</span>`).join('');
+                const selNat = document.getElementById('desp-natureza'); // dem fd3898f7 — a 1ª opção diz a natureza da subcategoria
+                if (selNat) { const nat = selSub.value ? categoriaDoCatalogo(selSub.value)?.natureza_economica : null; selNat.options[0].textContent = nat ? `Da subcategoria (${NATUREZA_LANC_ROTULO[nat] || nat})` : 'Da subcategoria'; }
             };
             const selAtivoDesp = document.getElementById('desp-ativo');
             if (selGrupo) selGrupo.addEventListener('change', () => {
@@ -2465,6 +2476,8 @@ function financeiroRenderCabecalho(aba) {
                 // v1.33.0 — conta escolhida (campo só aparece com mais de 1 conta; sem ele o banco põe a padrão)
                 const selConta = document.getElementById('desp-conta');
                 if (selConta && selConta.value) payload.conta_id = selConta.value;
+                const selNat = document.getElementById('desp-natureza'); // dem fd3898f7 — vazio = segue a categoria
+                if (selNat) payload.natureza_economica = selNat.value || null;
 
                 if (despesaEmEdicaoId) {
                     const { error } = await dbAuth.from('lancamentos').update(payload).eq('id', despesaEmEdicaoId);
