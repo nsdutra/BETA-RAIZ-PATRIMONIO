@@ -6,10 +6,11 @@
    (base derivada do RUMO v7.4.2 — histórico de versões anteriores
    preservado abaixo para referência técnica)
 
-   VERSÃO: Beta v1.490.23
-   LINHAS: 15551
-   DATA: 14/11/2026 (reunião com lead)
-   NOVIDADES (Beta v1.490.23) — import map.
+   VERSÃO: Beta v1.490.24
+   LINHAS: 15545
+   DATA: 14/11/2026 (seletor de uso Renda)
+   NOVIDADES (Beta v1.490.24) — uso Comercial vira Renda (dem 285a0058).
+   Versão anterior (Beta v1.490.23): import map.
    Versão anterior (Beta v1.490.22): etapas com descrição.
    Versão anterior (Beta v1.490.21): interessados.
    Versão anterior (Beta v1.490.20): vitrine temporada.
@@ -45,7 +46,7 @@
          O navegador aplica o mapa também aos imports estáticos dentro dos
          módulos (cofre-app.js → ./cofre-api.js etc.). -->
     <!-- RZ-IMPORTMAP:INICIO -->
-    <script type="importmap">{"imports":{"./js/cadastros.js":"./js/cadastros.js?v=1.3.0","./js/financeiro.js":"./js/financeiro.js?v=1.86.0","./js/fechamento.js":"./js/fechamento.js?v=1.16.0","./js/contratos.js":"./js/contratos.js?v=1.74.0","./js/minutas.js":"./js/minutas.js?v=1.8.0","./js/vitrine.js":"./js/vitrine.js?v=1.7.0","./js/imoveis.js":"./js/imoveis.js?v=1.11.0","./js/cofre-api.js":"./js/cofre-api.js?v=1.56.0","./js/cofre-app.js":"./js/cofre-app.js?v=1.52.0","./js/cofre-ativos.js":"./js/cofre-ativos.js?v=1.156.0","./js/cofre-controles.js":"./js/cofre-controles.js?v=1.73.0","./js/cofre-documentos.js":"./js/cofre-documentos.js?v=2.40.0","./js/cofre-imagem.js":"./js/cofre-imagem.js?v=1.2.0","./js/cofre-estado.js":"./js/cofre-estado.js?v=1.5.2","./js/cofre-navegacao.js":"./js/cofre-navegacao.js?v=1.10.0","./js/cofre-ui.js":"./js/cofre-ui.js?v=1.7.2","./js/cofre-validacoes.js":"./js/cofre-validacoes.js?v=2.14.0","./js/comum-licenca.js":"./js/comum-licenca.js?v=1.11.0","./js/comum-renovacao.js":"./js/comum-renovacao.js?v=1.5.0","./js/comum-minha-empresa.js":"./js/comum-minha-empresa.js?v=1.22.0","./js/comum-pessoas.js":"./js/comum-pessoas.js?v=1.217.0","./js/comum-sobre.js":"./js/comum-sobre.js?v=1.5.0","./js/comum-endereco.js":"./js/comum-endereco.js?v=1.2.0","./js/comum-partes.js":"./js/comum-partes.js?v=1.0.0","./js/resultados.js":"./js/resultados.js?v=2.21.0","./js/indicadores.js":"./js/indicadores.js?v=1.3.0","./js/configuracao-inicial.js":"./js/configuracao-inicial.js?v=1.2.0","./js/relatorios-executivos.js":"./js/relatorios-executivos.js?v=1.12.0","./js/raiz-eventos.js":"./js/raiz-eventos.js?v=1.0.0","./js/raiz-device.js":"./js/raiz-device.js?v=1.1.0","./js/raiz-ui.js":"./js/raiz-ui.js?v=1.10.0","./js/fiscal.js":"./js/fiscal.js?v=1.7.0","./js/ativos/ativos-boot.js":"./js/ativos/ativos-boot.js?v=1.4.0","./js/ativos/ativos-markup.js":"./js/ativos/ativos-markup.js?v=1.69.0","./js/nucleo/porta.js":"./js/nucleo/porta.js?v=1.9.0","./js/partes.js":"./js/partes.js?v=1.2.0","./js/conta.js":"./js/conta.js?v=1.5.0","./js/grupo-visao.js":"./js/grupo-visao.js?v=1.0.0","./js/agenda.js":"./js/agenda.js?v=1.19.0","./js/cofre-membros.js":"./js/cofre-membros.js?v=1.0.0","./js/cockpit-metas.js":"./js/cockpit-metas.js?v=1.0.0","./js/nucleo/bibliotecas.js":"./js/nucleo/bibliotecas.js?v=1.0.0","./js/nucleo/calendario.js":"./js/nucleo/calendario.js?v=1.1.0","./js/agenda-form.js":"./js/agenda-form.js?v=1.1.0","./js/ativo-disponibilidade.js":"./js/ativo-disponibilidade.js?v=1.0.0","./js/ativo-interessados.js":"./js/ativo-interessados.js?v=1.2.0"}}</script>
+    <script type="importmap">{"imports":{"./js/cadastros.js":"./js/cadastros.js?v=1.3.0","./js/financeiro.js":"./js/financeiro.js?v=1.86.0","./js/fechamento.js":"./js/fechamento.js?v=1.16.0","./js/contratos.js":"./js/contratos.js?v=1.74.0","./js/minutas.js":"./js/minutas.js?v=1.8.0","./js/vitrine.js":"./js/vitrine.js?v=1.7.0","./js/imoveis.js":"./js/imoveis.js?v=1.11.0","./js/cofre-api.js":"./js/cofre-api.js?v=1.56.0","./js/cofre-app.js":"./js/cofre-app.js?v=1.52.0","./js/cofre-ativos.js":"./js/cofre-ativos.js?v=1.157.0","./js/cofre-controles.js":"./js/cofre-controles.js?v=1.73.0","./js/cofre-documentos.js":"./js/cofre-documentos.js?v=2.40.0","./js/cofre-imagem.js":"./js/cofre-imagem.js?v=1.2.0","./js/cofre-estado.js":"./js/cofre-estado.js?v=1.5.2","./js/cofre-navegacao.js":"./js/cofre-navegacao.js?v=1.10.0","./js/cofre-ui.js":"./js/cofre-ui.js?v=1.7.2","./js/cofre-validacoes.js":"./js/cofre-validacoes.js?v=2.14.0","./js/comum-licenca.js":"./js/comum-licenca.js?v=1.11.0","./js/comum-renovacao.js":"./js/comum-renovacao.js?v=1.5.0","./js/comum-minha-empresa.js":"./js/comum-minha-empresa.js?v=1.22.0","./js/comum-pessoas.js":"./js/comum-pessoas.js?v=1.217.0","./js/comum-sobre.js":"./js/comum-sobre.js?v=1.5.0","./js/comum-endereco.js":"./js/comum-endereco.js?v=1.2.0","./js/comum-partes.js":"./js/comum-partes.js?v=1.0.0","./js/resultados.js":"./js/resultados.js?v=2.22.0","./js/indicadores.js":"./js/indicadores.js?v=1.3.0","./js/configuracao-inicial.js":"./js/configuracao-inicial.js?v=1.2.0","./js/relatorios-executivos.js":"./js/relatorios-executivos.js?v=1.12.0","./js/raiz-eventos.js":"./js/raiz-eventos.js?v=1.0.0","./js/raiz-device.js":"./js/raiz-device.js?v=1.1.0","./js/raiz-ui.js":"./js/raiz-ui.js?v=1.10.0","./js/fiscal.js":"./js/fiscal.js?v=1.7.0","./js/ativos/ativos-boot.js":"./js/ativos/ativos-boot.js?v=1.4.0","./js/ativos/ativos-markup.js":"./js/ativos/ativos-markup.js?v=1.69.0","./js/nucleo/porta.js":"./js/nucleo/porta.js?v=1.9.0","./js/partes.js":"./js/partes.js?v=1.2.0","./js/conta.js":"./js/conta.js?v=1.5.0","./js/grupo-visao.js":"./js/grupo-visao.js?v=1.0.0","./js/agenda.js":"./js/agenda.js?v=1.19.0","./js/cofre-membros.js":"./js/cofre-membros.js?v=1.0.0","./js/cockpit-metas.js":"./js/cockpit-metas.js?v=1.0.0","./js/nucleo/bibliotecas.js":"./js/nucleo/bibliotecas.js?v=1.0.0","./js/nucleo/calendario.js":"./js/nucleo/calendario.js?v=1.1.0","./js/agenda-form.js":"./js/agenda-form.js?v=1.1.0","./js/ativo-disponibilidade.js":"./js/ativo-disponibilidade.js?v=1.0.0","./js/ativo-interessados.js":"./js/ativo-interessados.js?v=1.2.0"}}</script>
     <!-- RZ-IMPORTMAP:FIM -->
 
     <!-- ===== PWA: permite "instalar" o app no celular (Android e iPhone) ===== -->
@@ -2853,7 +2854,7 @@
         // texto certo toda vez (esqueci 5 versões seguidas, de v1.37.1 até
         // v1.38.3). Agora só precisa mudar UMA linha aqui a cada release;
         // window.onload aplica nos dois lugares automaticamente.
-        const APP_VERSAO = "Beta v1.490.23"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
+        const APP_VERSAO = "Beta v1.490.24"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
 
         // ====================================================================
         // v1.105.0 — HELPERS DE SUPERFÍCIE DA GRAMÁTICA ÚNICA
@@ -10464,23 +10465,16 @@ async function criarLinkVitrineSupabase(token, idsSelecionados) {
         let geralVisiveisTodos = []; // v1.187.0 — bruto da Visão Geral; renderizarPontosAtencaoGeral() deriva daqui
         let geralSeveridadeFiltro = 'todas'; // v1.187.0 — estado próprio, independente do da tela de Alertas
 
-        // Entrega A.4 (21/09/2026) — seletor de universo Tudo·Comercial·
-        // Família da Visão Geral. Mesmo mapa contexto→p_uso que
-        // js/resultados.js usa (CONTEXTO_USO/CONTEXTO_ROTULO), reescrito
-        // aqui porque a Visão Geral vive no escopo clássico do index.html
-        // (window), não no módulo ES de resultados.js — não dá pra
-        // importar a constante direto sem reestruturar o boot dos dois
-        // (mesma razão já documentada acima em GRUPOS_CHIP_TIPO/v1.195.0).
-        // v1.345.0 (F21, dem f3e6cd27) — o ramo é escolhido pela LENTE do cabeçalho (rzAbrirLenteRamo) e vale para o app
-        // inteiro; fica guardado no aparelho (localStorage rz.ramo) e muda a tonalidade (<html data-ramo>). O cadastro vem
-        // de ativo_ramos (nome, unidade, soma valor, tem uso, status); RZ_RAMOS abaixo é só o padrão até o banco responder.
-        // O uso (geralUniversoFiltro) só existe dentro de ramo com tem_uso: Todos · Comercial · Uso próprio
-        // ('familia' continua sendo a chave do uso nao_comercial, a mesma de js/resultados.js).
+        // Ramo e uso do Hoje. O ramo vem da lente do cabeçalho (rzAbrirLenteRamo), vale para o app inteiro e muda a
+        // tonalidade (<html data-ramo>); RZ_RAMOS abaixo é só o padrão até ativo_ramos responder.
+        // O uso (Todos · Renda · Uso próprio) só existe em ramo com tem_uso. Armadilha: as CHAVES continuam 'comercial' e
+        // 'familia' (= nao_comercial), as mesmas de js/resultados.js (CONTEXTO_USO), que vive em módulo ES e não pode ser
+        // importado pelo escopo clássico do index — por isso o mapa é repetido aqui. Só o rótulo mudou (dem 285a0058).
         let rzRamoPadraoAplicadoEm = null; // v1.375.0 — empresa em que o ramo padrão da pessoa já foi aplicado
         let geralRamoFiltro = 'tudo'; // v1.347.0 — o app sempre abre em Todo o patrimônio (Nicola 10/10 10:22); a lente não fica guardada
         let geralUniversoFiltro = 'tudo'; // uso: 'tudo' | 'comercial' | 'familia' (= uso próprio)
         const GERAL_USO_POR_CONTEXTO = { tudo: null, comercial: 'comercial', familia: 'nao_comercial' };
-        const GERAL_UNIVERSO_ROTULO = { tudo: 'Todos', comercial: 'Comercial', familia: 'Uso próprio' };
+        const GERAL_UNIVERSO_ROTULO = { tudo: 'Todos', comercial: 'Renda', familia: 'Uso próprio' };
         let RZ_RAMOS = [
             { codigo: 'imoveis', icone: 'building-2', nome: 'Imóveis', descricao: 'Residenciais, comerciais e terrenos', unidade_singular: 'imóvel', unidade_plural: 'imóveis', soma_valor: true, tem_uso: true, ordem: 10, status: 'ativo' },
             { codigo: 'familia', icone: 'heart-handshake', nome: 'Família', descricao: 'Pessoas e pets: saúde, casa, escola e viagens', unidade_singular: 'vida', unidade_plural: 'vidas', soma_valor: false, tem_uso: false, ordem: 20, status: 'ativo' },

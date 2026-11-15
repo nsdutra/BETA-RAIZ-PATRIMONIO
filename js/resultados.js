@@ -1,8 +1,11 @@
 // =====================================================================
 // RAIZ PATRIMÔNIO — js/resultados.js
-// VERSÃO: Beta v2.21.0 (11/11/2026 — demanda 3cd0817a)
+// VERSÃO: Beta v2.22.0 (14/11/2026 — demanda 285a0058)
 // LINHAS: (ver versoes.json)
 // -----------------------------------------------------------------
+// NOVIDADES (Beta v2.22.0) (14/11/2026, sessão 20261114-0830-ficha-receita, demanda 285a0058; de acordo do Nicola 14/11 22:19)
+//   — o uso "Comercial" do Hoje e do Resultado passa a se chamar "Renda" (Todos · Renda · Uso próprio), porque Comercial é o nome do novo ramo.
+// Versão anterior (Beta v2.21.0):
 // NOVIDADES (Beta v2.21.0) (11/11/2026, sessão 20261111-2330-agro-receita-safra, demanda 3cd0817a; de acordo do Nicola 11/11 23:30)
 //   — lente Agro do Hoje: cada safra aberta mostra o recebido e o resultado (recebido − pago) quando houver receita com destino
 //   nela; a última safra fechada mostra receita e resultado ao lado do custo, das sacas e do custo por saca.
@@ -116,7 +119,7 @@
 // Versões anteriores (v2.4.0 … v2.4.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '2.21.0';
+export const VERSAO = '2.22.0';
 
 // ---------------------------------------------------------------------
 // Estado do filtro (module-scoped — sobrevive entre renders porque o
@@ -129,7 +132,7 @@ let filtro = { ano: ANO_ATUAL, abrangencia: 'carteira', contexto: 'tudo', ramo: 
 let rascunho = null;
 
 const CONTEXTO_USO = { tudo: null, comercial: 'comercial', familia: 'nao_comercial' };
-const CONTEXTO_ROTULO = { tudo: 'Todos', comercial: 'Comercial', familia: 'Uso próprio' }; // v2.6.0 — uso, dentro do ramo
+const CONTEXTO_ROTULO = { tudo: 'Todos', comercial: 'Renda', familia: 'Uso próprio' }; // v2.6.0 — uso, dentro do ramo
 // v2.7.0 (F21) — o ramo vem da lente do cabeçalho (index.html), com o cadastro dele (ativo_ramos)
 let ramoInfo = null; // { codigo, nome, unidade_singular, unidade_plural, soma_valor, tem_uso }
 let ultimoPorRamo = null; // v2.12.0 — última leitura de fn_hoje_por_ramo (escolha do ramo em Metas)
@@ -476,7 +479,7 @@ function montarHeroiRamo(d, carregando) {
     const somaValor = !ramoInfo || ramoInfo.soma_valor !== false;
     const qtdTxt = d == null ? '—' : `${d.qtd} ${un(d.qtd)}`;
     const grande = somaValor ? (d == null ? '—' : formatarPatrimonioCompacto(d.valor)) : qtdTxt;
-    const usoTxt = filtro.contexto === 'comercial' ? ' · comercial' : filtro.contexto === 'familia' ? ' · uso próprio' : '';
+    const usoTxt = filtro.contexto === 'comercial' ? ' · renda' : filtro.contexto === 'familia' ? ' · uso próprio' : '';
     const sub = somaValor ? qtdTxt : 'Sem valor de patrimônio: entram na contagem';
     // v2.11.0 (fatia 8) — Família: custo do ano (contra o anterior, com a linha do ano), por vida ao mês, a pagar e vencidos
     const ind = d && d.ind && d.ind.pode_ver !== false ? d.ind : null;

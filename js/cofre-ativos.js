@@ -1,6 +1,9 @@
 // ============================================================================
 // cofre-ativos.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.156.0 · 14/11/2026
+// Versão: 1.157.0 · 14/11/2026
+//
+// v1.157.0 (14/11/2026, sessão 20261114-0830-ficha-receita, demanda 285a0058) — dica da finalidade: "contam como Renda; o resto, e o
+// vazio, como Uso próprio" (os nomes do seletor de uso; Comercial passa a ser o nome do ramo). Versão anterior: 1.156.0
 //
 // v1.156.0 (14/11/2026, sessão 20261114-1415-crm-f3-1; FICHA_CRM_AGENDA_OCUPACAO_RAIZ v1.2.0 F3) — card "Pedidos e interessados" no
 // chip Usos e contratos, logo depois do Calendário: módulo ativo-interessados.js (pré-reservas aguardando, interessados com a
@@ -22,16 +25,11 @@
 // abre FECHADO: uma linha "Calendário do mês" que abre e fecha; só busca a agenda quando aberto. Aberto/fechado fica lembrado
 // por bem neste aparelho. A troca de mês segue o padrão da Agenda: barra do mês (rz-mes-bar) com setas e arrastar para
 // cima/baixo na grade (para cima = próximo). Versão anterior: 1.152.0
-//
-// v1.152.0 (13/11/2026, sessão 20261113-0712-crm-f2a; FICHA_CRM_AGENDA_OCUPACAO_RAIZ v1.2.0 F2a, aprovada pelo Nicola 12/11 08:44;
-// PLANO_EXECUCAO_CRM_F2A_RAIZ v1.0.0, ida 13/11 07:12) — chip Usos: embaixo da barra do ano, o calendário do mês do bem (o
-// mesmo componente da Agenda, js/nucleo/calendario.js) com o que está marcado para ele (fn_agenda_periodo_v2 filtrada pelo
-// bem) e a lista do dia tocado — "Dia todo" e os horários, com Confirmado / Aguardando. Versão anterior: 1.151.0
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.151.0 … v1.151.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.152.0 … v1.152.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '1.156.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.157.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 import { estado } from './cofre-estado.js';
 import { rzCalendario, rzCalItemDaAgenda } from './nucleo/calendario.js'; // v1.152.0 — calendário único (DS §6.3)
 import { carregarBiblioteca } from './nucleo/bibliotecas.js'; // bibliotecas pesadas, sob demanda (dem 6b11c602)
@@ -307,7 +305,7 @@ function renderizarCampoFinalidadeUso(prefixo, v = {}) {
                 <option value=""${optSel('')}>— não informado —</option>
                 ${FINALIDADES_USO_ATIVO.map(f => `<option value="${f.v}"${optSel(f.v)}>${f.l}</option>`).join('')}
             </select>
-            <span class="rz-hint">Aluguel (long ou short stay), arrendamento e revenda contam como Comercial; o resto, e o vazio, como Família.</span>
+            <span class="rz-hint">Aluguel (long ou short stay), arrendamento e revenda contam como Renda; o resto, e o vazio, como Uso próprio.</span>
         </div>`;
 }
 
