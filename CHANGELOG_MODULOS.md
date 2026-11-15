@@ -1007,6 +1007,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/cofre-api.js`
 
 // Versão anterior: 1.52.0 · 18/10/2026
@@ -1882,6 +1884,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/cofre-app.js`
 
 //
@@ -2327,6 +2331,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 // cofre-ativos.js). Prefere addEventListener a onclick inline em todo
 // código novo (Diretriz Arquitetural — Passo 2).
 // ============================================================================
+
+---
 
 ---
 
@@ -4851,6 +4857,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/cofre-controles.js`
 
 // Versão anterior: 1.69.0 · 23/10/2026
@@ -5750,6 +5758,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 // não está implementado (geração automática de ocorrências recorrentes,
 // Central de Alertas consolidada).
 // ============================================================================
+
+---
 
 ---
 
@@ -7168,6 +7178,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/cofre-estado.js`
 
 //
@@ -7313,6 +7325,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 // v1.21.6 (Arquivar/RLS, sessão paralela) nem esta entrega — fechado
 // agora. Ver changelog completo em cofre.html v1.22.0 (merge das 2
 // sessões paralelas + badge fix + form fix + função Vendido).
+
+---
 
 ---
 
@@ -8189,6 +8203,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/cofre-ui.js`
 
 //
@@ -8220,6 +8236,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 // genérica, template de card, indicador de "liga/desliga" (Design System
 // v1.43.0 §2). Não importa cofre-api.js — não sabe nada de Supabase.
 // ============================================================================
+
+---
 
 ---
 
@@ -9161,6 +9179,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/comum-licenca.js`
 
 //
@@ -9334,6 +9354,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 // hospeda (index.html, cofre.html, ou um módulo futuro) é quem decide
 // COMO obtém esse client; este arquivo só usa o que recebe.
 // ============================================================================
+
+---
 
 ---
 
@@ -9926,6 +9948,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 // `dbAuth` já autenticado do host, por parâmetro (ver nota completa em
 // comum-licenca.js).
 // ============================================================================
+
+---
 
 ---
 
@@ -11042,6 +11066,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/comum-renovacao.js`
 
 //
@@ -11115,6 +11141,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 // jsdelivr (mesma origem já usada pelo app); se não carregar, o "copia e cola"
 // continua funcionando sozinho.
 // ============================================================================
+
+---
 
 ---
 
@@ -11929,6 +11957,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/conta.js`
 
 // Versão anterior: 1.0.1 · 10/10/2026
@@ -11965,6 +11995,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 //    virar assíncrona poderia deixar o primeiro render com o filtro errado. Não vale o risco
 //    por 345 bytes — é a mesma classe de armadilha do montarBoxDivisaoSocietaria.
 // ============================================================================
+
+---
 
 ---
 
@@ -13484,6 +13516,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/fechamento.js`
 
 //
@@ -14200,7 +14234,24 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/financeiro.js`
+
+//
+// v1.89.0 (15/11/2026, sessão 20261115-1430-conciliacao-c, demandas 2a51055a e 5eb9e2cf; de acordo do Nicola 15/11 14:23 "Pode
+// juntar e fazer") — UM MENU SÓ PARA A LINHA PENDENTE DA CONCILIAÇÃO. (D) Tocar na linha (com ou sem %) abre o mesmo menu: no topo
+// o cartão "O que o Raiz leu" (extrato: data, valor, CPF/CNPJ, histórico; contrato, quando houver; a sugestão e o %), depois
+// "Aceitar sugestão · N%" dizendo o que vai acontecer, e as alternativas de sempre. Antes a sugestão do motor só aparecia em
+// "Revisar em sequência"; o menu da linha usava outra busca e não mostrava o %. "Ver sugestão" passa a abrir esse mesmo menu.
+// Sugestão "liga à baixa já feita" (CT05) e as automáticas ainda não aplicadas podem ser aceitas aqui (fn_conciliacao_aplicar
+// só desta linha) — caso do Rodrigo, 100% que esperava o próximo reprocessamento. (5eb9e2cf) "Lançar entrada" nas entradas:
+// abre "Receita sem contrato" já preenchida com valor, data e descrição do extrato e, ao salvar, liga a linha (origem extrato).
+// Sugestão de aporte de sócio (regra R16) abre esse formulário já em "Aporte de sócio (capital)".
+// --------------------------------------------------------------------------
+// Versões anteriores (v1.88.0 … v1.88.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
+// mais recentes deste cabeçalho (VER-06).
 
 // Versão anterior: 1.88.0
 //
@@ -16221,6 +16272,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/fiscal.js`
 
 //
@@ -16317,6 +16370,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 // abrirSheet, abrirSheetAcoes, abrirSheetForm, rzSheetCabecalho, fecharSheet,
 // mostrarToast, switchTab, rzIcones, podeUsar, window.fechamentoAbrirChecklistFiscalAtualizado.
 // ============================================================================
+
+---
 
 ---
 
@@ -17198,6 +17253,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/minutas.js`
 
 //
@@ -17293,6 +17350,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 // pessoaIdLogada. Exclusivo (`__minzEstado`) virou nível de módulo.
 // Indentação de origem mantida (template literals). Strict verificado.
 // ============================================================================
+
+---
 
 ---
 
@@ -17723,6 +17782,45 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
+## `js/partes.js`
+
+//
+// Versão anterior: 1.0.0 · 10/10/2026
+//
+// v1.0.0 (10/10/2026, sessão 20261010-1425-onda2a-partes, demanda 6b11c602 — Onda 2a da
+// fragmentação, plano aprovado pelo Nicola 09/10 21:15) — 30 telas de Partes saíram do
+// index.html SEM UMA LINHA REESCRITA: cada função veio byte a byte e só ganhou "export".
+//
+// POR QUE AQUI NÃO HÁ INJEÇÃO, diferente do js/nucleo/porta.js: `let` no topo de um
+// <script> clássico entra no escopo léxico global, que um módulo ES alcança como NOME
+// LIVRE — e sempre no valor corrente, porque a resolução é no binding, não numa cópia.
+// Isso não é teoria: o js/financeiro.js já lê `contratos` e chama `arquivoParaBase64()`
+// assim hoje, sem import nenhum. Então dbAuth, CLIENTE_ID_SUPABASE, pessoas, imoveis e as
+// funções do index que ficaram (renderPartes, pendenciasParte, logScreen, mostrarToast…)
+// são usadas aqui como estavam. O porta.js injeta por ter nascido antes desta prova; não
+// vou reescrevê-lo só por isso — está publicado e testado.
+//
+// O QUE FICOU NO INDEX de propósito:
+//  · as 16 funções do domínio que DEVOLVEM VALOR e são síncronas (renderPartes,
+//    pendenciasParte, parteEhPrestador, obterSociosConhecidos, calcularExtratoSocio…).
+//    A ponte é assíncrona: quem faz `const x = pendenciasParte(p)` receberia uma Promise
+//    e quebraria em silêncio. É o mesmo motivo pelo qual montarBoxDivisaoSocietaria não
+//    se mudou — o js/imoveis.js a usa dentro de uma concatenação de innerHTML.
+//  · carregarPartesParaSelectSupabase — tem cache com invalidação dentro do financeiro.js
+//    (demanda 5e737cff, Onda 1b-2).
+//  · obterPessoaIdPorNome — é injetada no js/nucleo/porta.js; tirá-la daqui quebraria
+//    a instalação da porta.
+//  · renderSociosDistribricao e abrirFichaParte — 377 bytes somados, chamadas por módulos;
+//    mover ambas aumentaria a superfície por quase nada.
+//
+// Chamadas de fora chegam pela ponte window[nome] do index (bloco "PARTES"), que é o
+// mesmo rzPonteModulo dos outros módulos R8.
+// ============================================================================
+
+---
+
 ## `js/raiz-ui.js`
 
 // Versão anterior: 1.6.0 · 20/10/2026
@@ -17827,6 +17925,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 // 'warning' (UXR-35). Também publica window.rzToast/rzConfirmar/rzEscolher/
 // rzAviso para código inline do index.html.
 // ============================================================================
+
+---
 
 ---
 
@@ -18177,6 +18277,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 // que o bot usa); aqui só se monta o texto e o desenho — nunca se recalcula
 // (REL-02). Protótipo: raiz\docs\PROTOTIPO_RELATORIOS_FLUXO_GERENCIAL v1.1.0.
 // ============================================================================
+
+---
 
 ---
 
@@ -19088,6 +19190,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/vitrine.js`
 
 //
@@ -19225,6 +19329,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 // CLIENTE_ID_SUPABASE, dbAuth. Exclusivo (4) virou nível de módulo.
 // Indentação de origem mantida. Strict verificado.
 // ============================================================================
+
+---
 
 ---
 

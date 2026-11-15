@@ -1,7 +1,15 @@
 // ============================================================================
 // financeiro.js — Raiz Patrimônio · Financeiro (Recebimentos · Atrasados · Saídas
 //                  · conciliação de extrato · recibo · detalhe do recebimento)
-// Versão: 1.93.0 · 15/11/2026
+// Versão: 1.94.0 · 15/11/2026
+//
+// v1.94.0 (15/11/2026, sessão 20261115-1550-partes-doc, demanda 2a51055a; pedidos do Nicola 15/11 15:45 "dar mais detalhes da
+// regra e do que será criado e como" e 15:56 "1 e 2 ok") — (1) DESPESA DO EXTRATO NASCE PAGA: "Nova despesa" aberta de uma
+// linha do extrato grava realizada, com data de pagamento = data informada (a da linha); antes gravava prevista e aparecia
+// "Em atraso" (16 da Rumo corrigidas no banco, migration conciliacao_despesa_extrato_paga_v1). (2) REGRA "SEMPRE FAZER
+// ASSIM" EXPLICADA: o cartão "O que o Raiz leu" mostra qual regra, quem criou e quando, quando vale e o que será criado
+// (categoria, valor, data, competência, descrição, sem imóvel/contrato/pessoa); "Aceitar sugestão" diz valor e data.
+// (3) "Nova despesa · Sugestão:" mostra o nome da categoria, não o código. Versão anterior: 1.93.0
 //
 // v1.93.0 (15/11/2026, sessão 20261115-1510-conciliacao-f, demanda 2a51055a; achado do Nicola 15/11 15:05, Administradora Matos 90%
 // sem conciliar) — "SEMPRE FAZER ASSIM" PODE SER ACEITO NA LINHA. A regra do cliente (R12, criar despesa na categoria escolhida)
@@ -25,21 +33,11 @@
 // PLANO_EXECUCAO_INVESTIMENTOS_PATRIMONIO_RAIZ v1.1.0) — NATUREZA NA SAÍDA. O formulário de saída mostra a natureza econômica
 // que vem da subcategoria (operação, investimento, financiamento, pessoal) e deixa trocar só na exceção; a escolha vai em
 // lancamentos.natureza_economica (nulo = segue a categoria). Catálogo lido com natureza_economica. Versão anterior: 1.89.0
-//
-// v1.89.0 (15/11/2026, sessão 20261115-1430-conciliacao-c, demandas 2a51055a e 5eb9e2cf; de acordo do Nicola 15/11 14:23 "Pode
-// juntar e fazer") — UM MENU SÓ PARA A LINHA PENDENTE DA CONCILIAÇÃO. (D) Tocar na linha (com ou sem %) abre o mesmo menu: no topo
-// o cartão "O que o Raiz leu" (extrato: data, valor, CPF/CNPJ, histórico; contrato, quando houver; a sugestão e o %), depois
-// "Aceitar sugestão · N%" dizendo o que vai acontecer, e as alternativas de sempre. Antes a sugestão do motor só aparecia em
-// "Revisar em sequência"; o menu da linha usava outra busca e não mostrava o %. "Ver sugestão" passa a abrir esse mesmo menu.
-// Sugestão "liga à baixa já feita" (CT05) e as automáticas ainda não aplicadas podem ser aceitas aqui (fn_conciliacao_aplicar
-// só desta linha) — caso do Rodrigo, 100% que esperava o próximo reprocessamento. (5eb9e2cf) "Lançar entrada" nas entradas:
-// abre "Receita sem contrato" já preenchida com valor, data e descrição do extrato e, ao salvar, liga a linha (origem extrato).
-// Sugestão de aporte de sócio (regra R16) abre esse formulário já em "Aporte de sócio (capital)".
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.88.0 … v1.88.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.89.0 … v1.89.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '1.93.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.94.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 
 // v1.17.0 (Fase 1 do wrapper de escrita, rollout Financeiro) — emitirEscrita
 // é o evento padrão pra "algo mudou que módulos DE FORA deste arquivo podem
@@ -2485,7 +2483,8 @@ function financeiroRenderCabecalho(aba) {
                     // laço com o que já existia.
                     const chkContab = document.getElementById('desp-contab'); // v1.34.0
                     const { data: criado, error } = await dbAuth.from('lancamentos').insert({
-                        ...payload, status: 'previsto',
+                        ...payload, status: despesaOrigemFingerprintId ? 'realizado' : 'previsto', // v1.94.0 — veio do extrato: já saiu do banco
+                        ...(despesaOrigemFingerprintId ? { data_pagamento: vencimento } : {}),
                         ...(chkContab ? { incluir_contabilidade: chkContab.checked } : {}),
                         origem_tipo: despesaOrigemFingerprintId ? 'extrato' : 'manual',
                         origem_id: despesaOrigemFingerprintId || null,
@@ -4156,7 +4155,7 @@ function financeiroRenderCabecalho(aba) {
             }
             if (sug.modo === 'automatico' && sug.acao === 'pagar_fatura') return { icone: 'sparkles', tipo: 'ia', titulo, sub: 'Paga a fatura do cartão', aoTocar: ir };
             if (sug.modo === 'automatico' && sug.acao === 'criar_saida_categoria') // v1.93.0 — "Sempre fazer assim" (R12)
-                return { icone: 'sparkles', tipo: 'ia', titulo, sub: 'Cria a despesa como na sua regra "Sempre fazer assim"', aoTocar: ir };
+                return { icone: 'sparkles', tipo: 'ia', titulo, sub: `Lança despesa paga de R$ ${fmtBR(Math.abs(parseFloat(f.valor)) || 0)} em ${formatarDataBR(f.data)}, na categoria da regra`, aoTocar: ir }; // v1.94.0
             return null;
         }
 
@@ -4233,6 +4232,44 @@ function financeiroRenderCabecalho(aba) {
                     rzToast('Não consegui salvar: ' + (/duplicate|uq_partes_doc/i.test(err.message || '') ? 'já existe outro cadastro com esse documento.' : (err.message || err)), { tipo: 'danger' });
                 }
             });
+        }
+
+        // v1.94.0 — regra do cliente "Sempre fazer assim" (R12): no cartão "O que o Raiz leu", diz qual é a regra, quem criou e
+        // quando, quando ela vale e o que exatamente será criado (o mesmo que fn_extrato_criar_saida grava). A regra que vale é a
+        // mesma que o motor escolhe: ativa, da empresa, mesma direção, documento igual pelos números, a mais recente.
+        async function conciliacaoPreencherRegraCliente(el, f, sug) {
+            if (sug?.regra_codigo !== 'R12') return;
+            const dig = String(f.documento_original || '').replace(/\D/g, '');
+            if (!dig) return;
+            try {
+                const { data } = await dbAuth.from('conciliacao_regras').select('nome, modo, acao_params, condicoes, criado_em, criado_por')
+                    .eq('cliente_id', CLIENTE_ID_SUPABASE).eq('codigo', 'R12').eq('ativa', true).eq('direcao', f.direcao)
+                    .order('criado_em', { ascending: false });
+                const regra = (data || []).find(r => (r.condicoes || []).some(c => c.campo === 'documento' && String(c.valor || '').replace(/\D/g, '') === dig));
+                if (!regra || !el.isConnected) return;
+                let quem = '';
+                if (regra.criado_por) {
+                    const { data: p } = await dbAuth.from('pessoas').select('nome').eq('id', regra.criado_por).maybeSingle();
+                    quem = (p?.nome || '').split(' ')[0];
+                }
+                const quando = new Date(regra.criado_em);
+                const doc = dig.length === 14 ? dig.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})$/, '$1.$2.$3/$4-$5')
+                    : dig.replace(/^(\d{3})(\d{3})(\d{3})(\d{2})$/, '$1.$2.$3-$4');
+                const cat = rotuloCategoriaSaida(regra.acao_params?.categoria || 'outro');
+                const valor = 'R$ ' + fmtBR(Math.abs(parseFloat(f.valor)) || 0);
+                const mes = String(f.data || '').slice(0, 7).split('-').reverse().join('/');
+                const auto = regra.modo === 'automatico';
+                const linhas = [
+                    ['Regra', `Sua regra "Sempre fazer assim" · ${auto ? 'automática' : 'só sugere'} · criada${quem ? ' por ' + quem : ''} em ${quando.toLocaleDateString('pt-BR')} às ${quando.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}`],
+                    ['Quando vale', `Toda ${f.direcao === 'entrada' ? 'entrada' : 'saída'} com ${dig.length === 14 ? 'CNPJ' : 'CPF'} ${doc}, de qualquer valor.${auto ? ' No "Reprocessar pendências", as linhas iguais são lançadas sozinhas.' : ''}`],
+                    ['O que cria', `Despesa paga em ${cat} · ${valor} · paga em ${formatarDataBR(f.data)} · competência ${mes} · descrição "${limparRotuloConciliacao(f.razao_social)}", ligada a esta linha. Sem imóvel, contrato ou pessoa: dá para completar depois em Saídas.`],
+                ];
+                const e = escapeHtmlSaidas;
+                const kv = el.querySelector('.rz-card .rz-kv');
+                kv?.lastElementChild?.remove(); // a linha genérica "Raiz IA · 90% · Regra criada pelo cliente…" dá lugar ao detalhe
+                kv?.insertAdjacentHTML('beforeend', `<div class="rz-full"><small>Raiz IA · ${Math.round(sug.confianca || 0)}%</small><b style="font-weight:500;font-size:var(--fs-sec,12.5px)">Segue a sua regra</b></div>`
+                    + linhas.map(([r, v]) => `<div class="rz-full"><small>${e(r)}</small><b style="font-weight:500;font-size:var(--fs-sec,12.5px)">${e(v)}</b></div>`).join(''));
+            } catch (err) { /* fica o texto curto */ }
         }
 
         // v1.91.0 — quem deu a baixa do aluguel e quando (registro de ações mensal.baixar; o mais recente vale)
@@ -4806,7 +4843,7 @@ function financeiroRenderCabecalho(aba) {
                 });
                 // "Nova despesa" abre a tela nativa já preenchida (abrirNovaDespesa
                 // já aceita `sugestoes` — não crio ficha própria).
-                acoes.push({ icone: 'plus', titulo: 'Nova despesa', sub: categoriaSugerida ? `Sugestão: ${categoriaSugerida}` : 'Abre o formulário de despesa', aoTocar: () => { fecharSheet(); despesaOrigemFingerprintId = fingerprintId; abrirNovaDespesa(null, { descricao: f.razao_social, categoria: categoriaSugerida || undefined, valor: Math.abs(parseFloat(f.valor)), vencimento: f.data }); } });
+                acoes.push({ icone: 'plus', titulo: 'Nova despesa', sub: categoriaSugerida ? `Sugestão: ${rotuloCategoriaSaida(categoriaSugerida)}` : 'Abre o formulário de despesa', aoTocar: () => { fecharSheet(); despesaOrigemFingerprintId = fingerprintId; abrirNovaDespesa(null, { descricao: f.razao_social, categoria: categoriaSugerida || undefined, valor: Math.abs(parseFloat(f.valor)), vencimento: f.data }); } });
                 acoes.push({ icone: 'arrow-left-right', titulo: 'Marcar como repasse', sub: 'Repasse de sócio ou similar', aoTocar: () => confirmarMarcarComoRepasse(fingerprintId) });
             }
             acoes.push({ icone: 'eye-off', titulo: 'Não controlar', sub: 'A linha do banco fica', aoTocar: () => abrirFormNaoControlarConciliacao(fingerprintId) });
@@ -4814,7 +4851,7 @@ function financeiroRenderCabecalho(aba) {
             const sheetLinha = abrirSheetAcoes({ titulo: limparRotuloConciliacao(f.razao_social) || (entrada ? 'Entrada' : 'Saída'), sub, acoes });
             // v1.89.0 (D) — "O que o Raiz leu", no topo do menu
             const corpoSheet = sheetLinha?.querySelector('.rz-sh-b');
-            if (corpoSheet) { corpoSheet.insertAdjacentHTML('afterbegin', conciliacaoCartaoLido(f, sugCache)); conciliacaoPreencherQuemBaixou(corpoSheet); conciliacaoSugerirDocumento(corpoSheet, f, sugCache); } // v1.92.0
+            if (corpoSheet) { corpoSheet.insertAdjacentHTML('afterbegin', conciliacaoCartaoLido(f, sugCache)); conciliacaoPreencherQuemBaixou(corpoSheet); conciliacaoSugerirDocumento(corpoSheet, f, sugCache); conciliacaoPreencherRegraCliente(corpoSheet, f, sugCache); } // v1.92.0 · v1.94.0
         }
 
         // NOVO (v1.179.5) — pedido explícito do Nicola: um resumo de

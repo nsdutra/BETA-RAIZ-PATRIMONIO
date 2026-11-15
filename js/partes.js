@@ -1,7 +1,12 @@
 // ============================================================================
 // partes.js — Raiz Patrimônio · Partes (pessoas do negócio): lista, busca,
 //             ficha, papéis, vínculos, empreendimentos e acesso de sócio
-// Versão: 1.2.0 · 12/11/2026
+// Versão: 1.3.0 · 15/11/2026
+//
+// v1.3.0 (15/11/2026, sessão 20261115-1550-partes-doc, demanda 2a51055a; F3 aprovada pelo Nicola 15/11 15:42) — UM CADASTRO POR
+// CPF/CNPJ. Ao salvar um documento que outra pessoa da empresa já tem (com ou sem máscara), a tela não grava e pergunta
+// "Já existe o cadastro de X" com o botão "Abrir cadastro". O banco também recusa (índice uq_partes_doc_digitos, migration
+// partes_documento_unico_v1). Versão anterior: 1.2.0
 //
 // v1.2.0 (12/11/2026, sessão 20261112-2258-lupa-partes, demanda f6be5483; de acordo do Nicola 12/11 22:58) — a ficha da parte › Vínculos mostra também os contratos que ela
 // administra (fn_vinculos_da_parte v2, papel Administradora). Essas linhas abrem o contrato e não têm ⋮ (não são um
@@ -21,40 +26,12 @@
 // v1.0.1 (demanda 28aa5ce1, sessão 20261003-1707-ux-base) — ligarBuscaPartes não reescreve a barra enquanto a pessoa
 // digita: o termo guardado vem sem espaços nas pontas e, na pausa da digitação, o espaço depois de "Maria " sumia.
 // Só sincroniza a barra quando o termo muda por fora (limpar, outra tela).
-//
-// Versão anterior: 1.0.0 · 10/10/2026
-//
-// v1.0.0 (10/10/2026, sessão 20261010-1425-onda2a-partes, demanda 6b11c602 — Onda 2a da
-// fragmentação, plano aprovado pelo Nicola 09/10 21:15) — 30 telas de Partes saíram do
-// index.html SEM UMA LINHA REESCRITA: cada função veio byte a byte e só ganhou "export".
-//
-// POR QUE AQUI NÃO HÁ INJEÇÃO, diferente do js/nucleo/porta.js: `let` no topo de um
-// <script> clássico entra no escopo léxico global, que um módulo ES alcança como NOME
-// LIVRE — e sempre no valor corrente, porque a resolução é no binding, não numa cópia.
-// Isso não é teoria: o js/financeiro.js já lê `contratos` e chama `arquivoParaBase64()`
-// assim hoje, sem import nenhum. Então dbAuth, CLIENTE_ID_SUPABASE, pessoas, imoveis e as
-// funções do index que ficaram (renderPartes, pendenciasParte, logScreen, mostrarToast…)
-// são usadas aqui como estavam. O porta.js injeta por ter nascido antes desta prova; não
-// vou reescrevê-lo só por isso — está publicado e testado.
-//
-// O QUE FICOU NO INDEX de propósito:
-//  · as 16 funções do domínio que DEVOLVEM VALOR e são síncronas (renderPartes,
-//    pendenciasParte, parteEhPrestador, obterSociosConhecidos, calcularExtratoSocio…).
-//    A ponte é assíncrona: quem faz `const x = pendenciasParte(p)` receberia uma Promise
-//    e quebraria em silêncio. É o mesmo motivo pelo qual montarBoxDivisaoSocietaria não
-//    se mudou — o js/imoveis.js a usa dentro de uma concatenação de innerHTML.
-//  · carregarPartesParaSelectSupabase — tem cache com invalidação dentro do financeiro.js
-//    (demanda 5e737cff, Onda 1b-2).
-//  · obterPessoaIdPorNome — é injetada no js/nucleo/porta.js; tirá-la daqui quebraria
-//    a instalação da porta.
-//  · renderSociosDistribricao e abrirFichaParte — 377 bytes somados, chamadas por módulos;
-//    mover ambas aumentaria a superfície por quase nada.
-//
-// Chamadas de fora chegam pela ponte window[nome] do index (bloco "PARTES"), que é o
-// mesmo rzPonteModulo dos outros módulos R8.
-// ============================================================================
+// --------------------------------------------------------------------------
+// Versões anteriores (v1.0.0 … v1.0.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
+// mais recentes deste cabeçalho (VER-06).
 
-export const VERSAO = '1.2.0';  // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.3.0';  // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 
 // FORMULÁRIO — abrirSheetForm; campos base sempre, campos de
 // prestador aparecem quando o papel escolhido pede (pedido: "a
@@ -193,6 +170,18 @@ export async function salvarParteSheet(el, parteId) {
         const tipoDoc = digitos.length > 11 ? 'CNPJ' : 'CPF';
         if (tipoDoc === 'CPF' && !validarCPF(documento)) { mostrarToast('CPF inválido.', 'danger'); return false; }
         if (tipoDoc === 'CNPJ' && !validarCNPJ(documento)) { mostrarToast('CNPJ inválido.', 'danger'); return false; }
+        // v1.3.0 (F3) — um cadastro por CPF/CNPJ: se outra pessoa da empresa já tem esse documento (com ou sem máscara),
+        // não grava e oferece abrir o cadastro existente (o banco também recusa, índice uq_partes_doc_digitos).
+        try {
+            const { data: comDoc } = await dbAuth.from('partes').select('id, nome, documento')
+                .eq('cliente_id', CLIENTE_ID_SUPABASE).not('documento', 'is', null);
+            const outro = (comDoc || []).find(p => p.id !== parteId && String(p.documento).replace(/\D/g, '') === digitos);
+            if (outro) {
+                if (await rzPerguntar({ titulo: `${tipoDoc} já cadastrado`, impacto: `Já existe o cadastro de ${outro.nome} com este ${tipoDoc}. Cada documento tem um cadastro só.`,
+                    rotuloConfirmar: 'Abrir cadastro', rotuloCancelar: 'Fechar' })) abrirFichaParte(outro.id);
+                return false;
+            }
+        } catch (errDoc) { console.warn('[partes] conferência de documento:', errDoc.message); }
     }
     const tipoPrestador = g('parte-tipo-prestador') || null;
     // v1.240.0 (demanda be42b19f, item 5) — lê o bloco de endereço
@@ -290,7 +279,8 @@ export async function salvarParteSheet(el, parteId) {
         emitirEscritaGlobal('parte', { id: idFinal, acao: parteId ? 'editar' : 'criar', contratoIds: contratoIdsLocatario });
         await carregarPartes();
     } catch (err) {
-        mostrarToast('Não consegui salvar: ' + (err.message || String(err)), 'danger');
+        const docRepetido = err.code === '23505' || /uq_partes_doc/.test(err.message || ''); // v1.3.0 (F3)
+        mostrarToast(docRepetido ? 'Já existe um cadastro com este CPF/CNPJ.' : 'Não consegui salvar: ' + (err.message || String(err)), 'danger');
         return false;
     }
 }
