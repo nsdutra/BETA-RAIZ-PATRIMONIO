@@ -4,7 +4,13 @@
 //                   o estado do app (ativos, contratos, mensalidades, repasses,
 //                   lançamentos, prestadores, pessoas, empreendimentos, tipos,
 //                   minutas, links da vitrine, logs e a vitrine pública)
-// Versão: 1.9.0 · 14/11/2026
+// Versão: 1.10.0 · 15/11/2026
+//
+// v1.10.0 (15/11/2026, sessão 20261115-0840-conciliacao-b, demanda 2a51055a; de acordo do Nicola 15/11 08:38) — ALUGUEL A VENCER
+// DEIXA DE VIRAR "ATRASADO" AO SALVAR. Em memória o app junta pendente e atrasado em "Inadimplente"; ao gravar, "Inadimplente"
+// virava sempre "atrasado" — toda gravação em massa marcava os aluguéis futuros como atrasados (156 corrigidos no banco em 15/11).
+// Agora o status lido do banco fica guardado (statusBanco) e volta igual; aluguel que deixa de estar pago volta como "pendente"
+// (a rotina diária fn_atualizar_mensalidades_vencidas marca atrasado só o que já venceu). Versão anterior: 1.9.0
 //
 // v1.9.0 (14/11/2026, sessão 20261114-1255-crm-f2c-2, demanda 09277cba; CRM F2c entrega 4) — resolverVitrinePublicaSupabase passa
 // adiante o bloco "temporada" de fn_vitrine_publica_obter (regras públicas e calendário só livre/indisponível). Versão anterior: 1.8.0
@@ -26,16 +32,11 @@
 // e talhão com Arrendamento rural: operacao_modelo_tipos de um modelo com acordo 'contrato'), marcadas areaRural: true. É o
 // que deixa o formulário de contrato abrir pela gleba. Quem lista ou conta imóveis (aba Imóveis, Visão geral, limite do
 // plano, alerta de finalidade) ignora as marcadas.
-// Versão anterior: 1.5.0 · 14/10/2026
-//
-// v1.5.0 (14/10/2026, sessão 20261014-0045-usos-fatia2, demanda 3022603b; FICHA_FATIA2_CONTRATOS_POR_TIPO_RAIZ v1.0.0) — o
-// contrato carrega e grava o tipo (contratos.tipo_contrato): o leitor traz modelo e tipoContrato; a escrita manda o tipo
-// do formulário ou, no contrato novo, o escolhido em "Adicionar uso" (window.rzContratoModeloNovo.tipo_contrato).
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.4.0 … v1.4.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.5.0 … v1.5.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '1.9.0';  // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.10.0';  // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 
 // ----------------------------------------------------------------------------
 // Injeção do host (index.html ou cofre.html). Os leitores abaixo usam estes
@@ -477,6 +478,7 @@ export async function carregarMensalidadesSupabase() {
             contratoId: row.contrato_id || '',
             referencia: dataParaCompetencia(row.competencia),
             status: mapStatusMensalidadeSupabaseParaAntigo(row.status),
+            statusBanco: row.status, // v1.10.0 — pendente × atrasado, que "Inadimplente" junta em memória
             banco: row.banco || '-',
             dataPgto: converterDataISOparaBR(row.data_pgto),
             observacao: row.observacao || '',
@@ -1115,12 +1117,21 @@ export async function sincronizarContratosSupabase(lista) {
     return sincronizarListaComResiliencia(lista, sincronizarContratoSupabase, 'contrato');
 }
 
+// v1.10.0 — "Inadimplente" (memória) volta ao que o banco tinha (pendente ou atrasado); se antes era pago/isento ou é
+// novo, grava "pendente" e deixa a rotina diária marcar "atrasado" só depois do vencimento.
+function statusMensalidadeParaGravar(men) {
+    if (men.status === 'Inadimplente') {
+        return (men.statusBanco === 'pendente' || men.statusBanco === 'atrasado') ? men.statusBanco : 'pendente';
+    }
+    return mapStatusMensalidadeAntigoParaSupabase(men.status);
+}
+
 export async function sincronizarMensalidadeSupabase(men) {
     const linha = {
         cliente_id: CLIENTE_ID_SUPABASE,
         contrato_id: /^[0-9a-f]{8}-/i.test(men.contratoId || '') ? men.contratoId : null,
         competencia: competenciaParaData(men.referencia),
-        status: mapStatusMensalidadeAntigoParaSupabase(men.status),
+        status: statusMensalidadeParaGravar(men), // v1.10.0 — não transforma "a vencer" em "atrasado"
         banco: men.banco || null,
         data_pgto: converterDataBRparaISO(men.dataPgto),
         observacao: men.observacao || null,

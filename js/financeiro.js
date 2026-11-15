@@ -1,7 +1,14 @@
 // ============================================================================
 // financeiro.js — Raiz Patrimônio · Financeiro (Recebimentos · Atrasados · Saídas
 //                  · conciliação de extrato · recibo · detalhe do recebimento)
-// Versão: 1.87.0 · 15/11/2026
+// Versão: 1.88.0 · 15/11/2026
+//
+// v1.88.0 (15/11/2026, sessão 20261115-0840-conciliacao-b, demanda 2a51055a; de acordo do Nicola 15/11 08:38, item C "queria incluir
+// a linha do extrato que foi lida") — A LINHA SUGERIDA DA CONCILIAÇÃO MOSTRA O QUE FOI LIDO. Em vez de só "Parece: Contrato
+// ident…", três linhas: (1) o extrato — data, CPF/CNPJ formatado e o histórico do banco; (2) o contrato lido — locatário, bem,
+// aluguel e dia de vencimento; (3) a leitura do motor (ex.: "10/2026 já está pago por outra baixa…"). O motor passa a mandar a
+// cobrança do mês lido também na sugestão R05 (migration conciliacao_mes_vizinho_v1), para a linha achar o contrato.
+// Versão anterior: 1.87.0
 //
 // v1.87.0 (15/11/2026, sessão 20261115-0030-conciliacao, demanda 2a51055a; de acordo do Nicola 15/11 00:26) — CONCILIAÇÃO
 // MAIS CERTEIRA E SEM TELA PARADA. (P0) Estornar recebimento e salvar a observação do recibo gravam só aquele aluguel (antes
@@ -34,15 +41,11 @@
 // perfis e planos de importar). Mostra quantas linhas pendentes do mês (e da conta filtrada) saem e quantas ficam, pede
 // confirmação e apaga só as pendentes sem vínculo (fn_extrato_descartar_pendentes). Serve para importar de novo um extrato
 // mais completo (ex.: com CPF/CNPJ). Versão anterior: 1.83.0
-//
-// v1.83.0 (11/11/2026, sessão 20261111-2330-agro-receita-safra, demanda 3cd0817a; de acordo do Nicola 11/11 23:30) — DESTINO
-// TAMBÉM NA RECEITA: em Outras receitas, o ⋮ de uma receita ligada a um ativo ganha "Destino" (safra, fase, obra ou item),
-// o mesmo da despesa (fn_lancamento_destinar). A receita passa a contar no "recebido" da safra. Versão anterior: 1.82.0
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.82.0 … v1.82.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.83.0 … v1.83.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '1.87.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.88.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 
 // v1.17.0 (Fase 1 do wrapper de escrita, rollout Financeiro) — emitirEscrita
 // é o evento padrão pra "algo mudou que módulos DE FORA deste arquivo podem
@@ -3867,7 +3870,7 @@ function financeiroRenderCabecalho(aba) {
                 const inicioMes = `${ano}-${String(mes).padStart(2, '0')}-01`;
                 const fimMes = `${mes === 12 ? ano + 1 : ano}-${String(mes === 12 ? 1 : mes + 1).padStart(2, '0')}-01`;
                 const { data, error } = await dbAuth.from('extrato_fingerprints')
-                    .select('id, data, valor, direcao, razao_social, documento_original, status_conciliacao, destino_tipo, destino_id, observacao_usuario, chave, regra_codigo')
+                    .select('id, data, valor, direcao, razao_social, documento_original, descricao_original, status_conciliacao, destino_tipo, destino_id, observacao_usuario, chave, regra_codigo')
                     .eq('cliente_id', CLIENTE_ID_SUPABASE)
                     .in('status_conciliacao', ['pendente', 'nao_controlado'])
                     .gte('data', inicioMes).lt('data', fimMes)
@@ -4086,7 +4089,7 @@ function financeiroRenderCabecalho(aba) {
                 const semConfianca = confPct < 70 ? 'warn' : 'ia';
                 return `<div class="rz-row rz-link" data-conc="${f.id}" onclick="abrirAcoesConciliacaoLinha('${f.id}')">
                     <div class="rz-ic rz-${semConfianca}"><svg data-lucide="sparkles"></svg></div>
-                    <div class="rz-tx"><b>${escapeHtmlSaidas(limparRotuloConciliacao(f.razao_social))}</b><span>Parece: ${escapeHtmlSaidas(sug.detalhe || nomeRegraConc(sug.regra_codigo))}${conciliacaoAtivoDaSugestao(sug) ? ' · ' + escapeHtmlSaidas(conciliacaoAtivoDaSugestao(sug)) : ''}</span></div>
+                    <div class="rz-tx"><b>${escapeHtmlSaidas(limparRotuloConciliacao(f.razao_social))}</b>${conciliacaoLinhasLidas(f, sug)}</div>
                     <div class="rz-rt">${valorSpan}<span class="rz-ia-tag"><svg data-lucide="sparkles"></svg>${confPct}%</span></div>
                     <svg data-lucide="ellipsis-vertical" class="rz-chev"></svg>
                 </div>`;
@@ -4113,6 +4116,32 @@ function financeiroRenderCabecalho(aba) {
         // "Conciliação do período" saiu (ver index.html) — quem resume agora
         // são os 4 KPIs do chip Fechamento (fin-kpi-fech-*, js/fechamento.js
         // fechamentoAtualizarKpis), nunca somados aqui no cliente.
+        // v1.88.0 (item C) — o que foi lido, em até 3 linhas: extrato (data · CPF/CNPJ · histórico), contrato (locatário · bem ·
+        // aluguel · dia) quando a sugestão aponta para um aluguel, e a leitura do motor. Cada <span> já é uma linha com reticências.
+        function conciliacaoLinhasLidas(f, sug) {
+            const esc = escapeHtmlSaidas;
+            const dig = String(f.documento_original || '').replace(/\D/g, '');
+            const doc = dig.length === 14 ? dig.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})$/, '$1.$2.$3/$4-$5')
+                : dig.length === 11 ? dig.replace(/^(\d{3})(\d{3})(\d{3})(\d{2})$/, '$1.$2.$3-$4') : '';
+            const hist = String(f.descricao_original || '').trim();
+            const extrato = ['Extrato ' + formatarDataBR(f.data), doc ? (dig.length === 14 ? 'CNPJ ' : 'CPF ') + doc : '', hist].filter(Boolean).join(' · ');
+            let contrato = '';
+            if (sug?.destino_tipo === 'mensalidade' && sug.destino_id) {
+                const m = mensalidades.find(x => x.id === sug.destino_id);
+                const con = m ? contratos.find(c => c.id === m.contratoId) : null;
+                if (con) {
+                    const bem = conciliacaoAtivoDaSugestao(sug);
+                    contrato = ['Contrato: ' + (con.locatario || '—'), bem, 'R$ ' + fmtBR(Number(con.valor) || 0),
+                        con.vencimentoDia ? 'dia ' + con.vencimentoDia : ''].filter(Boolean).join(' · ');
+                }
+            } else {
+                const bem = conciliacaoAtivoDaSugestao(sug);
+                if (bem) contrato = bem;
+            }
+            const leitura = sug ? (sug.detalhe || nomeRegraConc(sug.regra_codigo)) : '';
+            return `<span>${esc(extrato)}</span>${contrato ? `<span>${esc(contrato)}</span>` : ''}${leitura ? `<span>Parece: ${esc(leitura)}</span>` : ''}`;
+        }
+
         // v1.38.0 — ativo do destino sugerido (despesa prevista ou recebimento do contrato), para "Parece: … · ativo"
         function conciliacaoAtivoDaSugestao(sug) {
             if (!sug?.destino_id) return '';
