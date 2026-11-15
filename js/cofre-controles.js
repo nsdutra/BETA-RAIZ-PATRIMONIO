@@ -1,6 +1,11 @@
 // ============================================================================
 // cofre-controles.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.73.0 · 11/11/2026
+// Versão: 1.74.0 · 15/11/2026
+//
+// v1.74.0 (15/11/2026, sessão 20261114-2342-investimentos-patrimonio, demanda fd3898f7; de acordo do Nicola 15/11 16:39) —
+// nova criarItemParcelado(): item de despesa em parcelas mensais criado por outra tela (o financiamento do bem, no card
+// "Valor do bem"), pelo mesmo caminho do formulário — item, histórico, ocorrências do horizonte até a data da última
+// parcela, log e evento. Nenhuma mudança no formulário. Versão anterior: 1.73.0
 //
 // v1.73.0 (11/11/2026, sessão 20261111-2330-agro-receita-safra, demanda 3cd0817a; de acordo do Nicola 11/11 23:30) — "Ver a
 //   safra" mostra também o recebido (receitas com destino na safra, nas fases ou nos itens dela — fn_execucao_detalhe) e o
@@ -18,17 +23,11 @@
 // Versão anterior: 1.71.0 · 23/10/2026
 //
 // v1.71.0 (23/10/2026, sessão 20261023-0915-computador-c6, demanda 15146a34; PROTOTIPO_COMPUTADOR_RAIZ v1.1.0 §11, de acordo do Nicola 23/10 08:51) — C6 · escala de letras: 8 tamanhos de letra escritos em número (font-size:13px etc.) trocados pelos da escala (--fs-mini 11 · --fs-sec 12,5 · --fs-corpo 14 · --fs-titulo 17; 16 px fica, por causa do zoom do iPhone em campo, e 18 px ou mais também — herói e números grandes). Nada muda de lugar; só o tamanho passa a ser o mesmo em todas as telas.
-// Versão anterior: 1.70.0 · 23/10/2026
-//
-// v1.70.0 (23/10/2026, sessão 20261023-0831-controles-linha, demanda f8c764fd; de acordo do Nicola 23/10 08:31) — SÓ A DATA
-//   EM TODOS OS GRUPOS: documento e seguro com fim ficam "Válido até dd/mm/aaaa", sem o "· em conjunto" (as pessoas estão
-//   dentro do item); itens que se repetem (conta, taxa, tributo, manutenção, rotina, despesa) mostram só a data do próximo
-//   vencimento em aberto, como os eventos; sem vencimento em aberto, o nome do tipo.
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.69.0 … v1.69.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.70.0 … v1.70.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '1.73.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.74.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 import { estado } from './cofre-estado.js';
 import * as api from './cofre-api.js';
 import { mostrarToast, refrescarIcones, abrirModal, fecharModal, modalGenerico, perguntar, escolher, avisarComDesfazer } from './cofre-ui.js';
@@ -3338,6 +3337,32 @@ export async function salvarItemControle() {
 // v1.18.0 (A.13) — item de controle nascido de um documento (upload com
 // confirmação). Mesmo pipeline de salvarItemControle(), sem depender do
 // formulário nem de estado.ativoEmFoco. Devolve o item criado.
+// Item de despesa em parcelas mensais criado por outra tela (financiamento do bem, dem fd3898f7). Mesmo caminho do
+// formulário: item + histórico + ocorrências do horizonte. Parcela já vencida não entra (foi paga fora do Raiz); a rotina
+// do banco segue gerando até data_fim.
+export async function criarItemParcelado(p) {
+    if (!p.ativoId) throw new Error('Item precisa de um ativo.');
+    if (!p.titulo || !p.dataBase || !p.dataFim || !(p.valorParcela > 0)) throw new Error('Informe o valor da parcela, as parcelas e o 1º vencimento.');
+    const item = await api.criarItemControle({
+        cliente_id: estado.clienteId, ativo_id: p.ativoId, tipo: p.tipo || 'despesa', subtipo_id: p.subtipoId || null, titulo: p.titulo,
+        recorrente: true, frequencia_intervalo: 1, frequencia_unidade: 'mes',
+        data_base: p.dataBase, data_fim: p.dataFim, direcao_alerta: 'inicio',
+        alerta_ativo: true, antecedencia_alerta_dias: p.antecedencia ?? 7,
+        valor_previsto: p.valorParcela, parcelas: 1, parcela_intervalo_dias: 30,
+        gerar_desde_inicio: false, origem: 'manual', criado_por: estado.pessoa.id,
+    });
+    await api.registrarHistoricoItemControle({ item_id: item.id, acao: 'criar', antes: null, depois: item, pessoa_id: estado.pessoa.id, origem: 'app' });
+    const payloads = gerarOcorrenciasHorizonte(item, p.dataBase, 1, 'mes', false).filter(o => o.data_prevista_original <= p.dataFim);
+    if (payloads.length) await api.criarOcorrenciasControleBatch(payloads);
+    await api.registrarLogAcessos(estado.clienteId, estado.pessoa.id, 'cofre.controles.criar', { ativoId: p.ativoId, itemId: item.id, ocorrenciasGeradas: payloads.length, origem: 'parcelado' });
+    if (estado.ativoEmFoco && p.ativoId === estado.ativoEmFoco.id) {
+        try { itensDoAtivoAtual = await api.listarItensControleAtivo(p.ativoId); renderizarListaControles(); } catch (e) { /* lista atualiza ao reabrir */ }
+    }
+    window.dispatchEvent(new CustomEvent('cofre:recarregar-eventos'));
+    emitirEscrita('controle', { id: item.id, acao: 'criar-parcelado' });
+    return { item, ocorrencias: payloads.length };
+}
+
 export async function criarItemControleDeDocumento(p) {
     if (!p.ativoId && !p.contratoId) throw new Error('Item de controle precisa de um ativo ou contrato.');
     if (!p.titulo) throw new Error('Informe o título do controle.');

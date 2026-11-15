@@ -1,6 +1,11 @@
 // ============================================================================
 // cofre-ativos.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.159.0 · 15/11/2026
+// Versão: 1.160.0 · 15/11/2026
+//
+// v1.160.0 (15/11/2026, sessão 20261114-2342-investimentos-patrimonio, demanda fd3898f7; de acordo do Nicola 15/11 16:39) —
+// ⋮ do card "Valor do bem" ganha "Registrar financiamento": credor, valor da parcela, parcelas e 1º vencimento viram um item
+// de controle "Parcela do financiamento" (subtipo de catálogo, saída em Amortização de financiamento) pela
+// criarItemParcelado() de cofre-controles.js. Versão anterior: 1.159.0
 //
 // v1.159.0 (15/11/2026, sessão 20261115-1630-comercial-r2, demanda 285a0058; plano R2 aprovado pelo Nicola 15/11 16:30) —
 // "Adicionar uso" agrupado por ramo (Contratos · <ramo>, Sem contrato). Tipo de ramo não contratado aparece com cadeado e abre
@@ -18,15 +23,11 @@
 //
 // v1.157.0 (14/11/2026, sessão 20261114-0830-ficha-receita, demanda 285a0058) — dica da finalidade: "contam como Renda; o resto, e o
 // vazio, como Uso próprio" (os nomes do seletor de uso; Comercial passa a ser o nome do ramo). Versão anterior: 1.156.0
-//
-// v1.156.0 (14/11/2026, sessão 20261114-1415-crm-f3-1; FICHA_CRM_AGENDA_OCUPACAO_RAIZ v1.2.0 F3) — card "Pedidos e interessados" no
-// chip Usos e contratos, logo depois do Calendário: módulo ativo-interessados.js (pré-reservas aguardando, interessados com a
-// etapa da esteira, ficha com próximo passo e comunicações). Versão anterior: 1.155.0
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.155.0 … v1.155.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.156.0 … v1.156.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '1.159.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.160.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 import { estado } from './cofre-estado.js';
 import { rzCalendario, rzCalItemDaAgenda } from './nucleo/calendario.js'; // v1.152.0 — calendário único (DS §6.3)
 import { carregarBiblioteca } from './nucleo/bibliotecas.js'; // bibliotecas pesadas, sob demanda (dem 6b11c602)
@@ -38,7 +39,7 @@ import {
     rotuloTipoAtivo, iconeAtivo, validarCamposAtivo,
     obterCamposPorTipo, listarTiposPorCategoria, inicializarCatalogoTiposAtivo, tipoDoCatalogo, categoriasDoRamo, blocosDoFormulario,
     tiposDoCatalogo as _catalogoAtivoTiposLista, iconeDoAtivo, iconeHtmlDoAtivo } from './cofre-validacoes.js';
-import { montarControlesAtivo, aplicarMotorNoChipControles, reiniciarChipControlesDoMotor } from './cofre-controles.js';
+import { montarControlesAtivo, aplicarMotorNoChipControles, reiniciarChipControlesDoMotor, criarItemParcelado } from './cofre-controles.js';
 // E6.2 — retorno usado de forma síncrona em salvarAtivo/salvarEdicaoAtivo
 // (lerBlocoEndereco), por isso import estático (ver nota em technical-
 // learnings: bridge window[nome] só serve fire-and-forget).
@@ -475,10 +476,51 @@ async function montarValorDoBem(a) {
         titulo: 'Valor do bem', sub: a.nome_exibicao,
         acoes: [{ icone: 'receipt', titulo: compra ? 'Corrigir compra' : 'Informar compra', codigo: 'cofre.editar', sub: 'Valor e data da compra',
             aoTocar: () => abrirFormCompra(a, compra) },
+            { icone: 'landmark', titulo: 'Registrar financiamento', codigo: 'cofre.controles.criar', sub: 'Parcelas no Controles',
+            aoTocar: () => abrirFormFinanciamento(a) },
             { icone: 'pencil', titulo: 'Editar dados', codigo: 'cofre.editar', sub: 'Valor de referência e mais',
             aoTocar: () => { faTrocarAba('resumo'); alternarEditarAtivo(); } }],
     }));
     refrescarIcones?.();
+}
+
+// Financiamento do bem: vira um item de controle com parcelas mensais (subtipo parcela_financiamento → Amortização).
+// A compra continua sendo o investimento; a parcela é financiamento e os juros, se separados, são operação.
+const somarMesesIso = (iso, m) => {
+    const [y, mo, d] = iso.split('-').map(Number);
+    const dt = new Date(Date.UTC(y, mo - 1 + m, 1));
+    const ultimo = new Date(Date.UTC(dt.getUTCFullYear(), dt.getUTCMonth() + 1, 0)).getUTCDate();
+    dt.setUTCDate(Math.min(d, ultimo));
+    return dt.toISOString().slice(0, 10);
+};
+function abrirFormFinanciamento(a) {
+    if (typeof window.abrirSheetForm !== 'function') { mostrarToast('Abra pelo app principal.', 'erro'); return; }
+    window.abrirSheetForm({
+        titulo: 'Registrar financiamento', sub: a.nome_exibicao, rotuloSalvar: 'Registrar',
+        corpo: `<p class="rz-desc" style="margin:0 0 8px">As parcelas entram nos Controles do bem e viram saídas de amortização. Parcela já vencida não entra.</p>
+            <div class="rz-f"><label for="fa-fin-credor">Banco ou credor <small>(opcional)</small></label><input type="text" id="fa-fin-credor" maxlength="60" placeholder="Ex.: Banco do Brasil"></div>
+            <div class="rz-f"><label for="fa-fin-valor">Valor da parcela (R$)</label><input type="number" step="0.01" min="0" inputmode="decimal" id="fa-fin-valor"></div>
+            <div class="rz-f"><label for="fa-fin-n">Número de parcelas</label><input type="number" min="1" max="480" step="1" inputmode="numeric" id="fa-fin-n"></div>
+            <div class="rz-f" style="margin-bottom:0"><label for="fa-fin-data">1º vencimento</label><input type="date" id="fa-fin-data">
+            <span class="rz-hint">Os juros, se quiser separar, você divide no lançamento ao pagar.</span></div>`,
+        aoSalvar: async () => {
+            const valor = parseFloat(document.getElementById('fa-fin-valor')?.value);
+            const n = parseInt(document.getElementById('fa-fin-n')?.value, 10);
+            const data = document.getElementById('fa-fin-data')?.value || '';
+            const credor = (document.getElementById('fa-fin-credor')?.value || '').trim();
+            if (!(valor > 0) || !(n >= 1 && n <= 480) || !data) { mostrarToast('Informe valor, parcelas e 1º vencimento.', 'erro'); return false; }
+            const ultima = somarMesesIso(data, n - 1);
+            if (ultima < hojeLocalUso()) { mostrarToast('Todas as parcelas já venceram.', 'erro'); return false; }
+            const { data: st, error: eSt } = await api.dbAuth.from('cofre_controle_subtipos').select('id').eq('codigo', 'parcela_financiamento').is('cliente_id', null).maybeSingle();
+            if (eSt || !st) { mostrarToast('Catálogo de financiamento indisponível.', 'erro'); return false; }
+            try {
+                const nomeItem = credor ? `Parcela do financiamento — ${credor}` : 'Parcela do financiamento';
+                const r = await criarItemParcelado({ ativoId: a.id, subtipoId: st.id, valorParcela: valor, dataBase: data, dataFim: ultima, titulo: nomeItem });
+                mostrarToast(`Financiamento registrado até ${formatarDataBR(ultima)}`, 'sucesso');
+                return !!r;
+            } catch (err) { mostrarToast(err.message || 'Não foi possível registrar.', 'erro'); return false; }
+        },
+    });
 }
 
 function abrirFormCompra(a, compra) {
