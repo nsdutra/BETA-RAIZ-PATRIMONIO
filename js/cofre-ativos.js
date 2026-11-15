@@ -1,6 +1,10 @@
 // ============================================================================
 // cofre-ativos.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.158.1 · 15/11/2026
+// Versão: 1.159.0 · 15/11/2026
+//
+// v1.159.0 (15/11/2026, sessão 20261115-1630-comercial-r2, demanda 285a0058; plano R2 aprovado pelo Nicola 15/11 16:30) —
+// "Adicionar uso" agrupado por ramo (Contratos · <ramo>, Sem contrato). Tipo de ramo não contratado aparece com cadeado e abre
+// a oferta do ramo (Falar com a Raiz); os tipos do Comercial aparecem em ativo de qualquer ramo. Versão anterior: 1.158.1
 //
 // v1.158.1 (15/11/2026, sessão 20261114-2342-investimentos-patrimonio, demanda fd3898f7; pedido do Nicola 15/11 14:55: "no card
 // novo valor, incluir editar dados também") — o ⋮ do card "Valor do bem" ganha "Editar dados", a mesma edição do card Dados.
@@ -18,15 +22,11 @@
 // v1.156.0 (14/11/2026, sessão 20261114-1415-crm-f3-1; FICHA_CRM_AGENDA_OCUPACAO_RAIZ v1.2.0 F3) — card "Pedidos e interessados" no
 // chip Usos e contratos, logo depois do Calendário: módulo ativo-interessados.js (pré-reservas aguardando, interessados com a
 // etapa da esteira, ficha com próximo passo e comunicações). Versão anterior: 1.155.0
-//
-// v1.155.0 (14/11/2026, sessão 20261114-1115-crm-f2b-2b; FICHA_DISPONIBILIDADE_SALVAR_RAIZ v1.0.0, de acordo do Nicola 14/11 11:12)
-// — ⋮ do uso ganha "Disponibilidade" nos modelos com agenda (temporada, short stay, cowork, atendimento): abre a tela do módulo
-// ativo-disponibilidade.js, que grava por fn_ativo_disponibilidade_salvar. O ⋮ passa a aparecer nesses usos mesmo sem outra ação.
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.154.0 … v1.154.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.155.0 … v1.155.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '1.158.1'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.159.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 import { estado } from './cofre-estado.js';
 import { rzCalendario, rzCalItemDaAgenda } from './nucleo/calendario.js'; // v1.152.0 — calendário único (DS §6.3)
 import { carregarBiblioteca } from './nucleo/bibliotecas.js'; // bibliotecas pesadas, sob demanda (dem 6b11c602)
@@ -3140,7 +3140,8 @@ export async function abrirAdicionarModeloAtivo() {
                 const lente = ramoDaLente();
                 return ligado && (lente === 'tudo' ? (licenciados.includes(m.ramo) || m.ramo === ramoAtivo) : m.ramo === lente);
             }
-            return permite.has(m.codigo) || (!tipo && m.codigo === 'aluguel');
+            // Os modelos do Comercial valem para ativo de qualquer ramo (D12, dem 285a0058): vender é transversal.
+            return permite.has(m.codigo) || (!tipo && m.codigo === 'aluguel') || m.ramo === 'comercial';
         });
         lista = lista.map(m => ({ ...m, livre: m.status === 'ativo' && (m.universal || licenciados.includes(m.ramo)) }));
     } catch (e) { console.warn('[cofre-ativos] modelos:', e?.message || e); }
@@ -3155,39 +3156,66 @@ export async function abrirAdicionarModeloAtivo() {
         if (!tps.length) { porTipo.push({ m, t: null }); return; }
         tps.forEach(t => porTipo.push({ m, t }));
     });
-    sheetOuAviso({ titulo: 'Adicionar uso', sub: a.nome_exibicao, acoes: [
-        ...porTipo.filter(x => x.t).map(({ m, t }) => {
-            const livre = m.livre && t.status === 'ativo';
-            return { icone: m.acordo === 'reserva' ? 'calendar-days' : 'file-text', codigo: 'contratos.criar',
-                titulo: t.nome + (livre ? '' : ' · em breve'),
-                sub: livre ? (t.descricao || m.nome) : (t.status !== 'ativo' || m.status !== 'ativo' ? 'Chega em breve' : `Ramo ${nomeRamo(m.ramo)} não contratado`),
-                aoTocar: () => {
-                    if (!livre) { mostrarToast(t.status !== 'ativo' || m.status !== 'ativo' ? 'Este tipo de contrato chega em breve.' : `O ramo ${nomeRamo(m.ramo)} não está contratado.`, 'aviso'); return; }
-                    window.rzContratoModeloNovo = { ativo_id: a.id, modelo: m.codigo, nome: t.nome, tipo_contrato: t.codigo, ate: Date.now() + 30 * 60 * 1000 };
-                    abrirEscolhaNovoContratoDoAtivo();
-                } };
-        }),
-        ...porTipo.filter(x => !x.t).map(({ m }) => m).map(m => ({
-            icone: m.acordo === 'reserva' ? 'calendar-days' : 'file-text', codigo: 'contratos.criar',
-            titulo: 'Contrato de ' + m.nome.toLowerCase() + (m.livre ? '' : ' · em breve'),
-            sub: m.livre ? (m.descricao || nomeRamo(m.ramo)) : (m.status !== 'ativo' ? 'Chega em breve' : `Ramo ${nomeRamo(m.ramo)} não contratado`),
+    // Tipos de contrato agrupados por ramo. Ramo ativo e não contratado = cadeado e oferta do ramo (ACE-04: nunca some);
+    // "em breve" continua com o aviso de sempre. Armadilha: o cadeado não vem do catálogo de funcionalidades (o código é
+    // contratos.criar, que está liberado), por isso o rz-off é posto depois de abrir, pelo índice data-rz-i.
+    const emBreve = (m, t) => m.status !== 'ativo' || (t && t.status !== 'ativo');
+    const travado = (m, t) => !m.livre && !emBreve(m, t);
+    const itemContrato = (m, t) => {
+        const livre = m.livre && !emBreve(m, t);
+        const nome = t ? t.nome : 'Contrato de ' + m.nome.toLowerCase();
+        if (travado(m, t)) return { icone: 'lock', codigo: 'contratos.criar', titulo: nome, sub: `Faz parte do Raiz ${nomeRamo(m.ramo)}`, travado: true,
+            aoTocar: () => abrirOfertaRamo(m.ramo) };
+        return { icone: m.acordo === 'reserva' ? 'calendar-days' : 'file-text', codigo: 'contratos.criar',
+            titulo: nome + (livre ? '' : ' · em breve'),
+            sub: livre ? ((t && t.descricao) || m.descricao || m.nome) : 'Chega em breve',
             aoTocar: () => {
-                if (!m.livre) { mostrarToast(m.status !== 'ativo' ? 'Este modelo chega em breve.' : `O ramo ${nomeRamo(m.ramo)} não está contratado.`, 'aviso'); return; }
-                window.rzContratoModeloNovo = { ativo_id: a.id, modelo: m.codigo, nome: m.nome, ate: Date.now() + 30 * 60 * 1000 };
+                if (!livre) { mostrarToast(t ? 'Este tipo de contrato chega em breve.' : 'Este modelo chega em breve.', 'aviso'); return; }
+                window.rzContratoModeloNovo = t
+                    ? { ativo_id: a.id, modelo: m.codigo, nome: t.nome, tipo_contrato: t.codigo, ate: Date.now() + 30 * 60 * 1000 }
+                    : { ativo_id: a.id, modelo: m.codigo, nome: m.nome, ate: Date.now() + 30 * 60 * 1000 };
                 abrirEscolhaNovoContratoDoAtivo();
-            },
-        })),
-        ...livres.map(m => ({
-            icone: m.codigo === 'revenda' ? 'tag' : m.acordo === 'safra' ? 'sprout' : m.acordo === 'lote' ? 'beef' : m.ramo === 'obras' ? 'hard-hat' : 'user-check', codigo: 'ativos.usos.iniciar',
-            titulo: m.nome + (m.livre ? '' : ' · em breve'),
-            sub: m.livre ? (m.descricao || 'Sem contrato: só o período de uso') : 'Chega em breve',
-            aoTocar: () => {
-                if (!m.livre) { mostrarToast('Este modelo chega em breve.', 'aviso'); return; }
-                if (PLANO_MODELOS[m.codigo]) { abrirPlanoPagamentoNovo(a, m); return; } // dem 83968339 — tela única do plano
-                abrirIniciarUsoAtivo(a, m);
-            },
-        })),
-    ] });
+            } };
+    };
+    const ordemRamo = r => (r === ramoAtivo ? 0 : r === 'comercial' ? 1 : 2);
+    const ramosDosContratos = [...new Set(porTipo.map(x => x.m.ramo))].sort((x, y) => ordemRamo(x) - ordemRamo(y));
+    const grupos = ramosDosContratos.map(r => ({ titulo: `Contratos · ${nomeRamo(r)}`,
+        acoes: porTipo.filter(x => x.m.ramo === r).map(({ m, t }) => itemContrato(m, t)) }));
+    if (livres.length) grupos.push({ titulo: 'Sem contrato', acoes: livres.map(m => ({
+        icone: m.codigo === 'revenda' ? 'tag' : m.acordo === 'safra' ? 'sprout' : m.acordo === 'lote' ? 'beef' : m.ramo === 'obras' ? 'hard-hat' : 'user-check', codigo: 'ativos.usos.iniciar',
+        titulo: m.nome + (m.livre ? '' : ' · em breve'),
+        sub: m.livre ? (m.descricao || 'Sem contrato: só o período de uso') : 'Chega em breve',
+        aoTocar: () => {
+            if (!m.livre) { mostrarToast('Este modelo chega em breve.', 'aviso'); return; }
+            if (PLANO_MODELOS[m.codigo]) { abrirPlanoPagamentoNovo(a, m); return; } // dem 83968339 — tela única do plano
+            abrirIniciarUsoAtivo(a, m);
+        },
+    })) });
+    if (typeof window.abrirSheetAcoes !== 'function') { sheetOuAviso({ titulo: 'Adicionar uso', acoes: [] }); return; }
+    const sh = window.abrirSheetAcoes({ titulo: 'Adicionar uso', sub: a.nome_exibicao, grupos });
+    const planas = grupos.flatMap(g => g.acoes);
+    planas.forEach((x, i) => { if (x.travado) sh?.querySelector(`[data-rz-i="${i}"]`)?.classList.add('rz-off'); });
+}
+
+// Oferta do ramo não contratado: o que o ramo faz (ativo_ramos.descricao) e o caminho para falar com a Raiz. Sem preço:
+// o preço por ramo ainda não existe no catálogo de planos.
+async function abrirOfertaRamo(ramo) {
+    if (typeof window.abrirSheetForm !== 'function') { mostrarToast('Abra pelo app principal.', 'erro'); return; }
+    let info = null;
+    try { info = (await api.dbAuth.from('ativo_ramos').select('nome, descricao').eq('codigo', ramo).maybeSingle()).data; } catch (e) { info = null; }
+    const nome = info?.nome || (typeof window.rzNomeRamo === 'function' ? window.rzNomeRamo(ramo) : ramo);
+    const texto = `Olá! Quero conhecer o Raiz ${nome}.`;
+    window.abrirSheetForm({ titulo: `Raiz ${nome}`, sub: 'Ramo fora do seu plano', semRodape: true, empilhar: true,
+        corpo: `<p class="text-sm" style="margin:0">${escapeHtml(info?.descricao || '')}</p>
+            <p class="rz-sub" style="margin:10px 0 0">O valor e a forma de incluir no seu plano a gente combina com você.</p>
+            <div style="display:flex;flex-direction:column;gap:6px;margin-top:16px">
+                <button type="button" class="rz-btn rz-btn-1" id="fa-oferta-ramo-falar">Falar com a Raiz</button>
+                <button type="button" class="rz-btn rz-btn-3" onclick="fecharSheet()">Agora não</button></div>` });
+    document.getElementById('fa-oferta-ramo-falar')?.addEventListener('click', () => {
+        if (typeof window.rzDev === 'function') window.rzDev('whatsapp', '5511947461828', texto);
+        else window.open('https://wa.me/5511947461828?text=' + encodeURIComponent(texto), '_blank', 'noopener');
+        if (typeof window.fecharSheet === 'function') window.fecharSheet();
+    });
 }
 
 // v1.97.0 (usos fatia 0) — uso sem contrato (Uso próprio, Uso férias, Guardado…): período e observação. A regra mora no

@@ -1,6 +1,9 @@
 /* ============================================================================
    raiz.css — Raiz Patrimônio · estilos do app (index.html)
-   Versão: 1.24.0 · 14/11/2026
+   Versão: 1.25.0 · 15/11/2026
+
+   v1.25.0 (15/11/2026, sessão 20261115-1630-comercial-r2, demanda 285a0058; tom B coral, Nicola 14/11 19:28) — tons do ramo
+   Comercial (hdr #5c2418 · acc #c2553a · txt #a8462f · txt-esc #f2b4a3 · papel #f9f0ed) e --ramo-cor-comercial. Versão anterior: 1.24.0
 
    v1.24.0 (14/11/2026, sessão 20261114-1045-crm-f2b-2; Nicola 14/11 08:39 "calendário A") — dia do calendário com tom translúcido
    (5% da cor do texto) no lugar de --tile: funciona no cinza da Agenda e no branco do card. Versão anterior: 1.23.0
@@ -574,7 +577,7 @@
            --ramo-cor-* = cor de identificação (pontos, barras, faixas). Papel de cada ramo só no tema claro. */
         :root{--ramo-hdr:var(--pine);--ramo-acc:var(--sprout);--ramo-txt:#2f6a51;--ramo-txt-esc:#9fc3ae;
               --ramo-cor-obras:#b07a2a;--ramo-cor-geral:#8b918e; /* v1.430.0 (fatia 8) — Obras e a linha Geral · sem ativo */
-              --ramo-cor-imoveis:#3c4f9a;--ramo-cor-familia:#7e6596;--ramo-cor-outros:#5d636b;--ramo-cor-agro:#7a8f3c;--ramo-cor-pecuaria:#966040;--ramo-cor-varejo:#944272;--ramo-cor-investimentos:#38949f}
+              --ramo-cor-imoveis:#3c4f9a;--ramo-cor-familia:#7e6596;--ramo-cor-outros:#5d636b;--ramo-cor-agro:#7a8f3c;--ramo-cor-pecuaria:#966040;--ramo-cor-varejo:#944272;--ramo-cor-investimentos:#38949f;--ramo-cor-comercial:#c2553a}
         :root[data-ramo="imoveis"]{--ramo-hdr:#1f2951;--ramo-acc:#3c4f9a;--ramo-txt:#3c4f9a;--ramo-txt-esc:#aab6e6}
         :root[data-ramo="familia"]{--ramo-hdr:#4f3b5c;--ramo-acc:#7e6596;--ramo-txt:#6c5384;--ramo-txt-esc:#c9b6dc}
         :root[data-ramo="outros"]{--ramo-hdr:#35383b;--ramo-acc:#5d636b;--ramo-txt:#5d636b;--ramo-txt-esc:#c3c7cc}
@@ -583,6 +586,7 @@
         :root[data-ramo="pecuaria"]{--ramo-hdr:#4f3222;--ramo-acc:#966040;--ramo-txt:#925d3f;--ramo-txt-esc:#e0b896}
         :root[data-ramo="varejo"]{--ramo-hdr:#4d233c;--ramo-acc:#944272;--ramo-txt:#944272;--ramo-txt-esc:#e2b4cf}
         :root[data-ramo="investimentos"]{--ramo-hdr:#1d4e53;--ramo-acc:#38949f;--ramo-txt:#2c747d;--ramo-txt-esc:#9fd3d9}
+        :root[data-ramo="comercial"]{--ramo-hdr:#5c2418;--ramo-acc:#c2553a;--ramo-txt:#a8462f;--ramo-txt-esc:#f2b4a3}
         :root[data-ramo="imoveis"]:not([data-theme="dark"]){--paper:#eff1f6}
         :root[data-ramo="familia"]:not([data-theme="dark"]){--paper:#f4f1f5}
         :root[data-ramo="outros"]:not([data-theme="dark"]){--paper:#f2f2f3}
@@ -590,6 +594,7 @@
         :root[data-ramo="pecuaria"]:not([data-theme="dark"]){--paper:#f6f1ee}
         :root[data-ramo="varejo"]:not([data-theme="dark"]){--paper:#f6eff3}
         :root[data-ramo="investimentos"]:not([data-theme="dark"]){--paper:#edf6f7}
+        :root[data-ramo="comercial"]:not([data-theme="dark"]){--paper:#f9f0ed}
         :root[data-theme="dark"],:root[data-theme="dark"][data-ramo]{--ramo-txt:var(--ramo-txt-esc)}
         .rz-hdr .rz-lente{width:40px;height:40px;border-radius:50%;flex:none;display:flex;align-items:center;justify-content:center;color:#fff;background:rgba(255,255,255,.14);box-shadow:0 0 0 1px rgba(255,255,255,.3)}
         .rz-hdr .rz-lente svg{width:19px;height:19px}
