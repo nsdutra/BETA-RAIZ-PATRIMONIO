@@ -1,7 +1,18 @@
 // ============================================================================
 // financeiro.js — Raiz Patrimônio · Financeiro (Recebimentos · Atrasados · Saídas
 //                  · conciliação de extrato · recibo · detalhe do recebimento)
-// Versão: 1.86.0 · 13/11/2026
+// Versão: 1.87.0 · 15/11/2026
+//
+// v1.87.0 (15/11/2026, sessão 20261115-0030-conciliacao, demanda 2a51055a; de acordo do Nicola 15/11 00:26) — CONCILIAÇÃO
+// MAIS CERTEIRA E SEM TELA PARADA. (P0) Estornar recebimento e salvar a observação do recibo gravam só aquele aluguel (antes
+// regravavam todos, uma a um: 509 na Rumo, cerca de 1 min de "Salvando na nuvem"). (P1) Quem pagou: primeiro o CPF/CNPJ
+// (só números, contra o documento do contrato), com o valor desempatando quando o mesmo documento tem mais de um contrato;
+// depois o nome, sem contar "da/de/do/das/dos/e" (Maria Tereza dos Santos casava com Roberto Rodrigues dos Santos). Mesma
+// regra no motor do banco (migration conciliacao_pagador_doc_v1). (P2) Pagamento que cai num mês já pago por outra baixa
+// deixa de ser contado como "já conciliado" e aparece como "para conferir". (P3) Reprocessar e importar planilha usam o
+// mesmo progresso por etapas da leitura do extrato e da fatura (rzProgressoLeitura). (P4) O histórico do banco
+// ("REND PAGO APLIC…") passa a ser gravado na linha do extrato, para a regra de rendimento (R01) tratar sozinha.
+// Versão anterior: 1.86.0
 //
 // v1.86.0 (13/11/2026, sessão 20261113-1530-dividir-recebimento, demanda 76a2f670; FICHA_PRESTACAO_CONTAS_ADMINISTRADORA_RAIZ v1.2.0
 // fase P1 + PROTOTIPO_DIVISAO_RECEBIMENTO v1.0.0, de acordo do Nicola 13/11 14:05) — "Dividir recebimento" na linha de entrada
@@ -27,18 +38,11 @@
 // v1.83.0 (11/11/2026, sessão 20261111-2330-agro-receita-safra, demanda 3cd0817a; de acordo do Nicola 11/11 23:30) — DESTINO
 // TAMBÉM NA RECEITA: em Outras receitas, o ⋮ de uma receita ligada a um ativo ganha "Destino" (safra, fase, obra ou item),
 // o mesmo da despesa (fn_lancamento_destinar). A receita passa a contar no "recebido" da safra. Versão anterior: 1.82.0
-//
-// v1.82.0 (11/11/2026, sessão 20261111-2236-financeiro-competencia, demanda 2abbc942; de acordo do Nicola 11/11 22:36) —
-// COMPETÊNCIA: (1) despesa: a lista passa a ter os 12 meses anteriores, o atual e os 3 seguintes (antes só o padrão e os 3
-// seguintes, sem meses passados); o padrão continua vindo do vencimento. (2) Receita sem contrato ganha o campo Competência,
-// com a mesma lista; ele segue o mês da Data até a pessoa escolher outro (antes gravava sempre o mês da Data). (3) O subtítulo
-// da receita deixa de dizer "Vai para Outras receitas" (a categoria é escolhida desde a v1.34.0). Competência fechada
-// continua recusada pelo banco. Versão anterior: 1.81.0 · 09/11/2026
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.81.0 … v1.81.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.82.0 … v1.82.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '1.86.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.87.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 
 // v1.17.0 (Fase 1 do wrapper de escrita, rollout Financeiro) — emitirEscrita
 // é o evento padrão pra "algo mudou que módulos DE FORA deste arquivo podem
@@ -3006,7 +3010,7 @@ function financeiroRenderCabecalho(aba) {
                 // v1.17.0 (Fase 1 do wrapper de escrita) — saveAll aqui é
                 // fire-and-forget (já era antes desta mudança); emite só
                 // depois de confirmado (dentro do .then), ver changelog do topo.
-                saveAll(true, "Pagamento estornado.", ['mensalidades']).then(() => {
+                saveAll(true, "Pagamento estornado.", ['mensalidades'], { mensalidades: [menId] }).then(() => { // v1.87.0 — só este aluguel
                     atualizarConciliacaoSeAberta();
                     emitirEscrita('mensalidade', { id: menId, acao: 'estornar' });
                 });
@@ -3031,6 +3035,27 @@ function financeiroRenderCabecalho(aba) {
 
         }
 
+        // v1.87.0 (P1) — quem pagou: 1º CPF/CNPJ (só números; com mais de um contrato no mesmo documento, o de valor mais
+        // perto, até 5%); 2º nome (nomesParecem), também desempatado pelo valor. Empate sem saída → null (fica pendente e o
+        // motor do banco, que usa a mesma ordem, tenta de novo).
+        export function financeiroAcharContratoPagador(t) {
+            const digitos = (x) => String(x || '').replace(/\D/g, '');
+            const valor = Math.abs(Number(t.valor) || 0);
+            const ativos = (contratos || []).filter(c => !['encerrado', 'finalizado', 'Encerrado', 'Finalizado'].includes(c.status));
+            const desempatar = (lista) => {
+                if (lista.length <= 1) return lista[0] || null;
+                const perto = lista.filter(c => Math.abs((Number(c.valor) || 0) - valor) <= Math.max((Number(c.valor) || 0) * 0.05, 2));
+                return perto.length === 1 ? perto[0] : null;
+            };
+            const doc = digitos(t.documento);
+            if (doc) {
+                const porDoc = ativos.filter(c => digitos(c.cpf) === doc);
+                if (porDoc.length) return desempatar(porDoc);
+            }
+            return desempatar(ativos.filter(c => nomesParecem(c.locatario, t.razaoSocial)));
+        }
+
+        const CONECTIVOS_NOME = new Set(['DA', 'DE', 'DO', 'DAS', 'DOS', 'E']); // v1.87.0 (P1)
         export function nomesParecem(a, b) {
 
             const na = normalizarNomeParaComparacao(a);
@@ -3041,9 +3066,9 @@ function financeiroRenderCabecalho(aba) {
 
             if (na.includes(nb) || nb.includes(na)) return true;
 
-            const palavrasA = na.split(' ').filter(p => p.length >= 3);
+            const palavrasA = na.split(' ').filter(p => p.length >= 3 && !CONECTIVOS_NOME.has(p)); // v1.87.0 — "dos" não conta
 
-            const palavrasB = nb.split(' ').filter(p => p.length >= 3);
+            const palavrasB = nb.split(' ').filter(p => p.length >= 3 && !CONECTIVOS_NOME.has(p));
 
             if (palavrasA.length === 0 || palavrasB.length === 0) return false;
 
@@ -3084,6 +3109,7 @@ function financeiroRenderCabecalho(aba) {
 
             const prog = window.rzProgressoLeitura({ titulo: 'Lendo o extrato', arquivo: file, passoIa: 1, tempoTipicoS: 40,
                 passos: ['Enviando o extrato', 'Raiz IA lendo os lançamentos', 'Conferindo com o que já está no Raiz', 'Pronto'] });
+            let progEntregueIa = false; // v1.87.0 (P3)
 
             try {
 
@@ -3134,12 +3160,13 @@ function financeiroRenderCabecalho(aba) {
                     ? `📥 Extrato do ${data.resultado.banco} lido via IA!`
                     : '📥 Extrato lido via IA!';
 
-                prog.fim(); // a conciliação abre a própria tela de resultado
-                await conciliarTransacoes(transacoes, tituloResumo, bancoDetectado);
+                // v1.87.0 (P3) — o progresso segue aberto na etapa "Conferindo" até a conciliação terminar
+                progEntregueIa = true;
+                await conciliarTransacoes(transacoes, tituloResumo, bancoDetectado, { prog, passoConferir: 2, passoRegras: 2 });
 
             } catch (err) {
 
-                prog.fim();
+                if (!progEntregueIa) prog.fim();
 
                 rzToast('Não consegui ler o arquivo: ' + err.message, { tipo: 'danger' });
 
@@ -3162,8 +3189,10 @@ function financeiroRenderCabecalho(aba) {
                 return;
             }
 
-            mostrarCarregamentoGlobal("Lendo extrato bancário...");
-
+            // v1.87.0 (P3) — mesmo progresso por etapas da leitura por IA (antes: carregamento sem etapas)
+            const prog = window.rzProgressoLeitura({ titulo: 'Lendo o extrato', arquivo: file, passoIa: 2, tempoTipicoS: 30,
+                passos: ['Lendo a planilha', 'Preparando os meses', 'Conferindo com o que já está no Raiz', 'Aplicando as regras', 'Pronto'] });
+            let progEntregue = false;
             try {
 
                 const buffer = await file.arrayBuffer();
@@ -3196,9 +3225,7 @@ function financeiroRenderCabecalho(aba) {
                 }
 
                 if (idxCabecalho === -1) {
-
-                    esconderCarregamentoGlobal();
-
+                    prog.fim();
                     rzAviso({ titulo: 'Formato não reconhecido', linhas: ['Não consegui identificar o formato do extrato.', 'Confira se é o extrato detalhado do Itaú (.xlsx) e tente de novo — ou envie o PDF ou uma foto, que a Raiz IA lê.'] });
 
                     return;
@@ -3231,21 +3258,16 @@ function financeiroRenderCabecalho(aba) {
 
                 }
 
-                esconderCarregamentoGlobal();
-
                 if (transacoes.length === 0) {
-
+                    prog.fim();
                     rzToast('Nenhum lançamento no arquivo.', { tipo: 'danger' });
-
                     return;
-
                 }
-
-                await conciliarTransacoes(transacoes);
-
+                prog.passo(1);
+                progEntregue = true; // daqui em diante a conciliação fecha o progresso
+                await conciliarTransacoes(transacoes, undefined, undefined, { prog, passoConferir: 2, passoRegras: 3 });
             } catch (err) {
-
-                esconderCarregamentoGlobal();
+                if (!progEntregue) prog.fim();
 
                 rzToast('Não consegui ler o arquivo: ' + err.message, { tipo: 'danger' });
 
@@ -3273,6 +3295,7 @@ function financeiroRenderCabecalho(aba) {
             const linha = (f) => ({
                 cliente_id: CLIENTE_ID_SUPABASE, banco_origem: f.banco || 'Itaú', chave: f.chave, data: f.data, valor: f.valor,
                 razao_social: f.razaoSocial || null, documento_original: f.documento || null,
+                descricao_original: f.descricao || null, // v1.87.0 — histórico do banco (ex.: REND PAGO APLIC), lido pela regra R01
                 status_conciliacao: f.statusConciliacao || 'pendente', destino_tipo: f.statusConciliacao ? (f.destinoTipo || null) : null,
                 destino_id: f.statusConciliacao ? (f.destinoId || null) : null, conciliado_em: f.statusConciliacao ? agora : null
             });
@@ -3291,7 +3314,21 @@ function financeiroRenderCabecalho(aba) {
             return novos.filter(f => !gravadas.has(f.chave));
         }
 
-        export async function conciliarTransacoes(transacoes, tituloResumo, bancoOrigem = 'Itaú') {
+        // v1.87.0 (P3) — progresso por etapas, o mesmo da leitura do extrato e da fatura. Quem chama pode passar o próprio
+        // progresso (opcoes.prog, com os índices das etapas); sem ele, abre um. fim() sempre antes do resumo ou do erro.
+        export async function conciliarTransacoes(transacoes, tituloResumo, bancoOrigem = 'Itaú', opcoes = {}) {
+            const prog = opcoes.prog || window.rzProgressoLeitura({ titulo: opcoes.titulo || 'Conciliando o extrato', passoIa: 1,
+                tempoTipicoS: Math.max(10, Math.round((transacoes || []).length * 0.6)),
+                passos: ['Preparando os meses', `Conferindo ${(transacoes || []).length} linha(s) com o que já está no Raiz`, 'Aplicando as regras', 'Pronto'] });
+            const etapa = { conferir: opcoes.passoConferir ?? 1, regras: opcoes.passoRegras ?? 2 };
+            try {
+                return await conciliarTransacoesInterno(transacoes, tituloResumo, bancoOrigem, prog, etapa);
+            } finally {
+                prog.fim();
+            }
+        }
+
+        async function conciliarTransacoesInterno(transacoes, tituloResumo, bancoOrigem, prog, etapa) {
 
             // IMPORTANTE: os "fingerprints" continuam sendo registrados para fins de
 
@@ -3326,6 +3363,7 @@ function financeiroRenderCabecalho(aba) {
             const logsBaixa = [];                        // v1.85.0 — mensal.baixar só depois de gravar a linha
 
             let qtdConciliados = 0, qtdRepasses = 0, qtdPendencias = 0, qtdIgnorados = 0, qtdJaProcessadas = 0;
+            let qtdConferir = 0; // v1.87.0 (P2) — pagamento num mês já pago por outra baixa
 
             // CORREÇÃO: antes de tentar conciliar qualquer coisa, garante que as
 
@@ -3373,6 +3411,7 @@ function financeiroRenderCabecalho(aba) {
                 }
             }
             mensalidades = await carregarMensalidadesSupabase();
+            prog.passo(etapa.conferir); // v1.87.0 (P3)
 
             // NOVO (v1.66.2, 27/08/2026) — virou for...of (era forEach) porque
             // o bloco de crédito agora faz 1 chamada assíncrona à RPC
@@ -3388,7 +3427,7 @@ function financeiroRenderCabecalho(aba) {
                 // v1.2 — mantém a referência pra poder marcar o resultado da
                 // conciliação (match/pendência/ignorado) no próprio objeto,
                 // sem precisar re-buscar por chave depois.
-                const fpAtual = { chave, data: t.dataISO, valor: t.valor, razaoSocial: t.razaoSocial, documento: t.documento, banco: bancoOrigem, importadoEm: new Date().toISOString() };
+                const fpAtual = { chave, data: t.dataISO, valor: t.valor, razaoSocial: t.razaoSocial, documento: t.documento, descricao: t.descricao || '', banco: bancoOrigem, importadoEm: new Date().toISOString() };
                 novosFingerprints.push(fpAtual);
 
                 const [ano, mes] = t.dataISO.split('-');
@@ -3418,15 +3457,9 @@ function financeiroRenderCabecalho(aba) {
 
                     // locatário, 2º pelo documento (CPF/CNPJ) do extrato.
 
-                    const documentoLimpo = (t.documento || '').replace(/\D/g, '');
-
-                    let contratoCandidato = contratos.find(c => nomesParecem(c.locatario, t.razaoSocial));
-
-                    if (!contratoCandidato && documentoLimpo) {
-
-                        contratoCandidato = contratos.find(c => (c.cpf || '').replace(/\D/g, '') === documentoLimpo);
-
-                    }
+                    // v1.87.0 (P1) — 1º CPF/CNPJ (+ valor para desempatar), 2º nome. Antes: nome primeiro, e o 1º
+                    // contrato "parecido" ganhava (Maria Tereza dos Santos caía em Roberto Rodrigues dos Santos).
+                    const contratoCandidato = financeiroAcharContratoPagador(t);
 
                     if (!contratoCandidato) {
 
@@ -3472,7 +3505,9 @@ function financeiroRenderCabecalho(aba) {
                         || ((contratoCandidato.alugelAntecipado !== 'Sim') ? mesAnteriorRef(referenciaDoMes) : referenciaDoMes);
 
                     if (cls && cls.classificacao === 'ja_conciliado') {
-                        qtdJaProcessadas++;
+                        // v1.87.0 (P2) — o mês já está pago, mas por OUTRA baixa (chave diferente): este pagamento
+                        // é de outro mês ou duplicado. Fica pendente e o resumo diz "para conferir", não "já conciliado".
+                        if (cls.motivo === 'competencia_ja_paga') { qtdConferir++; qtdPendencias++; } else { qtdJaProcessadas++; }
                         continue;
                     }
 
@@ -3651,6 +3686,7 @@ function financeiroRenderCabecalho(aba) {
             // (whatsapp-webhook v2.55) — fonte única dos dois canais. Erro
             // aqui não derruba a importação já feita; "Reprocessar" resolve depois.
             let resumoMotor = [];
+            prog.passo(etapa.regras); // v1.87.0 (P3)
             try {
                 const { data: resumoRpc, error: erroMotor } = await dbAuth.rpc('fn_conciliacao_aplicar', { p_cliente_id: CLIENTE_ID_SUPABASE, p_ids: null });
                 if (erroMotor) throw erroMotor;
@@ -3700,6 +3736,7 @@ function financeiroRenderCabecalho(aba) {
                     `${qtdRepasses} retirada(s) de sócio lançada(s).`,
                     tratadosMotor > 0 ? `${tratadosMotor} linha(s) tratada(s) sozinha(s) pelas regras (rendimento, tarifa, administradora…).` : '',
                     `${qtdPendencias} item(ns) precisam da sua revisão em Conciliação.`,
+                    qtdConferir > 0 ? `${qtdConferir} deles caíram num mês que já está pago por outra baixa — confira qual mês cada um quita.` : '',
                     qtdIgnorados > 0 ? `${qtdIgnorados} lançamento(s) sem ação automática — confira em Conciliação.` : '',
                     qtdJaProcessadas > 0 ? `${qtdJaProcessadas} transação(ões) já estava(m) conciliada(s) antes — nada novo feito.` : '',
                 ],
@@ -3730,7 +3767,7 @@ function financeiroRenderCabecalho(aba) {
         export async function reprocessarConciliacaoPendente() {
 
             const { data: pendentesFp, error: erroFp } = await dbAuth.from('extrato_fingerprints')
-                .select('id, data, valor, razao_social, documento_original')
+                .select('id, data, valor, razao_social, documento_original, descricao_original')
                 .eq('cliente_id', CLIENTE_ID_SUPABASE).eq('status_conciliacao', 'pendente').eq('direcao', 'entrada');
 
             if (erroFp) { mostrarToast('Erro ao buscar pendências: ' + erroFp.message, 'danger'); return; }
@@ -3745,17 +3782,16 @@ function financeiroRenderCabecalho(aba) {
 
             if (!await rzConfirmar({ titulo: 'Reprocessar pendências', impacto: `${pendentesFp.length} entrada(s) pendente(s). A Raiz tenta achar contrato e recebimento de novo para cada uma.`, rotuloConfirmar: 'Reprocessar' })) return;
 
-            mostrarCarregamentoGlobal("Reprocessando conciliação...");
-
+            // v1.87.0 (P3) — progresso por etapas aberto pela própria conciliação (antes: "Reprocessando…" parado)
             const transacoesReconstituidas = pendentesFp.map(p => ({
 
                 dataISO: p.data, valor: Math.abs(parseFloat(p.valor)),
 
-                razaoSocial: p.razao_social || '', documento: p.documento_original || '', descricao: ''
+                razaoSocial: p.razao_social || '', documento: p.documento_original || '', descricao: (p.descricao_original || '').toUpperCase()
 
             }));
 
-            await conciliarTransacoes(transacoesReconstituidas, '🔄 Reprocessamento concluído!', 'Itaú');
+            await conciliarTransacoes(transacoesReconstituidas, '🔄 Reprocessamento concluído!', 'Itaú', { titulo: 'Reprocessando a conciliação' });
 
         }
 
@@ -5684,7 +5720,7 @@ function financeiroRenderCabecalho(aba) {
             // v1.17.0 (Fase 1 do wrapper de escrita) — saveAll aqui é
             // fire-and-forget (já era antes desta mudança); emite só depois
             // de confirmado (dentro do .then), ver changelog do topo.
-            saveAll(true, "Observação do recibo salva.", ['mensalidades']).then(() => {
+            saveAll(true, "Observação do recibo salva.", ['mensalidades'], { mensalidades: [men.id] }).then(() => { // v1.87.0 — só este aluguel
                 emitirEscrita('recibo', { id: men.id, acao: 'observacao' });
             });
         }
