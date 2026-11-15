@@ -1,8 +1,11 @@
 // =====================================================================
 // RAIZ PATRIMÔNIO — js/resultados.js
-// VERSÃO: Beta v2.22.0 (14/11/2026 — demanda 285a0058)
+// VERSÃO: Beta v2.22.1 (15/11/2026 — demanda 285a0058)
 // LINHAS: (ver versoes.json)
 // -----------------------------------------------------------------
+// NOVIDADES (Beta v2.22.1) (15/11/2026, sessão 20261115-1020-renda-contagem, demanda 285a0058; de acordo do Nicola 15/11 10:21)
+//   — na lente com Renda ou Uso próprio, o topo conta só os ativos daquele uso (Rumo: 50 e 2, não 52 nos dois).
+// Versão anterior (Beta v2.22.0):
 // NOVIDADES (Beta v2.22.0) (14/11/2026, sessão 20261114-0830-ficha-receita, demanda 285a0058; de acordo do Nicola 14/11 22:19)
 //   — o uso "Comercial" do Hoje e do Resultado passa a se chamar "Renda" (Todos · Renda · Uso próprio), porque Comercial é o nome do novo ramo.
 // Versão anterior (Beta v2.21.0):
@@ -119,7 +122,7 @@
 // Versões anteriores (v2.4.0 … v2.4.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '2.22.0';
+export const VERSAO = '2.22.1';
 
 // ---------------------------------------------------------------------
 // Estado do filtro (module-scoped — sobrevive entre renders porque o
@@ -332,7 +335,8 @@ function montarHeroi(resumo, perf, carregando, ctx = {}) {
     const metaHtml = tem && !familia ? metaHeroiHtml(resultadoAno, ctx.meta, moeda) : ''; // v2.12.0 (cockpit C1)
     let ativosTxt = totalAtivos == null ? '' : `${totalAtivos} ${Number(totalAtivos) === 1 ? 'ativo' : 'ativos'}`;
     if (filtro.ramo !== 'tudo' && ind && ind.qtd != null) { // v2.11.0 — na lente, a unidade do ramo (lotes, talhões, bens)
-        const q = Number(ind.qtd);
+        // Com uso escolhido (Renda/Uso próprio) a contagem vem da mesma consulta do valor: fn_hoje_ramo_indicadores não filtra por uso.
+        const q = filtro.contexto !== 'tudo' && totalAtivos != null ? Number(totalAtivos) : Number(ind.qtd);
         ativosTxt = `${q} ${q === 1 ? (ramoInfo?.unidade_singular || 'ativo') : (ramoInfo?.unidade_plural || 'ativos')}`;
         if (filtro.ramo === 'pecuaria' && ind.animais != null) ativosTxt = `${ind.animais} ${Number(ind.animais) === 1 ? 'animal' : 'animais'} em ${ativosTxt}`;
     }
