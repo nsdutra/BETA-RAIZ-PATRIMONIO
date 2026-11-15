@@ -1,7 +1,12 @@
 // =====================================================================
 // RAIZ PATRIMÔNIO — js/ativo-interessados.js
-// Versão: 1.3.0 · 15/11/2026
+// Versão: 1.3.1 · 15/11/2026
 // -----------------------------------------------------------------
+// v1.3.1 (15/11/2026, sessão 20261115-1805-licencas-l2, demanda 954b4cca — ajustes do Nicola, 18:00) — ⋮ dos leads:
+//   "Novo interessado" sem o "Pelo WhatsApp" e o formulário aceita só o nome (WhatsApp opcional, como a
+//   fn_interessado_registrar já permite); sai "Ver todos" (o chip Todos já faz isso); entram os atalhos de configuração —
+//   Dados da empresa (validade dos pedidos e dados do recebedor) e Disponibilidade e reservas de cada uso de agenda do bem.
+//   Versão anterior: 1.3.0
 // v1.3.0 (15/11/2026, sessão 20261115-1735-licencas-leads, demanda 954b4cca; FICHA_LICENCAS_LEADS_RAIZ v1.3.0 L1 — de acordo
 //   do Nicola 15/11 17:34) — o card deixa de listar os interessados corridos: vira o card "Leads" com o RESUMO por etapa
 //   (quantidade em cada uma e quantos próximos passos vencem em 7 dias); pedidos de reserva aguardando seguem como linhas.
@@ -24,7 +29,7 @@
 //     comunicações da pessoa (fn_comunicacoes_pessoa: robô, comunicações, app e esteira). Grava por fn_interessado_mover.
 //   · O card aparece no bem com uso de agenda (temporada, short stay, cowork, atendimento) ou que já tenha interessado/pedido.
 // =====================================================================
-export const VERSAO = '1.3.0';
+export const VERSAO = '1.3.1';
 
 const MODELOS_AGENDA = ['temporada', 'short_stay', 'cowork', 'atendimento'];
 const esc = (s) => (typeof rzEsc === 'function' ? rzEsc(s) : String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])));
@@ -84,7 +89,8 @@ export async function montarCardInteressados(a, usos = []) {
         ${pedidos.length ? `<div class="rz-group" style="margin-top:10px">Pedidos aguardando<span>${pedidos.length}</span></div><div class="rz-list">${pedidos.map(linhaPedido).join('')}</div>` : ''}`;
     const recarregar = () => montarCardInteressados(a, usos);
     card.querySelector('[data-int-abrir]')?.addEventListener('click', () => abrirTelaLeads(a, recarregar));
-    card.querySelector('[data-int-mais]').addEventListener('click', () => acoesTelaLeads(a, recarregar, false));
+    tela.usos = usos; // v1.3.1 — atalhos de configuração do ⋮
+    card.querySelector('[data-int-mais]').addEventListener('click', () => acoesTelaLeads(a, recarregar, false, usos));
     card.querySelectorAll('[data-int-ped]').forEach(b => b.addEventListener('click', async () => {
         const p = pedidos[Number(b.dataset.intPed)];
         const m = await import('./agenda-form.js');
@@ -97,13 +103,14 @@ function abrirNovoInteressado(a, aoMudar, empilhar = false) {
     abrirSheetForm({ empilhar,
         titulo: 'Novo interessado', sub: a.nome_exibicao, rotuloSalvar: 'Registrar',
         corpo: `<div class="rz-f"><label for="ai-nome">Nome</label><input type="text" id="ai-nome" maxlength="160" placeholder="Como a pessoa se chama"></div>
-            <div class="rz-f"><label for="ai-wa">WhatsApp</label><input type="tel" id="ai-wa" placeholder="(11) 9…"></div>
+            <div class="rz-f"><label for="ai-wa">WhatsApp <span class="rz-desc">(opcional)</span></label><input type="tel" id="ai-wa" placeholder="(11) 9…"></div>
             <div class="rz-f" style="margin-bottom:0"><label for="ai-orig">De onde veio</label><input type="text" id="ai-orig" maxlength="60" placeholder="Ex.: indicação, Instagram, placa"></div>`,
         aoSalvar: async () => {
             const nome = (document.getElementById('ai-nome')?.value || '').trim();
             const wa = (document.getElementById('ai-wa')?.value || '').replace(/\D/g, '');
-            if (wa.length < 10) { toast('Informe o WhatsApp com DDD.', 'erro'); return false; }
-            const { data, error } = await dbAuth.rpc('fn_interessado_registrar', { p_cliente_id: a.cliente_id || CLIENTE_ID_SUPABASE, p_ativo_id: a.id, p_whatsapp: wa, p_nome: nome || null,
+            if (!nome && wa.length < 10) { toast('Informe o nome (ou o WhatsApp com DDD).', 'erro'); return false; } // v1.3.1
+            if (wa && wa.length < 10) { toast('O WhatsApp precisa do DDD.', 'erro'); return false; }
+            const { data, error } = await dbAuth.rpc('fn_interessado_registrar', { p_cliente_id: a.cliente_id || CLIENTE_ID_SUPABASE, p_ativo_id: a.id, p_whatsapp: wa || null, p_nome: nome || null,
                 p_origem: (document.getElementById('ai-orig')?.value || '').trim() || 'manual', p_canal: 'app' });
             if (error) { toast(error.message || 'Não consegui registrar.', 'erro'); return false; }
             toast(data?.novo ? 'Interessado registrado.' : 'Essa pessoa já está nos interessados deste bem.', 'sucesso');
@@ -166,14 +173,20 @@ async function abrirFichaInteressado(a, i, aoMudar, empilhar = false) {
 // =====================================================================
 // v1.3.0 — Tela "Leads e interessados" (sheet que abre cheio): ⋮ padrão no topo, busca, chips por etapa, grupos e ⋮ por lead.
 // =====================================================================
-const tela = { etapa: null, busca: '' };
-function acoesTelaLeads(a, aoMudar, empilhar = true) {
+const tela = { etapa: null, busca: '', usos: [] };
+const MODELOS_AGENDA_CFG = ['temporada', 'short_stay', 'cowork', 'atendimento']; // iguais a ativo-disponibilidade.js
+function acoesTelaLeads(a, aoMudar, empilhar = true, usos = tela.usos || []) {
+    const agenda = (usos || []).filter(u => !u.repouso && MODELOS_AGENDA_CFG.includes(u.modelo) && u.uso_id);
+    const config = [
+        ...agenda.map(u => ({ icone: 'calendar-cog', titulo: 'Disponibilidade e reservas', sub: u.nome || u.modelo, codigo: 'ativo.disponibilidade',
+            aoTocar: () => import('./ativo-disponibilidade.js').then(m => m.abrirDisponibilidadeUso({ usoId: u.uso_id, modelo: u.modelo, nomeUso: u.nome, nomeBem: a.nome_exibicao })) })),
+        { icone: 'building', titulo: 'Dados da empresa', sub: 'Validade dos pedidos e dados do recebedor', aoTocar: () => { fecharSheet(); if (typeof switchTab === 'function') switchTab('tab-minha-empresa'); } },
+    ];
     abrirSheetAcoes({ titulo: 'Leads e interessados', sub: a.nome_exibicao, empilhar, grupos: [
         { titulo: 'Leads', acoes: [
-            { icone: 'user-plus', titulo: 'Novo interessado', sub: 'Pelo WhatsApp', aoTocar: () => setTimeout(() => abrirNovoInteressado(a, aoMudar, empilhar), 50) },
-            { icone: 'list', titulo: 'Ver todos', sub: 'Inclui concluídos e perdidos', aoTocar: () => { tela.etapa = 'todos'; setTimeout(() => abrirTelaLeads(a, aoMudar), 50); } } ] },
-        { titulo: 'Esteira', acoes: [
+            { icone: 'user-plus', titulo: 'Novo interessado', sub: 'Só o nome já basta', aoTocar: () => setTimeout(() => abrirNovoInteressado(a, aoMudar, empilhar), 50) },
             { icone: 'info', titulo: 'O que é cada etapa', aoTocar: () => setTimeout(() => explicarEtapas(empilhar), 50) } ] },
+        { titulo: 'Configurações', acoes: config },
     ] });
 }
 async function explicarEtapas(empilhar) {
