@@ -1,7 +1,18 @@
 // ============================================================================
 // financeiro.js — Raiz Patrimônio · Financeiro (Recebimentos · Atrasados · Saídas
 //                  · conciliação de extrato · recibo · detalhe do recebimento)
-// Versão: 1.88.0 · 15/11/2026
+// Versão: 1.89.0 · 15/11/2026
+//
+// v1.89.0 (15/11/2026, sessão 20261115-1430-conciliacao-c, demandas 2a51055a e 5eb9e2cf; de acordo do Nicola 15/11 14:23 "Pode
+// juntar e fazer") — UM MENU SÓ PARA A LINHA PENDENTE DA CONCILIAÇÃO. (D) Tocar na linha (com ou sem %) abre o mesmo menu: no topo
+// o cartão "O que o Raiz leu" (extrato: data, valor, CPF/CNPJ, histórico; contrato, quando houver; a sugestão e o %), depois
+// "Aceitar sugestão · N%" dizendo o que vai acontecer, e as alternativas de sempre. Antes a sugestão do motor só aparecia em
+// "Revisar em sequência"; o menu da linha usava outra busca e não mostrava o %. "Ver sugestão" passa a abrir esse mesmo menu.
+// Sugestão "liga à baixa já feita" (CT05) e as automáticas ainda não aplicadas podem ser aceitas aqui (fn_conciliacao_aplicar
+// só desta linha) — caso do Rodrigo, 100% que esperava o próximo reprocessamento. (5eb9e2cf) "Lançar entrada" nas entradas:
+// abre "Receita sem contrato" já preenchida com valor, data e descrição do extrato e, ao salvar, liga a linha (origem extrato).
+// Sugestão de aporte de sócio (regra R16) abre esse formulário já em "Aporte de sócio (capital)".
+// Versão anterior: 1.88.0
 //
 // v1.88.0 (15/11/2026, sessão 20261115-0840-conciliacao-b, demanda 2a51055a; de acordo do Nicola 15/11 08:38, item C "queria incluir
 // a linha do extrato que foi lida") — A LINHA SUGERIDA DA CONCILIAÇÃO MOSTRA O QUE FOI LIDO. Em vez de só "Parece: Contrato
@@ -35,17 +46,11 @@
 // mesmo aluguel: o segundo fica pendente para você escolher o mês; (4) retirada de sócio usa o nome completo (era só o
 // primeiro nome, que não acha a pessoa: "Sócio Renato não encontrado"), na importação e no "É repasse" da Conciliação.
 // Caso real: Rumo, agosto/2026. Versão anterior: 1.84.0
-//
-// v1.84.0 (12/11/2026, sessão 20261112-2139-conc-descartar, demanda c4fd93e6; de acordo do Nicola 12/11 21:39) — DESCARTAR
-// PENDENTES DO MÊS: no "+" da Conciliação, "Descartar pendentes do mês" (funcionalidade nova conciliacao.descartar, mesmos
-// perfis e planos de importar). Mostra quantas linhas pendentes do mês (e da conta filtrada) saem e quantas ficam, pede
-// confirmação e apaga só as pendentes sem vínculo (fn_extrato_descartar_pendentes). Serve para importar de novo um extrato
-// mais completo (ex.: com CPF/CNPJ). Versão anterior: 1.83.0
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.83.0 … v1.83.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.84.0 … v1.84.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '1.88.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.89.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 
 // v1.17.0 (Fase 1 do wrapper de escrita, rollout Financeiro) — emitirEscrita
 // é o evento padrão pra "algo mudou que módulos DE FORA deste arquivo podem
@@ -4116,6 +4121,73 @@ function financeiroRenderCabecalho(aba) {
         // "Conciliação do período" saiu (ver index.html) — quem resume agora
         // são os 4 KPIs do chip Fechamento (fin-kpi-fech-*, js/fechamento.js
         // fechamentoAtualizarKpis), nunca somados aqui no cliente.
+        // v1.89.0 (D) — ação "Aceitar sugestão · N%" do menu da linha, com o efeito escrito; null quando não há o que aceitar
+        // com segurança (aí o menu mostra só as alternativas, e o cartão do topo explica a leitura).
+        function conciliacaoAcaoAceitar(f, sug) {
+            if (!sug) return null;
+            const pct = Math.round(sug.confianca || 0);
+            const titulo = `Aceitar sugestão · ${pct}%`;
+            const ir = () => confirmarSugestaoConciliacao(f.id);
+            if (sug.acao === 'dar_baixa' && sug.destino_tipo === 'mensalidade' && sug.destino_id) {
+                const m = mensalidades.find(x => x.id === sug.destino_id);
+                const con = m ? contratos.find(c => c.id === m.contratoId) : null;
+                return { icone: 'sparkles', tipo: 'ia', titulo, sub: `Dá baixa no aluguel ${m?.referencia || ''}${con ? ' de ' + con.locatario : ''}`, aoTocar: ir };
+            }
+            if (sug.acao === 'ligar_baixa') {
+                const m = mensalidades.find(x => x.id === sug.destino_id);
+                return { icone: 'sparkles', tipo: 'ia', titulo, sub: `Liga esta linha à baixa já feita de ${m?.referencia || 'o mês'} (a baixa não muda)`, aoTocar: ir };
+            }
+            if (sug.acao === 'vincular_saida_prevista' && sug.destino_id) {
+                const l = lancamentos.find(x => x.id === sug.destino_id);
+                return { icone: 'sparkles', tipo: 'ia', titulo, sub: `Liga à despesa prevista ${l?.descricao || ''}`.trim(), aoTocar: ir };
+            }
+            if (sug.acao === 'nao_controlar') return { icone: 'sparkles', tipo: 'ia', titulo, sub: 'Marca como não controlado', aoTocar: ir };
+            if (sug.acao === 'sugerir_categoria') {
+                const cat = categoriaRegraConc(sug.regra_codigo);
+                const nomeCat = (typeof categoriaDoCatalogo === 'function' && categoriaDoCatalogo(cat)?.nome) || cat;
+                return { icone: 'sparkles', tipo: 'ia', titulo,
+                    sub: f.direcao === 'entrada' ? `Abre "Lançar entrada" já em ${nomeCat}` : (cat === 'tributo' ? 'Abre a despesa para dizer qual tributo' : `Cria despesa "${nomeCat}" ligada a esta linha`), aoTocar: ir };
+            }
+            if (sug.modo === 'automatico' && sug.acao === 'pagar_fatura') return { icone: 'sparkles', tipo: 'ia', titulo, sub: 'Paga a fatura do cartão', aoTocar: ir };
+            return null;
+        }
+
+        // v1.89.0 (D) — cartão "O que o Raiz leu" no topo do menu da linha
+        function conciliacaoCartaoLido(f, sug) {
+            const e = escapeHtmlSaidas;
+            const dig = String(f.documento_original || '').replace(/\D/g, '');
+            const doc = dig.length === 14 ? dig.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})$/, '$1.$2.$3/$4-$5')
+                : dig.length === 11 ? dig.replace(/^(\d{3})(\d{3})(\d{3})(\d{2})$/, '$1.$2.$3-$4') : '';
+            const linhas = [['Extrato', `${formatarDataBR(f.data)} · ${f.direcao === 'entrada' ? '+' : '−'} R$ ${fmtBR(Math.abs(parseFloat(f.valor)) || 0)}`],
+                ['Nome no banco', f.razao_social || '—']];
+            if (doc) linhas.push([dig.length === 14 ? 'CNPJ' : 'CPF', doc]);
+            if (f.descricao_original) linhas.push(['Histórico', f.descricao_original]);
+            if (sug?.destino_tipo === 'mensalidade' && sug.destino_id) {
+                const m = mensalidades.find(x => x.id === sug.destino_id);
+                const con = m ? contratos.find(c => c.id === m.contratoId) : null;
+                if (con) linhas.push(['Contrato', [con.locatario, conciliacaoAtivoDaSugestao(sug), 'R$ ' + fmtBR(Number(con.valor) || 0), con.vencimentoDia ? 'dia ' + con.vencimentoDia : ''].filter(Boolean).join(' · ')]);
+                if (m) linhas.push(['Mês lido', `${m.referencia} · ${m.status === 'Pago' ? 'já pago' : 'em aberto'}`]);
+            }
+            if (sug) linhas.push([`Raiz IA · ${Math.round(sug.confianca || 0)}%`, sug.detalhe || nomeRegraConc(sug.regra_codigo)]);
+            else linhas.push(['Raiz IA', 'Sem sugestão — escolha abaixo']);
+            return `<div class="rz-card" style="margin-bottom:12px"><div class="rz-kv">${linhas.map(([r, v]) =>
+                `<div class="rz-full"><small>${e(r)}</small><b style="font-weight:500;font-size:var(--fs-sec,12.5px)">${e(v)}</b></div>`).join('')}</div></div>`;
+        }
+
+        // v1.89.0 (5eb9e2cf) — "Lançar entrada" a partir da linha do extrato (aporte de sócio, venda, outra receita)
+        async function conciliacaoLancarEntrada(f, categoria) {
+            let parteId = null;
+            const dig = String(f.documento_original || '').replace(/\D/g, '');
+            if (dig) {
+                try {
+                    const { data } = await dbAuth.from('partes').select('id, documento').eq('cliente_id', CLIENTE_ID_SUPABASE).not('documento', 'is', null);
+                    parteId = (data || []).find(p => String(p.documento).replace(/\D/g, '') === dig)?.id || null;
+                } catch (e) { parteId = null; }
+            }
+            return abrirReceitaAvulsa({ fingerprintId: f.id, parteId, valor: Math.abs(parseFloat(f.valor)), data: f.data,
+                descricao: limparRotuloConciliacao(f.razao_social) || 'Entrada do extrato', categoria: categoria || undefined });
+        }
+
         // v1.88.0 (item C) — o que foi lido, em até 3 linhas: extrato (data · CPF/CNPJ · histórico), contrato (locatário · bem ·
         // aluguel · dia) quando a sugestão aponta para um aluguel, e a leitura do motor. Cada <span> já é uma linha com reticências.
         function conciliacaoLinhasLidas(f, sug) {
@@ -4234,6 +4306,7 @@ function financeiroRenderCabecalho(aba) {
             if (sug.acao === 'dar_baixa') return sug.destino_tipo === 'mensalidade' && !!sug.destino_id;
             if (sug.acao === 'vincular_saida_prevista') return sug.destino_tipo === 'lancamento' && !!sug.destino_id;
             if (sug.acao === 'sugerir_categoria') return categoriaRegraConc(sug.regra_codigo) !== 'tributo';
+            if (sug.acao === 'ligar_baixa') return true; // v1.89.0
             return false;
         }
         export function conciliacaoRevisarEmSequencia() {
@@ -4304,6 +4377,9 @@ function financeiroRenderCabecalho(aba) {
         // v1.6.0 — ficha completa do item sugerido, antes de confirmar
         // (mesmo padrão do protótipo v3.3, pedido explícito do Nicola).
         export function verSugestaoConciliacao(fingerprintId) {
+            return abrirAcoesConciliacaoLinha(fingerprintId); // v1.89.0 (D) — um menu só; o corpo abaixo ficou sem uso
+        }
+        function verSugestaoConciliacaoAntigo(fingerprintId) {
             const f = conciliacaoUniCache.find(x => x.id === fingerprintId);
             const sug = conciliacaoUniSugestoes[fingerprintId];
             if (!f || !sug) return;
@@ -4331,6 +4407,24 @@ function financeiroRenderCabecalho(aba) {
 
             if (sug.acao === 'nao_controlar') {
                 return confirmarNaoControlarConciliacao(fingerprintId, sug.detalhe || null);
+            }
+            // v1.89.0 — liga à baixa já feita (CT05) e demais sugestões automáticas ainda não aplicadas: o próprio motor
+            // aplica, só nesta linha (a mesma função que roda no fim da importação).
+            if (sug.acao === 'ligar_baixa' || (sug.modo === 'automatico' && sug.acao === 'pagar_fatura')) {
+                mostrarCarregamentoGlobal('Conciliando…');
+                try {
+                    const { error } = await dbAuth.rpc('fn_conciliacao_aplicar', { p_cliente_id: CLIENTE_ID_SUPABASE, p_ids: [fingerprintId] });
+                    if (error) throw error;
+                    mensalidades = await carregarMensalidadesSupabase();
+                    await carregarConciliacaoUnificada();
+                    rzToast('Linha conciliada.');
+                } catch (e) { rzToast('Não consegui conciliar: ' + (e.message || e), { tipo: 'danger' }); }
+                finally { esconderCarregamentoGlobal(); }
+                return;
+            }
+            if (sug.acao === 'sugerir_categoria' && f.direcao === 'entrada') { // v1.89.0 — ex.: R16 aporte de sócio
+                fecharSheet();
+                return conciliacaoLancarEntrada(f, categoriaRegraConc(sug.regra_codigo));
             }
             if (sug.acao === 'dar_baixa' && sug.destino_tipo === 'mensalidade' && sug.destino_id) {
                 return confirmarVincularConciliacaoRecebimento(fingerprintId, sug.destino_id, f);
@@ -4590,6 +4684,9 @@ function financeiroRenderCabecalho(aba) {
             // recalcular por outra conta.
             const sugCache = conciliacaoUniSugestoes[fingerprintId];
             const acoes = [];
+            // v1.89.0 (D) — a sugestão do motor (a do %) vem primeiro, dizendo o que vai acontecer
+            const aceitar = conciliacaoAcaoAceitar(f, sugCache);
+            if (aceitar) acoes.push(aceitar);
             if (entrada) {
                 candidatos.forEach((c, i) => {
                     const mesmoDoMotor = i === 0 && sugCache && sugCache.destino_id === c.mensalidade_id;
@@ -4602,6 +4699,7 @@ function financeiroRenderCabecalho(aba) {
                 });
                 acoes.push({ icone: 'search', titulo: 'Buscar manualmente', sub: candidatos.length ? 'Outros em aberto' : 'Sem sugestão: escolha', aoTocar: () => abrirBuscarMensalidadeManual(fingerprintId) });
                 acoes.push({ icone: 'split', titulo: 'Dividir recebimento', sub: 'Vários aluguéis, descontos da administradora', codigo: 'mensal.baixar', aoTocar: () => abrirDividirRecebimento(fingerprintId) }); // v1.86.0
+                acoes.push({ icone: 'plus', titulo: 'Lançar entrada', sub: 'Aporte de sócio, venda, outra receita — sem aluguel', aoTocar: () => conciliacaoLancarEntrada(f, null) }); // v1.89.0 (5eb9e2cf)
             } else {
                 candidatos.forEach((c, i) => {
                     const mesmoDoMotor = i === 0 && sugCache && sugCache.destino_id === c.lancamento_id;
@@ -4619,7 +4717,10 @@ function financeiroRenderCabecalho(aba) {
             }
             acoes.push({ icone: 'eye-off', titulo: 'Não controlar', sub: 'A linha do banco fica', aoTocar: () => abrirFormNaoControlarConciliacao(fingerprintId) });
 
-            abrirSheetAcoes({ titulo: limparRotuloConciliacao(f.razao_social) || (entrada ? 'Entrada' : 'Saída'), sub, acoes });
+            const sheetLinha = abrirSheetAcoes({ titulo: limparRotuloConciliacao(f.razao_social) || (entrada ? 'Entrada' : 'Saída'), sub, acoes });
+            // v1.89.0 (D) — "O que o Raiz leu", no topo do menu
+            const corpoSheet = sheetLinha?.querySelector('.rz-sh-b');
+            if (corpoSheet) corpoSheet.insertAdjacentHTML('afterbegin', conciliacaoCartaoLido(f, sugCache));
         }
 
         // NOVO (v1.179.5) — pedido explícito do Nicola: um resumo de
@@ -6085,8 +6186,12 @@ export async function abrirAdicionarRecebimento() {
     else if (v === 'avulso') abrirReceitaAvulsa();
 }
 
+// v1.89.0 — "Lançar entrada" da Conciliação: a linha do extrato que originou a receita (ligada ao salvar) e quem pagou.
+let receitaOrigemFingerprintId = null, receitaOrigemParteId = null;
 export async function abrirReceitaAvulsa(sugestoes) { // v1.67.0 — sugestoes da Raiz IA: { valor, descricao, data, categoria, ativoId }
     if (typeof abrirSheetForm !== 'function') return;
+    receitaOrigemFingerprintId = sugestoes?.fingerprintId || null; // v1.89.0
+    receitaOrigemParteId = sugestoes?.parteId || null;
     let ativos = [];
     try { ativos = (typeof carregarAtivosParaSelectSupabase === 'function') ? await carregarAtivosParaSelectSupabase() : []; } catch (e) { ativos = []; }
     const esc = (t) => String(t ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;');
@@ -6116,7 +6221,8 @@ export async function abrirReceitaAvulsa(sugestoes) { // v1.67.0 — sugestoes d
             </div>
         </div>`;
     const sheet = abrirSheetForm({
-        titulo: 'Receita sem contrato', sub: 'Escolha a categoria e a competência',
+        titulo: receitaOrigemFingerprintId ? 'Lançar entrada do extrato' : 'Receita sem contrato', // v1.89.0
+        sub: receitaOrigemFingerprintId ? 'Escolha a categoria — a linha do extrato fica ligada a esta receita' : 'Escolha a categoria e a competência',
         corpo, rotuloSalvar: 'Registrar receita',
         aoSalvar: () => salvarReceitaAvulsa(),
     });
@@ -6185,8 +6291,20 @@ async function salvarReceitaAvulsa() {
         competencia: compSel ? competenciaParaData(compSel) : data.slice(0, 8) + '01', vencimento: data, data_pagamento: recebido ? data : null,
         status: recebido ? 'realizado' : 'previsto', ativo_id: ativoId, origem_tipo: 'manual', reembolsavel: false,
     };
+    if (receitaOrigemFingerprintId) { // v1.89.0 — veio da linha do extrato
+        linha.origem_tipo = 'extrato'; linha.origem_id = receitaOrigemFingerprintId;
+        if (receitaOrigemParteId) linha.parte_id = receitaOrigemParteId;
+    }
     const { data: ins, error } = await dbAuth.from('lancamentos').insert(linha).select('id').single();
     if (error) { rzToast('Não consegui registrar: ' + error.message, { tipo: 'danger' }); return false; }
+    if (receitaOrigemFingerprintId && ins?.id) { // v1.89.0 — fecha o laço com a linha do extrato (mesmo jeito da "Nova despesa")
+        const { error: erroVinculo } = await dbAuth.from('extrato_fingerprints').update({
+            status_conciliacao: 'conciliado', destino_tipo: 'lancamento', destino_id: ins.id, conciliado_em: new Date().toISOString(),
+        }).eq('id', receitaOrigemFingerprintId);
+        if (erroVinculo) devLog('ERRO_CONCILIACAO', 'Receita criada, mas não consegui ligar o extrato: ' + erroVinculo.message);
+        receitaOrigemFingerprintId = null; receitaOrigemParteId = null;
+        if (document.getElementById('conc-uni-lista')) await carregarConciliacaoUnificada();
+    }
     if (typeof registrarLog === 'function') registrarLog('mensal.receita_avulsa', { lancamentoId: ins?.id, valor, recebido });
     emitirEscrita('receita', { id: ins?.id, acao: 'criar' });
     rzToast('Receita registrada');
