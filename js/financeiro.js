@@ -1,7 +1,12 @@
 // ============================================================================
 // financeiro.js — Raiz Patrimônio · Financeiro (Recebimentos · Atrasados · Saídas
 //                  · conciliação de extrato · recibo · detalhe do recebimento)
-// Versão: 1.92.0 · 15/11/2026
+// Versão: 1.93.0 · 15/11/2026
+//
+// v1.93.0 (15/11/2026, sessão 20261115-1510-conciliacao-f, demanda 2a51055a; achado do Nicola 15/11 15:05, Administradora Matos 90%
+// sem conciliar) — "SEMPRE FAZER ASSIM" PODE SER ACEITO NA LINHA. A regra do cliente (R12, criar despesa na categoria escolhida)
+// ganha "Aceitar sugestão" no menu da linha, que aplica a regra só nela (fn_conciliacao_aplicar). No banco, a mesma correção:
+// a regra passa a lançar sozinha na importação e no reprocessamento (migration conciliacao_r12_documento_v1). Versão anterior: 1.92.0
 //
 // v1.92.0 (15/11/2026, sessão 20261115-1500-conciliacao-e, demanda 2a51055a; de acordo do Nicola 15/11 14:47 "Pode fazer a
 // sugestão do documento na tela") — O CADASTRO SE COMPLETA COM A CONCILIAÇÃO. No cartão "O que o Raiz leu", quando a linha do
@@ -30,18 +35,11 @@
 // só desta linha) — caso do Rodrigo, 100% que esperava o próximo reprocessamento. (5eb9e2cf) "Lançar entrada" nas entradas:
 // abre "Receita sem contrato" já preenchida com valor, data e descrição do extrato e, ao salvar, liga a linha (origem extrato).
 // Sugestão de aporte de sócio (regra R16) abre esse formulário já em "Aporte de sócio (capital)".
-// Versão anterior: 1.88.0
-//
-// v1.88.0 (15/11/2026, sessão 20261115-0840-conciliacao-b, demanda 2a51055a; de acordo do Nicola 15/11 08:38, item C "queria incluir
-// a linha do extrato que foi lida") — A LINHA SUGERIDA DA CONCILIAÇÃO MOSTRA O QUE FOI LIDO. Em vez de só "Parece: Contrato
-// ident…", três linhas: (1) o extrato — data, CPF/CNPJ formatado e o histórico do banco; (2) o contrato lido — locatário, bem,
-// aluguel e dia de vencimento; (3) a leitura do motor (ex.: "10/2026 já está pago por outra baixa…"). O motor passa a mandar a
-// cobrança do mês lido também na sugestão R05 (migration conciliacao_mes_vizinho_v1), para a linha achar o contrato.
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.87.0 … v1.87.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.88.0 … v1.88.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '1.92.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.93.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 
 // v1.17.0 (Fase 1 do wrapper de escrita, rollout Financeiro) — emitirEscrita
 // é o evento padrão pra "algo mudou que módulos DE FORA deste arquivo podem
@@ -4157,6 +4155,8 @@ function financeiroRenderCabecalho(aba) {
                     sub: f.direcao === 'entrada' ? `Abre "Lançar entrada" já em ${nomeCat}` : (cat === 'tributo' ? 'Abre a despesa para dizer qual tributo' : `Cria despesa "${nomeCat}" ligada a esta linha`), aoTocar: ir };
             }
             if (sug.modo === 'automatico' && sug.acao === 'pagar_fatura') return { icone: 'sparkles', tipo: 'ia', titulo, sub: 'Paga a fatura do cartão', aoTocar: ir };
+            if (sug.modo === 'automatico' && sug.acao === 'criar_saida_categoria') // v1.93.0 — "Sempre fazer assim" (R12)
+                return { icone: 'sparkles', tipo: 'ia', titulo, sub: 'Cria a despesa como na sua regra "Sempre fazer assim"', aoTocar: ir };
             return null;
         }
 
@@ -4400,6 +4400,7 @@ function financeiroRenderCabecalho(aba) {
             if (sug.acao === 'vincular_saida_prevista') return sug.destino_tipo === 'lancamento' && !!sug.destino_id;
             if (sug.acao === 'sugerir_categoria') return categoriaRegraConc(sug.regra_codigo) !== 'tributo';
             if (sug.acao === 'ligar_baixa') return true; // v1.89.0
+            if (sug.modo === 'automatico' && sug.acao === 'criar_saida_categoria') return true; // v1.93.0
             return false;
         }
         export function conciliacaoRevisarEmSequencia() {
@@ -4503,7 +4504,7 @@ function financeiroRenderCabecalho(aba) {
             }
             // v1.89.0 — liga à baixa já feita (CT05) e demais sugestões automáticas ainda não aplicadas: o próprio motor
             // aplica, só nesta linha (a mesma função que roda no fim da importação).
-            if (sug.acao === 'ligar_baixa' || (sug.modo === 'automatico' && sug.acao === 'pagar_fatura')) {
+            if (sug.acao === 'ligar_baixa' || (sug.modo === 'automatico' && ['pagar_fatura', 'criar_saida_categoria'].includes(sug.acao))) { // v1.93.0 + R12
                 mostrarCarregamentoGlobal('Conciliando…');
                 try {
                     const { error } = await dbAuth.rpc('fn_conciliacao_aplicar', { p_cliente_id: CLIENTE_ID_SUPABASE, p_ids: [fingerprintId] });
