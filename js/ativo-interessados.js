@@ -1,7 +1,14 @@
 // =====================================================================
 // RAIZ PATRIMÔNIO — js/ativo-interessados.js
-// Versão: 1.2.0 · 14/11/2026
+// Versão: 1.3.0 · 15/11/2026
 // -----------------------------------------------------------------
+// v1.3.0 (15/11/2026, sessão 20261115-1735-licencas-leads, demanda 954b4cca; FICHA_LICENCAS_LEADS_RAIZ v1.3.0 L1 — de acordo
+//   do Nicola 15/11 17:34) — o card deixa de listar os interessados corridos: vira o card "Leads" com o RESUMO por etapa
+//   (quantidade em cada uma e quantos próximos passos vencem em 7 dias); pedidos de reserva aguardando seguem como linhas.
+//   Tocar no resumo abre a tela "Leads e interessados" (sheet): ⋮ padrão no topo (Novo interessado, Ver todos, O que é cada
+//   etapa), busca, chips por etapa com contagem, lista agrupada por etapa na largura toda e ⋮ em cada lead (abrir, propor
+//   reunião, WhatsApp, marcar como perdido). A lista vem da fn_leads_listar (regra no banco); a ficha do interessado abre
+//   por cima (empilhar) e, ao salvar, tela e card se atualizam. Versão anterior: 1.2.0
 // v1.2.0 (14/11/2026, sessão 20261114-1910-crm-reuniao-1; FICHA_REUNIAO_LEAD_GOOGLE_MEET_RAIZ v1.0.2) — lead da Raiz (Venda de
 //   licença) com WhatsApp ganha "Propor reunião" na ficha: até 3 faixas de dias, duração, prévia dos horários e envio do convite
 //   (Edge agenda-google, só master). Preferências, adoção e dores ficam na ficha do Gestão › Leads. Versão anterior: 1.1.0
@@ -17,7 +24,7 @@
 //     comunicações da pessoa (fn_comunicacoes_pessoa: robô, comunicações, app e esteira). Grava por fn_interessado_mover.
 //   · O card aparece no bem com uso de agenda (temporada, short stay, cowork, atendimento) ou que já tenha interessado/pedido.
 // =====================================================================
-export const VERSAO = '1.2.0';
+export const VERSAO = '1.3.0';
 
 const MODELOS_AGENDA = ['temporada', 'short_stay', 'cowork', 'atendimento'];
 const esc = (s) => (typeof rzEsc === 'function' ? rzEsc(s) : String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])));
@@ -36,22 +43,24 @@ async function etapas() {
     return etapasCache;
 }
 
+// v1.3.0 — item da fn_leads_listar no formato que a ficha do interessado já usa
+const paraLinha = (it) => ({ ...it, partes: { id: it.parte_id, nome: it.nome, whatsapp: it.whatsapp } });
+
 // a: ativo da ficha; usos: linhas de fn_ativo_usos (para saber se o bem usa agenda)
 export async function montarCardInteressados(a, usos = []) {
     const usosCard = document.getElementById('fa-card-usos'); if (!usosCard) return;
     let card = document.getElementById('fa-card-interessados');
     const temAgenda = (usos || []).some(u => !u.repouso && MODELOS_AGENDA.includes(u.modelo));
-    let lista = [], pedidos = [];
+    let lista = [], pedidos = [], resumo = null;
     try {
         const [r1, r2, cat] = await Promise.all([
-            dbAuth.from('partes_papeis').select('id, parte_id, fluxo_codigo, etapa_codigo, etapa_desde, proximo_passo, proximo_passo_em, criado_em, dados_origem, partes!inner(id, nome, whatsapp)')
-                .eq('papel', 'interessado').eq('entidade_tipo', 'ativo').eq('entidade_id', a.id).eq('ativo', true).order('etapa_desde', { ascending: false, nullsFirst: false }),
+            dbAuth.rpc('fn_leads_listar', { p_cliente_id: a.cliente_id || CLIENTE_ID_SUPABASE, p_ativo_id: a.id, p_etapa: 'todos' }), // v1.3.0
             dbAuth.from('processos_contratacao').select('id, interessado_nome, interessado_whatsapp, periodo_inicio, periodo_fim, expira_em, status')
                 .eq('ativo_id', a.id).eq('status', 'preenchido').not('periodo_inicio', 'is', null).order('periodo_inicio'),
             etapas(),
         ]);
         if (r1.error) throw r1.error;
-        lista = r1.data || []; pedidos = (r2.data || []);
+        resumo = r1.data || {}; lista = (resumo.itens || []).map(paraLinha); pedidos = (r2.data || []);
     } catch (e) {
         console.warn('[ativo-interessados] leitura:', e?.message || e);
         card?.remove(); return;
@@ -61,31 +70,21 @@ export async function montarCardInteressados(a, usos = []) {
         card = document.createElement('div'); card.id = 'fa-card-interessados'; card.className = 'rz-card';
         (document.getElementById('fa-card-calendario') || usosCard).after(card);
     }
-    const cat = etapasCache || [];
-    const nomeEtapa = (f, e) => (cat.find(x => x.fluxo_codigo === f && x.etapa_codigo === e) || {}).etapa_nome || '';
-    const natureza = (f, e) => (cat.find(x => x.fluxo_codigo === f && x.etapa_codigo === e) || {}).natureza || 'aberta';
-    const abertos = lista.filter(i => !['ganho', 'perdido'].includes(natureza(i.fluxo_codigo, i.etapa_codigo)) || !i.etapa_codigo);
-    const fechados = lista.filter(i => !abertos.includes(i));
     const linhaPedido = (p, k) => `<button type="button" class="rz-row rz-link" data-int-ped="${k}">
             <div class="rz-ic"><i data-lucide="hourglass"></i></div>
             <div class="rz-tx"><b>${esc(p.interessado_nome || 'Pedido de reserva')}</b><span>${dm(p.periodo_inicio)} a ${dm(p.periodo_fim)} · aguardando até ${dmh(p.expira_em)}</span></div>
             <i data-lucide="chevron-right" class="rz-chev"></i></button>`;
-    const linhaInt = (i) => {
-        const et = nomeEtapa(i.fluxo_codigo, i.etapa_codigo);
-        const sub = [et ? `${et} ${dias(i.etapa_desde)}` : `Desde ${dm(i.criado_em)}`, i.proximo_passo ? `→ ${i.proximo_passo}${i.proximo_passo_em ? ' (' + dm(i.proximo_passo_em + 'T12:00') + ')' : ''}` : ''].filter(Boolean).join(' · ');
-        return `<button type="button" class="rz-row rz-link" data-int-id="${i.id}">
-            <div class="rz-ic"><i data-lucide="user-round"></i></div>
-            <div class="rz-tx"><b>${esc(i.partes?.nome || 'Interessado')}</b><span>${esc(sub)}</span></div>
-            <i data-lucide="chevron-right" class="rz-chev"></i></button>`;
-    };
-    card.innerHTML = `<div class="rz-card-h"><h3>Pedidos e interessados</h3><button type="button" class="rz-ico-btn" data-int-novo aria-label="Novo interessado"><i data-lucide="user-plus"></i></button></div>
-        ${pedidos.length ? `<div class="rz-group">Pedidos aguardando<span>${pedidos.length}</span></div><div class="rz-list">${pedidos.map(linhaPedido).join('')}</div>` : ''}
-        <div class="rz-group"${pedidos.length ? ' style="margin-top:10px"' : ''}>Interessados<span>${abertos.length || '—'}</span></div>
-        ${abertos.length ? `<div class="rz-list">${abertos.map(linhaInt).join('')}</div>` : '<p class="rz-desc" style="margin:4px 0 0">Nenhum interessado em andamento.</p>'}
-        ${fechados.length ? `<details style="margin-top:8px"><summary class="rz-desc">Concluídos e perdidos (${fechados.length})</summary><div class="rz-list">${fechados.map(linhaInt).join('')}</div></details>` : ''}`;
+    // v1.3.0 — resumo por etapa (sem os vazios); perdidos e concluídos contam, mas por último
+    const etapasRes = (resumo.resumo || []).filter(e => e.qtd > 0);
+    const sub = [`${resumo.ativos || 0} ${resumo.ativos === 1 ? 'ativo' : 'ativos'}`, resumo.passos_semana ? `${resumo.passos_semana} ${resumo.passos_semana === 1 ? 'passo' : 'passos'} esta semana` : ''].filter(Boolean).join(' · ');
+    card.className = 'rz-card';
+    card.innerHTML = `<div class="rz-card-h"><h3>Leads</h3><span class="rz-sub">${esc(sub)}</span><button type="button" class="rz-more" data-int-mais aria-label="Ações dos leads"><i data-lucide="ellipsis-vertical"></i></button></div>
+        ${etapasRes.length ? `<div class="rz-kpis" style="margin:0" role="button" data-int-abrir aria-label="Ver os leads">${etapasRes.map(e => `<div class="rz-kpi"${['ganho', 'perdido'].includes(e.natureza) ? ' style="opacity:.6"' : ''}><small>${esc(e.nome || 'Sem etapa')}</small><b>${e.qtd}</b></div>`).join('')}</div>`
+            : '<p class="rz-desc" style="margin:4px 0 0">Nenhum interessado ainda.</p>'}
+        ${pedidos.length ? `<div class="rz-group" style="margin-top:10px">Pedidos aguardando<span>${pedidos.length}</span></div><div class="rz-list">${pedidos.map(linhaPedido).join('')}</div>` : ''}`;
     const recarregar = () => montarCardInteressados(a, usos);
-    card.querySelector('[data-int-novo]').addEventListener('click', () => abrirNovoInteressado(a, recarregar));
-    card.querySelectorAll('[data-int-id]').forEach(b => b.addEventListener('click', () => abrirFichaInteressado(a, lista.find(i => i.id === b.dataset.intId), recarregar)));
+    card.querySelector('[data-int-abrir]')?.addEventListener('click', () => abrirTelaLeads(a, recarregar));
+    card.querySelector('[data-int-mais]').addEventListener('click', () => acoesTelaLeads(a, recarregar, false));
     card.querySelectorAll('[data-int-ped]').forEach(b => b.addEventListener('click', async () => {
         const p = pedidos[Number(b.dataset.intPed)];
         const m = await import('./agenda-form.js');
@@ -94,8 +93,8 @@ export async function montarCardInteressados(a, usos = []) {
     icones();
 }
 
-function abrirNovoInteressado(a, aoMudar) {
-    abrirSheetForm({
+function abrirNovoInteressado(a, aoMudar, empilhar = false) {
+    abrirSheetForm({ empilhar,
         titulo: 'Novo interessado', sub: a.nome_exibicao, rotuloSalvar: 'Registrar',
         corpo: `<div class="rz-f"><label for="ai-nome">Nome</label><input type="text" id="ai-nome" maxlength="160" placeholder="Como a pessoa se chama"></div>
             <div class="rz-f"><label for="ai-wa">WhatsApp</label><input type="tel" id="ai-wa" placeholder="(11) 9…"></div>
@@ -114,7 +113,7 @@ function abrirNovoInteressado(a, aoMudar) {
     });
 }
 
-async function abrirFichaInteressado(a, i, aoMudar) {
+async function abrirFichaInteressado(a, i, aoMudar, empilhar = false) {
     if (!i) return;
     const cat = (await etapas()).filter(x => x.fluxo_codigo === i.fluxo_codigo);
     const st = { etapa: i.etapa_codigo };
@@ -133,7 +132,7 @@ async function abrirFichaInteressado(a, i, aoMudar) {
         <div class="rz-group" style="margin-top:6px">Comunicações<span></span></div>
         <div id="ai-com"><p class="rz-desc">Carregando…</p></div>`;
     const sheet = abrirSheetForm({
-        titulo: i.partes?.nome || 'Interessado', sub: a.nome_exibicao, corpo, rotuloSalvar: 'Salvar',
+        titulo: i.partes?.nome || 'Interessado', sub: a.nome_exibicao, corpo, rotuloSalvar: 'Salvar', empilhar,
         aoSalvar: async () => {
             if (!i.fluxo_codigo) { return true; }
             const pp = (raiz.querySelector('#ai-pp')?.value || '').trim();
@@ -162,6 +161,81 @@ async function abrirFichaInteressado(a, i, aoMudar) {
             <div class="rz-tx"><b>${esc(c.titulo || c.fonte)}</b><span>${esc(dmh(c.quando))}${c.texto ? ' · ' + esc(c.texto) : ''}</span></div></div>`).join('')}</div>`
         : '<p class="rz-desc">Nenhuma comunicação registrada com esse número.</p>';
     icones();
+}
+
+// =====================================================================
+// v1.3.0 — Tela "Leads e interessados" (sheet que abre cheio): ⋮ padrão no topo, busca, chips por etapa, grupos e ⋮ por lead.
+// =====================================================================
+const tela = { etapa: null, busca: '' };
+function acoesTelaLeads(a, aoMudar, empilhar = true) {
+    abrirSheetAcoes({ titulo: 'Leads e interessados', sub: a.nome_exibicao, empilhar, grupos: [
+        { titulo: 'Leads', acoes: [
+            { icone: 'user-plus', titulo: 'Novo interessado', sub: 'Pelo WhatsApp', aoTocar: () => setTimeout(() => abrirNovoInteressado(a, aoMudar, empilhar), 50) },
+            { icone: 'list', titulo: 'Ver todos', sub: 'Inclui concluídos e perdidos', aoTocar: () => { tela.etapa = 'todos'; setTimeout(() => abrirTelaLeads(a, aoMudar), 50); } } ] },
+        { titulo: 'Esteira', acoes: [
+            { icone: 'info', titulo: 'O que é cada etapa', aoTocar: () => setTimeout(() => explicarEtapas(empilhar), 50) } ] },
+    ] });
+}
+async function explicarEtapas(empilhar) {
+    const cat = (await etapas()).filter(e => e.fluxo_codigo === 'venda_licenca' || !e.fluxo_codigo);
+    const lista = cat.length ? cat : await etapas();
+    abrirSheet(rzSheetCabecalho('Etapas da esteira', lista[0]?.fluxo_nome || '') + `<div class="rz-sh-b"><div class="rz-card rz-list">${lista.map(e =>
+        `<div class="rz-row"><div class="rz-tx"><b>${esc(e.etapa_nome)}${e.opcional ? ' <span class="rz-st rz-neu">opcional</span>' : ''}</b><span>${esc(e.descricao || '')}</span></div></div>`).join('')}</div></div>`, { empilhar });
+}
+export async function abrirTelaLeads(a, aoMudarCard) {
+    const sheet = abrirSheet(`<div class="rz-sh-h"><div style="flex:1;min-width:0"><h3>Leads e interessados</h3><span class="rz-sub">${esc(a.nome_exibicao || '')}</span></div>
+        <button type="button" class="rz-more" data-tl-mais aria-label="Ações"><i data-lucide="ellipsis-vertical"></i></button>
+        <button type="button" class="rz-x" onclick="fecharSheet()" aria-label="Fechar"><i data-lucide="x"></i></button></div>
+        <div class="rz-sh-b"><div class="rz-f" style="margin-bottom:8px"><input type="search" data-tl-busca placeholder="Buscar nome ou empresa" value="${esc(tela.busca)}" aria-label="Buscar lead"></div>
+        <div class="rz-chips" data-tl-chips></div><div data-tl-lista>${typeof rzSk === 'function' ? rzSk('linhas', 4) : ''}</div></div>`);
+    const aoMudar = () => { carregar(); aoMudarCard && aoMudarCard(); };
+    sheet.querySelector('[data-tl-mais]').addEventListener('click', () => acoesTelaLeads(a, aoMudar, true));
+    let espera = null;
+    sheet.querySelector('[data-tl-busca]').addEventListener('input', (ev) => { tela.busca = ev.target.value; clearTimeout(espera); espera = setTimeout(carregar, 250); });
+    async function carregar() {
+        const { data, error } = await dbAuth.rpc('fn_leads_listar', { p_cliente_id: a.cliente_id || CLIENTE_ID_SUPABASE, p_ativo_id: a.id, p_etapa: tela.etapa, p_busca: tela.busca || null });
+        const el = sheet.querySelector('[data-tl-lista]'); if (!el) return;
+        if (error) { el.innerHTML = '<p class="rz-desc">Não consegui ler os leads agora.</p>'; return; }
+        const res = (data?.resumo || []).filter(e => e.qtd > 0);
+        const chip = (cod, rot, n) => `<button type="button" class="rz-chip${tela.etapa === cod ? ' rz-on' : ''}" data-tl-et="${cod ?? ''}">${esc(rot)} <span class="rz-n">${n}</span></button>`;
+        sheet.querySelector('[data-tl-chips]').innerHTML = chip(null, 'Ativos', data?.ativos || 0) + res.map(e => chip(e.etapa, e.nome || 'Sem etapa', e.qtd)).join('') + chip('todos', 'Todos', data?.total || 0);
+        sheet.querySelectorAll('[data-tl-et]').forEach(b => b.addEventListener('click', () => { tela.etapa = b.dataset.tlEt || null; carregar(); }));
+        const itens = (data?.itens || []).map(paraLinha);
+        const grupos = [];
+        itens.forEach(i => { let g = grupos.find(x => x.cod === i.etapa_codigo); if (!g) grupos.push(g = { cod: i.etapa_codigo, nome: i.etapa_nome || 'Sem etapa', itens: [] }); g.itens.push(i); });
+        el.innerHTML = grupos.length ? grupos.map(g => `<div class="rz-group">${esc(g.nome)}<span>${g.itens.length}</span></div><div class="rz-card rz-list">${g.itens.map(i => {
+            const sub = [i.empresa, i.proximo_passo ? `→ ${i.proximo_passo}${i.proximo_passo_em ? ' (' + dm(i.proximo_passo_em + 'T12:00') + ')' : ''}` : (i.etapa_desde ? `Na etapa ${dias(i.etapa_desde)}` : '')].filter(Boolean).join(' · ');
+            return `<div class="rz-row rz-link" role="button" tabindex="0" data-tl-id="${i.id}">
+                <div class="rz-ic"><i data-lucide="${i.etapa_codigo === 'em_teste' ? 'badge-check' : 'user-round'}"></i></div>
+                <div class="rz-tx"><b>${esc(i.nome || 'Interessado')}</b><span>${esc(sub || 'Sem próximo passo')}</span></div>
+                ${i.passo_semana ? '<div class="rz-rt"><span class="rz-st rz-warn">Esta semana</span></div>' : ''}
+                <button type="button" class="rz-more" data-tl-acoes="${i.id}" aria-label="Ações do lead"><i data-lucide="ellipsis-vertical"></i></button></div>`;
+        }).join('')}</div>`).join('') : '<p class="rz-desc">Nenhum lead com esse filtro.</p>';
+        const achar = (id) => itens.find(x => x.id === id);
+        el.querySelectorAll('[data-tl-id]').forEach(r => r.addEventListener('click', (ev) => {
+            if (ev.target.closest('[data-tl-acoes]')) return;
+            abrirFichaInteressado(a, achar(r.dataset.tlId), aoMudar, true);
+        }));
+        el.querySelectorAll('[data-tl-acoes]').forEach(b => b.addEventListener('click', (ev) => { ev.stopPropagation(); acoesLead(a, achar(b.dataset.tlAcoes), aoMudar); }));
+        icones();
+    }
+    icones();
+    await carregar();
+}
+function acoesLead(a, i, aoMudar) {
+    if (!i) return;
+    const wa = String(i.whatsapp || '').replace(/\D/g, '');
+    const acoes = [
+        { icone: 'pencil', titulo: 'Etapa e próximo passo', sub: i.etapa_nome || '', aoTocar: () => setTimeout(() => abrirFichaInteressado(a, i, aoMudar, true), 50) },
+        ...(wa && i.fluxo_codigo === 'venda_licenca' ? [{ icone: 'video', titulo: 'Propor reunião', sub: 'Até 3 faixas, link próprio', aoTocar: () => setTimeout(() => abrirProporReuniao(a, i), 50) }] : []),
+        ...(wa ? [{ icone: 'message-circle', titulo: 'Abrir o WhatsApp', sub: telVisivel(wa), aoTocar: () => window.open('https://wa.me/' + wa, '_blank', 'noopener') }] : []),
+        ...(i.natureza !== 'perdido' && i.fluxo_codigo ? [{ icone: 'circle-x', tipo: 'bad', titulo: 'Marcar como perdido', aoTocar: async () => {
+            const { data, error } = await dbAuth.rpc('fn_interessado_mover', { p_papel_id: i.id, p_etapa: 'perdido', p_proximo_passo: null, p_em: null, p_canal: 'app' });
+            if (error || !data?.ok) { toast(error?.message || data?.mensagem || 'Não consegui mudar a etapa.', 'erro'); return; }
+            toast('Marcado como perdido.', 'sucesso'); aoMudar && aoMudar();
+        } }] : []),
+    ];
+    abrirSheetAcoes({ titulo: i.nome || 'Interessado', sub: [i.etapa_nome, i.empresa].filter(Boolean).join(' · '), acoes, empilhar: true });
 }
 
 // v1.2.0 — Propor reunião (lead da Raiz): faixas de dias + duração → prévia → convite pelo WhatsApp (Edge agenda-google)

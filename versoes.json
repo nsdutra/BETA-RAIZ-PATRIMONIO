@@ -1,8 +1,8 @@
 {
   "app": "patrimonio",
-  "gerado_em": "2026-11-15T19:53:07",
+  "gerado_em": "2026-11-15T20:40:21",
   "arquivos": {
-    "index.html": "1.490.37",
+    "index.html": "1.490.38",
     "sw.js": "3.4",
     "js/cadastros.js": "1.3.0",
     "js/financeiro.js": "1.95.0",
@@ -52,7 +52,7 @@
     "js/nucleo/calendario.js": "1.1.0",
     "js/agenda-form.js": "1.1.0",
     "js/ativo-disponibilidade.js": "1.0.0",
-    "js/ativo-interessados.js": "1.2.0"
+    "js/ativo-interessados.js": "1.3.0"
   },
   "detalhes": {
     "index.html": {
@@ -256,8 +256,8 @@
       "funcoes": 6
     },
     "js/ativo-interessados.js": {
-      "linhas": 199,
-      "funcoes": 6
+      "linhas": 273,
+      "funcoes": 11
     }
   }
 }
