@@ -1,7 +1,12 @@
 // ============================================================================
 // financeiro.js — Raiz Patrimônio · Financeiro (Recebimentos · Atrasados · Saídas
 //                  · conciliação de extrato · recibo · detalhe do recebimento)
-// Versão: 1.94.0 · 15/11/2026
+// Versão: 1.95.0 · 15/11/2026
+//
+// v1.95.0 (15/11/2026, sessão 20261115-1640-totais-natureza, demanda fb97987e; de acordo do Nicola 15/11 16:40 sobre
+// FICHA_TOTAIS_POR_NATUREZA_v1_0_0) — TOTAIS POR NATUREZA. Abaixo dos 4 totais de Recebimentos e de Saídas, uma linha de fichas
+// por natureza (Operação, Investimento, Financiamento, Pessoal) quando o mês tem mais de uma; tocar abre os 4 números dela e o que
+// ela quer dizer. Números de fn_financeiro_totalizadores_natureza (migration financeiro_totais_natureza_v1). Versão anterior: 1.94.0
 //
 // v1.94.0 (15/11/2026, sessão 20261115-1550-partes-doc, demanda 2a51055a; pedidos do Nicola 15/11 15:45 "dar mais detalhes da
 // regra e do que será criado e como" e 15:56 "1 e 2 ok") — (1) DESPESA DO EXTRATO NASCE PAGA: "Nova despesa" aberta de uma
@@ -27,17 +32,11 @@
 // ações (log_acessos, mensal.baixar): "baixa manual por Ruyter em 15/10/2026", "conciliação automática pelo app em …", "pelo
 // robô do WhatsApp em …"; sem registro, diz a data informada. (2) A lista da Conciliação separa "Para tratar (N)" de "Não
 // controlados (N)" — os não controlados vão para um grupo próprio, no fim, e não se misturam com o que ainda está pendente.
-// Versão anterior: 1.90.0
-//
-// v1.90.0 (15/11/2026, sessão 20261114-2342-investimentos-patrimonio, demanda fd3898f7; Fase 2 do
-// PLANO_EXECUCAO_INVESTIMENTOS_PATRIMONIO_RAIZ v1.1.0) — NATUREZA NA SAÍDA. O formulário de saída mostra a natureza econômica
-// que vem da subcategoria (operação, investimento, financiamento, pessoal) e deixa trocar só na exceção; a escolha vai em
-// lancamentos.natureza_economica (nulo = segue a categoria). Catálogo lido com natureza_economica. Versão anterior: 1.89.0
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.89.0 … v1.89.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.90.0 … v1.90.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '1.94.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.95.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 
 // v1.17.0 (Fase 1 do wrapper de escrita, rollout Financeiro) — emitirEscrita
 // é o evento padrão pra "algo mudou que módulos DE FORA deste arquivo podem
@@ -804,6 +803,51 @@ function financeiroAcaoConta(origemTipo, id, contaId, aoMudar) {
         } }];
 }
 
+// v1.95.0 (demanda fb97987e; de acordo do Nicola 15/11 16:40, FICHA_TOTAIS_POR_NATUREZA_v1_0_0) — faixa "por natureza" logo abaixo
+// dos 4 totais de Recebimentos e de Saídas: uma linha de fichas (Operação, Investimento, Financiamento, Pessoal) vinda de
+// fn_financeiro_totalizadores_natureza (mesmas regras dos totais; nunca soma no cliente). Só aparece quando o mês tem mais de
+// uma natureza. Tocar abre os 4 números da natureza e o que ela quer dizer.
+const FIN_NATUREZA_SIGNIFICA = {
+    operacao: 'Aluguéis, despesas e receitas do dia a dia.',
+    investimento: 'Compra e venda de bens: sinal, parcelas, reformas que aumentam o patrimônio.',
+    financiamento: 'Dinheiro de sócios e de terceiros: aportes, empréstimos e as devoluções deles.',
+    pessoal: 'Gastos pessoais dos sócios pagos pela conta.',
+};
+function financeiroMoedaCurta(v) {
+    const a = Math.abs(Number(v) || 0);
+    if (a >= 1e6) return 'R$ ' + (a / 1e6).toLocaleString('pt-BR', { maximumFractionDigits: 2 }) + ' mi';
+    if (a >= 1e4) return 'R$ ' + (a / 1e3).toLocaleString('pt-BR', { maximumFractionDigits: 1 }) + ' mil';
+    return formatarMoedaBR(a);
+}
+async function financeiroFaixaNatureza(aba, tipo, comp, idPrevisto) {
+    const grade = document.getElementById(idPrevisto)?.closest('.rz-kpis');
+    if (!grade) return;
+    let faixa = document.getElementById('fin-natureza-' + aba);
+    if (!faixa) {
+        faixa = document.createElement('div');
+        faixa.id = 'fin-natureza-' + aba; faixa.className = 'rz-chips'; faixa.style.marginTop = '8px';
+        grade.insertAdjacentElement('afterend', faixa);
+    }
+    faixa.hidden = true;
+    try {
+        const { data, error } = await dbAuth.rpc('fn_financeiro_totalizadores_natureza', { p_cliente_id: CLIENTE_ID_SUPABASE, p_competencia: comp, p_tipo: tipo, p_conta_id: financeiroContaFiltro });
+        if (error) throw error;
+        const linhas = (data || []).filter(l => Math.abs(Number(l.previsto) || 0) > 0.004);
+        if ((financeiroCompetenciaAtual || financeiroCompetenciaHojeISO()) !== comp) return; // trocou de mês no meio
+        if (linhas.length < 2) return;
+        const rot = (n) => ({ operacao: 'Operação', investimento: 'Investimento', financiamento: 'Financiamento', pessoal: 'Pessoal' })[n] || n;
+        faixa.innerHTML = linhas.map((l, i) => `<button type="button" class="rz-chip" data-fin-nat="${i}">${escapeHtmlSaidas(rot(l.natureza))} <span class="rz-n">${financeiroMoedaCurta(l.previsto)}</span></button>`).join('');
+        faixa.querySelectorAll('[data-fin-nat]').forEach(b => b.addEventListener('click', () => {
+            const l = linhas[Number(b.dataset.finNat)], rec = tipo === 'recebimento';
+            const kv = [['Previsto', l.previsto], [rec ? 'Recebido' : 'Pago', l.realizado], ['Em atraso', l.em_atraso], [rec ? 'A receber' : 'A pagar', l.em_aberto]];
+            abrirSheet(rzSheetCabecalho(rot(l.natureza), `${rec ? 'Recebimentos' : 'Saídas'} · ${financeiroCompetenciaLabel(comp)}`)
+                + `<div class="rz-sh-b"><div class="rz-card"><div class="rz-kv">${kv.map(([r, v]) => `<div><small>${r}</small><b>${formatarMoedaBR(Number(v) || 0)}</b></div>`).join('')}`
+                + `<div class="rz-full"><small>O que entra aqui</small><b style="font-weight:500;font-size:var(--fs-sec,12.5px)">${escapeHtmlSaidas(FIN_NATUREZA_SIGNIFICA[l.natureza] || '')}</b></div></div></div></div>`);
+        }));
+        faixa.hidden = false;
+    } catch (e) { console.warn('[financeiro] totais por natureza:', e.message); }
+}
+
 async function financeiroAtualizarKpis(aba) {
     const tipo = aba === 'mensal' ? 'recebimento' : 'saida';
     const comp = financeiroCompetenciaAtual || financeiroCompetenciaHojeISO();
@@ -824,6 +868,7 @@ async function financeiroAtualizarKpis(aba) {
             const el = document.getElementById(id);
             if (el) el.textContent = formatarMoedaBR(Number(linha[campo] || 0));
         });
+        financeiroFaixaNatureza(aba, tipo, comp, ids.previsto); // v1.95.0 (fb97987e) — sem await: os 4 totais não esperam a faixa
     } catch (e) {
         console.error('[financeiro] fn_financeiro_totalizadores', e);
         Object.values(ids).forEach(id => { const el = document.getElementById(id); if (el) el.textContent = 'R$ 0'; });
