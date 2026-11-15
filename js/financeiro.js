@@ -1,7 +1,14 @@
 // ============================================================================
 // financeiro.js — Raiz Patrimônio · Financeiro (Recebimentos · Atrasados · Saídas
 //                  · conciliação de extrato · recibo · detalhe do recebimento)
-// Versão: 1.90.0 · 15/11/2026
+// Versão: 1.91.0 · 15/11/2026
+//
+// v1.91.0 (15/11/2026, sessão 20261115-1450-conciliacao-d, demanda 2a51055a; pedido do Nicola 15/11 14:44) — QUEM FEZ E QUANDO, E
+// A LISTA EM DOIS GRUPOS. (1) No cartão "O que o Raiz leu", o mês já pago diz quem deu a baixa e em que dia, lido do registro de
+// ações (log_acessos, mensal.baixar): "baixa manual por Ruyter em 15/10/2026", "conciliação automática pelo app em …", "pelo
+// robô do WhatsApp em …"; sem registro, diz a data informada. (2) A lista da Conciliação separa "Para tratar (N)" de "Não
+// controlados (N)" — os não controlados vão para um grupo próprio, no fim, e não se misturam com o que ainda está pendente.
+// Versão anterior: 1.90.0
 //
 // v1.90.0 (15/11/2026, sessão 20261114-2342-investimentos-patrimonio, demanda fd3898f7; Fase 2 do
 // PLANO_EXECUCAO_INVESTIMENTOS_PATRIMONIO_RAIZ v1.1.0) — NATUREZA NA SAÍDA. O formulário de saída mostra a natureza econômica
@@ -35,18 +42,11 @@
 // deixa de ser contado como "já conciliado" e aparece como "para conferir". (P3) Reprocessar e importar planilha usam o
 // mesmo progresso por etapas da leitura do extrato e da fatura (rzProgressoLeitura). (P4) O histórico do banco
 // ("REND PAGO APLIC…") passa a ser gravado na linha do extrato, para a regra de rendimento (R01) tratar sozinha.
-// Versão anterior: 1.86.0
-//
-// v1.86.0 (13/11/2026, sessão 20261113-1530-dividir-recebimento, demanda 76a2f670; FICHA_PRESTACAO_CONTAS_ADMINISTRADORA_RAIZ v1.2.0
-// fase P1 + PROTOTIPO_DIVISAO_RECEBIMENTO v1.0.0, de acordo do Nicola 13/11 14:05) — "Dividir recebimento" na linha de entrada
-// pendente da Conciliação: o depósito vira a baixa de vários aluguéis (bruto, taxa e líquido), receitas sem contrato, descontos
-// da administradora e ajuste de centavos até R$ 0,05; o botão só fecha quando a soma bate (fn_extrato_dividir_recebimento).
-// Linha dividida abre a lista do que foi feito e "Desfazer divisão". Versão anterior: 1.85.0
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.85.0 … v1.85.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.86.0 … v1.86.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '1.90.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.91.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 
 // v1.17.0 (Fase 1 do wrapper de escrita, rollout Financeiro) — emitirEscrita
 // é o evento padrão pra "algo mudou que módulos DE FORA deste arquivo podem
@@ -4179,12 +4179,40 @@ function financeiroRenderCabecalho(aba) {
                 const m = mensalidades.find(x => x.id === sug.destino_id);
                 const con = m ? contratos.find(c => c.id === m.contratoId) : null;
                 if (con) linhas.push(['Contrato', [con.locatario, conciliacaoAtivoDaSugestao(sug), 'R$ ' + fmtBR(Number(con.valor) || 0), con.vencimentoDia ? 'dia ' + con.vencimentoDia : ''].filter(Boolean).join(' · ')]);
-                if (m) linhas.push(['Mês lido', `${m.referencia} · ${m.status === 'Pago' ? 'já pago' : 'em aberto'}`]);
+                if (m) linhas.push(['Mês lido', `${m.referencia} · ${m.status === 'Pago' ? 'já pago' : 'em aberto'}`, m.status === 'Pago' ? m.id : null]); // v1.91.0 — 3º item: preencher quem baixou
             }
             if (sug) linhas.push([`Raiz IA · ${Math.round(sug.confianca || 0)}%`, sug.detalhe || nomeRegraConc(sug.regra_codigo)]);
             else linhas.push(['Raiz IA', 'Sem sugestão — escolha abaixo']);
-            return `<div class="rz-card" style="margin-bottom:12px"><div class="rz-kv">${linhas.map(([r, v]) =>
-                `<div class="rz-full"><small>${e(r)}</small><b style="font-weight:500;font-size:var(--fs-sec,12.5px)">${e(v)}</b></div>`).join('')}</div></div>`;
+            return `<div class="rz-card" style="margin-bottom:12px"><div class="rz-kv">${linhas.map(([r, v, menId]) =>
+                `<div class="rz-full"><small>${e(r)}</small><b style="font-weight:500;font-size:var(--fs-sec,12.5px)"${menId ? ` data-conc-quem="${menId}"` : ''}>${e(v)}</b></div>`).join('')}</div></div>`;
+        }
+
+        // v1.91.0 — quem deu a baixa do aluguel e quando (registro de ações mensal.baixar; o mais recente vale)
+        async function conciliacaoPreencherQuemBaixou(el) {
+            const alvo = el?.querySelector('[data-conc-quem]');
+            if (!alvo) return;
+            const menId = alvo.dataset.concQuem;
+            const m = mensalidades.find(x => x.id === menId);
+            const dt = (iso) => iso ? new Date(iso).toLocaleDateString('pt-BR') : '';
+            let texto = `${m?.referencia || ''} · já pago`;
+            try {
+                const { data } = await dbAuth.from('log_acessos').select('acao, detalhe, criado_em, pessoas(nome)')
+                    .eq('cliente_id', CLIENTE_ID_SUPABASE).eq('acao', 'mensal.baixar').eq('detalhe->>mensalidadeId', menId)
+                    .order('criado_em', { ascending: false }).limit(1);
+                const r = (data || [])[0];
+                if (r) {
+                    const d = r.detalhe || {}, nome = (r.pessoas?.nome || '').split(' ')[0];
+                    const bot = d.canal === 'bot' || /whats|bot/i.test(String(d.via || '') + String(d.banco || ''));
+                    const como = bot ? 'pelo robô do WhatsApp'
+                        : d.via === 'conciliacao_automatica' ? `conciliação automática pelo app${nome ? ' (' + nome + ')' : ''}`
+                        : `baixa manual${nome ? ' por ' + nome : ''}`;
+                    texto += ` · ${como} em ${dt(r.criado_em)}`;
+                } else {
+                    texto += ' · sem registro de quem baixou';
+                }
+                if (m?.dataPgto) texto += ` · data do pagamento informada: ${m.dataPgto}`;
+            } catch (e) { /* fica o texto curto */ }
+            alvo.textContent = texto;
         }
 
         // v1.89.0 (5eb9e2cf) — "Lançar entrada" a partir da linha do extrato (aporte de sócio, venda, outra receita)
@@ -4290,7 +4318,11 @@ function financeiroRenderCabecalho(aba) {
                     <div class="rz-tx"><b>Revisar em sequência (${concSeqOrdem.length})</b><span>Uma pendência por vez, com a sugestão da Raiz IA</span></div>
                     <svg data-lucide="chevron-right" class="rz-chev"></svg>
                 </div></div>` : '';
-            lista.innerHTML = `${seqHtml}<div class="rz-card rz-list">${ordenados.map(linhaConciliacaoUniHtml).join('')}</div>`;
+            // v1.91.0 — dois grupos: o que ainda está em tratamento e, no fim, os não controlados
+            const emTratamento = ordenados.filter(f => f.status_conciliacao !== 'nao_controlado');
+            const naoControlados = ordenados.filter(f => f.status_conciliacao === 'nao_controlado');
+            const grupoConc = (titulo, itens) => itens.length ? `<div class="rz-group">${titulo} (${itens.length})</div><div class="rz-card rz-list">${itens.map(linhaConciliacaoUniHtml).join('')}</div>` : '';
+            lista.innerHTML = `${seqHtml}${grupoConc('Para tratar', emTratamento)}${grupoConc('Não controlados', naoControlados)}`;
             conciliacaoLigarDeslize(lista); // v1.47.0
             lista.querySelector('[data-conc-seq]')?.addEventListener('click', conciliacaoRevisarEmSequencia);
 
@@ -4733,7 +4765,7 @@ function financeiroRenderCabecalho(aba) {
             const sheetLinha = abrirSheetAcoes({ titulo: limparRotuloConciliacao(f.razao_social) || (entrada ? 'Entrada' : 'Saída'), sub, acoes });
             // v1.89.0 (D) — "O que o Raiz leu", no topo do menu
             const corpoSheet = sheetLinha?.querySelector('.rz-sh-b');
-            if (corpoSheet) corpoSheet.insertAdjacentHTML('afterbegin', conciliacaoCartaoLido(f, sugCache));
+            if (corpoSheet) { corpoSheet.insertAdjacentHTML('afterbegin', conciliacaoCartaoLido(f, sugCache)); conciliacaoPreencherQuemBaixou(corpoSheet); }
         }
 
         // NOVO (v1.179.5) — pedido explícito do Nicola: um resumo de
