@@ -6,8 +6,11 @@
    (base derivada do RUMO v7.4.2 — histórico de versões anteriores
    preservado abaixo para referência técnica)
 
-   VERSÃO: Beta v1.490.24
-   LINHAS: 15545
+   VERSÃO: Beta v1.490.25
+   LINHAS: 15543
+   DATA: 14/11/2026 (sessão 20261114-2330-fuso-horario, demanda 42b41936)
+   NOVIDADES (Beta v1.490.25) — "hoje" pela data do aparelho (antes UTC: depois das 21h virava amanhã).
+   Versão anterior (Beta v1.490.24):
    DATA: 14/11/2026 (seletor de uso Renda)
    NOVIDADES (Beta v1.490.24) — uso Comercial vira Renda (dem 285a0058).
    Versão anterior (Beta v1.490.23): import map.
@@ -2848,13 +2851,8 @@
 
     <script>
 
-        // Fonte ÚNICA da versão exibida no app (splash + Sobre). Antes disso,
-        // a versão ficava hardcoded direto no HTML da splash, e o Sobre
-        // copiava dali — funcionava, mas dependia de lembrar de editar o
-        // texto certo toda vez (esqueci 5 versões seguidas, de v1.37.1 até
-        // v1.38.3). Agora só precisa mudar UMA linha aqui a cada release;
-        // window.onload aplica nos dois lugares automaticamente.
-        const APP_VERSAO = "Beta v1.490.24"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
+        // Fonte ÚNICA da versão exibida no app (splash + Sobre); window.onload aplica nos dois.
+        const APP_VERSAO = "Beta v1.490.25"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
 
         // ====================================================================
         // v1.105.0 — HELPERS DE SUPERFÍCIE DA GRAMÁTICA ÚNICA
@@ -6200,7 +6198,7 @@ async function criarLinkVitrineSupabase(token, idsSelecionados) {
 
                     
 
-                    const hoje = new Date().toISOString().split('T')[0];
+                    const hoje = new Date().toLocaleDateString('sv');
 
                     const inputDataRep = document.getElementById('rep-data-transferencia');
 
@@ -9444,7 +9442,7 @@ async function criarLinkVitrineSupabase(token, idsSelecionados) {
             if (!m.dataPgto) return true;
             const isoVenc = converterDataBRparaISO(m.dataPgto);
             if (!isoVenc) return true;
-            const isoHoje = new Date().toISOString().split('T')[0];
+            const isoHoje = new Date().toLocaleDateString('sv');
             return isoVenc <= isoHoje;
         }
 
@@ -11747,7 +11745,7 @@ async function criarLinkVitrineSupabase(token, idsSelecionados) {
                 case 'reajuste_aniversario': return r.detalhe?.proxima_data || null;
                 case 'extrato_desatualizado':
                     if (r.dias == null) return null;
-                    { const d = new Date(); d.setDate(d.getDate() - r.dias); return d.toISOString().slice(0, 10); }
+                    { const d = new Date(); d.setDate(d.getDate() - r.dias); return d.toLocaleDateString('sv'); }
                 // cofre_item_vencendo + os 6 tipos de rotina de empresa
                 // (fechamento/contador/nfse/relatório/indicadores/revisão de
                 // valor) — todos vêm de fn_diario_cofre_item_vencendo,
@@ -12067,7 +12065,7 @@ async function criarLinkVitrineSupabase(token, idsSelecionados) {
         async function rzMarcarAlertas(chaves, tipo, diasAdiar = null) {
             chaves = (chaves || []).filter(Boolean);
             if (!chaves.length || !pessoaIdLogada) return;
-            const p_ate = tipo === 'adiado' ? new Date(Date.now() + diasAdiar * 86400000).toISOString().slice(0, 10) : null;
+            const p_ate = tipo === 'adiado' ? new Date(Date.now() + diasAdiar * 86400000).toLocaleDateString('sv') : null;
             const antes = rzAlertasLocal(chaves, tipo); // v1.301.0 — a linha sai na hora
             const res = await Promise.all(chaves.map(c => dbAuth.rpc('fn_alerta_marcar', { p_alerta_chave: c, p_pessoa_id: pessoaIdLogada, p_tipo: tipo, p_ate })
                 .then(({ error }) => ({ c, error })).catch(error => ({ c, error }))));
@@ -15024,7 +15022,7 @@ async function criarLinkVitrineSupabase(token, idsSelecionados) {
                 return;
             }
 
-            const hoje = new Date().toISOString().split('T')[0];
+            const hoje = new Date().toLocaleDateString('sv');
 
             container.innerHTML = unicos.map(emp => {
                 const existente = (empreendimentosSelecionados || []).find(e =>
@@ -15054,7 +15052,7 @@ async function criarLinkVitrineSupabase(token, idsSelecionados) {
                 const dataInput = container.querySelector(`.check-empreendimento-sindico-vigencia[data-emp="${emp}"]`);
                 return {
                     empreendimentoId: emp,
-                    dataInicio: dataInput ? dataInput.value : new Date().toISOString().split('T')[0],
+                    dataInicio: dataInput ? dataInput.value : new Date().toLocaleDateString('sv'),
                     dataFim: ''
                 };
             });
