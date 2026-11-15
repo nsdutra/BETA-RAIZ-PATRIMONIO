@@ -1,7 +1,13 @@
 // ============================================================================
 // financeiro.js — Raiz Patrimônio · Financeiro (Recebimentos · Atrasados · Saídas
 //                  · conciliação de extrato · recibo · detalhe do recebimento)
-// Versão: 1.91.0 · 15/11/2026
+// Versão: 1.92.0 · 15/11/2026
+//
+// v1.92.0 (15/11/2026, sessão 20261115-1500-conciliacao-e, demanda 2a51055a; de acordo do Nicola 15/11 14:47 "Pode fazer a
+// sugestão do documento na tela") — O CADASTRO SE COMPLETA COM A CONCILIAÇÃO. No cartão "O que o Raiz leu", quando a linha do
+// extrato traz CPF/CNPJ e o cadastro ligado a ela está sem documento, aparece "Salvar CPF … no contrato de X" (contrato da
+// sugestão sem documento) ou "… no cadastro de X" (pessoa com o mesmo nome, sem documento, e nenhuma outra com esse
+// documento). Um toque grava; nada é gravado sem o toque. Versão anterior: 1.91.0
 //
 // v1.91.0 (15/11/2026, sessão 20261115-1450-conciliacao-d, demanda 2a51055a; pedido do Nicola 15/11 14:44) — QUEM FEZ E QUANDO, E
 // A LISTA EM DOIS GRUPOS. (1) No cartão "O que o Raiz leu", o mês já pago diz quem deu a baixa e em que dia, lido do registro de
@@ -31,22 +37,11 @@
 // ident…", três linhas: (1) o extrato — data, CPF/CNPJ formatado e o histórico do banco; (2) o contrato lido — locatário, bem,
 // aluguel e dia de vencimento; (3) a leitura do motor (ex.: "10/2026 já está pago por outra baixa…"). O motor passa a mandar a
 // cobrança do mês lido também na sugestão R05 (migration conciliacao_mes_vizinho_v1), para a linha achar o contrato.
-// Versão anterior: 1.87.0
-//
-// v1.87.0 (15/11/2026, sessão 20261115-0030-conciliacao, demanda 2a51055a; de acordo do Nicola 15/11 00:26) — CONCILIAÇÃO
-// MAIS CERTEIRA E SEM TELA PARADA. (P0) Estornar recebimento e salvar a observação do recibo gravam só aquele aluguel (antes
-// regravavam todos, uma a um: 509 na Rumo, cerca de 1 min de "Salvando na nuvem"). (P1) Quem pagou: primeiro o CPF/CNPJ
-// (só números, contra o documento do contrato), com o valor desempatando quando o mesmo documento tem mais de um contrato;
-// depois o nome, sem contar "da/de/do/das/dos/e" (Maria Tereza dos Santos casava com Roberto Rodrigues dos Santos). Mesma
-// regra no motor do banco (migration conciliacao_pagador_doc_v1). (P2) Pagamento que cai num mês já pago por outra baixa
-// deixa de ser contado como "já conciliado" e aparece como "para conferir". (P3) Reprocessar e importar planilha usam o
-// mesmo progresso por etapas da leitura do extrato e da fatura (rzProgressoLeitura). (P4) O histórico do banco
-// ("REND PAGO APLIC…") passa a ser gravado na linha do extrato, para a regra de rendimento (R01) tratar sozinha.
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.86.0 … v1.86.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.87.0 … v1.87.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '1.91.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.92.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 
 // v1.17.0 (Fase 1 do wrapper de escrita, rollout Financeiro) — emitirEscrita
 // é o evento padrão pra "algo mudou que módulos DE FORA deste arquivo podem
@@ -4187,6 +4182,59 @@ function financeiroRenderCabecalho(aba) {
                 `<div class="rz-full"><small>${e(r)}</small><b style="font-weight:500;font-size:var(--fs-sec,12.5px)"${menId ? ` data-conc-quem="${menId}"` : ''}>${e(v)}</b></div>`).join('')}</div></div>`;
         }
 
+        // v1.92.0 — sugere gravar no cadastro o CPF/CNPJ que veio no extrato, quando o cadastro ligado está sem documento.
+        // Alvo 1: contrato da sugestão (aluguel) sem documento. Alvo 2: pessoa (partes) com o mesmo nome, sem documento, e
+        // nenhuma outra pessoa da empresa já com esse documento. Só grava com o toque.
+        async function conciliacaoSugerirDocumento(el, f, sug) {
+            const dig = String(f.documento_original || '').replace(/\D/g, '');
+            if (!(dig.length === 11 || dig.length === 14)) return;
+            const tipo = dig.length === 11 ? 'CPF' : 'CNPJ';
+            const fmt = dig.length === 14 ? dig.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})$/, '$1.$2.$3/$4-$5')
+                : dig.replace(/^(\d{3})(\d{3})(\d{3})(\d{2})$/, '$1.$2.$3-$4');
+            const norm = (t) => ' ' + String(t || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toUpperCase()
+                .replace(/[^A-Z0-9 ]/g, ' ') + ' ';
+            const limpo = (t) => norm(t).replace(/ (DA|DE|DO|DAS|DOS|E)(?= )/g, ' ').replace(/\s+/g, ' ').trim();
+            let alvo = null;
+            if (sug?.destino_tipo === 'mensalidade' && sug.destino_id) {
+                const m = mensalidades.find(x => x.id === sug.destino_id);
+                const con = m ? contratos.find(c => c.id === m.contratoId) : null;
+                if (con && !String(con.cpf || '').replace(/\D/g, '')) alvo = { tipo: 'contrato', id: con.id, nome: con.locatario, con };
+            }
+            if (!alvo && f.razao_social) {
+                try {
+                    const { data } = await dbAuth.from('partes').select('id, nome, documento').eq('cliente_id', CLIENTE_ID_SUPABASE);
+                    const todas = data || [];
+                    const jaTem = todas.some(p => String(p.documento || '').replace(/\D/g, '') === dig);
+                    const alvoNome = limpo(limparRotuloConciliacao(f.razao_social));
+                    const iguais = todas.filter(p => !String(p.documento || '').replace(/\D/g, '') && limpo(p.nome) === alvoNome);
+                    if (!jaTem && iguais.length === 1) alvo = { tipo: 'parte', id: iguais[0].id, nome: iguais[0].nome };
+                } catch (e) { return; }
+            }
+            if (!alvo || !el.isConnected) return;
+            const e = escapeHtmlSaidas;
+            el.querySelector('.rz-card')?.insertAdjacentHTML('beforeend',
+                `<button type="button" class="rz-btn rz-btn-2" data-conc-doc style="margin-top:10px;width:100%">Salvar ${tipo} ${e(fmt)} no ${alvo.tipo === 'contrato' ? 'contrato' : 'cadastro'} de ${e(alvo.nome)}</button>`);
+            el.querySelector('[data-conc-doc]')?.addEventListener('click', async (ev) => {
+                const b = ev.currentTarget; b.disabled = true;
+                try {
+                    if (alvo.tipo === 'contrato') {
+                        const { error } = await dbAuth.from('contratos').update({ documento: fmt, cpf: fmt, doc_tipo: tipo }).eq('id', alvo.id);
+                        if (error) throw error;
+                        alvo.con.cpf = fmt;
+                    } else {
+                        const { error } = await dbAuth.from('partes').update({ documento: dig, doc_tipo: tipo }).eq('id', alvo.id);
+                        if (error) throw error;
+                    }
+                    if (typeof registrarLog === 'function') registrarLog(alvo.tipo === 'contrato' ? 'contratos.editar' : 'partes.editar', { id: alvo.id, campo: 'documento', origem: 'conciliacao', fingerprintId: f.id });
+                    b.textContent = `${tipo} salvo no cadastro de ${alvo.nome}`;
+                    rzToast(`${tipo} salvo no cadastro de ${alvo.nome}.`);
+                } catch (err) {
+                    b.disabled = false;
+                    rzToast('Não consegui salvar: ' + (/duplicate|uq_partes_doc/i.test(err.message || '') ? 'já existe outro cadastro com esse documento.' : (err.message || err)), { tipo: 'danger' });
+                }
+            });
+        }
+
         // v1.91.0 — quem deu a baixa do aluguel e quando (registro de ações mensal.baixar; o mais recente vale)
         async function conciliacaoPreencherQuemBaixou(el) {
             const alvo = el?.querySelector('[data-conc-quem]');
@@ -4765,7 +4813,7 @@ function financeiroRenderCabecalho(aba) {
             const sheetLinha = abrirSheetAcoes({ titulo: limparRotuloConciliacao(f.razao_social) || (entrada ? 'Entrada' : 'Saída'), sub, acoes });
             // v1.89.0 (D) — "O que o Raiz leu", no topo do menu
             const corpoSheet = sheetLinha?.querySelector('.rz-sh-b');
-            if (corpoSheet) { corpoSheet.insertAdjacentHTML('afterbegin', conciliacaoCartaoLido(f, sugCache)); conciliacaoPreencherQuemBaixou(corpoSheet); }
+            if (corpoSheet) { corpoSheet.insertAdjacentHTML('afterbegin', conciliacaoCartaoLido(f, sugCache)); conciliacaoPreencherQuemBaixou(corpoSheet); conciliacaoSugerirDocumento(corpoSheet, f, sugCache); } // v1.92.0
         }
 
         // NOVO (v1.179.5) — pedido explícito do Nicola: um resumo de
