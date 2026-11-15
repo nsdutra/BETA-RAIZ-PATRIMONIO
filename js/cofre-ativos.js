@@ -1,6 +1,10 @@
 // ============================================================================
 // cofre-ativos.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.158.0 · 15/11/2026
+// Versão: 1.158.1 · 15/11/2026
+//
+// v1.158.1 (15/11/2026, sessão 20261114-2342-investimentos-patrimonio, demanda fd3898f7; pedido do Nicola 15/11 14:55: "no card
+// novo valor, incluir editar dados também") — o ⋮ do card "Valor do bem" ganha "Editar dados", a mesma edição do card Dados.
+// Versão anterior: 1.158.0
 //
 // v1.158.0 (15/11/2026, sessão 20261114-2342-investimentos-patrimonio, demanda fd3898f7; Fase 2 do
 // PLANO_EXECUCAO_INVESTIMENTOS_PATRIMONIO_RAIZ v1.1.0, de acordo do Nicola 15/11 00:33) — COMPRA E VALOR DO BEM. Cadastro e edição
@@ -18,19 +22,11 @@
 // v1.155.0 (14/11/2026, sessão 20261114-1115-crm-f2b-2b; FICHA_DISPONIBILIDADE_SALVAR_RAIZ v1.0.0, de acordo do Nicola 14/11 11:12)
 // — ⋮ do uso ganha "Disponibilidade" nos modelos com agenda (temporada, short stay, cowork, atendimento): abre a tela do módulo
 // ativo-disponibilidade.js, que grava por fn_ativo_disponibilidade_salvar. O ⋮ passa a aparecer nesses usos mesmo sem outra ação.
-// Versão anterior: 1.154.0
-//
-// v1.154.0 (13/11/2026, sessão 20261113-1910-reajuste-desde; Nicola 13/11 19:06: "criar um card calendário separado do uso, na
-// mesma chip de usos e contratos. Este card só será ativado por ativo pelo parâmetro exibir calendário"; "retire a opção de
-// movimentar os meses com o dedo"; fundo "melhor como estava") — o calendário sai do card Usos (que volta a ser como na 1.151.0)
-// e vira o card "Calendário" (#fa-card-calendario), só quando dados_especificos.exibir_calendario_usos = true; liga e desliga
-// no ⋮ do ativo. Lista do dia com as linhas e o toque da Agenda (agenda.js linhaCompromissoHtml / abrirCompromissoAgenda).
-// Sem arrastar; topo do mês sem fundo. Editar o ativo preserva o parâmetro. Versão anterior: 1.153.0
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.153.0 … v1.153.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.154.0 … v1.154.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '1.158.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.158.1'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 import { estado } from './cofre-estado.js';
 import { rzCalendario, rzCalItemDaAgenda } from './nucleo/calendario.js'; // v1.152.0 — calendário único (DS §6.3)
 import { carregarBiblioteca } from './nucleo/bibliotecas.js'; // bibliotecas pesadas, sob demanda (dem 6b11c602)
@@ -478,7 +474,9 @@ async function montarValorDoBem(a) {
     card.querySelector('[data-valor-bem-menu]')?.addEventListener('click', () => sheetOuAviso({
         titulo: 'Valor do bem', sub: a.nome_exibicao,
         acoes: [{ icone: 'receipt', titulo: compra ? 'Corrigir compra' : 'Informar compra', codigo: 'cofre.editar', sub: 'Valor e data da compra',
-            aoTocar: () => abrirFormCompra(a, compra) }],
+            aoTocar: () => abrirFormCompra(a, compra) },
+            { icone: 'pencil', titulo: 'Editar dados', codigo: 'cofre.editar', sub: 'Valor de referência e mais',
+            aoTocar: () => { faTrocarAba('resumo'); alternarEditarAtivo(); } }],
     }));
     refrescarIcones?.();
 }
