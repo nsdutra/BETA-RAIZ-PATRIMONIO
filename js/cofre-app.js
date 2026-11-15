@@ -1,7 +1,9 @@
 // ============================================================================
 // cofre-app.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.52.0 · 19/10/2026
+// Versão: 1.53.0 · 15/11/2026
 //
+// v1.53.0 (15/11/2026, sessão 20261115-1820-ativos-ajustes, demanda 285a0058) — na tela larga, tocar de novo no ativo
+//   que está aberto ao lado recolhe a ficha (volta para a lista). Versão anterior: 1.52.0
 // v1.52.0 (19/10/2026, sessão 20261019-1250-carga-silva-patrimonio, demanda 9404081c) — itens 41 e 44 (Nicola 19/10 12:44): o ⋮ de Patrimônio (antes "+") se chama Patrimônio e ganha "Arquivados", que sai dos chips.
 // Versão anterior: 1.51.0 · 19/10/2026
 //
@@ -24,7 +26,7 @@
 // Versões anteriores (v1.47.0 … v1.47.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '1.52.0'; // v-check (28/09/2026): lido por Dev › Versões — manter igual ao header
+export const VERSAO = '1.53.0'; // v-check (28/09/2026): lido por Dev › Versões — manter igual ao header
 import { estado, COFRE_VERSAO } from './cofre-estado.js';
 import * as api from './cofre-api.js';
 import { mostrarToast, fecharModal, abrirModal, refrescarIcones } from './cofre-ui.js';
@@ -221,7 +223,9 @@ document.addEventListener('click', async (ev) => {
         case 'abrir-form-ativo': await ativos.abrirFormAtivo(); break;
         case 'fechar-form-ativo': ativos.fecharFormAtivo(); break;
         case 'salvar-ativo': await ativos.salvarAtivo(); break;
-        case 'abrir-ativo': await ativos.abrirFichaAtivo(id); break;
+        case 'abrir-ativo': // v1.53.0 — tocar de novo no ativo aberto recolhe a ficha (tela larga; Nicola 15/11 18:00)
+            if (estado.ativoEmFoco?.id === id && document.querySelector('[data-screen="ficha-ativo"]:not(.hidden)')) { ativos.fecharFichaAtivo(); break; }
+            await ativos.abrirFichaAtivo(id); break;
         case 'voltar-ficha-ativo': ativos.fecharFichaAtivo(); break;
         case 'alternar-mais-acoes-ativo':
         case 'abrir-acoes-ativo': ativos.abrirAcoesAtivo(); break;

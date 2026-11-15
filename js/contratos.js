@@ -1,7 +1,15 @@
 // ============================================================================
 // contratos.js — Raiz Patrimônio · Contratos (lista · ficha · formulário ·
 //                 status/reajuste/detalhes · fiadores · documentos · histórico)
-// Versão: 1.74.0 · 13/11/2026
+// Versão: 1.75.0 · 15/11/2026
+//
+// v1.75.0 (15/11/2026, sessão 20261115-1835-licencas-l3, demandas 285a0058 e 954b4cca; FICHA_LICENCAS_LEADS_RAIZ v1.4.0 §4.5 e
+// L3, de acordo do Nicola 15/11 17:34 e 18:33) — (1) a ficha segue contrato_tipos.ficha_secoes: os cards do Resumo ganham
+// data-fc-secao e, quando o tipo tem seções, o js/contrato-licenca.js esconde o que o tipo não usa e monta o que é só dele
+// (licença: Uso e limites, Comunicações, NPS, Aceites). (2) "Carência" no ⋮ de Condições de qualquer contrato (a ocorrência
+// para a geração do aluguel; encargos seguem). (3) Ocorrências com período (carência, cortesia) mostram "de … a …" com o
+// combinado, sem "vence"/atraso; rótulos Carência e Cortesia. (4) Título da ficha: sem endereço no bem, vale o locatário
+// (antes saía ","). Versão anterior: 1.74.0
 //
 // v1.74.0 (13/11/2026, sessão 20261113-1910-reajuste-desde, demanda 9dfa59ee; de acordo do Nicola 13/11 19:06) — Reajustar pergunta
 // o que fazer com os recebimentos em aberto: "Atualizar desde a data do reajuste" (padrão; fn_mensalidades_realinhar com p_desde =
@@ -22,15 +30,8 @@
 //
 // v1.71.0 (12/11/2026, sessão 20261112-2258-lupa-partes, demanda f6be5483; de acordo do Nicola 12/11 22:58) — a busca de Contratos (barra e lupa) acha também pela administradora
 // e pelas partes com papel no contrato (fiador, cônjuge anuente…). Versão anterior: 1.70.0
-//
-// v1.70.0 (08/11/2026, sessão 20261108-2127-encargos-generico, demanda babfb8eb; FICHA_ESTEIRA_ENCARGOS_INQUILINO_ETAPA1_RAIZ
-// v1.2.0, de acordo do Nicola 08/11 21:40) — COBRANÇA DO MÊS: card novo na ficha do contrato (abaixo de Condições) com a regra
-// do condomínio e do IPTU (inquilino paga direto · proprietário cobra junto no aluguel · reembolso à parte · não repassa) e o
-// envio; o ⋮ abre o formulário, que grava pela fn_contrato_cobranca_definir (a mesma do robô) e pergunta uma vez se o imóvel
-// tem condomínio. Só aparece com a esteira de encargos no plano. Código no fim do arquivo (montarCobrancaContrato,
-// abrirCobrancaContrato).
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.69.0 … v1.69.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.70.0 … v1.70.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
 import { avaliarProntidaoContratoParaMinuta } from './minutas.js'; // v1.0.1
@@ -43,7 +44,7 @@ import { renderizarBlocoEndereco, lerBlocoEndereco } from './comum-endereco.js';
 import { formatarEnderecoParte } from './comum-partes.js';
 import { sincronizarAdministradoraContrato } from './nucleo/porta.js'; // v1.72.0 — M3 prestadores→partes
 
-export const VERSAO = '1.74.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.75.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 
 // Faixa do cabeçalho da ficha do contrato: o resumo que se procura primeiro (valor, o que está em aberto e até quando vai).
 // Fim em mês/ano curto ("fev/28"); a data inteira fica no card Condições.
@@ -1717,7 +1718,8 @@ if (!window.__rzListenerEscritaParteContratoLigado) {
                 : con.status === 'Ativo' ? rs('ok', 'Vigente')
                 : con.status === 'Suspenso' ? rs('warn', 'Suspenso')
                 : rs('neu', con.status === 'Finalizado' ? 'Encerrado' : (con.status || '—'));
-            const enderecoCurto = imo ? `${imo.enderecoRua || ''}, ${imo.enderecoNum || ''}` : '—';
+            const temEnderecoFicha = !!(imo && (imo.enderecoRua || imo.enderecoNum)); // v1.75.0 — bem sem endereço (licença): título = locatário
+            const enderecoCurto = temEnderecoFicha ? `${imo.enderecoRua || ''}, ${imo.enderecoNum || ''}` : '—';
             // v1.23.0 (demanda d92a6dfc) — só pra exibir "Recebimento
             // esperado" no card Condições; mesma conta do formulário
             // (atualizarValorLiquidoEsperado, index.html).
@@ -1781,7 +1783,7 @@ if (!window.__rzListenerEscritaParteContratoLigado) {
             document.getElementById('ficha-contrato-conteudo').innerHTML = `
                 <div class="rz-entity">
                     <div class="rz-ic"><svg data-lucide="${con.status === 'Assinando' ? 'file-signature' : 'file-text'}"></svg></div>
-                    <div class="rz-tx"><b>${escapeHtmlSaidas(imo ? enderecoCurto : (con.locatario || 'Locatário não informado'))}</b><span>${escapeHtmlSaidas(imo ? (con.locatario || 'Locatário não informado') : (con.tipoContrato && nomeTipoContrato(con.tipoContrato) ? nomeTipoContrato(con.tipoContrato) : 'Contrato'))}</span></div>
+                    <div class="rz-tx"><b>${escapeHtmlSaidas(temEnderecoFicha ? enderecoCurto : (con.locatario || 'Locatário não informado'))}</b><span>${escapeHtmlSaidas(temEnderecoFicha ? (con.locatario || 'Locatário não informado') : (con.tipoContrato && nomeTipoContrato(con.tipoContrato) ? nomeTipoContrato(con.tipoContrato) : 'Contrato'))}</span></div>
                     ${statusFicha}
                     <!-- v1.52.0 (UX onda 3, D11) — o ⋮ do topo é o lugar de todas as ações do contrato, em grupos -->
                     <button type="button" onclick="abrirAcoesFichaContrato('${con.id}')" class="rz-more rz-more-topo" id="fc-mais" aria-label="Ações do contrato"><svg data-lucide="ellipsis-vertical"></svg></button>
@@ -1797,12 +1799,12 @@ if (!window.__rzListenerEscritaParteContratoLigado) {
 
                 <div class="fc-painel" id="fc-painel-resumo">
                     ${temAlertaFicha ? `
-                    <div class="rz-card ${vencidoFicha ? 'rz-critico' : 'rz-atencao'}">
+                    <div class="rz-card ${vencidoFicha ? 'rz-critico' : 'rz-atencao'}" data-fc-secao="resumo.atencao">
                         <div class="rz-card-h"><h3>Precisa de atenção</h3>${vencidoFicha ? rs('bad', 'Vencido') : rs('warn', con.status === 'Assinando' ? 'Assinatura' : 'Reajuste')}</div>
                         <p class="rz-desc">${vencidoFicha ? 'A vigência terminou e o contrato continua ativo.' : (con.status === 'Assinando' ? 'Aguardando revisão e assinatura.' : 'Reajuste ou revisão pendente pela regra do contrato.')}${con.status === 'Assinando' && !prontidaoFicha.pronto ? ` Minuta ainda indisponível — faltam ${prontidaoFicha.faltantes.length + prontidaoFicha.invalidos.length} dado(s).` : ''}</p>
                         <div class="rz-card-f"><button type="button" onclick="verAlertasContrato('${con.id}')" class="rz-btn rz-btn-1 rz-sm"><svg data-lucide="bell"></svg> Ver alertas</button></div>
                     </div>` : ''}
-                    <div class="rz-card">
+                    <div class="rz-card" data-fc-secao="resumo.condicoes">
                         <div class="rz-card-h"><h3>Condições</h3><button type="button" onclick="abrirAcoesCondicoesContrato('${con.id}')" class="rz-more" aria-label="Ações das condições"><svg data-lucide="ellipsis-vertical"></svg></button></div>
                         <div class="rz-kv">
                             ${kv('Início', formatarDataBR(con.inicio))}
@@ -1815,7 +1817,7 @@ if (!window.__rzListenerEscritaParteContratoLigado) {
                         </div>
                     </div>
                     ${rzCobCardHtml(con.id)}
-                    <div class="rz-card" id="fc-card-ocorrencias">
+                    <div class="rz-card" id="fc-card-ocorrencias" data-fc-secao="resumo.ocorrencias">
                         <div class="rz-card-h"><h3>Ocorrências</h3><span class="rz-sub" id="fc-ocorrencias-status"></span></div>
                         <div id="fc-ocorrencias">${rzSk('linhas', 2)}</div>
                     </div>
@@ -1831,7 +1833,7 @@ if (!window.__rzListenerEscritaParteContratoLigado) {
                          divisao_repasse_contrato (rateio do aluguel entre
                          proprietários), não propriedade_ativo (dono do bem).
                          montarDistribuicaoContrato() abaixo. -->
-                    <div class="rz-card" id="fc-card-distribuicao">
+                    <div class="rz-card" id="fc-card-distribuicao" data-fc-secao="resumo.distribuicao">
                         <div class="rz-card-h"><h3>Distribuição</h3><span class="rz-sub">Rateio do aluguel entre proprietários</span><button type="button" onclick="abrirAcoesDistribuicaoContrato('${con.id}')" class="rz-more" aria-label="Ações da distribuição"><svg data-lucide="ellipsis-vertical"></svg></button></div>
                         <div id="fc-distribuicao">${rzSk('linhas', 2)}</div>
                     </div>
@@ -1962,6 +1964,12 @@ if (!window.__rzListenerEscritaParteContratoLigado) {
             if (typeof lucide !== 'undefined') lucide.createIcons();
             if (abreArquivos) montarDocumentosContrato(con.id);
             montarOcorrenciasContrato(con.id); // v1.1.0 — A.10
+            // v1.75.0 — seções da ficha pelo tipo de contrato (contrato_tipos.ficha_secoes; vazio = ficha de sempre)
+            const secoesFicha = (contratoTiposCache || []).find(t => t.codigo === con.tipoContrato)?.ficha_secoes;
+            if (Array.isArray(secoesFicha) && secoesFicha.length) {
+                import('./contrato-licenca.js').then(m => { if (fichaContratoAtualId === con.id) m.aplicarSecoesFicha(con, secoesFicha); })
+                    .catch(e => console.warn('[contratos] seções da ficha:', e?.message || e));
+            }
             montarPartesEncerradasContrato(con.id); // v1.43.0 — demanda b94ef7d5
             montarDistribuicaoContrato(con.id); // NOVO (19/09/2026, rodada 10)
             montarCobrancaContrato(con.id); // v1.70.0 — cobrança do mês
@@ -2225,8 +2233,8 @@ if (!window.__rzListenerEscritaParteContratoLigado) {
         // ===================================================================
         let ocorrenciasContratoAtual = []; // cache da ficha aberta (pra sheet de ações)
 
-        const OC_CONTRATO_ROTULO = { prevista: 'Prevista', revisional: 'Revisional', renovacao: 'Renovação', reajuste: 'Reajuste', sinistro: 'Sinistro', alteracao: 'Alteração', assinatura: 'Assinatura', anexo: 'Anexo', nota: 'Anotação', documento: 'Documento', pagamento: 'Pagamento', servico: 'Serviço', uso: 'Uso' };
-        const OC_CONTRATO_ICONE = { prevista: 'calendar-clock', revisional: 'calendar-clock', renovacao: 'refresh-cw', reajuste: 'trending-up', sinistro: 'triangle-alert', alteracao: 'pencil', assinatura: 'file-signature', anexo: 'paperclip', nota: 'sticky-note', documento: 'file-text', pagamento: 'banknote', servico: 'wrench', uso: 'gauge' };
+        const OC_CONTRATO_ROTULO = { carencia: 'Carência', cortesia: 'Cortesia', prevista: 'Prevista', revisional: 'Revisional', renovacao: 'Renovação', reajuste: 'Reajuste', sinistro: 'Sinistro', alteracao: 'Alteração', assinatura: 'Assinatura', anexo: 'Anexo', nota: 'Anotação', documento: 'Documento', pagamento: 'Pagamento', servico: 'Serviço', uso: 'Uso' };
+        const OC_CONTRATO_ICONE = { carencia: 'pause-circle', cortesia: 'gift', prevista: 'calendar-clock', revisional: 'calendar-clock', renovacao: 'refresh-cw', reajuste: 'trending-up', sinistro: 'triangle-alert', alteracao: 'pencil', assinatura: 'file-signature', anexo: 'paperclip', nota: 'sticky-note', documento: 'file-text', pagamento: 'banknote', servico: 'wrench', uso: 'gauge' };
         const LIMITE_OCORRENCIAS_CARD = 8;
 
         export async function montarOcorrenciasContrato(contratoId) {
@@ -2235,7 +2243,7 @@ if (!window.__rzListenerEscritaParteContratoLigado) {
             if (!el || fichaContratoAtualId !== contratoId) return;
             try {
                 const { data, error } = await dbAuth.from('cofre_ocorrencias_controle')
-                    .select('id, tipo, status_execucao, data_prevista_atual, tratamento_descricao, valor_a_receber, receber_ate, percentual_reajuste, documento_id, criado_em')
+                    .select('id, tipo, status_execucao, data_prevista_atual, tratamento_descricao, valor_a_receber, receber_ate, percentual_reajuste, documento_id, criado_em, descricao, inicio_em, fim_em') // v1.75.0 + período e combinado
                     .eq('contrato_id', contratoId);
                 if (error) throw error;
                 const todas = data || [];
@@ -2259,6 +2267,17 @@ if (!window.__rzListenerEscritaParteContratoLigado) {
                         const rot = OC_CONTRATO_ROTULO[oc.tipo] || rzEsc(oc.tipo || 'Ocorrência');
                         const ic = OC_CONTRATO_ICONE[oc.tipo] || 'circle-dot';
                         let cls = '', urgencia = '';
+                        // v1.75.0 — ocorrência com período (carência, cortesia): "de … a …" e o combinado; sem vencimento/atraso
+                        const periodo = oc.inicio_em ? (oc.fim_em ? `${formatarDataBR(oc.inicio_em.slice(0, 10))} a ${formatarDataBR(oc.fim_em.slice(0, 10))}` : `desde ${formatarDataBR(oc.inicio_em.slice(0, 10))}`) : '';
+                        if (periodo) {
+                            const hojeIso = new Date().toISOString().slice(0, 10);
+                            urgencia = oc.status_execucao === 'cancelado' ? 'Cancelada' : (oc.fim_em && oc.fim_em.slice(0, 10) < hojeIso ? 'Encerrada' : (oc.inicio_em.slice(0, 10) > hojeIso ? 'A começar' : 'Vigente'));
+                            return `<div class="rz-row rz-row-oc rz-link" onclick="abrirOcorrenciaContrato('${oc.id}')">
+                            <div class="rz-ic"><svg data-lucide="${ic}"></svg></div>
+                            <div class="rz-tx"><b>${rot} · ${periodo}</b><span>${[urgencia, rzEsc(oc.descricao || oc.tratamento_descricao || '')].filter(Boolean).join(' · ')}</span></div>
+                            <svg data-lucide="${aberta ? 'ellipsis-vertical' : 'chevron-right'}" class="rz-chev"></svg>
+                        </div>`;
+                        }
                         if (aberta) {
                             const dias = Math.round((new Date(oc.data_prevista_atual + 'T00:00:00') - new Date(new Date().toDateString())) / 86400000);
                             if (dias < 0) { urgencia = `há ${Math.abs(dias)}d`; cls = ' rz-bad'; }
@@ -2957,6 +2976,9 @@ if (!window.__rzListenerEscritaParteContratoLigado) {
                 { icone: 'pencil', titulo: 'Editar contrato', codigo: 'contratos.editar', sub: 'Datas, valor e índice', aoTocar: () => abrirEdicaoContratoContextual(con.id, 'fichaContrato', con.id) },
             ];
             if (con.status !== 'Assinando') acoes.push({ icone: 'refresh-cw', titulo: 'Renovar contrato', codigo: 'contratos.estender', sub: 'Novo fim e valor', aoTocar: () => renovarContrato(con.id) });
+            // v1.75.0 — carência em qualquer contrato: a mensalidade não é gerada no período; encargos seguem
+            if (con.status !== 'Finalizado') acoes.push({ icone: 'pause-circle', titulo: 'Carência', codigo: 'contratos.editar', sub: 'Período sem cobrança do contrato',
+                aoTocar: () => import('./contrato-licenca.js').then(m => m.abrirFormCarencia(con, () => { abrirFichaContrato(con.id); })) });
             abrirSheetAcoes({ titulo: 'Condições', sub: con.locatario || 'Contrato', acoes });
         }
         export function abrirAcoesReajusteContrato(contratoId) {
@@ -4148,7 +4170,7 @@ if (!window.__rzListenerEscritaParteContratoLigado) {
             if (contratoTiposCache) return contratoTiposCache;
             try {
                 const { data, error } = await dbAuth.from('contrato_tipos')
-                    .select('codigo, nome, descricao, modelo, status, revisional_meses_padrao, revisional_permitida, prazo_meses_min, prazo_meses_max, ordem').order('ordem');
+                    .select('codigo, nome, descricao, modelo, status, revisional_meses_padrao, revisional_permitida, prazo_meses_min, prazo_meses_max, ordem, ficha_secoes').order('ordem'); // v1.75.0 + ficha_secoes
                 if (error) throw error;
                 contratoTiposCache = data || [];
             } catch (e) { console.warn('[contratos] tipos de contrato:', e.message); return []; }
@@ -5415,7 +5437,7 @@ function rzCobLiberada() {
 }
 function rzCobCardHtml(contratoId) {
     if (!rzCobLiberada()) return '';
-    return `<div class="rz-card" id="fc-card-cobranca">
+    return `<div class="rz-card" id="fc-card-cobranca" data-fc-secao="resumo.cobranca">
                         <div class="rz-card-h"><h3>Cobrança do mês</h3><span class="rz-sub">Condomínio e IPTU</span><button type="button" onclick="abrirCobrancaContrato('${contratoId}')" class="rz-more" aria-label="Editar a cobrança do mês"><svg data-lucide="ellipsis-vertical"></svg></button></div>
                         <div id="fc-cobranca">${rzSk('linhas', 2)}</div>
                     </div>`;

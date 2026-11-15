@@ -1,7 +1,11 @@
 // ============================================================================
 // cofre-ativos.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.160.0 · 15/11/2026
+// Versão: 1.161.0 · 15/11/2026
 //
+// v1.161.0 (15/11/2026, sessão 20261115-1820-ativos-ajustes, demanda 285a0058) — (1) sai a regra "Comercial em qualquer
+//   ativo" da R2: os modelos do Comercial aparecem só nos tipos ligados a eles em operacao_modelo_tipos, como os outros
+//   ramos (regra no banco; Nicola 15/11 16:55). (2) A linha do uso em Usos e contratos não abre mais o contrato — com
+//   vários contratos no mesmo ativo (licenças) confundia; o contrato abre pela lista de contratos. Versão anterior: 1.160.0
 // v1.160.0 (15/11/2026, sessão 20261114-2342-investimentos-patrimonio, demanda fd3898f7; de acordo do Nicola 15/11 16:39) —
 // ⋮ do card "Valor do bem" ganha "Registrar financiamento": credor, valor da parcela, parcelas e 1º vencimento viram um item
 // de controle "Parcela do financiamento" (subtipo de catálogo, saída em Amortização de financiamento) pela
@@ -27,7 +31,7 @@
 // Versões anteriores (v1.156.0 … v1.156.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '1.160.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.161.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 import { estado } from './cofre-estado.js';
 import { rzCalendario, rzCalItemDaAgenda } from './nucleo/calendario.js'; // v1.152.0 — calendário único (DS §6.3)
 import { carregarBiblioteca } from './nucleo/bibliotecas.js'; // bibliotecas pesadas, sob demanda (dem 6b11c602)
@@ -2722,15 +2726,15 @@ async function desenharUsosAno(a, vig) {
         const linhas = doAno.map((u, i) => {
             const acao = !u.contrato_id && ((u.acoes || []).length > 0 || usoTemAgenda(u)); // v1.99.0 (+ v1.155.0 Disponibilidade) — o que a máquina deixa (Concluir, Excluir)
             const per = `${formatarDataBR(u.inicio)} → ${fimTxt(u)}${vigenteHoje(u) ? ' · hoje' : (u.inicio > hoje ? ' · a começar' : '')}`;
-            return `<div class="rz-row${u.contrato_id ? ' rz-link' : ''}" data-uso-i="${i}"${u.contrato_id ? ' role="button" tabindex="0"' : ''}>
+            return `<div class="rz-row" data-uso-i="${i}">
                 <div class="rz-ic"><i data-lucide="${u.contrato_id ? 'file-text' : 'user-check'}"></i></div>
                 <div class="rz-tx"><b>${escapeHtml(u.nome)}</b><span>${escapeHtml(per)}</span>${u.observacao && !u.contrato_id ? `<span>${escapeHtml(u.observacao)}</span>` : ''}</div>
-                ${acao ? `<button type="button" class="rz-more" data-uso-mais="${i}" aria-label="Ações do uso"><i data-lucide="ellipsis-vertical"></i></button>` : (u.contrato_id ? '<i data-lucide="chevron-right" class="rz-chev"></i>' : '')}
+                ${acao ? `<button type="button" class="rz-more" data-uso-mais="${i}" aria-label="Ações do uso"><i data-lucide="ellipsis-vertical"></i></button>` : ''}
             </div>`; }).join('');
         painel.insertAdjacentHTML('beforeend', `<div class="rz-list" style="margin-top:8px">${linhas}</div>`);
         painel.querySelectorAll('[data-uso-i]').forEach(el => {
             const u = doAno[Number(el.dataset.usoI)];
-            if (u.contrato_id) el.addEventListener('click', () => abrirContratoNoApp(u.contrato_id));
+            // v1.160.0 — a linha do uso não abre mais o contrato (o contrato abre pela lista de contratos; Nicola 15/11 18:16)
         });
         painel.querySelectorAll('[data-uso-mais]').forEach(b => b.addEventListener('click', (ev) => {
             ev.stopPropagation(); const u = doAno[Number(b.dataset.usoMais)];
@@ -3182,8 +3186,8 @@ export async function abrirAdicionarModeloAtivo() {
                 const lente = ramoDaLente();
                 return ligado && (lente === 'tudo' ? (licenciados.includes(m.ramo) || m.ramo === ramoAtivo) : m.ramo === lente);
             }
-            // Os modelos do Comercial valem para ativo de qualquer ramo (D12, dem 285a0058): vender é transversal.
-            return permite.has(m.codigo) || (!tipo && m.codigo === 'aluguel') || m.ramo === 'comercial';
+            // v1.160.0 — o Comercial segue o catálogo como os outros ramos (operacao_modelo_tipos; Nicola 15/11 16:55).
+            return permite.has(m.codigo) || (!tipo && m.codigo === 'aluguel');
         });
         lista = lista.map(m => ({ ...m, livre: m.status === 'ativo' && (m.universal || licenciados.includes(m.ramo)) }));
     } catch (e) { console.warn('[cofre-ativos] modelos:', e?.message || e); }
