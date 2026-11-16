@@ -1,6 +1,9 @@
 // ============================================================================
 // cofre-ativos.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.161.0 · 15/11/2026
+// Versão: 1.162.0 · 16/11/2026
+// v1.162.0 (16/11/2026, sessão 20261116-0840-comercial-r3, demandas 285a0058 e cc3c667e; FICHA_RECEITA_UNIDADES_GERADORAS §11) —
+//   na lente Comercial a lista do Patrimônio ganha o chip "Itens": o catálogo do que a empresa vende (js/comercial-itens.js).
+//   O chip só aparece com o código comercial.itens liberado no plano. Versão anterior: 1.161.0
 //
 // v1.161.0 (15/11/2026, sessão 20261115-1820-ativos-ajustes, demanda 285a0058) — (1) sai a regra "Comercial em qualquer
 //   ativo" da R2: os modelos do Comercial aparecem só nos tipos ligados a eles em operacao_modelo_tipos, como os outros
@@ -31,7 +34,7 @@
 // Versões anteriores (v1.156.0 … v1.156.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '1.161.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.162.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 import { estado } from './cofre-estado.js';
 import { rzCalendario, rzCalItemDaAgenda } from './nucleo/calendario.js'; // v1.152.0 — calendário único (DS §6.3)
 import { carregarBiblioteca } from './nucleo/bibliotecas.js'; // bibliotecas pesadas, sob demanda (dem 6b11c602)
@@ -697,6 +700,22 @@ export function renderAtivosLista(filtroTipo = '', filtroTexto = '') {
         garantirCatalogoTiposAtivo().then(() => { if (_catalogoTiposAtivoCarregado) redesenharComFiltros(); });
     }
     recalcularGruposChip();
+    // v1.162.0 — chip "Itens" da lente Comercial: a lista mostra o catálogo (módulo próprio), não os ativos
+    //   Lente Comercial sem nenhum ativo: abre direto no chip Itens (o catálogo é o que importa ali)
+    if (chipAtivoAtual === 0 && ramoDaLente() === 'comercial' && !ativosDoRamo().length) {
+        const iItens = GRUPOS_CHIP_TIPO.findIndex(g => g.comercial === 'itens');
+        if (iItens > 0) chipAtivoAtual = iItens;
+    }
+    const chipComercial = GRUPOS_CHIP_TIPO[chipAtivoAtual]?.comercial;
+    if (chipComercial) {
+        document.getElementById('ativos-estado-vazio')?.classList.add('hidden');
+        document.getElementById('ativos-chips-tipo')?.classList.remove('hidden');
+        const alvo = document.getElementById('ativos-lista');
+        alvo?.classList.remove('hidden');
+        renderChipsAtivos();
+        if (alvo) import('./comercial-itens.js').then(m => m.renderItens(alvo)).catch(e => { alvo.innerHTML = `<p class="rz-desc">${escapeHtml(e?.message || 'Não consegui abrir o catálogo.')}</p>`; });
+        return;
+    }
     const ramoLente = ramoDaLente();
 
     // v1.8.0 (pedido explícito, 01/09/2026: "ajustar o modal de
@@ -986,6 +1005,8 @@ function ramoDoAtivoLista(a) {
     if (typeof rzRamoDoAtivo === 'function') return rzRamoDoAtivo({ id: a.id, ramo: a.ramo, modelo_repouso: a.modelo_repouso, tipo_ativo: a.tipo_ativo, tipo_detalhe: det }); // F25: modelo vigente
     return det?.ramo || 'outros';
 }
+// v1.162.0 — chip Itens só com comercial.itens liberado no plano (porta de licença, comum-licenca.js)
+const comercialItensLiberado = () => typeof window !== 'undefined' && typeof window.podeUsar === 'function' && window.podeUsar('comercial.itens').ok === true;
 const segmentoDoAtivo = (a) => tipoDoCatalogo(a.tipo_detalhe_id)?.segmento || 'Outros';
 // v1.102.0 (usos fatia 3, D3-2) — a lista e os contadores mostram só os principais; unidade, área e integrante aparecem
 // dentro do principal (card no Resumo). estado.ativos continua com todos (a ficha do subativo abre por ele; a busca acha).
@@ -1005,6 +1026,8 @@ function recalcularGruposChip() {
         const ordem = new Map();
         ativosDoRamo().forEach(a => { const sg = segmentoDoAtivo(a); const o = tipoDoCatalogo(a.tipo_detalhe_id)?.ordem ?? 999; if (!ordem.has(sg) || o < ordem.get(sg)) ordem.set(sg, o); });
         GRUPOS_CHIP_TIPO = base.concat([...ordem.keys()].sort((x, y) => (ordem.get(x) - ordem.get(y)) || x.localeCompare(y, 'pt-BR')).map(sg => ({ rotulo: sg, tipos: [], segmento: sg })));
+        // v1.162.0 — lente Comercial: o catálogo do que a empresa vende, ao lado dos ativos (FICHA_RECEITA §11)
+        if (r === 'comercial' && comercialItensLiberado()) GRUPOS_CHIP_TIPO = GRUPOS_CHIP_TIPO.concat([{ rotulo: 'Itens', comercial: 'itens' }]);
     }
     // v1.124.0 — "Ver só" (item 44): na frente, o chip "Ver todos" que desfaz; Arquivados (pelo ⋮): um chip só, que fecha
     if (verSoRamo && ramoDaLenteApp() === 'tudo') GRUPOS_CHIP_TIPO = [{ rotulo: 'Ver todos', tipos: null, sair: 'ramo' }].concat(GRUPOS_CHIP_TIPO.map(g => g.rotulo === 'Todos' ? { ...g, rotulo: (typeof rzRamoInfo === 'function' && rzRamoInfo(verSoRamo)?.nome) || 'Todos' } : g));
@@ -1058,6 +1081,7 @@ function renderChipsAtivos() {
     // F2.4 (UXR-13/14/15) — Todos → ação (com ponto) → recorte (só grupos com ativo) → convite.
     const pt = piorSeveridadeAtivos();
     const chips = GRUPOS_CHIP_TIPO.map((g, i) => {
+        if (g.comercial) return `<button type="button" data-action="filtrar-ativos-chip" data-chip-indice="${i}" class="rz-chip${i === chipAtivoAtual ? ' rz-on' : ''}">${escapeHtml(g.rotulo)}</button>`; // v1.162.0
         const qtd = g.arquivados ? arquivadosDaLente().length // v1.120.0 (L5-5) — só aparece com arquivado
             : g.alerta ? base.filter(a => comAlerta.has(a.id)).length
             : g.ramo ? principais().filter(a => ramoDoAtivoLista(a) === g.ramo).length // v1.85.0 (F21) — chip de ramo
@@ -1176,6 +1200,7 @@ export function aplicarFiltroChipAtivos(indice) {
     if (g.sair === 'arquivados') { modoArquivados = false; chipAtivoAtual = 0; redesenharComFiltros(); return; }
     if (g.ramo && typeof window.escolherGeralRamo === 'function') { window.escolherGeralRamo(g.ramo); return; } // v1.85.0 — troca a lente
     chipAtivoAtual = indice;
+    if (g.comercial) { renderAtivosLista([], document.getElementById('filtro-ativo-busca')?.value || ''); return; } // v1.162.0 — Itens
     segmentoChip = g.segmento || null;
     const selTipo = document.getElementById('filtro-ativo-tipo');
     if (selTipo) selTipo.value = '';
