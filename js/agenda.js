@@ -1,8 +1,12 @@
 // =====================================================================
 // RAIZ PATRIMÔNIO — js/agenda.js
-// VERSÃO: Beta v1.19.0 (14/11/2026 — Entrar no Meet)
+// VERSÃO: Beta v1.20.0 (16/11/2026 — Novo compromisso a partir de outra tela)
 // LINHAS: (ver versoes.json)
 // -----------------------------------------------------------------
+// NOVIDADES (Beta v1.20.0) (16/11/2026, sessão 20261116-0853-doc-criar-item, demanda 711f52e5; FICHA_DOCUMENTO_CRIAR_ITEM_AGENDA_RAIZ
+// v1.0.0, de acordo do Nicola 16/11 08:53) — abrirNovoCompromisso(pref) aceita pref.aoSalvar(resultado, idsVinculados) e
+// pref.aoCancelar(): quem abriu a cortina (a ficha do documento) termina o trabalho depois de salvar ou volta ao cancelar.
+// Versão anterior: 1.19.0
 // NOVIDADES (Beta v1.19.0) (14/11/2026, sessão 20261114-1910-crm-reuniao-1; FICHA_REUNIAO_LEAD_GOOGLE_MEET_RAIZ v1.0.2) — reunião
 // confirmada com link do Google Meet (cofre_ocorrencias_controle.evento_externo) abre "Entrar no Meet" e "Detalhes".
 // Versão anterior: 1.18.0
@@ -160,7 +164,7 @@
 
 import { rzCalendario, rzCalItemDaAgenda } from './nucleo/calendario.js'; // v1.16.0 — calendário único (DS §6.3)
 
-export const VERSAO = '1.19.0';
+export const VERSAO = '1.20.0';
 
 const TIPOS = {
     ocorrencia:   { rotulo: 'Ocorrência',  icone: 'wrench',          dominio: 'ocorrencias' },
@@ -994,7 +998,7 @@ export async function abrirNovoCompromisso(pref = {}) {
         corpo.querySelectorAll('[data-cp-d]').forEach(b => b.addEventListener('click', () => { ler(); c.data = b.dataset.cpD; c.precisao = 'dia'; desenhar(); }));
         corpo.querySelectorAll('[data-cp-t]').forEach(b => b.addEventListener('click', () => { ler(); c.tipo = b.dataset.cpT; desenhar(); }));
         corpo.querySelectorAll('[data-cp-a]').forEach(b => b.addEventListener('click', () => { ler(); c.aviso = Number(b.dataset.cpA); desenhar(); }));
-        corpo.querySelector('#cp-cancelar').addEventListener('click', () => fecharSheet(true));
+        corpo.querySelector('#cp-cancelar').addEventListener('click', () => { fecharSheet(true); if (typeof pref.aoCancelar === 'function') pref.aoCancelar(); });
         corpo.querySelector('#cp-salvar').addEventListener('click', salvar);
     };
     const salvar = async () => {
@@ -1008,6 +1012,7 @@ export async function abrirNovoCompromisso(pref = {}) {
         fecharSheet(true);
         (window.rzToast || mostrarToast)(data?.ja_existia ? 'Este compromisso já estava na agenda.' : `Na agenda: ${diaSem()}${data?.pessoas ? ' · ' + data.pessoas : ''}`, { tipo: 'success' });
         if (st.el && st.el.isConnected && st.mes) carregar();
+        if (typeof pref.aoSalvar === 'function') { try { await pref.aoSalvar(data, ordem); } catch (e) { console.warn('[agenda] aoSalvar:', e?.message || e); } } // v1.20.0
     };
     desenhar(); rzIcones();
 }

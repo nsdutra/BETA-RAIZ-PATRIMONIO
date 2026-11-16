@@ -1,6 +1,13 @@
 // ============================================================================
 // cofre-documentos.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 2.40.0 · 09/11/2026
+// Versão: 2.41.0 · 16/11/2026
+//
+// v2.41.0 (16/11/2026, sessão 20261116-0853-doc-criar-item, demanda 711f52e5; FICHA_DOCUMENTO_CRIAR_ITEM_AGENDA_RAIZ v1.0.0, de
+// acordo do Nicola 16/11 08:53) — CRIAR ITEM NA AGENDA pela ficha do documento: todo documento sem item de controle ganha o botão,
+// que abre a cortina Novo compromisso (agenda.js) com título (nome legível do arquivo), data (validade / data do evento), horário,
+// tipo (palpite pelo subtipo ou pelo nome) e as pessoas/bens já ligados marcados. Ao salvar, o documento fica vinculado ao item
+// e a cada pessoa/bem escolhido (sai da triagem) e a ficha reabre mostrando o item nos vínculos.
+// Versão anterior: 2.40.0 · 09/11/2026
 //
 // v2.40.0 (09/11/2026, sessão 20261109-0917-doc-agenda-nome, demanda 16996755; pedido do Nicola 09/11 09:17) — VER O DOCUMENTO
 // NO APP: a ficha do documento mostra a miniatura da imagem e, para PDF, "Ver o documento"; tocar abre o visualizador em tela
@@ -29,7 +36,7 @@
 // Versões anteriores (v2.36.0 … v2.36.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '2.40.0'; // v-check (22/09/2026): lido por Dev › Versões — manter igual ao header
+export const VERSAO = '2.41.0'; // v-check (22/09/2026): lido por Dev › Versões — manter igual ao header
 import { estado } from './cofre-estado.js';
 // v2.3.1 — import TOLERANTE: na v2.2.0 isto era um import estático. Quando o
 // cofre-imagem.js não subiu no deploy (faltava a linha no manifesto), o import
@@ -2193,11 +2200,85 @@ export async function abrirFichaDocumento(id) {
         }).join('');
     }
 
+    montarCriarItemAgenda(d, vincs); // v2.41.0
+
     document.getElementById('fd-status').textContent = '';
     abrirModal('modal-ficha-doc');
 }
 
 export function fecharFichaDoc() { fecharModal('modal-ficha-doc'); }
+
+// v2.41.0 — CRIAR ITEM NA AGENDA a partir do documento (711f52e5). Sem estrutura nova: fn_agenda_compromisso_criar + vínculos.
+const TIPO_POR_SUBTIPO = { evento_festa: 'festa', evento_escolar: 'escola', evento_esportivo: 'esporte', evento_atividade: 'atividade', evento_viagem: 'viagem' };
+function palpiteTipoCompromisso(d, titulo) {
+    const cod = String(d.subtipo_codigo || '');
+    if (TIPO_POR_SUBTIPO[cod]) return TIPO_POR_SUBTIPO[cod];
+    if (/^manutencao_|^revisao_/.test(cod)) return 'manutencao';
+    const t = titulo.toLowerCase();
+    if (/anivers|festa|convite|ingresso|show|casamento|batizado/.test(t)) return 'festa';
+    if (/viagem|voo|passagem|hotel|reserva/.test(t)) return 'viagem';
+    if (/escola|col[eé]gio|reuni[aã]o de pais|formatura/.test(t)) return 'escola';
+    if (/jogo|campeonato|torneio|futsal|jiu|nata[cç][aã]o/.test(t)) return 'esporte';
+    if (/curso|aula|inscri/.test(t)) return 'atividade';
+    if (/manuten|revis[aã]o|t[eé]cnico/.test(t)) return 'manutencao';
+    return 'generico';
+}
+function tituloLegivelDoc(d) {
+    let t = String(d.nome_exibicao || '').replace(/\.[a-z0-9]{2,5}$/i, '');
+    t = t.replace(/\s*[—–-]\s*\d{2}-\d{2}-\d{4}$/, '');            // "… — 05-12-2026"
+    t = t.replace(/[_-][0-9a-f]{6,}$/i, '');                           // "festa_e_evento_271c7b4f"
+    t = t.replace(/_/g, ' ').replace(/\s+/g, ' ').trim();
+    return t ? t.charAt(0).toUpperCase() + t.slice(1) : 'Compromisso';
+}
+function horaDoDoc(d) {
+    const de = d.dados_estruturados || {};
+    const txt = [de.horario, de.hora, d.descricao].filter(Boolean).join(' ');
+    const m = txt.match(/\b([01]?\d|2[0-3])[:h]([0-5]\d)\b/) || txt.match(/\b([01]?\d|2[0-3])h\b/);
+    return m ? `${String(m[1]).padStart(2, '0')}:${m[2] || '00'}` : '';
+}
+function montarCriarItemAgenda(d, vincs) {
+    let box = document.getElementById('fd-criar-item');
+    if (!box) {
+        box = document.createElement('div');
+        box.id = 'fd-criar-item';
+        box.style.cssText = 'margin-top:10px';
+        document.getElementById('fd-vinculos')?.insertAdjacentElement('afterend', box);
+    }
+    box.innerHTML = '';
+    if (vincs.some(v => v.entidade_tipo === 'item_controle')) return; // já tem item: o vínculo "Item · …" acima abre
+    box.innerHTML = `<button type="button" class="rz-btn" data-fd-criar-item style="width:100%;height:44px;display:flex;align-items:center;justify-content:center;gap:8px"><i data-lucide="calendar-plus"></i>Criar item na agenda</button>`;
+    refrescarIcones();
+    box.querySelector('[data-fd-criar-item]').addEventListener('click', () => abrirCriarItemAgenda(d, vincs));
+}
+async function abrirCriarItemAgenda(d, vincs) {
+    const docId = d.id;
+    const titulo = tituloLegivelDoc(d);
+    const de = d.dados_estruturados || {};
+    const data = /^\d{4}-\d{2}-\d{2}/.test(String(de.data_evento || '')) ? String(de.data_evento).slice(0, 10) : (d.validade_em || '');
+    const jaLigados = vincs.filter(v => v.entidade_tipo === 'ativo' && v.entidade_id).map(v => v.entidade_id);
+    let agenda;
+    try { agenda = await import('./agenda.js'); }
+    catch (e) { mostrarToast('Não consegui abrir a agenda.', 'erro'); return; }
+    fecharFichaDoc();
+    agenda.abrirNovoCompromisso({
+        titulo, data, hora: horaDoDoc(d), tipo: palpiteTipoCompromisso(d, titulo), pessoas: jaLigados,
+        local: de.local || '', aviso_dias: null,
+        aoCancelar: () => abrirFichaDocumento(docId),
+        aoSalvar: async (res, ids) => {
+            if (!res?.item_id) return;
+            const temVinculo = vincs.length > 0;
+            try {
+                await api.inserirVinculo(estado.clienteId, docId, 'item_controle', res.item_id, !temVinculo, estado.pessoa?.id);
+                for (const id of (ids || []).filter(x => !jaLigados.includes(x))) {
+                    await api.inserirVinculo(estado.clienteId, docId, 'ativo', id, false, estado.pessoa?.id);
+                }
+            } catch (e) { mostrarToast('Item criado, mas não consegui ligar o documento: ' + (e?.message || e), 'erro'); }
+            window.dispatchEvent(new CustomEvent('cofre:recarregar-documentos'));
+            if (!temVinculo) window.dispatchEvent(new CustomEvent('cofre:triagem-resolvida', { detail: { documentoId: docId } }));
+            await abrirFichaDocumento(docId);
+        },
+    });
+}
 
 // v2.40.0 — VER O DOCUMENTO NO APP: imagem e PDF abrem na tela; o resto segue com Baixar.
 function tipoVisualizavel(d) {
