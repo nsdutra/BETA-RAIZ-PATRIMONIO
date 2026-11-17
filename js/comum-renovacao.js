@@ -1,6 +1,9 @@
 // ============================================================================
 // comum-renovacao.js — Raiz Patrimônio · Renovação e ampliação de plano por Pix
-// Versão: 1.5.0 · 13/11/2026
+// Versão: 1.6.0 · 17/11/2026
+//
+// v1.6.0 (17/11/2026, sessão 20261116-2358-upsell-ramos, demanda dd9c5527; PLANO_EXECUCAO_UPSELL_RAMOS_RAIZ v1.1.0, de acordo do Nicola 16/11 23:58) — a tela de cobrança vira abrirCobranca (exportada) e aceita ramos: o Pix sai com plano + ramos (fn_licenca_cobranca_criar v3, p_ramos). Mostra os ramos da cobrança (grátis no 1º ciclo, ou proporcional até a renovação) e o valor dos ramos já contratados que entram na renovação.
+// Versão anterior: 1.5.0 · 13/11/2026
 //
 // v1.5.0 (13/11/2026, sessão 20261113-0654-upsell-licencas, demanda e619156c; PLANO_EXECUCAO_UPSELL_LICENCAS_RAIZ v1.0.0 F1, de acordo do Nicola 13/11 06:54) — preço de tabela: quando a oferta traz preco_referencia (fn_ofertas_renovacao v2), o valor de tabela aparece riscado com "Desconto de lançamento"; sem ele, vale a economia do anual de antes. Período "trimestral" (3 meses, à vista), com a nota de entrada pelo trimestre no plano que o tem.
 // Versão anterior: 1.4.0 · 23/10/2026
@@ -27,7 +30,7 @@
 // Versões anteriores (v1.3.1 … v1.3.1): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '1.5.0'; // v-check (30/09/2026): lido por Dev › Versões — manter igual ao header
+export const VERSAO = '1.6.0'; // v-check (30/09/2026): lido por Dev › Versões — manter igual ao header
 
 const QR_URL = 'https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js';
 let _qrPromessa = null;
@@ -225,10 +228,17 @@ function telaVazia(msg) {
     });
 }
 
-async function telaCobranca({ dbAuth, clienteId, oferta, toast, voltar }) {
+// v1.6.0 — exportada para o upsell por ramos (comum-ramos-oferta.js); ramos = códigos dos ramos novos escolhidos
+export async function abrirCobranca({ dbAuth, clienteId, oferta, toast, voltar, ramos = null, nomesRamos = {} }) {
+    return telaCobranca({ dbAuth, clienteId, oferta, toast, voltar, ramos, nomesRamos });
+}
+
+async function telaCobranca({ dbAuth, clienteId, oferta, toast, voltar, ramos = null, nomesRamos = {} }) {
     let c;
     try {
-        const { data, error } = await dbAuth.rpc('fn_licenca_cobranca_criar', { p_cliente_id: clienteId, p_plano: oferta.plano_codigo, p_periodo: oferta.periodo });
+        const args = { p_cliente_id: clienteId, p_plano: oferta.plano_codigo, p_periodo: oferta.periodo };
+        if (Array.isArray(ramos) && ramos.length) args.p_ramos = ramos;
+        const { data, error } = await dbAuth.rpc('fn_licenca_cobranca_criar', args);
         if (error) throw error;
         c = data;
     } catch (e) {
@@ -240,6 +250,16 @@ async function telaCobranca({ dbAuth, clienteId, oferta, toast, voltar }) {
     const recusa = c.aviso_recusa
         ? `<div class="rz-card" style="border-left:4px solid var(--danger)"><b style="color:var(--danger)">Pagamento anterior não confirmado</b><p class="text-sm" style="margin-top:4px">${esc(c.aviso_recusa)}</p></div>` : '';
     const credito = Number(c.credito) > 0 ? `<div><small>Crédito do plano atual</small><b>− ${brl(c.credito)}</b></div>` : '';
+    // v1.6.0 — ramos da cobrança: novos (grátis no 1º ciclo ou proporcional) e já contratados (entram na renovação)
+    const nomeR = (r) => esc(nomesRamos[r.ramo] || (r.ramo.charAt(0).toUpperCase() + r.ramo.slice(1)));
+    const linhasRamos = (Array.isArray(c.ramos) ? c.ramos : []).map((r) => {
+        const det = c.so_ramos ? 'proporcional até a renovação do plano'
+            : Number(r.gratis_meses) > 0 ? `grátis ${Number(r.gratis_meses) === 1 ? 'no 1º mês' : 'nos ' + r.gratis_meses + ' primeiros meses'}`
+            : `${brl(r.preco_mes)} por mês`;
+        return `<div><small>${nomeR(r)}</small><b>${det}</b></div>`;
+    }).join('');
+    const notaRamos = c.so_ramos ? ' Seu plano continua o mesmo; os ramos passam a vencer junto com ele.'
+        : (Array.isArray(c.ramos) && c.ramos.some((r) => Number(r.gratis_meses) > 0) ? ' Os ramos novos ficam liberados na hora, sem custo neste ciclo.' : '');
 
     const sheet = window.abrirSheetForm({
         titulo: oferta.nome_oferta || oferta.plano_nome,
@@ -249,10 +269,10 @@ async function telaCobranca({ dbAuth, clienteId, oferta, toast, voltar }) {
         corpo: (el) => {
             el.innerHTML = recusa +
                 (svgQr ? `<div style="width:220px;height:220px;margin:4px auto 10px;background:var(--card);border:1px solid var(--line);border-radius:var(--r-card);padding:6px">${svgQr}</div>` : '') +
-                `<div class="rz-kv"><div><small>Valor a pagar</small><b>${brl(c.valor)}</b></div><div><small>Código da cobrança</small><b>${esc(c.txid)}</b></div>${credito}` +
+                `<div class="rz-kv"><div><small>Valor a pagar</small><b>${brl(c.valor)}</b></div><div><small>Código da cobrança</small><b>${esc(c.txid)}</b></div>${credito}${linhasRamos}` +
                 `<div class="rz-full"><small>Pix copia e cola</small><b id="rnv-code" style="font-size:var(--fs-sec,12.5px);font-weight:500;user-select:all">${esc(c.brcode || '')}</b></div></div>` +
                 '<div style="margin-top:10px"><button type="button" class="rz-btn rz-btn-2 rz-wide" id="rnv-copiar"><svg data-lucide="copy"></svg>Copiar código Pix</button></div>' +
-                '<p class="text-xs" style="color:var(--muted);margin-top:10px">Pague no app do seu banco e toque em <b>Já paguei</b>. O plano é liberado na hora.</p>';
+                '<p class="text-xs" style="color:var(--muted);margin-top:10px">Pague no app do seu banco e toque em <b>Já paguei</b>. O plano é liberado na hora.' + notaRamos + ' Você pode cancelar em até 7 dias sem custo.</p>';
             el.querySelector('#rnv-copiar')?.addEventListener('click', async () => {
                 const code = c.brcode || '';
                 try { await navigator.clipboard.writeText(code); toast('Código Pix copiado', 'success'); }

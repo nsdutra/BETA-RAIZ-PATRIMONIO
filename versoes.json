@@ -1,8 +1,8 @@
 {
   "app": "patrimonio",
-  "gerado_em": "2026-11-17T07:30:46",
+  "gerado_em": "2026-11-17T07:55:34",
   "arquivos": {
-    "index.html": "1.490.52",
+    "index.html": "1.490.53",
     "sw.js": "3.4",
     "js/cadastros.js": "1.3.0",
     "js/financeiro.js": "1.96.1",
@@ -22,7 +22,7 @@
     "js/cofre-ui.js": "1.7.2",
     "js/cofre-validacoes.js": "2.14.0",
     "js/comum-licenca.js": "1.11.0",
-    "js/comum-renovacao.js": "1.5.0",
+    "js/comum-renovacao.js": "1.6.0",
     "js/comum-minha-empresa.js": "1.22.0",
     "js/comum-pessoas.js": "1.217.0",
     "js/comum-sobre.js": "1.5.0",
@@ -57,12 +57,13 @@
     "js/comercial-itens.js": "1.2.0",
     "js/ativo-forma-pagamento.js": "1.0.0",
     "js/pessoas-extrato.js": "1.0.1",
-    "js/comercial-tabelas.js": "1.0.0"
+    "js/comercial-tabelas.js": "1.0.0",
+    "js/comum-ramos-oferta.js": "1.0.0"
   },
   "detalhes": {
     "index.html": {
-      "linhas": 15538,
-      "funcoes": 75
+      "linhas": 15529,
+      "funcoes": 76
     },
     "sw.js": {
       "linhas": 147,
@@ -141,8 +142,8 @@
       "funcoes": 26
     },
     "js/comum-renovacao.js": {
-      "linhas": 381,
-      "funcoes": 15
+      "linhas": 394,
+      "funcoes": 16
     },
     "js/comum-minha-empresa.js": {
       "linhas": 1098,
@@ -283,6 +284,10 @@
     "js/comercial-tabelas.js": {
       "linhas": 283,
       "funcoes": 12
+    },
+    "js/comum-ramos-oferta.js": {
+      "linhas": 301,
+      "funcoes": 9
     }
   }
 }
