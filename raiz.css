@@ -1,6 +1,11 @@
 /* ============================================================================
    raiz.css — Raiz Patrimônio · estilos do app (index.html)
-   Versão: 1.25.0 · 15/11/2026
+   Versão: 1.26.0 · 16/11/2026
+
+   v1.26.0 (16/11/2026, sessão 20261116-2345-financeiro-pessoas, demanda 679b2700; FICHA_REVISAO_FINANCEIRO_RAIZ v1.0.0, Onda 1) —
+   classes .rz-pes-* da aba Pessoas (js/pessoas-extrato.js): linha da pessoa com iniciais, saldo partido (.rz-saldo de antes) e os
+   três números que somam o saldo; topo do extrato com os três números tocáveis; data, natureza e saldo corrido na linha do
+   extrato. Versão anterior: 1.25.0
 
    v1.25.0 (15/11/2026, sessão 20261115-1630-comercial-r2, demanda 285a0058; tom B coral, Nicola 14/11 19:28) — tons do ramo
    Comercial (hdr #5c2418 · acc #c2553a · txt #a8462f · txt-esc #f2b4a3 · papel #f9f0ed) e --ramo-cor-comercial. Versão anterior: 1.24.0
@@ -2185,3 +2190,23 @@ html.rz-plat-web body:not(.rz-split-con) #ficha-contrato-conteudo > .rz-entity:f
 .rz-usos-cal-topo b{font-size:var(--fs-corpo,14px);text-transform:capitalize}
 #tab-relatorios-catalogo{overflow-x:clip}
 .rz-cal-leg i.hj{width:12px;height:0;border-radius:0;border-bottom:3px solid var(--ramo-acc,var(--sage));vertical-align:3px}
+
+/* v1.26.0 (dem 679b2700, Onda 1) — aba Pessoas e extrato da pessoa (js/pessoas-extrato.js) */
+.rz-pes-lin{padding:12px 14px;border-top:1px solid var(--line);cursor:pointer}
+.rz-pes-lin:first-of-type{border-top:0}
+.rz-pes-h{display:flex;align-items:center;gap:10px}
+.rz-pes-h>b{flex:1;min-width:0;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rz-pes-av{flex:none;width:30px;height:30px;border-radius:50%;background:var(--tile);color:var(--ink);font:700 11px var(--font-body);font-style:normal;display:inline-flex;align-items:center;justify-content:center}
+.rz-pes-av.rz-neu{color:var(--muted)}
+.rz-pes-c{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin:8px 0 0 40px;font-size:12px;color:var(--muted)}
+.rz-pes-c b{display:block;color:var(--ink);font-weight:600;font-variant-numeric:tabular-nums;font-size:13px}
+.rz-pes-topo{display:flex;justify-content:space-between;align-items:center;margin:0 2px 10px;font-size:13px;color:var(--muted)}
+.rz-pes-tot{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:0 0 10px}
+.rz-pes-tot button{background:var(--tile);border:1.5px solid transparent;border-radius:12px;padding:8px 10px;text-align:left;font:inherit;color:var(--ink);cursor:pointer}
+.rz-pes-tot button.rz-on{border-color:var(--ink)}
+.rz-pes-tot small{display:block;font-size:11.5px;color:var(--muted)}
+.rz-pes-tot b{font:700 14px var(--font-title);font-variant-numeric:tabular-nums}
+.rz-pes-ext .rz-row{align-items:flex-start}
+.rz-pes-dt{flex:none;width:38px;font:600 12px var(--font-body);color:var(--muted);padding-top:2px}
+.rz-pes-nat{display:inline-block;margin-top:3px;padding:0 7px;border-radius:999px;background:var(--tile);font-size:11px;font-weight:600;font-style:normal;color:var(--muted)}
+.rz-pes-run{display:block;font-size:11.5px;color:var(--muted);font-weight:500;text-align:right}

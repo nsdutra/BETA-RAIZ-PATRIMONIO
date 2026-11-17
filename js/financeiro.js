@@ -1,7 +1,14 @@
 // ============================================================================
 // financeiro.js — Raiz Patrimônio · Financeiro (Recebimentos · Atrasados · Saídas
 //                  · conciliação de extrato · recibo · detalhe do recebimento)
-// Versão: 1.95.0 · 15/11/2026
+// Versão: 1.96.0 · 16/11/2026
+//
+// v1.96.0 (16/11/2026, sessão 20261116-2345-financeiro-pessoas, demanda 679b2700; FICHA_REVISAO_FINANCEIRO_RAIZ v1.0.0, Onda 1;
+// de acordo do Nicola 16/11 23:44) — A ABA BALANÇO VIRA PESSOAS. renderDistribuicao passa a desenhar pelo módulo novo
+// js/pessoas-extrato.js: lista de saldos sem chips e o extrato de cada pessoa (item a item, saldo corrido, Retiradas do ano,
+// ajuste da divisão do item com motivo, Quitar e Lançar retirada). O rótulo da 4ª aba vira "Pessoas". A ficha do sócio no mês
+// (abrirFichaSocioDistribuicao, com o compartilhar) continua, aberta pelo "Demonstrativo do mês" do extrato. As vistas antigas
+// (balancoChipsVista, distribDesenhar, balancoRenderGrupos) ficam sem chamador nesta versão e saem na Onda 3. Versão anterior: 1.95.0
 //
 // v1.95.0 (15/11/2026, sessão 20261115-1640-totais-natureza, demanda fb97987e; de acordo do Nicola 15/11 16:40 sobre
 // FICHA_TOTAIS_POR_NATUREZA_v1_0_0) — TOTAIS POR NATUREZA. Abaixo dos 4 totais de Recebimentos e de Saídas, uma linha de fichas
@@ -26,17 +33,11 @@
 // extrato traz CPF/CNPJ e o cadastro ligado a ela está sem documento, aparece "Salvar CPF … no contrato de X" (contrato da
 // sugestão sem documento) ou "… no cadastro de X" (pessoa com o mesmo nome, sem documento, e nenhuma outra com esse
 // documento). Um toque grava; nada é gravado sem o toque. Versão anterior: 1.91.0
-//
-// v1.91.0 (15/11/2026, sessão 20261115-1450-conciliacao-d, demanda 2a51055a; pedido do Nicola 15/11 14:44) — QUEM FEZ E QUANDO, E
-// A LISTA EM DOIS GRUPOS. (1) No cartão "O que o Raiz leu", o mês já pago diz quem deu a baixa e em que dia, lido do registro de
-// ações (log_acessos, mensal.baixar): "baixa manual por Ruyter em 15/10/2026", "conciliação automática pelo app em …", "pelo
-// robô do WhatsApp em …"; sem registro, diz a data informada. (2) A lista da Conciliação separa "Para tratar (N)" de "Não
-// controlados (N)" — os não controlados vão para um grupo próprio, no fim, e não se misturam com o que ainda está pendente.
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.90.0 … v1.90.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.91.0 … v1.91.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '1.95.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.96.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 
 // v1.17.0 (Fase 1 do wrapper de escrita, rollout Financeiro) — emitirEscrita
 // é o evento padrão pra "algo mudou que módulos DE FORA deste arquivo podem
@@ -46,6 +47,7 @@ import { emitirEscrita, aoEscrever } from './raiz-eventos.js';
 import { carregarBiblioteca } from './nucleo/bibliotecas.js'; // bibliotecas pesadas, sob demanda (dem 6b11c602)
 // v1.28.0 (UXR-30, D25) — substitutos dos diálogos nativos (js/raiz-ui.js 1.0.0).
 import { rzToast, rzConfirmar, rzAviso, rzEscolher, rzEditarDivisao } from './raiz-ui.js';
+import { pessoasRender } from './pessoas-extrato.js'; // v1.96.0 — aba Pessoas (dem 679b2700)
 
 /** Ponto de entrada do switchTab (1 chamada por troca de aba; barato). */
 // v1.43.0 (etapa 6 · A) — barra digitável de cada aba: o termo mora no campo guardador de sempre.
@@ -223,7 +225,7 @@ function financeiroChipsNivelHtml(aba) {
         { chave: 'mensal', rotulo: '<span class="rz-seg-l">Recebimentos</span><span class="rz-seg-s">Receb.</span>', tab: 'tab-mensal' },
         { chave: 'saidas', rotulo: 'Saídas', tab: 'tab-saidas' },
         { chave: 'conciliacao', rotulo: 'Conciliação', tab: 'tab-conciliacao', off: fechamentoOff }, // v1.21.0 — pedido explícito: "Mude o titulo da aba fechamento para conciliacao"
-        { chave: 'socios', rotulo: 'Balanço', tab: 'tab-socios', bloqueio: distrib.ok ? null : 'repasses.ver' },
+        { chave: 'socios', rotulo: 'Pessoas', tab: 'tab-socios', bloqueio: distrib.ok ? null : 'repasses.ver' },
     ];
     return itens.map(it => {
         const off = it.off || !!it.bloqueio;
@@ -6643,6 +6645,21 @@ export async function renderDistribuicao() {
     const corpo = document.getElementById('distrib-corpo');
     if (!corpo) return;
     if (!financeiroCompetenciaAtual) financeiroDefinirCompetencia(financeiroCompetenciaHojeISO());
+    // v1.96.0 (dem 679b2700, Onda 1) — a aba é Pessoas: lista de saldos e extrato, pelo módulo pessoas-extrato.js
+    return pessoasRender({
+        cliente: CLIENTE_ID_SUPABASE, competencia: financeiroCompetenciaAtual, ate: balancoAte(),
+        rotuloMes: financeiroCompetenciaLabel(financeiroCompetenciaAtual), busca: distribBusca,
+        quitar: (p, l) => balancoQuitar(p, l),
+        lancarRetirada: (pid) => abrirLancarRetirada(pid),
+        demonstrativo: async (pid) => {
+            distribModo = 'mes';
+            try { await distribCarregar(); } catch (e) { rzToast('Não consegui montar o demonstrativo: ' + (e?.message || e), { tipo: 'danger' }); return; }
+            const l = distribDados.linhas.find(x => x.pessoaId === pid);
+            if (l) abrirFichaSocioDistribuicao(l.chave);
+            else rzToast(`Sem cotas nem retiradas em ${distribDados.periodo}.`, { tipo: 'info' });
+        },
+    });
+    // eslint-disable-next-line no-unreachable
     if (balancoVistaAtual !== 'socios') return balancoRender(); // v1.48.0 — F13: Pessoas e Grupos
     const elLabel = document.getElementById('fin-competencia-label-socios');
     if (elLabel) elLabel.textContent = distribModo === 'ano' ? financeiroCompetenciaAtual.slice(0, 4) : financeiroCompetenciaLabel(financeiroCompetenciaAtual);
@@ -6940,7 +6957,7 @@ export function distribFiltrar(texto) { distribBusca = String(texto || ''); if (
 
 export function abrirLancarDistribuicao() {
     if (typeof abrirSheetAcoes !== 'function') return;
-    abrirSheetAcoes({ titulo: 'Balanço', sub: distribPeriodoRotulo(), acoes: [
+    abrirSheetAcoes({ titulo: 'Pessoas', sub: distribPeriodoRotulo(), acoes: [
         { icone: 'handshake', titulo: 'Quitar ou registrar', codigo: 'repasses.registrar', sub: 'Pessoa e saldo pago', aoTocar: () => balancoEscolherPessoaQuitar() },
         { icone: 'arrow-up-right', titulo: 'Lançar retirada', codigo: 'repasses.registrar', sub: 'O que um sócio retirou', aoTocar: () => abrirLancarRetirada() },
     ] });
