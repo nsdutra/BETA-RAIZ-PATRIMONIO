@@ -1,6 +1,11 @@
 /* ============================================================================
    raiz.css — Raiz Patrimônio · estilos do app (index.html)
-   Versão: 1.29.0 · 17/11/2026
+   Versão: 1.30.0 · 17/11/2026
+
+   v1.30.0 (17/11/2026, sessão 20261117-1540-financeiro-resumo, demanda 679b2700; FICHA_REVISAO_FINANCEIRO_RAIZ v1.0.0, Onda 3) —
+   aba Resumo do Financeiro (js/financeiro-resumo.js): .rz-res-l (linha com rótulo, %, valor e seta), .rz-res-sub (resultado),
+   .rz-res-fim, .rz-res-f (categoria aberta), .rz-res-cab, .rz-res-atr e .rz-res-nota; abas do Financeiro com 5 itens mais
+   juntas em tela estreita. Versão anterior: 1.29.0
 
    v1.29.0 (17/11/2026, sessão 20261117-0755-financeiro-conciliacao, demanda 679b2700) — Conciliação: .rz-cp-antes (o antes e o
    depois do recebimento no "Ligar à baixa"), .rz-cp-atualizar e .rz-cp-emordem (o botão "Em ordem neste mês"). Versão anterior: 1.28.0
@@ -2294,3 +2299,29 @@ html.rz-plat-web body:not(.rz-split-con) #ficha-contrato-conteudo > .rz-entity:f
 .rz-cp-atualizar{padding:8px 0;font-size:14px}
 .rz-cp-ligar>p{margin:0 0 4px}
 .rz-cp-emordem .rz-cp-cartas b{border-color:var(--success);color:var(--success)}
+
+/* v1.30.0 (dem 679b2700, Onda 3) — aba Resumo do Financeiro (js/financeiro-resumo.js) */
+@media (max-width:389px){.rz-seg.rz-fin-abas{gap:12px}}
+.rz-res-visao{margin-bottom:10px}
+.rz-res .rz-card-h{padding:10px 14px 0;margin-bottom:2px}
+.rz-res-l{box-sizing:border-box;display:grid;grid-template-columns:minmax(0,1fr) 46px 108px 14px;align-items:center;gap:6px;width:100%;padding:8px 14px;border:0;background:none;font:inherit;font-size:14px;color:var(--ink);text-align:left}
+button.rz-res-l{cursor:pointer}
+.rz-res-l>span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rz-res-l>em{font-style:normal;text-align:right;font-size:12.5px;color:var(--muted);font-variant-numeric:tabular-nums}
+.rz-res-l>b{font-weight:600;font-variant-numeric:tabular-nums;text-align:right;white-space:nowrap}
+.rz-res-l>svg{width:14px;height:14px;color:var(--muted);transition:transform .15s}
+.rz-res-l.rz-on>svg{transform:rotate(90deg)}
+.rz-res-cab{padding-top:0;padding-bottom:0}
+.rz-res-cab>em{font-size:11px;text-transform:uppercase;letter-spacing:.04em}
+.rz-res-sub{border-top:1px solid var(--line);margin-top:2px;padding-top:10px}
+.rz-res-sub>span,.rz-res-sub>b{font-weight:700}
+.rz-res-sub>span{white-space:normal;line-height:1.25}
+.rz-res-sub>em{color:var(--ink);font-weight:600}
+.rz-res-fim>span,.rz-res-fim>b{font:700 16px var(--font-title)}
+.rz-res-fim{padding-bottom:12px}
+.rz-res-f{padding-top:4px;padding-bottom:4px;font-size:13px;background:var(--paper)}
+.rz-res-f>span{color:var(--muted);padding-left:12px}
+.rz-res-f>b{font-weight:500;color:var(--muted)}
+.rz-res-atr>span,.rz-res-atr>em,.rz-res-atr>b{color:var(--danger)}
+.rz-res-nota{margin:6px 4px 10px;font-size:12px;color:var(--muted)}
+@media (prefers-reduced-motion:reduce){.rz-res-l>svg{transition:none}}

@@ -6,11 +6,11 @@
    (base derivada do RUMO v7.4.2 — histórico de versões anteriores
    preservado abaixo para referência técnica)
 
-   VERSÃO: Beta v1.490.59
-   LINHAS: 15529
-   DATA: 17/11/2026 (sessão 20261117-1535-comercial-c4, demanda 285a0058)
-   NOVIDADES (Beta v1.490.59) — só import map (ativo-interessados 1.4.0).
-   Anteriores: .57 pilhas · .56 ramos · .55 mês · .54 pilhas · .53 ramos · .52 contagem · .51 · .50 invest · .49 · .48 C2 · .46 comercial C1 · .44 pagto · .43 R3 · .42 docs · .26–.41 ·
+   VERSÃO: Beta v1.490.60
+   LINHAS: 15535
+   DATA: 17/11/2026 (sessão 20261117-1540-financeiro-resumo, demanda 679b2700)
+   NOVIDADES (Beta v1.490.60) — aba Resumo.
+   Anteriores: .59 · .57 pilhas · .56 ramos · .55 mês · .54 pilhas · .53 ramos · .52 contagem · .51 · .50 invest · .49 · .48 C2 · .46 comercial C1 · .44 pagto · .43 R3 · .42 docs · .26–.41 ·
    v1.490.8–25: ver CHANGELOG_APP.md.
    Versão anterior (Beta v1.490.7):
    DATA: 12/11/2026 (demanda f6be5483)
@@ -43,7 +43,7 @@
          O navegador aplica o mapa também aos imports estáticos dentro dos
          módulos (cofre-app.js → ./cofre-api.js etc.). -->
     <!-- RZ-IMPORTMAP:INICIO -->
-    <script type="importmap">{"imports":{"./js/cadastros.js":"./js/cadastros.js?v=1.3.0","./js/financeiro.js":"./js/financeiro.js?v=1.98.0","./js/fechamento.js":"./js/fechamento.js?v=1.16.0","./js/contratos.js":"./js/contratos.js?v=1.75.0","./js/minutas.js":"./js/minutas.js?v=1.9.0","./js/vitrine.js":"./js/vitrine.js?v=1.7.0","./js/imoveis.js":"./js/imoveis.js?v=1.11.0","./js/cofre-api.js":"./js/cofre-api.js?v=1.56.0","./js/cofre-app.js":"./js/cofre-app.js?v=1.53.0","./js/cofre-ativos.js":"./js/cofre-ativos.js?v=1.166.0","./js/cofre-controles.js":"./js/cofre-controles.js?v=1.75.0","./js/cofre-documentos.js":"./js/cofre-documentos.js?v=2.41.0","./js/cofre-imagem.js":"./js/cofre-imagem.js?v=1.2.0","./js/cofre-estado.js":"./js/cofre-estado.js?v=1.5.2","./js/cofre-navegacao.js":"./js/cofre-navegacao.js?v=1.10.0","./js/cofre-ui.js":"./js/cofre-ui.js?v=1.7.2","./js/cofre-validacoes.js":"./js/cofre-validacoes.js?v=2.14.0","./js/comum-licenca.js":"./js/comum-licenca.js?v=1.11.0","./js/comum-renovacao.js":"./js/comum-renovacao.js?v=1.6.0","./js/comum-minha-empresa.js":"./js/comum-minha-empresa.js?v=1.22.0","./js/comum-pessoas.js":"./js/comum-pessoas.js?v=1.217.0","./js/comum-sobre.js":"./js/comum-sobre.js?v=1.5.0","./js/comum-endereco.js":"./js/comum-endereco.js?v=1.2.0","./js/comum-partes.js":"./js/comum-partes.js?v=1.0.0","./js/resultados.js":"./js/resultados.js?v=2.23.0","./js/indicadores.js":"./js/indicadores.js?v=1.3.0","./js/configuracao-inicial.js":"./js/configuracao-inicial.js?v=1.2.0","./js/relatorios-executivos.js":"./js/relatorios-executivos.js?v=1.13.0","./js/raiz-eventos.js":"./js/raiz-eventos.js?v=1.0.0","./js/raiz-device.js":"./js/raiz-device.js?v=1.1.0","./js/raiz-ui.js":"./js/raiz-ui.js?v=1.10.0","./js/fiscal.js":"./js/fiscal.js?v=1.7.0","./js/ativos/ativos-boot.js":"./js/ativos/ativos-boot.js?v=1.4.0","./js/ativos/ativos-markup.js":"./js/ativos/ativos-markup.js?v=1.69.0","./js/nucleo/porta.js":"./js/nucleo/porta.js?v=1.10.0","./js/partes.js":"./js/partes.js?v=1.3.0","./js/conta.js":"./js/conta.js?v=1.7.0","./js/grupo-visao.js":"./js/grupo-visao.js?v=1.0.0","./js/agenda.js":"./js/agenda.js?v=1.20.0","./js/cofre-membros.js":"./js/cofre-membros.js?v=1.0.0","./js/cockpit-metas.js":"./js/cockpit-metas.js?v=1.0.0","./js/nucleo/bibliotecas.js":"./js/nucleo/bibliotecas.js?v=1.0.0","./js/nucleo/calendario.js":"./js/nucleo/calendario.js?v=1.1.0","./js/agenda-form.js":"./js/agenda-form.js?v=1.2.0","./js/ativo-disponibilidade.js":"./js/ativo-disponibilidade.js?v=1.0.0","./js/ativo-interessados.js":"./js/ativo-interessados.js?v=1.4.0","./js/contrato-licenca.js":"./js/contrato-licenca.js?v=1.0.0","./js/comercial-itens.js":"./js/comercial-itens.js?v=1.2.0","./js/ativo-forma-pagamento.js":"./js/ativo-forma-pagamento.js?v=1.0.0","./js/pessoas-extrato.js":"./js/pessoas-extrato.js?v=1.0.1","./js/comercial-tabelas.js":"./js/comercial-tabelas.js?v=1.0.0","./js/comum-ramos-oferta.js":"./js/comum-ramos-oferta.js?v=1.2.0","./js/conciliacao-pilhas.js":"./js/conciliacao-pilhas.js?v=1.1.0"}}</script>
+    <script type="importmap">{"imports":{"./js/cadastros.js":"./js/cadastros.js?v=1.3.0","./js/financeiro.js":"./js/financeiro.js?v=1.99.0","./js/fechamento.js":"./js/fechamento.js?v=1.16.0","./js/contratos.js":"./js/contratos.js?v=1.75.0","./js/minutas.js":"./js/minutas.js?v=1.9.0","./js/vitrine.js":"./js/vitrine.js?v=1.7.0","./js/imoveis.js":"./js/imoveis.js?v=1.11.0","./js/cofre-api.js":"./js/cofre-api.js?v=1.56.0","./js/cofre-app.js":"./js/cofre-app.js?v=1.53.0","./js/cofre-ativos.js":"./js/cofre-ativos.js?v=1.166.0","./js/cofre-controles.js":"./js/cofre-controles.js?v=1.75.0","./js/cofre-documentos.js":"./js/cofre-documentos.js?v=2.41.0","./js/cofre-imagem.js":"./js/cofre-imagem.js?v=1.2.0","./js/cofre-estado.js":"./js/cofre-estado.js?v=1.5.2","./js/cofre-navegacao.js":"./js/cofre-navegacao.js?v=1.10.0","./js/cofre-ui.js":"./js/cofre-ui.js?v=1.7.2","./js/cofre-validacoes.js":"./js/cofre-validacoes.js?v=2.14.0","./js/comum-licenca.js":"./js/comum-licenca.js?v=1.11.0","./js/comum-renovacao.js":"./js/comum-renovacao.js?v=1.6.0","./js/comum-minha-empresa.js":"./js/comum-minha-empresa.js?v=1.22.0","./js/comum-pessoas.js":"./js/comum-pessoas.js?v=1.217.0","./js/comum-sobre.js":"./js/comum-sobre.js?v=1.5.0","./js/comum-endereco.js":"./js/comum-endereco.js?v=1.2.0","./js/comum-partes.js":"./js/comum-partes.js?v=1.0.0","./js/resultados.js":"./js/resultados.js?v=2.23.0","./js/indicadores.js":"./js/indicadores.js?v=1.3.0","./js/configuracao-inicial.js":"./js/configuracao-inicial.js?v=1.2.0","./js/relatorios-executivos.js":"./js/relatorios-executivos.js?v=1.13.0","./js/raiz-eventos.js":"./js/raiz-eventos.js?v=1.0.0","./js/raiz-device.js":"./js/raiz-device.js?v=1.1.0","./js/raiz-ui.js":"./js/raiz-ui.js?v=1.10.0","./js/fiscal.js":"./js/fiscal.js?v=1.7.0","./js/ativos/ativos-boot.js":"./js/ativos/ativos-boot.js?v=1.4.0","./js/ativos/ativos-markup.js":"./js/ativos/ativos-markup.js?v=1.69.0","./js/nucleo/porta.js":"./js/nucleo/porta.js?v=1.10.0","./js/partes.js":"./js/partes.js?v=1.3.0","./js/conta.js":"./js/conta.js?v=1.7.0","./js/grupo-visao.js":"./js/grupo-visao.js?v=1.0.0","./js/agenda.js":"./js/agenda.js?v=1.20.0","./js/cofre-membros.js":"./js/cofre-membros.js?v=1.0.0","./js/cockpit-metas.js":"./js/cockpit-metas.js?v=1.0.0","./js/nucleo/bibliotecas.js":"./js/nucleo/bibliotecas.js?v=1.0.0","./js/nucleo/calendario.js":"./js/nucleo/calendario.js?v=1.1.0","./js/agenda-form.js":"./js/agenda-form.js?v=1.2.0","./js/ativo-disponibilidade.js":"./js/ativo-disponibilidade.js?v=1.0.0","./js/ativo-interessados.js":"./js/ativo-interessados.js?v=1.4.0","./js/contrato-licenca.js":"./js/contrato-licenca.js?v=1.0.0","./js/comercial-itens.js":"./js/comercial-itens.js?v=1.2.0","./js/ativo-forma-pagamento.js":"./js/ativo-forma-pagamento.js?v=1.0.0","./js/pessoas-extrato.js":"./js/pessoas-extrato.js?v=1.0.1","./js/comercial-tabelas.js":"./js/comercial-tabelas.js?v=1.0.0","./js/comum-ramos-oferta.js":"./js/comum-ramos-oferta.js?v=1.2.0","./js/conciliacao-pilhas.js":"./js/conciliacao-pilhas.js?v=1.1.0","./js/financeiro-resumo.js":"./js/financeiro-resumo.js?v=1.0.0"}}</script>
     <!-- RZ-IMPORTMAP:FIM -->
 
     <!-- ===== PWA: permite "instalar" o app no celular (Android e iPhone) ===== -->
@@ -161,7 +161,7 @@
 
     <link href="https://fonts.googleapis.com/css2?family=Mrs+Saint+Delafield&family=Dancing+Script:wght@600&display=swap" rel="stylesheet">
 
-    <link rel="stylesheet" href="raiz.css?v=1.29.0">
+    <link rel="stylesheet" href="raiz.css?v=1.30.0">
 
 </head>
 
@@ -980,7 +980,7 @@
             <span id="nav-alertas-n" class="rz-nav-n hidden" aria-live="polite"></span>
         </button>
 
-        <button onclick="irParaAbaRodape('tab-mensal')" id="btn-tab-mensal" class="flex-1 flex flex-col items-center justify-center py-2 gap-0.5">
+        <button onclick="irParaAbaRodape('tab-resumo')" id="btn-tab-mensal" class="flex-1 flex flex-col items-center justify-center py-2 gap-0.5">
             <svg data-lucide="wallet" style="width:21px;height:21px"></svg>
             <span class="text-[12px] font-bold">Financeiro</span>
         </button>
@@ -2061,6 +2061,17 @@
 
         <!-- ================= ABA: MENSALIDADES ================= -->
 
+        <!-- v1.490.60 (dem 679b2700, Onda 3, D2) — Resumo: o mês em linhas; o corpo é do js/financeiro-resumo.js. -->
+        <section id="tab-resumo" class="tab-content">
+            <div class="rz-fin-topo"><div class="rz-mes-bar rz-mes-titulo">
+                <button type="button" class="rz-ico-btn" onclick="financeiroMudarCompetencia(-1)" aria-label="Mês anterior"><svg data-lucide="chevron-left"></svg></button>
+                <span class="rz-mes-centro"><b id="fin-competencia-label-resumo" class="rz-mes-label">—</b><span id="fin-competencia-lock-resumo" class="rz-mes-lock hidden" aria-label="Competência fechada"><svg data-lucide="lock"></svg></span></span>
+                <button type="button" class="rz-ico-btn" onclick="financeiroMudarCompetencia(1)" aria-label="Próximo mês"><svg data-lucide="chevron-right"></svg></button></div>
+                <button type="button" class="rz-more" onclick="abrirLancarFinanceiro('resumo')" aria-label="Importar, lançar e rotinas"><svg data-lucide="more-vertical"></svg></button></div>
+            <div class="rz-seg rz-seg-4 rz-fin-abas" id="fin-chips-nivel-resumo"></div>
+            <div id="fin-resumo-corpo"></div>
+        </section>
+
         <section id="tab-mensal" class="tab-content">
 
             <!-- v1.249.0 (demanda 7bdcb8d4, pedido explícito do Nicola 23/09/2026:
@@ -2486,12 +2497,7 @@
                 <button type="button" class="rz-ico-btn rz-fin-lupa" onclick="rzFinAlternarBusca('socios')" aria-label="Buscar"><svg data-lucide="search"></svg></button>
                 <button type="button" class="rz-ico-btn rz-primary" onclick="abrirLancarDistribuicao()" aria-label="Lançar retirada"><svg data-lucide="plus"></svg></button>
             </div>
-            <div class="rz-seg rz-seg-4 rz-fin-abas">
-                <button onclick="switchTab('tab-mensal')"><span class="rz-seg-l">Recebimentos</span><span class="rz-seg-s">Receb.</span></button>
-                <button onclick="switchTab('tab-saidas')">Saídas</button>
-                <button onclick="switchTab('tab-conciliacao')">Conciliação</button>
-                <button class="rz-on" onclick="switchTab('tab-socios')">Pessoas</button>
-            </div>
+            <div class="rz-seg rz-seg-4 rz-fin-abas" id="fin-chips-nivel-socios"></div>
             <div class="rz-topo rz-fin-busca" id="fin-busca-wrap-socios">
                 <label class="rz-search" style="cursor:text"><svg data-lucide="search"></svg><input type="search" id="distrib-busca" placeholder="Buscar pessoa" oninput="distribFiltrar(this.value)" aria-label="Buscar sócio" style="flex:1;min-width:0;border:0;outline:0;background:transparent;height:44px;padding:0;color:var(--ink)"></label>
             </div>
@@ -2846,7 +2852,7 @@
     <script>
 
         // Fonte ÚNICA da versão exibida no app (splash + Sobre); window.onload aplica nos dois.
-        const APP_VERSAO = "Beta v1.490.59"; // = cabeçalho (nota v1.178.8)
+        const APP_VERSAO = "Beta v1.490.60"; // = cabeçalho (nota v1.178.8)
 
         // ====================================================================
         // v1.105.0 — HELPERS DE SUPERFÍCIE DA GRAMÁTICA ÚNICA
@@ -7071,7 +7077,7 @@ async function criarLinkVitrineSupabase(token, idsSelecionados) {
             'tab-saidas': 'tab-mensal',
             // v1.254.0 (frente fiscal, Fase 5) — Fiscal da competência é do grupo Financeiro.
             'tab-fiscal-competencia': 'tab-mensal',
-            'tab-socios': 'tab-mensal', // v1.294.0 (UXR-25) — Distribuição é do grupo Financeiro
+            'tab-resumo': 'tab-mensal', 'tab-socios': 'tab-mensal', // v1.294.0 (UXR-25) — Distribuição é do grupo Financeiro
             'tab-relatorios': 'tab-geral', 'tab-relatorios-catalogo': 'tab-geral' // v1.304.0 — Resultados mora em Hoje; Relatórios (menu) acende Hoje
         };
 
@@ -7110,7 +7116,7 @@ async function criarLinkVitrineSupabase(token, idsSelecionados) {
 
         // v1.124 — abas que exigem um *.ver liberado. Bloqueada: toast com o
         // motivo, fica onde está. Abas sem código não são gateadas.
-        const TAB_CODIGO_VER = { 'tab-ativos': 'cofre.ver', 'tab-contratos': 'contratos.ver', 'tab-mensal': 'mensal.ver', 'tab-saidas': 'mensal.ver', 'tab-inadimplencia': 'mensal.ver', 'tab-conciliacao': 'conciliacao.ver', 'tab-regras-conciliacao': 'conciliacao.configurar',
+        const TAB_CODIGO_VER = { 'tab-ativos': 'cofre.ver', 'tab-contratos': 'contratos.ver', 'tab-resumo': 'mensal.ver', 'tab-mensal': 'mensal.ver', 'tab-saidas': 'mensal.ver', 'tab-inadimplencia': 'mensal.ver', 'tab-conciliacao': 'conciliacao.ver', 'tab-regras-conciliacao': 'conciliacao.configurar',
             'tab-relatorios': 'relatorios.ver', 'tab-relatorios-catalogo': 'relatorios.ver', 'tab-alertas': 'cofre.alertas.ver', 'tab-socios': 'repasses.ver', 'tab-pessoas': 'pessoas.ver', 'tab-developer': 'dev.acessar', 'tab-fiscal': 'fiscal.checkup', 'tab-fiscal-competencia': 'mensal.ver' };
         // v1.136 (A.4) — catálogo de relatórios: cada linha tem código próprio
         // (relatorios.resultados / .distribuicao) → cadeado por plano/perfil.
@@ -7446,7 +7452,7 @@ async function criarLinkVitrineSupabase(token, idsSelecionados) {
         // O roteador de sempre virou rzSwitchTabInterno (corpo intacto).
         // ===================================================================
         var RZ_NOME_TAB = {
-            'tab-geral': 'Hoje', 'tab-ativos': 'Patrimônio', 'tab-contratos': 'Contratos', 'tab-mensal': 'Financeiro',
+            'tab-geral': 'Hoje', 'tab-ativos': 'Patrimônio', 'tab-contratos': 'Contratos', 'tab-resumo': 'Financeiro', 'tab-mensal': 'Financeiro',
             'tab-relatorios': 'Resultados', 'tab-alertas': 'Agenda', 'tab-fiscal': 'Fiscal', 'tab-fiscal-competencia': 'Fiscal da competência',
             'tab-minha-empresa': 'Minha empresa', 'tab-partes': 'Partes', 'tab-saidas': 'Saídas', 'tab-conciliacao': 'Conciliação',
             'tab-inadimplencia': 'Atrasados', 'tab-pessoas': 'Pessoas', 'tab-minutas': 'Minutas', 'tab-licenca': 'Licença',
@@ -7455,7 +7461,7 @@ async function criarLinkVitrineSupabase(token, idsSelecionados) {
         // telas que já têm o próprio "voltar" no topo — sem atalho duplicado
         // Abas principais (barra inferior) nunca mostram o "‹": quem volta é a própria barra ou o
         // voltar do celular. Só tela secundária tem "‹ Pai". (dem b8602a3a)
-        var RZ_SEM_VOLTAR_GLOBAL = ['tab-inadimplencia', 'tab-contrato-ficha', 'tab-vitrine', 'tab-geral', 'tab-ativos', 'tab-contratos', 'tab-mensal', 'tab-alertas',
+        var RZ_SEM_VOLTAR_GLOBAL = ['tab-inadimplencia', 'tab-contrato-ficha', 'tab-vitrine', 'tab-geral', 'tab-ativos', 'tab-contratos', 'tab-resumo', 'tab-mensal', 'tab-alertas',
             'tab-saidas', 'tab-conciliacao', 'tab-socios']; // v1.372.0 — Saídas, Conciliação e Balanço são irmãs de Recebimentos no segmento: sem "‹ Financeiro" (Nicola 11/10 17:42)
         // var (não let/const): switchTab pode ser chamada no boot antes desta linha ser avaliada
         var rzNavPorRodape = false, rzNavVoltando = false, rzNavEstado = null;
@@ -7561,7 +7567,7 @@ async function criarLinkVitrineSupabase(token, idsSelecionados) {
         // =====================================================================
         // var (não const): switchTab() roda no boot antes deste trecho ser avaliado
         window.__rzRolagem = window.__rzRolagem || {};
-        var RZ_ROLAGEM_FINANCEIRO = ['tab-mensal', 'tab-saidas', 'tab-inadimplencia', 'tab-conciliacao', 'tab-regras-conciliacao', 'tab-socios', 'tab-fiscal-competencia'];
+        var RZ_ROLAGEM_FINANCEIRO = ['tab-resumo', 'tab-mensal', 'tab-saidas', 'tab-inadimplencia', 'tab-conciliacao', 'tab-regras-conciliacao', 'tab-socios', 'tab-fiscal-competencia'];
         var RZ_ROLAGEM_SEMPRE_TOPO = ['tab-contrato-ficha']; // ficha: para a frente abre no topo; pelo voltar, onde estava
         var rzRolagemToken = 0;
 
@@ -7943,7 +7949,7 @@ async function criarLinkVitrineSupabase(token, idsSelecionados) {
                     .then(m => m.renderImoveis())
                     .catch(err => console.warn('[imoveis] Falha ao carregar módulo:', err.message));
             }
-            if (tabId === 'tab-mensal' || tabId === 'tab-inadimplencia' || tabId === 'tab-saidas' || tabId === 'tab-conciliacao' || tabId === 'tab-socios') { // v1.295.0 — tab-socios (Distribuição)
+            if (tabId === 'tab-resumo' || tabId === 'tab-mensal' || tabId === 'tab-inadimplencia' || tabId === 'tab-saidas' || tabId === 'tab-conciliacao' || tabId === 'tab-socios') { // v1.295.0 — tab-socios (Distribuição)
                 carregarFinanceiro()
                     .then(m => m.montarAbaFinanceiro(tabId))
                     .catch(err => console.warn('[financeiro] Falha ao carregar módulo:', err.message));
@@ -8046,7 +8052,7 @@ async function criarLinkVitrineSupabase(token, idsSelecionados) {
                 if (__rzResModulo && typeof __rzResModulo.resetarResultadosParaAbaInicial === 'function') __rzResModulo.resetarResultadosParaAbaInicial();
             } else if (tabId === 'tab-geral' && __rzResModulo) { // v1.304.0 — Resultados vive em Hoje
                 if (typeof __rzResModulo.resetarResultadosParaAbaInicial === 'function') __rzResModulo.resetarResultadosParaAbaInicial();
-            } else if (tabId === 'tab-mensal' && __rzFinModulo) {
+            } else if ((tabId === 'tab-mensal' || tabId === 'tab-resumo') && __rzFinModulo) {
                 if (typeof __rzFinModulo.resetarFinanceiroParaAbaInicial === 'function') __rzFinModulo.resetarFinanceiroParaAbaInicial();
             }
             rzNavPorRodape = true; // v1.257.0 — pela barra inferior: sem atalho "‹ Voltar"

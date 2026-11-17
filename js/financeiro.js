@@ -1,7 +1,15 @@
 // ============================================================================
 // financeiro.js — Raiz Patrimônio · Financeiro (Recebimentos · Atrasados · Saídas
 //                  · conciliação de extrato · recibo · detalhe do recebimento)
-// Versão: 1.98.0 · 17/11/2026
+// Versão: 1.99.0 · 17/11/2026
+//
+// v1.99.0 (17/11/2026, sessão 20261117-1540-financeiro-resumo, demanda 679b2700; FICHA_REVISAO_FINANCEIRO_RAIZ v1.0.0, Onda 3,
+// parte 1: D2 e D3; "vamos em frente" do Nicola 17/11 15:33) — (1) ABA RESUMO, a primeira do Financeiro: desenhada pelo módulo
+// novo js/financeiro-resumo.js (fn_financeiro_resumo_mes, F3), com a lente de ramos de hoje e a conta filtrada. A barra do
+// Financeiro abre nela. (2) O ⋮ DO FINANCEIRO em 3 grupos: Importar (extrato, fatura, documento), Lançar (entrada, saída) e
+// Rotinas do mês (Fechar ou reabrir o mês, Contador, Fiscal, Atrasados, com o estado de cada uma); a faixa de rotinas abaixo
+// dos números sai (#fin-rotinas-* fica vazio). (3) As abas de Pessoas passam a ser desenhadas aqui, como as outras (5 abas).
+// Recebimentos e Saídas nivelados ficam para a parte 2 da Onda 3. Versão anterior: 1.98.0
 //
 // v1.98.0 (17/11/2026, sessão 20261117-0755-financeiro-conciliacao, demanda 679b2700; teste do Nicola 17/11 10:01 e de acordo
 // 13:14; FICHA_CONCILIACAO_LIGAR_BAIXA_RAIZ v1.1.0) — (1) UMA LEITURA SÓ: o menu da linha do extrato deixa de recalcular
@@ -26,18 +34,11 @@
 // v1.96.1 (17/11/2026, sessão 20261117-0010-financeiro-pessoas-ajustes, demanda 679b2700; teste do Nicola 17/11 00:05) — a aba
 // Pessoas passa ao módulo a ação "Editar a retirada" (acoesRetirada: carrega as retiradas do ano do mês escolhido e abre as ações
 // de hoje, rzAcoesRetirada) e deixa de passar o "Demonstrativo do mês", que saiu do extrato. Versão anterior: 1.96.0
-//
-// v1.96.0 (16/11/2026, sessão 20261116-2345-financeiro-pessoas, demanda 679b2700; FICHA_REVISAO_FINANCEIRO_RAIZ v1.0.0, Onda 1;
-// de acordo do Nicola 16/11 23:44) — A ABA BALANÇO VIRA PESSOAS. renderDistribuicao passa a desenhar pelo módulo novo
-// js/pessoas-extrato.js: lista de saldos sem chips e o extrato de cada pessoa (item a item, saldo corrido, Retiradas do ano,
-// ajuste da divisão do item com motivo, Quitar e Lançar retirada). O rótulo da 4ª aba vira "Pessoas". A ficha do sócio no mês
-// (abrirFichaSocioDistribuicao, com o compartilhar) continua, aberta pelo "Demonstrativo do mês" do extrato. As vistas antigas
-// (balancoChipsVista, distribDesenhar, balancoRenderGrupos) ficam sem chamador nesta versão e saem na Onda 3. Versão anterior: 1.95.0
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.95.0 … v1.95.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.96.0 … v1.96.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '1.98.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.99.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 
 // v1.17.0 (Fase 1 do wrapper de escrita, rollout Financeiro) — emitirEscrita
 // é o evento padrão pra "algo mudou que módulos DE FORA deste arquivo podem
@@ -49,6 +50,7 @@ import { carregarBiblioteca } from './nucleo/bibliotecas.js'; // bibliotecas pes
 import { rzToast, rzConfirmar, rzAviso, rzEscolher, rzEditarDivisao } from './raiz-ui.js';
 import { pessoasRender } from './pessoas-extrato.js'; // v1.96.0 — aba Pessoas (dem 679b2700)
 import { conciliacaoPilhasRender } from './conciliacao-pilhas.js'; // v1.97.0 — Conciliação em pilhas (dem 679b2700)
+import { resumoRender } from './financeiro-resumo.js'; // v1.99.0 — aba Resumo (dem 679b2700, Onda 3)
 
 /** Ponto de entrada do switchTab (1 chamada por troca de aba; barato). */
 // v1.43.0 (etapa 6 · A) — barra digitável de cada aba: o termo mora no campo guardador de sempre.
@@ -92,6 +94,7 @@ export function montarAbaFinanceiro(tabId) {
         window.__rzListenerEscritaFinanceiroLigado = true;
         aoEscrever('*', (detalhe) => {
             if (!['despesa', 'mensalidade', 'conciliacao', 'recibo', 'receita', 'repasse'].includes(detalhe.entidade)) return;
+            if (document.getElementById('tab-resumo')?.classList.contains('active')) { renderResumo(); return; } // v1.99.0
             if (document.getElementById('tab-socios')?.classList.contains('active')) { if (detalhe.entidade !== 'repasse') renderDistribuicao(); return; } // v1.29.0 — a própria tela já recarrega depois de lançar/excluir retirada
             if (document.getElementById('tab-mensal')?.classList.contains('active')) { financeiroRenderCabecalho('mensal'); renderMensalidades(); renderOutrasReceitas(); }
             else if (document.getElementById('tab-inadimplencia')?.classList.contains('active')) { renderInadimplencia(); }
@@ -101,8 +104,9 @@ export function montarAbaFinanceiro(tabId) {
     }
     const abaBusca = { 'tab-mensal': 'mensal', 'tab-saidas': 'saidas', 'tab-conciliacao': 'conciliacao' }[tabId]; // v1.43.0
     if (abaBusca) financeiroLigarBusca(abaBusca);
-    if (tabId === 'tab-mensal') { financeiroRenderCabecalho('mensal'); renderMensalidades(); renderOutrasReceitas(); }
-    else if (tabId === 'tab-socios') { renderDistribuicao(); } // v1.29.0 — Distribuição (P1b)
+    if (tabId === 'tab-resumo') { financeiroRenderCabecalho('resumo'); renderResumo(); } // v1.99.0 (Onda 3)
+    else if (tabId === 'tab-mensal') { financeiroRenderCabecalho('mensal'); renderMensalidades(); renderOutrasReceitas(); }
+    else if (tabId === 'tab-socios') { const elAbas = document.getElementById('fin-chips-nivel-socios'); if (elAbas) elAbas.innerHTML = financeiroChipsNivelHtml('socios'); renderDistribuicao(); } // v1.29.0 — Distribuição (P1b)
     else if (tabId === 'tab-inadimplencia') { renderInadimplencia(); }
     else if (tabId === 'tab-saidas') { financeiroRenderCabecalho('saidas'); renderSaidas(); }
     // v1.178.2 — Etapa 7/8 + retirada do painel de Pendências legado:
@@ -110,6 +114,15 @@ export function montarAbaFinanceiro(tabId) {
     // (renderPendenciasExtrato() removida — painel legado retirado).
     else if (tabId === 'tab-conciliacao') { financeiroRenderCabecalho('conciliacao'); carregarConciliacaoUnificada(); }
     if (typeof lucide !== 'undefined') lucide.createIcons();
+}
+
+// v1.99.0 (Onda 3) — aba Resumo: o módulo lê o banco (fn_financeiro_resumo_mes) e desenha; aqui só o contexto.
+export function renderResumo() {
+    if (!financeiroCompetenciaAtual) financeiroDefinirCompetencia(financeiroCompetenciaHojeISO());
+    const ramo = (typeof geralRamoFiltro !== 'undefined' && geralRamoFiltro) ? geralRamoFiltro : 'tudo';
+    const nomeRamo = ramo === 'tudo' ? 'Todo o patrimônio' : ((typeof rzNomeRamo === 'function' && rzNomeRamo(ramo)) || ramo);
+    return resumoRender({ el: document.getElementById('fin-resumo-corpo'), dbAuth, clienteId: CLIENTE_ID_SUPABASE,
+        competencia: String(financeiroCompetenciaAtual).slice(0, 7) + '-01', ramo, nomeRamo, contaId: financeiroContaFiltro || null });
 }
 
 // v1.16.0 (demanda 60284322) — ver changelog do topo do arquivo.
@@ -194,7 +207,8 @@ export function financeiroMudarCompetencia(delta) {
     const passo = (document.getElementById('tab-socios')?.classList.contains('active') && distribModo === 'ano') ? delta * 12 : delta; // v1.29.0 — Distribuição no modo Ano anda de ano em ano
     const d = new Date(ano, (mes - 1) + passo, 1);
     financeiroDefinirCompetencia(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-01`);
-    if (document.getElementById('tab-mensal')?.classList.contains('active')) montarAbaFinanceiro('tab-mensal');
+    if (document.getElementById('tab-resumo')?.classList.contains('active')) montarAbaFinanceiro('tab-resumo'); // v1.99.0
+    else if (document.getElementById('tab-mensal')?.classList.contains('active')) montarAbaFinanceiro('tab-mensal');
     else if (document.getElementById('tab-saidas')?.classList.contains('active')) montarAbaFinanceiro('tab-saidas');
     else if (document.getElementById('tab-conciliacao')?.classList.contains('active')) montarAbaFinanceiro('tab-conciliacao');
     else if (document.getElementById('tab-socios')?.classList.contains('active')) montarAbaFinanceiro('tab-socios');
@@ -223,6 +237,7 @@ function financeiroChipsNivelHtml(aba) {
     const fechamentoOff = financeiroRotinaFechamentoLigada === false;
     const distrib = (typeof podeUsar === 'function') ? podeUsar('repasses.ver') : { ok: true };
     const itens = [
+        { chave: 'resumo', rotulo: 'Resumo', tab: 'tab-resumo' }, // v1.99.0 (Onda 3, D2) — a primeira aba
         { chave: 'mensal', rotulo: '<span class="rz-seg-l">Recebimentos</span><span class="rz-seg-s">Receb.</span>', tab: 'tab-mensal' },
         { chave: 'saidas', rotulo: 'Saídas', tab: 'tab-saidas' },
         { chave: 'conciliacao', rotulo: 'Conciliação', tab: 'tab-conciliacao', off: fechamentoOff }, // v1.21.0 — pedido explícito: "Mude o titulo da aba fechamento para conciliacao"
@@ -239,7 +254,7 @@ function financeiroChipsNivelHtml(aba) {
 }
 
 function financeiroRedesenharChipsNivel() {
-    ['mensal', 'saidas', 'conciliacao'].forEach(aba => {
+    ['resumo', 'mensal', 'saidas', 'conciliacao', 'socios'].forEach(aba => { // v1.99.0 — + Resumo e Pessoas
         const el = document.getElementById(`fin-chips-nivel-${aba}`);
         if (el) el.innerHTML = financeiroChipsNivelHtml(aba);
     });
@@ -345,7 +360,7 @@ function financeiroRotinasHtml(aba) {
 // competência fechada (pedido explícito). Mesmo estado dos botões.
 function financeiroRenderCadeadoCompetencia() {
     const fechada = (typeof window !== 'undefined') && window.RZ_FIN_FECHAMENTO?.status === 'concluido';
-    ['mensal', 'saidas', 'conciliacao'].forEach(aba => {
+    ['resumo', 'mensal', 'saidas', 'conciliacao'].forEach(aba => {
         const el = document.getElementById(`fin-competencia-lock-${aba}`);
         if (el) el.classList.toggle('hidden', !fechada);
     });
@@ -357,7 +372,7 @@ function financeiroRenderCadeadoCompetencia() {
 export function financeiroRedesenharQuadrantes() {
     ['mensal', 'saidas', 'conciliacao'].forEach(aba => {
         const el = document.getElementById(`fin-rotinas-${aba}`); // v1.28.0 — card Rotinas (era a grade fin-quadrantes-*)
-        if (el) el.innerHTML = financeiroRotinasHtml(aba);
+        if (el) el.innerHTML = ''; // v1.99.0 (D3) — as rotinas foram para o ⋮
     });
     financeiroRenderCadeadoCompetencia();
     if (typeof lucide !== 'undefined') lucide.createIcons();
@@ -380,24 +395,45 @@ export function financeiroIrParaRotinas() {
 // na onda P5 com código próprio no catálogo (REGRAS regra 9: sem código, não
 // entra no menu). Reprocessar fica disponível só a partir de Conciliação.
 export function abrirLancarFinanceiro(aba) {
+    // v1.99.0 (Onda 3, D3) — o ⋮ do Financeiro em 3 grupos: Importar, Lançar e Rotinas do mês. As rotinas eram a faixa abaixo
+    // dos números; os estados são os mesmos (window.RZ_FIN_FECHAMENTO / RZ_FIN_FISCAL, de js/fechamento.js) e vão no texto.
     if (typeof abrirSheetAcoes !== 'function') return;
-    const fechada = (typeof window !== 'undefined') && window.RZ_FIN_FECHAMENTO?.status === 'concluido';
-    const avisoFechada = () => rzToast('Mês fechado. Reabra em Rotinas.', { tipo: 'info' });
+    const est = (typeof window !== 'undefined') ? (window.RZ_FIN_FECHAMENTO || null) : null;
+    const fis = (typeof window !== 'undefined') ? (window.RZ_FIN_FISCAL || null) : null;
+    const fechada = est?.status === 'concluido';
+    const avisoFechada = () => rzToast('Mês fechado. Reabra em Rotinas do mês, no ⋮.', { tipo: 'info' });
     // O formulário abre por cima da aba atual e o render pós-salvar só redesenha a aba ativa: sem trocar antes, a saída
     // lançada a partir de Recebimentos (ou o recebimento a partir de Saídas) some da vista.
     const irPara = (tab) => { if (!document.getElementById(tab)?.classList.contains('active') && typeof switchTab === 'function') switchTab(tab); };
-    const acoes = [
-        { icone: 'file-down', tipo: 'ia', titulo: 'Importar extrato (IA)', codigo: 'conciliacao.importar', sub: 'Excel, PDF ou foto', aoTocar: () => document.getElementById('extrato-file-input')?.click() },
-        { icone: 'credit-card', tipo: 'ia', titulo: 'Importar fatura (IA)', codigo: 'cartao.importar', sub: 'PDF ou foto', aoTocar: () => financeiroImportarFatura() }, // v1.37.0 (P5a)
-        { icone: 'file-plus', tipo: 'ia', titulo: 'Ler um documento (IA)', codigo: 'cofre.analisar_ia', sub: 'Comprovante, boleto, nota', aoTocar: () => { if (typeof abrirUploadDocumentoNoApp === 'function') abrirUploadDocumentoNoApp(); } },
-        { icone: 'arrow-down-left', titulo: 'Adicionar recebimento', sub: fechada ? 'Mês fechado: reabra' : 'Com ou sem contrato', aoTocar: () => { if (fechada) return avisoFechada(); irPara('tab-mensal'); abrirAdicionarRecebimento(); } },
-        { icone: 'arrow-up-right', titulo: 'Adicionar saída', sub: fechada ? 'Mês fechado: reabra' : 'Despesa, tributo, manutenção', aoTocar: () => { if (fechada) return avisoFechada(); irPara('tab-saidas'); abrirNovaDespesa(); } },
+    const importar = [
+        { icone: 'file-down', tipo: 'ia', titulo: 'Extrato (IA)', codigo: 'conciliacao.importar', sub: 'Excel, PDF ou foto', aoTocar: () => document.getElementById('extrato-file-input')?.click() },
+        { icone: 'credit-card', tipo: 'ia', titulo: 'Fatura do cartão (IA)', codigo: 'cartao.importar', sub: 'PDF ou foto', aoTocar: () => financeiroImportarFatura() }, // v1.37.0 (P5a)
+        { icone: 'file-plus', tipo: 'ia', titulo: 'Documento (IA)', codigo: 'cofre.analisar_ia', sub: 'Comprovante, boleto, nota', aoTocar: () => { if (typeof abrirUploadDocumentoNoApp === 'function') abrirUploadDocumentoNoApp(); } },
     ];
-    if (aba === 'conciliacao') {
-        acoes.push({ icone: 'refresh-cw', titulo: 'Reprocessar pendências', codigo: 'conciliacao.resolver', sub: 'Compara de novo', aoTocar: () => reprocessarConciliacaoPendente() });
-        acoes.push({ icone: 'trash-2', titulo: 'Descartar pendentes do mês', codigo: 'conciliacao.descartar', sub: 'Para importar o extrato de novo', aoTocar: () => financeiroDescartarPendentesMes() }); // v1.84.0
+    const lancar = [
+        { icone: 'arrow-down-left', titulo: 'Nova entrada', sub: fechada ? 'Mês fechado: reabra' : 'Com ou sem contrato', aoTocar: () => { if (fechada) return avisoFechada(); irPara('tab-mensal'); abrirAdicionarRecebimento(); } },
+        { icone: 'arrow-up-right', titulo: 'Nova saída', sub: fechada ? 'Mês fechado: reabra' : 'Despesa, tributo, manutenção', aoTocar: () => { if (fechada) return avisoFechada(); irPara('tab-saidas'); abrirNovaDespesa(); } },
+    ];
+    const rotinaOff = financeiroRotinaFechamentoLigada === false || est?.status === 'sem_rotina';
+    const pend = est?.pendencias || null;
+    const dataFech = est?.fechadoEm ? new Date(est.fechadoEm).toLocaleDateString('pt-BR') : '';
+    const rotinas = [];
+    if (rotinaOff) rotinas.push({ icone: 'lock-open', titulo: 'Fechar o mês', sub: 'Rotina desligada em Minha empresa › Rotinas', aoTocar: () => rzTocarChipFechamentoDesligado() });
+    else rotinas.push({ icone: fechada ? 'lock' : 'lock-open', titulo: fechada ? 'Reabrir o mês' : 'Fechar o mês',
+        sub: !est ? 'Verificando…' : fechada ? `Fechado${dataFech ? ' em ' + dataFech : ''}` : (pend?.tem ? 'Há pendências no mês' : 'Sem pendências'), aoTocar: () => fechamentoAlternarBotao() });
+    if (!rotinaOff && financeiroRotinaContadorLigada !== false) rotinas.push({ icone: 'send', titulo: 'Contador', sub: fechada ? 'Pronto para enviar' : 'Pacote da competência', aoTocar: () => fechamentoAbrirCompartilharContador() });
+    if (fis?.ligada !== false) {
+        const nNotas = fis?.notas ? (fis.notas.aPreparar + fis.notas.preparadas) : 0;
+        rotinas.push({ icone: 'file-check-2', titulo: 'Fiscal', sub: !fis ? 'Verificando…' : nNotas ? `${nNotas} nota${nNotas > 1 ? 's' : ''} a preparar` : fis.total ? `${fis.total} pendência${fis.total > 1 ? 's' : ''}` : 'Em dia', aoTocar: () => abrirFiscalCompetencia() });
     }
-    abrirSheetAcoes({ titulo: 'Lançar', sub: financeiroCompetenciaLabel(financeiroCompetenciaAtual || financeiroCompetenciaHojeISO()), acoes });
+    const valorAtraso = Number(pend?.recebimentosEmAtraso || 0);
+    rotinas.push({ icone: 'alarm-clock', titulo: 'Atrasados', sub: valorAtraso > 0 ? `${formatarMoedaBR(valorAtraso)} em atraso` : (est ? 'Sem atraso' : 'Recebimentos em atraso'), aoTocar: () => abrirTelaAtrasados() });
+    const grupos = [{ titulo: 'Importar', acoes: importar }, { titulo: 'Lançar', acoes: lancar }, { titulo: 'Rotinas do mês', acoes: rotinas }];
+    if (aba === 'conciliacao') grupos.push({ titulo: 'Extrato do mês', acoes: [
+        { icone: 'refresh-cw', titulo: 'Reprocessar pendências', codigo: 'conciliacao.resolver', sub: 'Compara de novo', aoTocar: () => reprocessarConciliacaoPendente() },
+        { icone: 'trash-2', titulo: 'Descartar pendentes do mês', codigo: 'conciliacao.descartar', sub: 'Para importar o extrato de novo', aoTocar: () => financeiroDescartarPendentesMes() }, // v1.84.0
+    ] });
+    abrirSheetAcoes({ titulo: financeiroCompetenciaLabel(financeiroCompetenciaAtual || financeiroCompetenciaHojeISO()), sub: 'Importar, lançar e rotinas do mês', grupos });
 }
 
 // v1.84.0 (demanda c4fd93e6) — descarta do mês (e da conta filtrada) as linhas do extrato ainda pendentes e sem vínculo,
@@ -890,7 +926,7 @@ function financeiroRenderCabecalho(aba) {
     if (elChips) elChips.innerHTML = financeiroChipsNivelHtml(aba);
     // v1.28.0 — card "Rotinas de <mês>" (UXR-25) no lugar da grade 3x2.
     const elRot = document.getElementById(`fin-rotinas-${aba}`);
-    if (elRot) elRot.innerHTML = financeiroRotinasHtml(aba);
+    if (elRot) elRot.innerHTML = ''; // v1.99.0 (D3) — as rotinas foram para o ⋮ (abrirLancarFinanceiro)
     financeiroRenderCadeadoCompetencia(); // v1.20.0 (demanda 7bdcb8d4)
     financeiroVerificarRotinaFechamento(); // v1.30.1 — a função decide se precisa ir ao banco
     if (aba === 'mensal' || aba === 'saidas') financeiroAtualizarKpis(aba);
