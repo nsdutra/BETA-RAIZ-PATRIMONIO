@@ -1,6 +1,10 @@
 // ============================================================================
 // cofre-controles.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.74.0 · 15/11/2026
+// Versão: 1.75.0 · 16/11/2026
+//
+// v1.75.0 (16/11/2026, sessão 20261114-2342-investimentos-patrimonio, demanda fd3898f7; FICHA_FORMA_DE_PAGAMENTO_DO_BEM v2.0.0,
+// "Agora sim. Pode seguir em frente." — Nicola 16/11 21:46) — criarItemParcelado() aceita a lista de pagamentos pronta
+// (datas e valores livres), a conta de quem paga e "já pagas" (datas passadas nascem baixadas). Versão anterior: 1.74.0
 //
 // v1.74.0 (15/11/2026, sessão 20261114-2342-investimentos-patrimonio, demanda fd3898f7; de acordo do Nicola 15/11 16:39) —
 // nova criarItemParcelado(): item de despesa em parcelas mensais criado por outra tela (o financiamento do bem, no card
@@ -20,14 +24,11 @@
 // estado de módulo: a lista de partes usada nos seletores do item de controle passa a ser relida quando uma parte é
 // criada, editada ou excluída em outra tela (evento 'parte' do raiz-eventos.js). Antes, parte cadastrada em Partes só
 // aparecia no seletor depois de recarregar o app.
-// Versão anterior: 1.71.0 · 23/10/2026
-//
-// v1.71.0 (23/10/2026, sessão 20261023-0915-computador-c6, demanda 15146a34; PROTOTIPO_COMPUTADOR_RAIZ v1.1.0 §11, de acordo do Nicola 23/10 08:51) — C6 · escala de letras: 8 tamanhos de letra escritos em número (font-size:13px etc.) trocados pelos da escala (--fs-mini 11 · --fs-sec 12,5 · --fs-corpo 14 · --fs-titulo 17; 16 px fica, por causa do zoom do iPhone em campo, e 18 px ou mais também — herói e números grandes). Nada muda de lugar; só o tamanho passa a ser o mesmo em todas as telas.
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.70.0 … v1.70.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.71.0 … v1.71.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '1.74.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.75.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 import { estado } from './cofre-estado.js';
 import * as api from './cofre-api.js';
 import { mostrarToast, refrescarIcones, abrirModal, fecharModal, modalGenerico, perguntar, escolher, avisarComDesfazer } from './cofre-ui.js';
@@ -3340,26 +3341,43 @@ export async function salvarItemControle() {
 // Item de despesa em parcelas mensais criado por outra tela (financiamento do bem, dem fd3898f7). Mesmo caminho do
 // formulário: item + histórico + ocorrências do horizonte. Parcela já vencida não entra (foi paga fora do Raiz); a rotina
 // do banco segue gerando até data_fim.
+// v1.75.0 (dem fd3898f7, forma de pagamento do bem) — além da série mensal (financiamento antigo), aceita a lista de pagamentos
+// pronta (p.ocorrencias: [{ data, valor }]), a conta de quem paga (p.contaId → o lançamento herda) e p.jaPagas (as datas passadas
+// nascem baixadas na própria data). Com p.ocorrencias, gera todas de uma vez (sem horizonte) para o resumo saber o total a pagar.
 export async function criarItemParcelado(p) {
     if (!p.ativoId) throw new Error('Item precisa de um ativo.');
-    if (!p.titulo || !p.dataBase || !p.dataFim || !(p.valorParcela > 0)) throw new Error('Informe o valor da parcela, as parcelas e o 1º vencimento.');
+    const lista = Array.isArray(p.ocorrencias) ? p.ocorrencias.filter(o => o && o.data && o.valor > 0) : null;
+    if (lista) {
+        if (!p.titulo || !lista.length) throw new Error('Informe ao menos um pagamento.');
+        if (lista.length > 480) throw new Error('No máximo 480 pagamentos por item.');
+    } else if (!p.titulo || !p.dataBase || !p.dataFim || !(p.valorParcela > 0)) throw new Error('Informe o valor da parcela, as parcelas e o 1º vencimento.');
+    const datas = lista ? lista.map(o => o.data).sort() : null;
     const item = await api.criarItemControle({
         cliente_id: estado.clienteId, ativo_id: p.ativoId, tipo: p.tipo || 'despesa', subtipo_id: p.subtipoId || null, titulo: p.titulo,
-        recorrente: true, frequencia_intervalo: 1, frequencia_unidade: 'mes',
-        data_base: p.dataBase, data_fim: p.dataFim, direcao_alerta: 'inicio',
+        recorrente: !lista, frequencia_intervalo: lista ? null : 1, frequencia_unidade: lista ? null : 'mes',
+        data_base: lista ? datas[0] : p.dataBase, data_fim: lista ? datas[datas.length - 1] : p.dataFim, direcao_alerta: 'inicio',
         alerta_ativo: true, antecedencia_alerta_dias: p.antecedencia ?? 7,
-        valor_previsto: p.valorParcela, parcelas: 1, parcela_intervalo_dias: 30,
-        gerar_desde_inicio: false, origem: 'manual', criado_por: estado.pessoa.id,
+        valor_previsto: lista ? Math.max(...lista.map(o => o.valor)) : p.valorParcela, parcelas: 1, parcela_intervalo_dias: 30,
+        gerar_desde_inicio: false, origem: 'manual', criado_por: estado.pessoa.id, conta_id: p.contaId || null,
     });
     await api.registrarHistoricoItemControle({ item_id: item.id, acao: 'criar', antes: null, depois: item, pessoa_id: estado.pessoa.id, origem: 'app' });
-    const payloads = gerarOcorrenciasHorizonte(item, p.dataBase, 1, 'mes', false).filter(o => o.data_prevista_original <= p.dataFim);
+    const hoje = hojeLocalISO();
+    const payloads = lista
+        ? lista.map(o => {
+            const paga = !!p.jaPagas && o.data < hoje;
+            return { cliente_id: estado.clienteId, item_controle_id: item.id, alerta_habilitado: !paga, competencia: primeiroDiaDoMes(o.data),
+                data_prevista_original: o.data, data_prevista_atual: o.data, valor_previsto: o.valor,
+                status_execucao: paga ? 'concluido' : 'aberto',
+                ...(paga ? { valor_real: o.valor, tratado_em: o.data + 'T12:00:00', tratado_por: estado.pessoa.id, tratamento_descricao: 'Já pago (cadastro da forma de pagamento)' } : {}) };
+        })
+        : gerarOcorrenciasHorizonte(item, p.dataBase, 1, 'mes', false).filter(o => o.data_prevista_original <= p.dataFim);
     if (payloads.length) await api.criarOcorrenciasControleBatch(payloads);
-    await api.registrarLogAcessos(estado.clienteId, estado.pessoa.id, 'cofre.controles.criar', { ativoId: p.ativoId, itemId: item.id, ocorrenciasGeradas: payloads.length, origem: 'parcelado' });
+    await api.registrarLogAcessos(estado.clienteId, estado.pessoa.id, 'cofre.controles.criar', { ativoId: p.ativoId, itemId: item.id, ocorrenciasGeradas: payloads.length, origem: lista ? 'forma_pagamento' : 'parcelado' });
     if (estado.ativoEmFoco && p.ativoId === estado.ativoEmFoco.id) {
         try { itensDoAtivoAtual = await api.listarItensControleAtivo(p.ativoId); renderizarListaControles(); } catch (e) { /* lista atualiza ao reabrir */ }
     }
     window.dispatchEvent(new CustomEvent('cofre:recarregar-eventos'));
-    emitirEscrita('controle', { id: item.id, acao: 'criar-parcelado' });
+    emitirEscrita('controle', { id: item.id, acao: lista ? 'criar-forma-pagamento' : 'criar-parcelado' });
     return { item, ocorrencias: payloads.length };
 }
 

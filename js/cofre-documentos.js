@@ -27,13 +27,8 @@
 // v2.38.0 (15/10/2026, sessão 20261015-0816-convite, demanda c59f09c5; FICHA_CONVITE_ANIVERSARIO_RAIZ v1.3.0, de acordo do
 // Nicola 15/10 08:16) — convite de festa: cada pessoa sugerida mostra a razão ("7 anos em 06/11", "quem enviou o convite");
 // o controle do tipo "Eventos e viagens" usa a data da festa como início e fim, sem campo "Início" na tela.
-// Versão anterior: 2.37.0 · 14/10/2026
-//
-// v2.37.0 (14/10/2026, sessão 20261014-2145-onda9c-textos, demanda a05ad2ee; onda 9c do estudo PROTOTIPO_UX_DENSIDADE_RAMOS_RAIZ
-// v1.2.0, D6 seção 10) — textos no limite: ação até 24 caracteres, descrição até 28, aviso até 40 com o resultado e tela
-// vazia em 1 frase de até 40. A explicação longa fica na confirmação, quando existe. Nada de comportamento mudou.
 // --------------------------------------------------------------------------
-// Versões anteriores (v2.36.0 … v2.36.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v2.37.0 … v2.37.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
 export const VERSAO = '2.41.0'; // v-check (22/09/2026): lido por Dev › Versões — manter igual ao header
