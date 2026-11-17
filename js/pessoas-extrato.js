@@ -1,6 +1,15 @@
 // ============================================================================
 // pessoas-extrato.js — Raiz Patrimônio · Financeiro › Pessoas: saldo de cada pessoa e o extrato dela
-// Versão: 1.0.0 · 16/11/2026
+// Versão: 1.0.1 · 17/11/2026
+//
+// v1.0.1 (17/11/2026, sessão 20261117-0010-financeiro-pessoas-ajustes, demanda 679b2700; teste do Nicola 17/11 00:05, T-3126
+// reprovado) — (1) o AJUSTE do item vira uma tela só, por cima do extrato: motivo e divisão juntos (% por pessoa, adicionar
+// pessoa, tirar, soma), "Salvar ajuste" e "Voltar à divisão padrão"; antes o editor abria por cima e, ao fechar, caía na
+// lista de pessoas. (2) Fechar o item VOLTA AO EXTRATO da pessoa, não à lista. (3) Retirada e acerto (repasse) passam a ser
+// editáveis do extrato: "Editar a retirada" abre as ações de hoje (classificar como extraordinária ou de volta ao fluxo,
+// dividir em partes, excluir); acerto entre pessoas ou com a empresa ganha "Desfazer este registro" (fn_acerto_desfazer).
+// (4) Chips "Retiradas" (regulares) e "Extraordinárias", cada um com a lista dele e os três totais do ano. (5) Sai o
+// "Demonstrativo do mês" do fim do extrato.
 //
 // v1.0.0 (16/11/2026, sessão 20261116-2345-financeiro-pessoas, demanda 679b2700; FICHA_REVISAO_FINANCEIRO_RAIZ v1.0.0, Onda 1;
 // de acordo do Nicola 16/11 23:44 "de acordo com toda proposta"; protótipo PROTOTIPO_FINANCEIRO_REVISAO_RAIZ v1.4.0) — criação.
@@ -10,16 +19,16 @@
 //   · tocar abre o EXTRATO da pessoa (fn_balanco_extrato): item a item, com como foi calculado e o saldo corrido; filtros
 //     Tudo · Distribuição · Com a empresa · Entre pessoas · Retiradas;
 //   · RETIRADAS do ano (fn_pessoa_retiradas_ano, F2): regulares, extraordinárias e total vêm do banco, e a lista;
-//   · AJUSTE do item (lançamento ou recebimento): motivo obrigatório + o editor único de divisão (rzEditarDivisao), gravado
+//   · AJUSTE do item (lançamento ou recebimento): motivo obrigatório + a divisão do item (v1.0.1: na mesma tela), gravado
 //     pela fn_divisao_excecao_definir com p_motivo (F1). Permissão financeiro.divisao.editar (Q1). "Tirar do balanço" ficou
 //     fora (Q2);
 //   · rodapé: Lançar retirada e Quitar (N), e o "Demonstrativo do mês" (a ficha do sócio de antes, com o compartilhar).
 // O módulo não guarda regra de dinheiro: lê o banco e mostra. O saldo corrido é a soma das linhas na ordem da data, e a
 // última linha bate com o saldo do topo (teste T-FIN-02).
 // ============================================================================
-export const VERSAO = '1.0.0';
+export const VERSAO = '1.0.1';
 
-import { rzToast, rzEditarDivisao } from './raiz-ui.js';
+import { rzToast, rzConfirmar } from './raiz-ui.js';
 
 const esc = (v) => String(v ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const num = (v) => Number(v) || 0;
@@ -36,7 +45,7 @@ const GRUPOS = [['dist', 'Distribuição'], ['emp', 'Com a empresa'], ['pes', 'E
 // grupo de uma linha (do saldo ou do extrato): a mesma regra nos dois lugares
 const grupoDe = (natureza, contraparteTipo) => natureza === 'extraordinaria' ? null : natureza === 'distribuicao' ? 'dist' : (contraparteTipo === 'caixa' ? 'emp' : 'pes');
 
-let CTX = null;        // { cliente, competencia, ate, rotuloMes, busca, quitar(p, l), lancarRetirada(pid, valor), demonstrativo(pid) }
+let CTX = null;        // { cliente, competencia, ate, rotuloMes, busca, quitar(p, l), lancarRetirada(pid), acoesRetirada(id) → Promise<boolean> }
 let DADOS = null;      // { pessoas: [{ chave, pessoaId, nome, total, dist, emp, pes, linhas: [...] }] }
 let FILTRO = 'tudo';
 
@@ -122,7 +131,7 @@ async function abrirExtrato(chave) {
     let corpo = '';
     try {
         if (!p.pessoaId) corpo = `<p class="rz-desc">Pessoa sem cadastro: cadastre em Pessoas (nome e WhatsApp bastam) para ver o extrato e quitar.</p>`;
-        else if (FILTRO === 'ret') corpo = retiradasHtml(await lerRetiradas(p));
+        else if (FILTRO === 'ret' || FILTRO === 'ext') corpo = retiradasHtml(await lerRetiradas(p), FILTRO === 'ext' ? 'extraordinaria' : 'regular');
         else corpo = extratoHtml(await lerExtrato(p));
     } catch (e) {
         console.error('[pessoas] extrato', e);
@@ -134,15 +143,13 @@ async function abrirExtrato(chave) {
     b.innerHTML = `
         <div class="rz-pes-topo"><span>Saldo</span>${saldoPartido(p.total)}</div>
         <div class="rz-pes-tot">${GRUPOS.map(([k, n]) => `<button type="button" data-f="${k}" class="${FILTRO === k ? 'rz-on' : ''}"><small>${n}</small><b>${esc(sinal(p[k]))}</b></button>`).join('')}</div>
-        <div class="rz-chips">${[['tudo', 'Tudo'], ...GRUPOS, ['ret', 'Retiradas']].map(([k, n]) => `<button type="button" class="rz-chip${FILTRO === k ? ' rz-on' : ''}" data-f="${k}">${n}</button>`).join('')}</div>
-        ${corpo}
-        ${p.pessoaId ? `<button type="button" class="rz-act" data-demo><div class="rz-ic"><svg data-lucide="file-text"></svg></div><div>Demonstrativo de ${esc(CTX.rotuloMes)}<small>Cotas, despesas e retiradas do mês · compartilhar</small></div></button>` : ''}`;
+        <div class="rz-chips">${[['tudo', 'Tudo'], ...GRUPOS, ['ret', 'Retiradas'], ['ext', 'Extraordinárias']].map(([k, n]) => `<button type="button" class="rz-chip${FILTRO === k ? ' rz-on' : ''}" data-f="${k}">${n}</button>`).join('')}</div>
+        ${corpo}`;
     sheet.insertAdjacentHTML('beforeend', `<div class="rz-sh-f">
         <button type="button" class="rz-btn rz-btn-2" data-ret ${p.pessoaId && podeRet ? '' : 'disabled'}>Lançar retirada</button>
         <button type="button" class="rz-btn rz-btn-1" data-quitar ${p.pessoaId && podeRet && abertos.length ? '' : 'disabled'}>Quitar${abertos.length ? ` (${abertos.length})` : ''}</button></div>`);
     sheet.querySelectorAll('[data-f]').forEach(el => el.addEventListener('click', () => { FILTRO = el.dataset.f; abrirExtrato(chave); }));
     sheet.querySelectorAll('[data-aj]').forEach(el => el.addEventListener('click', () => abrirAjuste(p, el.dataset.aj)));
-    sheet.querySelector('[data-demo]')?.addEventListener('click', () => { g('fecharSheet')?.(); CTX.demonstrativo?.(p.pessoaId); });
     sheet.querySelector('[data-ret]')?.addEventListener('click', () => { g('fecharSheet')?.(); CTX.lancarRetirada?.(p.pessoaId); });
     sheet.querySelector('[data-quitar]')?.addEventListener('click', () => escolherQuitar(p, abertos));
     EXT_ATUAL = { p, chave };
@@ -166,70 +173,115 @@ function extratoHtml(linhas) {
     return html ? `<div class="rz-card rz-list rz-pes-ext">${html}</div>` : `<div class="rz-card"><div class="rz-empty"><p>Nada neste filtro até ${esc(dataBR(CTX.ate))}.</p></div></div>`;
 }
 
-function retiradasHtml(r) {
-    const t = r.totais || {}, itens = r.itens || [];
+function retiradasHtml(r, natureza) {
+    const t = r.totais || {}, itens = (r.itens || []).filter(x => x.natureza === natureza);
     return `<div class="rz-kpis" style="grid-template-columns:repeat(3,1fr)"><div class="rz-kpi"><small>Regulares</small><b>${esc(moeda(t.regulares))}</b></div>
         <div class="rz-kpi"><small>Extraordinárias</small><b>${esc(moeda(t.extraordinarias))}</b></div><div class="rz-kpi"><small>Total ${esc(r.ano)}</small><b>${esc(moeda(t.total))}</b></div></div>` +
         (itens.length ? `<div class="rz-card rz-list">` + itens.map(x => `<div class="rz-row"><span class="rz-pes-dt">${esc(dataCurta(x.data))}</span>
             <div class="rz-tx"><b>${x.natureza === 'extraordinaria' ? 'Retirada extraordinária' : 'Retirada regular'}</b><span>${x.natureza === 'extraordinaria' ? 'não abate o saldo' : 'abate o saldo'}${x.meio ? ' · ' + esc(x.meio) : ''}${x.observacao ? ' · ' + esc(x.observacao) : ''}</span></div>
             <div class="rz-rt"><b>${esc(moeda(x.valor))}</b></div></div>`).join('') + '</div>'
-        : `<div class="rz-card"><div class="rz-empty"><p>Nenhuma retirada em ${esc(r.ano)}.</p></div></div>`);
+        : `<div class="rz-card"><div class="rz-empty"><p>Nenhuma retirada ${natureza === 'extraordinaria' ? 'extraordinária' : 'regular'} em ${esc(r.ano)}.</p></div></div>`);
 }
 
-// ---------------------------------------------------------------- ajuste do item
+// ---------------------------------------------------------------- ajuste do item (por cima do extrato; fechar volta a ele)
+let AJ = null;   // { e, linhas: [{ pessoa_id, nome, percentual }], tinhaExcecao }
+function abrirItem(html) {
+    const abrirSheet = g('abrirSheet');
+    // nível 2: o X vira "‹ Voltar" e fecha só o item, com o extrato embaixo
+    return abrirSheet ? abrirSheet(html, { empilhar: true }) : null;
+}
 function abrirAjuste(p, idx) {
-    const e = EXT_LINHAS[Number(idx)];
-    const abrirSheet = g('abrirSheet'), cab = g('rzSheetCabecalho');
-    if (!e || !abrirSheet || !cab) return;
-    const ajusta = e.origem_tipo === 'lancamento' || e.origem_tipo === 'mensalidade';
-    const perm = pode('financeiro.divisao.editar');
-    const motivoBloq = !ajusta ? 'Este item é uma retirada ou quitação: o ajuste é feito no próprio registro, em Lançar retirada ou no histórico.'
-        : (!perm.ok ? (perm.textoCurto || 'Sem permissão para ajustar a divisão.') : '');
-    const sheet = abrirSheet(cab(e.descricao || 'Movimento', `${dataBR(e.data)} · ${NAT[e.natureza] || e.natureza} · ${sinal(e.valor)}`) + `<div class="rz-sh-b">
-        <div class="rz-card rz-list">
-          <div class="rz-row"><div class="rz-ic"><svg data-lucide="list-checks"></svg></div><div class="rz-tx"><b>De onde veio</b><span>${esc(e.origem_tipo === 'mensalidade' ? 'Recebimento de contrato' : e.origem_tipo === 'lancamento' ? 'Lançamento' : 'Registro de retirada ou acerto')} · ${esc(dataBR(e.competencia || e.data))}${e.pagador ? ' · pagou ' + esc(e.pagador) : ''}</span></div></div>
+    const e = EXT_LINHAS[Number(idx)], cab = g('rzSheetCabecalho');
+    if (!e || !cab) return;
+    const divisivel = e.origem_tipo === 'lancamento' || e.origem_tipo === 'mensalidade';
+    const infos = `<div class="rz-card rz-list">
+          <div class="rz-row"><div class="rz-ic"><svg data-lucide="list-checks"></svg></div><div class="rz-tx"><b>De onde veio</b><span>${esc(e.origem_tipo === 'mensalidade' ? 'Recebimento de contrato' : e.origem_tipo === 'lancamento' ? 'Lançamento' : (e.natureza === 'distribuicao' || e.natureza === 'extraordinaria' ? 'Retirada' : 'Acerto'))} · ${esc(dataBR(e.competencia || e.data))}${e.pagador ? ' · pagou ' + esc(e.pagador) : ''}</span></div></div>
           <div class="rz-row"><div class="rz-ic"><svg data-lucide="scale"></svg></div><div class="rz-tx"><b>Como foi calculado</b><span>${esc(comoFoi(e) || '—')} · ${esc(e.contraparte_nome || 'Empresa')}</span></div></div>
-        </div>
-        ${motivoBloq ? `<p class="rz-desc" style="margin-top:10px">${esc(motivoBloq)}</p>` : `
-        <div class="rz-f" style="margin-top:12px"><label>Motivo do ajuste <i>*</i></label><input type="text" id="pes-aj-motivo" maxlength="500" placeholder="Ex.: Paulo pagou a parte dele direto à Marina"></div>
-        <small class="rz-hint">Vale só para este item; a divisão do ativo e do contrato continua a mesma. Fica no registro: quem ajustou, quando e por quê.</small>`}
-        </div>${motivoBloq ? '' : `<div class="rz-sh-f"><button type="button" class="rz-btn rz-btn-1 rz-wide" data-div>Ajustar a divisão</button></div>`}`);
-    sheet.querySelector('[data-div]')?.addEventListener('click', async () => {
-        const motivo = String(document.getElementById('pes-aj-motivo')?.value || '').trim();
-        if (!motivo) { rzToast('Diga o motivo do ajuste.', { tipo: 'danger' }); document.getElementById('pes-aj-motivo')?.focus(); return; }
-        await editarDivisao(e, motivo);
-    });
-    icones();
+        </div>`;
+    const titulo = cab(e.descricao || 'Movimento', `${dataBR(e.data)} · ${NAT[e.natureza] || e.natureza} · ${sinal(e.valor)}`);
+    if (!divisivel) return abrirRegistro(p, e, titulo, infos);
+    const perm = pode('financeiro.divisao.editar');
+    if (!perm.ok) { abrirItem(titulo + `<div class="rz-sh-b">${infos}<p class="rz-desc" style="margin-top:10px">${esc(perm.textoCurto || 'Sem permissão para ajustar a divisão.')}</p></div>`); icones(); return; }
+    const sheet = abrirItem(titulo + `<div class="rz-sh-b">${infos}<p class="text-xs text-center py-3" style="color:var(--sage)">Carregando a divisão…</p></div>`);
+    if (!sheet) return;
+    carregarDivisao(e).then(() => desenharAjuste(sheet, titulo, infos));
 }
-
-async function editarDivisao(e, motivo) {
-    let atuais = [], salvo = {};
+async function carregarDivisao(e) {
+    AJ = { e, linhas: [], tinhaExcecao: false };
     try {
         const { data } = await dbAuth.rpc('fn_divisao_movimento', { p_origem_tipo: e.origem_tipo, p_origem_id: e.origem_id });
-        atuais = (data || []).filter(d => d.pessoa_id);
-        const t = await dbAuth.from(e.origem_tipo === 'mensalidade' ? 'mensalidades' : 'lancamentos').select('divisao_excecao').eq('id', e.origem_id).maybeSingle();
-        (Array.isArray(t.data?.divisao_excecao) ? t.data.divisao_excecao : []).forEach(x => { if (x?.pessoa_id) salvo[x.pessoa_id] = x; });
-    } catch (err) { /* abre com o que tiver */ }
+        AJ.linhas = (data || []).filter(d => d.pessoa_id).map(d => ({ pessoa_id: d.pessoa_id, nome: d.nome, percentual: num(d.percentual) }));
+        AJ.tinhaExcecao = (data || []).some(d => d.origem === 'excecao');
+    } catch (err) { console.warn('[pessoas] divisão', err); }
+}
+function desenharAjuste(sheet, titulo, infos) {
     const lista = (typeof pessoas !== 'undefined' && Array.isArray(pessoas)) ? pessoas : [];
-    rzEditarDivisao({
-        titulo: 'Ajustar a divisão', sub: 'Só este item', nota: `Motivo: ${motivo}`,
-        itens: atuais.map(l => ({ pessoa_id: l.pessoa_id, nome: l.nome, percentual: Number(l.percentual),
-            modo: salvo[l.pessoa_id]?.modo === 'igual' ? 'percentual' : salvo[l.pessoa_id]?.modo, cotas: salvo[l.pessoa_id]?.cotas ?? null, valor: salvo[l.pessoa_id]?.valor ?? null })),
-        modos: true, igualar: true, permitirExterno: false, valorBase: num(e.valor_movimento),
-        candidatos: lista.filter(x => x.id).sort((a, b) => String(a.nome).localeCompare(String(b.nome))).map(x => ({ id: x.id, nome: x.nome, sub: '' })),
-        aoSalvar: async (itens, info) => {
-            const { data, error } = await dbAuth.rpc('fn_divisao_excecao_definir', {
-                p_origem_tipo: e.origem_tipo, p_origem_id: e.origem_id, p_motivo: motivo,
-                p_itens: itens.map(i => ({ pessoa_id: i.pessoa_id, percentual: i.percentual,
-                    modo: info?.modo && info.modo !== 'percentual' ? info.modo : (info?.igual ? 'igual' : 'percentual'), cotas: i.cotas, valor: i.valor })) });
-            if (error) { rzToast(error.message, { tipo: 'danger' }); return false; }
-            rzToast(data?.mensagem || 'Feito.', { tipo: data?.ok ? 'success' : 'danger' });
-            if (!data?.ok) return false;
-            // o editor fecha o próprio nível ao devolver true; depois disso a lista e o extrato se redesenham
-            setTimeout(async () => { await pessoasRender(CTX); if (EXT_ATUAL) abrirExtrato(EXT_ATUAL.chave); }, 60);
-            return true;
-        }
+    const fora = lista.filter(x => x.id && !AJ.linhas.some(l => l.pessoa_id === x.id)).sort((a, b) => String(a.nome).localeCompare(String(b.nome)));
+    const soma = Math.round(AJ.linhas.reduce((t, l) => t + num(l.percentual), 0) * 100) / 100;
+    const ok = AJ.linhas.length > 0 && Math.abs(soma - 100) < 0.01;
+    const base = num(AJ.e.valor_movimento);
+    const motivoAtual = sheet.querySelector('#pes-aj-motivo')?.value || '';
+    sheet.innerHTML = '<div class="rz-grab"></div>' + titulo + `<div class="rz-sh-b">${infos}
+        <div class="rz-group">Divisão deste item</div>
+        <div class="rz-card rz-list">${AJ.linhas.map((l, i) => `<div class="rz-row rz-pes-div">
+            <div class="rz-tx"><b>${esc(l.nome)}</b><span>${base ? esc(moeda(base * num(l.percentual) / 100)) : ''}</span></div>
+            <input type="number" inputmode="decimal" step="0.01" min="0" max="100" data-pct="${i}" value="${num(l.percentual)}" aria-label="Percentual de ${esc(l.nome)}"><span class="rz-pes-pc">%</span>
+            <button type="button" class="rz-pes-tirar" data-tirar="${i}" aria-label="Tirar ${esc(l.nome)}"><svg data-lucide="trash-2"></svg></button></div>`).join('')}
+          ${fora.length ? `<div class="rz-row"><div class="rz-tx" style="flex:1"><select id="pes-aj-add" aria-label="Adicionar pessoa"><option value="">+ Adicionar pessoa</option>${fora.map(x => `<option value="${esc(x.id)}">${esc(x.nome)}</option>`).join('')}</select></div></div>` : ''}
+        </div>
+        <div class="rz-pes-soma${ok ? '' : ' rz-bad'}"><span>Soma</span><b>${soma.toLocaleString('pt-BR', { maximumFractionDigits: 2 })}%${ok ? '' : ' · precisa dar 100%'}</b></div>
+        <div class="rz-f" style="margin-top:12px"><label>Motivo do ajuste <i>*</i></label><input type="text" id="pes-aj-motivo" maxlength="500" placeholder="Ex.: Paulo pagou a parte dele direto à Marina" value="${esc(motivoAtual)}"></div>
+        <small class="rz-hint">Vale só para este item; a divisão do ativo e do contrato continua a mesma. Fica no registro: quem ajustou, quando e por quê.</small>
+        </div><div class="rz-sh-f">${AJ.tinhaExcecao ? '<button type="button" class="rz-btn rz-btn-2" data-padrao>Voltar à divisão padrão</button>' : ''}<button type="button" class="rz-btn rz-btn-1${AJ.tinhaExcecao ? '' : ' rz-wide'}" data-salvar ${ok ? '' : 'disabled'}>Salvar ajuste</button></div>`;
+    if (sheet.id === 'rz-sheet-2') { const x = sheet.querySelector('.rz-sh-h .rz-x'); if (x) { x.classList.add('rz-voltar'); x.setAttribute('aria-label', 'Voltar'); x.innerHTML = '<svg data-lucide="chevron-left"></svg>'; } }
+    sheet.querySelectorAll('[data-pct]').forEach(el => el.addEventListener('change', () => { AJ.linhas[Number(el.dataset.pct)].percentual = num(String(el.value).replace(',', '.')); desenharAjuste(sheet, titulo, infos); }));
+    sheet.querySelectorAll('[data-tirar]').forEach(el => el.addEventListener('click', () => { AJ.linhas.splice(Number(el.dataset.tirar), 1); desenharAjuste(sheet, titulo, infos); }));
+    sheet.querySelector('#pes-aj-add')?.addEventListener('change', (ev) => {
+        const x = lista.find(y => y.id === ev.target.value); if (!x) return;
+        AJ.linhas.push({ pessoa_id: x.id, nome: x.nome, percentual: 0 }); desenharAjuste(sheet, titulo, infos);
     });
+    sheet.querySelector('[data-salvar]')?.addEventListener('click', () => gravarAjuste(sheet, AJ.linhas.map(l => ({ pessoa_id: l.pessoa_id, percentual: num(l.percentual), modo: 'percentual' }))));
+    sheet.querySelector('[data-padrao]')?.addEventListener('click', () => gravarAjuste(sheet, []));
+    icones();
+}
+async function gravarAjuste(sheet, itens) {
+    const motivo = String(sheet.querySelector('#pes-aj-motivo')?.value || '').trim();
+    if (!motivo) { rzToast('Diga o motivo do ajuste.', { tipo: 'danger' }); sheet.querySelector('#pes-aj-motivo')?.focus(); return; }
+    const { data, error } = await dbAuth.rpc('fn_divisao_excecao_definir', { p_origem_tipo: AJ.e.origem_tipo, p_origem_id: AJ.e.origem_id, p_motivo: motivo, p_itens: itens });
+    if (error) { rzToast(error.message, { tipo: 'danger' }); return; }
+    rzToast(data?.mensagem || 'Feito.', { tipo: data?.ok ? 'success' : 'danger' });
+    if (!data?.ok) return;
+    await recarregarExtrato();
+}
+async function recarregarExtrato() {
+    g('fecharSheet')?.();                                   // fecha o item (nível 2)
+    const chave = EXT_ATUAL?.chave;
+    await pessoasRender(CTX);                               // números da lista e do topo vêm do banco de novo
+    if (chave) abrirExtrato(chave);
+}
+// retirada ou acerto (repasse): as ações de hoje, sem sair do extrato
+function abrirRegistro(p, e, titulo, infos) {
+    const retirada = e.natureza === 'distribuicao' || e.natureza === 'extraordinaria';
+    const perm = pode(retirada ? 'repasses.registrar' : 'repasses.excluir');
+    const sheet = abrirItem(titulo + `<div class="rz-sh-b">${infos}
+        ${!perm.ok ? `<p class="rz-desc" style="margin-top:10px">${esc(perm.textoCurto || 'Sem permissão para mexer neste registro.')}</p>`
+        : retirada ? `<button type="button" class="rz-act" data-ret><div class="rz-ic"><svg data-lucide="pencil"></svg></div><div>Editar a retirada<small>Extraordinária ou do fluxo, dividir em partes, excluir</small></div></button>`
+        : `<button type="button" class="rz-act" data-desf><div class="rz-ic rz-bad"><svg data-lucide="undo-2"></svg></div><div>Desfazer este registro<small>O valor volta a ficar pendente entre as duas pontas</small></div></button>`}
+        </div>`);
+    if (!sheet) return;
+    sheet.querySelector('[data-ret]')?.addEventListener('click', async () => {
+        const achou = await CTX.acoesRetirada?.(e.origem_id);
+        if (!achou) rzToast('Não achei esta retirada no ano do mês escolhido. Troque o mês no topo para o ano dela.', { tipo: 'info' });
+    });
+    sheet.querySelector('[data-desf]')?.addEventListener('click', async () => {
+        const sim = await rzConfirmar({ titulo: 'Desfazer este registro?', impacto: `${moeda(e.valor_movimento)} · ${dataBR(e.data)}. O valor volta a ficar pendente entre as duas pontas.`, rotuloConfirmar: 'Desfazer', destrutivo: true });
+        if (!sim) return;
+        const { data, error } = await dbAuth.rpc('fn_acerto_desfazer', { p_acerto_id: e.origem_id });
+        if (error) { rzToast(error.message, { tipo: 'danger' }); return; }
+        rzToast(data?.mensagem || 'Feito.', { tipo: data?.ok ? 'success' : 'danger' });
+        if (data?.ok) await recarregarExtrato();
+    });
+    icones();
 }
 
 // ---------------------------------------------------------------- quitar

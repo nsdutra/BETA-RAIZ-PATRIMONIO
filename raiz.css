@@ -1,6 +1,9 @@
 /* ============================================================================
    raiz.css — Raiz Patrimônio · estilos do app (index.html)
-   Versão: 1.26.0 · 16/11/2026
+   Versão: 1.27.0 · 17/11/2026
+
+   v1.27.0 (17/11/2026, sessão 20261117-0010-financeiro-pessoas-ajustes, demanda 679b2700) — divisão do item na mesma tela do
+   ajuste (js/pessoas-extrato.js 1.0.1): .rz-pes-div (pessoa, % e tirar), .rz-pes-pc, .rz-pes-tirar e .rz-pes-soma. Versão anterior: 1.26.0
 
    v1.26.0 (16/11/2026, sessão 20261116-2345-financeiro-pessoas, demanda 679b2700; FICHA_REVISAO_FINANCEIRO_RAIZ v1.0.0, Onda 1) —
    classes .rz-pes-* da aba Pessoas (js/pessoas-extrato.js): linha da pessoa com iniciais, saldo partido (.rz-saldo de antes) e os
@@ -2210,3 +2213,15 @@ html.rz-plat-web body:not(.rz-split-con) #ficha-contrato-conteudo > .rz-entity:f
 .rz-pes-dt{flex:none;width:38px;font:600 12px var(--font-body);color:var(--muted);padding-top:2px}
 .rz-pes-nat{display:inline-block;margin-top:3px;padding:0 7px;border-radius:999px;background:var(--tile);font-size:11px;font-weight:600;font-style:normal;color:var(--muted)}
 .rz-pes-run{display:block;font-size:11.5px;color:var(--muted);font-weight:500;text-align:right}
+
+/* v1.27.0 (dem 679b2700) — divisão do item no ajuste do extrato da pessoa */
+.rz-pes-div{gap:8px;align-items:center}
+.rz-pes-div .rz-tx{flex:1;min-width:0}
+.rz-pes-div input{box-sizing:border-box;width:76px;height:44px;padding:0 8px;border:1.5px solid var(--line);border-radius:var(--r-ctl);font:inherit;font-size:16px;text-align:right;background:var(--card);color:var(--ink)}
+.rz-pes-pc{color:var(--muted);font-size:var(--fs-corpo,14px)}
+.rz-pes-tirar{flex:none;width:40px;height:44px;border:0;background:none;color:var(--muted);display:grid;place-items:center;cursor:pointer}
+.rz-pes-tirar svg{width:18px;height:18px}
+#pes-aj-add{box-sizing:border-box;width:100%;height:44px;border:1.5px dashed var(--line);border-radius:var(--r-ctl);background:var(--card);color:var(--ink);font:inherit;padding:0 10px}
+.rz-pes-soma{display:flex;justify-content:space-between;margin:8px 4px 0;font-size:13px;color:var(--muted)}
+.rz-pes-soma b{color:var(--success)}
+.rz-pes-soma.rz-bad b{color:var(--danger)}

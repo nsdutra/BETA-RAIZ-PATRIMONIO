@@ -1,7 +1,11 @@
 // ============================================================================
 // financeiro.js — Raiz Patrimônio · Financeiro (Recebimentos · Atrasados · Saídas
 //                  · conciliação de extrato · recibo · detalhe do recebimento)
-// Versão: 1.96.0 · 16/11/2026
+// Versão: 1.96.1 · 17/11/2026
+//
+// v1.96.1 (17/11/2026, sessão 20261117-0010-financeiro-pessoas-ajustes, demanda 679b2700; teste do Nicola 17/11 00:05) — a aba
+// Pessoas passa ao módulo a ação "Editar a retirada" (acoesRetirada: carrega as retiradas do ano do mês escolhido e abre as ações
+// de hoje, rzAcoesRetirada) e deixa de passar o "Demonstrativo do mês", que saiu do extrato. Versão anterior: 1.96.0
 //
 // v1.96.0 (16/11/2026, sessão 20261116-2345-financeiro-pessoas, demanda 679b2700; FICHA_REVISAO_FINANCEIRO_RAIZ v1.0.0, Onda 1;
 // de acordo do Nicola 16/11 23:44) — A ABA BALANÇO VIRA PESSOAS. renderDistribuicao passa a desenhar pelo módulo novo
@@ -27,17 +31,11 @@
 // sem conciliar) — "SEMPRE FAZER ASSIM" PODE SER ACEITO NA LINHA. A regra do cliente (R12, criar despesa na categoria escolhida)
 // ganha "Aceitar sugestão" no menu da linha, que aplica a regra só nela (fn_conciliacao_aplicar). No banco, a mesma correção:
 // a regra passa a lançar sozinha na importação e no reprocessamento (migration conciliacao_r12_documento_v1). Versão anterior: 1.92.0
-//
-// v1.92.0 (15/11/2026, sessão 20261115-1500-conciliacao-e, demanda 2a51055a; de acordo do Nicola 15/11 14:47 "Pode fazer a
-// sugestão do documento na tela") — O CADASTRO SE COMPLETA COM A CONCILIAÇÃO. No cartão "O que o Raiz leu", quando a linha do
-// extrato traz CPF/CNPJ e o cadastro ligado a ela está sem documento, aparece "Salvar CPF … no contrato de X" (contrato da
-// sugestão sem documento) ou "… no cadastro de X" (pessoa com o mesmo nome, sem documento, e nenhuma outra com esse
-// documento). Um toque grava; nada é gravado sem o toque. Versão anterior: 1.91.0
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.91.0 … v1.91.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.92.0 … v1.92.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '1.96.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.96.1'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 
 // v1.17.0 (Fase 1 do wrapper de escrita, rollout Financeiro) — emitirEscrita
 // é o evento padrão pra "algo mudou que módulos DE FORA deste arquivo podem
@@ -6651,12 +6649,12 @@ export async function renderDistribuicao() {
         rotuloMes: financeiroCompetenciaLabel(financeiroCompetenciaAtual), busca: distribBusca,
         quitar: (p, l) => balancoQuitar(p, l),
         lancarRetirada: (pid) => abrirLancarRetirada(pid),
-        demonstrativo: async (pid) => {
-            distribModo = 'mes';
-            try { await distribCarregar(); } catch (e) { rzToast('Não consegui montar o demonstrativo: ' + (e?.message || e), { tipo: 'danger' }); return; }
-            const l = distribDados.linhas.find(x => x.pessoaId === pid);
-            if (l) abrirFichaSocioDistribuicao(l.chave);
-            else rzToast(`Sem cotas nem retiradas em ${distribDados.periodo}.`, { tipo: 'info' });
+        acoesRetirada: async (id) => { // v1.96.1 — retirada aberta do extrato: as ações de hoje, com as retiradas do ano carregadas
+            distribModo = 'ano';
+            try { await distribCarregar(); } catch (e) { rzToast('Não consegui ler as retiradas: ' + (e?.message || e), { tipo: 'danger' }); return true; }
+            if (!distribAcharRetirada(id)) return false;
+            rzAcoesRetirada(id);
+            return true;
         },
     });
     // eslint-disable-next-line no-unreachable
