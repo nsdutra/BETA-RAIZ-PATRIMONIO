@@ -1,7 +1,11 @@
 // =====================================================================
 // RAIZ PATRIMÔNIO — js/agenda-form.js
-// Versão: 1.1.0 · 14/11/2026
+// Versão: 1.2.0 · 16/11/2026
 // -----------------------------------------------------------------
+// v1.2.0 (16/11/2026, sessão 20261116-2330-crm-f4t2, demanda 09277cba; decisões do Nicola 16/11 22:49 e 23:22) — Aprovar uma
+// pré-reserva abre "Confirmar reserva" com o recebimento já no padrão (sinal 50% hoje, saldo no dia da entrada) para ajustar
+// antes de confirmar; o banco (fn_reserva_gerar_contrato) cria o contrato com sinal e saldo e a mensagem diz os valores.
+// Versão anterior: 1.1.0
 // v1.1.0 (14/11/2026, sessão 20261114-1910-crm-reuniao-1; FICHA_REUNIAO_LEAD_GOOGLE_MEET_RAIZ v1.0.2) — depois de decidir um pedido de
 // reunião, chama a Edge agenda-google (sincronizar): reunião de lead aprovada vira evento no Google com Meet e o lead recebe o
 // link; recusada, o evento sai e o lead é avisado. Outras agendas não são tocadas (a Edge confere). Versão anterior: 1.0.0
@@ -14,7 +18,7 @@
 //     (fn_agenda_pedido_decidir). Aprovar pré-reserva gera o contrato na F4 (até lá o banco avisa).
 // Nada de banco novo aqui: tudo pelas funções da migration crm_f2b_motor_agenda (v1–v3).
 // =====================================================================
-export const VERSAO = '1.1.0';
+export const VERSAO = '1.2.0';
 
 const TIPOS = [['reuniao', 'Reunião', 'users'], ['compromisso', 'Compromisso', 'calendar-check'], ['manutencao', 'Manutenção', 'wrench'], ['reserva', 'Reserva', 'bed-double']];
 const esc = (s) => (typeof rzEsc === 'function' ? rzEsc(s) : String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])));
@@ -138,19 +142,40 @@ export function abrirDecisaoPedido(r, aoMudar) {
         const { data, error } = await dbAuth.rpc('fn_agenda_pedido_decidir', { p_tipo: tipo, p_id: id, p_decisao: decisao, p_canal: 'app', p_nova: nova || null });
         if (error) { toast(error.message, 'danger'); return false; }
         if (data && data.ok === false) { toast(data.mensagem || 'Não deu certo.', 'danger'); return false; }
-        toast(decisao === 'aprovar' ? 'Aprovado.' : decisao === 'recusar' ? 'Recusado.' : 'Nova data proposta.', 'success');
+        toast(decisao === 'aprovar' ? ((data && data.contrato && data.contrato.mensagem) || 'Aprovado.') : decisao === 'recusar' ? 'Recusado.' : 'Nova data proposta.', 'success'); // v1.2.0
         if (tipo === 'ocorrencia' && dbAuth.functions) dbAuth.functions.invoke('agenda-google', { body: { acao: 'sincronizar', ocorrencia_id: id } })
             .then(({ data }) => { if (data && data.link) toast('Meet criado e enviado ao lead.', 'success'); }).catch(() => {}); // v1.1.0
         if (typeof aoMudar === 'function') setTimeout(aoMudar, 50);
         return true;
     };
     abrirSheetAcoes({ titulo: r.titulo || (ehProcesso ? 'Pedido de reserva' : 'Pedido'), sub: `Aguardando · ${quando}`, acoes: [
-        { icone: 'check', titulo: 'Aprovar', sub: ehProcesso ? 'Vira contrato (quando a F4 estiver no ar)' : 'Confirma na agenda', codigo: 'agenda.aprovar', aoTocar: () => decidir('aprovar') },
+        { icone: 'check', titulo: 'Aprovar', sub: ehProcesso ? 'Vira contrato com sinal e saldo' : 'Confirma na agenda', codigo: 'agenda.aprovar',
+          aoTocar: () => ehProcesso ? setTimeout(() => abrirConfirmarReserva(r, decidir), 50) : decidir('aprovar') }, // v1.2.0
         { icone: 'calendar-clock', titulo: 'Outra data', sub: 'Propor novo horário', codigo: 'agenda.aprovar', aoTocar: () => setTimeout(() => abrirOutraData(r, decidir), 50) },
         { icone: 'x', titulo: 'Recusar', sub: 'Libera o horário', codigo: 'agenda.aprovar', tipo: 'bad', aoTocar: async () => {
             if (await perguntar({ titulo: 'Recusar pedido', impacto: 'O horário fica livre de novo.', destrutivo: true, rotuloConfirmar: 'Recusar' })) decidir('recusar');
         } },
     ] });
+}
+// v1.2.0 — recebimento da reserva: padrão do catálogo (50% de sinal hoje, saldo na entrada), ajustável só para esta reserva
+function abrirConfirmarReserva(r, decidir) {
+    const total = Number(r.valor || 0);
+    const entrada = r.inicio_em ? iso(new Date(r.inicio_em)) : (r.data || iso(new Date()));
+    const brl = (v) => Number(v || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+    const sh = abrirSheetForm({ titulo: 'Confirmar reserva', sub: `${r.titulo || 'Reserva'} · total ${brl(total)}`, rotuloSalvar: 'Confirmar',
+        corpo: `<p class="rz-desc" style="margin:0 0 10px">Vira contrato com dois recebimentos. O padrão é 50% de sinal agora e o saldo no dia da entrada; mude só se combinou diferente com o hóspede.</p>
+                <div class="grid grid-cols-2 gap-2">
+                  <div class="rz-f"><label>Sinal (%)</label><input type="number" id="cr-pct" min="0" max="100" step="1" value="50"></div>
+                  <div class="rz-f"><label>Sinal vence</label><input type="date" id="cr-v1" value="${iso(new Date())}"></div>
+                  <div class="rz-f"><label>Saldo vence</label><input type="date" id="cr-v2" value="${entrada}"></div>
+                  <div class="rz-f"><label>Valores</label><p id="cr-res" class="rz-desc" style="margin:6px 0 0"></p></div>
+                </div>`,
+        aoSalvar: async (el) => decidir('aprovar', { recebimento: { sinal_pct: Number(el.querySelector('#cr-pct').value || 0),
+            sinal_vencimento: el.querySelector('#cr-v1').value || null, saldo_vencimento: el.querySelector('#cr-v2').value || null } }) });
+    const el = sh && sh.querySelector ? sh : document;
+    const at = () => { const pct = Math.min(100, Math.max(0, Number(el.querySelector('#cr-pct')?.value || 0))); const sinal = Math.round(total * pct) / 100;
+        const res = el.querySelector('#cr-res'); if (res) res.textContent = `Sinal ${brl(sinal)} · saldo ${brl(total - sinal)}`; };
+    el.querySelector('#cr-pct')?.addEventListener('input', at); at();
 }
 function abrirOutraData(r, decidir) {
     const ini = r.inicio_em ? new Date(r.inicio_em) : new Date(), fim = r.fim_em ? new Date(r.fim_em) : new Date(ini.getTime() + 36e5);

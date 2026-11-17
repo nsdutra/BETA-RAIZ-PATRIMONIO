@@ -1,7 +1,13 @@
 // ============================================================================
 // minutas.js — Raiz Patrimônio · Minutas de contrato (modelos, placeholders,
 //               geração da minuta preenchida, minutização de um contrato real)
-// Versão: 1.8.0 · 24/10/2026
+// Versão: 1.9.0 · 16/11/2026
+//
+// v1.9.0 (16/11/2026, sessão 20261116-2345-crm-minuta, demanda 09277cba; de acordo do Nicola 16/11 23:40) — campos da reserva
+// (temporada / short stay) para a minuta do bem: reserva_noites, reserva_entrada_hora, reserva_saida_hora, reserva_sinal_valor,
+// reserva_sinal_vencimento, reserva_saldo_valor, reserva_saldo_vencimento — lidos do contrato de reserva (dados_modelo.reserva e
+// .recebimento, gravados pela fn_reserva_gerar_contrato). Em contrato que não é reserva ficam vazios e só pesam se o modelo usar.
+// Versão anterior: 1.8.0
 //
 // v1.8.0 (24/10/2026, sessão 20261024-2300-minutas-topo; pedido do Nicola 24/10 22:58, "Inclua um menu de 3 pontos com opção de
 // incluir minuta assim como o padrão em outras telas") — os dois botões redondos do topo (✦ e +) dão lugar ao ⋮ da aba, igual a
@@ -33,7 +39,7 @@
 import { carregarBiblioteca } from './nucleo/bibliotecas.js'; // bibliotecas pesadas, sob demanda (dem 6b11c602)
 import { emitirEscrita, aoEscrever } from './raiz-eventos.js'; // v1.1.0 — Fase 1 do wrapper de escrita
 
-export const VERSAO = '1.8.0'; // v-check: manter igual ao header
+export const VERSAO = '1.9.0'; // v-check: manter igual ao header
 
 /** Ponto de entrada do switchTab('tab-minutas'). */
 export function montarAbaMinutas() {
@@ -604,6 +610,7 @@ if (!window.__rzListenerEscritaMinutaLigado) {
                 { titulo: 'Imóvel', itens: ['imovel_endereco', 'imovel_empreendimento', 'imovel_tipo', 'imovel_descricao'] },
                 { titulo: 'Contrato', itens: ['aluguel_valor', 'aluguel_vencimento_dia', 'contrato_inicio', 'contrato_fim', 'contrato_prazo_meses', 'indice_reajuste'] },
                 { titulo: 'Locatário (preenchido pelo interessado)', itens: ['locatario_nome', 'locatario_documento', 'locatario_doc_tipo', 'locatario_whatsapp', 'locatario_email', 'locatario_endereco_atual', 'locatario_profissao', 'locatario_estado_civil'] },
+                { titulo: 'Reserva (temporada)', itens: ['reserva_noites', 'reserva_entrada_hora', 'reserva_saida_hora', 'reserva_sinal_valor', 'reserva_sinal_vencimento', 'reserva_saldo_valor', 'reserva_saldo_vencimento'] }, // v1.9.0
                 { titulo: 'Data', itens: ['data_assinatura'] }
             ];
             if (typeof abrirSheet !== 'function') return;
@@ -800,6 +807,19 @@ if (!window.__rzListenerEscritaMinutaLigado) {
                 locatario_estado_civil: con?.locatarioEstadoCivil || '',
                 data_assinatura: extensoData(new Date().toISOString().slice(0, 10))
             };
+
+            // v1.9.0 — reserva (temporada / short stay): o contrato guarda período e recebimento em dados_modelo
+            const dm = con?.dadosModelo || {}, rsv = dm.reserva || {}, rec = dm.recebimento || {};
+            const hora = (x) => x ? new Date(x).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', timeZone: 'America/Sao_Paulo' }) : '';
+            const pct = rec.sinal_pct != null ? Number(rec.sinal_pct) : null;
+            const sinal = pct != null && con?.valor ? Math.round(Number(con.valor) * pct) / 100 : null;
+            valores.reserva_noites = rsv.noites ? String(rsv.noites) : '';
+            valores.reserva_entrada_hora = hora(rsv.entrada);
+            valores.reserva_saida_hora = hora(rsv.saida);
+            valores.reserva_sinal_valor = sinal != null ? formatarMoedaBR(sinal) : '';
+            valores.reserva_sinal_vencimento = rec.sinal_vencimento ? formatarDataBR(rec.sinal_vencimento) : '';
+            valores.reserva_saldo_valor = sinal != null ? formatarMoedaBR(Number(con.valor) - sinal) : '';
+            valores.reserva_saldo_vencimento = rec.saldo_vencimento ? formatarDataBR(rec.saldo_vencimento) : '';
 
             // Até 4 fiadores previstos nos placeholders (fiador_1_ a
             // fiador_4_) — na prática o normal é 0/1/2, mas não trava a
