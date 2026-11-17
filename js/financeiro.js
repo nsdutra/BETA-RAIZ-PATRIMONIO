@@ -1,7 +1,10 @@
 // ============================================================================
 // financeiro.js — Raiz Patrimônio · Financeiro (Recebimentos · Atrasados · Saídas
 //                  · conciliação de extrato · recibo · detalhe do recebimento)
-// Versão: 1.97.0 · 17/11/2026
+// Versão: 1.97.1 · 17/11/2026
+//
+// v1.97.1 (17/11/2026, sessão 20261117-0755-financeiro-conciliacao, demanda 679b2700; conferência no app publicado) — o nome do
+// mês das pilhas saía "Invalid Date": a competência já vem com o dia (AAAA-MM-DD). Versão anterior: 1.97.0
 //
 // v1.97.0 (17/11/2026, sessão 20261117-0755-financeiro-conciliacao, demanda 679b2700; FICHA_REVISAO_FINANCEIRO_RAIZ v1.0.0, Onda 2,
 // D5; de acordo do Nicola 16/11 23:44) — CONCILIAÇÃO EM PILHAS. renderConciliacaoUnificada passa a desenhar pelo módulo novo
@@ -27,19 +30,11 @@
 // FICHA_TOTAIS_POR_NATUREZA_v1_0_0) — TOTAIS POR NATUREZA. Abaixo dos 4 totais de Recebimentos e de Saídas, uma linha de fichas
 // por natureza (Operação, Investimento, Financiamento, Pessoal) quando o mês tem mais de uma; tocar abre os 4 números dela e o que
 // ela quer dizer. Números de fn_financeiro_totalizadores_natureza (migration financeiro_totais_natureza_v1). Versão anterior: 1.94.0
-//
-// v1.94.0 (15/11/2026, sessão 20261115-1550-partes-doc, demanda 2a51055a; pedidos do Nicola 15/11 15:45 "dar mais detalhes da
-// regra e do que será criado e como" e 15:56 "1 e 2 ok") — (1) DESPESA DO EXTRATO NASCE PAGA: "Nova despesa" aberta de uma
-// linha do extrato grava realizada, com data de pagamento = data informada (a da linha); antes gravava prevista e aparecia
-// "Em atraso" (16 da Rumo corrigidas no banco, migration conciliacao_despesa_extrato_paga_v1). (2) REGRA "SEMPRE FAZER
-// ASSIM" EXPLICADA: o cartão "O que o Raiz leu" mostra qual regra, quem criou e quando, quando vale e o que será criado
-// (categoria, valor, data, competência, descrição, sem imóvel/contrato/pessoa); "Aceitar sugestão" diz valor e data.
-// (3) "Nova despesa · Sugestão:" mostra o nome da categoria, não o código. Versão anterior: 1.93.0
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.93.0 … v1.93.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.94.0 … v1.94.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '1.97.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.97.1'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 
 // v1.17.0 (Fase 1 do wrapper de escrita, rollout Financeiro) — emitirEscrita
 // é o evento padrão pra "algo mudou que módulos DE FORA deste arquivo podem
@@ -4444,7 +4439,7 @@ function financeiroRenderCabecalho(aba) {
                 el: lista,
                 itens: filtrados,
                 sugestoes: conciliacaoUniSugestoes,
-                rotuloMes: new Date(compConc + '-01T12:00:00').toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' }),
+                rotuloMes: new Date(String(compConc).slice(0, 7) + '-01T12:00:00').toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' }),
                 nome: (f) => limparRotuloConciliacao(f.razao_social) || (f.direcao === 'entrada' ? 'Entrada' : 'Saída'),
                 nomeRegra: nomeRegraConc,
                 elegivel: conciliacaoLoteElegivel,
