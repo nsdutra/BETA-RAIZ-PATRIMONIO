@@ -1,6 +1,13 @@
 // ============================================================================
 // comum-ramos-oferta.js — Raiz Patrimônio · Lente de ramos, "Conheça novos ramos" e as 3 ofertas
-// Versão: 1.0.0 · 17/11/2026
+// Versão: 1.1.0 · 17/11/2026
+//
+// v1.1.0 (17/11/2026, sessão 20261117-0830-upsell-ramos-ajustes, demanda dd9c5527; teste do Nicola 17/11 08:22/08:28,
+// "Pode seguir") — card 1 mostra, pequeno, o valor do plano hoje e o vencimento; "Agora" diz até que dia é o proporcional
+// (mesma conta da cobrança: fn_ramos_ofertas v2). Cards de subida mostram o vencimento do plano atual, o crédito a descontar
+// até lá e o valor a pagar agora. Textos: Agro para qualquer lavoura; Pecuária com corte, leite e laticínios. Ramos chegam
+// em ordem de preço (Agro junto de Pecuária).
+// Versão anterior: 1.0.0 · 17/11/2026
 //
 // v1.0.0 (17/11/2026, sessão 20261116-2358-upsell-ramos, demanda dd9c5527; PROTOTIPO_RAMOS_OFERTAS_RAIZ v1.3.1 aprovado
 // pelo Nicola 16/11 23:42; PLANO_EXECUCAO_UPSELL_RAMOS_RAIZ v1.1.0, de acordo 16/11 23:58) — primeira versão.
@@ -14,7 +21,7 @@
 //   • Confirmar abre a cobrança Pix da Licença (comum-renovacao.js → abrirCobranca, com p_ramos). Degrau no Premium
 //     abre a conversa (página Premium), como o resto do app.
 // ============================================================================
-export const VERSAO = '1.0.0'; // v-check: lido por Dev › Versões — manter igual ao header
+export const VERSAO = '1.1.0'; // v-check: lido por Dev › Versões — manter igual ao header
 
 const SITE_RAIZ = 'https://www.raizpatrimonio.com.br';
 const brl = (n) => Number(n || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
@@ -27,10 +34,10 @@ const icone = (nome, cls = '') => `<svg data-lucide="${esc(nome || 'circle')}" c
 const TEXTO = {
     familia: { frase: 'A rotina da família em paz. Os filhos, a casa e as contas de todos em dia, sem nada na cabeça.',
         pontos: ['Filhos: escola, vacinas, consultas e atividades, com aviso antes', 'Calendário da família, com o escolar lido pela Raiz IA', 'Despesas compartilhadas, divididas entre os responsáveis'] },
-    agro: { frase: 'A safra acompanhada de perto, com tempo para olhar o que importa.',
-        pontos: ['Ciclo da lavoura por talhão, do plantio à colheita', 'Aviso de aplicação e tarefa antes do prazo', 'Custo e resultado por saca no fim da safra'] },
-    pecuaria: { frase: 'Cada lote no seu lugar e o manejo em dia, sem planilha.',
-        pontos: ['Lotes com as cabeças, entradas e saídas', 'Vacinação e manejo com aviso', 'Custo e resultado por lote'] },
+    agro: { frase: 'Qualquer lavoura acompanhada de perto (grãos, café, cana, frutas), com tempo para olhar o que importa.',
+        pontos: ['Ciclo de cada cultura por talhão, do plantio à colheita', 'Aviso de aplicação e tarefa antes do prazo', 'Custo e resultado por safra e por cultura'] },
+    pecuaria: { frase: 'Gado de corte ou de leite: cada lote no seu lugar e o manejo em dia, sem planilha.',
+        pontos: ['Lotes de corte e leiteiros, com cabeças, entradas e saídas', 'Produção de leite e laticínios acompanhada', 'Vacinação e manejo com aviso; custo e resultado por lote'] },
     obras: { frase: 'A obra transparente, do orçamento à entrega, para quem constrói e para quem acompanha.',
         pontos: ['Orçamento e cronograma acompanhados de perto', 'Pagamentos e documentos da obra num lugar só', 'Diário com fotos para compartilhar'] },
     comercial: { frase: 'O que você vende e recebe, organizado e sem retrabalho.',
@@ -93,6 +100,7 @@ function css() {
 .rzro-vals b{font-size:var(--fs-corpo);white-space:nowrap}.rzro-vals small{display:block;font-size:var(--fs-mini);color:var(--success);font-weight:600}
 .rzro-desc{margin-top:6px;font-size:var(--fs-sec);color:var(--success);font-weight:700;line-height:1.45}.rzro-desc small{display:block;font-weight:500;color:var(--ink)}
 .rzro-alerta{margin-top:8px;background:var(--warning-bg);color:var(--warning);border-radius:var(--r-ctl);padding:7px 10px;font-size:var(--fs-sec);font-weight:600}
+.rzro-hoje{font-size:var(--fs-mini);color:var(--muted);margin-top:6px}
 .rzro-canc{font-size:var(--fs-mini);color:var(--muted);text-align:center;margin-top:12px}
 .rzro-pe{position:sticky;bottom:0;background:var(--card);padding-top:10px;margin-top:10px;display:flex;flex-direction:column;gap:6px}`;
     document.head.appendChild(st);
@@ -218,6 +226,8 @@ function passo2(ctx) {
     const dias = Number(d.dias_ciclo || 30);
     const agora = Math.max(Math.round(rsSoma * dias / 30 * 100) / 100, 1);
     const usados = Number(d.atual?.ativos_usados || 0);
+    const vence = d.atual?.vence_em ? new Date(d.atual.vence_em + 'T12:00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }) : '';
+    const credito = Number(d.atual?.credito || 0);
 
     let h = `<div class="rzro-chips">${rs.map((r) => `<span><i style="background:${cor(r.codigo)}">${icone(r.icone)}</i>${esc(r.nome)} · ${brl0(r.preco)}/mês</span>`).join('')}</div>`;
     cs.forEach((c) => {
@@ -236,12 +246,18 @@ function passo2(ctx) {
             `<button type="button" data-pv="t" data-po="${c.id}" class="${c.meses === 3 ? 'on' : ''}">Trimestral${c.soTri ? ' (entrada no Premium)' : ''}</button></div>`;
         let vals, extra;
         if (c.atual) {
-            vals = `<div class="rzro-vals"><div><span>Agora<small style="color:var(--muted)">proporcional até a renovação</small></span><b>${brl(agora)}</b></div>` +
+            vals = `<div class="rzro-hoje">Seu plano hoje: ${brl0(c.mensal)} por mês${vence ? ` · vence em ${vence}` : ''}</div>` +
+                `<div class="rzro-vals"><div><span>Agora<small style="color:var(--muted)">${esc(nomes)} proporcional${vence ? ` até ${vence} (${dias} dia${dias > 1 ? 's' : ''})` : ' até a renovação'}</small></span><b>${brl(agora)}</b></div>` +
                 `<div><span>Depois, com o plano</span><b>${brl0(c.depois)} por mês</b></div></div>`;
             extra = `<div class="rzro-desc" style="color:var(--muted);font-weight:500">Sem desconto. ${esc(nomes)} entra${plural ? 'm' : ''} hoje. <button type="button" class="rzro-i" data-i="atual">i</button></div>`;
         } else {
             vals = `<div class="rzro-vals"><div><span>${c.meses === 3 ? '1º ao 3º mês' : '1º mês'}<small>${c.meses === 3 ? 'pagos de uma vez · ' : ''}${esc(nomes)} grátis</small></span><b>${brl0(c.inicioMes)}${c.meses === 3 ? ' por mês' : ''}</b></div>` +
-                `<div><span>${c.meses === 3 ? 'Do 4º mês em diante' : 'Do 2º mês em diante'}</span><b>${brl0(c.depois)} por mês</b></div></div>`;
+                `<div><span>${c.meses === 3 ? 'Do 4º mês em diante' : 'Do 2º mês em diante'}</span><b>${brl0(c.depois)} por mês</b></div>` +
+                (() => {
+                    const primeiro = c.inicioMes * c.meses, cr = Math.min(credito, primeiro);
+                    return `<div><span>Crédito do plano atual<small style="color:var(--muted)">${vence ? `o seu plano vence em ${vence}` : 'o que sobra do plano atual'}</small></span><b>− ${brl(cr)}</b></div>` +
+                        `<div><span><b style="font-size:inherit">A pagar agora</b></span><b>${brl(primeiro - cr)}</b></div>`;
+                })() + '</div>';
             extra = `<div class="rzro-desc">Você deixa de pagar ${brl0(rsSoma * c.meses)} em ${esc(nomes)}` +
                 (c.desconto > 0 ? `<small>+ desconto de lançamento de ${brl0(c.desconto)} por mês no plano (de ${brl0(c.tabMes)} por ${brl0(c.inicioMes)}), garantido enquanto o plano estiver ativo.</small>` : '') +
                 (g.conversa ? '<small>A entrada no Premium começa com uma conversa sobre o Método R.A.I.Z.</small>' : '') + '</div>';
