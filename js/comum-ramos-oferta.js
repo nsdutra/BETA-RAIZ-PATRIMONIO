@@ -1,6 +1,12 @@
 // ============================================================================
 // comum-ramos-oferta.js — Raiz Patrimônio · Lente de ramos, "Conheça novos ramos" e as 3 ofertas
-// Versão: 1.1.0 · 17/11/2026
+// Versão: 1.2.0 · 17/11/2026
+//
+// v1.2.0 (17/11/2026, sessão 20261117-1330-upsell-ramos-ajustes2, demanda dd9c5527; regras do Nicola 17/11 13:22) — cards de
+// subida: plano novo (1 ou 3 meses), crédito dos dias que faltam do plano atual (fn_ramos_ofertas v3), "Pix agora", até quando o
+// ramo fica grátis e o plano novo vale, e o valor a partir daí. Card 1: "Pix agora" e o valor na renovação. "Pagamento por Pix"
+// em todos. Quem já está no Premium compra o Premium Ampliado direto (sem a conversa) e vê o trimestral.
+// Versão anterior: 1.1.0 · 17/11/2026
 //
 // v1.1.0 (17/11/2026, sessão 20261117-0830-upsell-ramos-ajustes, demanda dd9c5527; teste do Nicola 17/11 08:22/08:28,
 // "Pode seguir") — card 1 mostra, pequeno, o valor do plano hoje e o vencimento; "Agora" diz até que dia é o proporcional
@@ -21,7 +27,7 @@
 //   • Confirmar abre a cobrança Pix da Licença (comum-renovacao.js → abrirCobranca, com p_ramos). Degrau no Premium
 //     abre a conversa (página Premium), como o resto do app.
 // ============================================================================
-export const VERSAO = '1.1.0'; // v-check: lido por Dev › Versões — manter igual ao header
+export const VERSAO = '1.2.0'; // v-check: lido por Dev › Versões — manter igual ao header
 
 const SITE_RAIZ = 'https://www.raizpatrimonio.com.br';
 const brl = (n) => Number(n || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
@@ -228,6 +234,7 @@ function passo2(ctx) {
     const usados = Number(d.atual?.ativos_usados || 0);
     const vence = d.atual?.vence_em ? new Date(d.atual.vence_em + 'T12:00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }) : '';
     const credito = Number(d.atual?.credito || 0);
+    const dataMais = (m) => { const x = new Date(); x.setMonth(x.getMonth() + m); return x.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: x.getFullYear() !== new Date().getFullYear() ? 'numeric' : undefined }); };
 
     let h = `<div class="rzro-chips">${rs.map((r) => `<span><i style="background:${cor(r.codigo)}">${icone(r.icone)}</i>${esc(r.nome)} · ${brl0(r.preco)}/mês</span>`).join('')}</div>`;
     cs.forEach((c) => {
@@ -247,17 +254,16 @@ function passo2(ctx) {
         let vals, extra;
         if (c.atual) {
             vals = `<div class="rzro-hoje">Seu plano hoje: ${brl0(c.mensal)} por mês${vence ? ` · vence em ${vence}` : ''}</div>` +
-                `<div class="rzro-vals"><div><span>Agora<small style="color:var(--muted)">${esc(nomes)} proporcional${vence ? ` até ${vence} (${dias} dia${dias > 1 ? 's' : ''})` : ' até a renovação'}</small></span><b>${brl(agora)}</b></div>` +
-                `<div><span>Depois, com o plano</span><b>${brl0(c.depois)} por mês</b></div></div>`;
+                `<div class="rzro-vals"><div><span><b style="font-size:inherit">Pix agora</b><small style="color:var(--muted)">${esc(nomes)} proporcional${vence ? ` até ${vence} (${dias} dia${dias > 1 ? 's' : ''})` : ' até a renovação'} · pagamento por Pix</small></span><b>${brl(agora)}</b></div>` +
+                `<div><span>${vence ? `Na renovação, em ${vence}` : 'Na renovação'}<small style="color:var(--muted)">plano atual + ${esc(nomes)}</small></span><b>${brl0(c.depois)} por mês</b></div></div>`;
             extra = `<div class="rzro-desc" style="color:var(--muted);font-weight:500">Sem desconto. ${esc(nomes)} entra${plural ? 'm' : ''} hoje. <button type="button" class="rzro-i" data-i="atual">i</button></div>`;
         } else {
-            vals = `<div class="rzro-vals"><div><span>${c.meses === 3 ? '1º ao 3º mês' : '1º mês'}<small>${c.meses === 3 ? 'pagos de uma vez · ' : ''}${esc(nomes)} grátis</small></span><b>${brl0(c.inicioMes)}${c.meses === 3 ? ' por mês' : ''}</b></div>` +
-                `<div><span>${c.meses === 3 ? 'Do 4º mês em diante' : 'Do 2º mês em diante'}</span><b>${brl0(c.depois)} por mês</b></div>` +
-                (() => {
-                    const primeiro = c.inicioMes * c.meses, cr = Math.min(credito, primeiro);
-                    return `<div><span>Crédito do plano atual<small style="color:var(--muted)">${vence ? `o seu plano vence em ${vence}` : 'o que sobra do plano atual'}</small></span><b>− ${brl(cr)}</b></div>` +
-                        `<div><span><b style="font-size:inherit">A pagar agora</b></span><b>${brl(primeiro - cr)}</b></div>`;
-                })() + '</div>';
+            const primeiro = c.inicioMes * c.meses, cr = Math.min(credito, primeiro);
+            const fim = dataMais(c.meses);
+            vals = `<div class="rzro-vals"><div><span>${esc(g.nome)} · ${c.meses === 3 ? '3 meses' : '1 mês'}<small>${esc(nomes)} grátis até ${fim}</small></span><b>${brl(primeiro)}</b></div>` +
+                `<div><span>Crédito do plano atual<small style="color:var(--muted)">${vence ? `${dias} dia${dias > 1 ? 's' : ''} até ${vence}, quando ele venceria` : 'o que sobra do plano atual'}</small></span><b>− ${brl(cr)}</b></div>` +
+                `<div><span><b style="font-size:inherit">Pix agora</b><small style="color:var(--muted)">pagamento por Pix · plano novo vale até ${fim}</small></span><b>${brl(primeiro - cr)}</b></div>` +
+                `<div><span>A partir de ${fim}<small style="color:var(--muted)">${esc(g.nome)} + ${esc(nomes)}</small></span><b>${brl0(c.depois)} por mês</b></div></div>`;
             extra = `<div class="rzro-desc">Você deixa de pagar ${brl0(rsSoma * c.meses)} em ${esc(nomes)}` +
                 (c.desconto > 0 ? `<small>+ desconto de lançamento de ${brl0(c.desconto)} por mês no plano (de ${brl0(c.tabMes)} por ${brl0(c.inicioMes)}), garantido enquanto o plano estiver ativo.</small>` : '') +
                 (g.conversa ? '<small>A entrada no Premium começa com uma conversa sobre o Método R.A.I.Z.</small>' : '') + '</div>';
