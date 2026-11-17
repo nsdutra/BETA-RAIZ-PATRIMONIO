@@ -1,6 +1,12 @@
 /* ============================================================================
    raiz.css — Raiz Patrimônio · estilos do app (index.html)
-   Versão: 1.27.0 · 17/11/2026
+   Versão: 1.28.0 · 17/11/2026
+
+   v1.28.0 (17/11/2026, sessão 20261117-0755-financeiro-conciliacao, demanda 679b2700; FICHA_REVISAO_FINANCEIRO_RAIZ v1.0.0, Onda 2) —
+   classes .rz-cp-* da Conciliação em pilhas (js/conciliacao-pilhas.js): anel do mês, marco "em ordem", as 4 pilhas (cartas
+   empilhadas com o número), linha com marcar, trilha do detalhe, anterior e próximo, Desfazer com confirmação na carta e a
+   saída da carta ao tratar. Com as pilhas, os 4 totais e o (i) da aba Conciliação ficam escondidos (#tab-conciliacao.rz-cp-on).
+   Versão anterior: 1.27.0
 
    v1.27.0 (17/11/2026, sessão 20261117-0010-financeiro-pessoas-ajustes, demanda 679b2700) — divisão do item na mesma tela do
    ajuste (js/pessoas-extrato.js 1.0.1): .rz-pes-div (pessoa, % e tirar), .rz-pes-pc, .rz-pes-tirar e .rz-pes-soma. Versão anterior: 1.26.0
@@ -2225,3 +2231,53 @@ html.rz-plat-web body:not(.rz-split-con) #ficha-contrato-conteudo > .rz-entity:f
 .rz-pes-soma{display:flex;justify-content:space-between;margin:8px 4px 0;font-size:13px;color:var(--muted)}
 .rz-pes-soma b{color:var(--success)}
 .rz-pes-soma.rz-bad b{color:var(--danger)}
+
+/* v1.28.0 (dem 679b2700, Onda 2) — Conciliação em pilhas (js/conciliacao-pilhas.js) */
+#tab-conciliacao.rz-cp-on>.rz-kpis,#tab-conciliacao.rz-cp-on>.flex.justify-end{display:none}
+.rz-cp-anel{display:flex;align-items:center;gap:14px;padding:4px 2px}
+.rz-cp-ring{width:74px;height:74px;flex:none;transform:rotate(-90deg)}
+.rz-cp-ring circle{transition:stroke-dashoffset .4s ease}
+.rz-cp-num{display:block;font:800 26px var(--font-title);letter-spacing:-.02em;line-height:1.05}
+.rz-cp-anel small{display:block;color:var(--muted);font-size:12.5px;margin-top:3px}
+.rz-cp-marco{text-align:center;padding:20px 16px 16px}
+.rz-cp-marco b{display:block;font:700 17px var(--font-title)}
+.rz-cp-marco small{display:block;color:var(--muted);margin-top:2px}
+.rz-cp-selo{width:56px;height:56px;margin:0 auto 10px;border-radius:50%;background:var(--success-bg);color:var(--success);display:flex;align-items:center;justify-content:center}
+.rz-cp-selo svg{width:28px;height:28px}
+.rz-cp-vazio{text-align:center;padding:18px 16px}
+.rz-cp-vazio p{margin:0;font-weight:600}
+.rz-cp-vazio small{color:var(--muted)}
+.rz-cp-pilha{gap:12px}
+.rz-cp-pilha.rz-cp-zero{opacity:.55}
+.rz-cp-cartas{position:relative;width:38px;height:42px;flex:none}
+.rz-cp-cartas i{position:absolute;inset:0;border-radius:8px;border:1.5px solid var(--line);background:var(--card)}
+.rz-cp-cartas i:nth-child(1){transform:rotate(-8deg) translate(-3px,1px)}
+.rz-cp-cartas i:nth-child(2){transform:rotate(5deg) translate(3px,0)}
+.rz-cp-cartas b{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font:800 15px var(--font-title);border-radius:8px;background:var(--card);border:1.5px solid var(--ink);color:var(--ink)}
+.rz-cp-feita .rz-cp-cartas b{border-color:var(--success);color:var(--success)}
+.rz-cp-lin{gap:8px;cursor:pointer}
+.rz-cp-lin.rz-cp-feito .rz-tx b{color:var(--muted)}
+.rz-cp-cb{flex:none;width:40px;height:44px;margin-left:-8px;border:0;background:none;color:var(--muted);display:grid;place-items:center;cursor:pointer}
+.rz-cp-cb svg{width:20px;height:20px}
+.rz-cp-cb.rz-on{color:var(--pine)}
+.rz-cp-cb:disabled{opacity:.3;cursor:default}
+.rz-cp-chips{margin-bottom:10px}
+.rz-cp-dica{margin-top:8px}
+.rz-cp-nav{display:flex;gap:4px;margin-left:6px}
+.rz-cp-nav .rz-ico-btn:disabled{opacity:.35}
+.rz-cp-trilha{display:flex;gap:4px;margin:2px 2px 12px}
+.rz-cp-trilha i{flex:1;height:4px;border-radius:2px;background:var(--tile)}
+.rz-cp-trilha i.rz-feito{background:var(--ink)}
+.rz-cp-trilha i.rz-on{background:var(--sage)}
+.rz-cp-carta .rz-seq-sug .rz-desc{display:block;margin-top:4px}
+.rz-cp-mais .rz-btn svg{width:16px;height:16px;margin-right:6px;vertical-align:-3px}
+.rz-cp-desfazer{margin-top:8px}
+.rz-cp-conf{margin-top:10px;padding:10px 12px;border-radius:12px;background:var(--tile)}
+.rz-cp-conf p{margin:0;font-size:13.5px;line-height:1.45}
+.rz-cp-carta{animation:rzCpEntra .2s ease-out}
+.rz-cp-carta.rz-cp-sai-d{animation:rzCpSaiD .18s ease-in forwards}
+.rz-cp-carta.rz-cp-sai-e{animation:rzCpSaiE .18s ease-in forwards}
+@keyframes rzCpEntra{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+@keyframes rzCpSaiD{to{opacity:0;transform:translateX(40px)}}
+@keyframes rzCpSaiE{to{opacity:0;transform:translateX(-40px)}}
+@media (prefers-reduced-motion:reduce){.rz-cp-carta,.rz-cp-carta.rz-cp-sai-d,.rz-cp-carta.rz-cp-sai-e{animation:none}.rz-cp-ring circle{transition:none}}

@@ -1,7 +1,16 @@
 // ============================================================================
 // financeiro.js — Raiz Patrimônio · Financeiro (Recebimentos · Atrasados · Saídas
 //                  · conciliação de extrato · recibo · detalhe do recebimento)
-// Versão: 1.96.1 · 17/11/2026
+// Versão: 1.97.0 · 17/11/2026
+//
+// v1.97.0 (17/11/2026, sessão 20261117-0755-financeiro-conciliacao, demanda 679b2700; FICHA_REVISAO_FINANCEIRO_RAIZ v1.0.0, Onda 2,
+// D5; de acordo do Nicola 16/11 23:44) — CONCILIAÇÃO EM PILHAS. renderConciliacaoUnificada passa a desenhar pelo módulo novo
+// js/conciliacao-pilhas.js: anel com as linhas do mês em ordem, 4 pilhas (O Raiz reconheceu, Sempre fazer assim, Para você
+// decidir, Não controlados) com a mesma lista (marcar e tratar em lote) e o mesmo detalhe (O que o Raiz leu, anterior e
+// próximo, Aceitar, É outra coisa, Pular, Não controlar/Controlar, Desfazer). A lista do mês passa a trazer também as linhas
+// já conciliadas (para o anel e o Desfazer). Novas: conciliacaoLoteElegivel, conciliacaoTratarLote (aceita item a item com as
+// mesmas funções do "Aceitar sugestão"; as do motor vão juntas na fn_conciliacao_aplicar) e conciliacaoEstornarLote
+// (fn_extrato_estornar_vinculo). Banco: nada novo. O "Revisar em sequência" fica sem chamador (sai na Onda 3). Versão anterior: 1.96.1
 //
 // v1.96.1 (17/11/2026, sessão 20261117-0010-financeiro-pessoas-ajustes, demanda 679b2700; teste do Nicola 17/11 00:05) — a aba
 // Pessoas passa ao módulo a ação "Editar a retirada" (acoesRetirada: carrega as retiradas do ano do mês escolhido e abre as ações
@@ -26,16 +35,11 @@
 // ASSIM" EXPLICADA: o cartão "O que o Raiz leu" mostra qual regra, quem criou e quando, quando vale e o que será criado
 // (categoria, valor, data, competência, descrição, sem imóvel/contrato/pessoa); "Aceitar sugestão" diz valor e data.
 // (3) "Nova despesa · Sugestão:" mostra o nome da categoria, não o código. Versão anterior: 1.93.0
-//
-// v1.93.0 (15/11/2026, sessão 20261115-1510-conciliacao-f, demanda 2a51055a; achado do Nicola 15/11 15:05, Administradora Matos 90%
-// sem conciliar) — "SEMPRE FAZER ASSIM" PODE SER ACEITO NA LINHA. A regra do cliente (R12, criar despesa na categoria escolhida)
-// ganha "Aceitar sugestão" no menu da linha, que aplica a regra só nela (fn_conciliacao_aplicar). No banco, a mesma correção:
-// a regra passa a lançar sozinha na importação e no reprocessamento (migration conciliacao_r12_documento_v1). Versão anterior: 1.92.0
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.92.0 … v1.92.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.93.0 … v1.93.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '1.96.1'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.97.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 
 // v1.17.0 (Fase 1 do wrapper de escrita, rollout Financeiro) — emitirEscrita
 // é o evento padrão pra "algo mudou que módulos DE FORA deste arquivo podem
@@ -46,6 +50,7 @@ import { carregarBiblioteca } from './nucleo/bibliotecas.js'; // bibliotecas pes
 // v1.28.0 (UXR-30, D25) — substitutos dos diálogos nativos (js/raiz-ui.js 1.0.0).
 import { rzToast, rzConfirmar, rzAviso, rzEscolher, rzEditarDivisao } from './raiz-ui.js';
 import { pessoasRender } from './pessoas-extrato.js'; // v1.96.0 — aba Pessoas (dem 679b2700)
+import { conciliacaoPilhasRender } from './conciliacao-pilhas.js'; // v1.97.0 — Conciliação em pilhas (dem 679b2700)
 
 /** Ponto de entrada do switchTab (1 chamada por troca de aba; barato). */
 // v1.43.0 (etapa 6 · A) — barra digitável de cada aba: o termo mora no campo guardador de sempre.
@@ -3927,7 +3932,7 @@ function financeiroRenderCabecalho(aba) {
                 const { data, error } = await dbAuth.from('extrato_fingerprints')
                     .select('id, data, valor, direcao, razao_social, documento_original, descricao_original, status_conciliacao, destino_tipo, destino_id, observacao_usuario, chave, regra_codigo')
                     .eq('cliente_id', CLIENTE_ID_SUPABASE)
-                    .in('status_conciliacao', ['pendente', 'nao_controlado'])
+                    .in('status_conciliacao', ['pendente', 'nao_controlado', 'conciliado']) // v1.97.0 — conciliadas também: anel e Desfazer das pilhas
                     .gte('data', inicioMes).lt('data', fimMes)
                     .order('data', { ascending: false });
                 if (error) throw error;
@@ -4433,6 +4438,115 @@ function financeiroRenderCabecalho(aba) {
             // esta função que dá o "aviso de chegada" dos dados do mês.
             financeiroRedesenharChipsNivel();
 
+            // v1.97.0 (Onda 2) — a aba vira as 4 pilhas (js/conciliacao-pilhas.js). Quem grava continua aqui.
+            const compConc = financeiroCompetenciaAtual || financeiroCompetenciaHojeISO();
+            conciliacaoPilhasRender({
+                el: lista,
+                itens: filtrados,
+                sugestoes: conciliacaoUniSugestoes,
+                rotuloMes: new Date(compConc + '-01T12:00:00').toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' }),
+                nome: (f) => limparRotuloConciliacao(f.razao_social) || (f.direcao === 'entrada' ? 'Entrada' : 'Saída'),
+                nomeRegra: nomeRegraConc,
+                elegivel: conciliacaoLoteElegivel,
+                efeito: (f, sug) => conciliacaoAcaoAceitar(f, sug)?.sub || '',
+                cartaoLido: conciliacaoCartaoLido,
+                enriquecer: (el, f, sug) => { if (!el) return; conciliacaoPreencherQuemBaixou(el); conciliacaoSugerirDocumento(el, f, sug); conciliacaoPreencherRegraCliente(el, f, sug); },
+                tratarLote: conciliacaoTratarLote,
+                estornarLote: conciliacaoEstornarLote,
+                aceitarComFormulario: (id) => confirmarSugestaoConciliacao(id),
+                outra: (id) => abrirAcoesConciliacaoLinha(id),
+            });
+        }
+
+        // v1.97.0 (Onda 2) — entra no lote só a sugestão que se confirma sozinha, a mesma regra do "Aceitar sugestão"
+        // (conciliacaoSugestaoDireta); a categoria sugerida para uma ENTRADA abre "Lançar entrada" e fica de fora.
+        function conciliacaoLoteElegivel(f, sug) {
+            if (!f || f.status_conciliacao !== 'pendente' || !sug || !conciliacaoSugestaoDireta(sug)) return false;
+            if (sug.acao === 'sugerir_categoria' && f.direcao === 'entrada') return false;
+            return true;
+        }
+
+        // v1.97.0 (Onda 2) — trata as linhas uma a uma com as mesmas funções do "Aceitar sugestão" (sem abrir sheet), e as do
+        // motor (liga à baixa já feita, fatura, "Sempre fazer assim" automático) juntas na fn_conciliacao_aplicar. Recarrega
+        // a lista uma vez no fim. modo 'nao_controlar' marca todas como não controladas. → { feitas: [ids], falhas: [ids] }
+        async function conciliacaoTratarLote(ids, modo = 'aceitar') {
+            const feitas = [], falhas = [], peloMotor = [];
+            let mexeuMens = false, mexeuLanc = false;
+            mostrarCarregamentoGlobal(ids.length > 1 ? `Tratando ${ids.length} linhas…` : 'Tratando…');
+            try {
+                for (const id of ids) {
+                    const f = conciliacaoUniCache.find(x => x.id === id);
+                    const sug = conciliacaoUniSugestoes[id] || null;
+                    if (!f || f.status_conciliacao !== 'pendente') continue;
+                    try {
+                        let acao;
+                        if (modo === 'nao_controlar' || sug?.acao === 'nao_controlar') {
+                            const { error } = await dbAuth.rpc('fn_extrato_marcar_nao_controlado', { p_fingerprint_id: id, p_observacao: modo === 'nao_controlar' ? null : (sug?.detalhe || null) });
+                            if (error) throw error;
+                            acao = 'nao_controlado';
+                        } else if (!conciliacaoLoteElegivel(f, sug)) {
+                            falhas.push(id); continue;
+                        } else if (sug.acao === 'ligar_baixa' || (sug.modo === 'automatico' && ['pagar_fatura', 'criar_saida_categoria'].includes(sug.acao))) {
+                            peloMotor.push(id); continue;
+                        } else if (sug.acao === 'dar_baixa') {
+                            const { error } = await dbAuth.rpc('fn_extrato_vincular_recebimento', { p_mensalidade_id: sug.destino_id, p_valor: f.valor, p_data: f.data, p_razao_social: f.razao_social, p_chave: f.chave || null });
+                            if (error) throw error;
+                            acao = 'vincular_recebimento'; mexeuMens = true;
+                        } else if (sug.acao === 'vincular_saida_prevista') {
+                            const { error } = await dbAuth.rpc('fn_extrato_vincular_saida', { p_fingerprint_id: id, p_lancamento_id: sug.destino_id });
+                            if (error) throw error;
+                            acao = 'vincular_saida'; mexeuLanc = true;
+                        } else if (sug.acao === 'sugerir_categoria') {
+                            const categoria = categoriaRegraConc(sug.regra_codigo);
+                            const { error } = await dbAuth.rpc('fn_extrato_criar_saida', { p_fingerprint_id: id, p_categoria: categoria, p_descricao: f.razao_social || null });
+                            if (error) throw error;
+                            acao = 'criar_saida'; mexeuLanc = true;
+                        } else { falhas.push(id); continue; }
+                        await dbAuth.from('extrato_fingerprints').update({ canal: 'app' }).eq('id', id);
+                        emitirEscrita('conciliacao', { id, acao, lote: ids.length > 1 });
+                        registrarLog('conciliacao.' + acao, { fingerprintId: id, origem: 'pilhas', lote: ids.length > 1 });
+                        feitas.push(id);
+                    } catch (e) { console.warn('[conciliação] lote:', id, e?.message || e); falhas.push(id); }
+                }
+                if (peloMotor.length) {
+                    try {
+                        const { error } = await dbAuth.rpc('fn_conciliacao_aplicar', { p_cliente_id: CLIENTE_ID_SUPABASE, p_ids: peloMotor });
+                        if (error) throw error;
+                        peloMotor.forEach(id => { emitirEscrita('conciliacao', { id, acao: 'aplicar' }); registrarLog('conciliacao.aplicar', { fingerprintId: id, origem: 'pilhas' }); });
+                        feitas.push(...peloMotor); mexeuMens = true; mexeuLanc = true;
+                    } catch (e) { console.warn('[conciliação] motor:', e?.message || e); falhas.push(...peloMotor); }
+                }
+                if (mexeuMens) mensalidades = await carregarMensalidadesSupabase();
+                if (mexeuLanc) lancamentos = await carregarLancamentosSupabase();
+            } finally { esconderCarregamentoGlobal(); }
+            await carregarConciliacaoUnificada();
+            // o motor pode não ter aplicado (a linha continua pendente): conta como não feita
+            const aindaPend = new Set(conciliacaoUniCache.filter(x => x.status_conciliacao === 'pendente').map(x => x.id));
+            return { feitas: feitas.filter(id => !aindaPend.has(id)), falhas: [...falhas, ...feitas.filter(id => aindaPend.has(id))] };
+        }
+
+        // v1.97.0 (Onda 2) — Desfazer das pilhas: a linha volta para pendente (fn_extrato_estornar_vinculo, a mesma do Estornar).
+        async function conciliacaoEstornarLote(ids) {
+            const feitas = [], falhas = [];
+            mostrarCarregamentoGlobal(ids.length > 1 ? `Desfazendo ${ids.length} linhas…` : 'Desfazendo…');
+            try {
+                for (const id of ids) {
+                    try {
+                        const { error } = await dbAuth.rpc('fn_extrato_estornar_vinculo', { p_fingerprint_id: id });
+                        if (error) throw error;
+                        emitirEscrita('conciliacao', { id, acao: 'estornar' });
+                        registrarLog('conciliacao.estornar_saida', { fingerprintId: id, origem: 'pilhas' });
+                        feitas.push(id);
+                    } catch (e) { console.warn('[conciliação] desfazer:', id, e?.message || e); falhas.push(id); }
+                }
+                if (feitas.length) { mensalidades = await carregarMensalidadesSupabase(); lancamentos = await carregarLancamentosSupabase(); }
+            } finally { esconderCarregamentoGlobal(); }
+            await carregarConciliacaoUnificada();
+            return { feitas, falhas };
+        }
+
+        // v1.97.0 — a lista corrida de antes (linhaConciliacaoUniHtml, "Revisar em sequência") ficou sem chamador; sai na Onda 3.
+        function renderConciliacaoUnificadaLista(lista, filtrados) {
             if (!filtrados.length) {
                 lista.innerHTML = `<p class="text-xs text-center py-4" style="color:var(--sage)">Nenhuma pendência de conciliação.</p>`;
                 return;

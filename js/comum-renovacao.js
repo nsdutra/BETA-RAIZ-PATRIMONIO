@@ -19,15 +19,8 @@
 //
 // v1.3.3 (F0.3, demanda 29bed5eb, sessão 20261003-1707-ux-base, "de acordo" do Nicola 03/10 23:57) — nome único da IA: "Enviar pela Raiz IA" / "no WhatsApp da Raiz IA" e
 // saudação nova da mensagem do comprovante (o bot não depende do nome no texto).
-//
-// Versão anterior: 1.3.2 · 02/10/2026
-//
-// v1.3.2 — pedido do Nicola (02/10 01:31): a cópia do comprovante no Cofre da
-// empresa fica vinculada ao PAGAMENTO da licença (vínculo 'pagamento', id do
-// item — a origem da despesa), não à empresa; é por esse vínculo que a despesa
-// mostra "Ver comprovante". Versão anterior: 1.3.1.
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.3.1 … v1.3.1): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.3.2 … v1.3.2): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
 export const VERSAO = '1.6.0'; // v-check (30/09/2026): lido por Dev › Versões — manter igual ao header
