@@ -2,7 +2,13 @@
 // conta.js — Raiz Patrimônio · Conta e preferências: menu da conta, seção Sobre,
 //            licença, preferências de comunicação e de alerta, atalhos de
 //            configuração (Cofre, configuração inicial, cadastro do contador)
-// Versão: 1.6.0 · 16/11/2026
+// Versão: 1.7.0 · 16/11/2026
+//
+// v1.7.0 (16/11/2026, sessão 20261116-2325-comercial-c1, demanda 285a0058; FICHA_RECEITA_UNIDADES_GERADORAS v1.12.0 §13.9 — Nicola 16/11
+//   21:31: "os cadastros que não têm vínculo com ativos podem ficar naquele menu de configuração") — Cadastros e regras ganha
+//   "Comercial" (código comercial.itens): abre o Patrimônio na lente Comercial, no chip Itens (window.rzAbrirItensComercial,
+//   cofre-ativos.js 1.164.0). Sem o plano Comercial, a linha vem com cadeado e leva à oferta, como as outras do menu.
+// Versão anterior: 1.6.0 · 16/11/2026
 //
 // v1.6.0 (16/11/2026, sessão 20261116-2244-comunicacoes-proativas, demanda c87d0460; FICHA_ROBO_ENVIO_COMUNICACOES_RAIZ v1.2.0, D3
 //   do Nicola 16/11 22:44: "a pessoa só desliga dentro do app da sua empresa") — Minhas notificações ganha, no topo, a chave
@@ -22,16 +28,11 @@
 //
 // v1.3.0 (19/10/2026, sessão 20261018-2344-temas, demanda 91a30125; FICHA_ROTINAS_E_ALERTAS_POR_TEMA_RAIZ v1.0.0, de acordo do Nicola 18/10 23:44) — Minhas notificações: avisos agrupados por tema; o que está desligado na empresa aparece
 // apagado (quem liga é o administrador em Minha empresa › Rotinas); a frequência só no convite diário.
-// Versão anterior: 1.2.0 · 14/10/2026
-//
-// v1.2.0 (14/10/2026, sessão 20261014-2215-ajustes-9d, demanda a05ad2ee; Nicola 14/10 22:12: "ao sair da tela do contador
-// apareceu a tela estranha") — abrirCadastroContador abre o formulário de contador como sheet por cima da tela atual, sem
-// trocar para Partes: fechar ou salvar volta para onde a pessoa estava (Financeiro, Fiscal).
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.1.0 … v1.1.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.2.0 … v1.2.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '1.6.0';  // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.7.0';  // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 
 // v1.71.0 — LGPD: tela de preferências de comunicação, 1 toggle por
 // mensagem que permite opt-out (permite_opt_out=true) — substitui o
@@ -179,6 +180,13 @@ function rzNomeLegivel(t) {
     return s.toLowerCase().split(/\s+/).map((p, i) => (i && /^(da|de|do|das|dos|e)$/.test(p)) ? p : p.charAt(0).toUpperCase() + p.slice(1)).join(' ');
 }
 
+// v1.7.0 — Configurações › Comercial: Patrimônio na lente Comercial, chip Itens (o cadeado sem plano vem do codigo da linha).
+function abrirComercialConfig() {
+    if (typeof escolherGeralRamo === 'function' && typeof rzRamoAtual === 'function' && rzRamoAtual() !== 'comercial') escolherGeralRamo('comercial');
+    switchTab('tab-ativos');
+    setTimeout(() => { if (typeof window.rzAbrirItensComercial === 'function') window.rzAbrirItensComercial(); }, 60);
+}
+
 // Menu das iniciais (UXR-09, dem 15146a34): 4 grupos em cartões, valor à direita no lugar da descrição, Sair à parte.
 // O cabeçalho é refeito por cima do .rz-sh-h que o abrirSheetAcoes cria — o mesmo elemento, para não perder o arraste.
 // Sem ✕: fecha arrastando, tocando fora ou pelo voltar do celular.
@@ -207,6 +215,7 @@ export function abrirMenuConta() {
                 { icone: 'landmark', titulo: 'Tipo de empreendimento', codigo: 'imoveis.editar', aoTocar: ir('tab-tipo-empreendimento') },
                 { icone: 'sparkles', titulo: 'Regras de conciliação', codigo: 'conciliacao.configurar', aoTocar: ir('tab-regras-conciliacao') },
                 { icone: 'link', titulo: 'Links compartilhados', codigo: 'vitrine.links.gerenciar', aoTocar: ir('tab-links-vitrine') },
+                { icone: 'store', titulo: 'Comercial', sub: 'Itens do catálogo', codigo: 'comercial.itens', aoTocar: abrirComercialConfig }, // v1.7.0
                 { icone: 'archive', titulo: 'Documentos arquivados', codigo: 'cofre.editar', aoTocar: () => abrirConfiguracaoCofre('arquivados') },
             ]},
             { titulo: 'Preferências', acoes: [

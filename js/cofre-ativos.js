@@ -1,6 +1,11 @@
 // ============================================================================
 // cofre-ativos.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.163.0 · 16/11/2026
+// Versão: 1.164.0 · 16/11/2026
+// v1.164.0 (16/11/2026, sessão 20261116-2325-comercial-c1, demanda 285a0058; FICHA_RECEITA_UNIDADES_GERADORAS v1.12.0 §13.2 — de acordo
+//   do Nicola 16/11 21:31 e 23:19) — o chip "Itens" da lente Comercial aparece sempre; sem o comercial.itens no plano, vem com
+//   cadeado (rz-off) e o toque mostra o convite do Raiz Comercial e abre a oferta do ramo (abrirOfertaRamo), como os outros ramos.
+//   window.rzAbrirItensComercial(): Configurações › Comercial (conta.js 1.7.0) abre direto o chip Itens da lente Comercial.
+//   Versão anterior: 1.163.0
 // v1.163.0 (16/11/2026, sessão 20261114-2342-investimentos-patrimonio, demanda fd3898f7; FICHA_FORMA_DE_PAGAMENTO_DO_BEM v2.0.0,
 //   "Agora sim. Pode seguir em frente." — Nicola 16/11 21:46) — o ⋮ do card "Valor do bem" troca "Registrar financiamento" por
 //   "Forma de pagamento" (js/ativo-forma-pagamento.js, código cofre.ativos.forma_pagamento, do plano Patrimônio em diante);
@@ -32,14 +37,11 @@
 // ganham "Valor de compra" e "Data da compra" (opcionais), gravados na série ativo_valores por fn_ativo_valor_registrar;
 // compra nova oferece lançar a saída no financeiro (categoria Compra de bem), sem criar sozinha. Card "Valor do bem" no
 // Resumo da ficha: compra, valor atual, variação e o histórico (compra, revisões, edições). Versão anterior: 1.157.0
-//
-// v1.157.0 (14/11/2026, sessão 20261114-0830-ficha-receita, demanda 285a0058) — dica da finalidade: "contam como Renda; o resto, e o
-// vazio, como Uso próprio" (os nomes do seletor de uso; Comercial passa a ser o nome do ramo). Versão anterior: 1.156.0
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.156.0 … v1.156.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.157.0 … v1.157.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '1.163.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.164.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 import { estado } from './cofre-estado.js';
 import { rzCalendario, rzCalItemDaAgenda } from './nucleo/calendario.js'; // v1.152.0 — calendário único (DS §6.3)
 import { carregarBiblioteca } from './nucleo/bibliotecas.js'; // bibliotecas pesadas, sob demanda (dem 6b11c602)
@@ -683,6 +685,14 @@ export function renderAtivosLista(filtroTipo = '', filtroTexto = '') {
         const alvo = document.getElementById('ativos-lista');
         alvo?.classList.remove('hidden');
         renderChipsAtivos();
+        if (alvo && GRUPOS_CHIP_TIPO[chipAtivoAtual]?.bloqueado) { // v1.164.0 — sem Comercial: convite + oferta do ramo
+            alvo.innerHTML = `<div class="rz-card"><div class="rz-card-h"><h3><svg data-lucide="lock" style="width:14px;height:14px;vertical-align:-2px"></svg> Itens à venda</h3><span class="rz-sub">Raiz Comercial</span></div>
+                <p class="rz-desc" style="margin:0 0 10px">Cadastre o que você produz e vende, com grupos, fotos e tabelas de preço por ponto de venda, e acompanhe interessados e pedidos.</p>
+                <button type="button" class="rz-btn rz-btn-1" data-ci-oferta>Quero conhecer</button></div>`;
+            alvo.querySelector('[data-ci-oferta]')?.addEventListener('click', () => abrirOfertaRamo('comercial'));
+            refrescarIcones();
+            return;
+        }
         if (alvo) import('./comercial-itens.js').then(m => m.renderItens(alvo)).catch(e => { alvo.innerHTML = `<p class="rz-desc">${escapeHtml(e?.message || 'Não consegui abrir o catálogo.')}</p>`; });
         return;
     }
@@ -976,6 +986,9 @@ function ramoDoAtivoLista(a) {
     return det?.ramo || 'outros';
 }
 // v1.162.0 — chip Itens só com comercial.itens liberado no plano (porta de licença, comum-licenca.js)
+// v1.164.0 — Configurações › Comercial (conta.js) abre o Patrimônio na lente Comercial já no chip Itens
+let pedirChipItens = false;
+if (typeof window !== 'undefined') window.rzAbrirItensComercial = () => { pedirChipItens = true; redesenharComFiltros(); };
 const comercialItensLiberado = () => typeof window !== 'undefined' && typeof window.podeUsar === 'function' && window.podeUsar('comercial.itens').ok === true;
 const segmentoDoAtivo = (a) => tipoDoCatalogo(a.tipo_detalhe_id)?.segmento || 'Outros';
 // v1.102.0 (usos fatia 3, D3-2) — a lista e os contadores mostram só os principais; unidade, área e integrante aparecem
@@ -997,13 +1010,14 @@ function recalcularGruposChip() {
         ativosDoRamo().forEach(a => { const sg = segmentoDoAtivo(a); const o = tipoDoCatalogo(a.tipo_detalhe_id)?.ordem ?? 999; if (!ordem.has(sg) || o < ordem.get(sg)) ordem.set(sg, o); });
         GRUPOS_CHIP_TIPO = base.concat([...ordem.keys()].sort((x, y) => (ordem.get(x) - ordem.get(y)) || x.localeCompare(y, 'pt-BR')).map(sg => ({ rotulo: sg, tipos: [], segmento: sg })));
         // v1.162.0 — lente Comercial: o catálogo do que a empresa vende, ao lado dos ativos (FICHA_RECEITA §11)
-        if (r === 'comercial' && comercialItensLiberado()) GRUPOS_CHIP_TIPO = GRUPOS_CHIP_TIPO.concat([{ rotulo: 'Itens', comercial: 'itens' }]);
+        if (r === 'comercial') GRUPOS_CHIP_TIPO = GRUPOS_CHIP_TIPO.concat([{ rotulo: 'Itens', comercial: 'itens', bloqueado: !comercialItensLiberado() }]); // v1.164.0 — sempre; sem plano, com cadeado
     }
     // v1.124.0 — "Ver só" (item 44): na frente, o chip "Ver todos" que desfaz; Arquivados (pelo ⋮): um chip só, que fecha
     if (verSoRamo && ramoDaLenteApp() === 'tudo') GRUPOS_CHIP_TIPO = [{ rotulo: 'Ver todos', tipos: null, sair: 'ramo' }].concat(GRUPOS_CHIP_TIPO.map(g => g.rotulo === 'Todos' ? { ...g, rotulo: (typeof rzRamoInfo === 'function' && rzRamoInfo(verSoRamo)?.nome) || 'Todos' } : g));
     if (modoArquivados) GRUPOS_CHIP_TIPO = [{ rotulo: 'Arquivados', tipos: [], arquivados: true, sair: 'arquivados' }];
     if (verSoRamo && ramoDaLenteApp() === 'tudo' && !modoArquivados && chipAtivoAtual === 0) chipAtivoAtual = 1;
     if (chipAtivoAtual >= GRUPOS_CHIP_TIPO.length) { chipAtivoAtual = 0; segmentoChip = null; }
+    if (pedirChipItens) { const iItens = GRUPOS_CHIP_TIPO.findIndex(g => g.comercial === 'itens'); if (iItens > 0) { chipAtivoAtual = iItens; pedirChipItens = false; } } // v1.164.0
 }
 if (typeof window !== 'undefined') {
     window.addEventListener('raiz:ramo', () => {
@@ -1051,7 +1065,7 @@ function renderChipsAtivos() {
     // F2.4 (UXR-13/14/15) — Todos → ação (com ponto) → recorte (só grupos com ativo) → convite.
     const pt = piorSeveridadeAtivos();
     const chips = GRUPOS_CHIP_TIPO.map((g, i) => {
-        if (g.comercial) return `<button type="button" data-action="filtrar-ativos-chip" data-chip-indice="${i}" class="rz-chip${i === chipAtivoAtual ? ' rz-on' : ''}">${escapeHtml(g.rotulo)}</button>`; // v1.162.0
+        if (g.comercial) return `<button type="button" data-action="filtrar-ativos-chip" data-chip-indice="${i}" class="rz-chip${i === chipAtivoAtual ? ' rz-on' : ''}${g.bloqueado ? ' rz-off' : ''}">${escapeHtml(g.rotulo)}</button>`; // v1.162.0 · v1.164.0 cadeado
         const qtd = g.arquivados ? arquivadosDaLente().length // v1.120.0 (L5-5) — só aparece com arquivado
             : g.alerta ? base.filter(a => comAlerta.has(a.id)).length
             : g.ramo ? principais().filter(a => ramoDoAtivoLista(a) === g.ramo).length // v1.85.0 (F21) — chip de ramo
