@@ -1,6 +1,13 @@
 // ============================================================================
 // relatorios-executivos.js — Raiz Patrimônio · Relatórios no modelo executivo
-// Versão: 1.12.0 · 13/11/2026
+// Versão: 1.13.0 · 16/11/2026
+//
+// v1.13.0 (16/11/2026, sessão 20261114-2342-investimentos-patrimonio, demanda fd3898f7; FICHA_RELATORIO_INVESTIMENTOS_PATRIMONIO
+//   v1.0.0 e protótipo aprovados pelo Nicola 15/11) — relatório novo "Investimentos no patrimônio" (relatorios.investimentos, Premium),
+//   tipo 'investimentos' do modelo executivo, lido só de fn_relatorio_investimentos_patrimonio (CAN-01): capa com a leitura, os 4
+//   números (gerado, reinvestido, taxa, distribuído), cascata do caixa e reinvestido por mês; página 2 por ramo, por tipo, por bem
+//   (custo investido × valor atual) e os maiores lançamentos. Ano e ramo nos filtros; PDF e Compartilhar como os outros.
+//   Versão anterior: 1.12.0
 //
 // v1.12.0 (13/11/2026, sessão 20261113-2040-cadastro-em-tela, demanda c4fb7da1; PLANO_RELATORIOS_CADASTRO_EM_TELA v1.0.0, de acordo
 //   do Nicola 13/11 20:33) — Cadastro da carteira e Cadastro de partes e pessoas abrem EM TELA (casca do Acompanhamento): números,
@@ -24,24 +31,15 @@
 //   fn_relatorio_cadastro_partes (só da empresa aberta; achados calculados no banco, CAN-01). Planilha com 5 abas: Resumo
 //   (contagens por fórmula), Empresa, Partes (papéis, vínculos e achados, com filtro), Pessoas e Sobre. CPF/CNPJ vem mascarado
 //   do banco para quem não é admin. abrirRelatorioCadastroPartes().
-//
-// v1.8.0 (11/11/2026, sessão 20261111-0905-rel-acompanhamento, demanda add3d7a0; FICHA_REL_ACOMPANHAMENTO_MES v1.0.0, de acordo
-//   do Nicola 11/11 08:59: "Vamos fazer só o relatório do mês, inclui uma visão do resultado por ativo neste relatório como uma
-//   aba") — relatório novo "Acompanhamento do mês" (relatorios.acompanhamento_mes), lido de fn_relatorio_acompanhamento_mes:
-//   tela com mês e empreendimento, 4 números (a receber, recebido, diferença, despesas), aviso de extrato não importado e abas
-//   Recebimentos (filtros em aberto / com diferença / com observação), Despesas (com origem: extrato, administradora, manual,
-//   extrato a classificar; bloco fora do resultado) e Por imóvel. Tocar abre as ações do Financeiro (rzAcoesMensalidade,
-//   rzAcoesDespesa) ou grava a Observação; o relatório se atualiza ao fechar o sheet. Planilha com 5 abas (Recebimentos,
-//   Despesas, Por imóvel, Gráficos em imagem, Sobre), colunas amarelas para o cliente preencher. abrirRelatorioAcompanhamentoMes().
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.7.0 … v1.7.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.8.0 … v1.8.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
 import { rzMostrarBloqueio } from './comum-licenca.js';
 import { rzToast } from './raiz-ui.js';
 import RaizDevice from './raiz-device.js';
 
-export const VERSAO = '1.12.0';
+export const VERSAO = '1.13.0';
 
 // ---------------------------------------------------------------------------
 // Formatos (REL-13 a REL-17)
@@ -737,6 +735,69 @@ function montarRetiradas(d) {
         paginas: [[capa, ['Resumo']], [p2, ['Composição', 'Detalhe', 'Notas']]]
     };
 }
+
+// ---------------------------------------------------------------------------
+// Investimentos no patrimônio (v1.13.0, dem fd3898f7) — tudo vem pronto de fn_relatorio_investimentos_patrimonio
+// ---------------------------------------------------------------------------
+const TIPO_INV = { compra_bem: 'Compra de bem', benfeitoria: 'Melhoria e benfeitoria', aquisicao_imovel: 'Compra de imóvel e custos', financiamento_pago: 'Parcelas de financiamento' };
+function montarInvestimentos(d) {
+    const cab = d.cabecalho || {}, k = d.kpis || {}, c = d.cascata || {}, t = d.por_tipo || {}, lei = d.leitura || {};
+    const ano = dataIso(cab.ate).getFullYear(), anoHoje = new Date().getFullYear();
+    const per = ano === anoHoje ? `${ano} (jan a ${compCurto(cab.ate)})` : String(ano);
+    const perCurto = ano === anoHoje ? `jan–${compCurto(cab.ate)} ${ano}` : String(ano);
+    const cfg = { nome: 'Investimentos no patrimônio', medida: 'Investimentos no patrimônio em R$',
+        subtitulo: [per, 'visão caixa', cab.ramo_nome || (cab.ramo ? 'ramo ' + cab.ramo : 'todos os ramos'), 'comparação com o mesmo período de ' + (ano - 1)].join(' · ') };
+    const dl = (a, b, sobe = true) => { const v = variacao(a, b); return { t: v == null ? '' : seta(v) + pct(Math.abs(v)) + ' vs ' + (ano - 1), c: deltaClasse(v, sobe) }; };
+    const dG = dl(k.gerado, k.gerado_anterior), dR = dl(k.reinvestido, k.reinvestido_anterior), dD = dl(k.distribuido, k.distribuido_anterior, false);
+    const taxa = k.taxa_pct != null ? pct(k.taxa_pct) : '—';
+    const taxaAnt = k.taxa_pct_anterior != null ? `${ano - 1}: ${pct(k.taxa_pct_anterior)}` : 'reinvestido ÷ gerado';
+    const kpis = `<div class="kpis">${kpi('Gerado na operação', compacto(k.gerado), dG.t, dG.c)}${kpi('Reinvestido no patrimônio', compacto(k.reinvestido), dR.t, dR.c)}${kpi('Taxa de reinvestimento', taxa, taxaAnt)}${kpi('Distribuído aos donos', compacto(k.distribuido), dD.t, dD.c)}</div>`;
+    const pontos = (lei.pontos || []).map(p => ({ a: p.titulo, b: p.prova }));
+    const passos = [{ l: 'Gerado', v: num(c.gerado) / 1000, t: 'tot' }];
+    const add = (l, v, t) => { if (num(v)) passos.push({ l: rotulo2(l), v: num(v) / 1000, t }); };
+    add('Reinvestido', c.investido, 'down'); add('Venda de bem', c.venda_bem, 'up'); add('Financiamento recebido', c.financiamento_recebido, 'up');
+    add('Amortização', c.amortizacao, 'down'); add('Distribuído', c.distribuido, 'down'); add('Outros financ.', c.outros_financiamento, 'down'); add('Pessoal', c.pessoal, 'down');
+    passos.push({ l: rotulo2('Variação do caixa'), v: num(c.variacao_caixa) / 1000, t: 'tot' });
+    const fonte = `Raiz · fn_relatorio_investimentos_patrimonio · ${perCurto}`;
+    const mensal = (d.mensal || []).map(m => ({ l: compCurto(m.mes + '-01'), titulo: comp(m.mes + '-01'), v: num(m.atual) / 1000 }));
+    const capa = `
+      <div class="acao">${esc(lei.manchete || '')}</div>
+      <div class="acao-sub"><i>Leitura</i>gerada a partir dos números deste relatório</div>
+      ${kpis}
+      ${pontos.length ? pontosHtml(pontos) : ''}
+      <div class="g2">
+        ${figura('Do que o patrimônio gerou ao caixa', 'R$ mil · visão caixa', svgPonte(passos, { aria: 'Cascata do caixa' }), fonte)}
+        ${figura(`Reinvestido por mês em ${ano}`, 'R$ mil · data do pagamento', mensal.some(m => m.v) ? svgColunas(mensal, { aria: 'Reinvestido por mês' }) : '<p class="mut">Sem investimento no período.</p>', fonte)}
+      </div>`;
+    const ramos = (d.por_ramo || []).map(r => ({ l: r.nome, v: num(r.valor) }));
+    const linTipo = Object.keys(TIPO_INV).map(x => `<tr><td>${esc(TIPO_INV[x])}</td><td class="n">${tab(t[x])}</td><td class="n hm">${t.anterior && t.anterior[x] != null ? tab(t.anterior[x]) : '—'}</td></tr>`).join('');
+    const bens = d.por_bem || [];
+    const linBem = bens.map(b => `<tr><td>${esc(b.nome)}${b.status === 'vendido' ? ' <span class="mut">(vendido)</span>' : ''}</td><td class="n">${tab(b.investido_periodo)}</td><td class="n">${tab(b.custo_investido)}</td><td class="n">${b.valor_atual != null ? tab(b.valor_atual) : '—'}</td><td class="n ${b.variacao_pct == null ? '' : num(b.variacao_pct) >= 0 ? 'pos' : 'neg'}">${b.variacao_pct != null ? pct(b.variacao_pct, true) : '—'}</td></tr>`).join('');
+    const maiores = (d.maiores || []).map(m => `<tr><td>${dma(m.data)}</td><td>${esc(m.descricao || '—')}</td><td class="hm">${esc(m.ativo || '—')}</td><td class="n">${tab(m.valor)}</td></tr>`).join('');
+    let n = 0;
+    const p2 = `
+      ${secao(`${++n}. Reinvestido por ramo`, `${perCurto} · R$`)}
+      ${ramos.length ? barrasH(ramos, x => compacto(x.v), 150) : '<p class="mut">Sem investimento no período.</p>'}
+      ${secao(`${++n}. Por tipo de investimento`, `${perCurto} · R$ · mesmo período de ${ano - 1} ao lado`)}
+      <table><thead><tr><th>Tipo</th><th class="n">${ano}</th><th class="n hm">${ano - 1}</th></tr></thead><tbody>${linTipo}
+        <tr class="tot"><td>Reinvestido</td><td class="n">${tab(t.reinvestido)}</td><td class="n hm">${tab(k.reinvestido_anterior)}</td></tr>
+        <tr><td>Venda de bem (entrada)</td><td class="n">${tab(t.venda_bem)}</td><td class="n hm">—</td></tr>
+        <tr class="tot"><td>Reinvestido líquido</td><td class="n">${tab(t.reinvestido_liquido)}</td><td class="n hm">—</td></tr></tbody></table>
+      ${secao(`${++n}. Por bem`, 'R$ · custo investido = compra registrada + melhorias − vendas · valor atual = último valor de mercado')}
+      <table><thead><tr><th>Bem</th><th class="n">No período</th><th class="n">Custo investido</th><th class="n">Valor atual</th><th class="n">Sobre o custo</th></tr></thead><tbody>${linBem || '<tr><td colspan="5" class="mut">Nenhum bem com investimento no período.</td></tr>'}</tbody></table>
+      ${maiores ? secao(`${++n}. Maiores investimentos do período`, 'Data do pagamento · R$') + `<table><thead><tr><th>Data</th><th>Descrição</th><th class="hm">Bem</th><th class="n">Valor</th></tr></thead><tbody>${maiores}</tbody></table>` : ''}
+      <div class="notes">
+        <p><b>Visão caixa</b>: cada lançamento entra na data em que foi pago.</p>
+        <p><b>Natureza</b>: a de cada lançamento, quando trocada no Financeiro, senão a da subcategoria. Operação gera; investimento é o que volta para o patrimônio (compra, melhoria, parcelas da compra e do financiamento); pessoal fica fora do gerado.</p>
+        <p><b>Taxa de reinvestimento</b>: reinvestido ÷ gerado na operação (bruta). Vazia quando a operação não gerou caixa no período.</p>
+        <p><b>Custo do bem</b>: a compra registrada no bem conta uma vez; as parcelas que pagam essa compra não somam de novo.</p>
+        <p><b>Origem</b>: fn_relatorio_investimentos_patrimonio · dados até ${dma(cab.ate)}.</p>
+      </div>`;
+    return {
+        cfg, linhas3: [`${cfg.nome} · ${per}`, `Reinvestido ${compacto(k.reinvestido)} · taxa ${taxa} · gerado ${compacto(k.gerado)}`, lei.manchete || ''],
+        paginas: [[capa, ['Resumo', 'Evolução']], [p2, ['Composição', 'Detalhe', 'Notas']]]
+    };
+}
 // quem gera (rodapé e capa): a pessoa logada nesta empresa
 async function quemGera() {
     try {
@@ -751,7 +812,8 @@ const RELATORIOS = {
     fluxo: { codigo: 'relatorios.fluxo_caixa', nome: 'Fluxo de caixa', arquivo: 'fluxo_caixa', montar: montarFluxo },
     gerencial: { codigo: 'relatorios.gerencial', nome: 'Visão gerencial', arquivo: 'gerencial', montar: montarGerencial },
     retiradas: { codigo: 'relatorios.retiradas_extraordinarias', nome: 'Retiradas extraordinárias', arquivo: 'retiradas_extraordinarias', montar: montarRetiradas }, // v1.3.0 — F13.8
-    executivo: { codigo: 'relatorios.executivo', nome: 'Relatório executivo', arquivo: 'executivo', montar: montarExecutivo } // v1.6.0 — cockpit C3
+    executivo: { codigo: 'relatorios.executivo', nome: 'Relatório executivo', arquivo: 'executivo', montar: montarExecutivo }, // v1.6.0 — cockpit C3
+    investimentos: { codigo: 'relatorios.investimentos', nome: 'Investimentos no patrimônio', arquivo: 'investimentos_patrimonio', montar: montarInvestimentos } // v1.13.0
 };
 let estado = null; // { tipo, filtro, dados, montado }
 
@@ -760,7 +822,7 @@ function somaMeses(base, n) { const d = new Date(base.getFullYear(), base.getMon
 function filtroPadrao(tipo, opcoes = {}) {
     const hoje = new Date(), m0 = new Date(hoje.getFullYear(), hoje.getMonth(), 1);
     if (tipo === 'retiradas') return { ano: hoje.getFullYear(), pessoaId: opcoes.pessoaId || null, pessoaNome: opcoes.pessoaNome || null }; // v1.3.0
-    if (tipo === 'executivo') return { ano: opcoes.ano || hoje.getFullYear(), ramo: opcoes.ramo || null, ramoNome: opcoes.ramoNome || null }; // v1.6.0
+    if (tipo === 'executivo' || tipo === 'investimentos') return { ano: opcoes.ano || hoje.getFullYear(), ramo: opcoes.ramo || null, ramoNome: opcoes.ramoNome || null }; // v1.6.0 · v1.13.0
     if (tipo === 'fluxo') return { de: iso(somaMeses(m0, -3)), ate: iso(somaMeses(m0, 2)), conta: null, contaNome: null, rotulo: 'Últimos 3 meses e próximos 2' };
     return { competencia: iso(somaMeses(m0, -1)) };
 }
@@ -768,7 +830,7 @@ function rotuloFiltro() {
     if (!estado) return '';
     if (estado.tipo === 'fluxo') return `${comp(estado.filtro.de)} a ${comp(estado.filtro.ate)}`;
     if (estado.tipo === 'retiradas') return estado.filtro.ano ? String(estado.filtro.ano) : 'Todos os anos';
-    if (estado.tipo === 'executivo') return String(estado.filtro.ano); // v1.6.0
+    if (estado.tipo === 'executivo' || estado.tipo === 'investimentos') return String(estado.filtro.ano); // v1.6.0 · v1.13.0
     return comp(estado.filtro.competencia);
 }
 
@@ -790,6 +852,17 @@ async function buscar() {
         if (!data?.ok) throw new Error(data?.mensagem || 'O relatório não veio.');
         return { ...data.dados, gerado_por: quem };
     }
+    if (estado.tipo === 'investimentos') { // v1.13.0 — ano atual até hoje; ano passado inteiro
+        const h = new Date(), hojeIso = h.getFullYear() + '-' + String(h.getMonth() + 1).padStart(2, '0') + '-' + String(h.getDate()).padStart(2, '0');
+        const [{ data, error }, quem] = await Promise.all([
+            dbAuth.rpc('fn_relatorio_investimentos_patrimonio', { p_cliente_id: CLIENTE_ID_SUPABASE, p_de: f.ano + '-01-01',
+                p_ate: f.ano === h.getFullYear() ? hojeIso : f.ano + '-12-31', p_ramo: f.ramo || null, p_ativo_id: null }), quemGera()]);
+        if (error) throw new Error(error.message);
+        if (!data?.ok) throw new Error(data?.mensagem || 'O relatório não veio.');
+        if (data.cabecalho) data.cabecalho.ramo_nome = f.ramoNome || null;
+        return { ...data, empresa: data.cabecalho?.empresa, gerado_em: data.cabecalho?.gerado_em, gerado_por: quem,
+                 relatorio: 'relatorios.investimentos', versao: 1, visao: 'caixa' };
+    }
     const rpc = estado.tipo === 'fluxo'
         ? dbAuth.rpc('fn_contas_fluxo_caixa', { p_cliente_id: CLIENTE_ID_SUPABASE, p_de: f.de, p_ate: f.ate, p_conta_id: f.conta || null })
         : dbAuth.rpc('fn_contas_visao_gerencial', { p_cliente_id: CLIENTE_ID_SUPABASE, p_competencia: f.competencia });
@@ -803,7 +876,7 @@ function telaHtml() {
     const r = RELATORIOS[estado.tipo];
     const contaChip = estado.tipo === 'fluxo' ? `<button type="button" data-rx="conta"><svg data-lucide="wallet"></svg>${esc(estado.filtro.contaNome || 'Todas as contas')}<svg data-lucide="chevron-down"></svg></button>`
         : estado.tipo === 'retiradas' && estado.filtro.pessoaId ? `<button type="button" data-rx="pessoa" aria-label="Ver todas as pessoas"><svg data-lucide="user"></svg>${esc(estado.filtro.pessoaNome || 'Pessoa')}<svg data-lucide="x"></svg></button>` // v1.3.0: recorte por pessoa; tocar volta a todas
-        : estado.tipo === 'executivo' ? `<button type="button" data-rx="ramo"><svg data-lucide="layers"></svg>${esc(estado.filtro.ramoNome || 'Consolidado')}<svg data-lucide="chevron-down"></svg></button>` : ''; // v1.6.0
+        : (estado.tipo === 'executivo' || estado.tipo === 'investimentos') ? `<button type="button" data-rx="ramo"><svg data-lucide="layers"></svg>${esc(estado.filtro.ramoNome || (estado.tipo === 'investimentos' ? 'Todos os ramos' : 'Consolidado'))}<svg data-lucide="chevron-down"></svg></button>` : ''; // v1.6.0
     return `<div class="rx-top">
         <button type="button" class="rx-voltar" data-rx="fechar" aria-label="Voltar para Relatórios"><svg data-lucide="chevron-left"></svg>Relatórios</button>
         <span class="rx-sp"></span>
@@ -863,9 +936,9 @@ function escolherPeriodo() {
         abrirSheetAcoes({ titulo: 'Período', sub: 'Fluxo de caixa', acoes: ops.map(([t, a, b]) => ({
             icone: 'calendar', titulo: t, sub: `${comp(iso(somaMeses(m0, a)))} a ${comp(iso(somaMeses(m0, b)))}`,
             aoTocar: () => { Object.assign(estado.filtro, { de: iso(somaMeses(m0, a)), ate: iso(somaMeses(m0, b)), rotulo: t }); carregar(); } })) });
-    } else if (estado.tipo === 'executivo') { // v1.6.0 — o ano (até o mês corrente no ano atual)
+    } else if (estado.tipo === 'executivo' || estado.tipo === 'investimentos') { // v1.6.0 — o ano (até o mês corrente no ano atual) · v1.13.0
         const a0 = hoje.getFullYear();
-        abrirSheetAcoes({ titulo: 'Ano', sub: 'Relatório executivo', acoes: [a0, a0 - 1, a0 - 2].map(a => ({
+        abrirSheetAcoes({ titulo: 'Ano', sub: RELATORIOS[estado.tipo].nome, acoes: [a0, a0 - 1, a0 - 2].map(a => ({
             icone: 'calendar', titulo: String(a), sub: a === a0 ? 'até o mês atual' : 'ano inteiro', aoTocar: () => { estado.filtro.ano = a; carregar(); } })) });
     } else if (estado.tipo === 'retiradas') { // v1.3.0 — ano ou todos
         const a0 = hoje.getFullYear();
@@ -887,8 +960,8 @@ async function escolherRamo() {
     try { const { data } = await dbAuth.rpc('fn_cliente_ramos', { p_cliente_id: CLIENTE_ID_SUPABASE }); ramos = Array.isArray(data) ? data.map(x => typeof x === 'string' ? x : (x.fn_cliente_ramos || x)) : []; } catch (e) { ramos = []; }
     let nomes = {};
     try { const { data } = await dbAuth.from('ativo_ramos').select('codigo, nome, ordem').order('ordem'); (data || []).forEach(r => { nomes[r.codigo] = r.nome; }); } catch (e) { /* sem nomes */ }
-    abrirSheetAcoes({ titulo: 'Ramo', sub: 'Relatório executivo', acoes: [
-        { icone: 'layers', titulo: 'Consolidado', sub: 'todos os ramos', aoTocar: () => { Object.assign(estado.filtro, { ramo: null, ramoNome: null }); carregar(); } },
+    abrirSheetAcoes({ titulo: 'Ramo', sub: RELATORIOS[estado.tipo].nome, acoes: [
+        { icone: 'layers', titulo: estado.tipo === 'investimentos' ? 'Todos os ramos' : 'Consolidado', sub: 'todos os ramos', aoTocar: () => { Object.assign(estado.filtro, { ramo: null, ramoNome: null }); carregar(); } },
         ...ramos.map(r => ({ icone: 'circle', titulo: nomes[r] || r, aoTocar: () => { Object.assign(estado.filtro, { ramo: r, ramoNome: nomes[r] || r }); carregar(); } }))
     ] });
 }
@@ -911,7 +984,7 @@ function imprimir() {
     const empresa = String(estado.dados.empresa || 'empresa').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '');
     const quando = estado.tipo === 'fluxo' ? estado.filtro.ate.slice(0, 7)
         : estado.tipo === 'retiradas' ? (estado.filtro.ano ? String(estado.filtro.ano) : 'todos')
-        : estado.tipo === 'executivo' ? `${estado.filtro.ramo || 'consolidado'}_${estado.filtro.ano}` // v1.6.0
+        : (estado.tipo === 'executivo' || estado.tipo === 'investimentos') ? `${estado.filtro.ramo || (estado.tipo === 'investimentos' ? 'todos' : 'consolidado')}_${estado.filtro.ano}` // v1.6.0 · v1.13.0
         : estado.filtro.competencia.slice(0, 7);
     document.title = `raiz_${RELATORIOS[estado.tipo].arquivo}_${empresa}_${quando}`; // REL-38: nome do arquivo
     doc?.classList.remove('m');

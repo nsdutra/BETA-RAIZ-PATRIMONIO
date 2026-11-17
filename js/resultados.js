@@ -1,8 +1,12 @@
 // =====================================================================
 // RAIZ PATRIMÔNIO — js/resultados.js
-// VERSÃO: Beta v2.22.1 (15/11/2026 — demanda 285a0058)
+// VERSÃO: Beta v2.23.0 (16/11/2026 — demanda fd3898f7)
 // LINHAS: (ver versoes.json)
 // -----------------------------------------------------------------
+// NOVIDADES (Beta v2.23.0) (16/11/2026, sessão 20261114-2342-investimentos-patrimonio, demanda fd3898f7; decisão do Nicola 15/11 16:53:
+//   "card pra todos sim") — Todo o patrimônio ganha o card "Investimentos no patrimônio": reinvestido no ano, taxa de reinvestimento
+//   e a leitura, lidos de fn_relatorio_investimentos_patrimonio; tocar abre o relatório. Fora do Premium, o card aparece com cadeado.
+// Versão anterior (Beta v2.22.1):
 // NOVIDADES (Beta v2.22.1) (15/11/2026, sessão 20261115-1020-renda-contagem, demanda 285a0058; de acordo do Nicola 15/11 10:21)
 //   — na lente com Renda ou Uso próprio, o topo conta só os ativos daquele uso (Rumo: 50 e 2, não 52 nos dois).
 // Versão anterior (Beta v2.22.0):
@@ -122,7 +126,7 @@
 // Versões anteriores (v2.4.0 … v2.4.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '2.22.1';
+export const VERSAO = '2.23.0';
 
 // ---------------------------------------------------------------------
 // Estado do filtro (module-scoped — sobrevive entre renders porque o
@@ -548,6 +552,36 @@ export function abrirMetasHoje() {
     })).catch(e => { console.warn('[resultados] metas:', e?.message); if (typeof mostrarToast === 'function') mostrarToast('Não deu para abrir as metas', 'danger'); });
 }
 
+
+// v2.23.0 (dem fd3898f7) — card "Investimentos no patrimônio" (Todo o patrimônio). Aparece para todos; sem o código
+// relatorios.investimentos, com cadeado e o motivo. Os números vêm da função do relatório (REL-02).
+const COD_INV = 'relatorios.investimentos';
+function cardInvestimentosHtml() {
+    return `<div class="rz-card rz-link" id="hoje-invest-card" role="button" tabindex="0"><h3 class="rz-plain-title">Investimentos no patrimônio · ${filtro.ano}</h3><p class="rz-desc">Somando o que voltou para o patrimônio…</p></div>`;
+}
+async function preencherCardInvestimentos(minha) {
+    const el = document.getElementById('hoje-invest-card'); if (!el) return;
+    const abrir = () => { if (typeof rzMostrarBloqueio === 'function' && rzMostrarBloqueio(COD_INV)) return; if (typeof abrirRelatorioExecutivo === 'function') abrirRelatorioExecutivo('investimentos', { ano: filtro.ano }); };
+    el.addEventListener('click', abrir);
+    el.addEventListener('keydown', ev => { if (ev.key === 'Enter') abrir(); });
+    if (typeof podeUsar === 'function' && ehBloqueado(podeUsar(COD_INV))) {
+        el.innerHTML = `<h3 class="rz-plain-title"><svg data-lucide="lock" style="width:14px;height:14px;vertical-align:-2px"></svg> Investimentos no patrimônio</h3><p class="rz-desc">Quanto do que o patrimônio gera volta para ele, por ramo e por bem. Disponível no Premium.</p>`;
+        if (typeof rzIcones === 'function') rzIcones();
+        return;
+    }
+    const h = new Date(), hojeIso = h.getFullYear() + '-' + String(h.getMonth() + 1).padStart(2, '0') + '-' + String(h.getDate()).padStart(2, '0');
+    const { data, error } = await dbAuth.rpc('fn_relatorio_investimentos_patrimonio', { p_cliente_id: CLIENTE_ID_SUPABASE, p_de: filtro.ano + '-01-01',
+        p_ate: filtro.ano === h.getFullYear() ? hojeIso : filtro.ano + '-12-31', p_ramo: null, p_ativo_id: null });
+    if (minha !== geracao || !document.body.contains(el)) return;
+    if (error || !data?.ok) { el.remove(); return; }
+    const k = data.kpis || {};
+    if (!Number(k.reinvestido) && !Number(k.reinvestido_anterior)) { el.querySelector('.rz-desc').textContent = 'Nenhum investimento no patrimônio no ano.'; return; }
+    el.innerHTML = `<h3 class="rz-plain-title">Investimentos no patrimônio · ${filtro.ano}</h3>
+        <div class="rz-kv"><div><small>Reinvestido</small><b>${escR(moedaCurta(k.reinvestido))}</b><small>${Number(k.reinvestido_anterior) ? escR((filtro.ano - 1) + ': ' + moedaCurta(k.reinvestido_anterior)) : ''}</small></div>
+        <div><small>Taxa de reinvestimento</small><b>${k.taxa_pct != null ? escR(fmtNum(k.taxa_pct) + '%') : '—'}</b><small>do gerado na operação</small></div></div>
+        ${data.leitura?.manchete ? `<p class="rz-desc">${escR(data.leitura.manchete)}</p>` : ''}`;
+}
+
 // ---------------------------------------------------------------------
 // Conteúdo — Carteira / Empreendimento
 // ---------------------------------------------------------------------
@@ -702,6 +736,7 @@ async function renderizarConteudo() {
         const cIndice = cardsLocacao ? montarContratosPorIndice(indicesR) : ''; // v2.5.0
         const cIndicador = p_ramo === 'obras' ? '' : montarGraficoIndicador(graficoIndicador); // v2.15.0 — não serve para obra
         const cPerf = filtro.contexto !== 'familia' && p_ramo !== 'obras' ? montarPerformanceGrid(perf) : ''; // v1.8.0 · v2.15.0
+        const cInvest = !p_ramo && !p_uso && filtro.abrangencia === 'carteira' && filtro.contexto !== 'familia' ? cardInvestimentosHtml() : ''; // v2.23.0 (dem fd3898f7)
         const esq = [
             cardPorRamo, // v2.11.0 — logo abaixo do herói: "qual ramo dá resultado"
             p_ramo ? montarCardsDoRamo(p_ramo, indRamo) : '', // v2.11.0 — os números da operação do ramo
@@ -718,10 +753,11 @@ async function renderizarConteudo() {
         devolverArvore();
         if (rzDesk()) {
             // v2.18.0 — 3 colunas: Como vai · O que vem · O contexto (PROTOTIPO_COMPUTADOR v1.1.0 §3)
-            montarColunasHoje(alvo, [esq[0], esq[1], esq[2], esq[3], cPerf], [fim[1], fim[2], cIndice, fim[0]], [cIndicador, cardGeral]);
+            montarColunasHoje(alvo, [esq[0], esq[1], esq[2], esq[3], cPerf], [fim[1], fim[2], cIndice, fim[0]], [cInvest, cIndicador, cardGeral]);
         } else {
-            alvo.innerHTML = [...esq, cIndice, cIndicador, ...fim, cPerf].filter(Boolean).join('');
+            alvo.innerHTML = [...esq, cInvest, cIndice, cIndicador, ...fim, cPerf].filter(Boolean).join('');
         }
+        if (cInvest) preencherCardInvestimentos(minha).catch(e => console.warn('[resultados] investimentos:', e?.message)); // v2.23.0
 
         if (typeof rzIcones === 'function') rzIcones();
         ligarBarrasCalendario('.rz-res-barra-mes', reajustes, abrirResultadosMesReajuste);
