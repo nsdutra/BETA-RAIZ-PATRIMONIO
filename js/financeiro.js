@@ -1,7 +1,15 @@
 // ============================================================================
 // financeiro.js — Raiz Patrimônio · Financeiro (Recebimentos · Atrasados · Saídas
 //                  · conciliação de extrato · recibo · detalhe do recebimento)
-// Versão: 1.97.1 · 17/11/2026
+// Versão: 1.98.0 · 17/11/2026
+//
+// v1.98.0 (17/11/2026, sessão 20261117-0755-financeiro-conciliacao, demanda 679b2700; teste do Nicola 17/11 10:01 e de acordo
+// 13:14; FICHA_CONCILIACAO_LIGAR_BAIXA_RAIZ v1.1.0) — (1) UMA LEITURA SÓ: o menu da linha do extrato deixa de recalcular
+// sugestão na tela (fn_extrato_sugerir_recebimento/destino davam outro nome e outro %, como o "Anderson 90%" na linha do
+// Eder). A recomendação é só a do motor; o resto são opções sem %: "Buscar manualmente" (com o mesmo CPF/CNPJ primeiro, depois
+// o mesmo nome, depois os outros em aberto) e, na saída, as saídas previstas de valor parecido. A "Nova despesa" só traz
+// categoria quando o motor sugeriu uma. (2) LIGAR À BAIXA JÁ FEITA: sugestão nova do motor ligar_baixa_atualizar; o "Aceitar
+// sugestão" e as pilhas abrem o antes e o depois e gravam pela fn_extrato_ligar_baixa (conciliacaoLigarBaixa). Versão anterior: 1.97.1
 //
 // v1.97.1 (17/11/2026, sessão 20261117-0755-financeiro-conciliacao, demanda 679b2700; conferência no app publicado) — o nome do
 // mês das pilhas saía "Invalid Date": a competência já vem com o dia (AAAA-MM-DD). Versão anterior: 1.97.0
@@ -25,16 +33,11 @@
 // ajuste da divisão do item com motivo, Quitar e Lançar retirada). O rótulo da 4ª aba vira "Pessoas". A ficha do sócio no mês
 // (abrirFichaSocioDistribuicao, com o compartilhar) continua, aberta pelo "Demonstrativo do mês" do extrato. As vistas antigas
 // (balancoChipsVista, distribDesenhar, balancoRenderGrupos) ficam sem chamador nesta versão e saem na Onda 3. Versão anterior: 1.95.0
-//
-// v1.95.0 (15/11/2026, sessão 20261115-1640-totais-natureza, demanda fb97987e; de acordo do Nicola 15/11 16:40 sobre
-// FICHA_TOTAIS_POR_NATUREZA_v1_0_0) — TOTAIS POR NATUREZA. Abaixo dos 4 totais de Recebimentos e de Saídas, uma linha de fichas
-// por natureza (Operação, Investimento, Financiamento, Pessoal) quando o mês tem mais de uma; tocar abre os 4 números dela e o que
-// ela quer dizer. Números de fn_financeiro_totalizadores_natureza (migration financeiro_totais_natureza_v1). Versão anterior: 1.94.0
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.94.0 … v1.94.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.95.0 … v1.95.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '1.97.1'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.98.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 
 // v1.17.0 (Fase 1 do wrapper de escrita, rollout Financeiro) — emitirEscrita
 // é o evento padrão pra "algo mudou que módulos DE FORA deste arquivo podem
@@ -4183,6 +4186,10 @@ function financeiroRenderCabecalho(aba) {
                 const con = m ? contratos.find(c => c.id === m.contratoId) : null;
                 return { icone: 'sparkles', tipo: 'ia', titulo, sub: `Dá baixa no aluguel ${m?.referencia || ''}${con ? ' de ' + con.locatario : ''}`, aoTocar: ir };
             }
+            if (sug.acao === 'ligar_baixa_atualizar') { // v1.98.0
+                const r = conciliacaoRecebimentoResumo(sug.destino_id);
+                return { icone: 'sparkles', tipo: 'ia', titulo: `Ligar à baixa de ${r?.referencia || 'o mês'} · ${pct}%`, sub: 'Mostra o antes e o depois do recebimento (data e valor do extrato)', aoTocar: () => abrirLigarBaixaConciliacao(f, sug) };
+            }
             if (sug.acao === 'ligar_baixa') {
                 const m = mensalidades.find(x => x.id === sug.destino_id);
                 return { icone: 'sparkles', tipo: 'ia', titulo, sub: `Liga esta linha à baixa já feita de ${m?.referencia || 'o mês'} (a baixa não muda)`, aoTocar: ir };
@@ -4449,7 +4456,54 @@ function financeiroRenderCabecalho(aba) {
                 tratarLote: conciliacaoTratarLote,
                 estornarLote: conciliacaoEstornarLote,
                 aceitarComFormulario: (id) => confirmarSugestaoConciliacao(id),
+                recebimento: conciliacaoRecebimentoResumo, // v1.98.0
+                ligarBaixa: conciliacaoLigarBaixa,         // v1.98.0
                 outra: (id) => abrirAcoesConciliacaoLinha(id),
+            });
+        }
+
+        // v1.98.0 — o recebimento que a sugestão "ligar à baixa" aponta, para o antes e o depois.
+        function conciliacaoRecebimentoResumo(menId) {
+            const m = mensalidades.find(x => x.id === menId);
+            if (!m) return null;
+            const con = contratos.find(c => c.id === m.contratoId);
+            return { referencia: m.referencia, data: m.dataPgto || '', valor: Number(m.valorConfirmado) || 0, locatario: con?.locatario || '' };
+        }
+
+        // v1.98.0 — liga a linha do extrato à baixa já feita (fn_extrato_ligar_baixa) e, se pedido, atualiza o recebimento.
+        async function conciliacaoLigarBaixa(fingerprintId, menId, atualizar = true) {
+            if (!fingerprintId || !menId) return false;
+            mostrarCarregamentoGlobal('Ligando à baixa…');
+            try {
+                const { error } = await dbAuth.rpc('fn_extrato_ligar_baixa', { p_fingerprint_id: fingerprintId, p_mensalidade_id: menId, p_atualizar: !!atualizar, p_canal: 'app' });
+                if (error) throw error;
+                emitirEscrita('conciliacao', { id: fingerprintId, acao: 'ligar_baixa', mensalidadeId: menId });
+                registrarLog('conciliacao.ligar_baixa', { fingerprintId, mensalidadeId: menId, atualizar: !!atualizar });
+                mensalidades = await carregarMensalidadesSupabase();
+                esconderCarregamentoGlobal();
+                await carregarConciliacaoUnificada();
+                rzToast(atualizar ? 'Linha ligada à baixa; o recebimento ficou com a data e o valor do extrato.' : 'Linha ligada à baixa.');
+                return true;
+            } catch (e) {
+                esconderCarregamentoGlobal();
+                rzToast('Não consegui ligar: ' + (e.message || e), { tipo: 'danger' });
+                return false;
+            }
+        }
+
+        // v1.98.0 — mesmo "Ligar à baixa" pelo menu da linha: antes e depois num formulário.
+        function abrirLigarBaixaConciliacao(f, sug) {
+            const r = conciliacaoRecebimentoResumo(sug?.destino_id);
+            if (!f || !r) return abrirAcoesConciliacaoLinha(f?.id);
+            const e = escapeHtmlSaidas, dataExtrato = formatarDataBR(f.data);
+            abrirSheetForm({
+                titulo: `Ligar à baixa de ${r.referencia}`, sub: `${limparRotuloConciliacao(f.razao_social)} · + R$ ${fmtBR(Math.abs(parseFloat(f.valor)) || 0)} · ${dataExtrato}`,
+                corpo: `<p class="rz-desc" style="margin:0 0 10px">O recebimento de <b>${e(r.locatario)} · ${e(r.referencia)}</b> já foi baixado à mão. Esta linha do extrato passa a ser o pagamento dele.</p>
+                    <div class="rz-cp-antes"><div><span>Data do pagamento</span><em>${e(r.data || '—')} → <b>${e(dataExtrato)}</b></em></div>
+                    <div><span>Valor</span><em>R$ ${fmtBR(r.valor)} → <b>R$ ${fmtBR(Math.abs(parseFloat(f.valor)) || 0)}</b></em></div></div>
+                    <label class="rz-row rz-chk"><input type="checkbox" id="lb-atualizar" checked> Atualizar data e valor pelo extrato</label>`,
+                rotuloSalvar: 'Ligar',
+                aoSalvar: (el) => { const at = !!(el || document).querySelector('#lb-atualizar')?.checked; fecharSheet(); conciliacaoLigarBaixa(f.id, sug.destino_id, at); return false; },
             });
         }
 
@@ -4693,6 +4747,7 @@ function financeiroRenderCabecalho(aba) {
             if (sug.acao === 'nao_controlar') {
                 return confirmarNaoControlarConciliacao(fingerprintId, sug.detalhe || null);
             }
+            if (sug.acao === 'ligar_baixa_atualizar') { fecharSheet(); return abrirLigarBaixaConciliacao(f, sug); } // v1.98.0
             // v1.89.0 — liga à baixa já feita (CT05) e demais sugestões automáticas ainda não aplicadas: o próprio motor
             // aplica, só nesta linha (a mesma função que roda no fim da importação).
             if (sug.acao === 'ligar_baixa' || (sug.modo === 'automatico' && ['pagar_fatura', 'criar_saida_categoria'].includes(sug.acao))) { // v1.93.0 + R12
@@ -4940,64 +4995,35 @@ function financeiroRenderCabecalho(aba) {
                 return;
             }
 
-            // Pendente — busca sugestão (banco), RPC diferente por direção.
-            mostrarCarregamentoGlobal('Buscando sugestão…');
-            let candidatos = [];
-            let categoriaSugerida = null;
-            try {
-                if (entrada) {
-                    const { data, error } = await dbAuth.rpc('fn_extrato_sugerir_recebimento', { p_fingerprint_id: fingerprintId });
-                    if (!error) candidatos = data || [];
-                } else {
+            // v1.98.0 (dem 679b2700, Nicola 17/11 13:14: "não pode recalcular em tela recomendação") — a recomendação é só a do
+            // motor (conciliacaoUniSugestoes). O resto são opções sem %. Na saída, as saídas previstas de valor parecido vêm da
+            // fn_extrato_sugerir_destino só como lista para escolher (sem %, sem "Confirmar"), e a categoria da "Nova despesa"
+            // só vem quando o motor sugeriu uma.
+            let previstas = [];
+            if (!entrada) {
+                mostrarCarregamentoGlobal('Carregando…');
+                try {
                     const { data, error } = await dbAuth.rpc('fn_extrato_sugerir_destino', { p_fingerprint_id: fingerprintId });
-                    if (!error) {
-                        candidatos = (data || []).filter(c => c.lancamento_id);
-                        const linhaSugestao = (data || []).find(c => c.categoria_sugerida_se_nova);
-                        if (linhaSugestao) categoriaSugerida = linhaSugestao.categoria_sugerida_se_nova;
-                    }
-                }
-            } catch (e) { /* segue sem sugestão, não bloqueia */ }
-            esconderCarregamentoGlobal();
-
-            // v1.25.0 (demanda 835aea49) — esta lista vem de fn_extrato_sugerir_*
-            // (escala 0-1, comparação só por valor/data), diferente do motor de
-            // regras (fn_conciliacao_avaliar, escala 0-100, já cacheado em
-            // conciliacaoUniSugestoes) que alimenta verSugestaoConciliacao. Pra
-            // MESMA linha não mostrar 2 % diferentes conforme o sheet, quando o
-            // candidato do topo aqui é o MESMO destino que o motor de regras já
-            // sugeriu, reaproveita a confiança/detalhe do motor em vez de
-            // recalcular por outra conta.
+                    if (!error) previstas = (data || []).filter(c => c.lancamento_id);
+                } catch (e) { /* segue sem a lista */ }
+                esconderCarregamentoGlobal();
+            }
             const sugCache = conciliacaoUniSugestoes[fingerprintId];
             const acoes = [];
-            // v1.89.0 (D) — a sugestão do motor (a do %) vem primeiro, dizendo o que vai acontecer
             const aceitar = conciliacaoAcaoAceitar(f, sugCache);
             if (aceitar) acoes.push(aceitar);
             if (entrada) {
-                candidatos.forEach((c, i) => {
-                    const mesmoDoMotor = i === 0 && sugCache && sugCache.destino_id === c.mensalidade_id;
-                    const pct = mesmoDoMotor ? Math.round(sugCache.confianca || 0) : Math.round((c.confianca || 0) * 100);
-                    acoes.push({
-                        icone: i === 0 ? 'check' : 'link', titulo: `${i === 0 ? 'Confirmar' : 'Vincular'}: ${c.locatario}`,
-                        sub: `${c.referencia} · R$ ${fmtBR(c.valor)} · ${pct}%`,
-                        aoTocar: () => confirmarVincularConciliacaoRecebimento(fingerprintId, c.mensalidade_id, f),
-                    });
-                });
-                acoes.push({ icone: 'search', titulo: 'Buscar manualmente', sub: candidatos.length ? 'Outros em aberto' : 'Sem sugestão: escolha', aoTocar: () => abrirBuscarMensalidadeManual(fingerprintId) });
+                acoes.push({ icone: 'search', titulo: 'Buscar manualmente', sub: 'Recebimentos em aberto · mesmo CPF/CNPJ primeiro', aoTocar: () => abrirBuscarMensalidadeManual(fingerprintId) });
                 acoes.push({ icone: 'split', titulo: 'Dividir recebimento', sub: 'Vários aluguéis, descontos da administradora', codigo: 'mensal.baixar', aoTocar: () => abrirDividirRecebimento(fingerprintId) }); // v1.86.0
                 acoes.push({ icone: 'plus', titulo: 'Lançar entrada', sub: 'Aporte de sócio, venda, outra receita — sem aluguel', aoTocar: () => conciliacaoLancarEntrada(f, null) }); // v1.89.0 (5eb9e2cf)
             } else {
-                candidatos.forEach((c, i) => {
-                    const mesmoDoMotor = i === 0 && sugCache && sugCache.destino_id === c.lancamento_id;
-                    const pct = mesmoDoMotor ? Math.round(sugCache.confianca || 0) : Math.round((c.confianca || 0) * 100);
-                    acoes.push({
-                        icone: i === 0 ? 'check' : 'link', titulo: `${i === 0 ? 'Confirmar' : 'Vincular'}: ${c.descricao || c.categoria || 'despesa prevista'}`,
-                        sub: `R$ ${fmtBR(c.valor)} · ${formatarDataBR(c.vencimento)} · ${pct}%`,
-                        aoTocar: () => confirmarVincularConciliacaoSaida(fingerprintId, c.lancamento_id),
-                    });
+                previstas.filter(c => !(sugCache?.destino_id && sugCache.destino_id === c.lancamento_id)).forEach(c => {
+                    acoes.push({ icone: 'link', titulo: `Ligar a: ${c.descricao || c.categoria || 'despesa prevista'}`,
+                        sub: `Prevista · R$ ${fmtBR(c.valor)} · vence ${formatarDataBR(c.vencimento)}`,
+                        aoTocar: () => confirmarVincularConciliacaoSaida(fingerprintId, c.lancamento_id) });
                 });
-                // "Nova despesa" abre a tela nativa já preenchida (abrirNovaDespesa
-                // já aceita `sugestoes` — não crio ficha própria).
-                acoes.push({ icone: 'plus', titulo: 'Nova despesa', sub: categoriaSugerida ? `Sugestão: ${rotuloCategoriaSaida(categoriaSugerida)}` : 'Abre o formulário de despesa', aoTocar: () => { fecharSheet(); despesaOrigemFingerprintId = fingerprintId; abrirNovaDespesa(null, { descricao: f.razao_social, categoria: categoriaSugerida || undefined, valor: Math.abs(parseFloat(f.valor)), vencimento: f.data }); } });
+                const categoriaMotor = sugCache?.acao === 'sugerir_categoria' ? categoriaRegraConc(sugCache.regra_codigo) : null;
+                acoes.push({ icone: 'plus', titulo: 'Nova despesa', sub: categoriaMotor ? `Na categoria ${rotuloCategoriaSaida(categoriaMotor)}` : 'Abre o formulário de despesa', aoTocar: () => { fecharSheet(); despesaOrigemFingerprintId = fingerprintId; abrirNovaDespesa(null, { descricao: f.razao_social, categoria: categoriaMotor || undefined, valor: Math.abs(parseFloat(f.valor)), vencimento: f.data }); } });
                 acoes.push({ icone: 'arrow-left-right', titulo: 'Marcar como repasse', sub: 'Repasse de sócio ou similar', aoTocar: () => confirmarMarcarComoRepasse(fingerprintId) });
             }
             acoes.push({ icone: 'eye-off', titulo: 'Não controlar', sub: 'A linha do banco fica', aoTocar: () => abrirFormNaoControlarConciliacao(fingerprintId) });
@@ -5157,16 +5183,23 @@ function financeiroRenderCabecalho(aba) {
         export function abrirBuscarMensalidadeManual(fingerprintId) {
             const f = conciliacaoUniCache.find(x => x.id === fingerprintId);
             if (!f) return;
+            // v1.98.0 — sem %: primeiro os contratos com o mesmo CPF/CNPJ do extrato, depois o mesmo nome, depois os outros.
+            const digExt = String(f.documento_original || '').replace(/\D/g, '');
+            const normNome = (t) => String(t || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toUpperCase().replace(/[^A-Z0-9 ]/g, ' ')
+                .replace(/ (DA|DE|DO|DAS|DOS|E)(?= )/g, ' ').replace(/\s+/g, ' ').trim();
+            const nomeExt = normNome(limparRotuloConciliacao(f.razao_social));
             const abertas = mensalidades.filter(m => m.status === 'Inadimplente').map(m => {
                 const c = contratos.find(x => x.id === m.contratoId);
                 const imo = c ? imoveis.find(i => i.id === c.imovelId) : null;
                 const local = imo ? `${imo.empreendimento}${imo.enderecoRua ? ' - ' + imo.enderecoRua : ''}` : '';
-                return { id: m.id, nome: c ? c.locatario : '(sem contrato)', ctx: `Ref ${m.referencia}${local ? ' · ' + local : ''}`, valor: m.valorConfirmado };
-            }).sort((a, b) => a.nome.localeCompare(b.nome));
+                const grupo = digExt && c && String(c.cpf || '').replace(/\D/g, '') === digExt ? 0 : (nomeExt && c && normNome(c.locatario) === nomeExt ? 1 : 2);
+                return { id: m.id, nome: c ? c.locatario : '(sem contrato)', ctx: `Ref ${m.referencia}${local ? ' · ' + local : ''}`, valor: m.valorConfirmado, grupo };
+            }).sort((a, b) => a.grupo - b.grupo || a.nome.localeCompare(b.nome));
+            const TIT_GRUPO = ['Mesmo CPF/CNPJ do extrato', 'Mesmo nome do extrato', 'Outros em aberto'];
 
             const valorAbs = Math.abs(parseFloat(f.valor)).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
             const corpoLista = abertas.length
-                ? abertas.map(l => `<div class="rz-row rz-link" data-txt="${rzEsc(l.nome.toLowerCase())}" onclick="selecionarMensalidadeManual('${fingerprintId}','${l.id}')"><div class="rz-ic"><svg data-lucide="file-text"></svg></div><div class="rz-tx"><b>${rzEsc(l.nome)}</b><span>${rzEsc(l.ctx)}</span></div><div class="rz-rt"><b>R$ ${Number(l.valor).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</b></div></div>`).join('')
+                ? abertas.map((l, i) => (i === 0 || abertas[i - 1].grupo !== l.grupo ? `<div class="rz-group" data-grupo>${TIT_GRUPO[l.grupo]}</div>` : '') + `<div class="rz-row rz-link" data-txt="${rzEsc(l.nome.toLowerCase())}" onclick="selecionarMensalidadeManual('${fingerprintId}','${l.id}')"><div class="rz-ic"><svg data-lucide="file-text"></svg></div><div class="rz-tx"><b>${rzEsc(l.nome)}</b><span>${rzEsc(l.ctx)}</span></div><div class="rz-rt"><b>R$ ${Number(l.valor).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</b></div></div>`).join('')
                 : '<p style="font-size:var(--fs-sec,12.5px);color:var(--sage);padding:8px 0">Nenhum recebimento em aberto no momento.</p>';
 
             abrirSheet(rzSheetCabecalho('Vincular a um recebimento', `${limparRotuloConciliacao(f.razao_social)} · R$ ${valorAbs} · ${formatarDataBR(f.data)}`) +

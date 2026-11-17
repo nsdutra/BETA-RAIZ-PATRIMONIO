@@ -1,6 +1,9 @@
 /* ============================================================================
    raiz.css — Raiz Patrimônio · estilos do app (index.html)
-   Versão: 1.28.0 · 17/11/2026
+   Versão: 1.29.0 · 17/11/2026
+
+   v1.29.0 (17/11/2026, sessão 20261117-0755-financeiro-conciliacao, demanda 679b2700) — Conciliação: .rz-cp-antes (o antes e o
+   depois do recebimento no "Ligar à baixa"), .rz-cp-atualizar e .rz-cp-emordem (o botão "Em ordem neste mês"). Versão anterior: 1.28.0
 
    v1.28.0 (17/11/2026, sessão 20261117-0755-financeiro-conciliacao, demanda 679b2700; FICHA_REVISAO_FINANCEIRO_RAIZ v1.0.0, Onda 2) —
    classes .rz-cp-* da Conciliação em pilhas (js/conciliacao-pilhas.js): anel do mês, marco "em ordem", as 4 pilhas (cartas
@@ -2281,3 +2284,13 @@ html.rz-plat-web body:not(.rz-split-con) #ficha-contrato-conteudo > .rz-entity:f
 @keyframes rzCpSaiD{to{opacity:0;transform:translateX(40px)}}
 @keyframes rzCpSaiE{to{opacity:0;transform:translateX(-40px)}}
 @media (prefers-reduced-motion:reduce){.rz-cp-carta,.rz-cp-carta.rz-cp-sai-d,.rz-cp-carta.rz-cp-sai-e{animation:none}.rz-cp-ring circle{transition:none}}
+
+/* v1.29.0 (dem 679b2700) — Conciliação: ligar à baixa já feita e "Em ordem neste mês" */
+.rz-cp-antes{margin:8px 0;border-radius:12px;background:var(--card);padding:8px 12px;font-size:13px}
+.rz-cp-antes div{display:flex;justify-content:space-between;gap:10px;padding:3px 0}
+.rz-cp-antes span{color:var(--muted)}
+.rz-cp-antes em{font-style:normal;text-align:right}
+.rz-cp-antes s{color:var(--muted)}
+.rz-cp-atualizar{padding:8px 0;font-size:14px}
+.rz-cp-ligar>p{margin:0 0 4px}
+.rz-cp-emordem .rz-cp-cartas b{border-color:var(--success);color:var(--success)}
