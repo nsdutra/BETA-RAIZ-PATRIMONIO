@@ -1,7 +1,15 @@
 // ============================================================================
 // financeiro.js — Raiz Patrimônio · Financeiro (Recebimentos · Atrasados · Saídas
 //                  · conciliação de extrato · recibo · detalhe do recebimento)
-// Versão: 1.99.0 · 17/11/2026
+// Versão: 1.100.0 · 17/11/2026
+//
+// v1.100.0 (17/11/2026, sessão 20261117-1700-financeiro-avulsas, demanda 679b2700; pedido do Nicola 17/11 16:48 "ainda não
+// consigo editar receita outros" e "pode seguir" 16:51) — (1) EDITAR A RECEITA AVULSA: o menu da linha de Outras receitas
+// ganha "Editar" para todas (manual, extrato, licença): vínculo (bem), descrição, categoria e subcategoria, contabilidade,
+// competência e, nas lançadas à mão, valor, data e situação. Na que veio do extrato, valor e data ficam presos à linha do banco.
+// O formulário é o mesmo da receita nova (abrirReceitaAvulsa com { editarId }). (2) A receita que veio do extrato ganha
+// "Devolver à conciliação" (a linha volta a pendente e a receita sai, fn_extrato_estornar_vinculo). (3) O ⋮ volta a mostrar
+// Contador e Fiscal quando a rotina está desligada, apagados e com o motivo (levam a Minha empresa › Rotinas). Versão anterior: 1.99.0
 //
 // v1.99.0 (17/11/2026, sessão 20261117-1540-financeiro-resumo, demanda 679b2700; FICHA_REVISAO_FINANCEIRO_RAIZ v1.0.0, Onda 3,
 // parte 1: D2 e D3; "vamos em frente" do Nicola 17/11 15:33) — (1) ABA RESUMO, a primeira do Financeiro: desenhada pelo módulo
@@ -30,15 +38,11 @@
 // já conciliadas (para o anel e o Desfazer). Novas: conciliacaoLoteElegivel, conciliacaoTratarLote (aceita item a item com as
 // mesmas funções do "Aceitar sugestão"; as do motor vão juntas na fn_conciliacao_aplicar) e conciliacaoEstornarLote
 // (fn_extrato_estornar_vinculo). Banco: nada novo. O "Revisar em sequência" fica sem chamador (sai na Onda 3). Versão anterior: 1.96.1
-//
-// v1.96.1 (17/11/2026, sessão 20261117-0010-financeiro-pessoas-ajustes, demanda 679b2700; teste do Nicola 17/11 00:05) — a aba
-// Pessoas passa ao módulo a ação "Editar a retirada" (acoesRetirada: carrega as retiradas do ano do mês escolhido e abre as ações
-// de hoje, rzAcoesRetirada) e deixa de passar o "Demonstrativo do mês", que saiu do extrato. Versão anterior: 1.96.0
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.96.0 … v1.96.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.96.1 … v1.96.1): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '1.99.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.100.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 
 // v1.17.0 (Fase 1 do wrapper de escrita, rollout Financeiro) — emitirEscrita
 // é o evento padrão pra "algo mudou que módulos DE FORA deste arquivo podem
@@ -422,7 +426,9 @@ export function abrirLancarFinanceiro(aba) {
     else rotinas.push({ icone: fechada ? 'lock' : 'lock-open', titulo: fechada ? 'Reabrir o mês' : 'Fechar o mês',
         sub: !est ? 'Verificando…' : fechada ? `Fechado${dataFech ? ' em ' + dataFech : ''}` : (pend?.tem ? 'Há pendências no mês' : 'Sem pendências'), aoTocar: () => fechamentoAlternarBotao() });
     if (!rotinaOff && financeiroRotinaContadorLigada !== false) rotinas.push({ icone: 'send', titulo: 'Contador', sub: fechada ? 'Pronto para enviar' : 'Pacote da competência', aoTocar: () => fechamentoAbrirCompartilharContador() });
-    if (fis?.ligada !== false) {
+    else rotinas.push({ icone: 'send', titulo: 'Contador', sub: 'Desligado · ligue em Minha empresa › Rotinas', aoTocar: () => rotinaOff ? rzTocarChipFechamentoDesligado() : financeiroIrParaRotinas() }); // v1.100.0
+    if (fis?.ligada === false) rotinas.push({ icone: 'file-check-2', titulo: 'Fiscal', sub: 'Desligado · ligue em Minha empresa › Rotinas', aoTocar: () => financeiroIrParaRotinas() }); // v1.100.0
+    else {
         const nNotas = fis?.notas ? (fis.notas.aPreparar + fis.notas.preparadas) : 0;
         rotinas.push({ icone: 'file-check-2', titulo: 'Fiscal', sub: !fis ? 'Verificando…' : nNotas ? `${nNotas} nota${nNotas > 1 ? 's' : ''} a preparar` : fis.total ? `${fis.total} pendência${fis.total > 1 ? 's' : ''}` : 'Em dia', aoTocar: () => abrirFiscalCompetencia() });
     }
@@ -6542,8 +6548,19 @@ export async function abrirAdicionarRecebimento() {
 
 // v1.89.0 — "Lançar entrada" da Conciliação: a linha do extrato que originou a receita (ligada ao salvar) e quem pagou.
 let receitaOrigemFingerprintId = null, receitaOrigemParteId = null;
+let receitaEditando = null; // v1.100.0 — { id, origem_tipo } quando o formulário edita uma receita que já existe
 export async function abrirReceitaAvulsa(sugestoes) { // v1.67.0 — sugestoes da Raiz IA: { valor, descricao, data, categoria, ativoId }
     if (typeof abrirSheetForm !== 'function') return;
+    // v1.100.0 — editar: { editarId } abre o mesmo formulário com a receita preenchida
+    receitaEditando = null;
+    if (sugestoes?.editarId) {
+        const { data: l, error } = await dbAuth.from('lancamentos').select('id, descricao, valor, status, vencimento, data_pagamento, competencia, categoria, ativo_id, origem_tipo, incluir_contabilidade')
+            .eq('cliente_id', CLIENTE_ID_SUPABASE).eq('id', sugestoes.editarId).eq('direcao', 'entrada').maybeSingle();
+        if (error || !l) { rzToast('Não achei esta receita.', { tipo: 'danger' }); return; }
+        receitaEditando = { id: l.id, origem_tipo: l.origem_tipo };
+        sugestoes = { descricao: l.descricao, valor: l.valor, data: l.data_pagamento || l.vencimento, categoria: l.categoria, ativoId: l.ativo_id,
+            competencia: l.competencia, recebido: l.status === 'realizado', contab: l.incluir_contabilidade !== false };
+    }
     receitaOrigemFingerprintId = sugestoes?.fingerprintId || null; // v1.89.0
     receitaOrigemParteId = sugestoes?.parteId || null;
     let ativos = [];
@@ -6574,10 +6591,12 @@ export async function abrirReceitaAvulsa(sugestoes) { // v1.67.0 — sugestoes d
                 <button type="button" data-v="receber">A receber</button>
             </div>
         </div>`;
+    const doExtrato = receitaEditando?.origem_tipo === 'extrato', daLicenca = receitaEditando?.origem_tipo === 'licenca';
     const sheet = abrirSheetForm({
-        titulo: receitaOrigemFingerprintId ? 'Lançar entrada do extrato' : 'Receita sem contrato', // v1.89.0
-        sub: receitaOrigemFingerprintId ? 'Escolha a categoria — a linha do extrato fica ligada a esta receita' : 'Escolha a categoria e a competência',
-        corpo, rotuloSalvar: 'Registrar receita',
+        titulo: receitaEditando ? 'Editar receita' : (receitaOrigemFingerprintId ? 'Lançar entrada do extrato' : 'Receita sem contrato'), // v1.89.0; v1.100.0
+        sub: receitaEditando ? (doExtrato ? 'Valor e data vêm da linha do extrato' : daLicenca ? 'Valor e data vêm da licença' : 'Lançada à mão')
+            : (receitaOrigemFingerprintId ? 'Escolha a categoria — a linha do extrato fica ligada a esta receita' : 'Escolha a categoria e a competência'),
+        corpo, rotuloSalvar: receitaEditando ? 'Salvar' : 'Registrar receita',
         aoSalvar: () => salvarReceitaAvulsa(),
     });
     // v1.34.0 — cascata, sugestão de contabilidade e chips do caminho
@@ -6607,11 +6626,23 @@ export async function abrirReceitaAvulsa(sugestoes) { // v1.67.0 — sugestoes d
             selG.value = folha.categoria_pai; selG.dispatchEvent(new Event('change'));
             selC.value = folha.codigo; selC.dispatchEvent(new Event('change'));
         }
+        if (receitaEditando) { // v1.100.0
+            if (chkC) chkC.checked = sugestoes.contab !== false;
+            const selComp0 = sheet.querySelector('#rav-competencia'), c0 = sugestoes.competencia ? dataParaCompetencia(sugestoes.competencia) : null;
+            if (selComp0 && c0) { if (![...selComp0.options].some(o => o.value === c0)) selComp0.add(new Option(c0, c0)); selComp0.value = c0; selComp0.dataset.fixa = '1'; }
+            const sit = sugestoes.recebido ? 'recebido' : 'receber';
+            sheet.querySelector('#rav-situacao').value = sit;
+            sheet.querySelectorAll('#rav-seg button').forEach(x => x.classList.toggle('rz-on', x.dataset.v === sit));
+            if (receitaEditando.origem_tipo !== 'manual') {
+                ['#rav-valor', '#rav-data'].forEach(s => { const el = sheet.querySelector(s); if (el) { el.readOnly = true; el.style.background = 'var(--tile)'; } });
+                sheet.querySelectorAll('#rav-seg button').forEach(x => { x.disabled = true; });
+            }
+        }
     }
     atualizarRav();
     // v1.82.0 — a competência acompanha a Data até a pessoa escolher outra
     const selComp = sheet?.querySelector('#rav-competencia'), inData = sheet?.querySelector('#rav-data');
-    let compTocada = false;
+    let compTocada = !!selComp?.dataset.fixa; // v1.100.0 — na edição a competência gravada vale
     selComp?.addEventListener('change', () => { compTocada = true; });
     const seguirData = () => {
         if (compTocada || !selComp || !inData?.value) return;
@@ -6645,6 +6676,18 @@ async function salvarReceitaAvulsa() {
         competencia: compSel ? competenciaParaData(compSel) : data.slice(0, 8) + '01', vencimento: data, data_pagamento: recebido ? data : null,
         status: recebido ? 'realizado' : 'previsto', ativo_id: ativoId, origem_tipo: 'manual', reembolsavel: false,
     };
+    if (receitaEditando) { // v1.100.0 — edição: só os campos do formulário; valor, data e situação só na lançada à mão
+        const mud = { categoria, incluir_contabilidade: incluirContab, descricao, competencia: linha.competencia, ativo_id: ativoId };
+        if (receitaEditando.origem_tipo === 'manual') Object.assign(mud, { valor, vencimento: data, data_pagamento: linha.data_pagamento, status: linha.status });
+        const { error: eUp } = await dbAuth.from('lancamentos').update(mud).eq('cliente_id', CLIENTE_ID_SUPABASE).eq('id', receitaEditando.id).eq('direcao', 'entrada');
+        if (eUp) { rzToast('Não consegui salvar: ' + eUp.message, { tipo: 'danger' }); return false; }
+        if (typeof registrarLog === 'function') registrarLog('mensal.receita_avulsa', { lancamentoId: receitaEditando.id, acao: 'editar', categoria });
+        emitirEscrita('receita', { id: receitaEditando.id, acao: 'editar' });
+        receitaEditando = null;
+        rzToast('Receita salva');
+        if (document.getElementById('tab-mensal')?.classList.contains('active')) renderOutrasReceitas();
+        return true;
+    }
     if (receitaOrigemFingerprintId) { // v1.89.0 — veio da linha do extrato
         linha.origem_tipo = 'extrato'; linha.origem_id = receitaOrigemFingerprintId;
         if (receitaOrigemParteId) linha.parte_id = receitaOrigemParteId;
@@ -6674,7 +6717,7 @@ export async function renderOutrasReceitas() {
     let linhas = [];
     try {
         const { data, error } = await dbAuth.from('lancamentos')
-            .select('id, descricao, valor, status, vencimento, data_pagamento, origem_tipo, conta_id, divisao_excecao, ativo_id, ciclo_id, ativo_fase_id, item_controle_id, ativo_programa_id') // v1.36.0; v1.83.0 destino
+            .select('id, descricao, valor, status, vencimento, data_pagamento, origem_tipo, origem_id, conta_id, divisao_excecao, ativo_id, ciclo_id, ativo_fase_id, item_controle_id, ativo_programa_id, categoria, competencia, incluir_contabilidade') // v1.36.0; v1.83.0 destino; v1.100.0 edição
             .eq('cliente_id', CLIENTE_ID_SUPABASE).eq('direcao', 'entrada').eq('competencia', comp)
             .match(financeiroContaFiltro ? { conta_id: financeiroContaFiltro } : {}) // v1.33.0
             .order('vencimento', { ascending: true });
@@ -6704,6 +6747,8 @@ export function rzAcoesReceitaAvulsa(id) {
     if (!l || typeof abrirSheetAcoes !== 'function') return;
     const acoes = [];
     const manual = l.origem_tipo === 'manual';
+    acoes.push({ icone: 'pencil', titulo: 'Editar', sub: manual ? 'Descrição, categoria, bem, valor e data' : (l.origem_tipo === 'extrato' ? 'Descrição, categoria e bem · valor e data vêm do extrato' : 'Descrição, categoria e bem'), aoTocar: () => abrirReceitaAvulsa({ editarId: id }) }); // v1.100.0
+    if (l.origem_tipo === 'extrato') acoes.push({ icone: 'undo-2', titulo: 'Devolver à conciliação', sub: 'A linha do extrato volta a pendente e esta receita sai', aoTocar: () => devolverReceitaAoExtrato(l) }); // v1.100.0
     if (manual) {
         if (l.status !== 'realizado') acoes.push({ icone: 'check', titulo: 'Marcar como recebida', sub: 'Usa a data de hoje', aoTocar: () => alterarReceitaAvulsa(id, 'receber') });
         else acoes.push({ icone: 'undo-2', titulo: 'Voltar para a receber', aoTocar: () => alterarReceitaAvulsa(id, 'estornar') });
@@ -6717,7 +6762,21 @@ export function rzAcoesReceitaAvulsa(id) {
     acoes.push(...financeiroAcaoConta('lancamento', id, l.conta_id, (v) => { l.conta_id = v; renderOutrasReceitas(); })); // v1.36.0
     acoes.push(...financeiroAcaoDivisao('lancamento', id, Number(l.valor || 0), !!l.divisao_excecao, () => renderOutrasReceitas())); // v1.36.0 (D39)
     if (manual) acoes.push({ icone: 'trash-2', tipo: 'bad', titulo: 'Excluir receita', aoTocar: () => alterarReceitaAvulsa(id, 'excluir') });
-    abrirSheetAcoes({ titulo: l.descricao || 'Receita', sub: `${formatarMoedaBR(Number(l.valor || 0))} · sem contrato`, acoes });
+    const origemTxt = l.origem_tipo === 'extrato' ? 'veio do extrato' : l.origem_tipo === 'licenca' ? 'licença' : 'lançada à mão';
+    abrirSheetAcoes({ titulo: l.descricao || 'Receita', sub: `${formatarMoedaBR(Number(l.valor || 0))} · sem contrato · ${origemTxt}`, acoes });
+}
+
+// v1.100.0 — a receita que veio do extrato volta para a Conciliação: a linha fica pendente de novo e a receita sai
+// (fn_extrato_estornar_vinculo apaga o lançamento criado a partir da linha, como o Estornar da Conciliação).
+async function devolverReceitaAoExtrato(l) {
+    if (!l?.origem_id) { rzToast('Não achei a linha do extrato desta receita.', { tipo: 'danger' }); return; }
+    if (!await rzConfirmar({ titulo: 'Devolver à conciliação', impacto: `A receita "${l.descricao || 'Receita'}" sai de Outras receitas e a linha do extrato volta para a Conciliação, para tratar de novo.`, rotuloConfirmar: 'Devolver' })) return;
+    const { error } = await dbAuth.rpc('fn_extrato_estornar_vinculo', { p_fingerprint_id: l.origem_id });
+    if (error) { rzToast('Não consegui devolver: ' + error.message, { tipo: 'danger' }); return; }
+    if (typeof registrarLog === 'function') registrarLog('conciliacao.estornar_saida', { fingerprintId: l.origem_id, lancamentoId: l.id, origem: 'outras_receitas' });
+    emitirEscrita('conciliacao', { id: l.origem_id, acao: 'estornar' });
+    rzToast('A linha voltou para a Conciliação.');
+    renderOutrasReceitas();
 }
 
 async function alterarReceitaAvulsa(id, acao) {
