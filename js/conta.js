@@ -2,7 +2,13 @@
 // conta.js — Raiz Patrimônio · Conta e preferências: menu da conta, seção Sobre,
 //            licença, preferências de comunicação e de alerta, atalhos de
 //            configuração (Cofre, configuração inicial, cadastro do contador)
-// Versão: 1.5.0 · 21/10/2026
+// Versão: 1.6.0 · 16/11/2026
+//
+// v1.6.0 (16/11/2026, sessão 20261116-2244-comunicacoes-proativas, demanda c87d0460; FICHA_ROBO_ENVIO_COMUNICACOES_RAIZ v1.2.0, D3
+//   do Nicola 16/11 22:44: "a pessoa só desliga dentro do app da sua empresa") — Minhas notificações ganha, no topo, a chave
+//   "Mensagens do robô no WhatsApp" (pessoas.comunicacoes_proativas da própria pessoa nesta empresa), gravada por
+//   fn_minhas_comunicacoes_proativas_definir. Desligada, o robô não manda nada por conta própria; continua respondendo.
+// Versão anterior: 1.5.0 · 21/10/2026
 //
 // v1.5.0 (21/10/2026, sessão 20261021-1005-ux-onda1, demanda 15146a34; Nicola 21/10 10:02) — menu das iniciais: sai o ✕ (fecha arrastando ou tocando fora) e
 //   o cartão verde ganha a largura toda; o plano aparece pelo nome ("Premium ampliado", não "Premium_ampliado").
@@ -21,16 +27,11 @@
 // v1.2.0 (14/10/2026, sessão 20261014-2215-ajustes-9d, demanda a05ad2ee; Nicola 14/10 22:12: "ao sair da tela do contador
 // apareceu a tela estranha") — abrirCadastroContador abre o formulário de contador como sheet por cima da tela atual, sem
 // trocar para Partes: fechar ou salvar volta para onde a pessoa estava (Financeiro, Fiscal).
-// Versão anterior: 1.1.0 · 14/10/2026
-//
-// v1.1.0 (14/10/2026, sessão 20261014-2145-onda9c-textos, demanda a05ad2ee; onda 9c do estudo PROTOTIPO_UX_DENSIDADE_RAMOS_RAIZ
-// v1.2.0, D6 seção 10) — textos no limite: ação até 24 caracteres, descrição até 28, aviso até 40 com o resultado e tela
-// vazia em 1 frase de até 40. A explicação longa fica na confirmação, quando existe. Nada de comportamento mudou.
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.0.1 … v1.0.1): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.1.0 … v1.1.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '1.5.0';  // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.6.0';  // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 
 // v1.71.0 — LGPD: tela de preferências de comunicação, 1 toggle por
 // mensagem que permite opt-out (permite_opt_out=true) — substitui o
@@ -67,6 +68,12 @@ export const VERSAO = '1.5.0';  // v-check: lido por ⚙️ › Conta › Versõ
 export async function abrirPreferenciasComunicacao() {
     abrirSheet(rzSheetCabecalho('Minhas notificações', 'O que você recebe automaticamente da Raiz') + `<div class="rz-sh-b">
         <div class="rz-card">
+            <div class="rz-row rz-pref">
+                <div class="rz-tx"><b>Mensagens do robô no WhatsApp</b><span>Convite do dia, alertas e avisos que o robô manda por conta própria. Ele continua respondendo quando você escreve.</span></div>
+                <button type="button" role="switch" class="rz-switch" id="pref-robo-proativas" aria-checked="true" aria-label="Mensagens do robô no WhatsApp" disabled></button>
+            </div>
+        </div>
+        <div class="rz-card">
             <div class="rz-card-h"><h3>Alertas e avisos automáticos</h3></div>
             <p class="rz-desc">Vale para o app e o WhatsApp.</p>
             <div id="lista-preferencias-alertas">${typeof rzSkeletonSeguro === 'function' ? rzSkeletonSeguro('linhas', 2) : ''}</div>
@@ -76,6 +83,8 @@ export async function abrirPreferenciasComunicacao() {
             <div id="lista-preferencias-comunicacao">${typeof rzSkeletonSeguro === 'function' ? rzSkeletonSeguro('linhas', 2) : ''}</div>
         </div>
     </div>`);
+
+    ligarChaveRoboProativas(); // v1.6.0
 
     // Seção 1 — alertas (reaproveita comum-pessoas.js; pessoaIdLogada,
     // não uma pessoa escolhida numa lista — esta tela é sempre sobre
@@ -140,6 +149,27 @@ export async function abrirPreferenciasComunicacao() {
         if (elC) elC.innerHTML = '<p class="rz-desc" style="color:var(--danger)">Não foi possível carregar suas preferências agora.</p>';
         console.warn('[preferencias-comunicacao] falha ao carregar:', err.message);
     }
+}
+
+// v1.6.0 — chave da própria pessoa: pessoas.comunicacoes_proativas (nesta empresa)
+async function ligarChaveRoboProativas() {
+    const bt = document.getElementById('pref-robo-proativas');
+    if (!bt) return;
+    try {
+        const { data, error } = await dbAuth.from('pessoas').select('comunicacoes_proativas').eq('id', pessoaIdLogada).maybeSingle();
+        if (error) throw error;
+        bt.setAttribute('aria-checked', data?.comunicacoes_proativas === false ? 'false' : 'true');
+        bt.disabled = false;
+    } catch (err) { console.warn('[minhas-notificacoes] robô:', err.message); return; }
+    bt.addEventListener('click', async () => {
+        const novo = bt.getAttribute('aria-checked') !== 'true';
+        bt.disabled = true;
+        const { error } = await dbAuth.rpc('fn_minhas_comunicacoes_proativas_definir', { p_cliente_id: CLIENTE_ID_SUPABASE, p_ligado: novo });
+        bt.disabled = false;
+        if (error) { mostrarToast('Não foi possível salvar: ' + error.message, 'danger'); return; }
+        bt.setAttribute('aria-checked', novo ? 'true' : 'false');
+        mostrarToast(novo ? 'O robô volta a mandar seus avisos no WhatsApp.' : 'Pronto: o robô não manda mais avisos por conta própria.');
+    });
 }
 
 // Nome como gente escreve ("NICOLA SANTOS DUTRA" → "Nicola Santos Dutra"); conectivos ficam minúsculos.
