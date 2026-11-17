@@ -1,6 +1,10 @@
 // ============================================================================
 // cofre-ativos.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.165.0 · 17/11/2026
+// Versão: 1.166.0 · 16/11/2026
+// v1.166.0 (16/11/2026, sessão 20261018-2336-usos-lotes, demanda df13dba3; FICHA_CONTAGEM_ATIVOS_E_VIDAS_RAIZ v1.1.0, de acordo do
+//   Nicola 16/11 23:41) — contagem única de ativos e vidas: contarItens() conta pais e filhos não arquivados; vida à parte e só
+//   pessoa. Usada na faixa do ramo (número e "N vidas"), no título do grupo, nos chips e no cabeçalho (window.rzContagemAtivosTexto).
+//   Versão anterior: 1.165.0
 // v1.165.0 (17/11/2026, sessão 20261117-0000-comercial-c2, demanda 285a0058; FICHA_RECEITA_UNIDADES_GERADORAS v1.12.0 §13.6 e §13.9) —
 //   tabelas de preço (js/comercial-tabelas.js): a lente Comercial ganha o chip "Tabelas" ao lado de Itens; a aba Usos e contratos
 //   do ativo ganha o card "Tabelas de venda" (só com tabela ativa no ativo); o ⋮ de Contratos ganha "Ativar tabela de venda"
@@ -34,18 +38,11 @@
 //
 // v1.158.1 (15/11/2026, sessão 20261114-2342-investimentos-patrimonio, demanda fd3898f7; pedido do Nicola 15/11 14:55: "no card
 // novo valor, incluir editar dados também") — o ⋮ do card "Valor do bem" ganha "Editar dados", a mesma edição do card Dados.
-// Versão anterior: 1.158.0
-//
-// v1.158.0 (15/11/2026, sessão 20261114-2342-investimentos-patrimonio, demanda fd3898f7; Fase 2 do
-// PLANO_EXECUCAO_INVESTIMENTOS_PATRIMONIO_RAIZ v1.1.0, de acordo do Nicola 15/11 00:33) — COMPRA E VALOR DO BEM. Cadastro e edição
-// ganham "Valor de compra" e "Data da compra" (opcionais), gravados na série ativo_valores por fn_ativo_valor_registrar;
-// compra nova oferece lançar a saída no financeiro (categoria Compra de bem), sem criar sozinha. Card "Valor do bem" no
-// Resumo da ficha: compra, valor atual, variação e o histórico (compra, revisões, edições). Versão anterior: 1.157.0
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.157.0 … v1.157.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.158.0 … v1.158.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '1.165.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.166.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 import { estado } from './cofre-estado.js';
 import { rzCalendario, rzCalItemDaAgenda } from './nucleo/calendario.js'; // v1.152.0 — calendário único (DS §6.3)
 import { carregarBiblioteca } from './nucleo/bibliotecas.js'; // bibliotecas pesadas, sob demanda (dem 6b11c602)
@@ -826,15 +823,14 @@ export function renderAtivosLista(filtroTipo = '', filtroTexto = '') {
         const todosDoRamo = estado.ativos.filter(x => (x.status || 'ativo') === 'ativo' && ramoDe(x) === r);
         const valor = itens.reduce((t, x) => t + Number(x.valor_referencia || 0), 0);
         // vidas: os grupos que o filtro deixou mais os integrantes deles
-        const ids = new Set(itens.map(x => x.id));
-        const nVidas = todosDoRamo.filter(x => ids.has(x.id) || ids.has(x.ativo_principal_id)).length;
+        const nVidas = contarItens(itens).vidas; // df13dba3 — só pessoas (o grupo "Família …" não conta)
         const direita = soma ? (valor ? compactoRamo(valor) : '') : `${nVidas} ${nVidas === 1 ? (info.unidade_singular || 'vida') : (info.unidade_plural || 'vidas')}`;
         const cod = r.replace(/[^a-z_]/g, '');
         // v1.126.0 (item 48, Nicola 19/10 17:10) — o ícone do ramo e a setinha ao lado do total recolhem/abrem a lista do ramo
         const fechado = ramosRecolhidos.has(cod);
         const tg = `onclick="window.__rzAlternarRamo && window.__rzAlternarRamo('${cod}')"`;
         return `<div class="rz-ramo-faixa${fechado ? ' rz-ramo-fechado' : ''}" id="rz-ramo-faixa-${cod}" style="--ramo-grupo:var(--ramo-cor-${cod}, var(--sage))">` +
-            `<span class="rz-ramo-faixa-ic" role="button" tabindex="0" aria-expanded="${!fechado}" aria-label="${fechado ? 'Mostrar' : 'Recolher'} ${escapeHtml(info.nome)}" ${tg}><svg data-lucide="${escapeHtml(info.icone || 'circle')}"></svg><span class="rz-ramo-faixa-n">${itens.length}</span></span>` +
+            `<span class="rz-ramo-faixa-ic" role="button" tabindex="0" aria-expanded="${!fechado}" aria-label="${fechado ? 'Mostrar' : 'Recolher'} ${escapeHtml(info.nome)}" ${tg}><svg data-lucide="${escapeHtml(info.icone || 'circle')}"></svg><span class="rz-ramo-faixa-n">${contarItens(itens).total}</span></span>` +
             `<h3>${escapeHtml(info.nome)}</h3>${direita ? `<b>${escapeHtml(direita)}</b>` : ''}` +
             `<button type="button" class="rz-ramo-faixa-tg" aria-expanded="${!fechado}" aria-label="${fechado ? 'Mostrar' : 'Recolher'} ${escapeHtml(info.nome)}" ${tg}><svg data-lucide="${fechado ? 'chevron-down' : 'chevron-up'}"></svg></button></div>`;
     };
@@ -853,7 +849,7 @@ export function renderAtivosLista(filtroTipo = '', filtroTexto = '') {
     const compactoRamo = (v) => compacto(v);
     const totalGrupo = (l) => { const c = l.filter(a => a.valor_referencia != null); return c.length ? compacto(c.reduce((t, a) => t + Number(a.valor_referencia || 0), 0)) : ''; };
     const listaHtml = (itens) => porEmp(itens).map(e => `
-        ${e.nome ? `<div class="rz-group rz-group-t"><span>${escapeHtml(e.nome)} · ${e.itens.length}</span>${totalGrupo(e.itens) ? `<b>${totalGrupo(e.itens)}</b>` : ''}</div>` : ''}
+        ${e.nome ? `<div class="rz-group rz-group-t"><span>${escapeHtml(e.nome)} · ${contarItens(e.itens).total}</span>${totalGrupo(e.itens) ? `<b>${totalGrupo(e.itens)}</b>` : ''}</div>` : ''}
         <div class="rz-card rz-list">${e.itens.map(soArquivados ? ativoCardArquivadoHtml : ativoComSubativosHtml).join('')}</div>`).join('');
     container.innerHTML = blocos.map(bl => (bl.ramo ? cardRamo(bl.ramo, bl.itens) + (ramosRecolhidos.has(bl.ramo.replace(/[^a-z_]/g, '')) ? '' : listaHtml(bl.itens)) : listaHtml(bl.itens))).join('') + (soArquivados ? '' : cardConvite);
 
@@ -1061,6 +1057,30 @@ function ativosDaBusca() {
     });
 }
 
+// v1.166.0 (demanda df13dba3, FICHA_CONTAGEM_ATIVOS_E_VIDAS_RAIZ v1.1.0, de acordo do Nicola 16/11 23:41) — contagem única:
+// ativo = pai e filhos não arquivados que não são vida; vida = pessoa (o grupo "Família …" é agrupamento e não conta). A mesma
+// regra vale no cabeçalho do app (window.rzContagemAtivos), na faixa do ramo, no título do grupo e nos chips; o banco usa a
+// mesma no Hoje, no relatório executivo e na cota (migration contagem_ativos_v1).
+function ehVidaPessoa(a) {
+    if (a.tipo_ativo !== 'vida') return false;
+    const cod = tipoDoCatalogo(a.tipo_detalhe_id)?.codigo;
+    return cod ? cod !== 'familia' : !(estado.ativos || []).some(f => f.ativo_principal_id === a.id);
+}
+function contarItens(lista) {
+    let ativos = 0, vidas = 0;
+    const filhos = (estado.ativos || []).filter(f => f.ativo_principal_id && (f.status || 'ativo') !== 'arquivado');
+    (lista || []).forEach(p => [p, ...(p.ativo_principal_id ? [] : filhos.filter(f => f.ativo_principal_id === p.id))].forEach(x => {
+        if ((x.status || 'ativo') === 'arquivado') return;
+        if (x.tipo_ativo === 'vida') { if (ehVidaPessoa(x)) vidas++; } else ativos++;
+    }));
+    return { ativos, vidas, total: ativos + vidas };
+}
+window.rzContagemAtivos = () => contarItens((estado.ativos || []).filter(a => !a.ativo_principal_id));
+window.rzContagemAtivosTexto = () => { // cabeçalho do app: "5 ativos · 6 vidas"
+    const c = window.rzContagemAtivos();
+    return [c.ativos && `${c.ativos} ${c.ativos === 1 ? 'ativo' : 'ativos'}`, c.vidas && `${c.vidas} ${c.vidas === 1 ? 'vida' : 'vidas'}`].filter(Boolean).join(' · ');
+};
+
 function renderChipsAtivos() {
     const wrap = document.getElementById('ativos-chips-tipo');
     if (!wrap) return; // cofre.html standalone não tem este container ainda — no-op seguro
@@ -1073,9 +1093,9 @@ function renderChipsAtivos() {
         if (g.comercial) return `<button type="button" data-action="filtrar-ativos-chip" data-chip-indice="${i}" class="rz-chip${i === chipAtivoAtual ? ' rz-on' : ''}${g.bloqueado ? ' rz-off' : ''}">${escapeHtml(g.rotulo)}</button>`; // v1.162.0 · v1.164.0 cadeado
         const qtd = g.arquivados ? arquivadosDaLente().length // v1.120.0 (L5-5) — só aparece com arquivado
             : g.alerta ? base.filter(a => comAlerta.has(a.id)).length
-            : g.ramo ? principais().filter(a => ramoDoAtivoLista(a) === g.ramo).length // v1.85.0 (F21) — chip de ramo
-            : g.segmento ? base.filter(a => segmentoDoAtivo(a) === g.segmento).length // v1.85.0 (F22) — chip de segmento
-            : (g.tipos ? base.filter(a => g.tipos.includes(a.tipo_ativo)).length : base.length);
+            : g.ramo ? contarItens(principais().filter(a => ramoDoAtivoLista(a) === g.ramo)).total // v1.85.0 (F21) — chip de ramo · df13dba3: pais e filhos
+            : g.segmento ? contarItens(base.filter(a => segmentoDoAtivo(a) === g.segmento)).total // v1.85.0 (F22) — chip de segmento
+            : contarItens(g.tipos ? base.filter(a => g.tipos.includes(a.tipo_ativo)) : base).total; // df13dba3 — pais e filhos; vida só pessoa
         const ativo = i === chipAtivoAtual;
         if (g.sair) return `<button type="button" data-action="filtrar-ativos-chip" data-chip-indice="${i}" class="rz-chip${g.sair === 'arquivados' ? ' rz-on' : ''}" aria-label="${g.sair === 'ramo' ? 'Ver todos os ramos' : 'Fechar arquivados'}"><svg data-lucide="x" style="width:13px;height:13px;vertical-align:-2px"></svg> ${escapeHtml(g.rotulo)}${g.sair === 'arquivados' ? ` <span class="rz-n">${qtd}</span>` : ''}</button>`;
         if ((g.alerta || g.arquivados) && !qtd && !ativo) return ''; // chip de ação só aparece com contador > 0 (UXR-15)
