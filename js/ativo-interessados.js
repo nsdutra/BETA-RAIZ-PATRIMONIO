@@ -1,7 +1,11 @@
 // =====================================================================
 // RAIZ PATRIMÔNIO — js/ativo-interessados.js
-// Versão: 1.3.1 · 15/11/2026
+// Versão: 1.4.0 · 17/11/2026
 // -----------------------------------------------------------------
+// v1.4.0 (17/11/2026, sessão 20261117-1535-comercial-c4, demanda 285a0058; FICHA_RECEITA_UNIDADES_GERADORAS v1.12.0 §13.7 — Nicola
+//   16/11 20:12 e 21:31) — "Leads" vira "Interessados" no card, na tela e no ⋮; o card aparece também no ativo com tabela de
+//   venda ativa (Raiz Comercial), onde o interessado entra na esteira Venda: Cotação · Pedido · Cancelado (fn_interessado_registrar v3).
+//   Versão anterior: 1.3.1
 // v1.3.1 (15/11/2026, sessão 20261115-1805-licencas-l2, demanda 954b4cca — ajustes do Nicola, 18:00) — ⋮ dos leads:
 //   "Novo interessado" sem o "Pelo WhatsApp" e o formulário aceita só o nome (WhatsApp opcional, como a
 //   fn_interessado_registrar já permite); sai "Ver todos" (o chip Todos já faz isso); entram os atalhos de configuração —
@@ -29,7 +33,7 @@
 //     comunicações da pessoa (fn_comunicacoes_pessoa: robô, comunicações, app e esteira). Grava por fn_interessado_mover.
 //   · O card aparece no bem com uso de agenda (temporada, short stay, cowork, atendimento) ou que já tenha interessado/pedido.
 // =====================================================================
-export const VERSAO = '1.3.1';
+export const VERSAO = '1.4.0';
 
 const MODELOS_AGENDA = ['temporada', 'short_stay', 'cowork', 'atendimento'];
 const esc = (s) => (typeof rzEsc === 'function' ? rzEsc(s) : String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])));
@@ -70,7 +74,16 @@ export async function montarCardInteressados(a, usos = []) {
         console.warn('[ativo-interessados] leitura:', e?.message || e);
         card?.remove(); return;
     }
-    if (!temAgenda && !lista.length && !pedidos.length) { card?.remove(); return; }
+    // v1.4.0 — ativo com tabela de venda ativa (Raiz Comercial) também tem card: a esteira é Venda (Cotação · Pedido · Cancelado)
+    let temVenda = false;
+    if (!temAgenda && !lista.length && !pedidos.length && typeof window.podeUsar === 'function' && window.podeUsar('comercial.precos').ok) {
+        try {
+            const hoje = new Date().toISOString().slice(0, 10);
+            const { data: vs } = await dbAuth.from('vinculos').select('vigencia_ate').eq('origem_tipo', 'catalogo_tabela').eq('papel', 'vende').eq('ativo_id', a.id);
+            temVenda = (vs || []).some(v => !v.vigencia_ate || v.vigencia_ate >= hoje);
+        } catch (e) { temVenda = false; }
+    }
+    if (!temAgenda && !temVenda && !lista.length && !pedidos.length) { card?.remove(); return; }
     if (!card) {
         card = document.createElement('div'); card.id = 'fa-card-interessados'; card.className = 'rz-card';
         (document.getElementById('fa-card-calendario') || usosCard).after(card);
@@ -83,8 +96,8 @@ export async function montarCardInteressados(a, usos = []) {
     const etapasRes = (resumo.resumo || []).filter(e => e.qtd > 0);
     const sub = [`${resumo.ativos || 0} ${resumo.ativos === 1 ? 'ativo' : 'ativos'}`, resumo.passos_semana ? `${resumo.passos_semana} ${resumo.passos_semana === 1 ? 'passo' : 'passos'} esta semana` : ''].filter(Boolean).join(' · ');
     card.className = 'rz-card';
-    card.innerHTML = `<div class="rz-card-h"><h3>Leads</h3><span class="rz-sub">${esc(sub)}</span><button type="button" class="rz-more" data-int-mais aria-label="Ações dos leads"><i data-lucide="ellipsis-vertical"></i></button></div>
-        ${etapasRes.length ? `<div class="rz-kpis" style="margin:0" role="button" data-int-abrir aria-label="Ver os leads">${etapasRes.map(e => `<div class="rz-kpi"${['ganho', 'perdido'].includes(e.natureza) ? ' style="opacity:.6"' : ''}><small>${esc(e.nome || 'Sem etapa')}</small><b>${e.qtd}</b></div>`).join('')}</div>`
+    card.innerHTML = `<div class="rz-card-h"><h3>Interessados</h3><span class="rz-sub">${esc(sub)}</span><button type="button" class="rz-more" data-int-mais aria-label="Ações dos interessados"><i data-lucide="ellipsis-vertical"></i></button></div>
+        ${etapasRes.length ? `<div class="rz-kpis" style="margin:0" role="button" data-int-abrir aria-label="Ver os interessados">${etapasRes.map(e => `<div class="rz-kpi"${['ganho', 'perdido'].includes(e.natureza) ? ' style="opacity:.6"' : ''}><small>${esc(e.nome || 'Sem etapa')}</small><b>${e.qtd}</b></div>`).join('')}</div>`
             : '<p class="rz-desc" style="margin:4px 0 0">Nenhum interessado ainda.</p>'}
         ${pedidos.length ? `<div class="rz-group" style="margin-top:10px">Pedidos aguardando<span>${pedidos.length}</span></div><div class="rz-list">${pedidos.map(linhaPedido).join('')}</div>` : ''}`;
     const recarregar = () => montarCardInteressados(a, usos);
@@ -133,7 +146,7 @@ async function abrirFichaInteressado(a, i, aoMudar, empilhar = false) {
         <div class="rz-chips" id="ai-etapas" style="margin:0 0 4px">${cat.filter(e => !e.opcional).map(chip).join('')}</div>
         ${cat.some(e => e.opcional) ? `<div class="rz-chips" style="margin:0 0 4px"><span class="rz-desc" style="align-self:center;margin-right:4px">Opcional:</span>${cat.filter(e => e.opcional).map(chip).join('')}</div>` : ''}
         <p class="rz-desc" id="ai-et-desc" style="margin:0 0 10px">${esc((cat.find(e => e.etapa_codigo === st.etapa) || {}).descricao || '')}</p>`
-        : '<p class="rz-desc">Este interessado não está numa esteira (o bem não tem uso de temporada, cowork ou atendimento).</p>'}
+        : '<p class="rz-desc">Este interessado não está numa esteira (o bem não tem uso de temporada, cowork ou atendimento, nem tabela de venda ativa).</p>'}
         <div class="rz-f"><label for="ai-pp">Próximo passo</label><input type="text" id="ai-pp" maxlength="160" value="${esc(i.proximo_passo || '')}" placeholder="Ex.: mandar proposta"></div>
         <div class="rz-f"><label for="ai-em">Até quando</label><input type="date" id="ai-em" value="${esc(i.proximo_passo_em || '')}"></div>
         <div class="rz-group" style="margin-top:6px">Comunicações<span></span></div>
@@ -182,8 +195,8 @@ function acoesTelaLeads(a, aoMudar, empilhar = true, usos = tela.usos || []) {
             aoTocar: () => import('./ativo-disponibilidade.js').then(m => m.abrirDisponibilidadeUso({ usoId: u.uso_id, modelo: u.modelo, nomeUso: u.nome, nomeBem: a.nome_exibicao })) })),
         { icone: 'building', titulo: 'Dados da empresa', sub: 'Validade dos pedidos e dados do recebedor', aoTocar: () => { fecharSheet(); if (typeof switchTab === 'function') switchTab('tab-minha-empresa'); } },
     ];
-    abrirSheetAcoes({ titulo: 'Leads e interessados', sub: a.nome_exibicao, empilhar, grupos: [
-        { titulo: 'Leads', acoes: [
+    abrirSheetAcoes({ titulo: 'Interessados', sub: a.nome_exibicao, empilhar, grupos: [
+        { titulo: 'Interessados', acoes: [
             { icone: 'user-plus', titulo: 'Novo interessado', sub: 'Só o nome já basta', aoTocar: () => setTimeout(() => abrirNovoInteressado(a, aoMudar, empilhar), 50) },
             { icone: 'info', titulo: 'O que é cada etapa', aoTocar: () => setTimeout(() => explicarEtapas(empilhar), 50) } ] },
         { titulo: 'Configurações', acoes: config },
@@ -196,10 +209,10 @@ async function explicarEtapas(empilhar) {
         `<div class="rz-row"><div class="rz-tx"><b>${esc(e.etapa_nome)}${e.opcional ? ' <span class="rz-st rz-neu">opcional</span>' : ''}</b><span>${esc(e.descricao || '')}</span></div></div>`).join('')}</div></div>`, { empilhar });
 }
 export async function abrirTelaLeads(a, aoMudarCard) {
-    const sheet = abrirSheet(`<div class="rz-sh-h"><div style="flex:1;min-width:0"><h3>Leads e interessados</h3><span class="rz-sub">${esc(a.nome_exibicao || '')}</span></div>
+    const sheet = abrirSheet(`<div class="rz-sh-h"><div style="flex:1;min-width:0"><h3>Interessados</h3><span class="rz-sub">${esc(a.nome_exibicao || '')}</span></div>
         <button type="button" class="rz-more" data-tl-mais aria-label="Ações"><i data-lucide="ellipsis-vertical"></i></button>
         <button type="button" class="rz-x" onclick="fecharSheet()" aria-label="Fechar"><i data-lucide="x"></i></button></div>
-        <div class="rz-sh-b"><div class="rz-f" style="margin-bottom:8px"><input type="search" data-tl-busca placeholder="Buscar nome ou empresa" value="${esc(tela.busca)}" aria-label="Buscar lead"></div>
+        <div class="rz-sh-b"><div class="rz-f" style="margin-bottom:8px"><input type="search" data-tl-busca placeholder="Buscar nome ou empresa" value="${esc(tela.busca)}" aria-label="Buscar interessado"></div>
         <div class="rz-chips" data-tl-chips></div><div data-tl-lista>${typeof rzSk === 'function' ? rzSk('linhas', 4) : ''}</div></div>`);
     const aoMudar = () => { carregar(); aoMudarCard && aoMudarCard(); };
     sheet.querySelector('[data-tl-mais]').addEventListener('click', () => acoesTelaLeads(a, aoMudar, true));
@@ -208,7 +221,7 @@ export async function abrirTelaLeads(a, aoMudarCard) {
     async function carregar() {
         const { data, error } = await dbAuth.rpc('fn_leads_listar', { p_cliente_id: a.cliente_id || CLIENTE_ID_SUPABASE, p_ativo_id: a.id, p_etapa: tela.etapa, p_busca: tela.busca || null });
         const el = sheet.querySelector('[data-tl-lista]'); if (!el) return;
-        if (error) { el.innerHTML = '<p class="rz-desc">Não consegui ler os leads agora.</p>'; return; }
+        if (error) { el.innerHTML = '<p class="rz-desc">Não consegui ler os interessados agora.</p>'; return; }
         const res = (data?.resumo || []).filter(e => e.qtd > 0);
         const chip = (cod, rot, n) => `<button type="button" class="rz-chip${tela.etapa === cod ? ' rz-on' : ''}" data-tl-et="${cod ?? ''}">${esc(rot)} <span class="rz-n">${n}</span></button>`;
         sheet.querySelector('[data-tl-chips]').innerHTML = chip(null, 'Ativos', data?.ativos || 0) + res.map(e => chip(e.etapa, e.nome || 'Sem etapa', e.qtd)).join('') + chip('todos', 'Todos', data?.total || 0);
@@ -222,8 +235,8 @@ export async function abrirTelaLeads(a, aoMudarCard) {
                 <div class="rz-ic"><i data-lucide="${i.etapa_codigo === 'em_teste' ? 'badge-check' : 'user-round'}"></i></div>
                 <div class="rz-tx"><b>${esc(i.nome || 'Interessado')}</b><span>${esc(sub || 'Sem próximo passo')}</span></div>
                 ${i.passo_semana ? '<div class="rz-rt"><span class="rz-st rz-warn">Esta semana</span></div>' : ''}
-                <button type="button" class="rz-more" data-tl-acoes="${i.id}" aria-label="Ações do lead"><i data-lucide="ellipsis-vertical"></i></button></div>`;
-        }).join('')}</div>`).join('') : '<p class="rz-desc">Nenhum lead com esse filtro.</p>';
+                <button type="button" class="rz-more" data-tl-acoes="${i.id}" aria-label="Ações do interessado"><i data-lucide="ellipsis-vertical"></i></button></div>`;
+        }).join('')}</div>`).join('') : '<p class="rz-desc">Nenhum interessado com esse filtro.</p>';
         const achar = (id) => itens.find(x => x.id === id);
         el.querySelectorAll('[data-tl-id]').forEach(r => r.addEventListener('click', (ev) => {
             if (ev.target.closest('[data-tl-acoes]')) return;
@@ -266,7 +279,7 @@ function abrirProporReuniao(a, i) {
     });
     const sheet = abrirSheetForm({
         titulo: 'Propor reunião', sub: i.partes?.nome || '', rotuloSalvar: 'Enviar convite',
-        corpo: `<p class="rz-desc" style="margin:0 0 8px">Até 3 faixas de dias (sem faixa: próximos 5 dias úteis). Os horários respeitam sua agenda, o Google da Raiz e as preferências do lead.</p>
+        corpo: `<p class="rz-desc" style="margin:0 0 8px">Até 3 faixas de dias (sem faixa: próximos 5 dias úteis). Os horários respeitam sua agenda, o Google da Raiz e as preferências do interessado.</p>
             ${faixa(1)}${faixa(2)}${faixa(3)}
             <div class="rz-f"><label>Duração</label><select id="pr-du"><option value="30">30 min</option><option value="60">1 hora</option></select></div>
             <button type="button" class="rz-btn rz-btn-2 rz-sm" id="pr-ver">Ver horários</button>
