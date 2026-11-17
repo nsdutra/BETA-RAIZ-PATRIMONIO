@@ -1,6 +1,10 @@
 // ============================================================================
 // cofre-ativos.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.164.0 · 16/11/2026
+// Versão: 1.165.0 · 17/11/2026
+// v1.165.0 (17/11/2026, sessão 20261117-0000-comercial-c2, demanda 285a0058; FICHA_RECEITA_UNIDADES_GERADORAS v1.12.0 §13.6 e §13.9) —
+//   tabelas de preço (js/comercial-tabelas.js): a lente Comercial ganha o chip "Tabelas" ao lado de Itens; a aba Usos e contratos
+//   do ativo ganha o card "Tabelas de venda" (só com tabela ativa no ativo); o ⋮ de Contratos ganha "Ativar tabela de venda"
+//   (código comercial.precos; sem o plano, cadeado e oferta). Versão anterior: 1.164.0
 // v1.164.0 (16/11/2026, sessão 20261116-2325-comercial-c1, demanda 285a0058; FICHA_RECEITA_UNIDADES_GERADORAS v1.12.0 §13.2 — de acordo
 //   do Nicola 16/11 21:31 e 23:19) — o chip "Itens" da lente Comercial aparece sempre; sem o comercial.itens no plano, vem com
 //   cadeado (rz-off) e o toque mostra o convite do Raiz Comercial e abre a oferta do ramo (abrirOfertaRamo), como os outros ramos.
@@ -41,7 +45,7 @@
 // Versões anteriores (v1.157.0 … v1.157.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '1.164.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.165.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 import { estado } from './cofre-estado.js';
 import { rzCalendario, rzCalItemDaAgenda } from './nucleo/calendario.js'; // v1.152.0 — calendário único (DS §6.3)
 import { carregarBiblioteca } from './nucleo/bibliotecas.js'; // bibliotecas pesadas, sob demanda (dem 6b11c602)
@@ -693,6 +697,7 @@ export function renderAtivosLista(filtroTipo = '', filtroTexto = '') {
             refrescarIcones();
             return;
         }
+        if (alvo && chipComercial === 'tabelas') { import('./comercial-tabelas.js').then(m => m.renderTabelas(alvo)).catch(e => { alvo.innerHTML = `<p class="rz-desc">${escapeHtml(e?.message || 'Não consegui abrir as tabelas.')}</p>`; }); return; } // v1.165.0
         if (alvo) import('./comercial-itens.js').then(m => m.renderItens(alvo)).catch(e => { alvo.innerHTML = `<p class="rz-desc">${escapeHtml(e?.message || 'Não consegui abrir o catálogo.')}</p>`; });
         return;
     }
@@ -1010,7 +1015,7 @@ function recalcularGruposChip() {
         ativosDoRamo().forEach(a => { const sg = segmentoDoAtivo(a); const o = tipoDoCatalogo(a.tipo_detalhe_id)?.ordem ?? 999; if (!ordem.has(sg) || o < ordem.get(sg)) ordem.set(sg, o); });
         GRUPOS_CHIP_TIPO = base.concat([...ordem.keys()].sort((x, y) => (ordem.get(x) - ordem.get(y)) || x.localeCompare(y, 'pt-BR')).map(sg => ({ rotulo: sg, tipos: [], segmento: sg })));
         // v1.162.0 — lente Comercial: o catálogo do que a empresa vende, ao lado dos ativos (FICHA_RECEITA §11)
-        if (r === 'comercial') GRUPOS_CHIP_TIPO = GRUPOS_CHIP_TIPO.concat([{ rotulo: 'Itens', comercial: 'itens', bloqueado: !comercialItensLiberado() }]); // v1.164.0 — sempre; sem plano, com cadeado
+        if (r === 'comercial') GRUPOS_CHIP_TIPO = GRUPOS_CHIP_TIPO.concat([{ rotulo: 'Itens', comercial: 'itens', bloqueado: !comercialItensLiberado() }, { rotulo: 'Tabelas', comercial: 'tabelas', bloqueado: !comercialItensLiberado() }]); // v1.165.0 Tabelas // v1.164.0 — sempre; sem plano, com cadeado
     }
     // v1.124.0 — "Ver só" (item 44): na frente, o chip "Ver todos" que desfaz; Arquivados (pelo ⋮): um chip só, que fecha
     if (verSoRamo && ramoDaLenteApp() === 'tudo') GRUPOS_CHIP_TIPO = [{ rotulo: 'Ver todos', tipos: null, sair: 'ramo' }].concat(GRUPOS_CHIP_TIPO.map(g => g.rotulo === 'Todos' ? { ...g, rotulo: (typeof rzRamoInfo === 'function' && rzRamoInfo(verSoRamo)?.nome) || 'Todos' } : g));
@@ -2192,6 +2197,9 @@ async function abrirTransicaoAtivo(a, m) {
 function montarInteressadosAtivo(a, usos) {
     import('./ativo-interessados.js').then(m => { if (!ativoAtualId || ativoAtualId === a.id) m.montarCardInteressados(a, usos); })
         .catch(e => console.warn('[cofre-ativos] interessados:', e?.message || e));
+    // v1.165.0 — card "Tabelas de venda" (Raiz Comercial), só com tabela ativa no ativo
+    import('./comercial-tabelas.js').then(m => { if (!ativoAtualId || ativoAtualId === a.id) m.montarCardTabelas(a); })
+        .catch(e => console.warn('[cofre-ativos] tabelas:', e?.message || e));
 }
 const MODELOS_AGENDA_USO = ['temporada', 'short_stay', 'cowork', 'atendimento']; // v1.155.0 — iguais a ativo-disponibilidade.js
 const usoTemAgenda = (u) => !u.repouso && MODELOS_AGENDA_USO.includes(u.modelo);
@@ -4071,6 +4079,7 @@ export function abrirAcoesContratosAtivo() {
     const a = estado.ativoEmFoco; if (!a) return;
     sheetOuAviso({ titulo: 'Contratos', sub: a.nome_exibicao, acoes: [
         { icone: 'plus', titulo: 'Adicionar uso', codigo: 'ativos.usos.iniciar', sub: 'Aluguel, temporada…', aoTocar: () => abrirAdicionarModeloAtivo() }, // v1.88.0 (F25c); v1.97.0 usos sem contrato
+        { icone: 'tags', titulo: 'Ativar tabela de venda', codigo: 'comercial.precos', sub: 'Raiz Comercial', aoTocar: () => import('./comercial-tabelas.js').then(m => m.abrirAtivarTabelas(a)) }, // v1.165.0
     ] });
 }
 

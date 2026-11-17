@@ -1,6 +1,11 @@
 // =====================================================================
 // RAIZ PATRIMÔNIO — js/comercial-itens.js
-// Versão: 1.1.0 · 16/11/2026
+// Versão: 1.2.0 · 17/11/2026
+// -----------------------------------------------------------------
+// v1.2.0 (17/11/2026, sessão 20261117-0000-comercial-c2, demanda 285a0058; FICHA_RECEITA_UNIDADES_GERADORAS v1.12.0 §13.6 — Nicola
+// 16/11 21:31: "não vejo necessidade de ter uma tabela padrão") — o preço sai do formulário do item e passa a morar nas tabelas
+// (js/comercial-tabelas.js): a lista mostra o menor preço base vigente e em quantas tabelas o item está; ⋮ Preços lista por
+// tabela e "Preço numa tabela" escolhe entre as tabelas do recorte do item (ou cria uma). Versão anterior: 1.1.0
 // -----------------------------------------------------------------
 // v1.1.0 (16/11/2026, sessão 20261116-2325-comercial-c1, demanda 285a0058; FICHA_RECEITA_UNIDADES_GERADORAS v1.12.0 §13.3,
 // §13.4 e §13.11 — de acordo do Nicola 16/11 22:39 e 23:19) — C1 do catálogo: grupo e subgrupo no próprio item (lista
@@ -21,7 +26,7 @@ import * as api from './cofre-api.js';
 import { estado } from './cofre-estado.js';
 import { avisarComDesfazer } from './cofre-ui.js';
 
-export const VERSAO = '1.1.0';
+export const VERSAO = '1.2.0';
 
 const esc = (s) => (typeof rzEsc === 'function' ? rzEsc(s) : String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])));
 const toast = (m, t) => (typeof mostrarToast === 'function' ? mostrarToast(m, t) : console.log(m));
@@ -50,7 +55,7 @@ export async function renderItens(container) {
     st.itens = data.dados || [];
     const linha = (i) => {
         const sub = [i.unidade, i.codigo, NATUREZA[i.natureza] !== 'Produto' ? NATUREZA[i.natureza] : '', i.fotos ? `${i.fotos} foto${i.fotos > 1 ? 's' : ''}` : ''].filter(Boolean).join(' · ');
-        const preco = i.preco != null ? `<b>${moeda(i.preco)}</b><span class="rz-desc">por ${esc(i.unidade)}</span>` : '<span class="rz-st rz-warn">Sem preço</span>';
+        const preco = i.preco != null ? `<b>${i.tabelas > 1 ? 'desde ' : ''}${moeda(i.preco)}</b><span class="rz-desc">por ${esc(i.unidade)}${i.tabelas ? ` · ${i.tabelas} tabela${i.tabelas > 1 ? 's' : ''}` : ''}</span>` : '<span class="rz-st rz-warn">Sem preço</span>'; // v1.2.0 — preço pelas tabelas
         const ic = i.capa ? `<div class="rz-ic" data-ci-capa="${i.id}" style="overflow:hidden;padding:0"></div>`
             : `<div class="rz-ic"><svg data-lucide="${i.natureza === 'servico' ? 'handshake' : i.natureza === 'licenca' ? 'badge-check' : 'package'}"></svg></div>`;
         return `<div class="rz-row rz-link${i.ativo ? '' : ' rz-off'}" role="button" tabindex="0" data-ci-id="${i.id}">${ic}
@@ -96,7 +101,7 @@ function acoesItem(i) {
     abrirSheetAcoes({ titulo: i.nome, sub: [i.grupo && i.subgrupo ? `${i.grupo} › ${i.subgrupo}` : i.grupo, i.unidade].filter(Boolean).join(' · '), acoes: [
         { icone: 'pencil', titulo: 'Editar item', aoTocar: () => setTimeout(() => abrirFormItem(i), 50) },
         { icone: 'image-plus', titulo: 'Fotos', sub: i.fotos ? `${i.fotos} foto${i.fotos > 1 ? 's' : ''}` : 'Nenhuma foto ainda', aoTocar: () => setTimeout(() => abrirFotos(i), 50) },
-        { icone: 'tags', titulo: 'Preços', sub: i.preco != null ? `${moeda(i.preco)} por ${i.unidade}` : 'Sem preço ainda', aoTocar: () => setTimeout(() => abrirPrecos(i), 50) },
+        { icone: 'tags', titulo: 'Preços', sub: i.tabelas ? `${i.tabelas} tabela${i.tabelas > 1 ? 's' : ''}` : 'Sem preço ainda', aoTocar: () => setTimeout(() => abrirPrecos(i), 50) },
         i.ativo
             ? { icone: 'archive', tipo: 'bad', titulo: 'Desativar', sub: 'Sai da lista e da venda; o histórico fica', aoTocar: () => salvar(i.id, { ...paraSalvar(i), ativo: false }, 'Item desativado.') }
             : { icone: 'eye', titulo: 'Ativar de novo', aoTocar: () => salvar(i.id, { ...paraSalvar(i), ativo: true }, 'Item ativo de novo.') },
@@ -147,23 +152,20 @@ async function abrirFormItem(i) {
                 <div class="rz-f"><label for="ci-un">Unidade <i>*</i></label><input type="text" id="ci-un" list="ci-un-lista" value="${esc(v.unidade || '')}"><datalist id="ci-un-lista">${UNIDADES.map(u => `<option value="${esc(u)}">`).join('')}</datalist></div>
             </div>
             <div class="rz-f2 rz-f2-curto">
-                <div class="rz-f"><label for="ci-preco">${i ? 'Preço (tabela padrão)' : 'Preço'}</label><input type="number" id="ci-preco" min="0" step="0.01" inputmode="decimal" value="${i && i.preco != null ? i.preco : ''}" placeholder="0,00"></div>
+                <div class="rz-f"><label for="ci-cod">Código</label><input type="text" id="ci-cod" maxlength="40" value="${esc(v.codigo || '')}" placeholder="SKU, opcional"></div>
                 <div class="rz-f"><label for="ci-custo">Custo padrão</label><input type="number" id="ci-custo" min="0" step="0.01" inputmode="decimal" value="${v.custo_padrao ?? ''}" placeholder="opcional"></div>
             </div>
-            <div class="rz-f"><label for="ci-cod">Código</label><input type="text" id="ci-cod" maxlength="40" value="${esc(v.codigo || '')}" placeholder="SKU, opcional"></div>
             <div class="rz-f" style="margin-bottom:0"><label for="ci-desc">Marca, detalhes e descrição (aparece na vitrine)</label><textarea id="ci-desc" rows="2" maxlength="600">${esc(v.descricao || '')}</textarea></div>
-            ${i ? '' : '<p class="rz-desc" style="margin:10px 0 0">As fotos entram depois de salvar, no ⋮ do item › Fotos.</p>'}`,
+            ${i ? '' : '<p class="rz-desc" style="margin:10px 0 0">Fotos e preços entram depois de salvar, no ⋮ do item (o preço mora numa tabela de preço).</p>'}`,
         aoSalvar: async () => {
             const val = (id) => document.getElementById(id)?.value ?? '';
             if (!val('ci-nome').trim()) { toast('Dê um nome ao item.', 'erro'); return false; }
             if (!val('ci-un').trim()) { toast('Informe a unidade.', 'erro'); return false; }
             if (val('ci-sub').trim() && !val('ci-grupo').trim()) { toast('Informe o grupo do subgrupo.', 'erro'); return false; }
-            const novoPreco = val('ci-preco') === '' ? null : Number(val('ci-preco'));
             const item = { nome: val('ci-nome').trim(), natureza: val('ci-nat'), unidade: val('ci-un').trim(), codigo: val('ci-cod').trim(),
                 grupo: val('ci-grupo').trim(), subgrupo: val('ci-sub').trim(),
                 categoria_codigo: val('ci-cat'), custo_padrao: val('ci-custo'), descricao: val('ci-desc').trim(),
                 variacoes: v.variacoes || [], ativo: i ? i.ativo : true };
-            if (novoPreco != null && (!i || Number(i.preco) !== novoPreco)) item.preco = novoPreco; // só grava preço novo quando mudou
             const res = await salvar(i?.id, item);
             if (!res) return false;
             // a categoria de receita vale para o subgrupo inteiro (quando marcado)
@@ -245,52 +247,38 @@ function acoesFoto(i, f) {
 }
 
 // ---------------------------------------------------------------------
-// Preços (histórico, comprador, volume)
+// Preços do item — por tabela (v1.2.0: sem tabela padrão; o preço mora numa tabela do recorte do item)
 // ---------------------------------------------------------------------
+const cabSheet = (t, s) => (typeof rzSheetCabecalho === 'function' ? rzSheetCabecalho(t, s) : `<div class="rz-sh-h"><h3>${esc(t)}</h3></div>`);
+const doRecorte = (t, i) => !t.grupo || ((i.grupo || '').toLowerCase() === t.grupo.toLowerCase() && (!t.subgrupo || (i.subgrupo || '').toLowerCase() === t.subgrupo.toLowerCase()));
 async function abrirPrecos(i) {
-    const { data, error } = await dbAuth.from('catalogo_precos').select('id, tabela, parte_id, quantidade_min, preco, vigencia_inicio, vigencia_fim, partes(nome)')
-        .eq('item_id', i.id).order('vigencia_inicio', { ascending: false });
+    const { data, error } = await dbAuth.from('catalogo_precos').select('id, tabela_id, parte_id, quantidade_min, preco, vigencia_inicio, vigencia_fim, partes(nome), catalogo_tabelas(nome)')
+        .eq('item_id', i.id).not('tabela_id', 'is', null).order('vigencia_inicio', { ascending: false });
     if (error) { toast(error.message, 'erro'); return; }
     const hoje = new Date().toISOString().slice(0, 10);
     const vig = (p) => p.vigencia_inicio <= hoje && (!p.vigencia_fim || p.vigencia_fim >= hoje);
-    const chave = (p) => [p.partes?.nome ? 'Para ' + p.partes.nome : (p.tabela === 'padrao' ? 'Tabela padrão' : 'Tabela ' + p.tabela), p.quantidade_min > 0 ? `a partir de ${p.quantidade_min} ${i.unidade}` : ''].filter(Boolean).join(' · ');
-    const linhas = (data || []).map(p => `<div class="rz-row"><div class="rz-ic"><svg data-lucide="${p.parte_id ? 'user-round' : p.quantidade_min > 0 ? 'boxes' : 'tag'}"></svg></div>
-        <div class="rz-tx"><b>${esc(chave(p))}</b><span>${dataBR(p.vigencia_inicio)}${p.vigencia_fim ? ' a ' + dataBR(p.vigencia_fim) : ' em diante'}</span></div>
-        <div class="rz-rt"><b>${moeda(p.preco)}</b>${vig(p) ? '<span class="rz-st rz-ok">Vigente</span>' : p.vigencia_inicio > hoje ? '<span class="rz-st rz-neu">A partir de</span>' : '<span class="rz-st rz-neu">Antigo</span>'}</div></div>`).join('');
-    const s = abrirSheet(`${typeof rzSheetCabecalho === 'function' ? rzSheetCabecalho('Preços', i.nome) : `<div class="rz-sh-h"><h3>Preços</h3></div>`}
-        <div class="rz-sh-b"><div class="rz-card rz-list">${linhas || '<p class="rz-desc" style="margin:8px 2px">Sem preço ainda.</p>'}
-        <button type="button" class="rz-add" data-cp-novo><svg data-lucide="plus"></svg>Novo preço</button></div>
-        <p class="rz-desc" style="margin:10px 4px 0">Na venda vale o preço do comprador; sem ele, o de volume que couber na quantidade; sem ele, a tabela padrão — sempre o vigente na data.</p></div>`);
-    s?.querySelector('[data-cp-novo]')?.addEventListener('click', () => abrirNovoPreco(i));
+    const grupos = new Map();
+    (data || []).forEach(p => { const k = p.catalogo_tabelas?.nome || 'Tabela'; if (!grupos.has(k)) grupos.set(k, []); grupos.get(k).push(p); });
+    const linha = (p) => `<div class="rz-row"><div class="rz-ic"><svg data-lucide="${p.parte_id ? 'user-round' : p.quantidade_min > 0 ? 'boxes' : 'tag'}"></svg></div>
+        <div class="rz-tx"><b>${esc([p.partes?.nome ? 'Só ' + p.partes.nome : 'Preço base', p.quantidade_min > 0 ? `a partir de ${p.quantidade_min} ${i.unidade}` : ''].filter(Boolean).join(' · '))}</b><span>${dataBR(p.vigencia_inicio)}${p.vigencia_fim ? ' a ' + dataBR(p.vigencia_fim) : ' em diante'}</span></div>
+        <div class="rz-rt"><b>${moeda(p.preco)}</b>${vig(p) ? '<span class="rz-st rz-ok">Vigente</span>' : p.vigencia_inicio > hoje ? '<span class="rz-st rz-neu">A partir de</span>' : '<span class="rz-st rz-neu">Antigo</span>'}</div></div>`;
+    const s = abrirSheet(`${cabSheet('Preços', i.nome)}
+        <div class="rz-sh-b">${[...grupos.entries()].map(([k, ps]) => `<div class="rz-group">${esc(k)}<span>${ps.length}</span></div><div class="rz-card rz-list">${ps.map(linha).join('')}</div>`).join('')
+            || '<div class="rz-card"><p class="rz-desc" style="margin:0">Sem preço ainda. O preço mora numa tabela de preço do Raiz Comercial.</p></div>'}
+        <button type="button" class="rz-add" data-cp-novo style="margin-top:8px"><svg data-lucide="plus"></svg>Preço numa tabela</button>
+        <p class="rz-desc" style="margin:10px 4px 0">Na venda vale a tabela ativa no ativo: o preço do cliente, depois o de volume que couber na quantidade, depois o preço base — sempre o vigente na data.</p></div>`);
+    s?.querySelector('[data-cp-novo]')?.addEventListener('click', () => escolherTabela(i));
     icones();
 }
 
-async function abrirNovoPreco(i) {
-    const { data: partes } = await dbAuth.from('partes').select('id, nome').eq('cliente_id', cliente()).order('nome').limit(500);
-    const hoje = new Date().toISOString().slice(0, 10);
-    abrirSheetForm({
-        titulo: 'Novo preço', sub: i.nome, rotuloSalvar: 'Salvar preço', empilhar: true,
-        corpo: `
-            <div class="rz-f2 rz-f2-curto">
-                <div class="rz-f"><label for="cp-preco">Preço por ${esc(i.unidade)} <i>*</i></label><input type="number" id="cp-preco" min="0" step="0.01" inputmode="decimal"></div>
-                <div class="rz-f"><label for="cp-ini">Vale a partir de</label><input type="date" id="cp-ini" value="${hoje}"></div>
-            </div>
-            <div class="rz-f"><label for="cp-parte">Só para o comprador</label><select id="cp-parte"><option value="">Todos (tabela)</option>${(partes || []).map(p => `<option value="${p.id}">${esc(p.nome)}</option>`).join('')}</select></div>
-            <div class="rz-f2 rz-f2-curto">
-                <div class="rz-f"><label for="cp-qtd">A partir de (quantidade)</label><input type="number" id="cp-qtd" min="0" step="any" value="0"></div>
-                <div class="rz-f"><label for="cp-tab">Tabela</label><input type="text" id="cp-tab" value="padrao" maxlength="40"></div>
-            </div>
-            <p class="rz-desc" style="margin:0">O preço anterior da mesma tabela, comprador e quantidade termina na véspera.</p>`,
-        aoSalvar: async () => {
-            const val = (id) => document.getElementById(id)?.value ?? '';
-            if (val('cp-preco') === '') { toast('Informe o preço.', 'erro'); return false; }
-            const { data, error } = await dbAuth.rpc('fn_catalogo_preco_salvar', { p_cliente_id: cliente(), p_item_id: i.id, p_preco: Number(val('cp-preco')),
-                p_tabela: val('cp-tab') || 'padrao', p_parte_id: val('cp-parte') || null, p_quantidade_min: Number(val('cp-qtd') || 0),
-                p_vigencia_inicio: val('cp-ini') || hoje, p_canal: 'app' });
-            if (error || !data?.ok) { toast(data?.mensagem || error?.message || 'Não consegui salvar o preço.', 'erro'); return false; }
-            toast('Preço salvo.', 'sucesso');
-            setTimeout(() => { fecharSheet && fecharSheet(); abrirPrecos(i); renderItens(); }, 80);
-            return true;
-        },
-    });
+async function escolherTabela(i) {
+    const m = await import('./comercial-tabelas.js');
+    const { data } = await dbAuth.from('catalogo_tabelas').select('id, nome, grupo, subgrupo, descricao, ativa').eq('cliente_id', cliente()).eq('ativa', true).order('nome');
+    const tabs = (data || []).filter(t => doRecorte(t, i));
+    const depois = () => { renderItens(); setTimeout(() => abrirPrecos(i), 80); };
+    abrirSheetAcoes({ titulo: 'Em qual tabela?', sub: i.nome, empilhar: true, acoes: [
+        ...tabs.map(t => ({ icone: 'tags', titulo: t.nome, sub: t.grupo ? (t.subgrupo ? `${t.grupo} › ${t.subgrupo}` : t.grupo) : 'Todos os itens',
+            aoTocar: () => setTimeout(() => m.abrirPrecoNaTabela({ ...t, ativos: [] }, null, depois, { itemId: i.id }), 60) })),
+        { icone: 'plus', titulo: 'Nova tabela', sub: tabs.length ? '' : 'Ainda não há tabela para este item', aoTocar: () => setTimeout(() => m.abrirFormTabela(null, () => escolherTabela(i), { empilhar: true }), 60) },
+    ] });
 }
