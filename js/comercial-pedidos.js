@@ -1,7 +1,8 @@
 // =====================================================================
 // RAIZ PATRIMÔNIO — js/comercial-pedidos.js
-// Versão: 1.1.0 · 17/11/2026
+// Versão: 1.2.0 · 17/11/2026
 // -----------------------------------------------------------------
+// v1.2.0 (17/11/2026, sessão 20261117-2335-comercial-relatorios2, demanda 285a0058; FICHA v1.14.0 §13.15) — Relatórios do card Pedidos e do catálogo com os 9 relatórios do Comercial (+ margem, funil, recebíveis, entregas, preços e tabelas). Versão anterior: 1.1.0
 // v1.1.0 (17/11/2026, sessão 20261117-2250-comercial-relatorios, demanda 285a0058; achados do Nicola 17/11 23:11) — relatórios do Comercial no ⋮ do card Pedidos; escolher o item no Novo pedido não redesenha a linha — a descrição fica sempre no lugar (só leitura com item do catálogo) e preço, custo e sugestão entram no próprio campo (antes os campos mudavam de lugar e o que se digitava caía no Desconto). Versão anterior: 1.0.0
 // v1.0.0 (17/11/2026, sessão 20261117-1700-comercial-r5, demanda 285a0058; FICHA_RECEITA_UNIDADES_GERADORAS v1.12.0 §6.4–6.6,
 // §12.5–12.11 e §13.8 — de acordo do Nicola 14/11, 15/11 e 16/11 23:18; "Sim siga" 17/11 16:55) — criação. O pedido do Raiz
@@ -14,7 +15,7 @@
 //     Financeiro), Marcar enviado/entregue, Converter amostra em pedido e Cancelar (tira só as parcelas previstas).
 //   · Interessado movido para "Pedido" abre o Novo pedido com o comprador (ativo-interessados.js chama abrirNovoPedido).
 // =====================================================================
-export const VERSAO = '1.1.0';
+export const VERSAO = '1.2.0';
 
 const esc = (s) => (typeof rzEsc === 'function' ? rzEsc(s) : String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])));
 const toast = (m, t) => (typeof mostrarToast === 'function' ? mostrarToast(m, t) : console.log(m));
@@ -82,10 +83,14 @@ export async function montarCardPedidos(a) {
     icones();
 }
 
+// v1.2.0 — os 5 relatórios restantes (FICHA v1.14.0 §13.15); a mesma lista vai no catálogo de Relatórios (index.html)
+const RELS_COM2 = [['margem', 'Margem por item e safra', 'percent', 'Vendido, custo, frete e margem'], ['funil', 'Funil de interessados', 'filter', 'Cotação → pedido, conversão'],
+    ['recebiveis', 'Recebíveis das vendas', 'wallet', 'A receber e em atraso'], ['entregas', 'Entregas', 'truck', 'Previstas, enviadas, entregues e frete'], ['precos', 'Preços e tabelas', 'tags', 'Vigentes e mudanças no mês']];
 // v1.1.0 — os 4 relatórios do Comercial (relatorios-executivos.js, fn_relatorio_comercial); com ativo, já abrem filtrados nele
 export function abrirRelatoriosComercial(ativo = null, empilhar = false) {
     const rel = [['pedidos', 'Pedidos do mês', 'receipt', 'Valor, ticket e a receber'], ['itens', 'Itens mais vendidos', 'trophy', 'Ranking com margem'],
-        ['clientes', 'Faturamento por cliente', 'users', 'Total, ticket e recorrência'], ['ativos', 'Vendas por ponto de venda', 'store', 'O que cada ativo vende']];
+        ['clientes', 'Faturamento por cliente', 'users', 'Total, ticket e recorrência'], ['ativos', 'Vendas por ponto de venda', 'store', 'O que cada ativo vende'],
+        ...RELS_COM2]; // v1.2.0 — os 5 restantes
     abrirSheetAcoes({ titulo: 'Relatórios do Comercial', sub: ativo ? ativo.nome_exibicao : 'Todos os pontos de venda', empilhar, acoes: rel.map(([k, titulo, icone, sub]) => ({
         icone, titulo, sub, codigo: 'comercial.rel_' + k,
         aoTocar: () => setTimeout(() => window.abrirRelatorioExecutivo('com_' + k, ativo ? { ativoId: ativo.id, ativoNome: ativo.nome_exibicao } : {}), 60) })) });

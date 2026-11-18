@@ -1,6 +1,12 @@
 // ============================================================================
 // relatorios-executivos.js — Raiz Patrimônio · Relatórios no modelo executivo
-// Versão: 1.14.0 · 17/11/2026
+// Versão: 1.15.0 · 17/11/2026
+//
+// v1.15.0 (17/11/2026, sessão 20261117-2335-comercial-relatorios2, demanda 285a0058; FICHA_RECEITA_UNIDADES_GERADORAS v1.14.0 §13.15,
+//   de acordo do Nicola 17/11 23:30) — os 5 relatórios restantes do Comercial, lidos de fn_relatorio_comercial v1.1.0: Margem por
+//   item e safra (comercial.rel_margem), Funil de interessados (rel_funil), Recebíveis das vendas (rel_recebiveis, pelo vencimento),
+//   Entregas (rel_entregas, pela entrega prevista) e Preços e tabelas (rel_precos, vigentes no fim do mês). Mesma casca, filtros,
+//   PDF e planilha dos 4 primeiros. Versão anterior: 1.14.0
 //
 // v1.14.0 (17/11/2026, sessão 20261117-2250-comercial-relatorios, demanda 285a0058; FICHA_RECEITA_UNIDADES_GERADORAS v1.13.0 §13.14,
 //   de acordo do Nicola 17/11 23:07 — Q9 sem quebra por tabela, Q10 ok) — os 4 primeiros relatórios do Raiz Comercial, no modelo
@@ -26,21 +32,15 @@
 //   sem barra de rolagem; recebido sem diferença mostra "sem diferença" (antes repetia "a receber R$ X" ao lado do recebido, o que
 //   confundia); a barra do topo não passa da largura da tela; ao fechar o relatório a página volta para a posição horizontal 0
 //   (a tela de Relatórios ficava deslocada para o lado até reabrir o app). Versão anterior: 1.10.0
-//
-// v1.10.0 (13/11/2026, sessão 20261113-1530-dividir-recebimento, demanda 76a2f670 E8; D2 do Nicola 13/11 13:35 "usar a do
-//   documento e garantir que vai sair no relatório das diferenças" + 14:05 "Diferenças = acompanhamento do mês") — Acompanhamento
-//   do mês ganha o bloco "Diferenças da prestação de contas" (tela e aba "Diferenças" na planilha), lido de
-//   fn_relatorio_acompanhamento_mes.diferencas_prestacao: taxa e aluguel cobrados × contrato e arredondamento das divisões de
-//   recebimento do mês. Versão anterior: 1.9.0
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.9.0 … v1.9.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.10.0 … v1.10.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
 import { rzMostrarBloqueio } from './comum-licenca.js';
 import { rzToast } from './raiz-ui.js';
 import RaizDevice from './raiz-device.js';
 
-export const VERSAO = '1.14.0';
+export const VERSAO = '1.15.0';
 
 // ---------------------------------------------------------------------------
 // Formatos (REL-13 a REL-17)
@@ -910,7 +910,135 @@ function montarComAtivos(d) {
             linhas: ls, kpis: [{ rot: 'Pontos de venda', formula: f => `COUNTA(${f('Ponto de venda')})`, fmt: 'int' }, { rot: 'Valor (R$)', formula: f => `SUM(${f('Valor (R$)')})` }, { rot: 'Pedidos', formula: f => `SUM(${f('Pedidos')})`, fmt: 'int' }],
             sobre: [['Linha', 'Um ativo (ponto de venda) com pedido confirmado no mês.']] } };
 }
-const COMERCIAL = { com_pedidos: 'pedidos', com_itens: 'itens', com_clientes: 'clientes', com_ativos: 'ativos' };
+// v1.15.0 — os 5 restantes (FICHA v1.14.0 §13.15): margem, funil, recebíveis, entregas, preços e tabelas
+function cfgComercial2(d, nome, medida, visao) {
+    const c = cfgComercial(d, nome, medida);
+    c.subtitulo = c.subtitulo.replace('visão competência (data do pedido)', visao);
+    return c;
+}
+const pctOu = v => (v != null ? pct(v) : '—');
+function montarComMargem(d) {
+    const cab = d.cabecalho || {}, k = d.numeros || {}, ls = d.linhas || [], sf = d.safras || [];
+    const cfg = cfgComercial(d, 'Margem por item e por safra', 'Margem das vendas em R$');
+    const manchete = num(k.vendido) ? `Em ${comp(cab.de)}, a margem foi de ${compacto(k.margem)} (${pctOu(k.margem_pct)}) sobre ${compacto(k.vendido)} vendidos, já descontado o frete pago.` : `Nenhum item vendido em ${comp(cab.de)}.`;
+    const capa = `<div class="acao">${esc(manchete)}</div>
+      <div class="kpis">${kpi('Vendido', compacto(k.vendido), 'itens dos pedidos')}${kpi('Custo', compacto(k.custo), 'registrado nos itens')}${kpi('Frete pago', compacto(k.frete_pago), `cobrado ${compacto(k.frete_cobrado)}`)}${kpi('Margem', pctOu(k.margem_pct), compacto(k.margem))}</div>
+      ${secao('1. Margem por item', 'R$ · valor − custo registrado no pedido')}
+      ${ls.length ? barrasH(ls.slice(0, 10).map(i => ({ l: i.item, v: num(i.margem ?? 0), p: i.margem_pct })), x => `${compacto(x.v)} · ${pctOu(x.p)}`, 150) : vazioComercial}`;
+    const linI = ls.map(i => `<tr><td>${esc(i.item)}</td><td class="n">${qtd(i.quantidade)} ${esc(i.unidade || '')}</td><td class="n">${tab(i.valor)}</td><td class="n hm">${i.custo != null ? tab(i.custo) : '—'}</td><td class="n hm">${i.margem != null ? tab(i.margem) : '—'}</td><td class="n">${pctOu(i.margem_pct)}</td></tr>`).join('');
+    const linS = sf.map(s => `<tr><td>${esc(s.safra)}</td><td class="hm">${esc(s.ativo)}</td><td class="n">${tab(s.vendido)}</td><td class="n hm">${tab(s.custo)}</td><td class="n hm">${tab(s.frete)}</td><td class="n">${tab(s.resultado)}</td><td class="n">${pctOu(s.margem_pct)}</td></tr>`).join('');
+    const p2 = `${secao('2. Todos os itens', 'R$')}
+      <table><thead><tr><th>Item</th><th class="n">Quantidade</th><th class="n">Vendido</th><th class="n hm">Custo</th><th class="n hm">Margem</th><th class="n">%</th></tr></thead><tbody>${linI || '<tr><td colspan="6" class="mut">Nenhum item vendido.</td></tr>'}</tbody></table>
+      ${secao('3. Por safra', 'R$ · a safra inteira (todas as vendas e despesas do ciclo)')}
+      <table><thead><tr><th>Safra</th><th class="hm">Ativo</th><th class="n">Vendido</th><th class="n hm">Custo do ciclo</th><th class="n hm">Frete</th><th class="n">Resultado</th><th class="n">%</th></tr></thead><tbody>${linS || '<tr><td colspan="7" class="mut">Nenhum pedido do mês está ligado a uma safra.</td></tr>'}</tbody></table>
+      ${notasComercial(cab, '<p><b>Margem do item</b>: vendido menos o custo registrado no pedido; item sem custo fica fora da margem %. <b>Margem do mês</b>: desconta também o frete pago. <b>Safra</b>: tudo o que o ciclo vendeu menos todas as despesas lançadas no ciclo e o frete; a divisão do custo do ciclo por item vem com o fechamento por item.</p>')}`;
+    return { cfg, linhas3: [`Margem por item e safra · ${comp(cab.de)}`, `Vendido ${compacto(k.vendido)} · margem ${compacto(k.margem)} (${pctOu(k.margem_pct)})`, manchete],
+        paginas: [[capa, ['Resumo', 'Composição']], [p2, ['Detalhe', 'Notas']]],
+        planilha: { aba: 'Margem', colunas: [
+            { cab: 'Item', larg: 30, ler: r => r.item }, { cab: 'Unidade', larg: 9, ler: r => r.unidade || '' }, { cab: 'Quantidade', larg: 12, fmt: 'moeda', ler: r => num(r.quantidade), total: true },
+            { cab: 'Vendido (R$)', larg: 14, fmt: 'moeda', ler: r => num(r.valor), total: true }, { cab: 'Custo (R$)', larg: 14, fmt: 'moeda', ler: r => r.custo == null ? null : num(r.custo), total: true },
+            { cab: 'Margem (R$)', larg: 14, fmt: 'moeda', ler: r => r.margem == null ? null : num(r.margem), total: true }],
+            linhas: ls, kpis: [{ rot: 'Vendido (R$)', formula: f => `SUM(${f('Vendido (R$)')})` }, { rot: 'Custo (R$)', formula: f => `SUM(${f('Custo (R$)')})` }, { rot: 'Margem (R$)', formula: f => `SUM(${f('Margem (R$)')})` }],
+            sobre: [['Linha', 'Um item vendido no mês, somando os pedidos confirmados.'], ['Margem', 'Vendido menos o custo registrado no pedido (sem o frete).']] } };
+}
+function montarComFunil(d) {
+    const cab = d.cabecalho || {}, k = d.numeros || {}, ls = d.linhas || [], et = d.por_etapa || [], mo = d.motivos || [];
+    const cfg = cfgComercial2(d, 'Funil de interessados', 'Interessados de venda', 'passagens de etapa no mês');
+    const manchete = (num(k.pedidos) + num(k.cancelados)) ? `${qtd(k.pedidos)} ${num(k.pedidos) === 1 ? 'interessado virou pedido' : 'interessados viraram pedido'} em ${comp(cab.de)}; conversão de ${pctOu(k.conversao_pct)}.` : `${qtd(k.novos)} ${num(k.novos) === 1 ? 'interessado novo' : 'interessados novos'} em ${comp(cab.de)}; nenhum fechou ainda.`;
+    const capa = `<div class="acao">${esc(manchete)}</div>
+      <div class="kpis">${kpi('Novos', qtd(k.novos), 'entraram no mês')}${kpi('Viraram pedido', qtd(k.pedidos), 'no mês')}${kpi('Cancelados', qtd(k.cancelados), 'no mês')}${kpi('Conversão', pctOu(k.conversao_pct), 'pedido ÷ (pedido + cancelado)')}</div>
+      ${secao('1. Por etapa', 'interessados hoje · passagens no mês')}
+      <table><thead><tr><th>Etapa</th><th class="n">Hoje</th><th class="n">Entraram no mês</th></tr></thead><tbody>${et.map(e => `<tr><td>${esc(e.etapa)}</td><td class="n">${qtd(e.agora)}</td><td class="n">${qtd(e.no_mes)}</td></tr>`).join('')}</tbody></table>
+      ${secao('2. Motivos de cancelamento', 'no mês')}
+      ${mo.length ? barrasH(mo.map(m => ({ l: m.motivo, v: num(m.n) })), x => qtd(x.v), 150) : '<p class="mut">Nenhum cancelamento com motivo no mês.</p>'}`;
+    const lin = ls.map(i => `<tr><td>${esc(i.nome)}</td><td class="hm">${esc(i.ativo)}</td><td>${esc(i.etapa || '—')}</td><td>${i.desde ? dma(i.desde) : '—'}</td><td class="hm">${esc(i.proximo_passo || '')}${i.proximo_passo_em ? ' · ' + dma(i.proximo_passo_em) : ''}</td></tr>`).join('');
+    const p2 = `${secao('3. Interessados', 'etapa atual')}
+      <table><thead><tr><th>Interessado</th><th class="hm">Ponto de venda</th><th>Etapa</th><th>Desde</th><th class="hm">Próximo passo</th></tr></thead><tbody>${lin || '<tr><td colspan="5" class="mut">Nenhum interessado.</td></tr>'}</tbody></table>
+      ${notasComercial(cab, '<p><b>Conversão</b>: dos que fecharam no mês (pedido ou cancelado), quantos viraram pedido. <b>Motivos</b>: só os registrados a partir de 17/11/2026; antes disso o interessado entra pela etapa atual.</p>')}`;
+    return { cfg, linhas3: [`Funil de interessados · ${comp(cab.de)}`, `${qtd(k.novos)} novos · ${qtd(k.pedidos)} pedidos · conversão ${pctOu(k.conversao_pct)}`, manchete],
+        paginas: [[capa, ['Resumo', 'Composição']], [p2, ['Detalhe', 'Notas']]],
+        planilha: { aba: 'Interessados', colunas: [
+            { cab: 'Interessado', larg: 30, ler: r => r.nome }, { cab: 'Ponto de venda', larg: 24, ler: r => r.ativo }, { cab: 'Etapa', larg: 14, ler: r => r.etapa || '' },
+            { cab: 'Desde', larg: 12, fmt: 'data', ler: r => r.desde ? String(r.desde).slice(0, 10) : null }, { cab: 'Entrou', larg: 12, fmt: 'data', ler: r => r.entrou ? String(r.entrou).slice(0, 10) : null },
+            { cab: 'Próximo passo', larg: 30, ler: r => r.proximo_passo || '' }],
+            linhas: ls, kpis: [{ rot: 'Interessados', formula: f => `COUNTA(${f('Interessado')})`, fmt: 'int' }, { rot: 'Em pedido', formula: f => `COUNTIF(${f('Etapa')},"Pedido")`, fmt: 'int' }],
+            sobre: [['Linha', 'Um interessado da esteira Venda, na etapa em que está hoje.']] } };
+}
+const SIT_REC = { a_vencer: 'A vencer', vencido: 'Vencido', recebido: 'Recebido' };
+function montarComRecebiveis(d) {
+    const cab = d.cabecalho || {}, k = d.numeros || {}, ls = d.linhas || [], pc = d.por_cliente || [];
+    const cfg = cfgComercial2(d, 'Recebíveis das vendas', 'Recebíveis das vendas em R$', 'pelo vencimento da parcela');
+    const manchete = num(k.vencido) ? `${compacto(k.vencido)} vencidos com ${qtd(k.clientes_atraso)} ${num(k.clientes_atraso) === 1 ? 'cliente' : 'clientes'}; ${compacto(k.a_receber)} vencem em ${comp(cab.de)}.` : `Nada vencido; ${compacto(k.a_receber)} vencem em ${comp(cab.de)} e ${compacto(k.recebido)} já entraram.`;
+    const capa = `<div class="acao">${esc(manchete)}</div>
+      <div class="kpis">${kpi('A receber no mês', compacto(k.a_receber), 'vencem no mês')}${kpi('Vencido', compacto(k.vencido), 'até hoje', num(k.vencido) ? 'neg' : 'mut')}${kpi('Recebido', compacto(k.recebido), 'pago no mês')}${kpi('Clientes em atraso', qtd(k.clientes_atraso), 'com parcela vencida')}</div>
+      ${secao('1. Por cliente', 'R$ · vencido primeiro')}
+      <table><thead><tr><th>Cliente</th><th class="n">A receber</th><th class="n">Vencido</th><th class="n">Recebido</th></tr></thead><tbody>${pc.map(c => `<tr><td>${esc(c.cliente)}</td><td class="n">${tab(c.a_receber)}</td><td class="n ${num(c.vencido) ? 'neg' : ''}">${tab(c.vencido)}</td><td class="n">${tab(c.recebido)}</td></tr>`).join('') || '<tr><td colspan="4" class="mut">Nenhuma parcela neste recorte.</td></tr>'}</tbody></table>`;
+    const lin = ls.map(r => `<tr><td>${dma(r.vencimento)}</td><td>${esc(r.cliente)}</td><td>nº ${esc(r.pedido)}${num(r.parcelas) > 1 ? ` · ${esc(r.parcela)}/${esc(r.parcelas)}` : ''}</td><td class="hm">${esc(r.ativo)}</td><td class="${r.situacao === 'vencido' ? 'neg' : ''}">${esc(SIT_REC[r.situacao] || r.situacao)}${r.dias_atraso ? ` · ${r.dias_atraso} d` : ''}</td><td class="n">${tab(r.valor)}</td></tr>`).join('');
+    const p2 = `${secao('2. Parcelas', 'vencimento · R$')}
+      <table><thead><tr><th>Vencimento</th><th>Cliente</th><th>Pedido</th><th class="hm">Ponto de venda</th><th>Situação</th><th class="n">Valor</th></tr></thead><tbody>${lin || '<tr><td colspan="6" class="mut">Nenhuma parcela.</td></tr>'}</tbody></table>
+      <div class="notes"><p><b>Período</b>: pelo vencimento — as parcelas que vencem no mês, as vencidas até hoje (de qualquer mês) e as recebidas no mês.</p>
+        <p><b>Origem</b>: fn_relatorio_comercial · parcelas dos pedidos no Financeiro · ${comp(cab.de)}${cab.ativo_nome ? ' · ' + esc(cab.ativo_nome) : ''}.</p></div>`;
+    return { cfg, linhas3: [`Recebíveis das vendas · ${comp(cab.de)}`, `A receber ${compacto(k.a_receber)} · vencido ${compacto(k.vencido)} · recebido ${compacto(k.recebido)}`, manchete],
+        paginas: [[capa, ['Resumo', 'Composição']], [p2, ['Detalhe', 'Notas']]],
+        planilha: { aba: 'Parcelas', colunas: [
+            { cab: 'Vencimento', larg: 12, fmt: 'data', ler: r => r.vencimento }, { cab: 'Cliente', larg: 28, ler: r => r.cliente }, { cab: 'Pedido', larg: 10, fmt: 'int', ler: r => num(r.pedido) },
+            { cab: 'Parcela', larg: 9, ler: r => `${r.parcela || 1}/${r.parcelas || 1}` }, { cab: 'Ponto de venda', larg: 24, ler: r => r.ativo },
+            { cab: 'Situação', larg: 12, ler: r => SIT_REC[r.situacao] || r.situacao, alerta: v => v === 'Vencido' }, { cab: 'Dias de atraso', larg: 10, fmt: 'int', ler: r => r.dias_atraso ?? null },
+            { cab: 'Valor (R$)', larg: 14, fmt: 'moeda', ler: r => num(r.valor), total: true }],
+            linhas: ls, kpis: [{ rot: 'Parcelas', formula: f => `COUNTA(${f('Cliente')})`, fmt: 'int' }, { rot: 'Vencido (R$)', formula: f => `SUMIF(${f('Situação')},"Vencido",${f('Valor (R$)')})` }, { rot: 'Total (R$)', formula: f => `SUM(${f('Valor (R$)')})` }],
+            sobre: [['Linha', 'Uma parcela de pedido: vence no mês, está vencida até hoje ou foi recebida no mês.']] } };
+}
+const SIT_ENT = { pendente: 'Prevista', enviada: 'Enviada', entregue: 'Entregue' };
+const TIPO_ENT = { retirada: 'Retirada', propria: 'Entrega própria', transportadora: 'Transportadora' };
+function montarComEntregas(d) {
+    const cab = d.cabecalho || {}, k = d.numeros || {}, ls = d.linhas || [];
+    const cfg = cfgComercial2(d, 'Entregas', 'Entregas e frete em R$', 'pela entrega prevista');
+    const tot = num(k.previstas) + num(k.enviadas) + num(k.entregues);
+    const manchete = tot ? `${qtd(k.entregues)} de ${qtd(tot)} ${tot === 1 ? 'entrega concluída' : 'entregas concluídas'} em ${comp(cab.de)}${num(k.atrasadas) ? `; ${qtd(k.atrasadas)} atrasada${num(k.atrasadas) > 1 ? 's' : ''}` : ''}. Frete pago ${compacto(k.frete_pago)} × cobrado ${compacto(k.frete_cobrado)}.` : `Nenhuma entrega prevista em ${comp(cab.de)}.`;
+    const capa = `<div class="acao">${esc(manchete)}</div>
+      <div class="kpis">${kpi('Previstas', qtd(k.previstas), num(k.atrasadas) ? `${qtd(k.atrasadas)} atrasada(s)` : 'a enviar', num(k.atrasadas) ? 'neg' : 'mut')}${kpi('Enviadas', qtd(k.enviadas), 'a caminho')}${kpi('Entregues', qtd(k.entregues), 'no mês')}${kpi('Frete pago', compacto(k.frete_pago), `cobrado ${compacto(k.frete_cobrado)}`, num(k.frete_pago) > num(k.frete_cobrado) ? 'neg' : 'pos')}</div>`;
+    const lin = ls.map(e => `<tr><td>${e.prevista ? dma(e.prevista) : '—'}</td><td>nº ${esc(e.pedido)}${e.tipo === 'amostra' ? ' (amostra)' : ''}</td><td>${esc(e.cliente)}</td><td class="hm">${esc(TIPO_ENT[e.entrega_tipo] || '—')}${e.transportadora ? ' · ' + esc(e.transportadora) : ''}</td><td class="${e.atrasada ? 'neg' : ''}">${esc(SIT_ENT[e.situacao] || e.situacao)}${e.atrasada ? ' · atrasada' : ''}</td><td class="n hm">${tab(e.cobrado)}</td><td class="n">${tab(e.pago)}</td></tr>`).join('');
+    const p1 = capa + `${secao('1. As entregas do mês', 'entrega prevista · R$')}
+      <table><thead><tr><th>Prevista</th><th>Pedido</th><th>Cliente</th><th class="hm">Como</th><th>Situação</th><th class="n hm">Cobrado</th><th class="n">Pago</th></tr></thead><tbody>${lin || '<tr><td colspan="7" class="mut">Nenhuma entrega.</td></tr>'}</tbody></table>
+      <div class="notes"><p><b>Período</b>: pela entrega prevista; pedido sem previsão entra pela data do pedido. <b>Atrasada</b>: não entregue e com previsão antes de hoje.</p>
+        <p><b>Origem</b>: fn_relatorio_comercial · pedidos confirmados (vendas e amostras) · ${comp(cab.de)}${cab.ativo_nome ? ' · ' + esc(cab.ativo_nome) : ''}.</p></div>`;
+    return { cfg, linhas3: [`Entregas · ${comp(cab.de)}`, `${qtd(k.entregues)} entregues · ${qtd(k.previstas)} previstas · frete ${compacto(k.frete_pago)}`, manchete],
+        paginas: [[p1, ['Resumo', 'Detalhe', 'Notas']]],
+        planilha: { aba: 'Entregas', colunas: [
+            { cab: 'Prevista', larg: 12, fmt: 'data', ler: r => r.prevista }, { cab: 'Pedido', larg: 10, fmt: 'int', ler: r => num(r.pedido) }, { cab: 'Cliente', larg: 28, ler: r => r.cliente },
+            { cab: 'Como', larg: 16, ler: r => TIPO_ENT[r.entrega_tipo] || '' }, { cab: 'Transportadora', larg: 22, ler: r => r.transportadora || '' },
+            { cab: 'Situação', larg: 12, ler: r => SIT_ENT[r.situacao] || r.situacao }, { cab: 'Atrasada', larg: 9, ler: r => r.atrasada ? 'sim' : '', alerta: v => v === 'sim' },
+            { cab: 'Frete cobrado (R$)', larg: 14, fmt: 'moeda', ler: r => num(r.cobrado), total: true }, { cab: 'Frete pago (R$)', larg: 14, fmt: 'moeda', ler: r => num(r.pago), total: true }],
+            linhas: ls, kpis: [{ rot: 'Entregas', formula: f => `COUNTA(${f('Cliente')})`, fmt: 'int' }, { rot: 'Frete cobrado (R$)', formula: f => `SUM(${f('Frete cobrado (R$)')})` }, { rot: 'Frete pago (R$)', formula: f => `SUM(${f('Frete pago (R$)')})` }],
+            sobre: [['Linha', 'Um pedido confirmado com entrega prevista no mês.']] } };
+}
+function montarComPrecos(d) {
+    const cab = d.cabecalho || {}, k = d.numeros || {}, ls = d.linhas || [], mu = d.mudancas || [], tb = d.por_tabela || [], sp = d.sem_preco || [];
+    const cfg = cfgComercial2(d, 'Preços e tabelas', 'Preços de venda em R$', 'preços vigentes no fim do mês');
+    const manchete = `${qtd(k.tabelas)} ${num(k.tabelas) === 1 ? 'tabela ativa' : 'tabelas ativas'} com ${qtd(k.itens_com_preco)} ${num(k.itens_com_preco) === 1 ? 'item' : 'itens'}; ${qtd(k.mudancas)} ${num(k.mudancas) === 1 ? 'preço mudou' : 'preços mudaram'} em ${comp(cab.de)}${num(k.itens_sem_preco) ? ` e ${qtd(k.itens_sem_preco)} sem preço` : ''}.`;
+    const capa = `<div class="acao">${esc(manchete)}</div>
+      <div class="kpis">${kpi('Tabelas ativas', qtd(k.tabelas), '')}${kpi('Itens com preço', qtd(k.itens_com_preco), 'vigente')}${kpi('Mudanças', qtd(k.mudancas), 'começaram no mês')}${kpi('Itens sem preço', qtd(k.itens_sem_preco), 'em nenhuma tabela', num(k.itens_sem_preco) ? 'neg' : 'mut')}</div>
+      ${secao('1. Tabelas', 'itens com preço · onde vale')}
+      <table><thead><tr><th>Tabela</th><th class="n">Itens</th><th>Vale em</th></tr></thead><tbody>${tb.map(t => `<tr><td>${esc(t.tabela)}</td><td class="n">${qtd(t.itens)}</td><td>${esc((t.ativos || []).join(', ') || 'Sem ativo')}</td></tr>`).join('') || '<tr><td colspan="3" class="mut">Nenhuma tabela ativa.</td></tr>'}</tbody></table>
+      ${secao('2. Mudanças no mês', 'R$ · preço novo × anterior')}
+      <table><thead><tr><th>Desde</th><th>Item</th><th class="hm">Tabela</th><th class="n">Novo</th><th class="n hm">Anterior</th><th class="n">Δ</th></tr></thead><tbody>${mu.map(m => `<tr><td>${dma(m.desde)}</td><td>${esc(m.item)}${m.comprador ? ` <span class="mut">· ${esc(m.comprador)}</span>` : ''}</td><td class="hm">${esc(m.tabela)}</td><td class="n">${tab(m.preco)}</td><td class="n hm">${m.anterior != null ? tab(m.anterior) : '—'}</td><td class="n">${m.variacao_pct != null ? pct(m.variacao_pct, true) : 'novo'}</td></tr>`).join('') || '<tr><td colspan="6" class="mut">Nenhuma mudança no mês.</td></tr>'}</tbody></table>`;
+    const lin = ls.map(p => `<tr><td>${esc(p.tabela)}</td><td>${esc(p.item)}</td><td class="hm">${esc(p.comprador || 'todos')}${num(p.quantidade_min) > 0 ? ` · a partir de ${qtd(p.quantidade_min)}` : ''}</td><td class="n">${tab(p.preco)}</td><td>${esc(p.unidade || '')}</td><td>${p.desde ? dma(p.desde) : '—'}</td></tr>`).join('');
+    const p2 = `${secao('3. Preços vigentes', 'R$ por unidade')}
+      <table><thead><tr><th>Tabela</th><th>Item</th><th class="hm">Para</th><th class="n">Preço</th><th>Unidade</th><th>Desde</th></tr></thead><tbody>${lin || '<tr><td colspan="6" class="mut">Nenhum preço vigente.</td></tr>'}</tbody></table>
+      ${sp.length ? secao('4. Itens sem preço', 'ativos no catálogo e sem preço vigente em nenhuma tabela') + `<p>${sp.map(s => esc(s.item)).join(' · ')}</p>` : ''}
+      <div class="notes"><p><b>Vigente</b>: preço que vale no último dia do mês. <b>Mudança</b>: preço que começou a valer no mês; "novo" quando não havia preço anterior para o mesmo item, cliente e quantidade na tabela.</p>
+        <p><b>Origem</b>: fn_relatorio_comercial · tabelas e preços do catálogo · ${comp(cab.de)}${cab.ativo_nome ? ' · ' + esc(cab.ativo_nome) : ''}.</p></div>`;
+    return { cfg, linhas3: [`Preços e tabelas · ${comp(cab.de)}`, `${qtd(k.tabelas)} tabelas · ${qtd(k.itens_com_preco)} itens · ${qtd(k.mudancas)} mudanças`, manchete],
+        paginas: [[capa, ['Resumo', 'Composição']], [p2, ['Detalhe', 'Notas']]],
+        planilha: { aba: 'Preços', colunas: [
+            { cab: 'Tabela', larg: 24, ler: r => r.tabela }, { cab: 'Item', larg: 30, ler: r => r.item }, { cab: 'Para', larg: 22, ler: r => r.comprador || 'todos' },
+            { cab: 'A partir de (qtd)', larg: 12, fmt: 'moeda', ler: r => num(r.quantidade_min) }, { cab: 'Preço (R$)', larg: 14, fmt: 'moeda', ler: r => num(r.preco) },
+            { cab: 'Unidade', larg: 9, ler: r => r.unidade || '' }, { cab: 'Desde', larg: 12, fmt: 'data', ler: r => r.desde }],
+            linhas: ls, kpis: [{ rot: 'Preços', formula: f => `COUNTA(${f('Item')})`, fmt: 'int' }],
+            sobre: [['Linha', 'Um preço vigente no fim do mês, numa tabela ativa.']] } };
+}
+const COMERCIAL = { com_pedidos: 'pedidos', com_itens: 'itens', com_clientes: 'clientes', com_ativos: 'ativos',
+    com_margem: 'margem', com_funil: 'funil', com_recebiveis: 'recebiveis', com_entregas: 'entregas', com_precos: 'precos' }; // v1.15.0
 const ehComercial = t => !!COMERCIAL[t];
 async function escolherAtivoComercial() {
     let ativos = [];
@@ -948,7 +1076,12 @@ const RELATORIOS = {
     com_pedidos: { codigo: 'comercial.rel_pedidos', nome: 'Pedidos do mês', arquivo: 'pedidos_mes', montar: montarComPedidos }, // v1.14.0 — Comercial
     com_itens: { codigo: 'comercial.rel_itens', nome: 'Itens mais vendidos', arquivo: 'itens_mais_vendidos', montar: montarComItens },
     com_clientes: { codigo: 'comercial.rel_clientes', nome: 'Faturamento por cliente', arquivo: 'faturamento_cliente', montar: montarComClientes },
-    com_ativos: { codigo: 'comercial.rel_ativos', nome: 'Vendas por ponto de venda', arquivo: 'vendas_ponto_venda', montar: montarComAtivos }
+    com_ativos: { codigo: 'comercial.rel_ativos', nome: 'Vendas por ponto de venda', arquivo: 'vendas_ponto_venda', montar: montarComAtivos },
+    com_margem: { codigo: 'comercial.rel_margem', nome: 'Margem por item e safra', arquivo: 'margem_item_safra', montar: montarComMargem }, // v1.15.0
+    com_funil: { codigo: 'comercial.rel_funil', nome: 'Funil de interessados', arquivo: 'funil_interessados', montar: montarComFunil },
+    com_recebiveis: { codigo: 'comercial.rel_recebiveis', nome: 'Recebíveis das vendas', arquivo: 'recebiveis_vendas', montar: montarComRecebiveis },
+    com_entregas: { codigo: 'comercial.rel_entregas', nome: 'Entregas', arquivo: 'entregas', montar: montarComEntregas },
+    com_precos: { codigo: 'comercial.rel_precos', nome: 'Preços e tabelas', arquivo: 'precos_tabelas', montar: montarComPrecos }
 };
 let estado = null; // { tipo, filtro, dados, montado }
 
