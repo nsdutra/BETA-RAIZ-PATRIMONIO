@@ -1,8 +1,8 @@
 {
   "app": "patrimonio",
-  "gerado_em": "2026-11-18T11:22:49",
+  "gerado_em": "2026-11-18T15:26:52",
   "arquivos": {
-    "index.html": "1.490.69",
+    "index.html": "1.490.70",
     "sw.js": "3.4",
     "js/cadastros.js": "1.3.0",
     "js/financeiro.js": "1.101.0",
@@ -21,7 +21,7 @@
     "js/cofre-navegacao.js": "1.10.0",
     "js/cofre-ui.js": "1.7.2",
     "js/cofre-validacoes.js": "2.15.0",
-    "js/comum-licenca.js": "1.12.0",
+    "js/comum-licenca.js": "1.13.0",
     "js/comum-renovacao.js": "1.6.0",
     "js/comum-minha-empresa.js": "1.22.0",
     "js/comum-pessoas.js": "1.217.0",
@@ -141,8 +141,8 @@
       "funcoes": 35
     },
     "js/comum-licenca.js": {
-      "linhas": 582,
-      "funcoes": 26
+      "linhas": 632,
+      "funcoes": 28
     },
     "js/comum-renovacao.js": {
       "linhas": 394,

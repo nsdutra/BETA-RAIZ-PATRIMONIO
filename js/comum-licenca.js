@@ -1,6 +1,13 @@
 // ============================================================================
 // comum-licenca.js — Raiz Patrimônio · Administração compartilhada
-// Versão: 1.12.0 · 17/11/2026
+// Versão: 1.13.0 · 18/11/2026
+//
+// v1.13.0 (18/11/2026, sessão 20261118-0915-licenca-plano-unico, demanda 14a20035; opção A do Nicola 18/11 09:15/09:20,
+// PROTOTIPO_LICENCA_PLANO_UNICO_RAIZ v1.0.0) — Licença com UM plano: a licença 'imoveis' é o plano core e as licenças de ramo
+// viram linhas desse plano (nunca cards próprios nem Uso próprio). Card "Seu plano": degrau, vencimento, mensalidade total
+// (fn_preco_licenca: soma dos ramos pagos + salto) e uma linha por parte (núcleo com o salto, cada ramo com o preço; cortesia e
+// beta como R$ 0). "Adicionar ramo" abre "Conheça novos ramos" (comum-ramos-oferta). Uso: um quadro só, do core.
+// Versão anterior: 1.12.0 · 17/11/2026
 //
 // v1.12.0 (17/11/2026, sessão 20261117-2340-precos-f2, demanda 14a20035; FICHA_PRECIFICACAO_RAMOS_DEGRAUS v1.1.0 F2) — Licença:
 // nomes legíveis para o plano da empresa e para cada ramo (antes aparecia o código, ex.: "imoveis_ramo", "familia_cortesia").
@@ -34,7 +41,7 @@
 // Versões anteriores (v1.7.0 … v1.7.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '1.12.0'; // v-check (22/09/2026): lido por Dev › Versões — manter igual ao header
+export const VERSAO = '1.13.0'; // v-check (22/09/2026): lido por Dev › Versões — manter igual ao header
 export const COMUM_LICENCA_VERSAO = '1.0.0';
 
 // ----------------------------------------------------------------------------
@@ -336,6 +343,12 @@ const NOMES_PLANO = { trial: 'Teste grátis', standard: 'Standard', essencial: '
     comercial: 'Comercial', comercial_beta: 'Comercial · beta' };
 const WHATSAPP_RAIZ = '5511947461828';
 const SITE_RAIZ = 'https://www.raizpatrimonio.com.br';
+// v1.13.0 — plano único: licenças de ramo são adicionais do plano core (MODULOS_RAMO: módulo da licença → ramo).
+const MODULOS_RAMO = { imoveis_ramo: 'imoveis', familia: 'familia', agro: 'agro', pecuaria: 'pecuaria', obras: 'obras',
+    comercial: 'comercial', investimentos: 'investimentos', varejo: 'varejo' };
+const RAMO_INFO = { imoveis: ['Imóveis', 'home'], familia: ['Família', 'heart'], agro: ['Agro', 'sprout'], pecuaria: ['Pecuária', 'beef'],
+    obras: ['Obras', 'hard-hat'], comercial: ['Comercial', 'store'], investimentos: ['Investimentos', 'trending-up'], varejo: ['Varejo', 'shopping-bag'] };
+const brlL = (n) => Number(n || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 });
 // Página de contatos da Raiz: Licença e Suporte apontam para o mesmo endereço.
 export const LINK_CONTATOS_RAIZ = SITE_RAIZ + '/#falar';
 const VAGAS_TESTE = 5;
@@ -433,11 +446,37 @@ export function ligarContratarConvidar(raiz, { dbAuth, clienteId, pessoaId, lice
 }
 
 // F2.5d — devolve os dois pedaços da ficha: { plano, uso, alerta } (alerta = limites em 80% ou mais).
-function cardLicencaHtml(licenca, funcionalidades, mostrarRotuloModulo) {
+// v1.13.0 — ramos ativos do plano, a partir das licenças de ramo (pago = plano com o código do ramo; senão cortesia/beta).
+function ramosDoPlano(licencas) {
+    return licencas.filter(l => MODULOS_RAMO[l.modulo] && l.status === 'ativo' && (!l.data_expiracao || dataLocal(l.data_expiracao) > new Date()))
+        .map(l => { const c = MODULOS_RAMO[l.modulo]; const pago = l.plano_codigo === c;
+            return { codigo: c, pago, tag: pago ? '' : (/_beta$/.test(l.plano_codigo || '') ? 'beta' : 'cortesia') }; });
+}
+// v1.13.0 — composição do plano: núcleo (salto do degrau) + ramos. Preço da fn_preco_licenca (a mesma regra da cobrança).
+async function composicaoPlano(dbAuth, core, ramos) {
+    const pagos = ramos.filter(r => r.pago).map(r => r.codigo);
+    let p = null;
+    if (pagos.length) {
+        try { const { data } = await dbAuth.rpc('fn_preco_licenca', { p_degrau: core.plano_codigo, p_ramos: pagos, p_periodo: 'mensal' }); if (data && data.ok) p = data; }
+        catch (err) { console.warn('[comum-licenca] Falha ao calcular a mensalidade:', err.message); }
+    }
+    const precoRamo = (c) => { const x = p && (p.ramos || []).find(r => r.codigo === c); return x ? x.preco_mes : null; };
+    const linha = (ic, cor, nome, sub, valor) => `<div class="rz-row"><div class="rz-ic" style="background:${cor};color:var(--paper)"><svg data-lucide="${ic}"></svg></div>` +
+        `<div class="rz-tx"><b>${esc(nome)}</b>${sub ? `<span>${esc(sub)}</span>` : ''}</div>${valor != null ? `<b style="white-space:nowrap">${esc(valor)}</b>` : ''}</div>`;
+    const linhas = [linha('layers', 'var(--pine)', nomePlano(core.plano_codigo), 'Núcleo: Cofre, controles, contas, pessoas e relatórios', p ? brlL(p.salto) : null)];
+    ramos.forEach(r => {
+        const [nome, ic] = RAMO_INFO[r.codigo] || [r.codigo, 'circle'];
+        const v = r.pago ? (precoRamo(r.codigo) != null ? brlL(precoRamo(r.codigo)) : null) : 'R$ 0';
+        linhas.push(linha(ic, `var(--ramo-cor-${r.codigo}, var(--pine))`, nome, r.pago ? '' : (r.tag === 'beta' ? 'Beta, sem cobrança' : 'Cortesia'), v));
+    });
+    return { linhas: linhas.join(''), total: p ? p.total : null, ativos: p ? p.ativos : null };
+}
+
+function cardLicencaHtml(licenca, funcionalidades, mostrarRotuloModulo, comp) {
     const st = statusLicenca(licenca);
     const inicio = licenca.data_inicio ? dataLocal(licenca.data_inicio).toLocaleDateString('pt-BR') : '—';
     const fim = licenca.data_expiracao ? dataLocal(licenca.data_expiracao).toLocaleDateString('pt-BR') : 'sem data de término';
-    const titulo = mostrarRotuloModulo ? `Plano · ${esc(NOMES_MODULO[licenca.modulo] || licenca.modulo)}` : 'Plano atual';
+    const titulo = comp ? 'Seu plano' : (mostrarRotuloModulo ? `Plano · ${esc(NOMES_MODULO[licenca.modulo] || licenca.modulo)}` : 'Plano atual');
 
     // Barra de uso na cor da semântica: 100% = perigo, a partir de 80% = atenção.
     const funcsHtml = funcionalidades.length === 0
@@ -458,14 +497,18 @@ function cardLicencaHtml(licenca, funcionalidades, mostrarRotuloModulo) {
         <div class="rz-card">
             <div class="rz-card-h"><h3>${titulo}</h3><span class="rz-st ${st.cls}">${esc(st.txt)}</span></div>
             <div class="rz-kv">
-                <div><small>Plano</small><b>${esc(nomePlano(licenca.plano_codigo))}</b></div>
+                <div><small>Plano</small><b>${esc(nomePlano(licenca.plano_codigo))}${comp && comp.ativos ? ` · até ${comp.ativos} ativos` : ''}</b></div>
                 <div><small>Vigência</small><b>${esc(inicio)} até ${esc(fim)}</b></div>
+                ${comp && comp.total != null ? `<div><small>Mensalidade</small><b>${esc(brlL(comp.total))} por mês</b></div>` : ''}
             </div>
+            ${comp ? `<div style="margin-top:8px">${comp.linhas}</div>` : ''}
             ${licenca.modulo === 'imoveis' ? `<div class="rz-row rz-link" data-rz-renovar="1" style="margin-top:8px"><div class="rz-ic"><svg data-lucide="refresh-cw"></svg></div><div class="rz-tx"><b>Renovar ou ampliar o plano</b><span>Ver ofertas e pagar por Pix</span></div><svg data-lucide="chevron-right" class="rz-chev"></svg></div>` : ''}
+            ${comp ? `<div class="rz-row rz-link" data-rz-add-ramo="1"><div class="rz-ic"><svg data-lucide="plus"></svg></div><div class="rz-tx"><b>Adicionar ramo</b><span>Paga só os dias até o vencimento · Pix</span></div><svg data-lucide="chevron-right" class="rz-chev"></svg></div>` : ''}
         </div>`;
     const uso = `
         <div class="rz-card">
-            <div class="rz-card-h"><h3>${mostrarRotuloModulo ? `Limites · ${esc(NOMES_MODULO[licenca.modulo] || licenca.modulo)}` : 'Limites do plano'}</h3></div>
+            <div class="rz-card-h"><h3>${comp ? 'Uso do plano' : (mostrarRotuloModulo ? `Limites · ${esc(NOMES_MODULO[licenca.modulo] || licenca.modulo)}` : 'Limites do plano')}</h3></div>
+            ${comp ? '<p class="rz-desc">Os limites valem para todos os ramos juntos.</p>' : ''}
             ${funcsHtml}
         </div>`;
     return { plano, uso, alerta };
@@ -523,16 +566,21 @@ export async function montarAbaLicenca(mountEl, ctx) {
             return;
         }
 
-        // Nome do módulo no título só quando há mais de uma licença.
-        const mostrarRotuloModulo = licencas.length > 1;
+        // v1.13.0 — plano único: licenças de ramo não viram card; entram como linhas do plano core.
+        const ramosPlano = ramosDoPlano(licencas);
+        const planos = licencas.filter(l => !MODULOS_RAMO[l.modulo]);
+        const lista = planos.length ? planos : licencas;
+        // Nome do módulo no título só quando há mais de uma licença de plano.
+        const mostrarRotuloModulo = lista.length > 1;
 
-        const blocos = await Promise.all(licencas.map(async (lic) => {
+        const blocos = await Promise.all(lista.map(async (lic) => {
+            const comp = lic.modulo === 'imoveis' ? await composicaoPlano(dbAuth, lic, ramosPlano) : null;
             try {
                 const funcs = await buscarFuncionalidadesDoPlano(dbAuth, clienteId, lic);
-                return cardLicencaHtml(lic, funcs, mostrarRotuloModulo);
+                return cardLicencaHtml(lic, funcs, mostrarRotuloModulo, comp);
             } catch (err) {
                 console.warn('[comum-licenca] Falha ao carregar funcionalidades do módulo', lic.modulo, ':', err.message);
-                const b = cardLicencaHtml(lic, [], mostrarRotuloModulo);
+                const b = cardLicencaHtml(lic, [], mostrarRotuloModulo, comp);
                 b.uso = '<div class="rz-card"><p class="rz-desc">Não foi possível carregar os limites deste plano agora.</p></div>';
                 return b;
             }
@@ -571,6 +619,15 @@ export async function montarAbaLicenca(mountEl, ctx) {
             } catch (err) {
                 console.warn('[comum-licenca] Falha ao abrir renovação:', err.message);
                 if (typeof ctx.toast === 'function') ctx.toast('Não foi possível abrir a renovação agora.', 'danger');
+            }
+        }));
+        mountEl.querySelectorAll('[data-rz-add-ramo]').forEach((el) => el.addEventListener('click', async () => {
+            try {
+                const { conhecer } = await import('./comum-ramos-oferta.js');
+                await conhecer({ dbAuth, clienteId, toast: ctx.toast });
+            } catch (err) {
+                console.warn('[comum-licenca] Falha ao abrir os ramos:', err.message);
+                if (typeof ctx.toast === 'function') ctx.toast('Não foi possível abrir os ramos agora.', 'danger');
             }
         }));
         if (typeof window !== 'undefined' && window.lucide) window.lucide.createIcons();
