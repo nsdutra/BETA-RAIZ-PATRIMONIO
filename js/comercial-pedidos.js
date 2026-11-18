@@ -1,7 +1,8 @@
 // =====================================================================
 // RAIZ PATRIMÔNIO — js/comercial-pedidos.js
-// Versão: 1.0.0 · 17/11/2026
+// Versão: 1.1.0 · 17/11/2026
 // -----------------------------------------------------------------
+// v1.1.0 (17/11/2026, sessão 20261117-2250-comercial-relatorios, demanda 285a0058; achados do Nicola 17/11 23:11) — relatórios do Comercial no ⋮ do card Pedidos; escolher o item no Novo pedido não redesenha a linha — a descrição fica sempre no lugar (só leitura com item do catálogo) e preço, custo e sugestão entram no próprio campo (antes os campos mudavam de lugar e o que se digitava caía no Desconto). Versão anterior: 1.0.0
 // v1.0.0 (17/11/2026, sessão 20261117-1700-comercial-r5, demanda 285a0058; FICHA_RECEITA_UNIDADES_GERADORAS v1.12.0 §6.4–6.6,
 // §12.5–12.11 e §13.8 — de acordo do Nicola 14/11, 15/11 e 16/11 23:18; "Sim siga" 17/11 16:55) — criação. O pedido do Raiz
 // Comercial convivendo com os contratos na aba Usos e contratos do ativo:
@@ -13,7 +14,7 @@
 //     Financeiro), Marcar enviado/entregue, Converter amostra em pedido e Cancelar (tira só as parcelas previstas).
 //   · Interessado movido para "Pedido" abre o Novo pedido com o comprador (ativo-interessados.js chama abrirNovoPedido).
 // =====================================================================
-export const VERSAO = '1.0.0';
+export const VERSAO = '1.1.0';
 
 const esc = (s) => (typeof rzEsc === 'function' ? rzEsc(s) : String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])));
 const toast = (m, t) => (typeof mostrarToast === 'function' ? mostrarToast(m, t) : console.log(m));
@@ -74,12 +75,21 @@ export async function montarCardPedidos(a) {
         { icone: 'plus', titulo: 'Novo pedido', codigo: 'comercial.vendas', aoTocar: () => setTimeout(() => abrirNovoPedido(a, { aoMudar: recarregar }), 60) },
         { icone: 'gift', titulo: 'Nova amostra', sub: 'Pedido com desconto de amostra', codigo: 'comercial.amostras', aoTocar: () => setTimeout(() => abrirNovoPedido(a, { aoMudar: recarregar, tipo: 'amostra' }), 60) },
         { icone: 'tags', titulo: 'Tabelas de venda', codigo: 'comercial.precos', aoTocar: () => import('./comercial-tabelas.js').then(m => m.abrirAtivarTabelas(a)) },
+        { icone: 'file-bar-chart', titulo: 'Relatórios', sub: 'Só deste ponto de venda', aoTocar: () => setTimeout(() => abrirRelatoriosComercial(a), 60) }, // v1.1.0
     ] }));
     card.querySelector('[data-pd-todos]')?.addEventListener('click', () => abrirListaPedidos(a, pedidos, recarregar));
     card.querySelectorAll('[data-pd-id]').forEach(b => b.addEventListener('click', () => abrirPedido(b.dataset.pdId, { ativo: a, aoMudar: recarregar })));
     icones();
 }
 
+// v1.1.0 — os 4 relatórios do Comercial (relatorios-executivos.js, fn_relatorio_comercial); com ativo, já abrem filtrados nele
+export function abrirRelatoriosComercial(ativo = null, empilhar = false) {
+    const rel = [['pedidos', 'Pedidos do mês', 'receipt', 'Valor, ticket e a receber'], ['itens', 'Itens mais vendidos', 'trophy', 'Ranking com margem'],
+        ['clientes', 'Faturamento por cliente', 'users', 'Total, ticket e recorrência'], ['ativos', 'Vendas por ponto de venda', 'store', 'O que cada ativo vende']];
+    abrirSheetAcoes({ titulo: 'Relatórios do Comercial', sub: ativo ? ativo.nome_exibicao : 'Todos os pontos de venda', empilhar, acoes: rel.map(([k, titulo, icone, sub]) => ({
+        icone, titulo, sub, codigo: 'comercial.rel_' + k,
+        aoTocar: () => setTimeout(() => window.abrirRelatorioExecutivo('com_' + k, ativo ? { ativoId: ativo.id, ativoNome: ativo.nome_exibicao } : {}), 60) })) });
+}
 function abrirListaPedidos(a, pedidos, aoMudar) {
     const sh = abrirSheet(`${cabecalho('Pedidos', esc(a.nome_exibicao || ''), false)}<div class="rz-sh-b"><div class="rz-card rz-list">${pedidos.map(v => { const [s, c] = situacao(v);
         return `<button type="button" class="rz-row rz-link" data-pd-id="${v.id}"><div class="rz-ic"><i data-lucide="receipt"></i></div><div class="rz-tx"><b>${esc(titulo(v))} · ${esc(v.partes?.nome || 'cliente')}</b><span>${dataBR(v.data)}</span></div>
@@ -246,7 +256,7 @@ async function abrirFormPedido(a, v, itensIni, partesIni, opcoes = {}) {
         const box = el.querySelector('[data-pf-itens]');
         box.innerHTML = st.itens.map((i, k) => `<div class="rz-card" style="margin-bottom:8px;padding:10px" data-pf-linha="${k}">
             <div class="rz-f"><label>Item</label><select data-pf-item>${'<option value="">Fora do catálogo…</option>' + catOrd.map(c => `<option value="${c.id}"${c.id === i.item_id ? ' selected' : ''}>${esc(c.nome)} · ${esc(c.unidade)}${comPreco.has(c.id) ? '' : ' (sem preço aqui)'}</option>`).join('')}</select></div>
-            <div class="rz-f" ${i.item_id ? 'hidden' : ''}><label>Descrição</label><input type="text" data-pf-descr maxlength="200" value="${esc(i.descricao || '')}"></div>
+            <div class="rz-f"><label>Descrição</label><input type="text" data-pf-descr maxlength="200" value="${esc(i.descricao || '')}"${i.item_id ? ' readonly' : ''}></div>
             <div class="rz-f2 rz-f2-curto"><div class="rz-f"><label>Quantidade</label><input type="number" data-pf-qtd min="0" step="any" value="${esc(i.quantidade ?? 1)}"></div>
                 <div class="rz-f"><label>Preço unitário</label><input type="number" data-pf-pu min="0" step="0.01" value="${esc(i.preco_unitario ?? '')}"></div></div>
             <div class="rz-f2 rz-f2-curto"><div class="rz-f"><label>Desconto (%)</label><input type="number" data-pf-dp min="0" max="100" step="0.01" value="${esc(i.desconto_pct ?? 0)}"></div>
@@ -255,7 +265,17 @@ async function abrirFormPedido(a, v, itensIni, partesIni, opcoes = {}) {
             ${st.itens.length > 1 ? '<button type="button" class="rz-btn rz-btn-3 rz-sm" data-pf-tira>Tirar item</button>' : ''}</div>`).join('');
         box.querySelectorAll('[data-pf-linha]').forEach(row => {
             const k = Number(row.dataset.pfLinha);
-            row.querySelector('[data-pf-item]').addEventListener('change', async (ev) => { lerItens(el); st.itens[k].item_id = ev.target.value; st.itens[k].custo_origem = ''; await sugerirPreco(k); desenharItens(el); });
+            // v1.1.0 — escolher o item não redesenha a linha (os campos ficavam mudando de lugar e o que se digitava caía no desconto):
+            // a descrição fica sempre no lugar (só leitura com item do catálogo) e preço, custo e sugestão são preenchidos no próprio campo
+            row.querySelector('[data-pf-item]').addEventListener('change', async (ev) => {
+                lerItens(el); const i = st.itens[k]; i.item_id = ev.target.value; i.custo_origem = '';
+                const d = row.querySelector('[data-pf-descr]'), c = cat.find(x => x.id === i.item_id);
+                d.readOnly = !!i.item_id; if (c) { d.value = c.nome; i.descricao = c.nome; } else if (!i.item_id) { d.value = ''; i.descricao = ''; }
+                await sugerirPreco(k);
+                if (st.itens[k] !== i) return;
+                row.querySelector('[data-pf-pu]').value = i.preco_unitario ?? ''; row.querySelector('[data-pf-cu]').value = i.custo_unitario ?? '';
+                row.querySelector('[data-pf-sug]').innerHTML = i.sug || ''; total(el);
+            });
             row.querySelectorAll('input').forEach(inp => inp.addEventListener('input', () => { lerItens(el); total(el); }));
             row.querySelector('[data-pf-cu]').addEventListener('change', () => { if (st.itens[k].custo_origem === 'sistema') st.itens[k].custo_origem = 'corrigido'; });
             row.querySelector('[data-pf-tira]')?.addEventListener('click', () => { lerItens(el); st.itens.splice(k, 1); desenharItens(el); });

@@ -1,6 +1,7 @@
 // =====================================================================
 // RAIZ PATRIMÔNIO — js/comercial-itens.js
-// Versão: 1.2.1 · 17/11/2026
+// Versão: 1.2.2 · 17/11/2026
+// v1.2.2 (17/11/2026, sessão 20261117-2250-comercial-relatorios, demanda 285a0058; achados do Nicola 17/11 23:11) — ⋮ do catálogo ganha Relatórios (os 4 do Comercial); título do grupo numa linha só (subgrupo e receita à esquerda, com reticências; só o contador à direita — quebrava em duas colunas); a caixa "Aplicar a todos os itens do subgrupo" no tamanho normal (no computador herdava a altura de 40–48px dos campos). Versão anterior: 1.2.1
 // v1.2.1 (17/11/2026, sessão 20261117-1700-comercial-r5, demanda 285a0058) — cabeçalhos de grupo com o contador à direita (rz-group-t).
 //   Versão anterior: 1.2.0
 // -----------------------------------------------------------------
@@ -28,7 +29,7 @@ import * as api from './cofre-api.js';
 import { estado } from './cofre-estado.js';
 import { avisarComDesfazer } from './cofre-ui.js';
 
-export const VERSAO = '1.2.1';
+export const VERSAO = '1.2.2';
 
 const esc = (s) => (typeof rzEsc === 'function' ? rzEsc(s) : String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])));
 const toast = (m, t) => (typeof mostrarToast === 'function' ? mostrarToast(m, t) : console.log(m));
@@ -69,7 +70,7 @@ export async function renderItens(container) {
     st.itens.forEach(i => { const k = i.grupo ? (i.subgrupo ? `${i.grupo} › ${i.subgrupo}` : i.grupo) : SEM_GRUPO; if (!blocos.has(k)) blocos.set(k, []); blocos.get(k).push(i); });
     const corpo = [...blocos.entries()].map(([k, its]) => {
         const cat = its.find(x => x.categoria_nome)?.categoria_nome;
-        return `<div class="rz-group rz-group-t"><span>${esc(k)}</span><b>${its.length}${cat ? ' · receita: ' + esc(cat) : ''}</b></div>${its.map(linha).join('')}`;
+        return `<div class="rz-group rz-group-t"><span style="min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(k)}${cat ? ' · receita: ' + esc(cat) : ''}</span><b>${its.length}</b></div>${its.map(linha).join('')}`; // v1.2.2 — receita no título, só o contador à direita
     }).join('');
     el.innerHTML = `<div class="rz-card rz-list"><div class="rz-card-h" style="padding-top:10px;margin-bottom:0"><h3>Itens à venda</h3>
             <span class="rz-sub">${st.itens.length} ${st.itens.length === 1 ? 'item' : 'itens'}${st.inativos ? ' · com inativos' : ''}</span>
@@ -95,6 +96,7 @@ function acoesCatalogo() {
     abrirSheetAcoes({ titulo: 'Itens à venda', sub: 'Catálogo do Comercial', acoes: [
         { icone: 'plus', titulo: 'Novo item', sub: 'Produto, serviço ou licença', aoTocar: () => setTimeout(() => abrirFormItem(null), 50) },
         { icone: st.inativos ? 'eye-off' : 'eye', titulo: st.inativos ? 'Esconder inativos' : 'Mostrar inativos', aoTocar: () => { st.inativos = !st.inativos; renderItens(); } },
+        { icone: 'file-bar-chart', titulo: 'Relatórios', sub: 'Pedidos, itens, clientes e pontos de venda', aoTocar: () => import('./comercial-pedidos.js').then(m => setTimeout(() => m.abrirRelatoriosComercial(null), 60)) }, // v1.2.2
     ] });
 }
 
@@ -148,7 +150,7 @@ async function abrirFormItem(i) {
                 <div class="rz-f"><label for="ci-sub">Subgrupo</label><input type="text" id="ci-sub" maxlength="60" list="ci-sub-lista" value="${esc(v.subgrupo || '')}" placeholder="Ex.: Queijos"><datalist id="ci-sub-lista">${subs.map(g => `<option value="${esc(g)}">`).join('')}</datalist></div>
             </div>
             <div class="rz-f"><label for="ci-cat">Categoria da receita</label><select id="ci-cat"><option value="">—</option>${opt((_cats || []).map(c => [c.codigo, c.nome]), v.categoria_codigo)}</select>
-                <label class="rz-desc" style="display:flex;gap:6px;align-items:center;margin-top:6px"><input type="checkbox" id="ci-cat-todos" checked> Aplicar a todos os itens do subgrupo</label></div>
+                <label class="rz-desc" style="display:flex;gap:6px;align-items:center;margin-top:6px"><input type="checkbox" id="ci-cat-todos" checked style="width:18px;height:18px;min-height:0;padding:0;flex:none;accent-color:var(--pine)"> Aplicar a todos os itens do subgrupo</label></div>
             <div class="rz-f2 rz-f2-curto">
                 <div class="rz-f"><label for="ci-nat">Natureza</label><select id="ci-nat">${opt(Object.entries(NATUREZA), v.natureza)}</select></div>
                 <div class="rz-f"><label for="ci-un">Unidade <i>*</i></label><input type="text" id="ci-un" list="ci-un-lista" value="${esc(v.unidade || '')}"><datalist id="ci-un-lista">${UNIDADES.map(u => `<option value="${esc(u)}">`).join('')}</datalist></div>

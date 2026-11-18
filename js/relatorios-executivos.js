@@ -1,6 +1,13 @@
 // ============================================================================
 // relatorios-executivos.js — Raiz Patrimônio · Relatórios no modelo executivo
-// Versão: 1.13.0 · 16/11/2026
+// Versão: 1.14.0 · 17/11/2026
+//
+// v1.14.0 (17/11/2026, sessão 20261117-2250-comercial-relatorios, demanda 285a0058; FICHA_RECEITA_UNIDADES_GERADORAS v1.13.0 §13.14,
+//   de acordo do Nicola 17/11 23:07 — Q9 sem quebra por tabela, Q10 ok) — os 4 primeiros relatórios do Raiz Comercial, no modelo
+//   executivo e lidos só de fn_relatorio_comercial (CAN-01): Pedidos do mês (comercial.rel_pedidos), Itens mais vendidos
+//   (comercial.rel_itens), Faturamento por cliente (comercial.rel_clientes) e Vendas por ponto de venda (comercial.rel_ativos).
+//   Filtros: mês e ponto de venda (ativos com tabela de venda); mês em andamento sai com PRÉVIA. Compartilhar abre "Enviar o
+//   resumo" e "Baixar a planilha" (baixarPlanilhaLista, REL-41/61). Versão anterior: 1.13.0
 //
 // v1.13.0 (16/11/2026, sessão 20261114-2342-investimentos-patrimonio, demanda fd3898f7; FICHA_RELATORIO_INVESTIMENTOS_PATRIMONIO
 //   v1.0.0 e protótipo aprovados pelo Nicola 15/11) — relatório novo "Investimentos no patrimônio" (relatorios.investimentos, Premium),
@@ -25,21 +32,15 @@
 //   do mês ganha o bloco "Diferenças da prestação de contas" (tela e aba "Diferenças" na planilha), lido de
 //   fn_relatorio_acompanhamento_mes.diferencas_prestacao: taxa e aluguel cobrados × contrato e arredondamento das divisões de
 //   recebimento do mês. Versão anterior: 1.9.0
-//
-// v1.9.0 (13/11/2026, sessão 20261113-1500-rel-cadastro-partes, demanda 35ff0daf; FICHA_RELATORIO_CADASTRO_PARTES_RAIZ v1.0.0,
-//   de acordo do Nicola 13/11 14:05) — relatório novo "Cadastro de partes e pessoas" (relatorios.cadastro_partes), lido de
-//   fn_relatorio_cadastro_partes (só da empresa aberta; achados calculados no banco, CAN-01). Planilha com 5 abas: Resumo
-//   (contagens por fórmula), Empresa, Partes (papéis, vínculos e achados, com filtro), Pessoas e Sobre. CPF/CNPJ vem mascarado
-//   do banco para quem não é admin. abrirRelatorioCadastroPartes().
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.8.0 … v1.8.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.9.0 … v1.9.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
 import { rzMostrarBloqueio } from './comum-licenca.js';
 import { rzToast } from './raiz-ui.js';
 import RaizDevice from './raiz-device.js';
 
-export const VERSAO = '1.13.0';
+export const VERSAO = '1.14.0';
 
 // ---------------------------------------------------------------------------
 // Formatos (REL-13 a REL-17)
@@ -798,6 +799,136 @@ function montarInvestimentos(d) {
         paginas: [[capa, ['Resumo', 'Evolução']], [p2, ['Composição', 'Detalhe', 'Notas']]]
     };
 }
+// ---------------------------------------------------------------------------
+// Relatórios do Comercial (v1.14.0, dem 285a0058; FICHA_RECEITA_UNIDADES_GERADORAS v1.13.0 §13.14) — tudo vem pronto de
+// fn_relatorio_comercial (CAN-01); aqui só a casca. Competência = data do pedido; totais só com pedidos confirmados.
+// ---------------------------------------------------------------------------
+const SIT_COM = { rascunho: 'Rascunho', confirmado: 'Confirmado', enviado: 'Enviado', entregue: 'Entregue', cancelado: 'Cancelado' };
+const qtd = v => nf(v, Number.isInteger(num(v)) ? 0 : 2);
+function cfgComercial(d, nome, medida) {
+    const cab = d.cabecalho || {};
+    const mes = comp(cab.de), atual = String(cab.de).slice(0, 7) === new Date().toISOString().slice(0, 7);
+    return { nome, medida, previa: atual,
+        subtitulo: [mes + (atual ? ' (mês em andamento)' : ''), 'visão competência (data do pedido)', cab.ativo_nome || 'todos os pontos de venda'].join(' · ') };
+}
+const notasComercial = (cab, extra = '') => `<div class="notes">
+        <p><b>Competência</b>: cada pedido entra no mês da sua data. Os totais contam só pedidos confirmados (sem rascunho, amostra ou cancelado).</p>
+        ${extra}
+        <p><b>Origem</b>: fn_relatorio_comercial · ${comp(cab.de)}${cab.ativo_nome ? ' · ' + esc(cab.ativo_nome) : ''}.</p></div>`;
+const vazioComercial = '<p class="mut">Nenhum pedido confirmado neste recorte.</p>';
+function montarComPedidos(d) {
+    const cab = d.cabecalho || {}, k = d.numeros || {};
+    const cfg = cfgComercial(d, 'Pedidos do mês', 'Pedidos de venda em R$');
+    const manchete = num(k.pedidos) ? `${qtd(k.pedidos)} ${num(k.pedidos) === 1 ? 'pedido confirmado' : 'pedidos confirmados'} em ${comp(cab.de)}, somando ${compacto(k.valor)}; ${compacto(k.a_receber)} ainda a receber.` : `Nenhum pedido confirmado em ${comp(cab.de)}.`;
+    const capa = `<div class="acao">${esc(manchete)}</div>
+      <div class="kpis">${kpi('Pedidos', qtd(k.pedidos), 'confirmados')}${kpi('Valor', compacto(k.valor), 'soma dos pedidos')}${kpi('Ticket médio', compacto(k.ticket), 'valor ÷ pedidos')}${kpi('A receber', compacto(k.a_receber), 'parcelas previstas')}</div>
+      ${secao('1. Por situação', 'pedidos · R$')}
+      <table><thead><tr><th>Situação</th><th class="n">Pedidos</th><th class="n">Valor</th></tr></thead><tbody>${(d.por_situacao || []).map(s => `<tr><td>${esc(SIT_COM[s.situacao] || s.situacao)}</td><td class="n">${qtd(s.pedidos)}</td><td class="n">${tab(s.valor)}</td></tr>`).join('')}</tbody></table>
+      ${secao('2. Por ponto de venda', 'pedidos confirmados · R$')}
+      ${(d.por_ativo || []).length ? barrasH((d.por_ativo || []).map(a => ({ l: a.ativo, v: num(a.valor), n: a.pedidos })), x => `${compacto(x.v)} · ${qtd(x.n)}`, 150) : vazioComercial}`;
+    const lin = (d.linhas || []).map(p => `<tr><td>${dma(p.data)}</td><td>nº ${esc(p.numero)}</td><td>${esc(p.cliente)}</td><td class="hm">${esc(p.ativo)}</td><td>${esc(SIT_COM[p.situacao] || p.situacao)}</td><td class="n">${tab(p.valor)}</td><td class="n hm">${tab(p.a_receber)}</td></tr>`).join('');
+    const p2 = `${secao('3. Os pedidos do mês', 'data do pedido · R$')}
+      <table><thead><tr><th>Data</th><th>Pedido</th><th>Cliente</th><th class="hm">Ponto de venda</th><th>Situação</th><th class="n">Valor</th><th class="n hm">A receber</th></tr></thead><tbody>${lin || '<tr><td colspan="7" class="mut">Nenhum pedido no mês.</td></tr>'}</tbody></table>
+      ${notasComercial(cab, '<p><b>A receber</b>: parcelas dos pedidos do mês que ainda estão previstas no Financeiro.</p>')}`;
+    return { cfg, linhas3: [`Pedidos do mês · ${comp(cab.de)}`, `${qtd(k.pedidos)} pedidos · ${compacto(k.valor)} · a receber ${compacto(k.a_receber)}`, manchete],
+        paginas: [[capa, ['Resumo', 'Composição']], [p2, ['Detalhe', 'Notas']]],
+        planilha: { aba: 'Pedidos', colunas: [
+            { cab: 'Data', larg: 12, fmt: 'data', ler: r => r.data }, { cab: 'Pedido', larg: 10, fmt: 'int', ler: r => num(r.numero) },
+            { cab: 'Cliente', larg: 28, ler: r => r.cliente }, { cab: 'Ponto de venda', larg: 24, ler: r => r.ativo },
+            { cab: 'Situação', larg: 13, ler: r => SIT_COM[r.situacao] || r.situacao },
+            { cab: 'Valor (R$)', larg: 14, fmt: 'moeda', ler: r => num(r.valor), total: true }, { cab: 'A receber (R$)', larg: 14, fmt: 'moeda', ler: r => num(r.a_receber), total: true }],
+            linhas: d.linhas || [], kpis: [{ rot: 'Pedidos', formula: f => `COUNTA(${f('Pedido')})`, fmt: 'int' }, { rot: 'Valor (R$)', formula: f => `SUM(${f('Valor (R$)')})` }, { rot: 'A receber (R$)', formula: f => `SUM(${f('A receber (R$)')})` }],
+            sobre: [['Linha', 'Um pedido de venda do mês (rascunho, confirmado, enviado, entregue ou cancelado).'], ['Valor', 'Total do pedido com descontos.'], ['A receber', 'Parcelas do pedido ainda previstas no Financeiro.']] } };
+}
+function montarComItens(d) {
+    const cab = d.cabecalho || {}, k = d.numeros || {}, ls = d.linhas || [];
+    const cfg = cfgComercial(d, 'Itens mais vendidos', 'Itens vendidos em R$');
+    const top = ls[0];
+    const manchete = top ? `${top.item} liderou ${comp(cab.de)} com ${compacto(top.valor)} (${qtd(top.quantidade)} ${top.unidade || 'un'})${num(k.valor) ? ', ' + pct(num(top.valor) / num(k.valor) * 100) + ' do vendido' : ''}.` : `Nenhum item vendido em ${comp(cab.de)}.`;
+    const capa = `<div class="acao">${esc(manchete)}</div>
+      <div class="kpis">${kpi('Itens diferentes', qtd(k.itens), 'vendidos no mês')}${kpi('Quantidade', qtd(k.quantidade), 'soma das unidades')}${kpi('Valor', compacto(k.valor), 'com descontos')}${kpi('Margem', k.margem_pct != null ? pct(k.margem_pct) : '—', 'itens com custo')}</div>
+      ${secao('1. Ranking por valor', 'R$ · os 10 primeiros')}
+      ${ls.length ? barrasH(ls.slice(0, 10).map(i => ({ l: i.item, v: num(i.valor) })), x => compacto(x.v), 150) : vazioComercial}
+      ${secao('2. Ranking por quantidade', 'unidade do item · os 10 primeiros')}
+      ${ls.length ? barrasH([...ls].sort((a, b) => num(b.quantidade) - num(a.quantidade)).slice(0, 10).map(i => ({ l: i.item, v: num(i.quantidade), u: i.unidade })), x => `${qtd(x.v)} ${x.u || ''}`, 150) : ''}`;
+    const lin = ls.map(i => `<tr><td>${esc(i.item)}${i.grupo ? ` <span class="mut">· ${esc(i.grupo)}</span>` : ''}</td><td class="n">${qtd(i.quantidade)} ${esc(i.unidade || '')}</td><td class="n hm">${qtd(i.pedidos)}</td><td class="n">${tab(i.valor)}</td><td class="n hm">${i.custo != null ? tab(i.custo) : '—'}</td><td class="n">${i.margem_pct != null ? pct(i.margem_pct) : '—'}</td></tr>`).join('');
+    const p2 = `${secao('3. Todos os itens', 'R$ · margem = valor − custo registrado no pedido')}
+      <table><thead><tr><th>Item</th><th class="n">Quantidade</th><th class="n hm">Pedidos</th><th class="n">Valor</th><th class="n hm">Custo</th><th class="n">Margem</th></tr></thead><tbody>${lin || '<tr><td colspan="6" class="mut">Nenhum item vendido.</td></tr>'}</tbody></table>
+      ${notasComercial(cab, '<p><b>Margem</b>: valor vendido menos o custo do item registrado no pedido (o do sistema ou o informado). Item sem custo aparece com "—" e fica fora da margem total.</p>')}`;
+    return { cfg, linhas3: [`Itens mais vendidos · ${comp(cab.de)}`, `${qtd(k.itens)} itens · ${compacto(k.valor)} · margem ${k.margem_pct != null ? pct(k.margem_pct) : '—'}`, manchete],
+        paginas: [[capa, ['Resumo', 'Composição']], [p2, ['Detalhe', 'Notas']]],
+        planilha: { aba: 'Itens', colunas: [
+            { cab: 'Item', larg: 30, ler: r => r.item }, { cab: 'Grupo', larg: 18, ler: r => r.grupo || '' }, { cab: 'Unidade', larg: 9, ler: r => r.unidade || '' },
+            { cab: 'Quantidade', larg: 12, fmt: 'moeda', ler: r => num(r.quantidade), total: true }, { cab: 'Pedidos', larg: 10, fmt: 'int', ler: r => num(r.pedidos) },
+            { cab: 'Valor (R$)', larg: 14, fmt: 'moeda', ler: r => num(r.valor), total: true }, { cab: 'Custo (R$)', larg: 14, fmt: 'moeda', ler: r => r.custo == null ? null : num(r.custo), total: true },
+            { cab: 'Margem (R$)', larg: 14, fmt: 'moeda', ler: r => r.margem == null ? null : num(r.margem), total: true }],
+            linhas: ls, kpis: [{ rot: 'Itens', formula: f => `COUNTA(${f('Item')})`, fmt: 'int' }, { rot: 'Valor (R$)', formula: f => `SUM(${f('Valor (R$)')})` }, { rot: 'Margem (R$)', formula: f => `SUM(${f('Margem (R$)')})` }],
+            sobre: [['Linha', 'Um item vendido no mês (do catálogo ou fora dele), somando os pedidos confirmados.'], ['Margem', 'Valor menos o custo registrado no pedido; vazia quando o item não tem custo.']] } };
+}
+function montarComClientes(d) {
+    const cab = d.cabecalho || {}, k = d.numeros || {}, ls = d.linhas || [];
+    const cfg = cfgComercial(d, 'Faturamento por cliente', 'Faturamento por cliente em R$');
+    const top = ls[0];
+    const manchete = top ? `${top.cliente} foi o maior cliente de ${comp(cab.de)}: ${compacto(top.valor)} em ${qtd(top.pedidos)} ${num(top.pedidos) === 1 ? 'pedido' : 'pedidos'}.` : `Nenhum cliente com pedido confirmado em ${comp(cab.de)}.`;
+    const capa = `<div class="acao">${esc(manchete)}</div>
+      <div class="kpis">${kpi('Clientes', qtd(k.clientes), 'com pedido no mês')}${kpi('Valor', compacto(k.valor), 'soma dos pedidos')}${kpi('Ticket médio', compacto(k.ticket), 'valor ÷ pedidos')}${kpi('Recorrentes', qtd(k.recorrentes), 'mais de um pedido até hoje')}</div>
+      ${secao('1. Quem mais comprou', 'R$ · os 10 primeiros')}
+      ${ls.length ? barrasH(ls.slice(0, 10).map(c => ({ l: c.cliente, v: num(c.valor) })), x => compacto(x.v), 150) : vazioComercial}`;
+    const lin = ls.map(c => `<tr><td>${esc(c.cliente)}</td><td class="n">${qtd(c.pedidos)}</td><td class="n">${tab(c.valor)}</td><td class="n hm">${tab(c.ticket)}</td><td class="n hm">${qtd(c.pedidos_total)}</td><td>${c.ultimo_pedido ? dma(c.ultimo_pedido) : '—'}</td><td class="n">${tab(c.a_receber)}</td></tr>`).join('');
+    const p2 = `${secao('2. Todos os clientes', 'R$ · pedidos confirmados')}
+      <table><thead><tr><th>Cliente</th><th class="n">Pedidos</th><th class="n">Valor</th><th class="n hm">Ticket</th><th class="n hm">Pedidos até hoje</th><th>Último pedido</th><th class="n">A receber</th></tr></thead><tbody>${lin || '<tr><td colspan="7" class="mut">Nenhum cliente.</td></tr>'}</tbody></table>
+      ${notasComercial(cab, '<p><b>Recorrente</b>: cliente com mais de um pedido confirmado até o fim do mês. <b>Último pedido</b>: o mais recente até o fim do mês, em qualquer ponto de venda.</p>')}`;
+    return { cfg, linhas3: [`Faturamento por cliente · ${comp(cab.de)}`, `${qtd(k.clientes)} clientes · ${compacto(k.valor)} · ${qtd(k.recorrentes)} recorrentes`, manchete],
+        paginas: [[capa, ['Resumo', 'Composição']], [p2, ['Detalhe', 'Notas']]],
+        planilha: { aba: 'Clientes', colunas: [
+            { cab: 'Cliente', larg: 30, ler: r => r.cliente }, { cab: 'Pedidos', larg: 10, fmt: 'int', ler: r => num(r.pedidos), total: true },
+            { cab: 'Valor (R$)', larg: 14, fmt: 'moeda', ler: r => num(r.valor), total: true }, { cab: 'Ticket (R$)', larg: 14, fmt: 'moeda', ler: r => num(r.ticket) },
+            { cab: 'Pedidos até hoje', larg: 12, fmt: 'int', ler: r => num(r.pedidos_total) }, { cab: 'Último pedido', larg: 13, fmt: 'data', ler: r => r.ultimo_pedido },
+            { cab: 'A receber (R$)', larg: 14, fmt: 'moeda', ler: r => num(r.a_receber), total: true }],
+            linhas: ls, kpis: [{ rot: 'Clientes', formula: f => `COUNTA(${f('Cliente')})`, fmt: 'int' }, { rot: 'Valor (R$)', formula: f => `SUM(${f('Valor (R$)')})` }, { rot: 'A receber (R$)', formula: f => `SUM(${f('A receber (R$)')})` }],
+            sobre: [['Linha', 'Um cliente com pedido confirmado no mês.'], ['Recorrente', 'Mais de um pedido confirmado até o fim do mês.']] } };
+}
+function montarComAtivos(d) {
+    const cab = d.cabecalho || {}, k = d.numeros || {}, ls = d.linhas || [];
+    const cfg = cfgComercial(d, 'Vendas por ponto de venda', 'Vendas por ativo em R$');
+    const top = ls[0];
+    const manchete = top ? `${top.ativo} vendeu mais em ${comp(cab.de)}: ${compacto(top.valor)}${top.participacao_pct != null ? ', ' + pct(top.participacao_pct) + ' do total' : ''}.` : `Nenhuma venda confirmada em ${comp(cab.de)}.`;
+    const capa = `<div class="acao">${esc(manchete)}</div>
+      <div class="kpis">${kpi('Pontos de venda', qtd(k.pontos), 'com venda no mês')}${kpi('Valor', compacto(k.valor), 'soma dos pedidos')}${kpi('Pedidos', qtd(k.pedidos), 'confirmados')}${kpi('Item líder', k.item_lider || '—', 'maior valor vendido')}</div>
+      ${secao('1. Valor por ponto de venda', 'R$ · participação no total')}
+      ${ls.length ? barrasH(ls.map(a => ({ l: a.ativo, v: num(a.valor), p: a.participacao_pct })), x => `${compacto(x.v)}${x.p != null ? ' · ' + pct(x.p) : ''}`, 150) : vazioComercial}`;
+    const lin = ls.map(a => `<tr><td>${esc(a.ativo)}</td><td class="n">${qtd(a.pedidos)}</td><td class="n">${tab(a.valor)}</td><td class="n hm">${tab(a.ticket)}</td><td>${(a.itens || []).map(i => esc(i.item)).join(', ') || '—'}</td></tr>`).join('');
+    const p2 = `${secao('2. O que cada ponto vende', 'R$ · 3 itens de maior valor')}
+      <table><thead><tr><th>Ponto de venda</th><th class="n">Pedidos</th><th class="n">Valor</th><th class="n hm">Ticket</th><th>Itens principais</th></tr></thead><tbody>${lin || '<tr><td colspan="5" class="mut">Nenhuma venda.</td></tr>'}</tbody></table>
+      ${notasComercial(cab, '<p><b>Ponto de venda</b>: o ativo do pedido (fazenda, loja, feira…). Pedido sem ativo aparece como "Sem ativo".</p>')}`;
+    return { cfg, linhas3: [`Vendas por ponto de venda · ${comp(cab.de)}`, `${qtd(k.pontos)} pontos · ${compacto(k.valor)} · ${qtd(k.pedidos)} pedidos`, manchete],
+        paginas: [[capa, ['Resumo', 'Composição']], [p2, ['Detalhe', 'Notas']]],
+        planilha: { aba: 'Pontos de venda', colunas: [
+            { cab: 'Ponto de venda', larg: 30, ler: r => r.ativo }, { cab: 'Pedidos', larg: 10, fmt: 'int', ler: r => num(r.pedidos), total: true },
+            { cab: 'Valor (R$)', larg: 14, fmt: 'moeda', ler: r => num(r.valor), total: true }, { cab: 'Ticket (R$)', larg: 14, fmt: 'moeda', ler: r => num(r.ticket) },
+            { cab: 'Itens principais', larg: 40, ler: r => (r.itens || []).map(i => i.item).join(', ') }],
+            linhas: ls, kpis: [{ rot: 'Pontos de venda', formula: f => `COUNTA(${f('Ponto de venda')})`, fmt: 'int' }, { rot: 'Valor (R$)', formula: f => `SUM(${f('Valor (R$)')})` }, { rot: 'Pedidos', formula: f => `SUM(${f('Pedidos')})`, fmt: 'int' }],
+            sobre: [['Linha', 'Um ativo (ponto de venda) com pedido confirmado no mês.']] } };
+}
+const COMERCIAL = { com_pedidos: 'pedidos', com_itens: 'itens', com_clientes: 'clientes', com_ativos: 'ativos' };
+const ehComercial = t => !!COMERCIAL[t];
+async function escolherAtivoComercial() {
+    let ativos = [];
+    try {
+        const { data } = await dbAuth.from('vinculos').select('ativo_id, ativo:ativo_id(nome_exibicao)').eq('origem_tipo', 'catalogo_tabela').eq('papel', 'vende');
+        const vistos = new Map(); (data || []).forEach(v => { if (v.ativo_id && !vistos.has(v.ativo_id)) vistos.set(v.ativo_id, v.ativo?.nome_exibicao || 'Ativo'); });
+        ativos = [...vistos.entries()].sort((a, b) => a[1].localeCompare(b[1], 'pt-BR'));
+    } catch (e) { ativos = []; }
+    abrirSheetAcoes({ titulo: 'Ponto de venda', sub: RELATORIOS[estado.tipo].nome, acoes: [
+        { icone: 'layers', titulo: 'Todos os pontos de venda', aoTocar: () => { Object.assign(estado.filtro, { ativoId: null, ativoNome: null }); carregar(); } },
+        ...ativos.map(([id, nome]) => ({ icone: 'store', titulo: nome, aoTocar: () => { Object.assign(estado.filtro, { ativoId: id, ativoNome: nome }); carregar(); } }))] });
+}
+function planilhaComercial() {
+    const p = estado?.montado?.planilha; if (!p) return;
+    const cab = estado.dados.cabecalho || {};
+    baixarPlanilhaLista({ ...p, titulo: RELATORIOS[estado.tipo].nome, recorte: `${comp(cab.de)} · ${cab.ativo_nome || 'todos os pontos de venda'}`,
+        arquivo: RELATORIOS[estado.tipo].arquivo, sufixo: String(cab.de).slice(0, 7).replace('-', '_'), fonte: 'fn_relatorio_comercial' });
+}
 // quem gera (rodapé e capa): a pessoa logada nesta empresa
 async function quemGera() {
     try {
@@ -813,7 +944,11 @@ const RELATORIOS = {
     gerencial: { codigo: 'relatorios.gerencial', nome: 'Visão gerencial', arquivo: 'gerencial', montar: montarGerencial },
     retiradas: { codigo: 'relatorios.retiradas_extraordinarias', nome: 'Retiradas extraordinárias', arquivo: 'retiradas_extraordinarias', montar: montarRetiradas }, // v1.3.0 — F13.8
     executivo: { codigo: 'relatorios.executivo', nome: 'Relatório executivo', arquivo: 'executivo', montar: montarExecutivo }, // v1.6.0 — cockpit C3
-    investimentos: { codigo: 'relatorios.investimentos', nome: 'Investimentos no patrimônio', arquivo: 'investimentos_patrimonio', montar: montarInvestimentos } // v1.13.0
+    investimentos: { codigo: 'relatorios.investimentos', nome: 'Investimentos no patrimônio', arquivo: 'investimentos_patrimonio', montar: montarInvestimentos }, // v1.13.0
+    com_pedidos: { codigo: 'comercial.rel_pedidos', nome: 'Pedidos do mês', arquivo: 'pedidos_mes', montar: montarComPedidos }, // v1.14.0 — Comercial
+    com_itens: { codigo: 'comercial.rel_itens', nome: 'Itens mais vendidos', arquivo: 'itens_mais_vendidos', montar: montarComItens },
+    com_clientes: { codigo: 'comercial.rel_clientes', nome: 'Faturamento por cliente', arquivo: 'faturamento_cliente', montar: montarComClientes },
+    com_ativos: { codigo: 'comercial.rel_ativos', nome: 'Vendas por ponto de venda', arquivo: 'vendas_ponto_venda', montar: montarComAtivos }
 };
 let estado = null; // { tipo, filtro, dados, montado }
 
@@ -823,6 +958,7 @@ function filtroPadrao(tipo, opcoes = {}) {
     const hoje = new Date(), m0 = new Date(hoje.getFullYear(), hoje.getMonth(), 1);
     if (tipo === 'retiradas') return { ano: hoje.getFullYear(), pessoaId: opcoes.pessoaId || null, pessoaNome: opcoes.pessoaNome || null }; // v1.3.0
     if (tipo === 'executivo' || tipo === 'investimentos') return { ano: opcoes.ano || hoje.getFullYear(), ramo: opcoes.ramo || null, ramoNome: opcoes.ramoNome || null }; // v1.6.0 · v1.13.0
+    if (ehComercial(tipo)) return { competencia: iso(m0), ativoId: opcoes.ativoId || null, ativoNome: opcoes.ativoNome || null }; // v1.14.0 — mês atual
     if (tipo === 'fluxo') return { de: iso(somaMeses(m0, -3)), ate: iso(somaMeses(m0, 2)), conta: null, contaNome: null, rotulo: 'Últimos 3 meses e próximos 2' };
     return { competencia: iso(somaMeses(m0, -1)) };
 }
@@ -836,6 +972,16 @@ function rotuloFiltro() {
 
 async function buscar() {
     const f = estado.filtro;
+    if (ehComercial(estado.tipo)) { // v1.14.0 — o mês inteiro, um ponto de venda ou todos
+        const d0 = new Date(Number(f.competencia.slice(0, 4)), Number(f.competencia.slice(5, 7)), 0);
+        const [{ data, error }, quem] = await Promise.all([
+            dbAuth.rpc('fn_relatorio_comercial', { p_cliente_id: CLIENTE_ID_SUPABASE, p_relatorio: COMERCIAL[estado.tipo], p_de: f.competencia,
+                p_ate: f.competencia.slice(0, 8) + String(d0.getDate()).padStart(2, '0'), p_ativo_id: f.ativoId || null }), quemGera()]);
+        if (error) throw new Error(error.message);
+        if (!data?.ok) throw new Error(data?.mensagem || 'O relatório não veio.');
+        return { ...data, empresa: data.cabecalho?.empresa, gerado_em: data.cabecalho?.gerado_em, gerado_por: quem,
+                 relatorio: RELATORIOS[estado.tipo].codigo, versao: 1, visao: 'competencia' };
+    }
     if (estado.tipo === 'retiradas') { // v1.3.0 — a função devolve o JSON direto (sem ok/dados)
         const [{ data, error }, quem] = await Promise.all([
             dbAuth.rpc('fn_relatorio_retiradas_extraordinarias', { p_cliente_id: CLIENTE_ID_SUPABASE, p_ano: f.ano || null, p_pessoa_id: f.pessoaId || null }),
@@ -876,6 +1022,7 @@ function telaHtml() {
     const r = RELATORIOS[estado.tipo];
     const contaChip = estado.tipo === 'fluxo' ? `<button type="button" data-rx="conta"><svg data-lucide="wallet"></svg>${esc(estado.filtro.contaNome || 'Todas as contas')}<svg data-lucide="chevron-down"></svg></button>`
         : estado.tipo === 'retiradas' && estado.filtro.pessoaId ? `<button type="button" data-rx="pessoa" aria-label="Ver todas as pessoas"><svg data-lucide="user"></svg>${esc(estado.filtro.pessoaNome || 'Pessoa')}<svg data-lucide="x"></svg></button>` // v1.3.0: recorte por pessoa; tocar volta a todas
+        : ehComercial(estado.tipo) ? `<button type="button" data-rx="ativo"><svg data-lucide="store"></svg>${esc(estado.filtro.ativoNome || 'Todos os pontos')}<svg data-lucide="chevron-down"></svg></button>` // v1.14.0
         : (estado.tipo === 'executivo' || estado.tipo === 'investimentos') ? `<button type="button" data-rx="ramo"><svg data-lucide="layers"></svg>${esc(estado.filtro.ramoNome || (estado.tipo === 'investimentos' ? 'Todos os ramos' : 'Consolidado'))}<svg data-lucide="chevron-down"></svg></button>` : ''; // v1.6.0
     return `<div class="rx-top">
         <button type="button" class="rx-voltar" data-rx="fechar" aria-label="Voltar para Relatórios"><svg data-lucide="chevron-left"></svg>Relatórios</button>
@@ -920,6 +1067,7 @@ function ligar(el) {
         else if (acao === 'periodo') escolherPeriodo();
         else if (acao === 'conta') escolherConta();
         else if (acao === 'ramo') escolherRamo(); // v1.6.0
+        else if (acao === 'ativo') escolherAtivoComercial(); // v1.14.0
         else if (acao === 'pessoa') { Object.assign(estado.filtro, { pessoaId: null, pessoaNome: null }); carregar(); }
         else if (acao === 'pdf') imprimir();
         else if (acao === 'compartilhar') compartilhar();
@@ -948,7 +1096,7 @@ function escolherPeriodo() {
             { icone: 'layers', titulo: 'Todos os anos', sub: 'desde a primeira retirada', aoTocar: () => { estado.filtro.ano = null; carregar(); } }] });
     } else {
         const ops = Array.from({ length: 12 }, (_, i) => iso(somaMeses(m0, -i)));
-        abrirSheetAcoes({ titulo: 'Competência', sub: 'Visão gerencial', acoes: ops.map(c => ({
+        abrirSheetAcoes({ titulo: ehComercial(estado.tipo) ? 'Mês' : 'Competência', sub: RELATORIOS[estado.tipo].nome, acoes: ops.map(c => ({
             icone: 'calendar', titulo: comp(c), sub: c === iso(m0) ? 'mês atual · prévia' : '',
             aoTocar: () => { estado.filtro.competencia = c; carregar(); } })) });
     }
@@ -996,6 +1144,12 @@ function imprimir() {
 
 async function compartilhar() {
     if (!estado?.montado) return;
+    if (estado.montado.planilha && !compartilhar.direto) { // v1.14.0 — REL-41: a planilha mora no Compartilhar
+        abrirSheetAcoes({ titulo: 'Compartilhar', sub: RELATORIOS[estado.tipo].nome, acoes: [
+            { icone: 'share-2', titulo: 'Enviar o resumo', sub: 'Título, números e leitura', aoTocar: () => { compartilhar.direto = true; compartilhar().finally(() => { compartilhar.direto = false; }); } },
+            { icone: 'sheet', titulo: 'Baixar a planilha', sub: 'Excel (.xlsx) com as linhas do relatório', aoTocar: () => planilhaComercial() }] });
+        return;
+    }
     const [l1, l2, l3] = estado.montado.linhas3; // REL-42
     const r = await RaizDevice.share({ titulo: l1, texto: `${l1}\n${l2}\n${l3}` });
     if (r && r.ok === false && r.motivo === 'sem_share') {

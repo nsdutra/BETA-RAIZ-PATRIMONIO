@@ -1,7 +1,8 @@
 // =====================================================================
 // RAIZ PATRIMÔNIO — js/ativo-interessados.js
-// Versão: 1.5.0 · 17/11/2026
+// Versão: 1.5.1 · 17/11/2026
 // -----------------------------------------------------------------
+// v1.5.1 (17/11/2026, sessão 20261117-2250-comercial-relatorios, demanda 285a0058; achados do Nicola 17/11 23:11) — o Novo pedido aberto ao mover o interessado para "Pedido" atualiza o card Pedidos do ativo ao salvar (ficava "nenhum ainda" até recarregar o app). Versão anterior: 1.5.0
 // v1.5.0 (17/11/2026, sessão 20261117-1700-comercial-r5, demanda 285a0058; FICHA_RECEITA_UNIDADES_GERADORAS v1.12.0 §13.7) — interessado
 //   da esteira Venda movido para "Pedido" abre o Novo pedido com o comprador (js/comercial-pedidos.js); "Marcar como perdido" usa a
 //   etapa de perda da esteira de cada um (Cancelado na Venda, Perdido na licença, Cancelada na temporada…); cabeçalhos de grupo com o
@@ -37,7 +38,7 @@
 //     comunicações da pessoa (fn_comunicacoes_pessoa: robô, comunicações, app e esteira). Grava por fn_interessado_mover.
 //   · O card aparece no bem com uso de agenda (temporada, short stay, cowork, atendimento) ou que já tenha interessado/pedido.
 // =====================================================================
-export const VERSAO = '1.5.0';
+export const VERSAO = '1.5.1';
 
 const MODELOS_AGENDA = ['temporada', 'short_stay', 'cowork', 'atendimento'];
 const esc = (s) => (typeof rzEsc === 'function' ? rzEsc(s) : String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])));
@@ -168,7 +169,7 @@ async function abrirFichaInteressado(a, i, aoMudar, empilhar = false) {
             aoMudar && aoMudar();
             // v1.5.0 — virou pedido (esteira Venda): abre o Novo pedido com o comprador
             if (data.mudou && i.fluxo_codigo === 'venda' && st.etapa === 'pedido' && i.parte_id) {
-                setTimeout(() => import('./comercial-pedidos.js').then(m => m.abrirNovoPedido(a, { parteId: i.parte_id })), 150);
+                setTimeout(() => import('./comercial-pedidos.js').then(m => m.abrirNovoPedido(a, { parteId: i.parte_id, aoMudar: () => m.montarCardPedidos(a) })), 150);
             }
             return true;
         },
