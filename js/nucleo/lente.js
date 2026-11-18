@@ -1,6 +1,10 @@
 // ============================================================================
 // nucleo/lente.js — Raiz Patrimônio · Núcleo de plataforma · lente de ramos com um ou mais ramos
-// Versão: 1.0.0 · 18/11/2026
+// Versão: 1.1.0 · 18/11/2026
+//
+// v1.1.0 (18/11/2026, sessão 20261118-1850-financeiro-lente-5bc, demanda 679b2700; LEVANTAMENTO_LENTE_MULTI_RAMO_RAIZ v1.0.0 fatias 5b e 5c, de acordo do Nicola 18/11 14:36 e 18:45) — rpcPorRamos (window.rzRpcPorRamos): com 2+ ramos, Alertas e Agenda chamam a função do banco
+// uma vez por ramo marcado (p_ramo) e juntam as listas sem repetir (pela chave de cada linha). As funções continuam com um ramo
+// (sem banco novo). Versão anterior: 1.0.0
 //
 // v1.0.0 (18/11/2026, sessão 20261118-1440-financeiro-lente, demanda 679b2700; FICHA_REVISAO_FINANCEIRO_RAIZ v1.0.0, Onda 5 · D1;
 // LEVANTAMENTO_LENTE_MULTI_RAMO_RAIZ v1.0.0, fatia 5a, de acordo do Nicola 18/11 14:36 "De acordo com 5a e a estratégia") —
@@ -15,7 +19,7 @@
 //     quem já sabe (cabeçalho, Financeiro › Resumo, Patrimônio, árvore do Hoje) lê a lista.
 // Não guarda nada: a lente não fica salva (Q3); o app abre em Todo ou no ramo padrão da pessoa.
 // ============================================================================
-export const VERSAO = '1.0.0';
+export const VERSAO = '1.1.0';
 
 const esc = (v) => String(v ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const icones = () => { if (typeof lucide !== 'undefined') lucide.createIcons(); };
@@ -103,5 +107,17 @@ export function seloLente(bt, varios) {
     if (!bt) return;
     bt.querySelector('.rz-lente-n')?.remove();
     if (Array.isArray(varios) && varios.length > 1) bt.insertAdjacentHTML('beforeend', `<b class="rz-lente-n">${varios.length}</b>`);
+}
+/** v1.1.0 — chama a função uma vez por ramo e junta as linhas sem repetir; devolve { data, error } como o dbAuth.rpc. */
+export async function rpcPorRamos(nome, args, ramos, chave) {
+    const rs = await Promise.all(ramos.map((r) => dbAuth.rpc(nome, { ...args, p_ramo: r })));
+    const erro = rs.find((x) => x.error);
+    if (erro) return { data: null, error: erro.error };
+    const vistos = new Set(), data = [];
+    rs.forEach((x) => (x.data || []).forEach((l) => { const k = chave(l); if (!vistos.has(k)) { vistos.add(k); data.push(l); } }));
+    return { data, error: null };
+}
+if (typeof window !== 'undefined') {
+    window.rzRpcPorRamos = (nome, args, chave) => rpcPorRamos(nome, args, window.RZ_RAMOS_LENTE || [], chave);
 }
 if (typeof window !== 'undefined') window.rzSeloLente = seloLente; // o index pinta o selo sem importar (só existe vários ramos depois da lente aberta)

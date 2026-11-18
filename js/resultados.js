@@ -1,8 +1,12 @@
 // =====================================================================
 // RAIZ PATRIMÔNIO — js/resultados.js
-// VERSÃO: Beta v2.23.0 (16/11/2026 — demanda fd3898f7)
+// VERSÃO: Beta v2.24.0 (18/11/2026 — demanda 679b2700)
 // LINHAS: (ver versoes.json)
 // -----------------------------------------------------------------
+// NOVIDADES (Beta v2.24.0) (18/11/2026, sessão 20261118-1850-financeiro-lente-5bc, demanda 679b2700; LEVANTAMENTO_LENTE_MULTI_RAMO_RAIZ v1.0.0 fatias 5b e 5c, de acordo do Nicola 18/11 14:36 e 18:45; Q1 caminho a) — Hoje com 2+ ramos marcados na lente
+// (window.RZ_RAMOS_LENTE): o painel "Resultado por ramo" (fn_hoje_por_ramo) só com as linhas dos ramos marcados e, no fim, a soma
+// delas; o herói de performance e os cards de Todo o patrimônio (ocupação, inadimplência, reajustes, por mês, por grupo) não
+// aparecem, porque as funções de resultado ainda recebem um ramo só. Tocar num ramo abre a lente nele. Versão anterior: 2.23.0
 // NOVIDADES (Beta v2.23.0) (16/11/2026, sessão 20261114-2342-investimentos-patrimonio, demanda fd3898f7; decisão do Nicola 15/11 16:53:
 //   "card pra todos sim") — Todo o patrimônio ganha o card "Investimentos no patrimônio": reinvestido no ano, taxa de reinvestimento
 //   e a leitura, lidos de fn_relatorio_investimentos_patrimonio; tocar abre o relatório. Fora do Premium, o card aparece com cadeado.
@@ -126,7 +130,7 @@
 // Versões anteriores (v2.4.0 … v2.4.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '2.23.0';
+export const VERSAO = '2.24.0';
 
 // ---------------------------------------------------------------------
 // Estado do filtro (module-scoped — sobrevive entre renders porque o
@@ -271,6 +275,30 @@ function botaoInfoCard(onclick) {
 // #hoje-resultados-mount. Abrangência é sempre a carteira (UXR-18).
 // ---------------------------------------------------------------------
 let geracao = 0; // só o desenho mais novo escreve na tela
+// v2.24.0 (dem 679b2700, Onda 5c) — 2+ ramos na lente: o Resultado por ramo só com os ramos marcados e a soma deles.
+async function renderizarVariosRamos(alvo, minha) {
+    const sel = filtro.ramos || [];
+    const heroiEl = document.getElementById('hoje-heroi-mount');
+    if (heroiEl) heroiEl.innerHTML = '';
+    let pr = null;
+    if (podeVerPorRamo()) {
+        const { data, error } = await dbAuth.rpc('fn_hoje_por_ramo', { p_cliente_id: CLIENTE_ID_SUPABASE, p_ano: filtro.ano });
+        if (minha !== geracao) return;
+        if (error) console.warn('[resultados] por ramo:', error.message);
+        else pr = data;
+    }
+    const ramos = pr && pr.pode_ver !== false ? (pr.ramos || []).filter(r => sel.includes(codR(r.codigo))) : [];
+    const soma = k => ramos.reduce((t, r) => t + (Number(r[k]) || 0), 0);
+    const nomes = ramos.map(r => r.nome).join(' + ') || sel.join(' + ');
+    const card = ramos.length ? montarResultadoPorRamo({ ...pr, ramos, geral: {}, soma_ok: true,
+        consolidado: { resultado: soma('resultado'), receita: soma('receita'), patrimonio: ramos.filter(r => r.soma_valor !== false).reduce((t, r) => t + (Number(r.patrimonio) || 0), 0) } },
+        { rotuloTot: 'Soma de ' + nomes, nota: 'A soma é das linhas dos ramos marcados na lente. Ocupação, inadimplência, reajustes e o resultado por mês ficam em Todo o patrimônio ou num ramo só.' })
+        : `<div class="rz-card"><p class="rz-desc">${pr && pr.pode_ver === false || !podeVerPorRamo() ? 'O resultado por ramo não está liberado no seu plano ou perfil.' : 'Nenhum resultado dos ramos marcados no ano.'}</p></div>`;
+    devolverArvore();
+    alvo.innerHTML = card;
+    if (typeof rzIcones === 'function') rzIcones();
+}
+
 export async function renderResultados(opcoes) {
     const heroi = document.getElementById('hoje-heroi-mount');
     const cards = document.getElementById('hoje-resultados-mount');
@@ -280,7 +308,8 @@ export async function renderResultados(opcoes) {
     if (filtro.ramo === 'tudo' || !ramoInfo?.tem_uso) filtro.contexto = 'tudo'; // uso só dentro de ramo que tem uso
     filtro.abrangencia = 'carteira'; filtro.alvoId = null; filtro.alvoNome = null;
     const noRamo = filtro.ramo !== 'tudo';
-    heroi.innerHTML = noRamo ? montarHeroiRamo(null, true) : montarHeroi(null, null, true);
+    filtro.ramos = !noRamo && Array.isArray(window.RZ_RAMOS_LENTE) && window.RZ_RAMOS_LENTE.length > 1 ? window.RZ_RAMOS_LENTE.slice() : null; // v2.24.0
+    heroi.innerHTML = filtro.ramos ? '' : noRamo ? montarHeroiRamo(null, true) : montarHeroi(null, null, true);
     if (!heroi._rzCompo) { // v2.13.0 (cockpit C2) — tocar no resultado do herói abre a composição
         heroi._rzCompo = true;
         const abrir = ev => { if (ev.target.closest('[data-rz-compo]') && (ev.type === 'click' || ev.key === 'Enter' || ev.key === ' ')) { ev.preventDefault(); abrirComposicaoHoje(); } };
@@ -618,6 +647,7 @@ async function renderizarConteudo() {
     devolverArvore();
     const minha = ++geracao; // v2.0.0
     const p_ramo = filtro.ramo === 'tudo' ? null : filtro.ramo; // v2.9.0 (F23)
+    if (!p_ramo && filtro.ramos) return renderizarVariosRamos(alvo, minha); // v2.24.0 — 2+ ramos na lente
     if (p_ramo && ramoInfo && ramoInfo.soma_valor === false) { // v2.9.0 — ramo de contagem (Família): vidas + despesas do ramo
         const [ativosR, mensalF, grupoF, indF] = await Promise.all([
             dbAuth.from('cofre_ativos').select('tipo_ativo, tipo_detalhe:ativo_tipos(ramo)').eq('cliente_id', CLIENTE_ID_SUPABASE).eq('status', 'ativo'),
@@ -940,7 +970,7 @@ function compoAbrirLancamento(id) {
 // v2.11.0 (fatia 8, F8-1, D8-1) — Resultado por ramo: uma linha por ramo (receita × despesa em barras, resultado, margem,
 // patrimônio), a linha Geral · sem ativo e o Consolidado. Tocar no ramo abre a lente (escolherGeralRamo, index.html).
 // ---------------------------------------------------------------------
-function montarResultadoPorRamo(pr) {
+function montarResultadoPorRamo(pr, opc = {}) { // v2.24.0 — opc: { rotuloTot, nota } (2+ ramos na lente)
     if (!pr || pr.pode_ver === false || !Array.isArray(pr.ramos) || !pr.ramos.length) return '';
     const ramos = pr.ramos, g = pr.geral || {}, c = pr.consolidado || {};
     const escala = Math.max(1, ...ramos.flatMap(r => [Number(r.receita) || 0, Number(r.despesa) || 0]));
@@ -972,10 +1002,10 @@ function montarResultadoPorRamo(pr) {
     const cSub = [c.margem != null ? `margem ${fmtNum(c.margem, 0)}%` : '', Number(c.patrimonio) > 0 ? moedaCurta(c.patrimonio) : ''].filter(Boolean).join(' · ');
     const linhaTot = `<div class="rz-rr rz-rr-tot">
             <span class="rz-rr-pt" style="background:var(--ink)"></span>
-            <span class="rz-rr-nm">Consolidado<small>${escR(cSub)}</small></span>
+            <span class="rz-rr-nm">${escR(opc.rotuloTot || 'Consolidado')}<small>${escR(cSub)}</small></span>
             <span class="rz-rr-vl${cRes < 0 ? ' rz-neg' : ''}">${moedaCurta(cRes)}<small>${[cRec > 0 ? `de ${moedaCurta(cRec)}` : '', c.meta && c.meta.ate_mes != null ? `meta ${moedaCurta(c.meta.ate_mes)}` : ''].filter(Boolean).join(' · ')}</small>${c.meta && c.meta.ate_mes != null ? comparar(cRes, c.meta.ate_mes, { rotulo: 'vs meta' }) : comparar(cRes, c.anterior?.resultado)}</span>
         </div>`;
-    const nota = pr.soma_ok ? 'A soma das linhas é igual ao Consolidado e ao resultado do herói.' : 'A soma das linhas não fechou com o Consolidado: avise o suporte.';
+    const nota = opc.nota || (pr.soma_ok ? 'A soma das linhas é igual ao Consolidado e ao resultado do herói.' : 'A soma das linhas não fechou com o Consolidado: avise o suporte.');
     return `<div class="rz-card rz-ck">
         <div class="rz-card-h"><h3>Resultado por ramo</h3><span class="rz-sub">${corte}</span></div>
         <p class="rz-desc">Receita, despesa e resultado de cada ramo. Toque para abrir a lente.</p>

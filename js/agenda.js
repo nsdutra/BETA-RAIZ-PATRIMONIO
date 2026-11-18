@@ -1,8 +1,11 @@
 // =====================================================================
 // RAIZ PATRIMÔNIO — js/agenda.js
-// VERSÃO: Beta v1.20.0 (16/11/2026 — Novo compromisso a partir de outra tela)
+// VERSÃO: Beta v1.21.0 (18/11/2026 — Agenda com 2+ ramos na lente)
 // LINHAS: (ver versoes.json)
 // -----------------------------------------------------------------
+// NOVIDADES (Beta v1.21.0) (18/11/2026, sessão 20261118-1850-financeiro-lente-5bc, demanda 679b2700; LEVANTAMENTO_LENTE_MULTI_RAMO_RAIZ v1.0.0 fatias 5b e 5c, de acordo do Nicola 18/11 14:36 e 18:45) — com 2+ ramos marcados na lente
+// (window.RZ_RAMOS_LENTE), o calendário e o "Enviar a semana" chamam fn_agenda_periodo(_v2) uma vez por ramo e juntam os
+// compromissos sem repetir (window.rzRpcPorRamos, js/nucleo/lente.js). Versão anterior: 1.20.0
 // NOVIDADES (Beta v1.20.0) (16/11/2026, sessão 20261116-0853-doc-criar-item, demanda 711f52e5; FICHA_DOCUMENTO_CRIAR_ITEM_AGENDA_RAIZ
 // v1.0.0, de acordo do Nicola 16/11 08:53) — abrirNovoCompromisso(pref) aceita pref.aoSalvar(resultado, idsVinculados) e
 // pref.aoCancelar(): quem abriu a cortina (a ficha do documento) termina o trabalho depois de salvar ou volta ao cancelar.
@@ -164,7 +167,7 @@
 
 import { rzCalendario, rzCalItemDaAgenda } from './nucleo/calendario.js'; // v1.16.0 — calendário único (DS §6.3)
 
-export const VERSAO = '1.20.0';
+export const VERSAO = '1.21.0';
 
 const TIPOS = {
     ocorrencia:   { rotulo: 'Ocorrência',  icone: 'wrench',          dominio: 'ocorrencias' },
@@ -318,6 +321,8 @@ function mostrarListaAlertas(mostrar) {
 }
 const agDesk = () => typeof window !== 'undefined' && typeof window.matchMedia === 'function' && window.matchMedia('(min-width:1024px)').matches;
 
+// v1.21.0 — a mesma linha da agenda vinda de dois ramos aparece uma vez só
+const chaveAgenda = (r) => [r.data, r.tipo, r.entidade_tipo, r.entidade_id, r.ocorrencia_id, r.titulo, r.hora].join('|');
 async function carregar() {
     const meu = ++st.seq;
     mostrarListaAlertas(st.vista === 'alertas');
@@ -329,10 +334,11 @@ async function carregar() {
         const ramo = (typeof geralRamoFiltro !== 'undefined' && geralRamoFiltro && geralRamoFiltro !== 'tudo') ? geralRamoFiltro : null;
         // v1.16.0 — v2: severidade, assunto, hora e situação vêm do banco; filtro por bem (p_ativos)
         const args = { p_cliente_id: CLIENTE_ID_SUPABASE, p_de: iso(de), p_ate: iso(ate), p_ramo: ramo };
-        let { data, error } = await dbAuth.rpc('fn_agenda_periodo_v2', { ...args, p_ativos: st.ativo ? [st.ativo.id] : null });
+        const rpcAg = (nome, a) => (window.RZ_RAMOS_LENTE && window.rzRpcPorRamos) ? window.rzRpcPorRamos(nome, a, chaveAgenda) : dbAuth.rpc(nome, a); // v1.21.0
+        let { data, error } = await rpcAg('fn_agenda_periodo_v2', { ...args, p_ativos: st.ativo ? [st.ativo.id] : null });
         if (error) { // reserva: a v1 de sempre (sem filtro por bem no banco — filtra aqui)
             console.warn('[agenda] fn_agenda_periodo_v2:', error.message);
-            ({ data, error } = await dbAuth.rpc('fn_agenda_periodo', args));
+            ({ data, error } = await rpcAg('fn_agenda_periodo', args));
             if (error) throw error;
             if (st.ativo) data = (data || []).filter(r => r.ativo_id === st.ativo.id);
         }
@@ -676,7 +682,8 @@ async function enviarSemana() {
     if (!cobre) {
         try {
             const ramo = (typeof geralRamoFiltro !== 'undefined' && geralRamoFiltro && geralRamoFiltro !== 'tudo') ? geralRamoFiltro : null;
-            const { data } = await dbAuth.rpc('fn_agenda_periodo', { p_cliente_id: CLIENTE_ID_SUPABASE, p_de: iso(ini), p_ate: iso(fim), p_ramo: ramo });
+            const argsS = { p_cliente_id: CLIENTE_ID_SUPABASE, p_de: iso(ini), p_ate: iso(fim), p_ramo: ramo };
+            const { data } = (window.RZ_RAMOS_LENTE && window.rzRpcPorRamos) ? await window.rzRpcPorRamos('fn_agenda_periodo', argsS, chaveAgenda) : await dbAuth.rpc('fn_agenda_periodo', argsS); // v1.21.0
             dados = data || [];
         } catch (_) { /* usa o que está na tela */ }
     }
