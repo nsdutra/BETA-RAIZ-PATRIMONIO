@@ -1,6 +1,8 @@
 // =====================================================================
 // RAIZ PATRIMÔNIO — js/comercial-itens.js
-// Versão: 1.2.0 · 17/11/2026
+// Versão: 1.2.1 · 17/11/2026
+// v1.2.1 (17/11/2026, sessão 20261117-1700-comercial-r5, demanda 285a0058) — cabeçalhos de grupo com o contador à direita (rz-group-t).
+//   Versão anterior: 1.2.0
 // -----------------------------------------------------------------
 // v1.2.0 (17/11/2026, sessão 20261117-0000-comercial-c2, demanda 285a0058; FICHA_RECEITA_UNIDADES_GERADORAS v1.12.0 §13.6 — Nicola
 // 16/11 21:31: "não vejo necessidade de ter uma tabela padrão") — o preço sai do formulário do item e passa a morar nas tabelas
@@ -26,7 +28,7 @@ import * as api from './cofre-api.js';
 import { estado } from './cofre-estado.js';
 import { avisarComDesfazer } from './cofre-ui.js';
 
-export const VERSAO = '1.2.0';
+export const VERSAO = '1.2.1';
 
 const esc = (s) => (typeof rzEsc === 'function' ? rzEsc(s) : String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])));
 const toast = (m, t) => (typeof mostrarToast === 'function' ? mostrarToast(m, t) : console.log(m));
@@ -67,7 +69,7 @@ export async function renderItens(container) {
     st.itens.forEach(i => { const k = i.grupo ? (i.subgrupo ? `${i.grupo} › ${i.subgrupo}` : i.grupo) : SEM_GRUPO; if (!blocos.has(k)) blocos.set(k, []); blocos.get(k).push(i); });
     const corpo = [...blocos.entries()].map(([k, its]) => {
         const cat = its.find(x => x.categoria_nome)?.categoria_nome;
-        return `<div class="rz-group">${esc(k)}<span>${its.length}${cat ? ' · receita: ' + esc(cat) : ''}</span></div>${its.map(linha).join('')}`;
+        return `<div class="rz-group rz-group-t"><span>${esc(k)}</span><b>${its.length}${cat ? ' · receita: ' + esc(cat) : ''}</b></div>${its.map(linha).join('')}`;
     }).join('');
     el.innerHTML = `<div class="rz-card rz-list"><div class="rz-card-h" style="padding-top:10px;margin-bottom:0"><h3>Itens à venda</h3>
             <span class="rz-sub">${st.itens.length} ${st.itens.length === 1 ? 'item' : 'itens'}${st.inativos ? ' · com inativos' : ''}</span>
@@ -263,7 +265,7 @@ async function abrirPrecos(i) {
         <div class="rz-tx"><b>${esc([p.partes?.nome ? 'Só ' + p.partes.nome : 'Preço base', p.quantidade_min > 0 ? `a partir de ${p.quantidade_min} ${i.unidade}` : ''].filter(Boolean).join(' · '))}</b><span>${dataBR(p.vigencia_inicio)}${p.vigencia_fim ? ' a ' + dataBR(p.vigencia_fim) : ' em diante'}</span></div>
         <div class="rz-rt"><b>${moeda(p.preco)}</b>${vig(p) ? '<span class="rz-st rz-ok">Vigente</span>' : p.vigencia_inicio > hoje ? '<span class="rz-st rz-neu">A partir de</span>' : '<span class="rz-st rz-neu">Antigo</span>'}</div></div>`;
     const s = abrirSheet(`${cabSheet('Preços', i.nome)}
-        <div class="rz-sh-b">${[...grupos.entries()].map(([k, ps]) => `<div class="rz-group">${esc(k)}<span>${ps.length}</span></div><div class="rz-card rz-list">${ps.map(linha).join('')}</div>`).join('')
+        <div class="rz-sh-b">${[...grupos.entries()].map(([k, ps]) => `<div class="rz-group rz-group-t"><span>${esc(k)}</span><b>${ps.length}</b></div><div class="rz-card rz-list">${ps.map(linha).join('')}</div>`).join('')
             || '<div class="rz-card"><p class="rz-desc" style="margin:0">Sem preço ainda. O preço mora numa tabela de preço do Raiz Comercial.</p></div>'}
         <button type="button" class="rz-add" data-cp-novo style="margin-top:8px"><svg data-lucide="plus"></svg>Preço numa tabela</button>
         <p class="rz-desc" style="margin:10px 4px 0">Na venda vale a tabela ativa no ativo: o preço do cliente, depois o de volume que couber na quantidade, depois o preço base — sempre o vigente na data.</p></div>`);

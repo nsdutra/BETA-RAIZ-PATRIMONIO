@@ -1,7 +1,10 @@
 // =====================================================================
 // RAIZ PATRIMÔNIO — js/comercial-tabelas.js
-// Versão: 1.0.0 · 17/11/2026
+// Versão: 1.0.1 · 17/11/2026
 // -----------------------------------------------------------------
+// v1.0.1 (17/11/2026, sessão 20261117-1700-comercial-r5, demanda 285a0058 — nota de 17/11 20:45) — cabeçalhos de grupo com o contador à
+//   direita (rz-group-t): sai o "Vale em0" / "Café1" colado. A tela que mostrava "Ativa em 0 ativos" era a policy de vinculos
+//   (corrigida no banco, comercial_vinculos_policy_fix_v1). Versão anterior: 1.0.0
 // v1.0.0 (17/11/2026, sessão 20261117-0000-comercial-c2, demanda 285a0058; FICHA_RECEITA_UNIDADES_GERADORAS v1.12.0 §13.5, §13.6
 // e §13.9 — de acordo do Nicola 16/11 21:31, 23:18 e 23:19) — criação. Tabelas de preço do Raiz Comercial, SEM tabela padrão:
 //   · Lista das tabelas (chip "Tabelas" da lente Comercial): recorte Grupo › Subgrupo, ativos onde está ativa, cliente exclusivo.
@@ -12,7 +15,7 @@
 // Escrita só pelas funções (fn_catalogo_tabela_salvar, fn_catalogo_tabela_ativar, fn_catalogo_preco_salvar); leitura pela RLS
 // (catalogo_tabelas, catalogo_precos, vinculos com origem catalogo_tabela, partes_papeis).
 // =====================================================================
-export const VERSAO = '1.0.0';
+export const VERSAO = '1.0.1';
 
 const esc = (s) => (typeof rzEsc === 'function' ? rzEsc(s) : String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])));
 const toast = (m, t) => (typeof mostrarToast === 'function' ? mostrarToast(m, t) : console.log(m));
@@ -134,11 +137,11 @@ export async function abrirTelaTabela(tabelaId, ctx = {}) {
     const sheet = abrirSheet(`${cabecalho(t.nome, [recorte(t), t.comprador ? 'só ' + (t.comprador.partes?.nome || 'um cliente') : '', t.ativa ? '' : 'desativada'].filter(Boolean).join(' · '), true)}
         <div class="rz-sh-b">
             <div class="rz-kpis"><div class="rz-kpi"><small>Itens com preço</small><b>${nItens}</b></div><div class="rz-kpi"><small>Ativa em</small><b>${t.ativos.length} ${t.ativos.length === 1 ? 'ativo' : 'ativos'}</b></div></div>
-            <div class="rz-group">Vale em<span>${t.ativos.length}</span></div>
+            <div class="rz-group rz-group-t"><span>Vale em</span><b>${t.ativos.length}</b></div>
             <div class="rz-card rz-list">${t.ativos.length ? t.ativos.map(a => `<div class="rz-row"><div class="rz-ic"><i data-lucide="map-pin"></i></div><div class="rz-tx"><b>${esc(a.nome)}</b></div>
                 <button type="button" class="rz-more" data-tt-ativo="${a.id}" aria-label="Ações"><i data-lucide="ellipsis-vertical"></i></button></div>`).join('')
                 : '<p class="rz-desc" style="margin:8px 2px">Ainda não vale em nenhum ativo. Use ⋮ › Ativar em um ativo.</p>'}</div>
-            ${[...grupos.entries()].map(([k, ps]) => `<div class="rz-group">${esc(k)}<span>${ps.length}</span></div><div class="rz-card rz-list">${ps.map(linhaPreco).join('')}</div>`).join('')
+            ${[...grupos.entries()].map(([k, ps]) => `<div class="rz-group rz-group-t"><span>${esc(k)}</span><b>${ps.length}</b></div><div class="rz-card rz-list">${ps.map(linhaPreco).join('')}</div>`).join('')
                 || '<div class="rz-card"><p class="rz-desc" style="margin:0">Sem preço ainda. Use ⋮ › Preço de item.</p></div>'}
             <button type="button" class="rz-add" data-tt-novo style="margin-top:8px"><i data-lucide="plus"></i>Preço de item</button>
         </div>`, { classe: 'rz-cheio' });

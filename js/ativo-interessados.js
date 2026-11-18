@@ -1,7 +1,11 @@
 // =====================================================================
 // RAIZ PATRIMÔNIO — js/ativo-interessados.js
-// Versão: 1.4.0 · 17/11/2026
+// Versão: 1.5.0 · 17/11/2026
 // -----------------------------------------------------------------
+// v1.5.0 (17/11/2026, sessão 20261117-1700-comercial-r5, demanda 285a0058; FICHA_RECEITA_UNIDADES_GERADORAS v1.12.0 §13.7) — interessado
+//   da esteira Venda movido para "Pedido" abre o Novo pedido com o comprador (js/comercial-pedidos.js); "Marcar como perdido" usa a
+//   etapa de perda da esteira de cada um (Cancelado na Venda, Perdido na licença, Cancelada na temporada…); cabeçalhos de grupo com o
+//   contador à direita (rz-group-t), sem "Pedidos aguardando1" colado. Versão anterior: 1.4.0
 // v1.4.0 (17/11/2026, sessão 20261117-1535-comercial-c4, demanda 285a0058; FICHA_RECEITA_UNIDADES_GERADORAS v1.12.0 §13.7 — Nicola
 //   16/11 20:12 e 21:31) — "Leads" vira "Interessados" no card, na tela e no ⋮; o card aparece também no ativo com tabela de
 //   venda ativa (Raiz Comercial), onde o interessado entra na esteira Venda: Cotação · Pedido · Cancelado (fn_interessado_registrar v3).
@@ -33,7 +37,7 @@
 //     comunicações da pessoa (fn_comunicacoes_pessoa: robô, comunicações, app e esteira). Grava por fn_interessado_mover.
 //   · O card aparece no bem com uso de agenda (temporada, short stay, cowork, atendimento) ou que já tenha interessado/pedido.
 // =====================================================================
-export const VERSAO = '1.4.0';
+export const VERSAO = '1.5.0';
 
 const MODELOS_AGENDA = ['temporada', 'short_stay', 'cowork', 'atendimento'];
 const esc = (s) => (typeof rzEsc === 'function' ? rzEsc(s) : String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])));
@@ -99,7 +103,7 @@ export async function montarCardInteressados(a, usos = []) {
     card.innerHTML = `<div class="rz-card-h"><h3>Interessados</h3><span class="rz-sub">${esc(sub)}</span><button type="button" class="rz-more" data-int-mais aria-label="Ações dos interessados"><i data-lucide="ellipsis-vertical"></i></button></div>
         ${etapasRes.length ? `<div class="rz-kpis" style="margin:0" role="button" data-int-abrir aria-label="Ver os interessados">${etapasRes.map(e => `<div class="rz-kpi"${['ganho', 'perdido'].includes(e.natureza) ? ' style="opacity:.6"' : ''}><small>${esc(e.nome || 'Sem etapa')}</small><b>${e.qtd}</b></div>`).join('')}</div>`
             : '<p class="rz-desc" style="margin:4px 0 0">Nenhum interessado ainda.</p>'}
-        ${pedidos.length ? `<div class="rz-group" style="margin-top:10px">Pedidos aguardando<span>${pedidos.length}</span></div><div class="rz-list">${pedidos.map(linhaPedido).join('')}</div>` : ''}`;
+        ${pedidos.length ? `<div class="rz-group rz-group-t" style="margin-top:10px"><span>Pedidos aguardando</span><b>${pedidos.length}</b></div><div class="rz-list">${pedidos.map(linhaPedido).join('')}</div>` : ''}`;
     const recarregar = () => montarCardInteressados(a, usos);
     card.querySelector('[data-int-abrir]')?.addEventListener('click', () => abrirTelaLeads(a, recarregar));
     tela.usos = usos; // v1.3.1 — atalhos de configuração do ⋮
@@ -142,7 +146,7 @@ async function abrirFichaInteressado(a, i, aoMudar, empilhar = false) {
     const corpo = `
         ${wa ? `<p class="rz-desc" style="margin:0 0 8px"><a href="https://wa.me/${wa}" target="_blank" rel="noopener">${esc(telVisivel(wa))} · abrir o WhatsApp</a></p>` : ''}
         ${wa && i.fluxo_codigo === 'venda_licenca' ? '<button type="button" class="rz-btn rz-btn-2 rz-sm" id="ai-propor" style="margin:0 0 10px"><i data-lucide="video"></i> Propor reunião</button>' : ''}
-        ${cat.length ? `<div class="rz-group">Etapa${cat[0] ? ' · ' + esc(cat[0].fluxo_nome) : ''}<span></span></div>
+        ${cat.length ? `<div class="rz-group">Etapa${cat[0] ? ' · ' + esc(cat[0].fluxo_nome) : ''}</div>
         <div class="rz-chips" id="ai-etapas" style="margin:0 0 4px">${cat.filter(e => !e.opcional).map(chip).join('')}</div>
         ${cat.some(e => e.opcional) ? `<div class="rz-chips" style="margin:0 0 4px"><span class="rz-desc" style="align-self:center;margin-right:4px">Opcional:</span>${cat.filter(e => e.opcional).map(chip).join('')}</div>` : ''}
         <p class="rz-desc" id="ai-et-desc" style="margin:0 0 10px">${esc((cat.find(e => e.etapa_codigo === st.etapa) || {}).descricao || '')}</p>`
@@ -162,6 +166,10 @@ async function abrirFichaInteressado(a, i, aoMudar, empilhar = false) {
             if (error || !data?.ok) { toast(error?.message || data?.mensagem || 'Não consegui salvar.', 'erro'); return false; }
             toast(data.mudou ? 'Etapa atualizada.' : 'Salvo.', 'sucesso');
             aoMudar && aoMudar();
+            // v1.5.0 — virou pedido (esteira Venda): abre o Novo pedido com o comprador
+            if (data.mudou && i.fluxo_codigo === 'venda' && st.etapa === 'pedido' && i.parte_id) {
+                setTimeout(() => import('./comercial-pedidos.js').then(m => m.abrirNovoPedido(a, { parteId: i.parte_id })), 150);
+            }
             return true;
         },
     });
@@ -229,7 +237,7 @@ export async function abrirTelaLeads(a, aoMudarCard) {
         const itens = (data?.itens || []).map(paraLinha);
         const grupos = [];
         itens.forEach(i => { let g = grupos.find(x => x.cod === i.etapa_codigo); if (!g) grupos.push(g = { cod: i.etapa_codigo, nome: i.etapa_nome || 'Sem etapa', itens: [] }); g.itens.push(i); });
-        el.innerHTML = grupos.length ? grupos.map(g => `<div class="rz-group">${esc(g.nome)}<span>${g.itens.length}</span></div><div class="rz-card rz-list">${g.itens.map(i => {
+        el.innerHTML = grupos.length ? grupos.map(g => `<div class="rz-group rz-group-t"><span>${esc(g.nome)}</span><b>${g.itens.length}</b></div><div class="rz-card rz-list">${g.itens.map(i => {
             const sub = [i.empresa, i.proximo_passo ? `→ ${i.proximo_passo}${i.proximo_passo_em ? ' (' + dm(i.proximo_passo_em + 'T12:00') + ')' : ''}` : (i.etapa_desde ? `Na etapa ${dias(i.etapa_desde)}` : '')].filter(Boolean).join(' · ');
             return `<div class="rz-row rz-link" role="button" tabindex="0" data-tl-id="${i.id}">
                 <div class="rz-ic"><i data-lucide="${i.etapa_codigo === 'em_teste' ? 'badge-check' : 'user-round'}"></i></div>
@@ -255,10 +263,11 @@ function acoesLead(a, i, aoMudar) {
         { icone: 'pencil', titulo: 'Etapa e próximo passo', sub: i.etapa_nome || '', aoTocar: () => setTimeout(() => abrirFichaInteressado(a, i, aoMudar, true), 50) },
         ...(wa && i.fluxo_codigo === 'venda_licenca' ? [{ icone: 'video', titulo: 'Propor reunião', sub: 'Até 3 faixas, link próprio', aoTocar: () => setTimeout(() => abrirProporReuniao(a, i), 50) }] : []),
         ...(wa ? [{ icone: 'message-circle', titulo: 'Abrir o WhatsApp', sub: telVisivel(wa), aoTocar: () => window.open('https://wa.me/' + wa, '_blank', 'noopener') }] : []),
-        ...(i.natureza !== 'perdido' && i.fluxo_codigo ? [{ icone: 'circle-x', tipo: 'bad', titulo: 'Marcar como perdido', aoTocar: async () => {
-            const { data, error } = await dbAuth.rpc('fn_interessado_mover', { p_papel_id: i.id, p_etapa: 'perdido', p_proximo_passo: null, p_em: null, p_canal: 'app' });
+        ...(i.natureza !== 'perdido' && i.fluxo_codigo ? [{ icone: 'circle-x', tipo: 'bad', titulo: i.fluxo_codigo === 'venda' ? 'Marcar como cancelado' : 'Marcar como perdido', aoTocar: async () => {
+            const perda = (await etapas()).find(e => e.fluxo_codigo === i.fluxo_codigo && e.natureza === 'perdido'); // v1.5.0 — etapa de perda da esteira
+            const { data, error } = await dbAuth.rpc('fn_interessado_mover', { p_papel_id: i.id, p_etapa: perda?.etapa_codigo || 'perdido', p_proximo_passo: null, p_em: null, p_canal: 'app' });
             if (error || !data?.ok) { toast(error?.message || data?.mensagem || 'Não consegui mudar a etapa.', 'erro'); return; }
-            toast('Marcado como perdido.', 'sucesso'); aoMudar && aoMudar();
+            toast(`Marcado como ${(perda?.etapa_nome || 'perdido').toLowerCase()}.`, 'sucesso'); aoMudar && aoMudar();
         } }] : []),
     ];
     abrirSheetAcoes({ titulo: i.nome || 'Interessado', sub: [i.etapa_nome, i.empresa].filter(Boolean).join(' · '), acoes, empilhar: true });

@@ -1,6 +1,8 @@
 // ============================================================================
 // cofre-ativos.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.166.0 · 16/11/2026
+// Versão: 1.167.0 · 17/11/2026
+// v1.167.0 (17/11/2026, sessão 20261117-1700-comercial-r5, demanda 285a0058; FICHA_RECEITA_UNIDADES_GERADORAS v1.12.0 §13.8) — a aba Usos e
+//   contratos ganha o card "Pedidos" do Raiz Comercial (js/comercial-pedidos.js), ao lado dos contratos. Versão anterior: 1.166.0
 // v1.166.0 (16/11/2026, sessão 20261018-2336-usos-lotes, demanda df13dba3; FICHA_CONTAGEM_ATIVOS_E_VIDAS_RAIZ v1.1.0, de acordo do
 //   Nicola 16/11 23:41) — contagem única de ativos e vidas: contarItens() conta pais e filhos não arquivados; vida à parte e só
 //   pessoa. Usada na faixa do ramo (número e "N vidas"), no título do grupo, nos chips e no cabeçalho (window.rzContagemAtivosTexto).
@@ -42,7 +44,7 @@
 // Versões anteriores (v1.158.0 … v1.158.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '1.166.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.167.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 import { estado } from './cofre-estado.js';
 import { rzCalendario, rzCalItemDaAgenda } from './nucleo/calendario.js'; // v1.152.0 — calendário único (DS §6.3)
 import { carregarBiblioteca } from './nucleo/bibliotecas.js'; // bibliotecas pesadas, sob demanda (dem 6b11c602)
@@ -2220,6 +2222,9 @@ function montarInteressadosAtivo(a, usos) {
     // v1.165.0 — card "Tabelas de venda" (Raiz Comercial), só com tabela ativa no ativo
     import('./comercial-tabelas.js').then(m => { if (!ativoAtualId || ativoAtualId === a.id) m.montarCardTabelas(a); })
         .catch(e => console.warn('[cofre-ativos] tabelas:', e?.message || e));
+    // v1.167.0 — card "Pedidos" (Raiz Comercial), depois das tabelas
+    import('./comercial-pedidos.js').then(m => { if (!ativoAtualId || ativoAtualId === a.id) m.montarCardPedidos(a); })
+        .catch(e => console.warn('[cofre-ativos] pedidos:', e?.message || e));
 }
 const MODELOS_AGENDA_USO = ['temporada', 'short_stay', 'cowork', 'atendimento']; // v1.155.0 — iguais a ativo-disponibilidade.js
 const usoTemAgenda = (u) => !u.repouso && MODELOS_AGENDA_USO.includes(u.modelo);
