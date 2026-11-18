@@ -30,18 +30,8 @@
 // (SECURITY DEFINER, só a própria empresa ou o master; sem txid, gateway nem quem confirmou — migration
 // fn_licenca_pagamentos_listar_v1). Cada linha: plano, período, valor e status (Pago · Em análise · Aguardando
 // pagamento · Recusado · Cancelado · Expirado). O chip mostra quantos estão aguardando pagamento (tom --warning).
-//
-// Versão anterior: 1.7.0 · 10/10/2026
-//
-// v1.7.0 (UX F2.5d, demanda 639bbcd0, sessão 20261003-1707-ux-base; plano F2.5 aprovado pelo Nicola 09/10 23:5x;
-// ESTUDO 9A.4) — Licença vira ficha com chips, um assunto por chip:
-//   · Plano: status, plano e vigência (com "Renovar ou ampliar o plano"), Contratar e convidar e Dúvidas sobre o plano;
-//   · Uso: os limites do plano com a barra de uso; o chip mostra quantos limites estão em 80% ou mais (tom --warning,
-//     o mesmo padrão de pendência no chip da Minha empresa).
-//   O texto de topo sai (a tela abre direto no chip Plano). Pagamentos fica para quando houver leitura do histórico
-//   pelo cliente: as tabelas comercial.plano_contratado* só abrem para o master (ficha pendente do de acordo).
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.6.1 … v1.6.1): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.7.0 … v1.7.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
 export const VERSAO = '1.12.0'; // v-check (22/09/2026): lido por Dev › Versões — manter igual ao header

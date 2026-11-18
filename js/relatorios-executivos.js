@@ -1,6 +1,17 @@
 // ============================================================================
 // relatorios-executivos.js — Raiz Patrimônio · Relatórios no modelo executivo
-// Versão: 1.15.0 · 17/11/2026
+// Versão: 1.16.0 · 18/11/2026
+//
+// v1.16.0 (18/11/2026, sessão 20261118-0815-financeiro-relatorios, demanda 679b2700; FICHA_REVISAO_FINANCEIRO_RAIZ v1.0.0, Onda 4;
+//   de acordo do Nicola 16/11 23:44 e Onda 4 liberada 18/11 08:14; protótipo PROTOTIPO_FINANCEIRO_REVISAO_RAIZ v1.4.0) — dois
+//   relatórios novos, só fatos e dados (REL-56): "Balanço entre pessoas · analítico" (relatorios.balanco_analitico, Plus e acima):
+//   capa com os números, saldo por pessoa e composição (Distribuição + Com a empresa + Entre pessoas = Saldo, fn_balanco_pessoas);
+//   uma página por pessoa com o saldo anterior, os itens do mês e o saldo corrido (fn_balanco_extrato, a mesma do extrato da
+//   pessoa); tocar numa linha de lançamento ou recebimento abre o mesmo ajuste da Onda 1 (pessoas-extrato.js 1.1.0). Mês ou
+//   "Desde o início". "Ativos e contratos por pessoa" (relatorios.ativos_por_pessoa, todos os planos com Relatórios): capa com a
+//   parte de cada um no valor e na receita; uma página por pessoa com ativo, vínculo, parte, contrato vigente, valor por mês e
+//   parte por mês (fn_relatorio_ativos_por_pessoa, F4). Os dois com PDF e planilha (Compartilhar › Baixar a planilha).
+//   Versão anterior: 1.15.0
 //
 // v1.15.0 (17/11/2026, sessão 20261117-2335-comercial-relatorios2, demanda 285a0058; FICHA_RECEITA_UNIDADES_GERADORAS v1.14.0 §13.15,
 //   de acordo do Nicola 17/11 23:30) — os 5 relatórios restantes do Comercial, lidos de fn_relatorio_comercial v1.1.0: Margem por
@@ -27,20 +38,15 @@
 //   abas, filtros, linhas tocáveis com as ações que já existem e rodapé Compartilhar · Exportar planilha (planilhas de sempre).
 //   Sem mudança no banco: a parte é achada pelo nome (e CPF/CNPJ quando há nome repetido); o imóvel e o contrato pelas listas do
 //   app. Versão anterior: 1.11.0
-//
-// v1.11.0 (13/11/2026, sessão 20261113-1910-reajuste-desde; achados do Nicola 19:06) — Acompanhamento do mês: a fileira de filtros
-//   sem barra de rolagem; recebido sem diferença mostra "sem diferença" (antes repetia "a receber R$ X" ao lado do recebido, o que
-//   confundia); a barra do topo não passa da largura da tela; ao fechar o relatório a página volta para a posição horizontal 0
-//   (a tela de Relatórios ficava deslocada para o lado até reabrir o app). Versão anterior: 1.10.0
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.10.0 … v1.10.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.11.0 … v1.11.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
 import { rzMostrarBloqueio } from './comum-licenca.js';
 import { rzToast } from './raiz-ui.js';
 import RaizDevice from './raiz-device.js';
 
-export const VERSAO = '1.15.0';
+export const VERSAO = '1.16.0';
 
 // ---------------------------------------------------------------------------
 // Formatos (REL-13 a REL-17)
@@ -158,7 +164,7 @@ function pagina(d, cfg, n, total, corpo, secoesOn) {
       <div class="ph"><div class="logo">${esc(iniciais(d.empresa))}</div><div class="t"><div class="l1">${esc(d.empresa || 'Empresa')} · ${esc(cfg.medida)}</div><div class="l2">${esc(cfg.subtitulo)}</div></div>${cab}</div>
       <div class="trk">${SECOES.map(s => `<span class="${secoesOn.includes(s) ? 'on' : ''}">${s}</span>`).join('')}</div>
       ${corpo}
-      <div class="pf"><span><b>${esc(cfg.nome)}</b> · gerado em ${c.data} às ${c.hora} por ${esc(d.gerado_por || 'Raiz')}<br>Raiz Patrimônio · ${esc(d.relatorio)} v${d.versao || 1} · visão ${d.visao === 'caixa' ? 'caixa' : 'competência'}</span><span>Página ${n} de ${total}</span></div>
+      <div class="pf"><span><b>${esc(cfg.nome)}</b> · gerado em ${c.data} às ${c.hora} por ${esc(d.gerado_por || 'Raiz')}<br>Raiz Patrimônio · ${esc(d.relatorio)} v${d.versao || 1} · visão ${d.visao === 'caixa' ? 'caixa' : d.visao === 'situacao' ? 'situação na data' : 'competência'}</span><span>Página ${n} de ${total}</span></div>
     </section>`;
 }
 const kpi = (rotulo, valor, delta, classe = 'mut') => `<div><small>${esc(rotulo)}</small><b>${esc(valor)}</b><div class="d ${classe}">${esc(delta || '')}</div></div>`;
@@ -590,6 +596,7 @@ const CSS = `
 .rzrel .page td{padding:4px 6px;border-bottom:1px solid #eeece6;break-inside:avoid}.rzrel .page tbody tr:nth-child(even) td{background:rgba(23,33,30,.04)}
 .rzrel .page tr.sub td{font-weight:600;border-top:1px solid #17211e;background:none!important}.rzrel .page tr.tot td{font-weight:700;border-top:1.5px solid #17211e;border-bottom:0;background:none!important;font-size:9.3pt}
 .rzrel .page tr.prev td{color:#6f7a76;font-style:italic}
+.rzrel .page tr.aj{cursor:pointer}.rzrel .page tr.aj:hover td{background:rgba(63,129,99,.08)}
 .rzrel .page .pos{color:#2f8b57}.rzrel .page .neg{color:#c1463a}.rzrel .page .mut{color:#6f7a76}
 .rzrel .page .tag{display:inline-block;font-size:7pt;border:1px solid #e6e3da;border-radius:999px;padding:0 6px;color:#6f7a76;font-style:normal}
 .rzrel .page .hbar{display:flex;align-items:center;gap:8px;font-size:8.5pt;margin:3px 0}.rzrel .page .hbar span{flex:none;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.rzrel .page .hbar i{display:block;height:9px;background:#3f8163;border-radius:0 2px 2px 0}.rzrel .page .hbar i.g{background:#c9d0ca}.rzrel .page .hbar b{font-variant-numeric:tabular-nums;white-space:nowrap;font-weight:600}
@@ -1037,6 +1044,187 @@ function montarComPrecos(d) {
             linhas: ls, kpis: [{ rot: 'Preços', formula: f => `COUNTA(${f('Item')})`, fmt: 'int' }],
             sobre: [['Linha', 'Um preço vigente no fim do mês, numa tabela ativa.']] } };
 }
+// ---------------------------------------------------------------------------
+// v1.16.0 (dem 679b2700, Onda 4) — Balanço entre pessoas · analítico e Ativos e contratos por pessoa (REL-56: só fatos e dados)
+// ---------------------------------------------------------------------------
+const NAT_BAL = { distribuicao: 'Distribuição', reembolso: 'Reembolso', adiantamento: 'Adiantamento', rateio: 'Rateio', extraordinaria: 'Retirada extraordinária' };
+const GRUPOS_BAL = [['dist', 'Distribuição'], ['emp', 'Com a empresa'], ['pes', 'Entre pessoas']];
+// a mesma regra do extrato da pessoa (pessoas-extrato.js): extraordinária não entra no saldo
+const grupoBal = (natureza, contraparteTipo) => natureza === 'extraordinaria' ? null : natureza === 'distribuicao' ? 'dist' : (contraparteTipo === 'caixa' ? 'emp' : 'pes');
+const comSinalBal = v => (num(v) > 0.004 ? '+' : num(v) < -0.004 ? '−' : '') + nf(Math.abs(num(v)));
+function comoFoiBal(e) {
+    const mov = num(e.valor_movimento), c = num(e.cota);
+    if (e.natureza === 'extraordinaria') return `não abate o saldo · ${brl(mov)}`;
+    if (c > 0 && c < 100 && mov) return `${nf(c, c % 1 ? 2 : 0)}% de ${brl(mov)}`;
+    if (e.pagador) return `pagou ${e.pagador}`;
+    return e.contraparte_nome ? `com ${e.contraparte_nome}` : '';
+}
+function montarBalancoAnalitico(d) {
+    const cab = d.cabecalho, pessoas = d.pessoas;
+    const nomeMes = cab.de ? `${MESES_LONGO[dataIso(cab.de).getMonth()]} ${dataIso(cab.de).getFullYear()}` : 'desde o início';
+    const cfg = { nome: 'Balanço entre pessoas · analítico', medida: 'Saldo entre pessoas em R$', previa: !!d.previa,
+        subtitulo: [cab.de ? `itens de ${dma(cab.de)} a ${dma(cab.ate)}` : `itens até ${dma(cab.ate)}`, `situação em ${dma(cab.ate)}`, cab.pessoa_nome || 'todas as pessoas'].join(' · ') };
+    const nItens = pessoas.reduce((t, p) => t + p.doPeriodo.length, 0);
+    const aRec = pessoas.reduce((t, p) => t + Math.max(p.saldo, 0), 0), aPag = pessoas.reduce((t, p) => t + Math.max(-p.saldo, 0), 0);
+    const linha = `${cab.de ? nomeMes.charAt(0).toUpperCase() + nomeMes.slice(1) : 'Desde o início'}: ${qtdTxt(nItens, 'item', 'itens')}, ${qtdTxt(pessoas.length, 'pessoa', 'pessoas')}, ${brl(aRec)} a receber e ${brl(aPag)} a pagar.`;
+    const mx = Math.max(1, ...pessoas.map(p => Math.abs(p.saldo)));
+    const barras = pessoas.map(p => {
+        const w = Math.round(Math.abs(p.saldo) / mx * 500) / 10;
+        return `<div class="hbar"><span style="width:150px">${esc(p.nome)}</span><div class="trk2"><i style="${p.saldo >= 0 ? `left:50%;width:${w}%` : `left:${50 - w}%;width:${w}%`}"></i><em class="exp" style="left:50%"></em></div><b>${comSinalBal(p.saldo)}</b></div>`;
+    }).join('') || '<p class="mut">Ninguém com saldo até esta data.</p>';
+    const tot = k => pessoas.reduce((t, p) => t + num(p[k]), 0);
+    const capa = `
+      <div class="acao-sub rx-resumo">${esc(linha)}</div>
+      <div class="kpis">${kpi('Pessoas', String(pessoas.length), 'com saldo ou item')}${kpi(cab.de ? 'Itens no mês' : 'Itens', String(nItens), cab.de ? nomeMes : 'até ' + dma(cab.ate))}${kpi('A receber', compacto(aRec), 'soma dos saldos positivos')}${kpi('A pagar', compacto(aPag), 'soma dos saldos negativos')}</div>
+      ${figura('Saldo por pessoa', `R$ · situação em ${dma(cab.ate)} · à direita: a receber · à esquerda: deve`, '', 'Raiz · fn_balanco_pessoas · ' + dma(cab.ate), barras)}
+      ${secao('Composição do saldo', 'R$ · Distribuição + Com a empresa + Entre pessoas = Saldo')}
+      <table><thead><tr><th>Pessoa</th>${GRUPOS_BAL.map(([, n]) => `<th class="n">${n}</th>`).join('')}<th class="n">Saldo</th></tr></thead><tbody>${
+        pessoas.map(p => `<tr><td>${esc(p.nome)}</td>${GRUPOS_BAL.map(([k]) => `<td class="n">${comSinalBal(p[k])}</td>`).join('')}<td class="n"><b>${comSinalBal(p.saldo)}</b></td></tr>`).join('') || '<tr><td colspan="5" class="mut">Ninguém com saldo.</td></tr>'
+      }<tr class="tot"><td>Total</td>${GRUPOS_BAL.map(([k]) => `<td class="n">${comSinalBal(tot(k))}</td>`).join('')}<td class="n">${comSinalBal(tot('saldo'))}</td></tr></tbody></table>
+      <div class="notes"><p><b>Saldo</b>: positivo, a pessoa tem a receber; negativo, a pessoa deve. Retirada extraordinária aparece no item e não entra no saldo.</p>
+      <p><b>Origem</b>: fn_balanco_pessoas e fn_balanco_extrato · situação em ${dma(cab.ate)}.${d.previa ? ' <b>PRÉVIA</b>: o mês ainda não foi fechado.' : ''}</p></div>`;
+    const paginas = [[capa, ['Resumo', 'Composição', 'Notas']]];
+    pessoas.forEach(p => {
+        let run = p.anterior;
+        const linhas = p.doPeriodo.map(e => {
+            const g = grupoBal(e.natureza, e.contraparte_tipo);
+            if (g) run += num(e.valor);
+            const aj = e.origem_tipo === 'lancamento' || e.origem_tipo === 'mensalidade';
+            return `<tr${aj ? ` class="aj" data-aj="${e._i}" title="Toque para ajustar a divisão"` : ''}><td>${dma(e.data)}</td><td>${esc(e.descricao || 'Movimento')}<br><small class="mut">${esc(comoFoiBal(e))}</small></td><td class="hm">${esc(NAT_BAL[e.natureza] || e.natureza)}</td><td class="n">${e.natureza === 'extraordinaria' ? `<span class="mut">${nf(e.valor_movimento)}</span>` : comSinalBal(e.valor)}</td><td class="n">${comSinalBal(run)}</td></tr>`;
+        }).join('');
+        const corpo = `${secao(p.nome, `${cab.de ? 'Itens de ' + nomeMes : 'Todos os itens'} · R$ · positivo: a pessoa tem a receber${p.pessoaId ? ' · toque numa linha de lançamento ou recebimento para ajustar a divisão' : ''}`)}
+          <table><thead><tr><th>Data</th><th>Item</th><th class="hm">Natureza</th><th class="n">Valor</th><th class="n">Saldo</th></tr></thead><tbody>
+          ${cab.de ? `<tr class="prev"><td>${dma(cab.de)}</td><td>Saldo anterior</td><td class="hm"></td><td class="n"></td><td class="n">${comSinalBal(p.anterior)}</td></tr>` : ''}
+          ${linhas || `<tr><td colspan="5" class="mut">Nenhum item ${cab.de ? 'em ' + nomeMes : ''}.</td></tr>`}
+          ${GRUPOS_BAL.map(([k, n]) => `<tr class="sub"><td></td><td>${n}</td><td class="hm"></td><td class="n">${comSinalBal(p[k])}</td><td></td></tr>`).join('')}
+          <tr class="tot"><td></td><td>Saldo em ${dma(cab.ate)}</td><td class="hm"></td><td class="n">${comSinalBal(p.saldo)}</td><td></td></tr></tbody></table>`;
+        paginas.push([corpo, ['Detalhe']]);
+    });
+    const plan = [];
+    pessoas.forEach(p => { let run = p.anterior; p.doPeriodo.forEach(e => { if (grupoBal(e.natureza, e.contraparte_tipo)) run += num(e.valor);
+        plan.push({ pessoa: p.nome, data: e.data, item: e.descricao || 'Movimento', como: comoFoiBal(e), natureza: NAT_BAL[e.natureza] || e.natureza,
+            contraparte: e.contraparte_nome || 'Empresa', valor: e.natureza === 'extraordinaria' ? 0 : num(e.valor), saldo: run }); }); });
+    return { cfg, linhas3: [`${cfg.nome} · ${cab.de ? comp(cab.de) : 'até ' + dma(cab.ate)}`, `A receber ${compacto(aRec)} · a pagar ${compacto(aPag)}`, linha],
+        paginas, ligar: ligarBalancoAnalitico,
+        planilha: { aba: 'Itens', recorte: `${cab.de ? comp(cab.de) : 'até ' + dma(cab.ate)} · ${cab.pessoa_nome || 'todas as pessoas'}`, sufixo: cab.de ? String(cab.de).slice(0, 7).replace('-', '_') : 'tudo',
+            fonte: 'fn_balanco_extrato', colunas: [
+                { cab: 'Pessoa', larg: 26, ler: r => r.pessoa }, { cab: 'Data', larg: 12, fmt: 'data', ler: r => r.data },
+                { cab: 'Item', larg: 34, ler: r => r.item }, { cab: 'Como foi calculado', larg: 26, ler: r => r.como },
+                { cab: 'Natureza', larg: 18, ler: r => r.natureza }, { cab: 'Com', larg: 22, ler: r => r.contraparte },
+                { cab: 'Valor (R$)', larg: 14, fmt: 'moeda', ler: r => r.valor, total: true }, { cab: 'Saldo (R$)', larg: 14, fmt: 'moeda', ler: r => r.saldo }],
+            linhas: plan, kpis: [{ rot: 'Itens', formula: f => `COUNTA(${f('Item')})`, fmt: 'int' }, { rot: 'Soma dos itens (R$)', formula: f => `SUM(${f('Valor (R$)')})` }],
+            sobre: [['Linha', 'Um item do extrato de uma pessoa no período: retirada, rateio, reembolso, adiantamento ou acerto.'], ['Valor', 'O efeito no saldo da pessoa: positivo, ela tem a receber; negativo, deve. Retirada extraordinária entra com 0 (não abate o saldo).'],
+                ['Saldo', 'Saldo corrido da pessoa depois da linha, a partir do saldo anterior ao período.']] } };
+}
+function ligarBalancoAnalitico(corpo) {
+    corpo.querySelectorAll('tr.aj[data-aj]').forEach(tr => tr.addEventListener('click', async () => {
+        if (!pode('financeiro.divisao.editar').ok) { rzToast('Sem permissão para ajustar a divisão.', 'warning'); return; }
+        const e = estado?.dados?.itens?.[Number(tr.dataset.aj)]; if (!e) return;
+        try {
+            const m = await import('./pessoas-extrato.js');
+            m.pessoasAjustarItem(e, () => carregar());
+        } catch (err) { console.error('[rz] ajuste', err); rzToast('Não foi possível abrir o ajuste.', 'danger'); }
+    }));
+}
+const pode = codigo => (typeof podeUsar === 'function' ? podeUsar(codigo) : { ok: true });
+async function buscarBalancoAnalitico(f) {
+    const de = f.competencia || null;
+    let ate;
+    if (de) { const d0 = new Date(Number(de.slice(0, 4)), Number(de.slice(5, 7)), 0); ate = de.slice(0, 8) + String(d0.getDate()).padStart(2, '0'); }
+    else { const h = new Date(); ate = h.getFullYear() + '-' + String(h.getMonth() + 1).padStart(2, '0') + '-' + String(h.getDate()).padStart(2, '0'); }
+    const [rp, re, quem] = await Promise.all([
+        dbAuth.rpc('fn_balanco_pessoas', { p_cliente_id: CLIENTE_ID_SUPABASE, p_ate: ate }),
+        dbAuth.rpc('fn_balanco_extrato', { p_cliente_id: CLIENTE_ID_SUPABASE, p_pessoa_id: f.pessoaId || null, p_limite: null, p_ate: ate }), quemGera()]);
+    if (rp.error) throw new Error(rp.error.message);
+    if (re.error) throw new Error(re.error.message);
+    const chave = x => x.pessoa_id || ('ext:' + (x.nome_externo || x.nome));
+    const mapa = new Map();
+    (rp.data || []).forEach(x => {
+        if (f.pessoaId && x.pessoa_id !== f.pessoaId) return;
+        const k = chave(x), p = mapa.get(k) || { chave: k, pessoaId: x.pessoa_id || null, nome: x.nome, dist: 0, emp: 0, pes: 0, saldo: 0, anterior: 0, doPeriodo: [] };
+        const g = grupoBal(x.natureza, x.contraparte_tipo); if (g) { p[g] += num(x.valor); p.saldo += num(x.valor); }
+        mapa.set(k, p);
+    });
+    const itens = (re.data || []).slice().sort((a, b) => String(a.data).localeCompare(String(b.data)) || String(a.origem_id).localeCompare(String(b.origem_id)));
+    itens.forEach((e, i) => {
+        e._i = i;
+        const k = chave(e), p = mapa.get(k) || { chave: k, pessoaId: e.pessoa_id || null, nome: e.nome, dist: 0, emp: 0, pes: 0, saldo: 0, anterior: 0, doPeriodo: [] };
+        mapa.set(k, p);
+        if (de && String(e.data) < de) { if (grupoBal(e.natureza, e.contraparte_tipo)) p.anterior += num(e.valor); }
+        else p.doPeriodo.push(e);
+    });
+    const pessoas = [...mapa.values()].filter(p => Math.abs(p.saldo) > 0.004 || p.doPeriodo.length || Math.abs(p.anterior) > 0.004)
+        .sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'));
+    const m0 = iso(new Date());
+    const empresa = (typeof CONFIG_CLIENTE === 'object' && CONFIG_CLIENTE?.nomeEmpresa) || 'Empresa';
+    return { cabecalho: { de, ate, pessoa_nome: f.pessoaNome || null }, pessoas, itens, previa: !de || de >= m0,
+             empresa, gerado_em: new Date().toISOString(), gerado_por: quem, relatorio: 'relatorios.balanco_analitico', versao: 1, visao: 'situacao' };
+}
+
+function montarAtivosPessoa(d) {
+    const cab = d.cabecalho || {}, k = d.kpis || {}, pp = d.por_pessoa || [], ls = d.linhas || [];
+    const recorte = !!cab.recorte;
+    const cfg = { nome: 'Ativos e contratos por pessoa', medida: 'Parte de cada pessoa em R$', previa: false,
+        subtitulo: [`situação em ${dma(cab.situacao_em)}`, 'valores do cadastro de cada ativo', cab.pessoa_nome || 'todas as pessoas'].join(' · ') };
+    const linha = recorte
+        ? `${qtdTxt(k.ativos, 'ativo', 'ativos')} com parte de ${cab.pessoa_nome || 'você'}: ${brl(k.parte_valor)} no valor e ${brl(k.parte_mes)} por mês nos contratos vigentes.`
+        : `${qtdTxt(k.ativos, 'ativo', 'ativos')}, ${qtdTxt(k.contratos, 'contrato vigente', 'contratos vigentes')}, ${qtdTxt(k.pessoas, 'pessoa com parte', 'pessoas com parte')}.`;
+    const kpis = `<div class="kpis">${recorte
+        ? kpi('Ativos', String(num(k.ativos)), 'com parte') + kpi('Contratos', String(num(k.contratos)), 'vigentes') + kpi('Parte no valor', compacto(k.parte_valor), 'valor × parte') + kpi('Parte por mês', compacto(k.parte_mes), 'contratos vigentes')
+        : kpi('Ativos', String(num(k.ativos)), num(d.sem_valor) ? qtdTxt(d.sem_valor, 'sem valor no cadastro', 'sem valor no cadastro') : 'todos com valor') + kpi('Valor total', compacto(k.valor_total), 'cadastro dos ativos') + kpi('Contratos', String(num(k.contratos)), 'vigentes') + kpi('Receita por mês', compacto(k.receita_mes), 'contratos vigentes')}</div>`;
+    const mx = Math.max(1, ...pp.map(p => num(p.parte_valor)));
+    const barras = pp.map(p => `<div class="hbar"><span style="width:150px">${esc(p.nome)}</span><div class="trk2"><i style="width:${Math.max(0.6, Math.round(num(p.parte_valor) / mx * 1000) / 10)}%"></i></div><b>${compacto(p.parte_valor)}</b></div>`).join('') || '<p class="mut">Nenhum ativo com parte cadastrada.</p>';
+    const fonte = 'Raiz · fn_relatorio_ativos_por_pessoa · ' + dma(cab.situacao_em);
+    const capa = `
+      <div class="acao-sub rx-resumo">${esc(linha)}</div>${kpis}
+      ${figura('Parte de cada pessoa no valor dos ativos', 'R$ · valor do cadastro × parte', '', fonte, barras)}
+      ${secao('Resumo por pessoa', 'R$ · parte no valor e na receita por mês dos contratos vigentes')}
+      <table><thead><tr><th>Pessoa</th><th class="n">Ativos</th><th class="n">Parte no valor</th><th class="n">Parte na receita/mês</th></tr></thead><tbody>${
+        pp.map(p => `<tr><td>${esc(p.nome)}</td><td class="n">${num(p.ativos)}</td><td class="n">${tab(p.parte_valor)}</td><td class="n">${tab(p.parte_mes)}</td></tr>`).join('') || '<tr><td colspan="4" class="mut">Nenhuma pessoa com parte.</td></tr>'
+      }<tr class="tot"><td>Total</td><td class="n">${num(k.ativos)}</td><td class="n">${tab(k.parte_valor)}</td><td class="n">${tab(k.parte_mes)}</td></tr></tbody></table>
+      <div class="notes">
+        <p><b>Vínculo</b>: propriedade direta (a parte está na propriedade do ativo) ou pela empresa dona (o ativo não tem propriedade cadastrada e vale a quota de cada pessoa na empresa). "Pelo contrato": a pessoa recebe pela divisão do contrato, sem parte no ativo.</p>
+        <p><b>Parte na receita</b>: a divisão do contrato quando ele tem uma; sem divisão, a parte no ativo. Contrato vigente é o contrato ativo hoje, com o valor atual por mês.</p>
+        ${(d.ativos_soma_diferente || []).length ? `<p><b>Partes que não somam 100%</b>: ${d.ativos_soma_diferente.map(a => `${esc(a.ativo)} (${nf(a.soma, 2)}%)`).join(', ')}. Ajuste em Patrimônio › ativo › Propriedade.</p>` : ''}
+        ${num(d.sem_valor) ? `<p><b>Sem valor</b>: ${qtdTxt(d.sem_valor, 'ativo sem valor', 'ativos sem valor')} no cadastro entra${num(d.sem_valor) > 1 ? 'm' : ''} com R$ 0 na parte do valor.</p>` : ''}
+        ${recorte ? `<p><b>Recorte</b>: só a parte de ${esc(cab.pessoa_nome || 'quem gerou')} (REL-46).</p>` : ''}
+        <p><b>Origem</b>: fn_relatorio_ativos_por_pessoa v1 · situação em ${dma(cab.situacao_em)}. O usufruto não entra neste relatório.</p></div>`;
+    const VINC = { direta: 'Propriedade direta', empresa: 'Pela empresa dona', contrato: 'Pelo contrato' };
+    const vig = c => [c.inicio ? 'desde ' + dma(c.inicio) : '', c.fim ? 'até ' + dma(c.fim) : 'sem prazo'].filter(Boolean).join(' · ');
+    const paginas = [[capa, ['Resumo', 'Composição', 'Notas']]];
+    pp.forEach(p => {
+        const as = ls.filter(l => (l.pessoa_id || l.nome) === (p.pessoa_id || p.nome));
+        const linhas = as.map(a => {
+            const cs = a.contratos || [];
+            const ctr = cs.length ? cs.map(c => `${esc(c.locatario || 'Sem nome')}<br><small class="mut">${esc(c.tipo)} · ${esc(vig(c))}${c.pct != null && num(c.pct) !== num(a.pct) ? ' · ' + nf(c.pct, num(c.pct) % 1 ? 2 : 0) + '% da receita' : ''}</small>`).join('<br>') : '<span class="mut">Sem contrato vigente</span>';
+            return `<tr><td>${esc(a.ativo)}<br><small class="mut">${esc(a.ramo || '')}${num(a.valor) ? ' · ' + compacto(a.valor) : ' · sem valor'}</small></td><td class="hm">${VINC[a.vinculo] || a.vinculo}</td><td class="n">${nf(a.pct, num(a.pct) % 1 ? 2 : 0)}%</td><td>${ctr}</td><td class="n hm">${num(a.valor_mes) ? tab(a.valor_mes) : '—'}</td><td class="n">${num(a.parte_mes) ? tab(a.parte_mes) : '—'}</td></tr>`;
+        }).join('');
+        paginas.push([`${secao(p.nome, `${qtdTxt(p.ativos, 'ativo', 'ativos')} · parte no valor ${brl(p.parte_valor)} · parte na receita ${brl(p.parte_mes)}/mês`)}
+          <table><thead><tr><th>Ativo</th><th class="hm">Vínculo</th><th class="n">Parte</th><th>Contrato vigente</th><th class="n hm">Valor/mês</th><th class="n">Parte/mês</th></tr></thead><tbody>${linhas}
+          <tr class="tot"><td colspan="2">Total</td><td class="n"></td><td></td><td class="n hm">${tab(as.reduce((t, a) => t + num(a.valor_mes), 0))}</td><td class="n">${tab(p.parte_mes)}</td></tr></tbody></table>`, ['Detalhe']]);
+    });
+    const plan = [];
+    ls.forEach(a => { const cs = a.contratos && a.contratos.length ? a.contratos : [null];
+        cs.forEach(c => plan.push({ pessoa: a.nome, ativo: a.ativo, ramo: a.ramo, valor: num(a.valor), vinculo: VINC[a.vinculo] || a.vinculo, pct: num(a.pct), parte_valor: num(a.parte_valor),
+            contrato: c ? c.locatario || 'Sem nome' : 'Sem contrato vigente', tipo: c ? c.tipo : '', inicio: c ? c.inicio : null, fim: c ? c.fim : null,
+            valor_mes: c ? num(c.valor_mes) : 0, pct_receita: c && c.pct != null ? num(c.pct) : null, parte_mes: c ? num(c.parte_mes) : 0 })); });
+    return { cfg, linhas3: [`${cfg.nome} · ${dma(cab.situacao_em)}`, recorte ? `Parte no valor ${compacto(k.parte_valor)} · ${compacto(k.parte_mes)}/mês` : `Valor ${compacto(k.valor_total)} · receita ${compacto(k.receita_mes)}/mês`, linha],
+        paginas,
+        planilha: { aba: 'Ativos por pessoa', recorte: `situação em ${dma(cab.situacao_em)} · ${cab.pessoa_nome || 'todas as pessoas'}`, sufixo: String(cab.situacao_em).slice(0, 10).replace(/-/g, '_'),
+            fonte: 'fn_relatorio_ativos_por_pessoa', colunas: [
+                { cab: 'Pessoa', larg: 26, ler: r => r.pessoa }, { cab: 'Ativo', larg: 28, ler: r => r.ativo }, { cab: 'Ramo', larg: 12, ler: r => r.ramo },
+                { cab: 'Valor do ativo (R$)', larg: 16, fmt: 'moeda', ler: r => r.valor }, { cab: 'Vínculo', larg: 18, ler: r => r.vinculo },
+                { cab: 'Parte (%)', larg: 10, fmt: '0.00', ler: r => r.pct }, { cab: 'Parte no valor (R$)', larg: 16, fmt: 'moeda', ler: r => r.parte_valor },
+                { cab: 'Contrato vigente', larg: 28, ler: r => r.contrato }, { cab: 'Tipo', larg: 20, ler: r => r.tipo },
+                { cab: 'Início', larg: 12, fmt: 'data', ler: r => r.inicio }, { cab: 'Fim', larg: 12, fmt: 'data', ler: r => r.fim },
+                { cab: 'Valor/mês (R$)', larg: 14, fmt: 'moeda', ler: r => r.valor_mes }, { cab: 'Parte na receita (%)', larg: 12, fmt: '0.00', ler: r => r.pct_receita },
+                { cab: 'Parte/mês (R$)', larg: 14, fmt: 'moeda', ler: r => r.parte_mes, total: true }],
+            linhas: plan, kpis: [{ rot: 'Linhas', formula: f => `COUNTA(${f('Ativo')})`, fmt: 'int' }, { rot: 'Parte/mês (R$)', formula: f => `SUM(${f('Parte/mês (R$)')})` }],
+            sobre: [['Linha', 'Uma pessoa × um ativo × um contrato vigente (ou "Sem contrato vigente"). Um ativo com dois contratos aparece em duas linhas: some a Parte no valor só uma vez por ativo.'],
+                ['Vínculo', 'Propriedade direta, pela empresa dona (quotas) ou pelo contrato (só na divisão do contrato).'],
+                ['Parte na receita', 'A divisão do contrato quando existe; senão, a parte no ativo.']] } };
+}
+
 const COMERCIAL = { com_pedidos: 'pedidos', com_itens: 'itens', com_clientes: 'clientes', com_ativos: 'ativos',
     com_margem: 'margem', com_funil: 'funil', com_recebiveis: 'recebiveis', com_entregas: 'entregas', com_precos: 'precos' }; // v1.15.0
 const ehComercial = t => !!COMERCIAL[t];
@@ -1053,6 +1241,7 @@ async function escolherAtivoComercial() {
 }
 function planilhaComercial() {
     const p = estado?.montado?.planilha; if (!p) return;
+    if (p.recorte) { baixarPlanilhaLista({ ...p, titulo: RELATORIOS[estado.tipo].nome, arquivo: RELATORIOS[estado.tipo].arquivo }); return; } // v1.16.0 — o relatório traz recorte e fonte
     const cab = estado.dados.cabecalho || {};
     baixarPlanilhaLista({ ...p, titulo: RELATORIOS[estado.tipo].nome, recorte: `${comp(cab.de)} · ${cab.ativo_nome || 'todos os pontos de venda'}`,
         arquivo: RELATORIOS[estado.tipo].arquivo, sufixo: String(cab.de).slice(0, 7).replace('-', '_'), fonte: 'fn_relatorio_comercial' });
@@ -1081,7 +1270,9 @@ const RELATORIOS = {
     com_funil: { codigo: 'comercial.rel_funil', nome: 'Funil de interessados', arquivo: 'funil_interessados', montar: montarComFunil },
     com_recebiveis: { codigo: 'comercial.rel_recebiveis', nome: 'Recebíveis das vendas', arquivo: 'recebiveis_vendas', montar: montarComRecebiveis },
     com_entregas: { codigo: 'comercial.rel_entregas', nome: 'Entregas', arquivo: 'entregas', montar: montarComEntregas },
-    com_precos: { codigo: 'comercial.rel_precos', nome: 'Preços e tabelas', arquivo: 'precos_tabelas', montar: montarComPrecos }
+    com_precos: { codigo: 'comercial.rel_precos', nome: 'Preços e tabelas', arquivo: 'precos_tabelas', montar: montarComPrecos },
+    balanco_analitico: { codigo: 'relatorios.balanco_analitico', nome: 'Balanço entre pessoas · analítico', arquivo: 'balanco_pessoas_analitico', montar: montarBalancoAnalitico }, // v1.16.0
+    ativos_pessoa: { codigo: 'relatorios.ativos_por_pessoa', nome: 'Ativos e contratos por pessoa', arquivo: 'ativos_contratos_por_pessoa', montar: montarAtivosPessoa } // v1.16.0
 };
 let estado = null; // { tipo, filtro, dados, montado }
 
@@ -1090,6 +1281,8 @@ function somaMeses(base, n) { const d = new Date(base.getFullYear(), base.getMon
 function filtroPadrao(tipo, opcoes = {}) {
     const hoje = new Date(), m0 = new Date(hoje.getFullYear(), hoje.getMonth(), 1);
     if (tipo === 'retiradas') return { ano: hoje.getFullYear(), pessoaId: opcoes.pessoaId || null, pessoaNome: opcoes.pessoaNome || null }; // v1.3.0
+    if (tipo === 'balanco_analitico') return { competencia: opcoes.competencia || iso(m0), pessoaId: opcoes.pessoaId || null, pessoaNome: opcoes.pessoaNome || null }; // v1.16.0
+    if (tipo === 'ativos_pessoa') return {}; // v1.16.0 — situação do dia
     if (tipo === 'executivo' || tipo === 'investimentos') return { ano: opcoes.ano || hoje.getFullYear(), ramo: opcoes.ramo || null, ramoNome: opcoes.ramoNome || null }; // v1.6.0 · v1.13.0
     if (ehComercial(tipo)) return { competencia: iso(m0), ativoId: opcoes.ativoId || null, ativoNome: opcoes.ativoNome || null }; // v1.14.0 — mês atual
     if (tipo === 'fluxo') return { de: iso(somaMeses(m0, -3)), ate: iso(somaMeses(m0, 2)), conta: null, contaNome: null, rotulo: 'Últimos 3 meses e próximos 2' };
@@ -1099,12 +1292,23 @@ function rotuloFiltro() {
     if (!estado) return '';
     if (estado.tipo === 'fluxo') return `${comp(estado.filtro.de)} a ${comp(estado.filtro.ate)}`;
     if (estado.tipo === 'retiradas') return estado.filtro.ano ? String(estado.filtro.ano) : 'Todos os anos';
+    if (estado.tipo === 'balanco_analitico') return estado.filtro.competencia ? comp(estado.filtro.competencia) : 'Desde o início'; // v1.16.0
+    if (estado.tipo === 'ativos_pessoa') return 'Hoje';
     if (estado.tipo === 'executivo' || estado.tipo === 'investimentos') return String(estado.filtro.ano); // v1.6.0 · v1.13.0
     return comp(estado.filtro.competencia);
 }
 
 async function buscar() {
     const f = estado.filtro;
+    if (estado.tipo === 'balanco_analitico') return buscarBalancoAnalitico(f); // v1.16.0
+    if (estado.tipo === 'ativos_pessoa') { // v1.16.0 — F4
+        const [{ data, error }, quem] = await Promise.all([
+            dbAuth.rpc('fn_relatorio_ativos_por_pessoa', { p_cliente_id: CLIENTE_ID_SUPABASE, p_pessoa_id: null }), quemGera()]);
+        if (error) throw new Error(error.message);
+        if (!data?.cabecalho) throw new Error('O relatório não veio.');
+        return { ...data, empresa: data.cabecalho.empresa, gerado_em: data.cabecalho.gerado_em, gerado_por: quem,
+                 relatorio: 'relatorios.ativos_por_pessoa', versao: 1, visao: 'situacao' };
+    }
     if (ehComercial(estado.tipo)) { // v1.14.0 — o mês inteiro, um ponto de venda ou todos
         const d0 = new Date(Number(f.competencia.slice(0, 4)), Number(f.competencia.slice(5, 7)), 0);
         const [{ data, error }, quem] = await Promise.all([
@@ -1154,13 +1358,13 @@ async function buscar() {
 function telaHtml() {
     const r = RELATORIOS[estado.tipo];
     const contaChip = estado.tipo === 'fluxo' ? `<button type="button" data-rx="conta"><svg data-lucide="wallet"></svg>${esc(estado.filtro.contaNome || 'Todas as contas')}<svg data-lucide="chevron-down"></svg></button>`
-        : estado.tipo === 'retiradas' && estado.filtro.pessoaId ? `<button type="button" data-rx="pessoa" aria-label="Ver todas as pessoas"><svg data-lucide="user"></svg>${esc(estado.filtro.pessoaNome || 'Pessoa')}<svg data-lucide="x"></svg></button>` // v1.3.0: recorte por pessoa; tocar volta a todas
+        : (estado.tipo === 'retiradas' || estado.tipo === 'balanco_analitico') && estado.filtro.pessoaId ? `<button type="button" data-rx="pessoa" aria-label="Ver todas as pessoas"><svg data-lucide="user"></svg>${esc(estado.filtro.pessoaNome || 'Pessoa')}<svg data-lucide="x"></svg></button>` // v1.3.0: recorte por pessoa; tocar volta a todas
         : ehComercial(estado.tipo) ? `<button type="button" data-rx="ativo"><svg data-lucide="store"></svg>${esc(estado.filtro.ativoNome || 'Todos os pontos')}<svg data-lucide="chevron-down"></svg></button>` // v1.14.0
         : (estado.tipo === 'executivo' || estado.tipo === 'investimentos') ? `<button type="button" data-rx="ramo"><svg data-lucide="layers"></svg>${esc(estado.filtro.ramoNome || (estado.tipo === 'investimentos' ? 'Todos os ramos' : 'Consolidado'))}<svg data-lucide="chevron-down"></svg></button>` : ''; // v1.6.0
     return `<div class="rx-top">
         <button type="button" class="rx-voltar" data-rx="fechar" aria-label="Voltar para Relatórios"><svg data-lucide="chevron-left"></svg>Relatórios</button>
         <span class="rx-sp"></span>
-        <button type="button" data-rx="periodo"><svg data-lucide="calendar"></svg>${esc(rotuloFiltro())}<svg data-lucide="chevron-down"></svg></button>
+        ${estado.tipo === 'ativos_pessoa' ? '' : `<button type="button" data-rx="periodo"><svg data-lucide="calendar"></svg>${esc(rotuloFiltro())}<svg data-lucide="chevron-down"></svg></button>`}
         ${contaChip}
       </div>
       <div class="rx-corpo" aria-live="polite"><div class="rx-msg">Montando ${esc(r.nome)}…</div></div>
@@ -1187,6 +1391,7 @@ async function carregar() {
         // "rzrel" com display:contents não é preciso: as páginas ficam empilhadas
         corpo.querySelector('.rzrel').style.cssText = 'display:flex;flex-direction:column;align-items:center;gap:20px;width:100%';
         aplicarVista();
+        if (typeof m.ligar === 'function') m.ligar(corpo); // v1.16.0 — linhas tocáveis (ajuste do balanço)
     } catch (e) {
         console.error('[rz] relatório', e);
         corpo.innerHTML = `<div class="rx-msg">Não foi possível montar o relatório.<br><small>${esc(e.message || e)}</small></div>`;
@@ -1221,6 +1426,11 @@ function escolherPeriodo() {
         const a0 = hoje.getFullYear();
         abrirSheetAcoes({ titulo: 'Ano', sub: RELATORIOS[estado.tipo].nome, acoes: [a0, a0 - 1, a0 - 2].map(a => ({
             icone: 'calendar', titulo: String(a), sub: a === a0 ? 'até o mês atual' : 'ano inteiro', aoTocar: () => { estado.filtro.ano = a; carregar(); } })) });
+    } else if (estado.tipo === 'balanco_analitico') { // v1.16.0 — um mês ou desde o início
+        const ops = Array.from({ length: 12 }, (_, i) => iso(somaMeses(m0, -i)));
+        abrirSheetAcoes({ titulo: 'Período', sub: RELATORIOS[estado.tipo].nome, acoes: [
+            ...ops.map(c => ({ icone: 'calendar', titulo: comp(c), sub: c === iso(m0) ? 'mês atual · prévia' : '', aoTocar: () => { estado.filtro.competencia = c; carregar(); } })),
+            { icone: 'layers', titulo: 'Desde o início', sub: 'todos os itens até hoje', aoTocar: () => { estado.filtro.competencia = null; carregar(); } }] });
     } else if (estado.tipo === 'retiradas') { // v1.3.0 — ano ou todos
         const a0 = hoje.getFullYear();
         const anos = [...new Set([a0, a0 - 1, ...((estado.dados && estado.dados.por_ano) || []).map(x => num(x.ano))])].sort((a, b) => b - a);
@@ -1265,6 +1475,8 @@ function imprimir() {
     const empresa = String(estado.dados.empresa || 'empresa').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '');
     const quando = estado.tipo === 'fluxo' ? estado.filtro.ate.slice(0, 7)
         : estado.tipo === 'retiradas' ? (estado.filtro.ano ? String(estado.filtro.ano) : 'todos')
+        : estado.tipo === 'balanco_analitico' ? (estado.filtro.competencia ? estado.filtro.competencia.slice(0, 7) : 'tudo') // v1.16.0
+        : estado.tipo === 'ativos_pessoa' ? new Date().toISOString().slice(0, 10)
         : (estado.tipo === 'executivo' || estado.tipo === 'investimentos') ? `${estado.filtro.ramo || (estado.tipo === 'investimentos' ? 'todos' : 'consolidado')}_${estado.filtro.ano}` // v1.6.0 · v1.13.0
         : estado.filtro.competencia.slice(0, 7);
     document.title = `raiz_${RELATORIOS[estado.tipo].arquivo}_${empresa}_${quando}`; // REL-38: nome do arquivo

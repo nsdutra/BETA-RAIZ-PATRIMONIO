@@ -1,8 +1,8 @@
 {
   "app": "patrimonio",
-  "gerado_em": "2026-11-18T08:15:15",
+  "gerado_em": "2026-11-18T11:22:49",
   "arquivos": {
-    "index.html": "1.490.68",
+    "index.html": "1.490.69",
     "sw.js": "3.4",
     "js/cadastros.js": "1.3.0",
     "js/financeiro.js": "1.101.0",
@@ -31,7 +31,7 @@
     "js/resultados.js": "2.23.0",
     "js/indicadores.js": "1.3.0",
     "js/configuracao-inicial.js": "1.2.0",
-    "js/relatorios-executivos.js": "1.15.0",
+    "js/relatorios-executivos.js": "1.16.0",
     "js/raiz-eventos.js": "1.0.0",
     "js/raiz-device.js": "1.1.0",
     "js/raiz-ui.js": "1.10.0",
@@ -56,7 +56,7 @@
     "js/contrato-licenca.js": "1.0.0",
     "js/comercial-itens.js": "1.3.0",
     "js/ativo-forma-pagamento.js": "1.0.0",
-    "js/pessoas-extrato.js": "1.0.1",
+    "js/pessoas-extrato.js": "1.1.0",
     "js/comercial-tabelas.js": "1.0.1",
     "js/comum-ramos-oferta.js": "1.3.0",
     "js/conciliacao-pilhas.js": "1.1.0",
@@ -65,7 +65,7 @@
   },
   "detalhes": {
     "index.html": {
-      "linhas": 15535,
+      "linhas": 15537,
       "funcoes": 77
     },
     "sw.js": {
@@ -181,8 +181,8 @@
       "funcoes": 26
     },
     "js/relatorios-executivos.js": {
-      "linhas": 2554,
-      "funcoes": 86
+      "linhas": 2766,
+      "funcoes": 91
     },
     "js/raiz-eventos.js": {
       "linhas": 85,
@@ -281,8 +281,8 @@
       "funcoes": 8
     },
     "js/pessoas-extrato.js": {
-      "linhas": 298,
-      "funcoes": 16
+      "linhas": 313,
+      "funcoes": 17
     },
     "js/comercial-tabelas.js": {
       "linhas": 286,

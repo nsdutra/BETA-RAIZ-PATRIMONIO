@@ -1,6 +1,11 @@
 // ============================================================================
 // pessoas-extrato.js — Raiz Patrimônio · Financeiro › Pessoas: saldo de cada pessoa e o extrato dela
-// Versão: 1.0.1 · 17/11/2026
+// Versão: 1.1.0 · 18/11/2026
+//
+// v1.1.0 (18/11/2026, sessão 20261118-0815-financeiro-relatorios, demanda 679b2700; FICHA_REVISAO_FINANCEIRO_RAIZ v1.0.0, Onda 4)
+// — export pessoasAjustarItem(linha, aoGravar): o relatório "Balanço entre pessoas · analítico" (relatorios-executivos.js 1.16.0)
+// abre o MESMO ajuste do item (motivo + divisão, fn_divisao_excecao_definir) a partir da linha; ao salvar, fecha o ajuste e
+// chama aoGravar (o relatório se remonta), sem passar pela aba Pessoas.
 //
 // v1.0.1 (17/11/2026, sessão 20261117-0010-financeiro-pessoas-ajustes, demanda 679b2700; teste do Nicola 17/11 00:05, T-3126
 // reprovado) — (1) o AJUSTE do item vira uma tela só, por cima do extrato: motivo e divisão juntos (% por pessoa, adicionar
@@ -26,7 +31,7 @@
 // O módulo não guarda regra de dinheiro: lê o banco e mostra. O saldo corrido é a soma das linhas na ordem da data, e a
 // última linha bate com o saldo do topo (teste T-FIN-02).
 // ============================================================================
-export const VERSAO = '1.0.1';
+export const VERSAO = '1.1.0';
 
 import { rzToast, rzConfirmar } from './raiz-ui.js';
 
@@ -124,6 +129,7 @@ function comoFoi(e) {
 }
 
 async function abrirExtrato(chave) {
+    AJ_FORA = null; // v1.1.0 — aberto da aba Pessoas: ao salvar, volta ao extrato
     const p = DADOS?.pessoas.find(x => x.chave === chave);
     const abrirSheet = g('abrirSheet'), cab = g('rzSheetCabecalho');
     if (!p || !abrirSheet || !cab) return;
@@ -184,6 +190,14 @@ function retiradasHtml(r, natureza) {
 }
 
 // ---------------------------------------------------------------- ajuste do item (por cima do extrato; fechar volta a ele)
+let AJ_FORA = null;   // v1.1.0 — callback do relatório analítico (o ajuste foi aberto fora da aba Pessoas)
+/** v1.1.0 — abre o ajuste de uma linha de fn_balanco_extrato vinda do relatório; só lançamento e recebimento se ajustam. */
+export function pessoasAjustarItem(e, aoGravar) {
+    if (!e || !(e.origem_tipo === 'lancamento' || e.origem_tipo === 'mensalidade')) return;
+    EXT_LINHAS = [e];
+    abrirAjuste(null, 0);
+    AJ_FORA = typeof aoGravar === 'function' ? aoGravar : null;
+}
 let AJ = null;   // { e, linhas: [{ pessoa_id, nome, percentual }], tinhaExcecao }
 function abrirItem(html) {
     const abrirSheet = g('abrirSheet');
@@ -254,6 +268,7 @@ async function gravarAjuste(sheet, itens) {
     await recarregarExtrato();
 }
 async function recarregarExtrato() {
+    if (AJ_FORA) { const f = AJ_FORA; AJ_FORA = null; g('fecharSheet')?.(); await f(); return; } // v1.1.0 — veio do relatório
     g('fecharSheet')?.();                                   // fecha o item (nível 2)
     const chave = EXT_ATUAL?.chave;
     await pessoasRender(CTX);                               // números da lista e do topo vêm do banco de novo

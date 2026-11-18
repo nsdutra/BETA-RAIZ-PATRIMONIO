@@ -32,15 +32,8 @@
 // v1.5.0 (UX F2.3a, demanda fcd3008d, sessão 20261003-1707-ux-base; "Estou de acordo com f2.3 e opcao a" do Nicola 09/10 20:52) —
 // busca de "Compartilhar imóveis" em Sheet (abrirBuscaVitrine): texto ao vivo (nome, tipo, empreendimento,
 // endereço) e chips de Situação e Empreendimento, com "Ver n imóveis"; o popup de filtro saiu.
-//
-// Versão anterior: 1.4.1 · 08/10/2026
-//
-// v1.4.1 (correções do teste da F2.8, Nicola 08/10 20:39; demanda ed5accfe, sessão 20261003-1707-ux-base) — página
-// pública no tema claro do app (fundo --paper, cards brancos, nome da empresa em --pine) com "Fechar" no padrão de
-// botão-ícone (era um "Sair" escuro mal formatado); a tela "Compartilhar imóveis" relê os imóveis ao abrir — o imóvel
-// recém-cadastrado só aparecia depois de sair e entrar no app.
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.4.0 … v1.4.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.4.1 … v1.4.1): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
 import { encontrarMinutaParaImovel } from './minutas.js'; // retorno usado de forma síncrona — import, não ponte

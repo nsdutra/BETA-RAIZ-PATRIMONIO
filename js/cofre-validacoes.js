@@ -20,12 +20,8 @@
 //
 // v2.11.0 (19/10/2026, sessão 20261019-1125-carga-silva-ajustes, demanda 9404081c, item 34) — iconeDoAtivo(a): ícone pelo
 // tipo do catálogo (trator com trator, talhão com broto, secador com chama…), a categoria fica de reserva.
-// Versão anterior: 2.10.0 · 19/10/2026
-//
-// v2.10.0 (19/10/2026, sessão 20261019-0850-carga-silva-l5a, demanda 9404081c, L5-3) — tiposDoCatalogo() devolve a lista de
-// tipos do catálogo, para o "+" de Ativos dizer o que cadastrar no ramo da lente.
 // --------------------------------------------------------------------------
-// Versões anteriores (v2.9.0 … v2.9.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v2.10.0 … v2.10.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
 export const VERSAO = '2.15.0'; // v-check (18/09/2026): lido por Dev › Versões — manter igual ao header
