@@ -1,7 +1,9 @@
 // ============================================================================
 // financeiro.js — Raiz Patrimônio · Financeiro (Recebimentos · Atrasados · Saídas
 //                  · conciliação de extrato · recibo · detalhe do recebimento)
-// Versão: 1.101.0 · 17/11/2026
+// Versão: 1.102.0 · 18/11/2026
+//
+// v1.102.0 (18/11/2026, sessão 20261118-1440-financeiro-lente, demanda 679b2700; FICHA_REVISAO_FINANCEIRO_RAIZ v1.0.0 Onda 5 · fatia 5a, LEVANTAMENTO_LENTE_MULTI_RAMO_RAIZ v1.0.0, de acordo do Nicola 18/11 14:36) — Resumo com 2+ ramos: manda a lista para o financeiro-resumo.js e o rótulo "Imóveis + Comercial". Versão anterior: 1.101.0
 //
 // v1.101.0 (17/11/2026, sessão 20261117-2000-financeiro-grupos, demanda 679b2700; FICHA_REVISAO_FINANCEIRO_RAIZ v1.0.0, Onda 3,
 // parte 2, D4; "pode seguir" do Nicola 17/11 19:54) — RECEBIMENTOS E SAÍDAS NIVELADOS: as duas listas ficam com os mesmos grupos:
@@ -42,14 +44,11 @@
 // o mesmo nome, depois os outros em aberto) e, na saída, as saídas previstas de valor parecido. A "Nova despesa" só traz
 // categoria quando o motor sugeriu uma. (2) LIGAR À BAIXA JÁ FEITA: sugestão nova do motor ligar_baixa_atualizar; o "Aceitar
 // sugestão" e as pilhas abrem o antes e o depois e gravam pela fn_extrato_ligar_baixa (conciliacaoLigarBaixa). Versão anterior: 1.97.1
-//
-// v1.97.1 (17/11/2026, sessão 20261117-0755-financeiro-conciliacao, demanda 679b2700; conferência no app publicado) — o nome do
-// mês das pilhas saía "Invalid Date": a competência já vem com o dia (AAAA-MM-DD). Versão anterior: 1.97.0
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.97.0 … v1.97.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.97.1 … v1.97.1): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '1.101.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.102.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 
 // v1.17.0 (Fase 1 do wrapper de escrita, rollout Financeiro) — emitirEscrita
 // é o evento padrão pra "algo mudou que módulos DE FORA deste arquivo podem
@@ -131,9 +130,11 @@ export function montarAbaFinanceiro(tabId) {
 export function renderResumo() {
     if (!financeiroCompetenciaAtual) financeiroDefinirCompetencia(financeiroCompetenciaHojeISO());
     const ramo = (typeof geralRamoFiltro !== 'undefined' && geralRamoFiltro) ? geralRamoFiltro : 'tudo';
-    const nomeRamo = ramo === 'tudo' ? 'Todo o patrimônio' : ((typeof rzNomeRamo === 'function' && rzNomeRamo(ramo)) || ramo);
+    const ramos = Array.isArray(window.RZ_RAMOS_LENTE) && window.RZ_RAMOS_LENTE.length > 1 ? window.RZ_RAMOS_LENTE : null; // v1.102.0 (Onda 5a)
+    const nomeDe = (c) => (typeof rzNomeRamo === 'function' && rzNomeRamo(c)) || c;
+    const nomeRamo = ramos ? ramos.map(nomeDe).join(' + ') : ramo === 'tudo' ? 'Todo o patrimônio' : nomeDe(ramo);
     return resumoRender({ el: document.getElementById('fin-resumo-corpo'), dbAuth, clienteId: CLIENTE_ID_SUPABASE,
-        competencia: String(financeiroCompetenciaAtual).slice(0, 7) + '-01', ramo, nomeRamo, contaId: financeiroContaFiltro || null });
+        competencia: String(financeiroCompetenciaAtual).slice(0, 7) + '-01', ramo, ramos, nomeRamo, contaId: financeiroContaFiltro || null });
 }
 
 // v1.16.0 (demanda 60284322) — ver changelog do topo do arquivo.

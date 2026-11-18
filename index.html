@@ -6,11 +6,11 @@
    (base derivada do RUMO v7.4.2 — histórico de versões anteriores
    preservado abaixo para referência técnica)
 
-   VERSÃO: Beta v1.490.70
-   LINHAS: 15537
-   DATA: 18/11/2026 (sessão 20261118-0915-licenca-plano-unico, demanda 14a20035)
-   NOVIDADES (Beta v1.490.70) — Licença: um plano, com os ramos dentro.
-   Anteriores: .69 relat pessoas · .68 licença · .67 vitrine · .66 fin grupos · .65 C3 · .64 · .63 relat · .62 pedido · .60 resumo · .57 pilhas · .56 ramos · .55 mês · .54 pilhas · .53 ramos · .52 contagem · .50 invest · .48 C2 · .46 comercial C1 · .44 pagto · .43 R3 · .42 docs · .26–.41 ·
+   VERSÃO: Beta v1.490.71
+   LINHAS: 15540
+   DATA: 18/11/2026 (sessão 20261118-1440-financeiro-lente, demanda 679b2700)
+   NOVIDADES (Beta v1.490.71) — Lente com um ou mais ramos (js/nucleo/lente.js).
+   Anteriores: .70 licença · .69 relat pessoas · .68 licença · .67 vitrine · .66 fin grupos · .65 C3 · .64 · .63 relat · .62 pedido · .60 resumo · .57 pilhas · .56 ramos · .55 mês · .54 pilhas · .53 ramos · .52 contagem · .50 invest · .48 C2 · .46 comercial C1 · .44 pagto · .43 R3 · .42 docs · .26–.41 ·
    v1.490.8–25: ver CHANGELOG_APP.md.
    Versão anterior (Beta v1.490.7):
    DATA: 12/11/2026 (demanda f6be5483)
@@ -43,7 +43,7 @@
          O navegador aplica o mapa também aos imports estáticos dentro dos
          módulos (cofre-app.js → ./cofre-api.js etc.). -->
     <!-- RZ-IMPORTMAP:INICIO -->
-    <script type="importmap">{"imports":{"./js/cadastros.js":"./js/cadastros.js?v=1.3.0","./js/financeiro.js":"./js/financeiro.js?v=1.101.0","./js/fechamento.js":"./js/fechamento.js?v=1.16.0","./js/contratos.js":"./js/contratos.js?v=1.75.0","./js/minutas.js":"./js/minutas.js?v=1.9.0","./js/vitrine.js":"./js/vitrine.js?v=1.8.0","./js/imoveis.js":"./js/imoveis.js?v=1.11.0","./js/cofre-api.js":"./js/cofre-api.js?v=1.56.0","./js/cofre-app.js":"./js/cofre-app.js?v=1.53.0","./js/cofre-ativos.js":"./js/cofre-ativos.js?v=1.168.0","./js/cofre-controles.js":"./js/cofre-controles.js?v=1.76.0","./js/cofre-documentos.js":"./js/cofre-documentos.js?v=2.41.0","./js/cofre-imagem.js":"./js/cofre-imagem.js?v=1.2.0","./js/cofre-estado.js":"./js/cofre-estado.js?v=1.5.2","./js/cofre-navegacao.js":"./js/cofre-navegacao.js?v=1.10.0","./js/cofre-ui.js":"./js/cofre-ui.js?v=1.7.2","./js/cofre-validacoes.js":"./js/cofre-validacoes.js?v=2.15.0","./js/comum-licenca.js":"./js/comum-licenca.js?v=1.13.0","./js/comum-renovacao.js":"./js/comum-renovacao.js?v=1.6.0","./js/comum-minha-empresa.js":"./js/comum-minha-empresa.js?v=1.22.0","./js/comum-pessoas.js":"./js/comum-pessoas.js?v=1.217.0","./js/comum-sobre.js":"./js/comum-sobre.js?v=1.5.0","./js/comum-endereco.js":"./js/comum-endereco.js?v=1.2.0","./js/comum-partes.js":"./js/comum-partes.js?v=1.0.0","./js/resultados.js":"./js/resultados.js?v=2.23.0","./js/indicadores.js":"./js/indicadores.js?v=1.3.0","./js/configuracao-inicial.js":"./js/configuracao-inicial.js?v=1.2.0","./js/relatorios-executivos.js":"./js/relatorios-executivos.js?v=1.16.0","./js/raiz-eventos.js":"./js/raiz-eventos.js?v=1.0.0","./js/raiz-device.js":"./js/raiz-device.js?v=1.1.0","./js/raiz-ui.js":"./js/raiz-ui.js?v=1.10.0","./js/fiscal.js":"./js/fiscal.js?v=1.7.0","./js/ativos/ativos-boot.js":"./js/ativos/ativos-boot.js?v=1.4.0","./js/ativos/ativos-markup.js":"./js/ativos/ativos-markup.js?v=1.69.0","./js/nucleo/porta.js":"./js/nucleo/porta.js?v=1.10.0","./js/partes.js":"./js/partes.js?v=1.3.0","./js/conta.js":"./js/conta.js?v=1.7.0","./js/grupo-visao.js":"./js/grupo-visao.js?v=1.0.0","./js/agenda.js":"./js/agenda.js?v=1.20.0","./js/cofre-membros.js":"./js/cofre-membros.js?v=1.0.0","./js/cockpit-metas.js":"./js/cockpit-metas.js?v=1.0.0","./js/nucleo/bibliotecas.js":"./js/nucleo/bibliotecas.js?v=1.0.0","./js/nucleo/calendario.js":"./js/nucleo/calendario.js?v=1.1.0","./js/agenda-form.js":"./js/agenda-form.js?v=1.3.0","./js/ativo-disponibilidade.js":"./js/ativo-disponibilidade.js?v=1.0.0","./js/ativo-interessados.js":"./js/ativo-interessados.js?v=1.5.1","./js/contrato-licenca.js":"./js/contrato-licenca.js?v=1.0.0","./js/comercial-itens.js":"./js/comercial-itens.js?v=1.3.0","./js/ativo-forma-pagamento.js":"./js/ativo-forma-pagamento.js?v=1.0.0","./js/pessoas-extrato.js":"./js/pessoas-extrato.js?v=1.1.0","./js/comercial-tabelas.js":"./js/comercial-tabelas.js?v=1.0.1","./js/comum-ramos-oferta.js":"./js/comum-ramos-oferta.js?v=1.3.0","./js/conciliacao-pilhas.js":"./js/conciliacao-pilhas.js?v=1.1.0","./js/financeiro-resumo.js":"./js/financeiro-resumo.js?v=1.0.0","./js/comercial-pedidos.js":"./js/comercial-pedidos.js?v=1.3.0"}}</script>
+    <script type="importmap">{"imports":{"./js/cadastros.js":"./js/cadastros.js?v=1.3.0","./js/financeiro.js":"./js/financeiro.js?v=1.102.0","./js/fechamento.js":"./js/fechamento.js?v=1.16.0","./js/contratos.js":"./js/contratos.js?v=1.75.0","./js/minutas.js":"./js/minutas.js?v=1.9.0","./js/vitrine.js":"./js/vitrine.js?v=1.8.0","./js/imoveis.js":"./js/imoveis.js?v=1.11.0","./js/cofre-api.js":"./js/cofre-api.js?v=1.56.0","./js/cofre-app.js":"./js/cofre-app.js?v=1.53.0","./js/cofre-ativos.js":"./js/cofre-ativos.js?v=1.169.0","./js/cofre-controles.js":"./js/cofre-controles.js?v=1.76.0","./js/cofre-documentos.js":"./js/cofre-documentos.js?v=2.41.0","./js/cofre-imagem.js":"./js/cofre-imagem.js?v=1.2.0","./js/cofre-estado.js":"./js/cofre-estado.js?v=1.5.2","./js/cofre-navegacao.js":"./js/cofre-navegacao.js?v=1.10.0","./js/cofre-ui.js":"./js/cofre-ui.js?v=1.7.2","./js/cofre-validacoes.js":"./js/cofre-validacoes.js?v=2.15.0","./js/comum-licenca.js":"./js/comum-licenca.js?v=1.13.0","./js/comum-renovacao.js":"./js/comum-renovacao.js?v=1.6.0","./js/comum-minha-empresa.js":"./js/comum-minha-empresa.js?v=1.22.0","./js/comum-pessoas.js":"./js/comum-pessoas.js?v=1.217.0","./js/comum-sobre.js":"./js/comum-sobre.js?v=1.5.0","./js/comum-endereco.js":"./js/comum-endereco.js?v=1.2.0","./js/comum-partes.js":"./js/comum-partes.js?v=1.0.0","./js/resultados.js":"./js/resultados.js?v=2.23.0","./js/indicadores.js":"./js/indicadores.js?v=1.3.0","./js/configuracao-inicial.js":"./js/configuracao-inicial.js?v=1.2.0","./js/relatorios-executivos.js":"./js/relatorios-executivos.js?v=1.16.0","./js/raiz-eventos.js":"./js/raiz-eventos.js?v=1.0.0","./js/raiz-device.js":"./js/raiz-device.js?v=1.1.0","./js/raiz-ui.js":"./js/raiz-ui.js?v=1.10.0","./js/fiscal.js":"./js/fiscal.js?v=1.7.0","./js/ativos/ativos-boot.js":"./js/ativos/ativos-boot.js?v=1.4.0","./js/ativos/ativos-markup.js":"./js/ativos/ativos-markup.js?v=1.69.0","./js/nucleo/porta.js":"./js/nucleo/porta.js?v=1.10.0","./js/partes.js":"./js/partes.js?v=1.3.0","./js/conta.js":"./js/conta.js?v=1.7.0","./js/grupo-visao.js":"./js/grupo-visao.js?v=1.0.0","./js/agenda.js":"./js/agenda.js?v=1.20.0","./js/cofre-membros.js":"./js/cofre-membros.js?v=1.0.0","./js/cockpit-metas.js":"./js/cockpit-metas.js?v=1.0.0","./js/nucleo/bibliotecas.js":"./js/nucleo/bibliotecas.js?v=1.0.0","./js/nucleo/calendario.js":"./js/nucleo/calendario.js?v=1.1.0","./js/agenda-form.js":"./js/agenda-form.js?v=1.3.0","./js/ativo-disponibilidade.js":"./js/ativo-disponibilidade.js?v=1.0.0","./js/ativo-interessados.js":"./js/ativo-interessados.js?v=1.5.1","./js/contrato-licenca.js":"./js/contrato-licenca.js?v=1.0.0","./js/comercial-itens.js":"./js/comercial-itens.js?v=1.3.0","./js/ativo-forma-pagamento.js":"./js/ativo-forma-pagamento.js?v=1.0.0","./js/pessoas-extrato.js":"./js/pessoas-extrato.js?v=1.1.0","./js/comercial-tabelas.js":"./js/comercial-tabelas.js?v=1.0.1","./js/comum-ramos-oferta.js":"./js/comum-ramos-oferta.js?v=1.3.0","./js/conciliacao-pilhas.js":"./js/conciliacao-pilhas.js?v=1.1.0","./js/financeiro-resumo.js":"./js/financeiro-resumo.js?v=1.1.0","./js/comercial-pedidos.js":"./js/comercial-pedidos.js?v=1.3.0","./js/nucleo/lente.js":"./js/nucleo/lente.js?v=1.0.0"}}</script>
     <!-- RZ-IMPORTMAP:FIM -->
 
     <!-- ===== PWA: permite "instalar" o app no celular (Android e iPhone) ===== -->
@@ -2852,7 +2852,7 @@
     <script>
 
         // Fonte ÚNICA da versão exibida no app (splash + Sobre); window.onload aplica nos dois.
-        const APP_VERSAO = "Beta v1.490.70"; // = cabeçalho (nota v1.178.8)
+        const APP_VERSAO = "Beta v1.490.71"; // = cabeçalho (nota v1.178.8)
 
         // ====================================================================
         // v1.105.0 — HELPERS DE SUPERFÍCIE DA GRAMÁTICA ÚNICA
@@ -10098,7 +10098,7 @@ async function criarLinkVitrineSupabase(token, idsSelecionados) {
                 const id = al.detalhe?.ativo_id;
                 return id ? ramoPorAtivo.get(id) === k : k === 'imoveis'; // alerta de carteira sem ativo é de Imóveis
             }).length;
-            const ativos = RZ_RAMOS.filter(r => r.status === 'ativo');
+            const ativos = RZ_RAMOS.filter(r => r.status === 'ativo' && (!window.RZ_RAMOS_LENTE || window.RZ_RAMOS_LENTE.includes(r.codigo))); // v1.490.71 — só os ramos marcados
             const html = ativos.map(r => {
                 const L = rows.filter(x => rzRamoDoAtivo(x) === r.codigo);
                 if (!L.length) return '';
@@ -10521,9 +10521,10 @@ async function criarLinkVitrineSupabase(token, idsSelecionados) {
             if (bt) { // v1.345.1 — botão redondo: ícone e cor do ramo; o nome vai no title/aria-label
                 // v1.368.0 (marca e ramos, fase 3) — ícone vem de ativo_ramos.icone (fonte única); 'layers' = Todo o patrimônio
                 const icone = geralRamoFiltro === 'tudo' ? 'layers' : (rzRamoInfo(geralRamoFiltro)?.icone || 'layers');
-                const nome = rzNomeRamo(geralRamoFiltro);
+                const varios = Array.isArray(window.RZ_RAMOS_LENTE) ? window.RZ_RAMOS_LENTE : null; // v1.490.71 (Onda 5a) — 2+ ramos: tom geral e selo
+                const nome = varios ? varios.map(rzNomeRamo).join(' + ') : rzNomeRamo(geralRamoFiltro);
                 bt.title = nome; bt.setAttribute('aria-label', 'Ramo: ' + nome);
-                bt.innerHTML = `<svg data-lucide="${rzEsc(icone)}"></svg>`;
+                bt.innerHTML = `<svg data-lucide="${rzEsc(icone)}"></svg>`; window.rzSeloLente?.(bt, varios);
                 if (typeof lucide !== 'undefined') lucide.createIcons();
             }
         }
@@ -10595,7 +10596,7 @@ async function criarLinkVitrineSupabase(token, idsSelecionados) {
         window.rzRecarregarUsosRamo = async () => { await rzCarregarUsosRamo(); rzRepintarPorRamo(); }; // chamado pela ficha do ativo (F25)
         window.rzNomeRamo = rzNomeRamo; // nome do ramo pelo catálogo, para os módulos (dem 9404081c)
         function rzAbrirLenteRamo() { // (dem dd9c5527, 17/11/2026) — a lente mora em js/comum-ramos-oferta.js, com "Conheça novos ramos"
-            import('./js/comum-ramos-oferta.js').then(m => m.abrirLente({ dbAuth, clienteId: CLIENTE_ID_SUPABASE, toast: mostrarToast, ramos: RZ_RAMOS, licenciados: RZ_RAMOS_LICENCIADOS, atual: geralRamoFiltro, escolher: escolherGeralRamo }))
+            import('./js/nucleo/lente.js').then(m => m.abrirLenteRamos({ dbAuth, clienteId: CLIENTE_ID_SUPABASE, toast: mostrarToast, ramos: RZ_RAMOS, licenciados: RZ_RAMOS_LICENCIADOS, atual: geralRamoFiltro, varios: window.RZ_RAMOS_LENTE || null, escolher: escolherGeralRamo })) // v1.490.71 — um ou mais ramos (js/nucleo/lente.js)
                 .catch(e => { console.warn('lente:', e.message); mostrarToast('A lente não abriu agora.', 'danger'); });
         }
         rzAplicarRamo(); // tonalidade já no boot, com a escolha guardada
@@ -10608,9 +10609,11 @@ async function criarLinkVitrineSupabase(token, idsSelecionados) {
             return `<div class="rz-seg rz-seg-uso">${usos}</div>`;
         }
 
-        function escolherGeralRamo(r) {
+        function escolherGeralRamo(r, ramos) { // v1.490.71 (Onda 5a) — ramos: 2+ ramos marcados na lente (geralRamoFiltro fica 'tudo')
             if (r !== 'tudo' && !rzRamoLiberado(r)) return; // F25: ramo ativo e contratado
-            const mudou = r !== geralRamoFiltro;
+            const lista = r === 'tudo' && Array.isArray(ramos) && ramos.length > 1 ? ramos.slice() : null;
+            const mudou = r !== geralRamoFiltro || String(lista || '') !== String(window.RZ_RAMOS_LENTE || '');
+            window.RZ_RAMOS_LENTE = lista;
             geralRamoFiltro = r;
             if (mudou) geralUniversoFiltro = 'tudo'; // trocar de ramo volta o uso para Todos
             rzAplicarRamo();
@@ -10622,7 +10625,7 @@ async function criarLinkVitrineSupabase(token, idsSelecionados) {
                 if (rzHojeAtual === 'jornal') rzRenderJornal(); // v1.347.0 — Minha Gestão e Fique por dentro seguem a lente
                 if (rzHojeAtual === 'fique') rzRenderFique();
             }
-            window.dispatchEvent(new CustomEvent('raiz:ramo', { detail: { ramo: r } }));
+            window.dispatchEvent(new CustomEvent('raiz:ramo', { detail: { ramo: r, ramos: lista } }));
             // v1.450.0 (d9a2c8d5) — na Agenda, trocar de ramo recarrega alertas e calendário
             if (mudou && document.getElementById('tab-alertas')?.classList.contains('active')) { montarAlertasPatrimonio(); rzAgendaVista(); }
             if (mudou) rzIrParaAtivosSeDentro(); // v1.436.0 (item 27, D4)

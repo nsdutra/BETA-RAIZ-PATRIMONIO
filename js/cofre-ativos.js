@@ -1,6 +1,9 @@
 // ============================================================================
 // cofre-ativos.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.168.0 · 17/11/2026
+// Versão: 1.169.0 · 18/11/2026
+//
+// v1.169.0 (18/11/2026, sessão 20261118-1440-financeiro-lente, demanda 679b2700; FICHA_REVISAO_FINANCEIRO_RAIZ v1.0.0 Onda 5 · fatia 5a, LEVANTAMENTO_LENTE_MULTI_RAMO_RAIZ v1.0.0, de acordo do Nicola 18/11 14:36) — lente com 2+ ramos (window.RZ_RAMOS_LENTE): em "Todo" a lista, os chips e os contadores mostram só os
+//   ativos dos ramos marcados (naLente). Versão anterior: 1.168.0
 // v1.168.0 (17/11/2026, sessão 20261117-2010-crm-3b; FICHA_TIPO_EM_MAIS_DE_UM_RAMO_RAIZ v1.4.0, de acordo do Nicola 17/11 20:09/20:27/22:24) —
 //   subativo pelos ramos dos tipos (principal e extras: Talhão e Casa dentro de Sítio); na lente, o bem aparece pelo ramo
 //   prioritário ou pelo ramo vigente (uso/contrato de hoje, fn_entidade_status.ramo_vigente), com o selo "hoje em <ramo>" quando o
@@ -41,14 +44,11 @@
 // v1.159.0 (15/11/2026, sessão 20261115-1630-comercial-r2, demanda 285a0058; plano R2 aprovado pelo Nicola 15/11 16:30) —
 // "Adicionar uso" agrupado por ramo (Contratos · <ramo>, Sem contrato). Tipo de ramo não contratado aparece com cadeado e abre
 // a oferta do ramo (Falar com a Raiz); os tipos do Comercial aparecem em ativo de qualquer ramo. Versão anterior: 1.158.1
-//
-// v1.158.1 (15/11/2026, sessão 20261114-2342-investimentos-patrimonio, demanda fd3898f7; pedido do Nicola 15/11 14:55: "no card
-// novo valor, incluir editar dados também") — o ⋮ do card "Valor do bem" ganha "Editar dados", a mesma edição do card Dados.
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.158.0 … v1.158.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.158.1 … v1.158.1): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '1.168.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.169.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 import { estado } from './cofre-estado.js';
 import { rzCalendario, rzCalItemDaAgenda } from './nucleo/calendario.js'; // v1.152.0 — calendário único (DS §6.3)
 import { carregarBiblioteca } from './nucleo/bibliotecas.js'; // bibliotecas pesadas, sob demanda (dem 6b11c602)
@@ -764,7 +764,7 @@ export function renderAtivosLista(filtroTipo = '', filtroTexto = '') {
     const soArquivados = modoArquivados; // v1.124.0 — pelo ⋮
     const lista = (soArquivados ? arquivadosDaLente() : principais()).filter(a => {
         if (soArquivados) return ativoBateComBusca(a, null);
-        if (ramoLente !== 'tudo' && !naLente(a, ramoLente)) return false; // v1.85.0 (F21) · v1.168.0 prioritário ou vigente
+        if (!naLente(a, ramoLente)) return false; // v1.85.0 (F21) · v1.168.0 prioritário ou vigente · v1.169.0 2+ ramos
         if (segmentoChip && segmentoDoAtivo(a) !== segmentoChip) return false; // v1.85.0 (F22)
         if (tiposFiltro && tiposFiltro.length && !tiposFiltro.includes(a.tipo_ativo)) return false;
         if (comAlerta && !comAlerta.has(a.id)) return false;
@@ -996,7 +996,10 @@ if (typeof window !== 'undefined') { window.rzPatrimonioVerSo = verSoRamoPatrimo
 // v1.168.0 (ficha tipo em mais de um ramo, D4/D5) — o ramo vigente na data (uso/contrato; fn_entidade_status.ramo_vigente) e o
 // teste da lente: o bem aparece na lente do ramo prioritário (o dele) e na do ramo vigente
 const ramoVigenteLista = (a) => (typeof window !== 'undefined' && typeof window.rzStatusDoAtivo === 'function' ? window.rzStatusDoAtivo(a.id)?.ramo_vigente : null) || null;
-const naLente = (a, r) => r === 'tudo' || ramoDoAtivoLista(a) === r || ramoVigenteLista(a) === r;
+// v1.169.0 (Onda 5a, dem 679b2700) — 2+ ramos na lente do app (window.RZ_RAMOS_LENTE): em "Todo" mostra só os ramos marcados
+const ramosDaLenteApp = () => (typeof window !== 'undefined' && Array.isArray(window.RZ_RAMOS_LENTE) && window.RZ_RAMOS_LENTE.length > 1) ? window.RZ_RAMOS_LENTE : null;
+const naUmRamo = (a, r) => ramoDoAtivoLista(a) === r || ramoVigenteLista(a) === r;
+const naLente = (a, r) => r === 'tudo' ? (!ramosDaLenteApp() || ramosDaLenteApp().some(x => naUmRamo(a, x))) : naUmRamo(a, r);
 function ramoDoAtivoLista(a) {
     const det = tipoDoCatalogo(a.tipo_detalhe_id);
     if (typeof rzRamoDoAtivo === 'function') return rzRamoDoAtivo({ id: a.id, ramo: a.ramo, modelo_repouso: a.modelo_repouso, tipo_ativo: a.tipo_ativo, tipo_detalhe: det }); // F25: modelo vigente
@@ -1011,7 +1014,7 @@ const segmentoDoAtivo = (a) => tipoDoCatalogo(a.tipo_detalhe_id)?.segmento || 'O
 // v1.102.0 (usos fatia 3, D3-2) — a lista e os contadores mostram só os principais; unidade, área e integrante aparecem
 // dentro do principal (card no Resumo). estado.ativos continua com todos (a ficha do subativo abre por ele; a busca acha).
 const principais = () => estado.ativos.filter(a => !a.ativo_principal_id);
-const ativosDoRamo = () => { const r = ramoDaLente(); return r === 'tudo' ? principais() : principais().filter(a => naLente(a, r)); };
+const ativosDoRamo = () => { const r = ramoDaLente(); return r === 'tudo' && !ramosDaLenteApp() ? principais() : principais().filter(a => naLente(a, r)); };
 function recalcularGruposChip() {
     if (typeof rzRamoInfo !== 'function' || typeof RZ_RAMOS === 'undefined') return; // cofre.html avulso: chips de sempre
     const r = ramoDaLente();

@@ -1,6 +1,9 @@
 // ============================================================================
 // financeiro-resumo.js — Raiz Patrimônio · Financeiro › Resumo: o mês em linhas, com o % de cada linha
-// Versão: 1.0.0 · 17/11/2026
+// Versão: 1.1.0 · 18/11/2026
+//
+// v1.1.0 (18/11/2026, sessão 20261118-1440-financeiro-lente, demanda 679b2700; FICHA_REVISAO_FINANCEIRO_RAIZ v1.0.0 Onda 5 · fatia 5a, LEVANTAMENTO_LENTE_MULTI_RAMO_RAIZ v1.0.0, de acordo do Nicola 18/11 14:36) — p_ramos com a lista de ramos marcados na lente (fn_financeiro_resumo_mes já aceita a lista;
+//   lançamento sem ativo só entra com todos os ramos). Versão anterior: 1.0.0
 //
 // v1.0.0 (17/11/2026, sessão 20261117-1540-financeiro-resumo, demanda 679b2700; FICHA_REVISAO_FINANCEIRO_RAIZ v1.0.0, Onda 3,
 // decisão D2; de acordo do Nicola 16/11 23:44 e "vamos em frente" 17/11 15:33; protótipo PROTOTIPO_FINANCEIRO_REVISAO_RAIZ
@@ -14,7 +17,7 @@
 // Os números vêm do banco (fn_financeiro_resumo_mes, F3), com a mesma base de Recebimentos e Saídas; o módulo só soma as
 // linhas que o banco devolve para desenhar os grupos. A lente de ramos de hoje (um ramo ou todos) é respeitada.
 // ============================================================================
-export const VERSAO = '1.0.0';
+export const VERSAO = '1.1.0';
 
 const esc = (v) => String(v ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const num = (v) => Number(v) || 0;
@@ -38,7 +41,7 @@ const GRUPOS = [
 ];
 
 /**
- * Desenha a aba Resumo. ctx: { el, dbAuth, clienteId, competencia ('AAAA-MM-01'), ramo ('tudo' ou código), nomeRamo, contaId }.
+ * Desenha a aba Resumo. ctx: { el, dbAuth, clienteId, competencia ('AAAA-MM-01'), ramo ('tudo' ou código), ramos (2+ códigos ou null), nomeRamo, contaId }.
  */
 export async function resumoRender(ctx) {
     const el = ctx.el;
@@ -49,7 +52,7 @@ export async function resumoRender(ctx) {
     try {
         const { data, error } = await ctx.dbAuth.rpc('fn_financeiro_resumo_mes', {
             p_cliente_id: ctx.clienteId, p_competencia: ctx.competencia, p_visao: visao,
-            p_ramos: ctx.ramo && ctx.ramo !== 'tudo' ? [ctx.ramo] : null, p_conta_id: ctx.contaId || null,
+            p_ramos: ctx.ramos || (ctx.ramo && ctx.ramo !== 'tudo' ? [ctx.ramo] : null), p_conta_id: ctx.contaId || null, // v1.1.0 — 2+ ramos
         });
         if (error) throw error;
         linhas = (data || []).map(l => ({ ...l, valor: num(l.valor), em_atraso: num(l.em_atraso) }));

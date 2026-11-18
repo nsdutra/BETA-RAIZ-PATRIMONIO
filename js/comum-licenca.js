@@ -30,15 +30,8 @@
 // v1.9.0 (14/10/2026, sessão 20261014-2145-onda9c-textos, demanda a05ad2ee; onda 9c do estudo PROTOTIPO_UX_DENSIDADE_RAMOS_RAIZ
 // v1.2.0, D6 seção 10) — textos no limite: ação até 24 caracteres, descrição até 28, aviso até 40 com o resultado e tela
 // vazia em 1 frase de até 40. A explicação longa fica na confirmação, quando existe. Nada de comportamento mudou.
-// Versão anterior: 1.8.0 · 10/10/2026
-//
-// v1.8.0 (UX F2.5d-2, demanda 2a0000a7, sessão 20261003-1707-ux-base; ficha aprovada pelo Nicola 10/10 21:26) —
-// terceiro chip da Licença, Pagamentos: o histórico de pagamentos do plano lido por fn_licenca_pagamentos_listar
-// (SECURITY DEFINER, só a própria empresa ou o master; sem txid, gateway nem quem confirmou — migration
-// fn_licenca_pagamentos_listar_v1). Cada linha: plano, período, valor e status (Pago · Em análise · Aguardando
-// pagamento · Recusado · Cancelado · Expirado). O chip mostra quantos estão aguardando pagamento (tom --warning).
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.7.0 … v1.7.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.8.0 … v1.8.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
 export const VERSAO = '1.13.0'; // v-check (22/09/2026): lido por Dev › Versões — manter igual ao header
