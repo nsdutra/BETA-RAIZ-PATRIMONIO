@@ -1,6 +1,10 @@
 // ============================================================================
 // comum-ramos-oferta.js — Raiz Patrimônio · Lente de ramos, "Conheça novos ramos" e as 3 ofertas
-// Versão: 1.2.0 · 17/11/2026
+// Versão: 1.3.0 · 17/11/2026
+//
+// v1.3.0 (17/11/2026, sessão 20261117-2340-precos-f2, demanda 14a20035; FICHA_PRECIFICACAO_RAMOS_DEGRAUS v1.1.0 F2) — Imóveis
+// passa a ser ramo como os outros: quem não tem (só Família) vê Imóveis em "Conheça novos ramos". Só Outros bens fica de fora.
+// Versão anterior: 1.2.0 · 17/11/2026
 //
 // v1.2.0 (17/11/2026, sessão 20261117-1330-upsell-ramos-ajustes2, demanda dd9c5527; regras do Nicola 17/11 13:22) — cards de
 // subida: plano novo (1 ou 3 meses), crédito dos dias que faltam do plano atual (fn_ramos_ofertas v3), "Pix agora", até quando o
@@ -27,7 +31,7 @@
 //   • Confirmar abre a cobrança Pix da Licença (comum-renovacao.js → abrirCobranca, com p_ramos). Degrau no Premium
 //     abre a conversa (página Premium), como o resto do app.
 // ============================================================================
-export const VERSAO = '1.2.0'; // v-check: lido por Dev › Versões — manter igual ao header
+export const VERSAO = '1.3.0'; // v-check: lido por Dev › Versões — manter igual ao header
 
 const SITE_RAIZ = 'https://www.raizpatrimonio.com.br';
 const brl = (n) => Number(n || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
@@ -130,7 +134,7 @@ export function abrirLente(ctx) {
         `<div class="rz-ic" style="background:${cr};color:var(--paper)">${icone(ic)}</div>` +
         `<div>${esc(nome)}${c === atual ? ' ✓' : ''}<small>${esc(sub)}</small></div></button>`;
     const meus = ramos.filter((r) => !licenciados || licenciados.includes(r.codigo));
-    const novos = licenciados ? ramos.filter((r) => !licenciados.includes(r.codigo) && !['imoveis', 'outros'].includes(r.codigo)) : [];
+    const novos = licenciados ? ramos.filter((r) => !licenciados.includes(r.codigo) && r.codigo !== 'outros') : [];
     const corpo = item('tudo', 'Todo o patrimônio', 'Todos os ramos somados', 'var(--pine)', false, 'layers') +
         meus.map((r) => item(r.codigo, r.nome + (r.status === 'ativo' ? '' : ' · em breve'), r.descricao || '', cor(r.codigo), r.status !== 'ativo', r.icone)).join('') +
         (novos.length ? `<button type="button" class="rzro-novos" id="rzro-novos"><div class="rzro-ics">${novos.map((r) => `<span style="background:${cor(r.codigo)}">${icone(r.icone)}</span>`).join('')}</div>` +

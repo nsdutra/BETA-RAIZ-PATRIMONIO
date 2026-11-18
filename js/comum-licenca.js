@@ -1,6 +1,10 @@
 // ============================================================================
 // comum-licenca.js — Raiz Patrimônio · Administração compartilhada
-// Versão: 1.11.0 · 13/11/2026
+// Versão: 1.12.0 · 17/11/2026
+//
+// v1.12.0 (17/11/2026, sessão 20261117-2340-precos-f2, demanda 14a20035; FICHA_PRECIFICACAO_RAMOS_DEGRAUS v1.1.0 F2) — Licença:
+// nomes legíveis para o plano da empresa e para cada ramo (antes aparecia o código, ex.: "imoveis_ramo", "familia_cortesia").
+// Versão anterior: 1.11.0 · 13/11/2026
 //
 // v1.11.0 (13/11/2026, sessão 20261113-0654-upsell-licencas, demanda e619156c; PLANO_EXECUCAO_UPSELL_LICENCAS_RAIZ v1.0.0
 // F2, de acordo do Nicola 13/11 06:54) — gancho de oferta (G1 cadeado, G2 limite): rzMostrarBloqueio abre um sheet em vez do
@@ -40,7 +44,7 @@
 // Versões anteriores (v1.6.1 … v1.6.1): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '1.11.0'; // v-check (22/09/2026): lido por Dev › Versões — manter igual ao header
+export const VERSAO = '1.12.0'; // v-check (22/09/2026): lido por Dev › Versões — manter igual ao header
 export const COMUM_LICENCA_VERSAO = '1.0.0';
 
 // ----------------------------------------------------------------------------
@@ -331,8 +335,15 @@ async function buscarFuncionalidadesDoPlano(dbAuth, clienteId, licenca) {
 // CAMADA DE UI
 // ----------------------------------------------------------------------------
 
-const NOMES_MODULO = { imoveis: 'Imóveis', cofre: 'Cofre de Documentos', gestao: 'Gestão' };
-const NOMES_PLANO = { trial: 'Teste grátis', standard: 'Standard', plus: 'Plus', premium: 'Premium' };
+// v1.12.0: a licença 'imoveis' é o plano (degrau) da empresa; cada ramo tem a sua licença.
+const NOMES_MODULO = { imoveis: 'Plano da empresa', imoveis_ramo: 'Ramo Imóveis', familia: 'Ramo Família', agro: 'Ramo Agro',
+    pecuaria: 'Ramo Pecuária', obras: 'Ramo Obras', comercial: 'Ramo Comercial', cofre: 'Cofre de Documentos', gestao: 'Gestão' };
+const NOMES_PLANO = { trial: 'Teste grátis', standard: 'Standard', essencial: 'Essencial', essencial_ampliado: 'Essencial Ampliado',
+    patrimonio: 'Patrimônio', patrimonio_ampliado: 'Patrimônio Ampliado', plus: 'Plus', plus_ampliado: 'Plus Ampliado',
+    premium: 'Premium', Premium: 'Premium', premium_ampliado: 'Premium Ampliado',
+    imoveis: 'Imóveis', familia: 'Família', familia_cortesia: 'Família · cortesia', agro: 'Agro', agro_beta: 'Agro · beta',
+    pecuaria: 'Pecuária', pecuaria_beta: 'Pecuária · beta', obras: 'Obras', obras_beta: 'Obras · beta',
+    comercial: 'Comercial', comercial_beta: 'Comercial · beta' };
 const WHATSAPP_RAIZ = '5511947461828';
 const SITE_RAIZ = 'https://www.raizpatrimonio.com.br';
 // Página de contatos da Raiz: Licença e Suporte apontam para o mesmo endereço.
