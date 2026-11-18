@@ -1,7 +1,11 @@
 // =====================================================================
 // RAIZ PATRIMÔNIO — js/agenda-form.js
-// Versão: 1.2.0 · 16/11/2026
+// Versão: 1.3.0 · 17/11/2026
 // -----------------------------------------------------------------
+// v1.3.0 (17/11/2026, sessão 20261117-2010-crm-3b, demanda 09277cba; entrega 3b aprovada pelo Nicola 17/11 20:09) — depois de
+// Aprovar ou Recusar um pedido de reserva, o app pede à Edge agenda-google (reserva_avisar) para avisar o hóspede no WhatsApp
+// (sinal e saldo, ou recusa cordial) e mostra se o aviso saiu. Versão anterior: 1.2.0
+//
 // v1.2.0 (16/11/2026, sessão 20261116-2330-crm-f4t2, demanda 09277cba; decisões do Nicola 16/11 22:49 e 23:22) — Aprovar uma
 // pré-reserva abre "Confirmar reserva" com o recebimento já no padrão (sinal 50% hoje, saldo no dia da entrada) para ajustar
 // antes de confirmar; o banco (fn_reserva_gerar_contrato) cria o contrato com sinal e saldo e a mensagem diz os valores.
@@ -18,7 +22,7 @@
 //     (fn_agenda_pedido_decidir). Aprovar pré-reserva gera o contrato na F4 (até lá o banco avisa).
 // Nada de banco novo aqui: tudo pelas funções da migration crm_f2b_motor_agenda (v1–v3).
 // =====================================================================
-export const VERSAO = '1.2.0';
+export const VERSAO = '1.3.0';
 
 const TIPOS = [['reuniao', 'Reunião', 'users'], ['compromisso', 'Compromisso', 'calendar-check'], ['manutencao', 'Manutenção', 'wrench'], ['reserva', 'Reserva', 'bed-double']];
 const esc = (s) => (typeof rzEsc === 'function' ? rzEsc(s) : String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])));
@@ -145,6 +149,11 @@ export function abrirDecisaoPedido(r, aoMudar) {
         toast(decisao === 'aprovar' ? ((data && data.contrato && data.contrato.mensagem) || 'Aprovado.') : decisao === 'recusar' ? 'Recusado.' : 'Nova data proposta.', 'success'); // v1.2.0
         if (tipo === 'ocorrencia' && dbAuth.functions) dbAuth.functions.invoke('agenda-google', { body: { acao: 'sincronizar', ocorrencia_id: id } })
             .then(({ data }) => { if (data && data.link) toast('Meet criado e enviado ao lead.', 'success'); }).catch(() => {}); // v1.1.0
+        // v1.3.0 (3b) — pedido de reserva aprovado ou recusado: avisa o hóspede no WhatsApp (Edge agenda-google, reserva_avisar)
+        if (tipo === 'processo' && (decisao === 'aprovar' || decisao === 'recusar') && dbAuth.functions)
+            dbAuth.functions.invoke('agenda-google', { body: { acao: 'reserva_avisar', processo_id: id } })
+                .then(({ data }) => { if (data && data.mensagem && data.motivo !== 'sem_whatsapp') toast(data.mensagem, data.enviado ? 'success' : 'info'); })
+                .catch(() => toast('Não consegui avisar o hóspede no WhatsApp. Avise por outro meio.', 'info'));
         if (typeof aoMudar === 'function') setTimeout(aoMudar, 50);
         return true;
     };

@@ -1,6 +1,10 @@
 // ============================================================================
 // cofre-validacoes.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 2.14.0 · 20/10/2026
+// Versão: 2.15.0 · 17/11/2026
+//
+// v2.15.0 (17/11/2026, sessão 20261117-2010-crm-3b; FICHA_TIPO_EM_MAIS_DE_UM_RAMO_RAIZ v1.4.0, de acordo do Nicola 17/11 20:09 e
+// 20:27) — a lista de tipos do cadastro considera os ramos extras do tipo: Casa aparece num plano só de Família, Fazenda num
+// plano só de Pecuária, Sítio/Chácara na lente Agro. Versão anterior: 2.14.0
 //
 // v2.14.0 (20/10/2026, sessão 20261020-1317-icone-pessoa, demanda 9404081c — pedido do Nicola 20/10 13:17: "altere o ícone
 // de idoso pro de pessoas novamente") — o ícone de idoso sai: pessoa tem o mesmo ícone em qualquer idade.
@@ -24,7 +28,7 @@
 // Versões anteriores (v2.9.0 … v2.9.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '2.14.0'; // v-check (18/09/2026): lido por Dev › Versões — manter igual ao header
+export const VERSAO = '2.15.0'; // v-check (18/09/2026): lido por Dev › Versões — manter igual ao header
 export function escapeHtml(s) {
     return (s ?? '').toString().replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 }
@@ -267,13 +271,17 @@ export function inicializarCatalogoTiposAtivo({ tipos, campos } = {}) {
 // form de ativo. Catálogo vazio/não carregado = lista vazia (o form
 // simplesmente não mostra o 2º seletor, degrada pro comportamento
 // pré-E5, não quebra).
+// v2.15.0 (ficha tipo em mais de um ramo) — o tipo serve no ramo principal, nos ramos extras (ativo_tipos.ramos_extra) e nos
+// ramos dos usos que aceita; aparece se qualquer um desses ramos estiver ativo e contratado (plano só de Família ou de Pecuária)
+const tipoServeEm = (t, ramo) => t.ramo === ramo || (t.ramos_extra || []).includes(ramo) || (t.ramos_uso || []).includes(ramo);
+const tipoLiberado = (t, liberado) => liberado(t.ramo) || (t.ramos_extra || []).some(liberado);
 export function listarTiposPorCategoria(categoria, opcoes = null) {
     if (!_catalogoAtivoTipos) return [];
     // v2.5.0 (F21) — com { ramo }: só tipos do ramo (ou todos, em 'tudo') e de ramo já ativo (Agro e Pecuária em breve ficam fora)
     const ramo = opcoes && opcoes.ramo;
     const ramoAtivo = ramoLiberado; // v2.7.0 (fatia 6a): ativo e contratado
     return _catalogoAtivoTipos
-        .filter(t => t.categoria === categoria && (!opcoes || ((ramo === 'tudo' || !ramo || t.ramo === ramo || (t.ramos_uso || []).includes(ramo)) && ramoAtivo(t.ramo))))
+        .filter(t => t.categoria === categoria && (!opcoes || ((ramo === 'tudo' || !ramo || tipoServeEm(t, ramo)) && tipoLiberado(t, ramoAtivo))))
         .map(t => ({ id: t.id, codigo: t.codigo, nome: t.nome }));
 }
 
@@ -331,7 +339,7 @@ export function categoriasDoRamo(ramo) {
 function listarTiposPorCategoriaTodas(ramo) {
     const ramoAtivo = ramoLiberado; // v2.7.0 (fatia 6a): ativo e contratado
     // v2.9.0 (L4-C, D2) — na lente de um ramo entram também os tipos ligados a um uso desse ramo (Casa na lente Família, por Moradia)
-    return _catalogoAtivoTipos.filter(t => (ramo === 'tudo' || !ramo || t.ramo === ramo || (t.ramos_uso || []).includes(ramo)) && ramoAtivo(t.ramo)).map(t => t.categoria);
+    return _catalogoAtivoTipos.filter(t => (ramo === 'tudo' || !ramo || tipoServeEm(t, ramo)) && tipoLiberado(t, ramoAtivo)).map(t => t.categoria);
 }
 
 // Campos estruturados: categoria sempre, + os específicos do tipo_detalhe

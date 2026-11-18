@@ -1,26 +1,26 @@
 {
   "app": "patrimonio",
-  "gerado_em": "2026-11-18T06:36:06",
+  "gerado_em": "2026-11-18T08:09:08",
   "arquivos": {
-    "index.html": "1.490.66",
+    "index.html": "1.490.67",
     "sw.js": "3.4",
     "js/cadastros.js": "1.3.0",
     "js/financeiro.js": "1.101.0",
     "js/fechamento.js": "1.16.0",
     "js/contratos.js": "1.75.0",
     "js/minutas.js": "1.9.0",
-    "js/vitrine.js": "1.7.0",
+    "js/vitrine.js": "1.8.0",
     "js/imoveis.js": "1.11.0",
     "js/cofre-api.js": "1.56.0",
     "js/cofre-app.js": "1.53.0",
-    "js/cofre-ativos.js": "1.167.0",
+    "js/cofre-ativos.js": "1.168.0",
     "js/cofre-controles.js": "1.76.0",
     "js/cofre-documentos.js": "2.41.0",
     "js/cofre-imagem.js": "1.2.0",
     "js/cofre-estado.js": "1.5.2",
     "js/cofre-navegacao.js": "1.10.0",
     "js/cofre-ui.js": "1.7.2",
-    "js/cofre-validacoes.js": "2.14.0",
+    "js/cofre-validacoes.js": "2.15.0",
     "js/comum-licenca.js": "1.11.0",
     "js/comum-renovacao.js": "1.6.0",
     "js/comum-minha-empresa.js": "1.22.0",
@@ -50,7 +50,7 @@
     "js/nucleo/bibliotecas.js": "1.0.0",
     "icones-raiz.js": "1.1.0",
     "js/nucleo/calendario.js": "1.1.0",
-    "js/agenda-form.js": "1.2.0",
+    "js/agenda-form.js": "1.3.0",
     "js/ativo-disponibilidade.js": "1.0.0",
     "js/ativo-interessados.js": "1.5.1",
     "js/contrato-licenca.js": "1.0.0",
@@ -93,7 +93,7 @@
       "funcoes": 46
     },
     "js/vitrine.js": {
-      "linhas": 948,
+      "linhas": 949,
       "funcoes": 43
     },
     "js/imoveis.js": {
@@ -109,8 +109,8 @@
       "funcoes": 13
     },
     "js/cofre-ativos.js": {
-      "linhas": 5221,
-      "funcoes": 205
+      "linhas": 5243,
+      "funcoes": 206
     },
     "js/cofre-controles.js": {
       "linhas": 3897,
@@ -137,7 +137,7 @@
       "funcoes": 12
     },
     "js/cofre-validacoes.js": {
-      "linhas": 551,
+      "linhas": 555,
       "funcoes": 35
     },
     "js/comum-licenca.js": {
@@ -257,7 +257,7 @@
       "funcoes": 2
     },
     "js/agenda-form.js": {
-      "linhas": 187,
+      "linhas": 196,
       "funcoes": 9
     },
     "js/ativo-disponibilidade.js": {

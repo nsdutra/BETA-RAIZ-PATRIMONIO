@@ -1,6 +1,10 @@
 // ============================================================================
 // cofre-ativos.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.167.0 · 17/11/2026
+// Versão: 1.168.0 · 17/11/2026
+// v1.168.0 (17/11/2026, sessão 20261117-2010-crm-3b; FICHA_TIPO_EM_MAIS_DE_UM_RAMO_RAIZ v1.4.0, de acordo do Nicola 17/11 20:09/20:27/22:24) —
+//   subativo pelos ramos dos tipos (principal e extras: Talhão e Casa dentro de Sítio); na lente, o bem aparece pelo ramo
+//   prioritário ou pelo ramo vigente (uso/contrato de hoje, fn_entidade_status.ramo_vigente), com o selo "hoje em <ramo>" quando o
+//   vigente é outro. Versão anterior: 1.167.0
 // v1.167.0 (17/11/2026, sessão 20261117-1700-comercial-r5, demanda 285a0058; FICHA_RECEITA_UNIDADES_GERADORAS v1.12.0 §13.8) — a aba Usos e
 //   contratos ganha o card "Pedidos" do Raiz Comercial (js/comercial-pedidos.js), ao lado dos contratos. Versão anterior: 1.166.0
 // v1.166.0 (16/11/2026, sessão 20261018-2336-usos-lotes, demanda df13dba3; FICHA_CONTAGEM_ATIVOS_E_VIDAS_RAIZ v1.1.0, de acordo do
@@ -44,7 +48,7 @@
 // Versões anteriores (v1.158.0 … v1.158.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '1.167.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.168.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 import { estado } from './cofre-estado.js';
 import { rzCalendario, rzCalItemDaAgenda } from './nucleo/calendario.js'; // v1.152.0 — calendário único (DS §6.3)
 import { carregarBiblioteca } from './nucleo/bibliotecas.js'; // bibliotecas pesadas, sob demanda (dem 6b11c602)
@@ -277,14 +281,20 @@ const femSubativo = (singular) => /^(unidade|área|area)$/i.test(String(singular
 // v1.107.0 (fatia 3b, D3b-1) — tipos que podem ser unidade, área ou integrante DESTE principal: pode_ser_subativo e do
 // mesmo ramo (Agro e Pecuária juntos). O banco confere a mesma regra (fn_trg_ativo_principal).
 const grupoRamo = (r) => (r === 'agro' || r === 'pecuaria') ? 'agro' : (r || '');
-function podeSerSubativoDe(tipoId, ramoPrincipal) {
+// v1.168.0 (ficha tipo em mais de um ramo) — vale se algum ramo do tipo do subativo (principal ou extra) é um dos ramos do principal
+// (o ramo do bem e os do tipo dele): Talhão e Casa dentro de um Sítio; Trator numa Kitnet não. Mesma regra de fn_trg_ativo_principal.
+const ramosDoTipo = (t) => (t ? [t.ramo, ...(t.ramos_extra || [])].filter(Boolean) : []);
+function podeSerSubativoDe(tipoId, ramoPrincipal, tipoPrincipalId) {
     const t = tipoDoCatalogo(tipoId);
-    return !!(t && t.pode_ser_subativo && grupoRamo(t.ramo) === grupoRamo(ramoPrincipal));
+    if (!(t && t.pode_ser_subativo)) return false;
+    const alvo = new Set([ramoPrincipal, ...ramosDoTipo(tipoDoCatalogo(tipoPrincipalId))].filter(Boolean).map(grupoRamo));
+    return ramosDoTipo(t).some(r => alvo.has(grupoRamo(r)));
 }
 function tiposSubativoPermitidos() {
     const ramo = subativoDe?.ramo;
+    const tipoPrincipal = subativoDe ? (estado.ativos.find(x => x.id === subativoDe.id) || {}).tipo_detalhe_id : null;
     return CATEGORIAS_ATIVO.flatMap(c => listarTiposPorCategoria(c).map(t => ({ ...t, categoria: c })))
-        .filter(t => podeSerSubativoDe(t.id, ramo));
+        .filter(t => podeSerSubativoDe(t.id, ramo, tipoPrincipal));
 }
 
 // E15.2 ("A2") — campos que a DE_PARA_IMOVEIS_ATIVOS Fase 1/2 promoveu
@@ -754,7 +764,7 @@ export function renderAtivosLista(filtroTipo = '', filtroTexto = '') {
     const soArquivados = modoArquivados; // v1.124.0 — pelo ⋮
     const lista = (soArquivados ? arquivadosDaLente() : principais()).filter(a => {
         if (soArquivados) return ativoBateComBusca(a, null);
-        if (ramoLente !== 'tudo' && ramoDoAtivoLista(a) !== ramoLente) return false; // v1.85.0 (F21)
+        if (ramoLente !== 'tudo' && !naLente(a, ramoLente)) return false; // v1.85.0 (F21) · v1.168.0 prioritário ou vigente
         if (segmentoChip && segmentoDoAtivo(a) !== segmentoChip) return false; // v1.85.0 (F22)
         if (tiposFiltro && tiposFiltro.length && !tiposFiltro.includes(a.tipo_ativo)) return false;
         if (comAlerta && !comAlerta.has(a.id)) return false;
@@ -962,7 +972,7 @@ function garantirArquivados() {
         .finally(() => { lendoArquivados = false; if (document.getElementById('ativos-lista')) renderChipsAtivos(); });
 }
 if (typeof window !== 'undefined') window.addEventListener('cofre:recarregar-ativos', () => { ativosArquivados = null; });
-const arquivadosDaLente = () => (ativosArquivados || []).filter(a => ramoDaLente() === 'tudo' || ramoDoAtivoLista(a) === ramoDaLente());
+const arquivadosDaLente = () => (ativosArquivados || []).filter(a => naLente(a, ramoDaLente()));
 
 // ---- Ramo da lente (F21) -------------------------------------------------------------------------
 // v1.124.0 (item 44, Nicola 19/10 12:44: "Ver só" filtra só a tela de Patrimônio) — a lente do app (cabeçalho) e o "Ver só"
@@ -983,6 +993,10 @@ export function verSoRamoPatrimonio(r) {
 }
 export function verArquivados() { modoArquivados = true; chipAtivoAtual = 0; segmentoChip = null; garantirArquivados(); redesenharComFiltros(); }
 if (typeof window !== 'undefined') { window.rzPatrimonioVerSo = verSoRamoPatrimonio; window.rzPatrimonioArquivados = verArquivados; }
+// v1.168.0 (ficha tipo em mais de um ramo, D4/D5) — o ramo vigente na data (uso/contrato; fn_entidade_status.ramo_vigente) e o
+// teste da lente: o bem aparece na lente do ramo prioritário (o dele) e na do ramo vigente
+const ramoVigenteLista = (a) => (typeof window !== 'undefined' && typeof window.rzStatusDoAtivo === 'function' ? window.rzStatusDoAtivo(a.id)?.ramo_vigente : null) || null;
+const naLente = (a, r) => r === 'tudo' || ramoDoAtivoLista(a) === r || ramoVigenteLista(a) === r;
 function ramoDoAtivoLista(a) {
     const det = tipoDoCatalogo(a.tipo_detalhe_id);
     if (typeof rzRamoDoAtivo === 'function') return rzRamoDoAtivo({ id: a.id, ramo: a.ramo, modelo_repouso: a.modelo_repouso, tipo_ativo: a.tipo_ativo, tipo_detalhe: det }); // F25: modelo vigente
@@ -997,7 +1011,7 @@ const segmentoDoAtivo = (a) => tipoDoCatalogo(a.tipo_detalhe_id)?.segmento || 'O
 // v1.102.0 (usos fatia 3, D3-2) — a lista e os contadores mostram só os principais; unidade, área e integrante aparecem
 // dentro do principal (card no Resumo). estado.ativos continua com todos (a ficha do subativo abre por ele; a busca acha).
 const principais = () => estado.ativos.filter(a => !a.ativo_principal_id);
-const ativosDoRamo = () => { const r = ramoDaLente(); return r === 'tudo' ? principais() : principais().filter(a => ramoDoAtivoLista(a) === r); };
+const ativosDoRamo = () => { const r = ramoDaLente(); return r === 'tudo' ? principais() : principais().filter(a => naLente(a, r)); };
 function recalcularGruposChip() {
     if (typeof rzRamoInfo !== 'function' || typeof RZ_RAMOS === 'undefined') return; // cofre.html avulso: chips de sempre
     const r = ramoDaLente();
@@ -1346,6 +1360,14 @@ function esperarAlertasDoMotor() {
 }
 
 function ativoCardHtml(a) {
+    // v1.168.0 (D5) — na lente do ramo prioritário, bem que hoje está em outro ramo (pelo uso/contrato) ganha o selo "hoje no <ramo>"
+    const html = ativoCardHtmlBase(a), lente = ramoDaLente(), vig = ramoVigenteLista(a);
+    if (lente === 'tudo' || !vig || vig === lente || ramoDoAtivoLista(a) !== lente) return html;
+    const nome = typeof window !== 'undefined' && typeof window.rzNomeRamo === 'function' ? window.rzNomeRamo(vig) : vig;
+    const selo = `<span class="rz-st rz-neu" title="Pelo uso ou contrato de hoje">hoje em ${escapeHtml(nome)}</span> `;
+    return html.includes('<div class="rz-tx-st">') ? html.replace('<div class="rz-tx-st">', '<div class="rz-tx-st">' + selo) : html;
+}
+function ativoCardHtmlBase(a) {
     const ocorrenciasDoAtivo = estado.ocorrenciasAbertas.filter(oc => oc.cofre_itens_controle?.ativo_id === a.id);
     const proximo = ocorrenciasDoAtivo.map(oc => diasAte(oc.data_prevista_atual)).filter(d => d !== null).sort((x, y) => x - y)[0];
     // v1.21.0 — alerta de vencimento na MESMA linguagem do status (Nicola:
@@ -2362,7 +2384,7 @@ async function abrirVincularSubativo(a, e) {
     await garantirCatalogoTiposAtivo();
     const temSubs = new Set(estado.ativos.filter(x => x.ativo_principal_id).map(x => x.ativo_principal_id));
     const candidatos = estado.ativos.filter(x => x.id !== a.id && !x.ativo_principal_id && !temSubs.has(x.id)
-        && (x.status || 'ativo') === 'ativo' && podeSerSubativoDe(x.tipo_detalhe_id, a.ramo)) // v1.107.0 — só do ramo do principal
+        && (x.status || 'ativo') === 'ativo' && podeSerSubativoDe(x.tipo_detalhe_id, a.ramo, a.tipo_detalhe_id)) // v1.107.0 — só do ramo do principal
         .sort((x, y) => String(x.nome_exibicao).localeCompare(String(y.nome_exibicao), 'pt-BR'));
     const sing = (e.singular || 'subativo').toLowerCase();
     if (!candidatos.length) { mostrarToast(`Nenhum ativo livre. Use "Adicionar ${sing}".`, 'erro'); return; }

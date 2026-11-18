@@ -1,7 +1,12 @@
 // ============================================================================
 // vitrine.js — Raiz Patrimônio · Compartilhar imóveis (links públicos de imóveis, lightbox)
 //               e contratação pública (formulário do interessado via link)
-// Versão: 1.7.0 · 14/11/2026
+// Versão: 1.8.0 · 17/11/2026
+//
+// v1.8.0 (17/11/2026, sessão 20261116-2330-crm-f4t2, demanda 09277cba; entrega 3b aprovada pelo Nicola 17/11 20:09) —
+// "Pedir reserva" acrescenta à mensagem do WhatsApp o código "Código: <link>-<6 do bem>-<entrada AAAAMMDD>-<saída AAAAMMDD>",
+// que o robô usa para achar a empresa e o bem e criar a pré-reserva (fn_vitrine_reserva_pedir). Vitrine sem mudança visual.
+// Versão anterior: 1.7.0
 //
 // v1.7.0 (14/11/2026, sessão 20261114-1255-crm-f2c-2, demanda 09277cba; FICHA_CRM_AGENDA_OCUPACAO_RAIZ v1.2.0 F2c +
 // PLANO_EXECUCAO_CRM_F2B_A_F4 v1.0.1 entrega 4) — vitrine de temporada. Imóvel em Temporada/Short stay ganha, no mesmo card
@@ -41,7 +46,7 @@
 import { encontrarMinutaParaImovel } from './minutas.js'; // retorno usado de forma síncrona — import, não ponte
 import { rzCalendario } from './nucleo/calendario.js'; // v1.7.0 — calendário único, modo público
 
-export const VERSAO = '1.7.0'; // v-check: manter igual ao header
+export const VERSAO = '1.8.0'; // v-check: manter igual ao header
 
 /** Ponto de entrada do switchTab('tab-vitrine'). */
 export async function montarAbaVitrine() {
@@ -941,7 +946,10 @@ function desenharTemporadaPublica(imo) {
     }));
     el.querySelector('[data-temp-pedir]')?.addEventListener('click', () => {
         const a = avaliarPeriodo(imo); if (!a) return;
-        const txt = `Olá! Vi na vitrine e quero pedir reserva de *${tituloImovelCompartilhar(imo)}*: entrada ${dmPub(st.ent)}, saída ${dmPub(st.sai)} (${a.noites} ${a.noites > 1 ? 'noites' : 'noite'}).`;
+        // v1.8.0 (3b) — código para o robô achar a empresa e o bem: link da vitrine + 6 primeiros do bem + datas (AAAAMMDD)
+        const tk = (new URLSearchParams(window.location.search).get('v') || '').trim();
+        const cod = tk ? `\n\nCódigo: ${tk}-${String(imo.id).slice(0, 6)}-${st.ent.replace(/-/g, '')}-${st.sai.replace(/-/g, '')}` : '';
+        const txt = `Olá! Vi na vitrine e quero pedir reserva de *${tituloImovelCompartilhar(imo)}*: entrada ${dmPub(st.ent)}, saída ${dmPub(st.sai)} (${a.noites} ${a.noites > 1 ? 'noites' : 'noite'}).${cod}`;
         window.open('https://wa.me/' + NUMERO_BOT_VITRINE + '?text=' + encodeURIComponent(txt), '_blank', 'noopener');
     });
     if (typeof lucide !== 'undefined') lucide.createIcons();
