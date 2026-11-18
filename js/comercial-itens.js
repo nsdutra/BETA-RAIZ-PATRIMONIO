@@ -1,6 +1,7 @@
 // =====================================================================
 // RAIZ PATRIMÔNIO — js/comercial-itens.js
-// Versão: 1.2.2 · 17/11/2026
+// Versão: 1.3.0 · 17/11/2026
+// v1.3.0 (17/11/2026, sessão 20261117-2350-comercial-c3, demanda 285a0058; FICHA_RECEITA_UNIDADES_GERADORAS v1.14.0 §13.5a, Q5 de acordo 23:30) — C3: itens produzidos nas fases do programa (preencherProduzidos, abrirItensProduzidosFase → fn_ciclo_itens_salvar) e fechamento Total geral | Por item (montarFechamentoPorItem → resultado.itens), só com o Comercial. Versão anterior: 1.2.2
 // v1.2.2 (17/11/2026, sessão 20261117-2250-comercial-relatorios, demanda 285a0058; achados do Nicola 17/11 23:11) — ⋮ do catálogo ganha Relatórios (os 4 do Comercial); título do grupo numa linha só (subgrupo e receita à esquerda, com reticências; só o contador à direita — quebrava em duas colunas); a caixa "Aplicar a todos os itens do subgrupo" no tamanho normal (no computador herdava a altura de 40–48px dos campos). Versão anterior: 1.2.1
 // v1.2.1 (17/11/2026, sessão 20261117-1700-comercial-r5, demanda 285a0058) — cabeçalhos de grupo com o contador à direita (rz-group-t).
 //   Versão anterior: 1.2.0
@@ -29,7 +30,7 @@ import * as api from './cofre-api.js';
 import { estado } from './cofre-estado.js';
 import { avisarComDesfazer } from './cofre-ui.js';
 
-export const VERSAO = '1.2.2';
+export const VERSAO = '1.3.0';
 
 const esc = (s) => (typeof rzEsc === 'function' ? rzEsc(s) : String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])));
 const toast = (m, t) => (typeof mostrarToast === 'function' ? mostrarToast(m, t) : console.log(m));
@@ -285,4 +286,86 @@ async function escolherTabela(i) {
             aoTocar: () => setTimeout(() => m.abrirPrecoNaTabela({ ...t, ativos: [] }, null, depois, { itemId: i.id }), 60) })),
         { icone: 'plus', titulo: 'Nova tabela', sub: tabs.length ? '' : 'Ainda não há tabela para este item', aoTocar: () => setTimeout(() => m.abrirFormTabela(null, () => escolherTabela(i), { empilhar: true }), 60) },
     ] });
+}
+
+// =====================================================================
+// v1.3.0 — C3: itens produzidos nas fases do programa e fechamento por item (FICHA_RECEITA_UNIDADES_GERADORAS v1.14.0 §13.5a;
+// Q5 com de acordo 17/11 23:30). Só com o Comercial (comercial.itens). Grava em ciclos.resultado.itens (fn_ciclo_itens_salvar e
+// fn_ciclo_fechar); cofre-controles.js chama estas funções na tela da safra.
+// =====================================================================
+const comLiberado = () => (typeof window.podeUsar === 'function' ? !!window.podeUsar('comercial.itens')?.ok : false);
+export const faseCodigo = (f) => f.codigo || f.id;
+export const itensDoCiclo = (d) => (Array.isArray(d?.ciclo?.resultado?.itens) ? d.ciclo.resultado.itens : []);
+// a tela da safra só traz o resultado do ciclo fechado: com a safra aberta, os itens vêm direto do ciclo
+async function garantirItens(d) {
+    if (!d?.ciclo?.id || Array.isArray(d.ciclo.resultado?.itens)) return;
+    const { data } = await dbAuth.from('ciclos').select('resultado').eq('id', d.ciclo.id).maybeSingle();
+    d.ciclo.resultado = { ...(d.ciclo.resultado || {}), itens: Array.isArray(data?.resultado?.itens) ? data.resultado.itens : [] };
+}
+async function nomesItens(ids) {
+    if (!ids.length) return {};
+    const { data } = await dbAuth.from('catalogo_itens').select('id, nome, unidade').in('id', ids);
+    return Object.fromEntries((data || []).map(i => [i.id, i]));
+}
+// Abaixo de cada fase com itens: "Produz: Café arábica · Café especial"
+export async function preencherProduzidos(sheet, d) {
+    await garantirItens(d);
+    const its = itensDoCiclo(d); if (!its.length || !sheet) return;
+    const nomes = await nomesItens([...new Set(its.map(x => x.catalogo_item_id))]);
+    (d.fases || []).forEach(f => {
+        const doF = its.filter(x => x.fase_codigo === faseCodigo(f)); if (!doF.length) return;
+        const linha = sheet.querySelector(`[data-fase-id="${f.id}"]`); if (!linha || linha.nextElementSibling?.classList.contains('rz-exec-prod')) return;
+        const txt = doF.map(x => (nomes[x.catalogo_item_id]?.nome || 'Item') + (x.quantidade != null ? ` (${Number(x.quantidade).toLocaleString('pt-BR')} ${x.unidade || ''})` : '')).join(' · ');
+        linha.insertAdjacentHTML('afterend', `<p class="rz-desc rz-exec-prod" style="margin:-2px 0 6px 34px"><i data-lucide="package" style="width:13px;height:13px;vertical-align:-2px"></i> Produz: ${esc(txt)}</p>`);
+    });
+    icones();
+}
+// ⋮ da fase › Itens produzidos: marca os itens do catálogo que saem desta fase
+export async function abrirItensProduzidosFase(d, f, aoMudar) {
+    await garantirItens(d);
+    const { data } = await dbAuth.rpc('fn_catalogo_itens_listar', { p_cliente_id: cliente(), p_busca: null, p_ativos_so: true });
+    const cat = data?.dados || [];
+    const marcados = new Set(itensDoCiclo(d).filter(x => x.fase_codigo === faseCodigo(f)).map(x => x.catalogo_item_id));
+    const linha = (i) => `<label class="rz-row rz-chk"><input type="checkbox" data-pi-item="${i.id}"${marcados.has(i.id) ? ' checked' : ''}><div class="rz-tx"><b>${esc(i.nome)}</b><span>${esc([i.unidade, i.grupo && i.subgrupo ? `${i.grupo} › ${i.subgrupo}` : i.grupo].filter(Boolean).join(' · '))}</span></div></label>`;
+    window.abrirSheetForm({
+        titulo: 'Itens produzidos', sub: `${f.nome} · ${d.ciclo?.nome || ''}`, rotuloSalvar: 'Salvar', empilhar: true,
+        corpo: cat.length ? `<p class="rz-desc" style="margin:0 0 8px">Marque o que sai desta ${d.programa?.tem_etapas ? 'etapa' : 'fase'}. No fechamento, você lança a quantidade de cada item.</p><div class="rz-list">${cat.map(linha).join('')}</div>`
+            : '<p class="rz-desc">O catálogo ainda não tem itens. Cadastre em Configurações › Comercial.</p>',
+        aoSalvar: async (el) => {
+            if (!cat.length) return true;
+            const ids = [...el.querySelectorAll('[data-pi-item]:checked')].map(c => c.dataset.piItem);
+            const { data: r, error } = await dbAuth.rpc('fn_ciclo_itens_salvar', { p_ciclo_id: d.ciclo.id, p_fase_codigo: faseCodigo(f), p_itens: ids, p_canal: 'app' });
+            if (error || !r?.ok) { toast(r?.mensagem || error?.message || 'Não consegui salvar.', 'erro'); return false; }
+            toast(r.mensagem, 'sucesso'); aoMudar && aoMudar();
+            return true;
+        },
+    });
+}
+// Fechamento: "Total geral" ou "Por item" no lugar do campo principal (ex.: Sacas colhidas). Deixa box.__ler() para o salvar.
+export async function montarFechamentoPorItem(box, d) {
+    if (!comLiberado()) return;
+    await garantirItens(d);
+    const its = itensDoCiclo(d); if (!box || !its.length || !comLiberado()) return;
+    const campo = (d.programa?.resultado_campos || []).find(rc => !rc.calculado);
+    const nomes = await nomesItens([...new Set(its.map(x => x.catalogo_item_id))]);
+    const fases = Object.fromEntries((d.fases || []).map(f => [faseCodigo(f), f.nome]));
+    const umaFase = new Set(its.map(x => x.fase_codigo)).size === 1;
+    box.innerHTML = `<div class="rz-chips" style="margin:0 0 8px"><button type="button" class="rz-chip rz-on" data-fpi="total">Total geral</button><button type="button" class="rz-chip" data-fpi="item">Por item</button></div>
+        <div data-fpi-itens hidden>${its.map((x, k) => `<div class="rz-f"><label for="fpi-${k}">${esc(nomes[x.catalogo_item_id]?.nome || 'Item')}${umaFase ? '' : ' · ' + esc(fases[x.fase_codigo] || '')} (${esc(x.unidade || nomes[x.catalogo_item_id]?.unidade || '')})</label>
+            <input type="number" inputmode="decimal" step="0.01" min="0" id="fpi-${k}" data-fpi-k="${k}" value="${x.quantidade ?? ''}"></div>`).join('')}
+            <p class="rz-desc" style="margin:0 0 8px">O custo da safra é dividido pela quantidade e vira o custo de cada item nos pedidos dessa safra.${campo ? ` ${esc(campo.rotulo)} soma os itens quando todos têm a mesma unidade.` : ''}</p></div>`;
+    let modo = 'total';
+    const campoEl = campo ? document.getElementById('ex-r-' + campo.campo)?.closest('.rz-f') : null;
+    box.querySelectorAll('[data-fpi]').forEach(b => b.addEventListener('click', () => {
+        modo = b.dataset.fpi;
+        box.querySelectorAll('[data-fpi]').forEach(x => x.classList.toggle('rz-on', x === b));
+        box.querySelector('[data-fpi-itens]').hidden = modo !== 'item';
+        if (campoEl) campoEl.hidden = modo === 'item';
+    }));
+    box.__ler = () => {
+        if (modo !== 'item') return null;
+        const itens = its.map((x, k) => { const v = box.querySelector(`[data-fpi-k="${k}"]`)?.value; return { ...x, quantidade: v === '' || v == null ? null : Number(v) }; });
+        if (!itens.some(x => x.quantidade > 0)) { toast('Lance a quantidade de pelo menos um item.', 'erro'); return false; }
+        return { itens, campo: campo?.campo || null };
+    };
 }

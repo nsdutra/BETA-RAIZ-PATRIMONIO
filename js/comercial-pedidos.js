@@ -1,7 +1,8 @@
 // =====================================================================
 // RAIZ PATRIMÔNIO — js/comercial-pedidos.js
-// Versão: 1.2.0 · 17/11/2026
+// Versão: 1.3.0 · 17/11/2026
 // -----------------------------------------------------------------
+// v1.3.0 (17/11/2026, sessão 20261117-2350-comercial-c3, demanda 285a0058; FICHA v1.14.0 §13.5a e §6.4) — Novo pedido com "Safra (ciclo)" quando o ativo tem ciclos (vem marcada a mais recente com itens produzidos): o custo sugerido do item sai do rateio do fechamento por item e o pedido entra na margem por safra. Versão anterior: 1.2.0
 // v1.2.0 (17/11/2026, sessão 20261117-2335-comercial-relatorios2, demanda 285a0058; FICHA v1.14.0 §13.15) — Relatórios do card Pedidos e do catálogo com os 9 relatórios do Comercial (+ margem, funil, recebíveis, entregas, preços e tabelas). Versão anterior: 1.1.0
 // v1.1.0 (17/11/2026, sessão 20261117-2250-comercial-relatorios, demanda 285a0058; achados do Nicola 17/11 23:11) — relatórios do Comercial no ⋮ do card Pedidos; escolher o item no Novo pedido não redesenha a linha — a descrição fica sempre no lugar (só leitura com item do catálogo) e preço, custo e sugestão entram no próprio campo (antes os campos mudavam de lugar e o que se digitava caía no Desconto). Versão anterior: 1.0.0
 // v1.0.0 (17/11/2026, sessão 20261117-1700-comercial-r5, demanda 285a0058; FICHA_RECEITA_UNIDADES_GERADORAS v1.12.0 §6.4–6.6,
@@ -15,7 +16,7 @@
 //     Financeiro), Marcar enviado/entregue, Converter amostra em pedido e Cancelar (tira só as parcelas previstas).
 //   · Interessado movido para "Pedido" abre o Novo pedido com o comprador (ativo-interessados.js chama abrirNovoPedido).
 // =====================================================================
-export const VERSAO = '1.2.0';
+export const VERSAO = '1.3.0';
 
 const esc = (s) => (typeof rzEsc === 'function' ? rzEsc(s) : String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])));
 const toast = (m, t) => (typeof mostrarToast === 'function' ? mostrarToast(m, t) : console.log(m));
@@ -203,11 +204,14 @@ export function abrirNovoPedido(a, opcoes = {}) {
 }
 
 async function abrirFormPedido(a, v, itensIni, partesIni, opcoes = {}) {
-    const [partes, cat, tabsAtivo] = await Promise.all([
+    const [partes, cat, tabsAtivo, ciclos] = await Promise.all([
         dbAuth.from('partes').select('id, nome').eq('cliente_id', cliente()).order('nome').limit(1000).then(r => r.data || []),
         dbAuth.rpc('fn_catalogo_itens_listar', { p_cliente_id: cliente(), p_busca: null, p_ativos_so: true }).then(r => r.data?.dados || []),
         a?.id ? dbAuth.from('vinculos').select('origem_id, vigencia_ate').eq('origem_tipo', 'catalogo_tabela').eq('papel', 'vende').eq('ativo_id', a.id).then(r => (r.data || []).filter(x => !x.vigencia_ate || x.vigencia_ate >= hoje()).map(x => x.origem_id)) : [],
+        // v1.3.0 — C3: a safra do pedido (custo do item rateado no fechamento por item e margem por safra)
+        a?.id ? dbAuth.from('ciclos').select('id, nome, situacao, inicio, resultado').eq('ativo_id', a.id).is('membro_id', null).order('inicio', { ascending: false }).limit(8).then(r => r.data || []) : [],
     ]);
+    const cicloPadrao = v.id ? (v.ciclo_id || '') : ((ciclos.find(c => (c.resultado?.itens || []).length) || {}).id || '');
     // itens com preço numa tabela ativa no ativo primeiro; os demais ficam disponíveis (preço à mão)
     let comPreco = new Set();
     if (tabsAtivo.length) { const { data } = await dbAuth.from('catalogo_precos').select('item_id, vigencia_inicio, vigencia_fim').in('tabela_id', tabsAtivo);
@@ -222,6 +226,7 @@ async function abrirFormPedido(a, v, itensIni, partesIni, opcoes = {}) {
         el.innerHTML = `
             <div class="rz-f2 rz-f2-curto"><div class="rz-f"><label for="pf-tipo">Tipo</label><select id="pf-tipo"><option value="venda"${v.tipo !== 'amostra' ? ' selected' : ''}>Venda</option><option value="amostra"${v.tipo === 'amostra' ? ' selected' : ''}>Amostra</option></select></div>
                 <div class="rz-f"><label for="pf-data">Data</label><input type="date" id="pf-data" value="${esc(v.data || hoje())}"></div></div>
+            ${ciclos.length ? `<div class="rz-f"><label for="pf-ciclo">Safra (ciclo)</label><select id="pf-ciclo"><option value="">—</option>${ciclos.map(c => `<option value="${c.id}"${c.id === cicloPadrao ? ' selected' : ''}>${esc(c.nome)}${c.situacao === 'fechado' ? ' · fechada' : ''}</option>`).join('')}</select></div>` : ''}
             <div class="rz-f"><label for="pf-parte">Comprador <i>*</i></label><select id="pf-parte">${optPartes(v.parte_id, 'Escolha…')}</select></div>
             <div class="rz-group">Itens</div><div data-pf-itens></div>
             <button type="button" class="rz-add" data-pf-mais-item><i data-lucide="plus"></i>Mais um item</button>
@@ -299,7 +304,7 @@ async function abrirFormPedido(a, v, itensIni, partesIni, opcoes = {}) {
         const parte = document.getElementById('pf-parte')?.value || null;
         const [p, cu] = await Promise.all([
             dbAuth.rpc('fn_catalogo_preco_sugerido', { p_item_id: i.item_id, p_parte_id: parte, p_quantidade: Number(i.quantidade || 1), p_data: document.getElementById('pf-data')?.value || hoje(), p_ativo_id: a?.id || null }).then(r => r.data),
-            dbAuth.rpc('fn_venda_custo_sugerido', { p_item_id: i.item_id, p_ciclo_id: null, p_ativo_fase_id: null }).then(r => r.data),
+            dbAuth.rpc('fn_venda_custo_sugerido', { p_item_id: i.item_id, p_ciclo_id: document.getElementById('pf-ciclo')?.value || null, p_ativo_fase_id: null }).then(r => r.data),
         ]);
         const ORIG = { comprador: 'preço do cliente', volume: 'preço por volume', tabela: 'preço da tabela' };
         if (p?.dados) { i.preco_unitario = p.dados.preco; i.sug = `Sugerido: ${ORIG[p.dados.origem] || ''} · ${esc(p.dados.tabela || '')}`; } else i.sug = 'Sem preço nas tabelas ativas deste ativo — informe à mão.';
@@ -331,7 +336,7 @@ async function abrirFormPedido(a, v, itensIni, partesIni, opcoes = {}) {
             const [rua, numero] = val('#pf-rua').split(/,\s*/); const [cidade, uf] = val('#pf-cid').split('/');
             const endereco = val('#pf-etipo') === 'retirada' && !val('#pf-rua') ? null : { rua: rua || '', numero: numero || '', bairro: val('#pf-bairro'), cidade: (cidade || '').trim(), uf: (uf || '').trim(), cep: val('#pf-cep'), referencia: val('#pf-ref') };
             const partesExtra = [['pagador', '#pf-pag'], ['recebe_entrega', '#pf-rec'], ['vendedor', '#pf-vend']].filter(([, s]) => val(s)).map(([papel, s]) => ({ papel, parte_id: val(s) }));
-            const venda = { tipo: val('#pf-tipo'), parte_id: val('#pf-parte'), data: val('#pf-data'), ativo_id: a?.id || v.ativo_id || null, forma_pagamento: val('#pf-forma'),
+            const venda = { tipo: val('#pf-tipo'), parte_id: val('#pf-parte'), data: val('#pf-data'), ativo_id: a?.id || v.ativo_id || null, ciclo_id: ciclos.length ? (val('#pf-ciclo') || null) : (v.ciclo_id || null), forma_pagamento: val('#pf-forma'),
                 parcelas: Number(val('#pf-parc') || 1), primeiro_vencimento: val('#pf-venc'), intervalo_dias: Number(val('#pf-int') || 30), desconto_pct: Number(val('#pf-desc') || 0),
                 condicao: val('#pf-cond'), entrega_tipo: val('#pf-etipo'), entrega_prevista: val('#pf-eprev'), entrega_endereco: endereco, entrega_valor_cobrado: Number(val('#pf-fcob') || 0),
                 entrega_custo: Number(val('#pf-fpag') || 0), entrega_parte_id: val('#pf-transp'), observacao: val('#pf-obs'), partes: partesExtra };

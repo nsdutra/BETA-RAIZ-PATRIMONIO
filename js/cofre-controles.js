@@ -1,6 +1,11 @@
 // ============================================================================
 // cofre-controles.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.75.0 · 16/11/2026
+// Versão: 1.76.0 · 17/11/2026
+//
+// v1.76.0 (17/11/2026, sessão 20261117-2350-comercial-c3, demanda 285a0058; FICHA_RECEITA_UNIDADES_GERADORAS v1.14.0 §13.5a, Q5 com
+// de acordo do Nicola 17/11 23:30) — C3 do Comercial na safra: ⋮ da fase › "Itens produzidos" (código comercial.itens: sem o plano,
+// cadeado e oferta), linha "Produz: …" abaixo da fase e, no Fechar, "Total geral | Por item" no lugar do campo principal (as
+// quantidades vão em resultado.itens; o banco soma o total e rateia o custo). A tela vem de comercial-itens.js. Versão anterior: 1.75.0
 //
 // v1.75.0 (16/11/2026, sessão 20261114-2342-investimentos-patrimonio, demanda fd3898f7; FICHA_FORMA_DE_PAGAMENTO_DO_BEM v2.0.0,
 // "Agora sim. Pode seguir em frente." — Nicola 16/11 21:46) — criarItemParcelado() aceita a lista de pagamentos pronta
@@ -18,17 +23,11 @@
 // v1.72.1 (03/11/2026, sessão 20261103-0956-fluxo-empresa-fin, demanda 9efdd18f; de acordo do Nicola 03/11 09:56) — o + de
 //   Controles em Minha empresa abre o formulário do novo item por cima de Minha empresa: antes trocava a tela de baixo
 //   para Ativos. Ao salvar ou fechar, o card da empresa é redesenhado no lugar. Abrir um item existente não muda.
-// Versão anterior: 1.72.0 · 23/10/2026
-//
-// v1.72.0 (23/10/2026, sessão 20261023-0910-isolamento, demanda a4935151; de acordo do Nicola 23/10 09:09) — varredura de
-// estado de módulo: a lista de partes usada nos seletores do item de controle passa a ser relida quando uma parte é
-// criada, editada ou excluída em outra tela (evento 'parte' do raiz-eventos.js). Antes, parte cadastrada em Partes só
-// aparecia no seletor depois de recarregar o app.
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.71.0 … v1.71.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.72.0 … v1.72.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '1.75.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.76.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 import { estado } from './cofre-estado.js';
 import * as api from './cofre-api.js';
 import { mostrarToast, refrescarIcones, abrirModal, fecharModal, modalGenerico, perguntar, escolher, avisarComDesfazer } from './cofre-ui.js';
@@ -644,7 +643,7 @@ function linhaFaseHtml(f, d) {
         .filter(Boolean).join(' · ');
     // v1.63.0 — na fase em andamento e (safra fechada) na concluída, o ⋮ traz "Corrigir datas"
     const mexe = d.pode_gerir && (d.ciclo?.situacao !== 'fechado' || f.situacao === 'concluida');
-    return `<div class="rz-exec-f rz-exec-${f.situacao}"><span class="rz-exec-ic"><i data-lucide="${ic}"></i></span>
+    return `<div class="rz-exec-f rz-exec-${f.situacao}" data-fase-id="${f.id}"><span class="rz-exec-ic"><i data-lucide="${ic}"></i></span>
         <div class="rz-tx"><b>${escapeHtml(f.nome)}</b><span>${escapeHtml(sub)}</span></div>
         ${mexe ? `<button type="button" class="rz-more" data-exec-fase="${f.id}" aria-label="Ações de ${escapeHtml(f.nome)}"><i data-lucide="ellipsis-vertical"></i></button>` : ''}</div>`;
 }
@@ -710,6 +709,7 @@ export async function abrirExecucao(apId, cicloId = null) {
     sheet.querySelector('[data-exec-incluir]')?.addEventListener('click', () => abrirFolhaIncluirItens(d));
     sheet.querySelector('[data-exec-reabrir]')?.addEventListener('click', () => abrirFolhaReabrirCiclo(d));
     sheet.querySelector('[data-exec-corrigir]')?.addEventListener('click', () => abrirAcoesCorrigirCiclo(d));
+    if (C && window.podeUsar?.('comercial.itens')?.ok) import('./comercial-itens.js').then(m => m.preencherProduzidos(sheet, d)).catch(() => {}); // v1.76.0 — C3
 }
 window.__rzAbrirExecucao = (apId, cicloId) => abrirExecucao(apId, cicloId);
 
@@ -950,6 +950,10 @@ function abrirAcoesFase(d, faseId) {
     const R = execRot(d);
     const acoes = [];
     const fechado = d.ciclo?.situacao === 'fechado';
+    // v1.76.0 — C3 do Comercial: itens do catálogo produzidos nesta fase (sem o plano, cadeado e oferta)
+    if (!d.membro && d.ciclo) { const n = (d.ciclo.resultado?.itens || []).filter(x => x.fase_codigo === (f.codigo || f.id)).length;
+        acoes.push({ icone: 'package', titulo: 'Itens produzidos', codigo: 'comercial.itens', sub: n ? `${n} ite${n > 1 ? 'ns' : 'm'} do catálogo` : 'Ligar item do catálogo',
+            aoTocar: () => import('./comercial-itens.js').then(m => m.abrirItensProduzidosFase(d, f, () => aposMudarExecucao(d.programa.id, d.ciclo.id))) }); }
     if (!d.membro && (f.situacao === 'concluida' || f.situacao === 'atual'))
         acoes.push({ icone: 'calendar-cog', titulo: 'Corrigir datas', codigo: 'ciclos.gerir', sub: f.situacao === 'atual' ? 'Início desta ' + R.fase : 'Início e fim', aoTocar: () => abrirFolhaDatasFase(d, f) });
     if (fechado) { if (acoes.length) sheetAcoes({ titulo: f.nome, sub: d.programa.nome, acoes, empilhar: true }); return; }
@@ -1076,15 +1080,18 @@ function abrirFolhaDatasFase(d, f) {
 function abrirFolhaFecharCiclo(d) {
     const R = execRot(d), C = d.ciclo;
     const campos = (d.programa.resultado_campos || []).filter(rc => !rc.calculado);
-    window.abrirSheetForm({
+    const shF = window.abrirSheetForm({
         titulo: 'Fechar ' + C.nome, sub: d.programa.nome, rotuloSalvar: 'Fechar', empilhar: true,
-        corpo: campos.map(rc => `<div class="rz-f"><label for="ex-r-${escapeHtml(rc.campo)}">${escapeHtml(rc.rotulo)}${rc.unidade ? ' (' + escapeHtml(rc.unidade) + ')' : ''}</label>
+        corpo: '<div id="ex-por-item"></div>' + campos.map(rc => `<div class="rz-f"><label for="ex-r-${escapeHtml(rc.campo)}">${escapeHtml(rc.rotulo)}${rc.unidade ? ' (' + escapeHtml(rc.unidade) + ')' : ''}</label>
                 <input type="number" inputmode="decimal" step="0.01" min="0" id="ex-r-${escapeHtml(rc.campo)}" data-res="${escapeHtml(rc.campo)}"></div>`).join('')
             + `<p class="rz-desc">O custo sai dos lançamentos com destino ${/a$/.test(R.exec) ? 'nesta' : 'neste'} ${escapeHtml(R.exec)}: ${moedaBR(Number(d.custo?.realizado || 0) + Number(d.custo?.a_pagar || 0))} até agora. Os itens abertos encerram junto.</p>
             <label class="rz-row rz-chk"><input type="checkbox" id="ex-proxima" ${d.membro ? '' : 'checked'}><div class="rz-tx"><b>${d.membro ? 'Abrir o próximo ciclo' : (/a$/.test(R.exec) ? 'Abrir a próxima ' : 'Abrir o próximo ') + escapeHtml(R.exec)}</b><span>${d.membro ? 'Começa em ' + escapeHtml((d.fases || [])[0]?.nome || 'Vazia') + ' hoje' : 'Com os itens de padrão'}</span></div></label>`,
         aoSalvar: async (el) => {
             const res = {};
             el.querySelectorAll('[data-res]').forEach(i => { if (i.value !== '') res[i.dataset.res] = Number(i.value); });
+            const porItem = el.querySelector('#ex-por-item')?.__ler?.(); // v1.76.0 — C3: fechamento por item
+            if (porItem === false) return false;
+            if (porItem) { res.itens = porItem.itens; if (porItem.campo) delete res[porItem.campo]; }
             const { data, error } = await api.dbAuth.rpc('fn_ciclo_fechar', { p_ciclo_id: C.id, p_resultado: res,
                 p_proximo: !!el.querySelector('#ex-proxima')?.checked, p_canal: 'app' });
             if (error) { mostrarToast(error.message || 'Não foi possível fechar.', 'erro'); return false; }
@@ -1093,6 +1100,7 @@ function abrirFolhaFecharCiclo(d) {
             return true;
         },
     });
+    import('./comercial-itens.js').then(m => m.montarFechamentoPorItem(shF?.querySelector('#ex-por-item'), d)).catch(() => {}); // v1.76.0 — C3
 }
 function abrirFolhaReabrirCiclo(d) {
     const C = d.ciclo;
