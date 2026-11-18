@@ -1,7 +1,23 @@
 // ============================================================================
 // financeiro.js — Raiz Patrimônio · Financeiro (Recebimentos · Atrasados · Saídas
 //                  · conciliação de extrato · recibo · detalhe do recebimento)
-// Versão: 1.100.0 · 17/11/2026
+// Versão: 1.101.0 · 17/11/2026
+//
+// v1.101.0 (17/11/2026, sessão 20261117-2000-financeiro-grupos, demanda 679b2700; FICHA_REVISAO_FINANCEIRO_RAIZ v1.0.0, Onda 3,
+// parte 2, D4; "pode seguir" do Nicola 17/11 19:54) — RECEBIMENTOS E SAÍDAS NIVELADOS: as duas listas ficam com os mesmos grupos:
+// De contratos e controles · Avulsas · De sócios (Recebimentos) / Para sócios (Saídas).
+//   · Recebimentos: os aluguéis são "De contratos e controles"; o card "Outras receitas" vira "Avulsas" e "De sócios" (aportes e
+//     empréstimos de sócio, pela categoria-pai grp_aportes_socios).
+//   · Saídas: "De contratos e controles" = as que nascem de um controle do bem (origem ocorrencia_controle) e as faturas de
+//     cartão; "Para sócios" = as de natureza pessoal; "Avulsas" = o resto. No fim de "Para sócios", o atalho para as retiradas
+//     (aba Pessoas), que não são despesa e não entram nos números de Saídas.
+//   · Nova entrada e Nova saída espelhadas: a entrada escolhe De contrato · Avulsa · De sócio (aporte ou empréstimo); a saída
+//     escolhe Avulsa · Para sócio (retirada). A saída de um controle continua nascendo no próprio bem.
+//   · Os grupos mostram a quantidade; os valores continuam vindo do banco nos números do topo (REGRAS §11).
+// LIMPEZA: saem da Conciliação a lista corrida e o "Revisar em sequência" (sem chamador desde a 1.97.0): linhaConciliacaoUniHtml,
+// renderConciliacaoUnificadaLista, conciliacaoLigarDeslize, conciliacaoRevisarEmSequencia, conciliacaoSeqProximo,
+// conciliacaoSeqMostrar e verSugestaoConciliacaoAntigo. conciliacaoSugestaoDireta fica (é a regra do lote). As vistas antigas do
+// Balanço continuam: o "Quitar" e as retiradas do extrato da pessoa ainda passam por elas. Versão anterior: 1.100.0
 //
 // v1.100.0 (17/11/2026, sessão 20261117-1700-financeiro-avulsas, demanda 679b2700; pedido do Nicola 17/11 16:48 "ainda não
 // consigo editar receita outros" e "pode seguir" 16:51) — (1) EDITAR A RECEITA AVULSA: o menu da linha de Outras receitas
@@ -29,20 +45,11 @@
 //
 // v1.97.1 (17/11/2026, sessão 20261117-0755-financeiro-conciliacao, demanda 679b2700; conferência no app publicado) — o nome do
 // mês das pilhas saía "Invalid Date": a competência já vem com o dia (AAAA-MM-DD). Versão anterior: 1.97.0
-//
-// v1.97.0 (17/11/2026, sessão 20261117-0755-financeiro-conciliacao, demanda 679b2700; FICHA_REVISAO_FINANCEIRO_RAIZ v1.0.0, Onda 2,
-// D5; de acordo do Nicola 16/11 23:44) — CONCILIAÇÃO EM PILHAS. renderConciliacaoUnificada passa a desenhar pelo módulo novo
-// js/conciliacao-pilhas.js: anel com as linhas do mês em ordem, 4 pilhas (O Raiz reconheceu, Sempre fazer assim, Para você
-// decidir, Não controlados) com a mesma lista (marcar e tratar em lote) e o mesmo detalhe (O que o Raiz leu, anterior e
-// próximo, Aceitar, É outra coisa, Pular, Não controlar/Controlar, Desfazer). A lista do mês passa a trazer também as linhas
-// já conciliadas (para o anel e o Desfazer). Novas: conciliacaoLoteElegivel, conciliacaoTratarLote (aceita item a item com as
-// mesmas funções do "Aceitar sugestão"; as do motor vão juntas na fn_conciliacao_aplicar) e conciliacaoEstornarLote
-// (fn_extrato_estornar_vinculo). Banco: nada novo. O "Revisar em sequência" fica sem chamador (sai na Onda 3). Versão anterior: 1.96.1
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.96.1 … v1.96.1): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.97.0 … v1.97.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '1.100.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.101.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 
 // v1.17.0 (Fase 1 do wrapper de escrita, rollout Financeiro) — emitirEscrita
 // é o evento padrão pra "algo mudou que módulos DE FORA deste arquivo podem
@@ -415,8 +422,8 @@ export function abrirLancarFinanceiro(aba) {
         { icone: 'file-plus', tipo: 'ia', titulo: 'Documento (IA)', codigo: 'cofre.analisar_ia', sub: 'Comprovante, boleto, nota', aoTocar: () => { if (typeof abrirUploadDocumentoNoApp === 'function') abrirUploadDocumentoNoApp(); } },
     ];
     const lancar = [
-        { icone: 'arrow-down-left', titulo: 'Nova entrada', sub: fechada ? 'Mês fechado: reabra' : 'Com ou sem contrato', aoTocar: () => { if (fechada) return avisoFechada(); irPara('tab-mensal'); abrirAdicionarRecebimento(); } },
-        { icone: 'arrow-up-right', titulo: 'Nova saída', sub: fechada ? 'Mês fechado: reabra' : 'Despesa, tributo, manutenção', aoTocar: () => { if (fechada) return avisoFechada(); irPara('tab-saidas'); abrirNovaDespesa(); } },
+        { icone: 'arrow-down-left', titulo: 'Nova entrada', sub: fechada ? 'Mês fechado: reabra' : 'De contrato, avulsa ou de sócio', aoTocar: () => { if (fechada) return avisoFechada(); irPara('tab-mensal'); abrirAdicionarRecebimento(); } },
+        { icone: 'arrow-up-right', titulo: 'Nova saída', sub: fechada ? 'Mês fechado: reabra' : 'Avulsa ou para sócio', aoTocar: () => { if (fechada) return avisoFechada(); abrirAdicionarSaida(irPara); } }, // v1.101.0
     ];
     const rotinaOff = financeiroRotinaFechamentoLigada === false || est?.status === 'sem_rotina';
     const pend = est?.pendencias || null;
@@ -1463,22 +1470,30 @@ function financeiroRenderCabecalho(aba) {
                 porFatura.get(d.faturaId).itens.push(d);
             });
             if (finMesa()) { finDesenharTabela('sai', container, linhasLista.map(({ d, g }) => g ? finLinhaFatura(g) : finLinhaSaida(d))); return; } // v1.63.0 — ONDA 8c
-            const cards = linhasLista.map(({ d, g }) => {
+            // v1.101.0 (D4) — os mesmos grupos de Recebimentos
+            const grupoSaida = ({ d, g }) => g ? 'ctr' : d.origemTipo === 'ocorrencia_controle' ? 'ctr'
+                : (categoriaDoCatalogo(d.categoria)?.natureza_economica === 'pessoal' ? 'soc' : 'avu');
+            const htmlDe = (ls) => ls.map(({ d, g }) => {
                 if (g) return financeiroLinhaFaturaHtml(g, rsS, filtroDeItem);
                 const atrasada = estaAtrasadaDespesa(d);
                 const pago = d.status === 'realizado';
                 const st = pago ? rsS('ok', 'Pago') : atrasada ? rsS('bad', 'Em atraso') : rsS('run', 'A pagar');
-                const ic = categoriaDoCatalogo(d.categoria)?.icone || ICONE_POR_CATEGORIA_SAIDA[d.categoria] || 'circle-dollar-sign'; // v1.31.0
-                const descricaoLimpa = limparRotuloConciliacao(d.descricao);
+                const ic = categoriaDoCatalogo(d.categoria)?.icone || ICONE_POR_CATEGORIA_SAIDA[d.categoria] || 'circle-dollar-sign';
                 return `
                     <div class="rz-row rz-link" onclick="rzAcoesDespesa('${d.id}')">
                         <div class="rz-ic${atrasada && !pago ? ' rz-bad' : ''}"><svg data-lucide="${ic}"></svg></div>
-                        <div class="rz-tx"><b>${escapeHtmlSaidas(descricaoLimpa)}</b><span>${d.vencimento ? formatarDataBR(pago && d.dataPagamento ? d.dataPagamento : d.vencimento) : ''}${pago ? origemSaidaHtml(d) : ''}${d.divisaoAjustada ? ' · divisão ajustada' : ''}</span></div>
+                        <div class="rz-tx"><b>${escapeHtmlSaidas(limparRotuloConciliacao(d.descricao))}</b><span>${d.vencimento ? formatarDataBR(pago && d.dataPagamento ? d.dataPagamento : d.vencimento) : ''}${pago ? origemSaidaHtml(d) : ''}${d.divisaoAjustada ? ' · divisão ajustada' : ''}</span></div>
                         <div class="rz-rt"><b class="rz-out">− ${formatarMoedaBR(d.valor)}</b>${st}</div>
                         <svg data-lucide="ellipsis-vertical" class="rz-chev"></svg>
                     </div>`;
             }).join('');
-            container.innerHTML = `<div class="rz-card rz-list">${cards}</div>`;
+            const NOME_GRUPO_SAIDA = { ctr: 'De contratos e controles', avu: 'Avulsas', soc: 'Para sócios' };
+            const atalhoRetiradas = `<div class="rz-row rz-link" role="button" tabindex="0" onclick="switchTab('tab-socios')"><div class="rz-ic"><svg data-lucide="users"></svg></div><div class="rz-tx"><b>Retiradas dos sócios</b><span>Ficam em Pessoas · não entram nos números de Saídas</span></div><svg data-lucide="chevron-right" class="rz-chev"></svg></div>`;
+            container.innerHTML = ['ctr', 'avu', 'soc'].map(k => {
+                const ls = linhasLista.filter(x => grupoSaida(x) === k);
+                if (!ls.length && k !== 'soc') return '';
+                return `<div class="rz-group">${NOME_GRUPO_SAIDA[k]}${ls.length ? ' · ' + ls.length : ''}</div><div class="rz-card rz-list">${htmlDe(ls)}${k === 'soc' ? atalhoRetiradas : ''}</div>`;
+            }).join('');
 
             if (typeof lucide !== 'undefined') lucide.createIcons();
         }
@@ -4148,64 +4163,6 @@ function financeiroRenderCabecalho(aba) {
 
         // Uma linha (as 3 variações — automática, com sugestão, ou simples)
         // — extraída da função de render pra poder ser reusada por grupo.
-        function linhaConciliacaoUniHtml(f) {
-            const entrada = f.direcao === 'entrada';
-            const valorFmt = formatarMoedaBR(Math.abs(parseFloat(f.valor)));
-            const automatica = f.status_conciliacao === 'conciliado' && !!f.regra_codigo;
-            const sug = f.status_conciliacao === 'pendente' ? conciliacaoUniSugestoes[f.id] : null;
-            // v1.179.3 — achado do Nicola comparando com o design system do
-            // projeto: esta função usava divs com estilo próprio (bg
-            // colorido no ícone, badge de status sem a bolinha, sem
-            // .rz-card.rz-list no grupo) — igual em espírito ao de
-            // Recebimentos/Saídas, mas sem usar as MESMAS classes. Reescrita
-            // pra usar .rz-row/.rz-ic/.rz-tx/.rz-rt/.rz-chev e renderStatus()
-            // (a única função que decide cor de status, REGRAS §10 — é dali
-            // que vem a bolinha antes do texto, via .rz-st::before) —
-            // mesmo tamanho de ícone (42px/20px), mesmo ⋮ (.rz-chev),
-            // mesma tag de status em toda a tela agora.
-            const rs = (sem, t) => (typeof renderStatus === 'function') ? renderStatus(sem, t) : `<span class="rz-st rz-${sem}">${t}</span>`;
-            const valorSpan = `<b class="${entrada ? 'rz-in' : 'rz-out'}">${entrada ? '+' : '−'} ${valorFmt}</b>`;
-
-            if (f.status_conciliacao === 'conciliado' && f.destino_tipo === 'dividido') { // v1.86.0
-                return `<div class="rz-row rz-link" onclick="abrirAcoesConciliacaoLinha('${f.id}')">
-                    <div class="rz-ic rz-ia"><svg data-lucide="split"></svg></div>
-                    <div class="rz-tx"><b>${escapeHtmlSaidas(limparRotuloConciliacao(f.razao_social))}</b><span>Conciliado · dividido</span></div>
-                    <div class="rz-rt">${valorSpan}</div>
-                    <svg data-lucide="ellipsis-vertical" class="rz-chev"></svg>
-                </div>`;
-            }
-            if (automatica) {
-                const nomeRegra = nomeRegraConc(f.regra_codigo);
-                return `<div class="rz-row rz-link" onclick="abrirAcoesConciliacaoLinha('${f.id}')">
-                    <div class="rz-ic rz-ia"><svg data-lucide="sparkles"></svg></div>
-                    <div class="rz-tx"><b>${escapeHtmlSaidas(limparRotuloConciliacao(f.razao_social))}</b><span>Automático · ${escapeHtmlSaidas(nomeRegra)}</span></div>
-                    <div class="rz-rt">${valorSpan}</div>
-                    <svg data-lucide="ellipsis-vertical" class="rz-chev"></svg>
-                </div>`;
-            }
-
-            if (sug) {
-                const confPct = Math.round((sug.confianca || 0));
-                const semConfianca = confPct < 70 ? 'warn' : 'ia';
-                return `<div class="rz-row rz-link" data-conc="${f.id}" onclick="abrirAcoesConciliacaoLinha('${f.id}')">
-                    <div class="rz-ic rz-${semConfianca}"><svg data-lucide="sparkles"></svg></div>
-                    <div class="rz-tx"><b>${escapeHtmlSaidas(limparRotuloConciliacao(f.razao_social))}</b>${conciliacaoLinhasLidas(f, sug)}</div>
-                    <div class="rz-rt">${valorSpan}<span class="rz-ia-tag"><svg data-lucide="sparkles"></svg>${confPct}%</span></div>
-                    <svg data-lucide="ellipsis-vertical" class="rz-chev"></svg>
-                </div>`;
-            }
-
-            const badge = f.status_conciliacao === 'pendente' ? rs('warn', 'Pendente')
-                : f.status_conciliacao === 'conciliado' ? rs('ok', 'Conciliado')
-                : rs('neu', 'Não controlado');
-            return `<div class="rz-row rz-link" onclick="abrirAcoesConciliacaoLinha('${f.id}')">
-                <div class="rz-ic"><svg data-lucide="${entrada ? 'arrow-down-left' : 'arrow-up-right'}"></svg></div>
-                <div class="rz-tx"><b>${escapeHtmlSaidas(limparRotuloConciliacao(f.razao_social))}</b><span>${formatarDataBR(f.data)}</span></div>
-                <div class="rz-rt">${valorSpan}${badge}</div>
-                <svg data-lucide="ellipsis-vertical" class="rz-chev"></svg>
-            </div>`;
-        }
-
         // Entrega F.4 (21/09/2026, pedido explícito) — reescrita: a lista já
         // chega do banco escopada à competência do card do topo e só com
         // pendente/não controlado (carregarConciliacaoUnificada); esta
@@ -4637,48 +4594,9 @@ function financeiroRenderCabecalho(aba) {
         }
 
         // v1.97.0 — a lista corrida de antes (linhaConciliacaoUniHtml, "Revisar em sequência") ficou sem chamador; sai na Onda 3.
-        function renderConciliacaoUnificadaLista(lista, filtrados) {
-            if (!filtrados.length) {
-                lista.innerHTML = `<p class="text-xs text-center py-4" style="color:var(--sage)">Nenhuma pendência de conciliação.</p>`;
-                return;
-            }
-
-            // Mais recente primeiro — sem agrupador (Entrega F.4: 1 mês só,
-            // não tem por que colapsar/expandir).
-            const ordenados = [...filtrados].sort((a, b) => (b.data || '').localeCompare(a.data || ''));
-            // v1.47.0 (etapa 6 · D) — "Revisar em sequência (N)": as pendências desta lista, na mesma ordem
-            concSeqOrdem = ordenados.filter(f => f.status_conciliacao === 'pendente').map(f => f.id);
-            const seqHtml = concSeqOrdem.length ? `<div class="rz-card rz-list"><div class="rz-row rz-link" role="button" tabindex="0" data-conc-seq>
-                    <div class="rz-ic rz-ia"><svg data-lucide="sparkles"></svg></div>
-                    <div class="rz-tx"><b>Revisar em sequência (${concSeqOrdem.length})</b><span>Uma pendência por vez, com a sugestão da Raiz IA</span></div>
-                    <svg data-lucide="chevron-right" class="rz-chev"></svg>
-                </div></div>` : '';
-            // v1.91.0 — dois grupos: o que ainda está em tratamento e, no fim, os não controlados
-            const emTratamento = ordenados.filter(f => f.status_conciliacao !== 'nao_controlado');
-            const naoControlados = ordenados.filter(f => f.status_conciliacao === 'nao_controlado');
-            const grupoConc = (titulo, itens) => itens.length ? `<div class="rz-group">${titulo} (${itens.length})</div><div class="rz-card rz-list">${itens.map(linhaConciliacaoUniHtml).join('')}</div>` : '';
-            lista.innerHTML = `${seqHtml}${grupoConc('Para tratar', emTratamento)}${grupoConc('Não controlados', naoControlados)}`;
-            conciliacaoLigarDeslize(lista); // v1.47.0
-            lista.querySelector('[data-conc-seq]')?.addEventListener('click', conciliacaoRevisarEmSequencia);
-
-            if (typeof lucide !== 'undefined') lucide.createIcons();
-        }
-
         // v1.47.0 (etapa 6 · D) — deslizar REVELA, o toque no botão age (rzSwipe do index).
         // → Aceitar a sugestão (mesma confirmação do toque) · ← Outra opção (o sheet de opções de sempre).
-        function conciliacaoLigarDeslize(lista) {
-            if (!lista || typeof rzSwipe !== 'function') return;
-            lista.querySelectorAll('.rz-row[data-conc]').forEach(row => {
-                const id = row.dataset.conc;
-                rzSwipe(row, {
-                    dir: [{ icone: 'check', titulo: 'Aceitar', aoTocar: () => confirmarSugestaoConciliacao(id) }],
-                    esq: [{ icone: 'search', titulo: 'Outra', tipo: 'warn', aoTocar: () => abrirAcoesConciliacaoLinha(id) }],
-                });
-            });
-        }
-
         // v1.47.0 (etapa 6 · D) — "Revisar em sequência": uma carta por vez. O que não for tratado continua pendente.
-        let concSeqOrdem = [], concSeq = null;
         // A sugestão confirma sozinha (sem abrir outro formulário)? Mesmas regras de confirmarSugestaoConciliacao.
         function conciliacaoSugestaoDireta(sug) {
             if (!sug) return false;
@@ -4690,92 +4608,11 @@ function financeiroRenderCabecalho(aba) {
             if (sug.modo === 'automatico' && sug.acao === 'criar_saida_categoria') return true; // v1.93.0
             return false;
         }
-        export function conciliacaoRevisarEmSequencia() {
-            concSeq = { ordem: concSeqOrdem.slice(), total: concSeqOrdem.length, pulados: new Set(), tratados: 0 };
-            conciliacaoSeqMostrar();
-        }
-        function conciliacaoSeqProximo() {
-            if (!concSeq) return null;
-            return concSeq.ordem.map(id => conciliacaoUniCache.find(x => x.id === id))
-                .find(f => f && f.status_conciliacao === 'pendente' && !concSeq.pulados.has(f.id)) || null;
-        }
-        function conciliacaoSeqMostrar() {
-            const f = conciliacaoSeqProximo();
-            if (!f) {
-                const tratados = concSeq ? concSeq.tratados : 0, pulados = concSeq ? concSeq.pulados.size : 0;
-                concSeq = null;
-                if (typeof fecharSheet === 'function') fecharSheet();
-                mostrarToast(pulados ? `Revisão concluída. ${pulados} ${pulados === 1 ? 'ficou pendente' : 'ficaram pendentes'} na lista.` : `Revisão concluída${tratados ? '' : ': nada mais pendente'}.`, 'success');
-                return;
-            }
-            const sug = conciliacaoUniSugestoes[f.id] || null;
-            const entrada = f.direcao === 'entrada';
-            const valorAbs = Math.abs(parseFloat(f.valor)).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-            const pos = concSeq.tratados + concSeq.pulados.size + 1;
-            const restantes = Math.max(0, concSeq.total - pos);
-            const comp = financeiroCompetenciaAtual || financeiroCompetenciaHojeISO();
-            const mes = new Date(comp + 'T12:00:00').toLocaleDateString('pt-BR', { month: 'long' });
-            const direta = conciliacaoSugestaoDireta(sug);
-            const ativoSug = sug ? conciliacaoAtivoDaSugestao(sug) : '';
-            const e = escapeHtmlSaidas;
-            const corpo = `<div class="rz-sh-b">
-                <div class="rz-seq-prog"><b>${pos} de ${concSeq.total}</b><span>${restantes} ${restantes === 1 ? 'restante' : 'restantes'}</span></div>
-                <div class="rz-card rz-seq-card">
-                    <small>${formatarDataBR(f.data)} · ${entrada ? 'entrada' : 'saída'} no extrato</small>
-                    <b class="rz-seq-valor${entrada ? ' rz-in' : ''}">${entrada ? '+' : '−'} R$ ${valorAbs}</b>
-                    <p class="rz-seq-nome">${e(limparRotuloConciliacao(f.razao_social) || (entrada ? 'Entrada' : 'Saída'))}</p>
-                    ${sug ? `<div class="rz-seq-sug"><small>Sugestão da Raiz IA · ${Math.round(sug.confianca || 0)}%</small><b>${e(sug.detalhe || nomeRegraConc(sug.regra_codigo))}</b>${ativoSug ? `<span class="rz-desc">${e(ativoSug)}</span>` : ''}</div>`
-                          : '<div class="rz-seq-sug rz-sem"><small>Sem sugestão da Raiz IA</small><b>Escolha em "Outra opção"</b></div>'}
-                </div>
-                <div class="rz-seq-btns">
-                    <button type="button" class="rz-btn rz-btn-2" data-seq="outra">Outra opção</button>
-                    ${sug ? `<button type="button" class="rz-btn rz-btn-1" data-seq="${direta ? 'aceitar' : 'outra'}">${direta ? 'Aceitar' : 'Ver opções'}</button>` : ''}
-                </div>
-                <div class="rz-seq-mais">
-                    <button type="button" class="rz-btn rz-btn-3" data-seq="pular">Pular</button>
-                    <button type="button" class="rz-btn rz-btn-3" data-seq="nao">Não controlado</button>
-                    <button type="button" class="rz-btn rz-btn-3" data-seq="sair">Sair</button>
-                </div>
-            </div>`;
-            const sheet = abrirSheet(rzSheetCabecalho('Revisar em sequência', `Conciliação · ${mes}`) + corpo);
-            if (typeof lucide !== 'undefined') lucide.createIcons();
-            sheet.querySelectorAll('[data-seq]').forEach(b => b.addEventListener('click', async () => {
-                const acao = b.dataset.seq;
-                if (acao === 'sair') { concSeq = null; fecharSheet(); return; }
-                if (acao === 'pular') { concSeq.pulados.add(f.id); conciliacaoSeqMostrar(); return; }
-                if (acao === 'outra') { concSeq = null; abrirAcoesConciliacaoLinha(f.id); return; } // sai da sequência para as opções
-                const estado = concSeq;
-                if (acao === 'aceitar') await confirmarSugestaoConciliacao(f.id);
-                if (acao === 'nao') await confirmarNaoControlarConciliacao(f.id, null);
-                if (concSeq !== estado) return; // saiu no meio
-                const ainda = conciliacaoUniCache.find(x => x.id === f.id);
-                if (!ainda || ainda.status_conciliacao !== 'pendente') concSeq.tratados++;
-                else concSeq.pulados.add(f.id); // não gravou (erro): não insiste nesta carta
-                conciliacaoSeqMostrar();
-            }));
-        }
-
         // v1.6.0 — ficha completa do item sugerido, antes de confirmar
         // (mesmo padrão do protótipo v3.3, pedido explícito do Nicola).
         export function verSugestaoConciliacao(fingerprintId) {
             return abrirAcoesConciliacaoLinha(fingerprintId); // v1.89.0 (D) — um menu só; o corpo abaixo ficou sem uso
         }
-        function verSugestaoConciliacaoAntigo(fingerprintId) {
-            const f = conciliacaoUniCache.find(x => x.id === fingerprintId);
-            const sug = conciliacaoUniSugestoes[fingerprintId];
-            if (!f || !sug) return;
-            const entrada = f.direcao === 'entrada';
-            const valorAbs = Math.abs(parseFloat(f.valor)).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-            abrirSheetAcoes({
-                titulo: limparRotuloConciliacao(f.razao_social),
-                sub: `${entrada ? '+' : '−'} R$ ${valorAbs} · ${formatarDataBR(f.data)}`,
-                acoes: [
-                    { icone: 'sparkles', tipo: 'ia', titulo: (sug.detalhe || nomeRegraConc(sug.regra_codigo)) + (conciliacaoAtivoDaSugestao(sug) ? ' · ' + conciliacaoAtivoDaSugestao(sug) : ''), sub: `Confiança: ${Math.round(sug.confianca || 0)}%`, aoTocar: () => confirmarSugestaoConciliacao(fingerprintId) },
-                    { icone: 'search', titulo: entrada ? 'Buscar outro recebimento' : 'Buscar outra saída', aoTocar: () => abrirAcoesConciliacaoLinha(fingerprintId) },
-                ],
-            });
-        }
-
         // v1.6.0 — Confirmar inline: despacha pra RPC certa conforme a ação
         // sugerida. Ações ambíguas (soma de 2+, valor divergente, memória do
         // cliente sem parâmetro exposto) caem no fluxo de toque de sempre
@@ -5778,7 +5615,7 @@ function financeiroRenderCabecalho(aba) {
                     <svg data-lucide="ellipsis-vertical" class="rz-chev"></svg>
                 </div>`;
             }).join('');
-            container.innerHTML = `<div class="rz-card rz-list">${linhas}</div>`;
+            container.innerHTML = `<div class="rz-group">De contratos e controles · ${itens.length}</div><div class="rz-card rz-list">${linhas}</div>`; // v1.101.0 (D4)
             financeiroLigarDeslizeMensal(container); // v1.44.0 (etapa 6 · B)
 
             if (typeof lucide !== 'undefined') lucide.createIcons();
@@ -6538,12 +6375,25 @@ function financeiroRenderCabecalho(aba) {
 // no banco (fn_financeiro_totalizadores), nunca no cliente (REGRAS §11).
 // ============================================================================
 export async function abrirAdicionarRecebimento() {
-    const v = await rzEscolher({ titulo: 'Adicionar recebimento', opcoes: [
-        { valor: 'contrato', icone: 'file-text', titulo: 'De um contrato', sub: 'Aluguel ou outro valor' },
-        { valor: 'avulso', icone: 'arrow-down-left', titulo: 'Sem contrato', sub: 'Juros, venda, reembolso…' },
+    const v = await rzEscolher({ titulo: 'Nova entrada', sub: 'De onde vem', opcoes: [ // v1.101.0 (D4) — espelhada com a Nova saída
+        { valor: 'contrato', icone: 'file-text', titulo: 'De contrato ou controle', sub: 'Aluguel ou outro valor do contrato' },
+        { valor: 'avulso', icone: 'arrow-down-left', titulo: 'Avulsa', sub: 'Juros, venda, reembolso…' },
+        { valor: 'socio', icone: 'users', titulo: 'De sócio', sub: 'Aporte (aquisição, caixa ou outro objetivo) ou empréstimo' },
     ] });
     if (v === 'contrato') abrirNovoRecebimento();
     else if (v === 'avulso') abrirReceitaAvulsa();
+    else if (v === 'socio') abrirReceitaAvulsa({ categoria: 'aporte_socio' });
+}
+
+// v1.101.0 (D4) — Nova saída, espelhada com a Nova entrada: avulsa (o formulário de despesa de sempre) ou para sócio (a
+// retirada, que vai para Pessoas). A saída de um controle do bem nasce no próprio bem (Patrimônio › bem › Controles).
+export async function abrirAdicionarSaida(irPara) {
+    const v = await rzEscolher({ titulo: 'Nova saída', sub: 'Para onde vai', opcoes: [
+        { valor: 'avulso', icone: 'arrow-up-right', titulo: 'Avulsa', sub: 'Despesa, tributo, manutenção · com ou sem bem' },
+        { valor: 'socio', icone: 'users', titulo: 'Para sócio', sub: 'Retirada (regular, adiantamento ou extraordinária)' },
+    ] });
+    if (v === 'avulso') { if (typeof irPara === 'function') irPara('tab-saidas'); abrirNovaDespesa(); }
+    else if (v === 'socio') { if (typeof irPara === 'function') irPara('tab-socios'); abrirLancarDistribuicao(); }
 }
 
 // v1.89.0 — "Lançar entrada" da Conciliação: a linha do extrato que originou a receita (ligada ao salvar) e quem pagou.
@@ -6727,8 +6577,10 @@ export async function renderOutrasReceitas() {
     if (!linhas.length) { alvo.innerHTML = ''; return; }
     window.__rzOutrasReceitas = linhas;
     const st = (cod, rot) => (typeof renderStatus === 'function') ? renderStatus(cod, rot) : esc(rot);
-    alvo.innerHTML = `<div class="rz-card rz-list"><div class="rz-card-h" style="padding-top:10px;margin-bottom:0"><h3>Outras receitas</h3></div>` +
-        linhas.map(l => {
+    // v1.101.0 (D4) — o card "Outras receitas" vira dois grupos: De sócios (aporte ou empréstimo) e Avulsas (o resto).
+    const catRec = (await carregarCatalogoCategorias()) || [];
+    const deSocio = (l) => catRec.find(c => c.codigo === l.categoria)?.categoria_pai === 'grp_aportes_socios';
+    const linhaHtml = (l) => {
             const recebido = l.status === 'realizado';
             const origem = l.origem_tipo === 'licenca' ? 'Licença' : (l.origem_tipo === 'extrato' ? 'Extrato' : 'Manual');
             const tocavel = true; // v1.36.0 — toda receita abre o sheet (Conta e Divisão); estornar/excluir só nas manuais
@@ -6738,7 +6590,10 @@ export async function renderOutrasReceitas() {
                 <div class="rz-rt"><b class="rz-in">+${formatarMoedaBR(Number(l.valor || 0))}</b>${st(recebido ? 'ok' : 'run', recebido ? 'Recebido' : 'A receber')}</div>
                 ${tocavel ? '<svg data-lucide="ellipsis-vertical" class="rz-chev"></svg>' : ''}
             </div>`;
-        }).join('') + '</div>';
+    };
+    const avulsas = linhas.filter(l => !deSocio(l)), socios = linhas.filter(deSocio);
+    alvo.innerHTML = (avulsas.length ? `<div class="rz-group">Avulsas · ${avulsas.length}</div><div class="rz-card rz-list">${avulsas.map(linhaHtml).join('')}</div>` : '')
+        + (socios.length ? `<div class="rz-group">De sócios · ${socios.length}</div><div class="rz-card rz-list">${socios.map(linhaHtml).join('')}</div>` : '');
     if (typeof lucide !== 'undefined') lucide.createIcons();
 }
 
