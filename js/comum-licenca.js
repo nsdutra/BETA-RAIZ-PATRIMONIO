@@ -1,6 +1,11 @@
 // ============================================================================
 // comum-licenca.js — Raiz Patrimônio · Administração compartilhada
-// Versão: 1.13.0 · 18/11/2026
+// Versão: 1.14.0 · 18/11/2026
+//
+// v1.14.0 (18/11/2026, sessão 20261118-2150-oferta-ramo, demanda 14a20035; teste do Nicola 18/11 21:45 na Rumo) — função de um
+// ramo que a empresa não tem (motivo sem_ramo, fn_porta_mensagem v3): o sheet mostra o ramo e o preço dele e o botão
+// "Conhecer o ramo X" abre "Conheça novos ramos" (comum-ramos-oferta). Antes caía como plano, com "+R$ 0" e "Ver o plano Ramo X".
+// Versão anterior: 1.13.0 · 18/11/2026
 //
 // v1.13.0 (18/11/2026, sessão 20261118-0915-licenca-plano-unico, demanda 14a20035; opção A do Nicola 18/11 09:15/09:20,
 // PROTOTIPO_LICENCA_PLANO_UNICO_RAIZ v1.0.0) — Licença com UM plano: a licença 'imoveis' é o plano core e as licenças de ramo
@@ -34,7 +39,7 @@
 // Versões anteriores (v1.8.0 … v1.8.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '1.13.0'; // v-check (22/09/2026): lido por Dev › Versões — manter igual ao header
+export const VERSAO = '1.14.0'; // v-check (22/09/2026): lido por Dev › Versões — manter igual ao header
 export const COMUM_LICENCA_VERSAO = '1.0.0';
 
 // ----------------------------------------------------------------------------
@@ -106,7 +111,7 @@ export function podeUsar(codigo) {
 export function rzMostrarBloqueio(codigo) {
     const b = podeUsar(codigo);
     if (b.ok) return false;
-    if ((b.motivo === 'sem_licenca' || b.motivo === 'limite_atingido') && typeof window !== 'undefined' &&
+    if ((b.motivo === 'sem_licenca' || b.motivo === 'limite_atingido' || b.motivo === 'sem_ramo') && typeof window !== 'undefined' &&
         typeof window.abrirSheetForm === 'function') {
         abrirSheetOferta(codigo, b);
         return true;
@@ -124,7 +129,16 @@ function abrirSheetOferta(codigo, b) {
     const g2 = b.motivo === 'limite_atingido';
     const lead = g2 ? b.textoLongo : (b.descricao || b.textoLongo);
     let card = '', botoes = '';
-    if (o && b.acao === 'conversar_premium') {
+    if (o && b.acao === 'conhecer_ramo') {
+        const rs = (o.ramos || []);
+        const nome = rs.map(r => r.nome).join(' ou ');
+        card = rs.map(r => `<div class="rz-card" style="margin-top:12px;border:1px solid var(--sprout)"><div style="display:flex;gap:12px;align-items:center">` +
+            `<div style="flex:1"><b>Vem no ramo ${esc(r.nome)}</b><p class="text-xs" style="color:var(--muted);margin:2px 0 0">Adicional do seu plano · pagamento por Pix</p></div>` +
+            (r.preco != null ? `<div style="text-align:right;white-space:nowrap"><b style="font-size:var(--fs-titulo,17px)">+${_brl(r.preco)}</b><p class="text-xs" style="color:var(--muted);margin:0">por mês</p></div>` : '') +
+            `</div></div>`).join('');
+        botoes = `<button type="button" class="rz-btn rz-btn-1" data-rz-of="ramo">Conhecer o ramo ${esc(nome)}</button>` +
+            `<button type="button" class="rz-btn rz-btn-3" data-rz-of="fechar">Agora não</button>`;
+    } else if (o && b.acao === 'conversar_premium') {
         card = `<div class="rz-card" style="margin-top:12px"><p class="text-sm" style="margin:0"><b>Disponível no Premium</b>, com o Método R.A.I.Z e atendimento personalizado.</p></div>`;
         botoes = `<button type="button" class="rz-btn rz-btn-1" data-rz-of="premium">Conversar sobre o Premium</button>`;
     } else if (o && b.acao === 'ampliar_plano' && o.preco != null) {
@@ -153,6 +167,15 @@ function abrirSheetOferta(codigo, b) {
         const qual = el.dataset.rzOf;
         const fechar = () => { if (typeof window.fecharSheet === 'function') window.fecharSheet(); };
         const ctx = _ultimaCarga || {};
+        if (qual === 'fechar') { fechar(); return; }
+        if (qual === 'ramo') {
+            fechar();
+            try {
+                const { conhecer } = await import('./comum-ramos-oferta.js');
+                await conhecer({ dbAuth: ctx.dbAuth, clienteId: ctx.clienteId, toast: _toast });
+            } catch (e) { console.warn('[comum-licenca] abrir ramos:', e.message); }
+            return;
+        }
         if (qual === 'premium') { window.open(SITE_RAIZ + '/premium/#agendar', '_blank', 'noopener'); fechar(); return; }
         if (qual === 'agora') {
             fechar();
