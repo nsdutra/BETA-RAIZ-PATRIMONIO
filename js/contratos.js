@@ -1,7 +1,12 @@
 // ============================================================================
 // contratos.js — Raiz Patrimônio · Contratos (lista · ficha · formulário ·
 //                 status/reajuste/detalhes · fiadores · documentos · histórico)
-// Versão: 1.75.0 · 15/11/2026
+// Versão: 1.76.0 · 18/11/2026
+//
+// v1.76.0 (18/11/2026, sessão 20261118-2125-cadastro-em-tela, demanda 6412873a; PLANO_CADASTRO_EM_TELA_CORRECOES_RAIZ v1.2.0, de acordo do Nicola 18/11 21:21 (Q1–Q3 sim)) — contexto de retorno 'relatorio': o contrato
+// aberto ou criado a partir do Cadastro da carteira, ao salvar, só fecha o formulário (o relatório, que ficou por baixo, relê o
+// banco) em vez de abrir a ficha ou a lista. window.rzContratoVoltarAoRelatorio() marca esse retorno depois de abrir o formulário.
+// Versão anterior: 1.75.0
 //
 // v1.75.0 (15/11/2026, sessão 20261115-1835-licencas-l3, demandas 285a0058 e 954b4cca; FICHA_LICENCAS_LEADS_RAIZ v1.4.0 §4.5 e
 // L3, de acordo do Nicola 15/11 17:34 e 18:33) — (1) a ficha segue contrato_tipos.ficha_secoes: os cards do Resumo ganham
@@ -27,11 +32,8 @@
 // de acordo do Nicola 12/11 23:08 e 23:42) — Detalhes do contrato › Administradora grava pelo papel da parte no contrato
 // (sincronizarAdministradoraContrato, nucleo/porta.js 1.8.0 → fn_contrato_definir_administradora). Se o banco recusar, avisa e
 // não salva o resto. Versão anterior: 1.71.0
-//
-// v1.71.0 (12/11/2026, sessão 20261112-2258-lupa-partes, demanda f6be5483; de acordo do Nicola 12/11 22:58) — a busca de Contratos (barra e lupa) acha também pela administradora
-// e pelas partes com papel no contrato (fiador, cônjuge anuente…). Versão anterior: 1.70.0
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.70.0 … v1.70.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.71.0 … v1.71.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
 import { avaliarProntidaoContratoParaMinuta } from './minutas.js'; // v1.0.1
@@ -44,7 +46,7 @@ import { renderizarBlocoEndereco, lerBlocoEndereco } from './comum-endereco.js';
 import { formatarEnderecoParte } from './comum-partes.js';
 import { sincronizarAdministradoraContrato } from './nucleo/porta.js'; // v1.72.0 — M3 prestadores→partes
 
-export const VERSAO = '1.75.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.76.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 
 // Faixa do cabeçalho da ficha do contrato: o resumo que se procura primeiro (valor, o que está em aberto e até quando vai).
 // Fim em mês/ano curto ("fev/28"); a data inteira fica no card Condições.
@@ -604,6 +606,9 @@ if (!window.__rzListenerEscritaParteContratoLigado) {
         // onde voltar depois de salvar. null = fluxo antigo (lista geral
         // de Contratos), comportamento inalterado.
         let contextoRetornoEdicaoContrato = null;
+
+        // v1.76.0 — o Cadastro da carteira (relatorios-executivos.js 1.17.0) marca o retorno depois de abrir o formulário
+        if (typeof window !== 'undefined') window.rzContratoVoltarAoRelatorio = () => { contextoRetornoEdicaoContrato = { tipo: 'relatorio', id: null }; };
 
         export function abrirEdicaoContratoContextual(contratoId, origemTipo, origemId) {
             contextoRetornoEdicaoContrato = { tipo: origemTipo, id: origemId };
@@ -4077,7 +4082,9 @@ if (!window.__rzListenerEscritaParteContratoLigado) {
                 }
                 documentoParaVincularContrato = null;
                 if (aoTerminarContratoDoDocumento) { const f = aoTerminarContratoDoDocumento; aoTerminarContratoDoDocumento = null; setTimeout(f, 700); }
-                if (ctxRetorno && ctxRetorno.tipo === 'fichaImovel') {
+                if (ctxRetorno && ctxRetorno.tipo === 'relatorio' && document.getElementById('rz-relexec')) {
+                    // v1.76.0 — volta ao Cadastro da carteira (ele relê ao fechar o formulário)
+                } else if (ctxRetorno && ctxRetorno.tipo === 'fichaImovel') {
                     abrirFichaImovel(ctxRetorno.id);
                 } else if ((ctxRetorno && ctxRetorno.tipo === 'fichaContrato') || !id) {
                     abrirFichaContrato(contratoDados.id);

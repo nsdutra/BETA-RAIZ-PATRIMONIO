@@ -1,6 +1,13 @@
 // ============================================================================
 // relatorios-executivos.js — Raiz Patrimônio · Relatórios no modelo executivo
-// Versão: 1.16.0 · 18/11/2026
+// Versão: 1.17.0 · 18/11/2026
+//
+// v1.17.0 (18/11/2026, sessão 20261118-2125-cadastro-em-tela, demanda 6412873a; PLANO_CADASTRO_EM_TELA_CORRECOES_RAIZ v1.2.0, de acordo do Nicola 18/11 21:21 (Q1–Q3 sim)) — Cadastro da carteira: corrigir direto da linha. Tocar num imóvel abre:
+//   Reajustar (a tela de reajuste), Corrigir o inquilino (o formulário do inquilino), Corrigir o contrato (a edição do contrato),
+//   Dar baixa nos recebimentos (o Financeiro do contrato, com "‹ Voltar ao Cadastro"), Encerrar o contrato (e, encerrado, "Criar o
+//   novo contrato neste imóvel"), Criar contrato neste imóvel (vago) e Anexar documento (ao contrato ou ao imóvel). Ao salvar ou
+//   fechar, o relatório relê o banco. Os ids e o "N em aberto" vêm da fn_relatorio_cadastro_carteira (F1); sem id, acha pelo nome
+//   como antes. Versão anterior: 1.16.0
 //
 // v1.16.0 (18/11/2026, sessão 20261118-0815-financeiro-relatorios, demanda 679b2700; FICHA_REVISAO_FINANCEIRO_RAIZ v1.0.0, Onda 4;
 //   de acordo do Nicola 16/11 23:44 e Onda 4 liberada 18/11 08:14; protótipo PROTOTIPO_FINANCEIRO_REVISAO_RAIZ v1.4.0) — dois
@@ -31,22 +38,15 @@
 //   tipo 'investimentos' do modelo executivo, lido só de fn_relatorio_investimentos_patrimonio (CAN-01): capa com a leitura, os 4
 //   números (gerado, reinvestido, taxa, distribuído), cascata do caixa e reinvestido por mês; página 2 por ramo, por tipo, por bem
 //   (custo investido × valor atual) e os maiores lançamentos. Ano e ramo nos filtros; PDF e Compartilhar como os outros.
-//   Versão anterior: 1.12.0
-//
-// v1.12.0 (13/11/2026, sessão 20261113-2040-cadastro-em-tela, demanda c4fb7da1; PLANO_RELATORIOS_CADASTRO_EM_TELA v1.0.0, de acordo
-//   do Nicola 13/11 20:33) — Cadastro da carteira e Cadastro de partes e pessoas abrem EM TELA (casca do Acompanhamento): números,
-//   abas, filtros, linhas tocáveis com as ações que já existem e rodapé Compartilhar · Exportar planilha (planilhas de sempre).
-//   Sem mudança no banco: a parte é achada pelo nome (e CPF/CNPJ quando há nome repetido); o imóvel e o contrato pelas listas do
-//   app. Versão anterior: 1.11.0
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.11.0 … v1.11.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.12.0 … v1.12.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
 import { rzMostrarBloqueio } from './comum-licenca.js';
 import { rzToast } from './raiz-ui.js';
 import RaizDevice from './raiz-device.js';
 
-export const VERSAO = '1.16.0';
+export const VERSAO = '1.17.0';
 
 // ---------------------------------------------------------------------------
 // Formatos (REL-13 a REL-17)
@@ -1505,6 +1505,7 @@ async function compartilhar() {
 
 export function fecharRelatorioExecutivo() {
     document.getElementById('rz-relexec')?.remove();
+    document.getElementById('rz-cad-voltar')?.remove(); // v1.17.0
     if (window.scrollX) window.scrollTo(0, window.scrollY); // v1.11.0 — a página não fica deslocada para o lado
     window.removeEventListener('resize', aplicarVista);
     estado = null;
@@ -2167,7 +2168,7 @@ function cadDesenhar() {
                 if (x.empreendimento !== g) { g = x.empreendimento; lista += `<div class="ra-g">${esc(g || 'Sem empreendimento')}</div>`; }
                 lista += `<button type="button" class="ra-l" data-cad-i="${i}"><div class="ra-l1"><b>${esc(x.imovel || 'Imóvel')}</b><span>${x.aluguel != null ? brl(x.aluguel) : '—'}</span></div>
                   <div class="ra-l2"><span><i class="ra-d ${x.locatario ? 'ra-ok' : 'ra-bad'}"></i>${esc(x.locatario || 'Vago')}${x.documento ? ' · ' + esc(x.doc_tipo || '') + ' ' + esc(x.documento) : ''}</span><span>${esc(x.contrato_tipo || x.tipo || '')}</span></div>
-                  ${x.diagnostico ? `<div class="ra-o">⚠ ${esc(x.diagnostico)}</div>` : ''}</button>`;
+                  ${x.diagnostico ? `<div class="ra-o">⚠ ${esc(x.diagnostico)}</div>` : ''}${num(x.em_aberto_qtd) ? `<div class="ra-o">${num(x.em_aberto_qtd)} em aberto · ${brl(x.em_aberto_valor)}</div>` : ''}</button>`;
             });
             if (!rows.length) lista += '<div class="ra-v">Nada neste filtro.</div>';
         } else {
@@ -2216,16 +2217,82 @@ function cadDesenhar() {
 }
 function cadTocarImovel(x) {
     if (!x) return;
-    const imo = (typeof imoveis !== 'undefined' ? imoveis : []).find(i => cadNorm(i.nomeExibicao) === cadNorm(x.imovel));
-    const con = x.locatario && imo ? (typeof contratos !== 'undefined' ? contratos : []).find(c => c.imovelId === imo.id && cadNorm(c.locatario) === cadNorm(x.locatario) && c.status !== 'Finalizado') : null;
+    // v1.17.0 — ids do banco (F1); sem id (banco antigo), acha pelo nome como antes
+    const listaImo = typeof imoveis !== 'undefined' ? imoveis : [], listaCon = typeof contratos !== 'undefined' ? contratos : [];
+    const imo = listaImo.find(i => x.imovel_id ? i.id === x.imovel_id : cadNorm(i.nomeExibicao) === cadNorm(x.imovel));
+    const conId = x.contrato_id || (x.locatario && imo ? listaCon.find(c => c.imovelId === imo.id && cadNorm(c.locatario) === cadNorm(x.locatario) && c.status !== 'Finalizado')?.id : null) || null;
+    const imovelId = x.imovel_id || imo?.id || null;
+    const ativoId = x.ativo_id || null;
+    const aberto = num(x.em_aberto_qtd);
     const acoes = [];
-    if (con) {
-        acoes.push({ icone: 'user-round-pen', titulo: 'Corrigir o locatário', sub: 'Nome, CPF/CNPJ e contato', codigo: 'contratos.editar', aoTocar: () => { window.abrirEditarLocatarioContrato(con.id); cadRecarregarAoVoltar(); } });
-        acoes.push({ icone: 'file-pen', titulo: 'Corrigir o contrato', sub: 'Valor, vencimento, reajuste', codigo: 'contratos.editar', aoTocar: () => { window.abrirDetalhesContrato(con.id); cadRecarregarAoVoltar(); } });
+    if (conId) {
+        acoes.push({ icone: 'trending-up', titulo: 'Reajustar', sub: 'Novo valor e vigência', codigo: 'contratos.reajustar', aoTocar: () => { window.lancarReajusteContrato(conId); cadRecarregarAoVoltar(); } });
+        acoes.push({ icone: 'user-round-pen', titulo: 'Corrigir o inquilino', sub: 'Nome, CPF/CNPJ e contato', codigo: 'contratos.editar', aoTocar: () => { window.abrirEditarLocatarioContrato(conId); cadRecarregarAoVoltar(); } });
+        acoes.push({ icone: 'file-pen', titulo: 'Corrigir o contrato', sub: 'Valor, vencimento, vigência e índice', codigo: 'contratos.editar', aoTocar: () => { Promise.resolve(window.abrirEdicaoContratoContextual(conId, 'relatorio', null)).then(() => window.rzContratoVoltarAoRelatorio?.()); cadRecarregarAoVoltar(); } });
+        acoes.push({ icone: 'wallet', titulo: aberto ? `Dar baixa nos recebimentos (${aberto})` : 'Recebimentos do contrato', sub: aberto ? `${brl(x.em_aberto_valor)} em aberto · no Financeiro` : 'No Financeiro', codigo: 'mensal.ver', aoTocar: () => cadRecolher(() => window.abrirFinanceiroDoContrato(conId)) });
+        acoes.push({ icone: 'square-check-big', titulo: 'Encerrar o contrato', sub: 'E criar o novo, se for trocar o inquilino', codigo: 'contratos.editar', aoTocar: () => { window.abrirAcaoStatusContrato(conId, 'Finalizado'); cadRecarregarAoVoltar(() => cadDepoisDeEncerrar(conId, imovelId, x.imovel)); } });
+    } else if (imovelId) {
+        acoes.push({ icone: 'file-plus', titulo: 'Criar contrato neste imóvel', sub: 'O formulário já com o imóvel', codigo: 'contratos.criar', aoTocar: () => cadCriarContrato(imovelId) });
     }
-    if (imo) acoes.push({ icone: 'building-2', titulo: 'Abrir o imóvel', sub: 'Sai do relatório', aoTocar: () => { fecharRelatorioExecutivo(); cad = null; switchTab('tab-ativos'); window.dispatchEvent(new CustomEvent('cofre:abrir-ativo', { detail: { id: imo.id } })); } });
+    if (conId || ativoId) acoes.push({ icone: 'paperclip', titulo: 'Anexar documento', sub: conId && ativoId ? 'Ao contrato ou ao imóvel' : conId ? 'Ao contrato' : 'Ao imóvel', codigo: 'cofre.upload', aoTocar: () => cadAnexar(x, conId, ativoId) });
+    if (conId) acoes.push({ icone: 'file-text', titulo: 'Abrir o contrato', sub: 'Sai do relatório', aoTocar: () => { fecharRelatorioExecutivo(); cad = null; window.abrirFichaContrato(conId); } });
+    const idAtivoAbrir = ativoId || imo?.id;
+    if (idAtivoAbrir) acoes.push({ icone: 'building-2', titulo: 'Abrir o imóvel', sub: 'Sai do relatório', aoTocar: () => { fecharRelatorioExecutivo(); cad = null; switchTab('tab-ativos'); window.dispatchEvent(new CustomEvent('cofre:abrir-ativo', { detail: { id: idAtivoAbrir } })); } });
     if (!acoes.length) { rzToast('Não achei este imóvel na lista do app. Abra por Patrimônio.', 'warning'); return; }
     abrirSheetAcoes({ titulo: x.imovel || 'Imóvel', sub: [x.locatario || 'Vago', x.diagnostico].filter(Boolean).join(' · '), acoes });
+}
+// v1.17.0 — criar contrato no vago: o formulário de sempre; ao salvar, volta ao relatório (contratos.js 1.76.0)
+function cadCriarContrato(imovelId) {
+    Promise.resolve(window.criarContratoParaImovel(imovelId)).then(() => window.rzContratoVoltarAoRelatorio?.());
+    cadRecarregarAoVoltar();
+}
+// v1.17.0 (Q1) — encerrado, oferece na hora o novo contrato no mesmo imóvel
+function cadDepoisDeEncerrar(conId, imovelId, nome) {
+    const ainda = (cad?.dados?.linhas || []).some(l => l.contrato_id === conId);
+    if (ainda || !imovelId) return;
+    abrirSheetAcoes({ titulo: 'Contrato encerrado', sub: nome || 'Imóvel', acoes: [
+        { icone: 'file-plus', titulo: 'Criar o novo contrato neste imóvel', sub: 'Para o inquilino certo', codigo: 'contratos.criar', aoTocar: () => cadCriarContrato(imovelId) },
+        { icone: 'x', titulo: 'Agora não', aoTocar: () => {} }] });
+}
+// v1.17.0 — anexar ao contrato ou ao imóvel, no envio de sempre do Cofre (por cima do app; o relatório volta ao salvar)
+function cadAnexar(x, conId, ativoId) {
+    const ir = (tipo, id, nome) => cadRecolher(async () => {
+        let n = 0;
+        if (typeof window.rzAbrirUploadContextual !== 'function') switchTab('tab-ativos'); // o envio mora no Cofre: abre uma vez
+        while (typeof window.rzAbrirUploadContextual !== 'function' && n++ < 40) await new Promise(r => setTimeout(r, 250));
+        if (typeof window.rzAbrirUploadContextual !== 'function') { rzToast('O envio de documento não abriu agora. Tente de novo.', 'warning'); return; }
+        window.rzAbrirUploadContextual(tipo, id, nome);
+    }, true);
+    if (conId && ativoId) abrirSheetAcoes({ titulo: 'Anexar documento', sub: x.imovel || '', acoes: [
+        { icone: 'file-text', titulo: 'Ao contrato', sub: x.locatario || 'Contrato', aoTocar: () => ir('contrato', conId, x.locatario || 'Contrato') },
+        { icone: 'building-2', titulo: 'Ao imóvel', sub: x.imovel || 'Imóvel', aoTocar: () => ir('ativo', ativoId, x.imovel || 'Imóvel') }] });
+    else if (conId) ir('contrato', conId, x.locatario || 'Contrato');
+    else ir('ativo', ativoId, x.imovel || 'Imóvel');
+}
+// v1.17.0 — o relatório se recolhe (fica guardado: filtro, aba e posição) enquanto a pessoa trabalha numa tela do app, com um
+// botão fixo "‹ Voltar ao Cadastro"; voltar (ou salvar um documento) reabre o relatório relido.
+function cadRecolher(acao, voltaAoSalvarDoc) {
+    const el = document.getElementById('rz-relexec'); if (!el || !cad) return;
+    const rolagem = el.querySelector('.rx-corpo')?.scrollTop || 0;
+    el.style.display = 'none';
+    document.getElementById('rz-cad-voltar')?.remove();
+    const b = document.createElement('button');
+    b.type = 'button'; b.id = 'rz-cad-voltar';
+    b.style.cssText = 'position:fixed;left:50%;transform:translateX(-50%);bottom:calc(76px + env(safe-area-inset-bottom));z-index:96;min-height:44px;padding:10px 18px;border-radius:999px;border:0;background:var(--pine,#1e3a32);color:#fff;font:600 14px Inter,system-ui,sans-serif;box-shadow:0 4px 16px rgba(23,33,30,.25);display:inline-flex;align-items:center;gap:6px;cursor:pointer';
+    b.innerHTML = '<svg data-lucide="chevron-left" style="width:18px;height:18px"></svg>Voltar ao Cadastro';
+    const voltar = () => {
+        b.remove(); window.removeEventListener('cofre:recarregar-documentos', aoDoc);
+        const r = document.getElementById('rz-relexec'); if (!r || !cad) return;
+        r.style.display = '';
+        cad.partesIds = null;
+        cadCarregar().then(() => { const c = r.querySelector('.rx-corpo'); if (c) c.scrollTop = rolagem; });
+    };
+    const aoDoc = () => setTimeout(voltar, 400);
+    b.addEventListener('click', voltar);
+    if (voltaAoSalvarDoc) window.addEventListener('cofre:recarregar-documentos', aoDoc, { once: true });
+    document.body.appendChild(b);
+    if (typeof rzIcones === 'function') rzIcones();
+    try { acao(); } catch (e) { console.error('[rz] cadastro › ação', e); }
 }
 async function cadTocarParte(x) {
     if (!x) return;
@@ -2239,12 +2306,16 @@ async function cadTocarParte(x) {
         { icone: 'more-horizontal', titulo: 'Vínculos, papel e excluir', sub: 'As ações de Partes', codigo: 'partes.ver', aoTocar: () => { window.abrirAcoesParte(pt.id); cadRecarregarAoVoltar(); } },
     ] });
 }
-function cadRecarregarAoVoltar() {
+function cadRecarregarAoVoltar(depois) { // v1.17.0 — também espera o formulário de contrato fechar; depois: roda após reler
     let vezes = 0;
+    const formAberto = () => { const w = document.getElementById('form-contrato-wrapper'); return !!w && !w.classList.contains('hidden'); };
     const t = setInterval(() => {
         vezes++;
         if (!cad || vezes > 600) { clearInterval(t); return; }
-        if (!acompSheetAberto() && vezes > 1) { clearInterval(t); cad.partesIds = null; cadCarregar(); }
+        if (!acompSheetAberto() && !formAberto() && vezes > 1) {
+            clearInterval(t); cad.partesIds = null;
+            cadCarregar().then(() => { if (typeof depois === 'function') depois(); });
+        }
     }, 1000);
 }
 async function cadCompartilhar() {
