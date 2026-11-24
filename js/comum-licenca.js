@@ -31,12 +31,8 @@
 // boot lê fn_porta_mensagem (mapa só do que está bloqueado ou em aviso) e podeUsar devolve o título, o texto, o aviso, a
 // oferta de upsell e a ação de lá — as frases copiadas da fn_porta_texto saem daqui (CAN-03). O contrato de podeUsar e de
 // rzMostrarBloqueio não muda; ganha aviso, oferta e acao. Versão anterior: 1.9.0 · 14/10/2026
-//
-// v1.9.0 (14/10/2026, sessão 20261014-2145-onda9c-textos, demanda a05ad2ee; onda 9c do estudo PROTOTIPO_UX_DENSIDADE_RAMOS_RAIZ
-// v1.2.0, D6 seção 10) — textos no limite: ação até 24 caracteres, descrição até 28, aviso até 40 com o resultado e tela
-// vazia em 1 frase de até 40. A explicação longa fica na confirmação, quando existe. Nada de comportamento mudou.
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.8.0 … v1.8.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.9.0 … v1.9.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
 export const VERSAO = '1.14.0'; // v-check (22/09/2026): lido por Dev › Versões — manter igual ao header

@@ -1,6 +1,11 @@
 // ============================================================================
 // pessoas-extrato.js — Raiz Patrimônio · Financeiro › Pessoas: saldo de cada pessoa e o extrato dela
-// Versão: 1.1.0 · 18/11/2026
+// Versão: 1.2.0 · 23/11/2026
+//
+// v1.2.0 (23/11/2026, sessão 20261123-2310-cartao-descobrir, demanda 1e32c5a1; pedido do Nicola 23/11 23:09, "esta também, do
+// extrato do Luiz") — pessoa SEM cadastro (o nome digitado numa divisão) passa a abrir o extrato: a mesma fn_balanco_extrato,
+// lida para a empresa toda e filtrada pela mesma chave da lista ("ext:" + nome). Cadastro continua exigido só para Quitar e
+// Lançar retirada, com o aviso embaixo do extrato. Retiradas continuam só para pessoa cadastrada.
 //
 // v1.1.0 (18/11/2026, sessão 20261118-0815-financeiro-relatorios, demanda 679b2700; FICHA_REVISAO_FINANCEIRO_RAIZ v1.0.0, Onda 4)
 // — export pessoasAjustarItem(linha, aoGravar): o relatório "Balanço entre pessoas · analítico" (relatorios-executivos.js 1.16.0)
@@ -31,7 +36,7 @@
 // O módulo não guarda regra de dinheiro: lê o banco e mostra. O saldo corrido é a soma das linhas na ordem da data, e a
 // última linha bate com o saldo do topo (teste T-FIN-02).
 // ============================================================================
-export const VERSAO = '1.1.0';
+export const VERSAO = '1.2.0';
 
 import { rzToast, rzConfirmar } from './raiz-ui.js';
 
@@ -108,11 +113,12 @@ export async function pessoasRender(ctx) {
 
 // ---------------------------------------------------------------- extrato da pessoa
 async function lerExtrato(p) {
-    if (!p.pessoaId) return [];
-    const { data, error } = await dbAuth.rpc('fn_balanco_extrato', { p_cliente_id: CTX.cliente, p_pessoa_id: p.pessoaId, p_limite: 5000, p_ate: CTX.ate });
+    const { data, error } = await dbAuth.rpc('fn_balanco_extrato', { p_cliente_id: CTX.cliente, p_pessoa_id: p.pessoaId || null, p_limite: 5000, p_ate: CTX.ate });
     if (error) throw error;
+    // sem cadastro: o banco não filtra por nome, então a lista da empresa é filtrada pela MESMA chave da lista de saldos
+    const linhas = p.pessoaId ? (data || []) : (data || []).filter(e => !e.pessoa_id && ('ext:' + (e.nome_externo || e.nome)) === p.chave);
     // ordem da data, passado em cima (REL-28); a mesma linha do banco, sem regra nova
-    return (data || []).slice().sort((a, b) => String(a.data).localeCompare(String(b.data)) || String(a.origem_id).localeCompare(String(b.origem_id)));
+    return linhas.slice().sort((a, b) => String(a.data).localeCompare(String(b.data)) || String(a.origem_id).localeCompare(String(b.origem_id)));
 }
 async function lerRetiradas(p) {
     const ano = Number(String(CTX.competencia).slice(0, 4));
@@ -136,9 +142,10 @@ async function abrirExtrato(chave) {
     const sheet = abrirSheet(cab(p.nome, `até ${dataBR(CTX.ate)}`) + `<div class="rz-sh-b"><p class="text-xs text-center py-3" style="color:var(--sage)">Carregando…</p></div>`);
     let corpo = '';
     try {
-        if (!p.pessoaId) corpo = `<p class="rz-desc">Pessoa sem cadastro: cadastre em Pessoas (nome e WhatsApp bastam) para ver o extrato e quitar.</p>`;
+        const semCadastro = `<p class="rz-desc" style="margin-top:8px">Pessoa sem cadastro: para quitar ou lançar retirada, cadastre em Pessoas (nome e WhatsApp bastam).</p>`;
+        if ((FILTRO === 'ret' || FILTRO === 'ext') && !p.pessoaId) corpo = `<p class="rz-desc">Retiradas aparecem para pessoa cadastrada.</p>` + semCadastro;
         else if (FILTRO === 'ret' || FILTRO === 'ext') corpo = retiradasHtml(await lerRetiradas(p), FILTRO === 'ext' ? 'extraordinaria' : 'regular');
-        else corpo = extratoHtml(await lerExtrato(p));
+        else corpo = extratoHtml(await lerExtrato(p)) + (p.pessoaId ? '' : semCadastro);
     } catch (e) {
         console.error('[pessoas] extrato', e);
         corpo = `<p class="rz-desc" style="color:var(--danger)">Não consegui ler o extrato: ${esc(e?.message || e)}</p>`;

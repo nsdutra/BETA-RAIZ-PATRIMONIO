@@ -1,7 +1,11 @@
 // ============================================================================
 // financeiro.js — Raiz Patrimônio · Financeiro (Recebimentos · Atrasados · Saídas
 //                  · conciliação de extrato · recibo · detalhe do recebimento)
-// Versão: 1.102.0 · 18/11/2026
+// Versão: 1.103.0 · 23/11/2026
+//
+// v1.103.0 (23/11/2026, sessão 20261123-2310-cartao-descobrir, demanda 1e32c5a1; FICHA_CARTAO_DESCOBRIR_COMPRA_RAIZ v1.1.0, E5;
+// de acordo do Nicola 23/11 23:09) — compra "A classificar" da fatura ganha a ação "Descobrir o que é" (código cartao.descobrir),
+// que abre o js/cartao-descobrir.js por cima da fatura. Confirmar grava pela financeiroGravarClassificacao de sempre.
 //
 // v1.102.0 (18/11/2026, sessão 20261118-1440-financeiro-lente, demanda 679b2700; FICHA_REVISAO_FINANCEIRO_RAIZ v1.0.0 Onda 5 · fatia 5a, LEVANTAMENTO_LENTE_MULTI_RAMO_RAIZ v1.0.0, de acordo do Nicola 18/11 14:36) — Resumo com 2+ ramos: manda a lista para o financeiro-resumo.js e o rótulo "Imóveis + Comercial". Versão anterior: 1.101.0
 //
@@ -36,19 +40,11 @@
 // Rotinas do mês (Fechar ou reabrir o mês, Contador, Fiscal, Atrasados, com o estado de cada uma); a faixa de rotinas abaixo
 // dos números sai (#fin-rotinas-* fica vazio). (3) As abas de Pessoas passam a ser desenhadas aqui, como as outras (5 abas).
 // Recebimentos e Saídas nivelados ficam para a parte 2 da Onda 3. Versão anterior: 1.98.0
-//
-// v1.98.0 (17/11/2026, sessão 20261117-0755-financeiro-conciliacao, demanda 679b2700; teste do Nicola 17/11 10:01 e de acordo
-// 13:14; FICHA_CONCILIACAO_LIGAR_BAIXA_RAIZ v1.1.0) — (1) UMA LEITURA SÓ: o menu da linha do extrato deixa de recalcular
-// sugestão na tela (fn_extrato_sugerir_recebimento/destino davam outro nome e outro %, como o "Anderson 90%" na linha do
-// Eder). A recomendação é só a do motor; o resto são opções sem %: "Buscar manualmente" (com o mesmo CPF/CNPJ primeiro, depois
-// o mesmo nome, depois os outros em aberto) e, na saída, as saídas previstas de valor parecido. A "Nova despesa" só traz
-// categoria quando o motor sugeriu uma. (2) LIGAR À BAIXA JÁ FEITA: sugestão nova do motor ligar_baixa_atualizar; o "Aceitar
-// sugestão" e as pilhas abrem o antes e o depois e gravam pela fn_extrato_ligar_baixa (conciliacaoLigarBaixa). Versão anterior: 1.97.1
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.97.1 … v1.97.1): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.98.0 … v1.98.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '1.102.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.103.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 
 // v1.17.0 (Fase 1 do wrapper de escrita, rollout Financeiro) — emitirEscrita
 // é o evento padrão pra "algo mudou que módulos DE FORA deste arquivo podem
@@ -61,6 +57,7 @@ import { rzToast, rzConfirmar, rzAviso, rzEscolher, rzEditarDivisao } from './ra
 import { pessoasRender } from './pessoas-extrato.js'; // v1.96.0 — aba Pessoas (dem 679b2700)
 import { conciliacaoPilhasRender } from './conciliacao-pilhas.js'; // v1.97.0 — Conciliação em pilhas (dem 679b2700)
 import { resumoRender } from './financeiro-resumo.js'; // v1.99.0 — aba Resumo (dem 679b2700, Onda 3)
+import { cartaoDescobrir } from './cartao-descobrir.js'; // v1.103.0 — "Descobrir o que é" (dem 1e32c5a1)
 
 /** Ponto de entrada do switchTab (1 chamada por troca de aba; barato). */
 // v1.43.0 (etapa 6 · A) — barra digitável de cada aba: o termo mora no campo guardador de sempre.
@@ -1734,6 +1731,8 @@ function financeiroRenderCabecalho(aba) {
                 acoes.push({ icone: 'sparkles', tipo: 'ia', titulo: financeiroTextoSugestaoCartao(s, nomeCat), sub: `Confiança: ${Math.round(Number(s.confianca || 0))}%`, codigo: 'cartao.classificar',
                     aoTocar: () => financeiroGravarClassificacao([i.id], { categoria: s.categoria, ativo_id: s.ativo_id || null, parte_id: s.parte_id || null, divisao: null, sempre_assim: false }, f.id) });
             }
+            if (pend) acoes.push({ icone: 'search', titulo: 'Descobrir o que é', sub: 'Pesquisa o nome da compra', codigo: 'cartao.descobrir',
+                aoTocar: () => cartaoDescobrir(i, { nomeCat, gravar: (ids, v) => financeiroGravarClassificacao(ids, v, f.id), classificar: () => financeiroClassificarItens([i], f.id) }) });
             acoes.push({ icone: 'tags', titulo: pend ? (s.categoria ? 'Reclassificar' : 'Classificar') : 'Mudar classificação', sub: 'Categoria, ativo, fornecedor', codigo: 'cartao.classificar', manterAberto: true,
                 aoTocar: () => financeiroClassificarItens([i], f.id) });
             if (!pend) {
