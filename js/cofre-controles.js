@@ -1,6 +1,12 @@
 // ============================================================================
 // cofre-controles.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.76.0 · 17/11/2026
+// Versão: 1.77.0 · 24/11/2026
+//
+// v1.77.0 (24/11/2026, sessão 20261124-0916-seguros, demanda d03eb567; FICHA_COMPARATIVO_RENOVACAO_SEGUROS v1.3.0, de acordo
+// do Nicola 24/11) — no vencimento em aberto de um item de seguro, ação "Comparar cotações" (código cofre.seguro_comparar),
+// que abre js/cofre-seguro-renovacao.js. Depois de aprovar a renovação (fn_item_controle_renovar), refaz as ocorrências do
+// novo ciclo pelos mesmos geradores do formulário, sem apagar nenhuma aberta (a pendência da apólice emitida fica). Subir
+// cotação abre o envio do próprio item e volta ao comparativo quando o documento é salvo. Versão anterior: 1.76.0
 //
 // v1.76.0 (17/11/2026, sessão 20261117-2350-comercial-c3, demanda 285a0058; FICHA_RECEITA_UNIDADES_GERADORAS v1.14.0 §13.5a, Q5 com
 // de acordo do Nicola 17/11 23:30) — C3 do Comercial na safra: ⋮ da fase › "Itens produzidos" (código comercial.itens: sem o plano,
@@ -19,15 +25,11 @@
 // v1.73.0 (11/11/2026, sessão 20261111-2330-agro-receita-safra, demanda 3cd0817a; de acordo do Nicola 11/11 23:30) — "Ver a
 //   safra" mostra também o recebido (receitas com destino na safra, nas fases ou nos itens dela — fn_execucao_detalhe) e o
 //   resultado (recebido − pago), quando houver receita. Versão anterior: 1.72.1 · 03/11/2026
-//
-// v1.72.1 (03/11/2026, sessão 20261103-0956-fluxo-empresa-fin, demanda 9efdd18f; de acordo do Nicola 03/11 09:56) — o + de
-//   Controles em Minha empresa abre o formulário do novo item por cima de Minha empresa: antes trocava a tela de baixo
-//   para Ativos. Ao salvar ou fechar, o card da empresa é redesenhado no lugar. Abrir um item existente não muda.
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.72.0 … v1.72.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.72.1 … v1.72.1): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '1.76.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.77.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 import { estado } from './cofre-estado.js';
 import * as api from './cofre-api.js';
 import { mostrarToast, refrescarIcones, abrirModal, fecharModal, modalGenerico, perguntar, escolher, avisarComDesfazer } from './cofre-ui.js';
@@ -55,6 +57,7 @@ import { renderizarBlocoEndereco, lerBlocoEndereco } from './comum-endereco.js';
 // pelo listener module-level, perto de 'cofre:recarregar-partes'.
 import { emitirEscrita, aoEscrever } from './raiz-eventos.js';
 import { montarGrupoVisao } from './grupo-visao.js'; // v1.52.0 — F13.10
+import { abrirComparativoSeguro } from './cofre-seguro-renovacao.js'; // v1.77.0 — comparar cotações na renovação do seguro
 
 let subtiposCache = null; // carregado 1x por sessão; catálogo muda pouco
 // v1.20.2 (E0.2 / A8) — cache separado do catalogo FILTRADO pelo tipo de
@@ -2350,6 +2353,10 @@ export async function abrirAcoesOcorrencia(ocorrenciaId) {
     if (oc.status_execucao === 'aberto' && ehItemCartao(item)) {
         acoes.push({ icone: 'file-up', tipo: 'ia', titulo: 'Importar fatura', codigo: 'cartao.importar', sub: 'PDF ou foto', aoTocar: () => importarFaturaDoItem(item) });
     }
+    // v1.77.0 — renovação do seguro: compara as cotações com a apólice de hoje e aprova no mesmo item
+    if (oc.status_execucao === 'aberto' && item?.tipo === 'seguro' && (oc.tipo || 'prevista') === 'prevista') {
+        acoes.push({ icone: 'scale', tipo: 'ia', titulo: 'Comparar cotações', codigo: 'cofre.seguro_comparar', sub: 'Renovação do seguro', aoTocar: () => abrirComparativoDoItem(item) });
+    }
     // v1.50.0 — atalho para o lançamento que a ocorrência gerou no Financeiro (quando existe)
     if (lanc) {
         acoes.push({ icone: 'wallet', titulo: 'Ver no Financeiro', sub: `${moedaBR(lanc.valor)} · ${lanc.status === 'realizado' ? 'pago' : 'previsto'} · ${String(lanc.competencia || '').slice(5, 7)}/${String(lanc.competencia || '').slice(0, 4)}`,
@@ -2404,6 +2411,37 @@ function abrirFaturaDaOcorrencia(faturaId) {
     if (typeof window.fecharSheet === 'function') window.fecharSheet();
     if (typeof window.financeiroAbrirFatura !== 'function') { mostrarToast('Abra pelo app principal.', 'erro'); return; }
     setTimeout(() => window.financeiroAbrirFatura(faturaId), 30);
+}
+// v1.77.0 — comparativo da renovação do seguro (js/cofre-seguro-renovacao.js). O módulo cuida da tela; aqui ficam o envio
+// da cotação pelo próprio item e o refazer das ocorrências depois de aprovar (os geradores são deste arquivo).
+function abrirComparativoDoItem(item) {
+    if (typeof window.fecharSheet === 'function') window.fecharSheet();
+    setTimeout(() => abrirComparativoSeguro(item, { subirCotacao: subirCotacaoSeguro, aposRenovar: refazerOcorrenciasAposRenovar }), 30);
+}
+function subirCotacaoSeguro(item) {
+    if (typeof window.fecharSheet === 'function') window.fecharSheet();
+    let cancelar = null;
+    const limite = setTimeout(() => cancelar?.(), 15 * 60 * 1000); // envio desistido: não reabre depois
+    cancelar = aoEscrever('documento', (d) => {
+        if (d?.acao !== 'criar') return;
+        cancelar?.(); clearTimeout(limite);
+        if (itemEmFoco?.id === item.id) setTimeout(() => abrirComparativoDoItem(item), 400);
+    });
+    setTimeout(() => abrirUploadContextual('item_controle', item.id, item.titulo), 30);
+}
+async function refazerOcorrenciasAposRenovar(itemNovo) {
+    try {
+        const base = { ...itemEmFoco, ...itemNovo };
+        const fi = base.frequencia_intervalo, fu = base.frequencia_unidade;
+        const payloads = base.direcao_alerta === 'fim'
+            ? gerarOcorrenciasHorizonteRetroativo(base, base.data_fim, fi, fu)
+            : gerarOcorrenciasHorizonte(base, base.data_base, fi, fu);
+        // sem excluir as abertas: a pendência "falta a apólice emitida" é aberta e tem de ficar
+        if (payloads.length) await api.criarOcorrenciasControleBatch(payloads);
+    } catch (e) { console.warn('[controles] refazer ocorrências após renovar:', e?.message || e); }
+    await recarregarFichaItemControle();
+    window.dispatchEvent(new CustomEvent('cofre:recarregar-eventos'));
+    emitirEscrita('controle', { id: itemNovo?.id, acao: 'renovar' });
 }
 function importarFaturaDoItem(item) {
     if (typeof window.fecharSheet === 'function') window.fecharSheet();
