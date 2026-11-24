@@ -1,8 +1,12 @@
 // =====================================================================
 // RAIZ PATRIMÔNIO — js/agenda.js
-// VERSÃO: Beta v1.21.0 (18/11/2026 — Agenda com 2+ ramos na lente)
+// VERSÃO: Beta v1.22.0 (24/11/2026 — linha única da agenda, a mesma do robô)
 // LINHAS: (ver versoes.json)
 // -----------------------------------------------------------------
+// NOVIDADES (Beta v1.22.0) (24/11/2026, sessão 20261124-1843-agenda-linha, demanda 4fa77b06; FICHA_AGENDA_LINHA_UNICA_RAIZ v1.0.0,
+// de acordo do Nicola 24/11 18:43) — a agenda e o "Enviar a semana" leem fn_agenda_linhas: título curto, ícone, quem e bem vêm
+// prontos do banco, os mesmos do robô (sem endereço nem final de cartão repetido, documento e item do mesmo dia numa linha só).
+// Reserva: v2 e, depois, v1, como antes. Versão anterior: 1.21.0
 // NOVIDADES (Beta v1.21.0) (18/11/2026, sessão 20261118-1850-financeiro-lente-5bc, demanda 679b2700; LEVANTAMENTO_LENTE_MULTI_RAMO_RAIZ v1.0.0 fatias 5b e 5c, de acordo do Nicola 18/11 14:36 e 18:45) — com 2+ ramos marcados na lente
 // (window.RZ_RAMOS_LENTE), o calendário e o "Enviar a semana" chamam fn_agenda_periodo(_v2) uma vez por ramo e juntam os
 // compromissos sem repetir (window.rzRpcPorRamos, js/nucleo/lente.js). Versão anterior: 1.20.0
@@ -167,7 +171,7 @@
 
 import { rzCalendario, rzCalItemDaAgenda } from './nucleo/calendario.js'; // v1.16.0 — calendário único (DS §6.3)
 
-export const VERSAO = '1.21.0';
+export const VERSAO = '1.22.0';
 
 const TIPOS = {
     ocorrencia:   { rotulo: 'Ocorrência',  icone: 'wrench',          dominio: 'ocorrencias' },
@@ -335,7 +339,12 @@ async function carregar() {
         // v1.16.0 — v2: severidade, assunto, hora e situação vêm do banco; filtro por bem (p_ativos)
         const args = { p_cliente_id: CLIENTE_ID_SUPABASE, p_de: iso(de), p_ate: iso(ate), p_ramo: ramo };
         const rpcAg = (nome, a) => (window.RZ_RAMOS_LENTE && window.rzRpcPorRamos) ? window.rzRpcPorRamos(nome, a, chaveAgenda) : dbAuth.rpc(nome, a); // v1.21.0
-        let { data, error } = await rpcAg('fn_agenda_periodo_v2', { ...args, p_ativos: st.ativo ? [st.ativo.id] : null });
+        // linha única (a mesma do robô); reserva: v2, depois v1
+        let { data, error } = await rpcAg('fn_agenda_linhas', { ...args, p_ativos: st.ativo ? [st.ativo.id] : null });
+        if (error) {
+            console.warn('[agenda] fn_agenda_linhas:', error.message);
+            ({ data, error } = await rpcAg('fn_agenda_periodo_v2', { ...args, p_ativos: st.ativo ? [st.ativo.id] : null }));
+        }
         if (error) { // reserva: a v1 de sempre (sem filtro por bem no banco — filtra aqui)
             console.warn('[agenda] fn_agenda_periodo_v2:', error.message);
             ({ data, error } = await rpcAg('fn_agenda_periodo', args));
@@ -402,19 +411,21 @@ function desenhar(carregando) {
 
 // ---- linhas
 function linhaHtml(r, i) {
-    const t = /^Escola · /.test(r.titulo || '') ? { icone: 'backpack', rotulo: 'Escola' }
+    const t = r.icone ? { icone: r.icone, rotulo: '' } // ícone pronto da fn_agenda_linhas (o mesmo do robô)
+        : /^Escola · /.test(r.titulo || '') ? { icone: 'backpack', rotulo: 'Escola' }
         : /^Esporte · /.test(r.titulo || '') ? { icone: 'trophy', rotulo: 'Esporte' } // v1.10.0
         : /^Atividade · /.test(r.titulo || '') ? { icone: 'palette', rotulo: 'Atividade' }
         : r.entidade_tipo === 'item_controle' ? { icone: iconeDoItemAgenda(r.entidade_id), rotulo: 'Item de controle' } // v1.11.0
         : (TIPOS[r.tipo] || { icone: 'circle', rotulo: '' }); // v1.9.0
     const s = statusCompromisso(r);
     const faixa = r.inicio_em ? [r.inicio_em, r.fim_em].filter(Boolean).map(x => new Date(x).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })).join('–') : ''; // v1.16.0
-    const sub = [faixa, r.sub, r.situacao === 'realizado' ? 'realizado' : '', r.situacao === 'aguardando' ? 'aguardando' : ''].filter(Boolean).join(' · ') || t.rotulo;
+    const quem = r.titulo_curto != null ? [r.bem_curto, r.quem].filter(Boolean).join(' · ') : r.sub;
+    const sub = [faixa, quem, r.situacao === 'realizado' ? 'realizado' : '', r.situacao === 'aguardando' ? 'aguardando' : ''].filter(Boolean).join(' · ') || t.rotulo;
     const diasAtraso = r.atrasado ? Math.round((hoje() - deIso(r.data)) / 86400000) : 0;
     const selo = diasAtraso > 0 ? ((typeof renderStatus === 'function') ? renderStatus('bad', `Há ${diasAtraso}d`) : `<span class="rz-st rz-bad">Há ${diasAtraso}d</span>`) : '';
     return `<button type="button" class="rz-row rz-link rz-ag-linha rz-ag-${s}" data-ag-i="${i}">
         <div class="rz-ic"><svg data-lucide="${r.situacao === 'realizado' ? 'check' : t.icone}"></svg></div>
-        <div class="rz-tx"><b>${rzEsc(r.titulo || t.rotulo)}</b><span>${rzEsc(sub)}</span></div>
+        <div class="rz-tx"><b>${rzEsc(r.titulo_curto || r.titulo || t.rotulo)}</b><span>${rzEsc(sub)}</span></div>
         ${selo}${r.valor != null ? `<span class="rz-ag-valor">${moeda(r.valor)}</span>` : ''}</button>`;
 }
 // D7.13 — dia por hora: "Dia todo" primeiro; depois um bloco por horário (quando o registro do dia trouxer hora)
@@ -683,7 +694,7 @@ async function enviarSemana() {
         try {
             const ramo = (typeof geralRamoFiltro !== 'undefined' && geralRamoFiltro && geralRamoFiltro !== 'tudo') ? geralRamoFiltro : null;
             const argsS = { p_cliente_id: CLIENTE_ID_SUPABASE, p_de: iso(ini), p_ate: iso(fim), p_ramo: ramo };
-            const { data } = (window.RZ_RAMOS_LENTE && window.rzRpcPorRamos) ? await window.rzRpcPorRamos('fn_agenda_periodo', argsS, chaveAgenda) : await dbAuth.rpc('fn_agenda_periodo', argsS); // v1.21.0
+            const { data } = (window.RZ_RAMOS_LENTE && window.rzRpcPorRamos) ? await window.rzRpcPorRamos('fn_agenda_linhas', argsS, chaveAgenda) : await dbAuth.rpc('fn_agenda_linhas', argsS); // linha única
             dados = data || [];
         } catch (_) { /* usa o que está na tela */ }
     }
@@ -693,7 +704,7 @@ async function enviarSemana() {
         const doDia = dados.filter(r => r.data === di && passaStatus(statusCompromisso(r)) && passaAssunto(assuntoCompromisso(r)));
         if (!doDia.length) continue;
         linhas.push(`*${DIA_SEM[d.getDay()]} ${d.getDate()}/${String(d.getMonth() + 1).padStart(2, '0')}*`);
-        doDia.forEach(r => linhas.push(`• ${r.hora ? String(r.hora).slice(0, 5) + ' ' : ''}${r.titulo}${r.valor != null ? ' · ' + moeda(r.valor) : ''}${r.atrasado ? ' (atrasado)' : ''}`));
+        doDia.forEach(r => linhas.push(`• ${r.hora ? String(r.hora).slice(0, 5) + ' ' : ''}${r.titulo_curto || r.titulo}${r.valor != null ? ' · ' + moeda(r.valor) : ''}${r.atrasado ? ' (atrasado)' : ''}`));
     }
     const cab = `Agenda ${ini.getDate()}/${String(ini.getMonth() + 1).padStart(2, '0')} a ${fim.getDate()}/${String(fim.getMonth() + 1).padStart(2, '0')}`;
     const texto = linhas.length ? `${cab}\n\n${linhas.join('\n')}` : `${cab}\n\nNada marcado nesta semana.`;
