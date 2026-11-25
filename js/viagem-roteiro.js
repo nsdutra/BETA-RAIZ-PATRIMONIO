@@ -1,6 +1,12 @@
 // ============================================================================
 // viagem-roteiro.js — Raiz Patrimônio · Roteiro da viagem (programa com tipos de ciclo)
-// Versão: 1.1.0 · 25/11/2026
+// Versão: 1.2.0 · 25/11/2026
+//
+// v1.2.0 (25/11/2026, sessão 20261125-0120-viagem-2b2, demanda d8061e47; FICHA_PROGRAMA_VIAGEM_FATIA2B2 v1.0.0, de acordo do
+// Nicola 25/11 01:20) — etapas: cada entrada mostra a etapa (A cotar, Reservado… ou Ideia, Escolhido… no lugar) e o toque troca
+// (fn_item_etapa_mover; escolherEtapa exportada para a cofre-controles.js); registro com início e fim aparece também no dia do
+// fim; "+ No roteiro" oferece Lugar, Passe (janela e dias de uso) e Outro item (fn_ciclo_item_incluir) além de "Mais um em…";
+// na bandeja o passe vira uma linha "0 de 4 dias" e o dia só pode cair na janela. Versão anterior: 1.1.0
 //
 // v1.1.0 (25/11/2026, sessão 20261125-0042-viagem-lista, demanda d8061e47; de acordo do Nicola 25/11 00:42) — "A encaixar" vira
 // uma linha que abre no toque (fechada ao abrir o roteiro), para os dias aparecerem logo no começo. Versão anterior: 1.0.0
@@ -12,7 +18,7 @@
 // vez (fn_ciclo_trechos_salvar). O dia em que se muda de cidade é do trecho que começa nele (regra do banco). As regras são do
 // banco; aqui só se monta, colhe e manda. Aberto por cofre-controles.js (botão "Roteiro" e ⋮ do trecho).
 // ============================================================================
-export const VERSAO = '1.1.0';
+export const VERSAO = '1.2.0';
 import * as api from './cofre-api.js';
 
 const esc = (v) => String(v ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -69,8 +75,9 @@ async function ler() {
 
 function linhaEntrada(e, comHora = true) {
     const p = partes(e.inicio_em), pf = partes(e.fim_em);
-    const quando = comHora ? (p.hora || 'Dia todo') + (e.fim_em ? ' – ' + (pf.data !== p.data ? dm(pf.data) + ' ' : '') + (pf.hora || '') : '') : '';
-    const sub = [quando, e.valor ? moeda(e.valor) : '', e.status === 'concluido' ? 'Feito' : ''].filter(Boolean).join(' · ');
+    const quando = !comHora ? '' : e.papel === 'fim' ? 'Termina hoje' + (pf.hora ? ' ' + pf.hora : '') + ' · desde ' + dm(p.data)
+        : (p.hora || 'Dia todo') + (e.fim_em ? ' – ' + (pf.data !== p.data ? dm(pf.data) + ' ' : '') + (pf.hora || '') : '');
+    const sub = [e.etapa_nome, quando, e.papel !== 'fim' && e.valor ? moeda(e.valor) : '', e.status === 'concluido' ? 'Feito' : ''].filter(Boolean).join(' · ');
     const titulo = e.descricao ? `${e.titulo} · ${e.descricao}` : e.titulo;
     return `<button type="button" class="rz-row" data-rt-oc="${e.ocorrencia_id}" style="width:100%;text-align:left">
         <div class="rz-tx"><b>${esc(titulo)}</b>${sub ? `<span>${esc(sub)}</span>` : ''}</div>
@@ -89,7 +96,7 @@ function corpoHtml(r) {
             <div class="rz-ic"><i data-lucide="inbox"></i></div><div class="rz-tx"><b>A encaixar · ${enc.length}</b><span>Ainda sem dia</span></div>
             <i data-lucide="${bandejaAberta ? 'chevron-up' : 'chevron-down'}"></i></button>
         <div data-rt-bandeja-lista class="rz-rt-bandeja${bandejaAberta ? '' : ' hidden'}"><p class="rz-hint" style="margin:4px 0 6px">Toque para marcar o dia e, se quiser, a hora.</p>
-        <div class="rz-list" style="padding:0">${enc.map(e => linhaEntrada(e, false)).join('')}</div></div>`;
+        <div class="rz-list" style="padding:0">${bandejaAgrupada(enc).map(linhaBandeja).join('')}</div></div>`;
     (r.trechos || []).forEach(t => {
         const ult = (t.dias || []).length ? t.dias[t.dias.length - 1].data : t.fim;
         h += `<div class="rz-group rz-group-t" style="margin-top:14px"><span>${esc(t.nome)} · ${dm(t.inicio)} a ${dm(ult)}</span></div>`
@@ -97,12 +104,26 @@ function corpoHtml(r) {
     });
     const sem = r.dias_sem_trecho || [], fora = r.fora_dos_trechos || [];
     if (sem.length || fora.length) {
-        const dias = [...new Set([...sem, ...fora.map(e => partes(e.inicio_em).data)])].sort();
+        const diaDe = (e) => e.dia || partes(e.inicio_em).data; // v1.2.0 — a entrada de fim vem com o dia do fim
+        const dias = [...new Set([...sem, ...fora.map(diaDe)])].sort();
         h += `<div class="rz-group rz-group-t" style="margin-top:14px"><span>Outros dias</span></div>`
-            + dias.map(dd => diaHtml({ data: dd, entradas: fora.filter(e => partes(e.inicio_em).data === dd) })).join('');
+            + dias.map(dd => diaHtml({ data: dd, entradas: fora.filter(e => diaDe(e) === dd) })).join('');
     }
     if (!h) h = '<p class="rz-desc">Nada no roteiro ainda.</p>';
     return h;
+}
+// v1.2.0 — passe: os dias sem marcar do mesmo item viram uma linha ("0 de 4 dias"); o toque encaixa o próximo
+function bandejaAgrupada(enc) {
+    const m = new Map();
+    enc.forEach(e => { if (!m.has(e.item_id)) m.set(e.item_id, []); m.get(e.item_id).push(e); });
+    return [...m.values()].flatMap(lst => (lst[0].dias_total > 1 ? [lst[0]] : lst));
+}
+function linhaBandeja(e) {
+    if (!(e.dias_total > 1)) return linhaEntrada(e, false);
+    const sub = [e.etapa_nome, `${e.dias_marcados} de ${e.dias_total} dias`, e.janela_fim ? 'válido ' + dm(e.janela_inicio) + ' a ' + dm(e.janela_fim) : '',
+        e.valor ? moeda(e.valor) : ''].filter(Boolean).join(' · ');
+    return `<button type="button" class="rz-row" data-rt-oc="${e.ocorrencia_id}" style="width:100%;text-align:left">
+        <div class="rz-tx"><b>${esc(e.titulo)}</b><span>${esc(sub)}</span></div>${e.docs ? '<i data-lucide="paperclip"></i>' : ''}<i data-lucide="chevron-right"></i></button>`;
 }
 function achar(r, ocId) {
     const todas = [...(r.a_encaixar || []), ...(r.fora_dos_trechos || [])];
@@ -125,22 +146,82 @@ function acoesEntrada(r, ocId, fechado) {
         acoes.push({ icone: 'copy-plus', titulo: 'Mais um em ' + e.titulo, codigo: 'cofre.controles.editar', sub: 'Outro hotel, o voo de volta…', aoTocar: () => folhaEncaixar(r, { item_id: e.item_id, titulo: e.titulo }, true) });
         if (e.inicio_em) acoes.push({ icone: 'undo-2', titulo: 'Voltar para A encaixar', codigo: 'cofre.controles.editar', aoTocar: () => mandar({ p_item_id: e.item_id, p_ocorrencia_id: e.ocorrencia_id, p_inicio_em: null }) });
     }
+    if (!fechado && r.pode_encaixar && e.fluxo && (r.etapas || {})[e.fluxo])
+        acoes.unshift({ icone: 'list-checks', titulo: 'Etapa: ' + (e.etapa_nome || '—'), codigo: 'cofre.controles.editar', sub: 'Toque para mudar',
+            aoTocar: () => escolherEtapa({ itemId: e.item_id, titulo: e.titulo, fluxo: e.fluxo, etapa: e.etapa, etapas: r.etapas[e.fluxo] }, () => abrirRoteiro()) });
     acoes.push({ icone: 'paperclip', titulo: 'Abrir o item', codigo: 'cofre.controles.ver', sub: 'Documentos, pagamento e rateio', aoTocar: () => ctx.abrirItem?.(e.item_id) });
     g('abrirSheetAcoes')?.({ titulo: e.descricao ? `${e.titulo} · ${e.descricao}` : e.titulo, sub: 'Roteiro', acoes, empilhar: true });
 }
 
 function escolherItem(r) {
-    const its = itensDoRoteiro(r); if (!its.length) { aviso('A viagem não tem itens.', 'erro'); return; }
-    g('abrirSheetAcoes')?.({ titulo: 'No roteiro', sub: 'Escolha o item', empilhar: true,
-        acoes: its.map(i => ({ icone: 'plus', titulo: i.titulo, codigo: 'cofre.controles.editar', aoTocar: () => folhaEncaixar(r, { item_id: i.id, titulo: i.titulo }, true) })) });
+    const its = itensDoRoteiro(r);
+    const novos = r.pode_incluir ? [
+        { icone: 'map-pin', titulo: 'Lugar', codigo: 'cofre.controles.criar', sub: 'Restaurante, passeio: Ideia › Escolhido › Feito', aoTocar: () => folhaIncluir(r, 'lugar') },
+        { icone: 'ticket', titulo: 'Passe', codigo: 'cofre.controles.criar', sub: 'Ingresso com janela e dias de uso', aoTocar: () => folhaIncluir(r, 'passe') },
+        { icone: 'plus', titulo: 'Outro item', codigo: 'cofre.controles.criar', sub: 'Um gasto que não está na lista', aoTocar: () => folhaIncluir(r, 'item') },
+    ] : [];
+    const mais = its.map(i => ({ icone: 'copy-plus', titulo: 'Mais um em ' + i.titulo, codigo: 'cofre.controles.editar', aoTocar: () => folhaEncaixar(r, { item_id: i.id, titulo: i.titulo }, true) }));
+    if (!novos.length && !mais.length) { aviso('Nada para incluir.', 'erro'); return; }
+    g('abrirSheetAcoes')?.({ titulo: 'No roteiro', sub: r.ciclo.nome, empilhar: true, acoes: [...novos, ...mais] });
+}
+/** v1.2.0 — inclui Lugar, Passe ou Outro item na viagem (fn_ciclo_item_incluir). c: { cicloId, ciclo{inicio,fim,nome} }, tipo, aposSalvar */
+export function folhaIncluir(r, tipo, aposSalvar) {
+    const C = r.ciclo, T = { lugar: 'Lugar', passe: 'Passe', item: 'Outro item' }[tipo];
+    const ph = { lugar: 'Ex.: Jantar no Epcot', passe: 'Ex.: Ingresso 4 parques', item: 'Ex.: Chip de celular' }[tipo];
+    g('abrirSheetForm')?.({
+        titulo: T, sub: C.nome, rotuloSalvar: 'Incluir', empilhar: true,
+        corpo: `<div class="rz-f"><label for="ri-tit">Nome</label><input type="text" id="ri-tit" maxlength="80" placeholder="${esc(ph)}"></div>`
+            + (tipo === 'passe' ? `<div class="rz-row" style="gap:8px"><div class="rz-f" style="flex:1"><label for="ri-de">Válido de</label><input type="date" id="ri-de" value="${esc(C.inicio)}" min="${esc(C.inicio)}" max="${esc(C.fim)}"></div>
+                <div class="rz-f" style="flex:1"><label for="ri-ate">até</label><input type="date" id="ri-ate" value="${esc(C.fim)}" min="${esc(C.inicio)}" max="${esc(C.fim)}"></div></div>
+                <div class="rz-f"><label for="ri-dias">Dias de uso</label><input type="number" id="ri-dias" min="1" value="1" inputmode="numeric"></div>` : '')
+            + `<div class="rz-f"><label for="ri-desc">${tipo === 'lugar' ? 'Nota (opcional)' : 'Descrição (opcional)'}</label><input type="text" id="ri-desc" maxlength="120" placeholder="${tipo === 'lugar' ? 'Endereço, link, dica…' : ''}"></div>`
+            + (tipo !== 'lugar' ? `<div class="rz-f"><label for="ri-valor">Valor (opcional)</label><input type="text" inputmode="decimal" id="ri-valor" placeholder="0,00"></div>` : '')
+            + `<span class="rz-hint">Entra em "A encaixar"; depois é só marcar o dia.</span>`,
+        aoSalvar: async (el) => {
+            const v = (q) => (el.querySelector(q)?.value || '').trim();
+            const titulo = v('#ri-tit'); if (!titulo) { aviso('Dê um nome.', 'erro'); return false; }
+            const valorTxt = v('#ri-valor').replace(/\./g, '').replace(',', '.'); const valor = valorTxt ? Number(valorTxt) : null;
+            if (valorTxt && (isNaN(valor) || valor < 0)) { aviso('Valor inválido.', 'erro'); return false; }
+            const { data, error } = await api.dbAuth.rpc('fn_ciclo_item_incluir', { p_ciclo_id: C.id, p_tipo: tipo, p_titulo: titulo, p_descricao: v('#ri-desc') || null,
+                p_valor: valor, p_janela_inicio: tipo === 'passe' ? v('#ri-de') || null : null, p_janela_fim: tipo === 'passe' ? v('#ri-ate') || null : null,
+                p_dias: tipo === 'passe' ? Number(v('#ri-dias') || 1) : null, p_canal: 'app' });
+            if (error) { aviso(error.message || 'Não foi possível incluir.', 'erro'); return false; }
+            aviso(data?.mensagem || 'Incluído.', 'sucesso');
+            setTimeout(() => (typeof aposSalvar === 'function' ? aposSalvar() : abrirRoteiro()), 0);
+            return true;
+        },
+    });
+}
+/** v1.2.0 — troca a etapa do item. it: { itemId, titulo, fluxo, etapa, etapas? }. Sem etapas, lê o catálogo (fluxo_etapas). */
+export async function escolherEtapa(it, aposMudar) {
+    let etapas = it.etapas;
+    if (!etapas) {
+        const { data } = await api.dbAuth.from('fluxo_etapas').select('etapa_codigo, etapa_nome, ordem').eq('fluxo_codigo', it.fluxo).eq('aplica_a', 'item_controle').eq('ativo', true).order('ordem');
+        etapas = (data || []).map(x => ({ codigo: x.etapa_codigo, nome: x.etapa_nome }));
+    }
+    if (!etapas.length) return;
+    const ICONE = { a_cotar: 'circle-dashed', cotado: 'file-text', reservado: 'calendar-check', pago: 'badge-check', cancelado: 'x-circle',
+        ideia: 'lightbulb', escolhido: 'star', feito: 'check-circle', descartado: 'x-circle' };
+    g('abrirSheetAcoes')?.({ titulo: it.titulo, sub: 'Etapa', empilhar: true, acoes: etapas.map(x => ({
+        icone: x.codigo === it.etapa ? 'check' : (ICONE[x.codigo] || 'circle'), titulo: x.nome, codigo: 'cofre.controles.editar',
+        sub: x.codigo === it.etapa ? 'Etapa atual' : (x.codigo === 'cancelado' || x.codigo === 'descartado' ? 'Sai do roteiro' : ''),
+        tipo: x.codigo === 'cancelado' || x.codigo === 'descartado' ? 'bad' : undefined,
+        aoTocar: async () => {
+            if (x.codigo === it.etapa) return;
+            const { data, error } = await api.dbAuth.rpc('fn_item_etapa_mover', { p_item_id: it.itemId, p_etapa: x.codigo, p_canal: 'app' });
+            if (error) { aviso(error.message || 'Não foi possível mudar.', 'erro'); return; }
+            aviso(data?.mensagem || 'Feito.', 'sucesso');
+            setTimeout(() => aposMudar?.(), 0);
+        } })) });
 }
 
 function folhaEncaixar(r, e, novo) {
     const p = partes(e.inicio_em), pf = partes(e.fim_em);
     const dataIni = p.data || (e.data_prevista && e.data_prevista >= r.ciclo.inicio && e.data_prevista <= r.ciclo.fim ? e.data_prevista : r.ciclo.inicio);
+    const jan = e.dias_total > 1 && e.janela_fim ? ` min="${esc(e.janela_inicio)}" max="${esc(e.janela_fim)}"` : ''; // v1.2.0 — passe: só dentro da janela
     g('abrirSheetForm')?.({
         titulo: (novo ? 'Mais um em ' : '') + e.titulo, sub: r.ciclo.nome, rotuloSalvar: novo ? 'Incluir' : 'Salvar', empilhar: true,
-        corpo: `<div class="rz-row" style="gap:8px"><div class="rz-f" style="flex:1"><label for="rt-dia">Dia</label><input type="date" id="rt-dia" value="${esc(dataIni)}"></div>
+        corpo: `<div class="rz-row" style="gap:8px"><div class="rz-f" style="flex:1"><label for="rt-dia">Dia</label><input type="date" id="rt-dia" value="${esc(dataIni)}"${jan}></div>
                 <div class="rz-f" style="flex:1"><label for="rt-hora">Hora (opcional)</label><input type="time" id="rt-hora" value="${esc(p.hora)}"></div></div>
             <div class="rz-row" style="gap:8px"><div class="rz-f" style="flex:1"><label for="rt-ate">Até (opcional)</label><input type="date" id="rt-ate" value="${esc(pf.data)}"></div>
                 <div class="rz-f" style="flex:1"><label for="rt-ate-h">Hora</label><input type="time" id="rt-ate-h" value="${esc(pf.hora)}"></div></div>
@@ -150,6 +231,7 @@ function folhaEncaixar(r, e, novo) {
         aoSalvar: async (el) => {
             const v = (s) => (el.querySelector(s)?.value || '').trim();
             const dia = v('#rt-dia'); if (!dia) { aviso('Informe o dia.', 'erro'); return false; }
+            if (jan && (dia < e.janela_inicio || dia > e.janela_fim)) { aviso(`O passe vale de ${dm(e.janela_inicio)} a ${dm(e.janela_fim)}.`, 'erro'); return false; }
             const ate = v('#rt-ate'), ateH = v('#rt-ate-h');
             if (ateH && !ate) { aviso('Informe o dia do "Até".', 'erro'); return false; }
             const valorTxt = v('#rt-valor').replace(/\./g, '').replace(',', '.');

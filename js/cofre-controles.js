@@ -1,6 +1,11 @@
 // ============================================================================
 // cofre-controles.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.83.0 · 25/11/2026
+// Versão: 1.84.0 · 25/11/2026
+//
+// v1.84.0 (25/11/2026, sessão 20261125-0120-viagem-2b2, demanda d8061e47; FICHA_PROGRAMA_VIAGEM_FATIA2B2 v1.0.0, de acordo do
+// Nicola 25/11 01:20) — viagem: cada item mostra a etapa num chip que troca a etapa (escolherEtapa da viagem-roteiro.js),
+// Cancelado/Descartado riscado; resumo "A cotar 4 · Reservado 1" acima dos itens; "+ Outro item" (folhaIncluir). Card Controles:
+// a linha da viagem diz quantos itens faltam cotar. Itens de quem viaja junto já vêm pela viagem (fn_execucao_detalhe). Versão anterior: 1.83.0
 //
 // v1.83.0 (25/11/2026, sessão 20261125-0042-viagem-lista, demanda d8061e47; de acordo do Nicola 25/11 00:42) — no card Controles,
 // programa com várias execuções abertas (viagens) mostra uma linha por viagem (nome, tipo, ida a volta, quantos itens e o pior
@@ -18,17 +23,11 @@
 //
 // v1.80.0 (24/11/2026, sessão 20261124-0916-seguros, demanda 6fbdad60; teste do Nicola 23:15) — "Subir cotação" do comparativo usa
 // abrirUploadCotacaoSeguro (cofre-documentos 2.42.0): a cotação é lida como cotação, não como apólice, e aparece para comparar.
-// Versão anterior: 1.79.0
-//
-// v1.79.0 (24/11/2026, sessão 20261124-2257-viagem-app, demanda d8061e47; plano da fatia 2a, de acordo do Nicola 24/11 22:57) —
-// programa com tipos de ciclo (programas.ciclo_config, ex.: Viagens): "Abrir" vira "+ Nova viagem" com tipo, nome, ida, volta
-// e trechos (fn_execucao_abrir com p_variante, p_fim_previsto e p_trechos); várias abertas ao mesmo tempo quando o programa
-// permite; "trecho" no lugar de "fase"; viagem planejada mostra ida e volta no subtítulo e o tipo nas abas. Versão anterior: 1.78.0
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.78.0 … v1.78.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.79.0 … v1.79.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '1.83.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.84.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 import { estado } from './cofre-estado.js';
 import * as api from './cofre-api.js';
 import { mostrarToast, refrescarIcones, abrirModal, fecharModal, modalGenerico, perguntar, escolher, avisarComDesfazer } from './cofre-ui.js';
@@ -423,7 +422,7 @@ function linhaCicloGrupoHtml(p, c, its) { // v1.83.0
     const etiqueta = ['bad', 'warn', 'run'].includes(pior[0]) ? `<div class="rz-rt">${statusHtml(pior[0], pior[1])}</div>` : '';
     const vari = c.variante ? (NOME_VARIANTE[c.variante] || c.variante.charAt(0).toUpperCase() + c.variante.slice(1)) : '';
     const quando = c.inicio ? formatarDataBR(c.inicio).slice(0, 5) + (c.fim_previsto ? ' a ' + formatarDataBR(c.fim_previsto) : '') : '';
-    const sub = [vari, quando, its.length + (its.length === 1 ? ' item' : ' itens')].filter(Boolean).join(' · ');
+    const sub = [vari, quando, its.length + (its.length === 1 ? ' item' : ' itens'), c.a_cotar ? c.a_cotar + ' a cotar' : ''].filter(Boolean).join(' · '); // v1.84.0
     return `<div class="rz-row rz-link rz-sub-row" role="button" tabindex="0" data-ctl-ciclo="${p.id}|${c.id}">
         <div class="rz-ic"><i data-lucide="${escapeHtml(p.icone || 'calendar-range')}"></i></div>
         <div class="rz-tx"><b>${escapeHtml(c.nome)}</b><span>${escapeHtml(sub)}</span></div>${etiqueta}<i data-lucide="chevron-right" class="rz-chev"></i></div>`;
@@ -678,7 +677,10 @@ function linhaFaseHtml(f, d) {
 function linhaItemExecHtml(i) {
     const prox = i.proximo?.data ? (diasAte(i.proximo.data) < 0 ? 'Venceu ' : 'Próximo ') + formatarDataBR(i.proximo.data) : 'Sem pendência';
     const val = i.valor_previsto ? ' · ' + moedaBR(i.valor_previsto) : '';
-    return `<button type="button" class="rz-row" data-exec-item="${i.id}" style="width:100%;text-align:left"><div class="rz-tx"><b>${escapeHtml(i.titulo)}</b><span>${escapeHtml(prox + val)}</span></div><i data-lucide="chevron-right"></i></button>`;
+    const fora = i.etapa === 'cancelado' || i.etapa === 'descartado'; // v1.84.0 — etapa no chip; cancelado riscado
+    const linha = `<button type="button" class="rz-row" data-exec-item="${i.id}" style="width:100%;text-align:left;flex:1;min-width:0;border:0"><div class="rz-tx"><b${fora ? ' style="text-decoration:line-through;opacity:.6"' : ''}>${escapeHtml(i.titulo)}</b><span>${escapeHtml(prox + val)}</span></div><i data-lucide="chevron-right"></i></button>`;
+    if (!i.etapa_nome) return linha;
+    return `<div style="display:flex;align-items:center;gap:6px;width:100%">${linha}<button type="button" class="rz-chip${i.etapa === 'pago' || i.etapa === 'reservado' || i.etapa === 'feito' ? ' rz-on' : ''}" data-exec-etapa="${i.id}" style="flex:none;white-space:nowrap">${escapeHtml(i.etapa_nome)}</button></div>`;
 }
 // A tela da execução: as fases (ou etapas) com situação e custo, o custo somado, os itens de agora e as ações.
 export async function abrirExecucao(apId, cicloId = null) {
@@ -705,6 +707,11 @@ export async function abrirExecucao(apId, cicloId = null) {
     const itensHtml = d.aberta && C?.situacao !== 'fechado'
         ? grupo(d.fase_atual ? 'Agora: ' + d.fase_atual.nome : 'Agora', porEscopo('fase')) + grupo('Da ' + R.exec + ' inteira', porEscopo('ciclo')) + grupo('Do programa', porEscopo('programa'))
         : grupo('Do programa', porEscopo('programa'));
+    // v1.84.0 — resumo por etapa e "+ Outro item" (viagem)
+    const comEtapa = (d.itens || []).filter(i => i.etapa_nome);
+    const contEtapa = comEtapa.reduce((m, i) => (m.set(i.etapa_nome, (m.get(i.etapa_nome) || 0) + 1), m), new Map());
+    const resumoEtapas = comEtapa.length ? `<p class="rz-hint" style="margin:4px 0 0">${escapeHtml([...contEtapa].map(([k, n]) => k + ' ' + n).join(' · '))}</p>` : '';
+    const outroItem = temVariantes(d) && C && C.situacao !== 'fechado' && d.pode_gerir ? '<button type="button" class="rz-btn rz-btn-3" data-exec-outro style="margin-top:6px">+ Outro item</button>' : '';
     const sugN = (d.sugestoes_fase || []).length + (d.sugestoes_ciclo || []).length;
     const acoes = [];
     if (d.pode_gerir && P.situacao === 'ativo') {
@@ -730,7 +737,7 @@ export async function abrirExecucao(apId, cicloId = null) {
             : `<p class="rz-desc">${P.tem_etapas ? 'Escolha as etapas desta obra a partir do modelo. Cada uma terá os seus itens e o seu custo.'
                 : temVariantes(d) ? 'Crie a ' + R.exec + ': escolha o tipo, as datas e, se quiser, os trechos. Os itens de cada tipo já vêm junto.'
                 : 'A ' + R.exec + ' começa em ' + R.Fase.toLowerCase() + ' pela data e traz os itens de cada fase.'}</p>`)
-        + itensHtml;
+        + resumoEtapas + itensHtml + outroItem;
     const sheet = window.abrirSheet(window.rzSheetCabecalho(titulo, sub) + `<div class="rz-sh-b">${corpo}</div>`
         + (acoes.length ? `<div class="rz-sh-f rz-exec-acoes">${acoes.join('')}</div>` : ''));
     refrescarIcones();
@@ -744,6 +751,11 @@ export async function abrirExecucao(apId, cicloId = null) {
     sheet.querySelector('[data-exec-incluir]')?.addEventListener('click', () => abrirFolhaIncluirItens(d));
     sheet.querySelector('[data-exec-reabrir]')?.addEventListener('click', () => abrirFolhaReabrirCiclo(d));
     sheet.querySelector('[data-exec-corrigir]')?.addEventListener('click', () => abrirAcoesCorrigirCiclo(d));
+    sheet.querySelectorAll('[data-exec-etapa]').forEach(b => b.addEventListener('click', (ev) => { ev.stopPropagation(); // v1.84.0
+        const it = (d.itens || []).find(x => x.id === b.dataset.execEtapa); if (!it) return;
+        import('./viagem-roteiro.js').then(m => m.escolherEtapa({ itemId: it.id, titulo: it.titulo, fluxo: it.fluxo, etapa: it.etapa }, () => aposMudarExecucao(P.id, C?.id || null))); }));
+    sheet.querySelector('[data-exec-outro]')?.addEventListener('click', () => import('./viagem-roteiro.js').then(m => m.folhaIncluir(
+        { ciclo: { id: C.id, nome: C.nome, inicio: C.inicio, fim: C.fim_previsto || C.inicio } }, 'item', () => aposMudarExecucao(P.id, C.id)))); // v1.84.0
     sheet.querySelector('[data-exec-roteiro]')?.addEventListener('click', () => import('./viagem-roteiro.js').then(m => m.abrirRoteiro({ cicloId: C.id,
         abrirItem: (id) => { window.fecharSheet(); window.fecharSheet(); abrirFichaItemControle(id); } }))); // v1.82.0
     if (C && window.podeUsar?.('comercial.itens')?.ok) import('./comercial-itens.js').then(m => m.preencherProduzidos(sheet, d)).catch(() => {}); // v1.76.0 — C3
