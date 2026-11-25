@@ -1,6 +1,11 @@
 // ============================================================================
 // cofre-controles.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.78.0 · 24/11/2026
+// Versão: 1.79.0 · 24/11/2026
+//
+// v1.79.0 (24/11/2026, sessão 20261124-2257-viagem-app, demanda d8061e47; plano da fatia 2a, de acordo do Nicola 24/11 22:57) —
+// programa com tipos de ciclo (programas.ciclo_config, ex.: Viagens): "Abrir" vira "+ Nova viagem" com tipo, nome, ida, volta
+// e trechos (fn_execucao_abrir com p_variante, p_fim_previsto e p_trechos); várias abertas ao mesmo tempo quando o programa
+// permite; "trecho" no lugar de "fase"; viagem planejada mostra ida e volta no subtítulo e o tipo nas abas. Versão anterior: 1.78.0
 //
 // v1.78.0 (24/11/2026, sessão 20261124-0916-seguros, demanda 6fbdad60; FICHA_COMPARATIVO_RENOVACAO_SEGUROS v1.5.0 §14, de acordo do
 // Nicola 24/11 22:41) — abrirComparativoPorLink(): o link do robô (#/seguro/<item>) abre a ficha do item de seguro e, por cima,
@@ -20,16 +25,11 @@
 // v1.75.0 (16/11/2026, sessão 20261114-2342-investimentos-patrimonio, demanda fd3898f7; FICHA_FORMA_DE_PAGAMENTO_DO_BEM v2.0.0,
 // "Agora sim. Pode seguir em frente." — Nicola 16/11 21:46) — criarItemParcelado() aceita a lista de pagamentos pronta
 // (datas e valores livres), a conta de quem paga e "já pagas" (datas passadas nascem baixadas). Versão anterior: 1.74.0
-//
-// v1.74.0 (15/11/2026, sessão 20261114-2342-investimentos-patrimonio, demanda fd3898f7; de acordo do Nicola 15/11 16:39) —
-// nova criarItemParcelado(): item de despesa em parcelas mensais criado por outra tela (o financiamento do bem, no card
-// "Valor do bem"), pelo mesmo caminho do formulário — item, histórico, ocorrências do horizonte até a data da última
-// parcela, log e evento. Nenhuma mudança no formulário. Versão anterior: 1.73.0
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.73.0 … v1.73.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.74.0 … v1.74.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '1.78.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.79.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 import { estado } from './cofre-estado.js';
 import * as api from './cofre-api.js';
 import { mostrarToast, refrescarIcones, abrirModal, fecharModal, modalGenerico, perguntar, escolher, avisarComDesfazer } from './cofre-ui.js';
@@ -503,7 +503,8 @@ function abrirAceitarPrograma(codigo) {
     window.abrirSheetForm({
         titulo: 'Aceitar ' + p.nome, sub: a.nome_exibicao, rotuloSalvar: 'Aceitar', empilhar: true,
         corpo: (el) => {
-            el.innerHTML = `<p class="rz-desc">Marque o que quer acompanhar. Só os marcados viram itens.</p><div class="rz-list">${itens.map((it, k) => itemAceitarHtml(it, k, hoje)).join('')}</div>`;
+            el.innerHTML = itens.length ? `<p class="rz-desc">Marque o que quer acompanhar. Só os marcados viram itens.</p><div class="rz-list">${itens.map((it, k) => itemAceitarHtml(it, k, hoje)).join('')}</div>`
+                : `<p class="rz-desc">${escapeHtml(p.nome)} não tem itens fixos: os itens nascem em cada uma que você criar dentro do programa.</p>`; // v1.79.0
             const btn = el.closest('.rz-sheet')?.querySelector('#rz-sheet-salvar');
             const contar = () => { const n = el.querySelectorAll('[data-prog-item]:checked').length; if (btn) btn.textContent = n ? `Aceitar ${n} ite${n === 1 ? 'm' : 'ns'}` : 'Aceitar'; };
             el.addEventListener('change', contar); contar();
@@ -514,7 +515,7 @@ function abrirAceitarPrograma(codigo) {
                 const v = (n) => (d.querySelector(`[data-campo="${n}"]`)?.value || '').trim();
                 return { it, data: v('data'), valor: v('valor'), ate: v('ate') };
             });
-            if (!marcados.length) { mostrarToast('Marque ao menos um item.', 'erro'); return false; }
+            if (!marcados.length && itens.length) { mostrarToast('Marque ao menos um item.', 'erro'); return false; } // v1.79.0: programa sem itens fixos liga sem marcar
             const falta = marcados.find(x => !x.it.ja_existe && (x.it.data_pedida === 'vencimento' || x.it.data_pedida === 'ultima_vez') && !x.data);
             if (falta) { mostrarToast(`${falta.it.data_pedida === 'vencimento' ? 'Diga quando vence' : 'Diga a última vez'}: ${falta.it.titulo}.`, 'erro'); return false; }
             const { data, error } = await api.dbAuth.rpc('fn_programa_aceitar', { p_ativo_id: a.id, p_programa: p.codigo, p_canal: 'app',
@@ -622,7 +623,11 @@ window.__rzAbrirProgramas = () => abrirTodosProgramas();
 // ============================================================================
 const SIT_FASE = { concluida: ['check', 'Concluída'], atual: ['circle-dot', 'Em andamento'], pendente: ['circle', 'A seguir'], pulada: ['minus', 'Pulada'] };
 const execRot = (d) => d?.programa?.tem_etapas ? { fase: 'etapa', Fase: 'Etapa', exec: 'obra', Exec: 'Obra' }
+    : temVariantes(d) ? { fase: 'trecho', Fase: 'Trecho', exec: (d?.programa?.ciclo_rotulo || 'Ciclo').toLowerCase(), Exec: d?.programa?.ciclo_rotulo || 'Ciclo' }
     : { fase: 'fase', Fase: 'Fase', exec: (d?.programa?.ciclo_rotulo || 'Ciclo').toLowerCase(), Exec: d?.programa?.ciclo_rotulo || 'Ciclo' };
+// v1.79.0 — programa com tipos de ciclo (Viagens): a lista de tipos e se aceita vários abertos vêm do catálogo (ciclo_config)
+const temVariantes = (d) => (d?.programa?.ciclo_config?.variantes || []).length > 0;
+const nomeVariante = (d, cod) => (d?.programa?.ciclo_config?.variantes || []).find(v => v.codigo === cod)?.nome || '';
 async function lerExecucao(apId, cicloId = null) {
     const { data, error } = await api.dbAuth.rpc('fn_execucao_detalhe', { p_ativo_programa_id: apId, p_ciclo_id: cicloId });
     if (error) { mostrarToast(error.message || 'Não consegui abrir.', 'erro'); return null; }
@@ -664,10 +669,11 @@ export async function abrirExecucao(apId, cicloId = null) {
     const R = execRot(d), P = d.programa, C = d.ciclo;
     const titulo = P.nome + (C ? ' · ' + C.nome : '');
     const sub = !d.aberta ? (P.tem_etapas ? 'Obra ainda não aberta' : 'Nenhuma ' + R.exec + ' aberta')
+        : C?.situacao === 'planejado' ? [nomeVariante(d, C.variante), 'ida ' + formatarDataBR(C.inicio), C.fim_previsto ? 'volta ' + formatarDataBR(C.fim_previsto) : ''].filter(Boolean).join(' · ')
         : C?.situacao === 'fechado' ? `${R.Exec} fechada em ${formatarDataBR(C.fim)}`
         : d.fase_atual ? `${R.Fase} atual: ${d.fase_atual.nome}` : '';
     const ciclosChips = (d.ciclos || []).length > 1 ? `<div class="rz-chips" style="margin:0 0 10px">${d.ciclos.map(c =>
-        `<button type="button" class="rz-chip ${c.id === C?.id ? 'rz-on' : ''}" data-exec-ciclo="${c.id}">${escapeHtml(c.nome)}</button>`).join('')}</div>` : '';
+        `<button type="button" class="rz-chip ${c.id === C?.id ? 'rz-on' : ''}" data-exec-ciclo="${c.id}">${escapeHtml(c.nome)}${c.variante ? ' · ' + escapeHtml(nomeVariante(d, c.variante)) : ''}</button>`).join('')}</div>` : '';
     const custo = d.custo || {};
     const res = C?.resultado && C.situacao === 'fechado' ? (P.resultado_campos || []).map(rc => C.resultado[rc.campo] != null
         ? `<span><b>${rc.unidade && rc.unidade.startsWith('R$') ? moedaBR(C.resultado[rc.campo]) : escapeHtml(String(C.resultado[rc.campo]))}</b> ${escapeHtml(rc.unidade && !rc.unidade.startsWith('R$') ? rc.unidade : '')} ${escapeHtml(rc.rotulo)}</span>` : '').join('') : '';
@@ -682,7 +688,10 @@ export async function abrirExecucao(apId, cicloId = null) {
     const sugN = (d.sugestoes_fase || []).length + (d.sugestoes_ciclo || []).length;
     const acoes = [];
     if (d.pode_gerir && P.situacao === 'ativo') {
-        if (!d.aberta || (C && C.situacao === 'fechado' && !(d.ciclos || []).some(c => c.situacao !== 'fechado')))
+        const simult = !!P.ciclo_config?.simultaneos; // v1.79.0 — várias abertas: "+ Nova" sempre à mão
+        if (simult) acoes.push(`<button type="button" class="rz-btn ${C && C.situacao !== 'fechado' ? 'rz-btn-3' : 'rz-btn-1'}" data-exec-abrir>+ Nova ${escapeHtml(R.exec)}</button>`);
+        if (simult && (!C || C.situacao === 'fechado')) { /* nada aberto: só o "+ Nova" */ }
+        else if (!d.aberta || (C && C.situacao === 'fechado' && !(d.ciclos || []).some(c => c.situacao !== 'fechado')))
             acoes.push(`<button type="button" class="rz-btn rz-btn-1" data-exec-abrir>${P.tem_etapas ? 'Abrir a obra' : (d.ciclos || []).length ? 'Abrir a próxima' : 'Abrir a ' + R.exec}</button>`);
         else if (C?.situacao !== 'fechado') {
             if (d.proxima) acoes.push(`<button type="button" class="rz-btn rz-btn-1" data-exec-avancar>Avançar para ${escapeHtml(d.proxima.nome)}</button>`);
@@ -697,6 +706,7 @@ export async function abrirExecucao(apId, cicloId = null) {
     const corpo = ciclosChips + custoHtml
         + (d.aberta ? `<div class="rz-exec-fases">${(d.fases || []).map(f => linhaFaseHtml(f, d)).join('')}</div>`
             : `<p class="rz-desc">${P.tem_etapas ? 'Escolha as etapas desta obra a partir do modelo. Cada uma terá os seus itens e o seu custo.'
+                : temVariantes(d) ? 'Crie a ' + R.exec + ': escolha o tipo, as datas e, se quiser, os trechos. Os itens de cada tipo já vêm junto.'
                 : 'A ' + R.exec + ' começa em ' + R.Fase.toLowerCase() + ' pela data e traz os itens de cada fase.'}</p>`)
         + itensHtml;
     const sheet = window.abrirSheet(window.rzSheetCabecalho(titulo, sub) + `<div class="rz-sh-b">${corpo}</div>`
@@ -904,6 +914,7 @@ function abrirFolhaAbrirObra(d) {
     });
 }
 function abrirFolhaAbrirCiclo(d) {
+    if (temVariantes(d)) return abrirFolhaNovoCicloVariante(d); // v1.79.0
     const R = execRot(d);
     window.abrirSheetForm({
         titulo: 'Abrir a ' + R.exec, sub: d.programa.nome, rotuloSalvar: 'Abrir', empilhar: true,
@@ -986,6 +997,52 @@ function moverFase(d, f, acao) {
 // v1.63.0 (item 53) — CORRIGIR: editar a safra, excluir a safra criada errada (só sem vínculo) e corrigir as datas da fase.
 // Regra no banco: fn_ciclo_editar, fn_ciclo_excluir, fn_ciclo_vinculos e fn_fase_datas; aqui só a folha e o aviso.
 // ---------------------------------------------------------------------------------------------------------------------------
+// v1.79.0 — "+ Nova viagem" (programa com tipos de ciclo): tipo, nome, ida, volta e trechos opcionais. A regra (tipo válido,
+// datas, vários abertos, itens do tipo) é do banco, em fn_execucao_abrir; aqui só se colhe e se manda.
+function abrirFolhaNovoCicloVariante(d) {
+    const R = execRot(d);
+    const vars = [...(d.programa.ciclo_config?.variantes || [])].sort((a, b) => (a.ordem || 0) - (b.ordem || 0));
+    const linhaTrecho = () => `<div class="rz-row rz-trecho" style="gap:6px;align-items:flex-end">
+        <div class="rz-f" style="flex:2;margin:0"><label>Trecho</label><input type="text" data-t-nome maxlength="60" placeholder="Ex.: Orlando"></div>
+        <div class="rz-f" style="flex:1;margin:0"><label>De</label><input type="date" data-t-ini></div>
+        <div class="rz-f" style="flex:1;margin:0"><label>Até</label><input type="date" data-t-fim></div></div>`;
+    const sheet = window.abrirSheetForm({
+        titulo: 'Nova ' + R.exec, sub: d.programa.nome, rotuloSalvar: 'Criar', empilhar: true,
+        corpo: `<div class="rz-f"><label>Tipo</label><div class="rz-chips" data-vars>${vars.map((v, i) =>
+                `<button type="button" class="rz-chip ${i === 0 ? 'rz-on' : ''}" data-var="${escapeHtml(v.codigo)}">${escapeHtml(v.nome)}</button>`).join('')}</div>
+                <span class="rz-hint" data-var-desc>${escapeHtml(vars[0]?.descricao || '')}</span></div>
+            <div class="rz-f"><label for="nv-nome">Nome</label><input type="text" id="nv-nome" maxlength="60" placeholder="Ex.: Disney · Orlando"></div>
+            <div class="rz-row" style="gap:8px"><div class="rz-f" style="flex:1"><label for="nv-ida">Ida</label><input type="date" id="nv-ida" value="${hojeLocalISO()}"></div>
+                <div class="rz-f" style="flex:1"><label for="nv-volta">Volta</label><input type="date" id="nv-volta"></div></div>
+            <div class="rz-group rz-group-t"><span>Trechos (opcional)</span></div>
+            <p class="rz-hint" style="margin:0 0 6px">Sem trechos, a ${escapeHtml(R.exec)} fica com um só, da ida à volta.</p>
+            <div data-trechos></div>
+            <button type="button" class="rz-btn rz-btn-3" data-add-trecho>+ Trecho</button>`,
+        aoSalvar: async (el) => {
+            const variante = el.querySelector('[data-var].rz-on')?.dataset.var || null;
+            const nome = (el.querySelector('#nv-nome')?.value || '').trim();
+            const ida = el.querySelector('#nv-ida')?.value || null, volta = el.querySelector('#nv-volta')?.value || null;
+            if (!nome) { mostrarToast('Dê um nome à ' + R.exec + '.', 'erro'); return false; }
+            if (!ida || !volta) { mostrarToast('Informe a ida e a volta.', 'erro'); return false; }
+            const trechos = [...el.querySelectorAll('.rz-trecho')].map(r => ({ nome: (r.querySelector('[data-t-nome]')?.value || '').trim(),
+                inicio_previsto: r.querySelector('[data-t-ini]')?.value || null, fim_previsto: r.querySelector('[data-t-fim]')?.value || null }))
+                .filter(t => t.nome || t.inicio_previsto || t.fim_previsto);
+            if (trechos.some(t => !t.nome)) { mostrarToast('Dê um nome a cada trecho.', 'erro'); return false; }
+            const { data, error } = await api.dbAuth.rpc('fn_execucao_abrir', { p_ativo_programa_id: d.programa.id, p_nome: nome, p_inicio: ida,
+                p_canal: 'app', p_variante: variante, p_fim_previsto: volta, p_trechos: trechos.length ? trechos : null });
+            if (error) { mostrarToast(error.message || 'Não foi possível criar.', 'erro'); return false; }
+            mostrarToast(data?.mensagem || (R.Exec + ' criada.'), 'sucesso');
+            setTimeout(() => aposMudarExecucao(d.programa.id, data?.ciclo_id || null), 0);
+            return true;
+        },
+    });
+    const raiz = sheet || document;
+    raiz.querySelectorAll('[data-var]').forEach(b => b.addEventListener('click', () => {
+        raiz.querySelectorAll('[data-var]').forEach(x => x.classList.toggle('rz-on', x === b));
+        const desc = raiz.querySelector('[data-var-desc]'); if (desc) desc.textContent = vars.find(v => v.codigo === b.dataset.var)?.descricao || '';
+    }));
+    raiz.querySelector('[data-add-trecho]')?.addEventListener('click', () => raiz.querySelector('[data-trechos]')?.insertAdjacentHTML('beforeend', linhaTrecho()));
+}
 const ehFem = (R) => /a$/.test(R.exec);
 function abrirAcoesCorrigirCiclo(d) {
     const R = execRot(d), C = d.ciclo; if (!C) return;
