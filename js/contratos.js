@@ -1,7 +1,11 @@
 // ============================================================================
 // contratos.js — Raiz Patrimônio · Contratos (lista · ficha · formulário ·
 //                 status/reajuste/detalhes · fiadores · documentos · histórico)
-// Versão: 1.76.0 · 18/11/2026
+// Versão: 1.77.0 · 25/11/2026
+//
+// v1.77.0 (25/11/2026, sessão 20261125-0918-cadastro-locatario; de acordo do Nicola 25/11 09:18, item 1) — no formulário do
+// contrato, só o nome do locatário é obrigatório: CPF/CNPJ, WhatsApp, e-mail, profissão, estado civil e endereço passam a
+// opcionais. O CPF/CNPJ só tem o dígito conferido quando foi digitado; sem documento, doc_tipo grava vazio. Versão anterior: 1.76.0
 //
 // v1.76.0 (18/11/2026, sessão 20261118-2125-cadastro-em-tela, demanda 6412873a; PLANO_CADASTRO_EM_TELA_CORRECOES_RAIZ v1.2.0, de acordo do Nicola 18/11 21:21 (Q1–Q3 sim)) — contexto de retorno 'relatorio': o contrato
 // aberto ou criado a partir do Cadastro da carteira, ao salvar, só fecha o formulário (o relatório, que ficou por baixo, relê o
@@ -26,14 +30,8 @@
 // pagamento) e depois da data (cancelar · manter). Grava pela fn_contrato_encerrar (uma transação, com log do "antes") — sai o
 // update/delete direto do navegador, que dava baixa nos futuros com a data de vigência (caso Maria Tereza, 13/11).
 // "Reativar contrato" no ⋮ do contrato encerrado, pela fn_contrato_reativar (recusa se o bem tem outro contrato em vigor).
-// Versão anterior: 1.72.0
-//
-// v1.72.0 (12/11/2026, sessão 20261112-2342-prest-partes-m3, demanda f6be5483; FICHA_MIGRACAO_PRESTADORES_PARA_PARTES_RAIZ v1.0.0 M3,
-// de acordo do Nicola 12/11 23:08 e 23:42) — Detalhes do contrato › Administradora grava pelo papel da parte no contrato
-// (sincronizarAdministradoraContrato, nucleo/porta.js 1.8.0 → fn_contrato_definir_administradora). Se o banco recusar, avisa e
-// não salva o resto. Versão anterior: 1.71.0
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.71.0 … v1.71.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.72.0 … v1.72.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
 import { avaliarProntidaoContratoParaMinuta } from './minutas.js'; // v1.0.1
@@ -46,7 +44,7 @@ import { renderizarBlocoEndereco, lerBlocoEndereco } from './comum-endereco.js';
 import { formatarEnderecoParte } from './comum-partes.js';
 import { sincronizarAdministradoraContrato } from './nucleo/porta.js'; // v1.72.0 — M3 prestadores→partes
 
-export const VERSAO = '1.76.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.77.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 
 // Faixa do cabeçalho da ficha do contrato: o resumo que se procura primeiro (valor, o que está em aberto e até quando vai).
 // Fim em mês/ano curto ("fev/28"); a data inteira fica no card Condições.
@@ -3633,14 +3631,15 @@ if (!window.__rzListenerEscritaParteContratoLigado) {
             // isso antes de fechar/mostrar sucesso.
             if(!imoId) { rzAvisar('Escolha o imóvel do contrato.', 'danger'); return false; }
 
-            if(docTipo === 'CPF' && !validarCPF(docVal)) {
+            // Documento do locatário é opcional: só confere o dígito quando foi digitado.
+            if(docVal && docTipo === 'CPF' && !validarCPF(docVal)) {
 
                 rzAvisar('O CPF informado não é válido.', 'danger');
                 return false;
 
             }
 
-            if(docTipo === 'CNPJ' && !validarCNPJ(docVal)) {
+            if(docVal && docTipo === 'CNPJ' && !validarCNPJ(docVal)) {
 
                 rzAvisar('O CNPJ informado não é válido.', 'danger');
                 return false;
@@ -3746,7 +3745,7 @@ if (!window.__rzListenerEscritaParteContratoLigado) {
 
                 locatario: document.getElementById('con-locatario').value,
 
-                docTipo: docTipo,
+                docTipo: docVal ? docTipo : null,
 
                 cpf: docVal,
 
@@ -4763,15 +4762,15 @@ if (!window.__rzListenerEscritaParteContratoLigado) {
             enderecoLocatarioEstruturadoAtualPertenceAoId = idContrato || '__novo__';
             const textoSalvo = ((document.getElementById('con-locatario-endereco') || {}).value || '').trim();
             if (!document.getElementById('con-loc-rua')) {
-                return textoSalvo ? { ok: true, texto: textoSalvo } : { ok: false, mensagem: '⚠️ Preencha o endereço do locatário.' };
+                return { ok: true, texto: textoSalvo };
             }
             const estruturado = lerBlocoEndereco('con-loc');
             if (estruturado.endereco_rua || estruturado.endereco_cidade) {
                 enderecoLocatarioEstruturadoAtual = estruturado;
                 return { ok: true, texto: formatarEnderecoParte(estruturado) };
             }
-            if (textoSalvo) return { ok: true, texto: textoSalvo };
-            return { ok: false, mensagem: '⚠️ Preencha o endereço do locatário (ao menos rua e cidade).' };
+            // Endereço do locatário é opcional: vazio grava vazio.
+            return { ok: true, texto: textoSalvo };
         }
 
         // Estado de fiadores do formulário único: lista vazia de contrato novo.

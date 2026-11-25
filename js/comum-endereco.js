@@ -1,6 +1,9 @@
 // ============================================================================
 // comum-endereco.js — Raiz Patrimônio · Componente de endereço
-// Versão: 1.2.0 · 03/10/2026
+// Versão: 1.2.1 · 25/11/2026
+//
+// v1.2.1 (25/11/2026, sessão 20261125-0918-cadastro-locatario, pedido do Nicola) — a linha do CEP passa de 180 para 340 px:
+// com o botão Buscar ao lado, o campo cortava o número (ativo, partes e endereço do locatário). Versão anterior: 1.2.0
 //
 // v1.2.0 (F0.5, UXR-31a, sessão 20261003-1707-ux-base): o botão "Buscar" do CEP
 // vira .rz-btn (48 px, a altura do campo ao lado) — antes era um
@@ -33,7 +36,7 @@
 // IDs dos campos: `${prefixo}-cep`, `${prefixo}-rua`, etc.
 // ============================================================================
 
-export const VERSAO = '1.2.0'; // v-check: lido por Dev › Versões — manter igual ao header
+export const VERSAO = '1.2.1'; // v-check: lido por Dev › Versões — manter igual ao header
 
 const UF_OPCOES = ['', 'AC', 'AL', 'AP', 'AM', 'BA', 'CE', 'DF', 'ES', 'GO', 'MA', 'MT', 'MS', 'MG',
     'PA', 'PB', 'PR', 'PE', 'PI', 'RJ', 'RN', 'RS', 'RO', 'RR', 'SC', 'SP', 'SE', 'TO'];
@@ -59,7 +62,7 @@ export function renderizarBlocoEndereco(prefixo, valores = {}, opcoes = {}) {
     const opcoesUF = UF_OPCOES.map(uf => `<option value="${uf}" ${uf === (v.uf || '') ? 'selected' : ''}>${uf || '—'}</option>`).join('');
 
     return `
-        <div class="rz-f" style="max-width:180px">
+        <div class="rz-f" style="max-width:340px">
             <label>CEP</label>
             <div style="display:flex;gap:8px">
                 <input type="text" id="${prefixo}-cep" inputmode="numeric" maxlength="9" placeholder="00000-000" value="${val(v.cep)}" style="flex:1"
