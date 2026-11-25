@@ -1,6 +1,11 @@
 // ============================================================================
 // cartao-descobrir.js — Raiz Patrimônio · Fatura do cartão › "Descobrir o que é"
-// Versão: 1.0.0 · 23/11/2026
+// Versão: 1.1.0 · 25/11/2026
+//
+// v1.1.0 (25/11/2026, sessão 20261125-0051-cartao-descobrir, demanda 1e32c5a1; de acordo do Nicola 25/11 00:51) — (1) EDITAR:
+// botão novo no rodapé que abre a classificação de sempre já preenchida com a categoria sugerida (ativo, fornecedor, "Sempre
+// assim"), via ctx.classificar(categoria). (2) ESPERA no padrão das leituras (rzProgressoLeitura do raiz-ui.js): passos,
+// barra e tempo, em vez do texto "Procurando…". (3) Data da pergunta sempre DD/MM/AAAA, também para hipótese em cache.
 //
 // v1.0.0 (23/11/2026, sessão 20261123-2310-cartao-descobrir, demanda 1e32c5a1; FICHA_CARTAO_DESCOBRIR_COMPRA_RAIZ v1.1.0,
 // peça E5; de acordo do Nicola 23/11 23:09) — criação. Na compra "A classificar", a ação "Descobrir o que é" abre por cima
@@ -9,12 +14,16 @@
 // classificar, que a pessoa marca uma a uma. Confirmar grava pela mesma função de classificar da fatura (quem chama passa
 // o gravar); autônomo (MEI) só pergunta o que foi o serviço. O módulo não decide nada: mostra o que a Edge e o banco mandam.
 // ============================================================================
-export const VERSAO = '1.0.0';
+export const VERSAO = '1.1.0';
+
+import { rzProgressoLeitura } from './raiz-ui.js';
 
 const esc = (v) => String(v ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const moeda = (v) => 'R$ ' + Math.abs(Number(v) || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 const dataBR = (iso) => { if (!iso) return ''; const [a, m, d] = String(iso).slice(0, 10).split('-'); return `${d}/${m}/${a}`; };
 const dataCurta = (iso) => { if (!iso) return ''; const [, m, d] = String(iso).slice(0, 10).split('-'); return `${d}/${m}`; };
+// a IA às vezes escreve a data como 2026-09-09; na tela é sempre DD/MM/AAAA
+const dataNaFrase = (t) => String(t ?? '').replace(/\b(\d{4})-(\d{2})-(\d{2})\b/g, '$3/$2/$1');
 const g = (nome) => (typeof window !== 'undefined' && typeof window[nome] === 'function') ? window[nome] : null;
 const icones = () => { if (typeof lucide !== 'undefined') lucide.createIcons(); };
 
@@ -27,9 +36,13 @@ export async function cartaoDescobrir(item, ctx) {
     const abrirSheet = g('abrirSheet'), cab = g('rzSheetCabecalho');
     if (!item || !abrirSheet || !cab) return;
     const titulo = cab('Descobrir o que é', `${item.descricao} · ${moeda(item.valor)}`);
-    const sheet = abrirSheet(titulo + `<div class="rz-sh-b"><div class="rz-card"><div class="rz-empty"><div class="rz-ic rz-ia"><svg data-lucide="sparkles"></svg></div>
-        <p>Procurando o que é esta compra…<br><small style="color:var(--muted)">Olho o que você já tem no Raiz e pesquiso o nome que aparece na fatura.</small></p></div></div></div>`, { empilhar: true });
+    const sheet = abrirSheet(titulo + `<div class="rz-sh-b"><div data-cd-espera></div></div>`, { empilhar: true });
     icones();
+    // espera no padrão das leituras: a Edge faz pistas e pesquisa numa chamada só, então o passo 0 dura um instante
+    const prog = rzProgressoLeitura({ alvo: sheet.querySelector('[data-cd-espera]'), passos: ['Lendo a compra e as pistas do Raiz',
+        'Raiz IA pesquisando o nome da compra', 'Montando o resultado'], passoIa: 1, tempoTipicoS: 20 });
+    prog.passo(0);
+    const t = setTimeout(() => prog.passo(1), 600);
     let r;
     try {
         const { data, error } = await dbAuth.functions.invoke('cartao-descobrir', { body: { lancamento_id: item.id } });
@@ -40,12 +53,15 @@ export async function cartaoDescobrir(item, ctx) {
         }
         if (!data?.ok) throw new Error(data?.mensagem || 'Não consegui pesquisar agora.');
         r = data;
+        clearTimeout(t); prog.passo(2);
     } catch (e) {
+        clearTimeout(t); prog.fim();
         const b = sheet.querySelector('.rz-sh-b');
         if (b) b.innerHTML = `<div class="rz-card"><div class="rz-empty"><div class="rz-ic"><svg data-lucide="alert-circle"></svg></div><p>${esc(e?.message || e)}</p></div></div>`;
         icones();
         return;
     }
+    prog.fim();
     desenhar(sheet, item, r, ctx);
 }
 
@@ -78,7 +94,7 @@ function desenhar(sheet, item, r, ctx) {
           ${!autonomo && h.confianca ? `<div class="rz-rt"><span class="rz-ia-tag"><svg data-lucide="sparkles"></svg>${Math.round(h.confianca)}%</span></div>` : ''}</div>
         ${temCat ? `<div class="rz-row"><div class="rz-ic"><svg data-lucide="tag"></svg></div><div class="rz-tx"><b>Categoria sugerida</b><span>${esc(h.categoria_nome || nomeCat(h.categoria))}</span></div></div>` : ''}
       </div>
-      ${h.pergunta ? `<p class="rz-desc" style="margin:8px 2px 4px">${esc(h.pergunta)}</p>` : ''}`;
+      ${h.pergunta ? `<p class="rz-desc" style="margin:8px 2px 4px">${esc(dataNaFrase(h.pergunta))}</p>` : ''}`;
     const viz = (p.vizinhas || []).filter(v => v.a_classificar);
     const vizHtml = temCat && viz.length ? `<div class="rz-group">Do mesmo dia ou do dia ao lado · marque as que são a mesma coisa</div><div class="rz-card rz-list">` +
         viz.map(v => `<label class="rz-row" style="cursor:pointer"><input type="checkbox" data-viz="${esc(v.id)}" style="width:20px;height:20px;flex:none;accent-color:var(--pine)">
@@ -93,7 +109,13 @@ function desenhar(sheet, item, r, ctx) {
     sheet.querySelector('.rz-sh-f')?.remove();
     sheet.insertAdjacentHTML('beforeend', `<div class="rz-sh-f">
         <button type="button" class="rz-btn rz-btn-2" data-cd-nao>${temCat ? 'Não é isso' : 'Fechar'}</button>
+        ${temCat ? '<button type="button" class="rz-btn rz-btn-2" data-cd-editar>Editar</button>' : ''}
         <button type="button" class="rz-btn rz-btn-1" data-cd-sim>${temCat ? 'Confirmar' : 'Classificar'}</button></div>`);
+    // Editar: a classificação de sempre, já preenchida com a categoria sugerida (ativo, fornecedor, "Sempre assim")
+    sheet.querySelector('[data-cd-editar]')?.addEventListener('click', () => {
+        g('fecharSheet')?.();
+        if (ctx && typeof ctx.classificar === 'function') setTimeout(() => ctx.classificar(h.categoria), 30);
+    });
     sheet.querySelector('[data-cd-nao]')?.addEventListener('click', () => g('fecharSheet')?.());
     sheet.querySelector('[data-cd-sim]')?.addEventListener('click', async (ev) => {
         const btn = ev.currentTarget;

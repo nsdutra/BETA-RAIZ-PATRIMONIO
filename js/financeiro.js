@@ -1,7 +1,11 @@
 // ============================================================================
 // financeiro.js — Raiz Patrimônio · Financeiro (Recebimentos · Atrasados · Saídas
 //                  · conciliação de extrato · recibo · detalhe do recebimento)
-// Versão: 1.103.0 · 23/11/2026
+// Versão: 1.104.0 · 25/11/2026
+//
+// v1.104.0 (25/11/2026, sessão 20261125-0051-cartao-descobrir, demanda 1e32c5a1; de acordo do Nicola 25/11 00:51) — o "Editar" do
+// "Descobrir o que é" abre a classificação de sempre preenchida com a categoria sugerida (a sugestão do Raiz IA entra no lugar da
+// sugestão do motor só para este formulário).
 //
 // v1.103.0 (23/11/2026, sessão 20261123-2310-cartao-descobrir, demanda 1e32c5a1; FICHA_CARTAO_DESCOBRIR_COMPRA_RAIZ v1.1.0, E5;
 // de acordo do Nicola 23/11 23:09) — compra "A classificar" da fatura ganha a ação "Descobrir o que é" (código cartao.descobrir),
@@ -32,19 +36,11 @@
 // O formulário é o mesmo da receita nova (abrirReceitaAvulsa com { editarId }). (2) A receita que veio do extrato ganha
 // "Devolver à conciliação" (a linha volta a pendente e a receita sai, fn_extrato_estornar_vinculo). (3) O ⋮ volta a mostrar
 // Contador e Fiscal quando a rotina está desligada, apagados e com o motivo (levam a Minha empresa › Rotinas). Versão anterior: 1.99.0
-//
-// v1.99.0 (17/11/2026, sessão 20261117-1540-financeiro-resumo, demanda 679b2700; FICHA_REVISAO_FINANCEIRO_RAIZ v1.0.0, Onda 3,
-// parte 1: D2 e D3; "vamos em frente" do Nicola 17/11 15:33) — (1) ABA RESUMO, a primeira do Financeiro: desenhada pelo módulo
-// novo js/financeiro-resumo.js (fn_financeiro_resumo_mes, F3), com a lente de ramos de hoje e a conta filtrada. A barra do
-// Financeiro abre nela. (2) O ⋮ DO FINANCEIRO em 3 grupos: Importar (extrato, fatura, documento), Lançar (entrada, saída) e
-// Rotinas do mês (Fechar ou reabrir o mês, Contador, Fiscal, Atrasados, com o estado de cada uma); a faixa de rotinas abaixo
-// dos números sai (#fin-rotinas-* fica vazio). (3) As abas de Pessoas passam a ser desenhadas aqui, como as outras (5 abas).
-// Recebimentos e Saídas nivelados ficam para a parte 2 da Onda 3. Versão anterior: 1.98.0
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.98.0 … v1.98.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.99.0 … v1.99.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '1.103.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.104.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 
 // v1.17.0 (Fase 1 do wrapper de escrita, rollout Financeiro) — emitirEscrita
 // é o evento padrão pra "algo mudou que módulos DE FORA deste arquivo podem
@@ -1732,7 +1728,7 @@ function financeiroRenderCabecalho(aba) {
                     aoTocar: () => financeiroGravarClassificacao([i.id], { categoria: s.categoria, ativo_id: s.ativo_id || null, parte_id: s.parte_id || null, divisao: null, sempre_assim: false }, f.id) });
             }
             if (pend) acoes.push({ icone: 'search', titulo: 'Descobrir o que é', sub: 'Pesquisa o nome da compra', codigo: 'cartao.descobrir',
-                aoTocar: () => cartaoDescobrir(i, { nomeCat, gravar: (ids, v) => financeiroGravarClassificacao(ids, v, f.id), classificar: () => financeiroClassificarItens([i], f.id) }) });
+                aoTocar: () => cartaoDescobrir(i, { nomeCat, gravar: (ids, v) => financeiroGravarClassificacao(ids, v, f.id), classificar: (cat) => financeiroClassificarItens([cat ? { ...i, sugestao: { ...(i.sugestao || {}), categoria: cat } } : i], f.id) }) });
             acoes.push({ icone: 'tags', titulo: pend ? (s.categoria ? 'Reclassificar' : 'Classificar') : 'Mudar classificação', sub: 'Categoria, ativo, fornecedor', codigo: 'cartao.classificar', manterAberto: true,
                 aoTocar: () => financeiroClassificarItens([i], f.id) });
             if (!pend) {
