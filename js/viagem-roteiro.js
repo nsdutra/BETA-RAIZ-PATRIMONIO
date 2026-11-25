@@ -1,6 +1,9 @@
 // ============================================================================
 // viagem-roteiro.js — Raiz Patrimônio · Roteiro da viagem (programa com tipos de ciclo)
-// Versão: 1.0.0 · 25/11/2026
+// Versão: 1.1.0 · 25/11/2026
+//
+// v1.1.0 (25/11/2026, sessão 20261125-0042-viagem-lista, demanda d8061e47; de acordo do Nicola 25/11 00:42) — "A encaixar" vira
+// uma linha que abre no toque (fechada ao abrir o roteiro), para os dias aparecerem logo no começo. Versão anterior: 1.0.0
 //
 // v1.0.0 (25/11/2026, sessão 20261125-0021-viagem-roteiro, demanda d8061e47; FICHA_PROGRAMA_VIAGEM_FATIA2B v1.0.0, de acordo
 // do Nicola 25/11 00:21) — criação. Tela Roteiro: trechos › dias › o que está marcado no dia (fn_ciclo_roteiro), a bandeja
@@ -9,7 +12,7 @@
 // vez (fn_ciclo_trechos_salvar). O dia em que se muda de cidade é do trecho que começa nele (regra do banco). As regras são do
 // banco; aqui só se monta, colhe e manda. Aberto por cofre-controles.js (botão "Roteiro" e ⋮ do trecho).
 // ============================================================================
-export const VERSAO = '1.0.0';
+export const VERSAO = '1.1.0';
 import * as api from './cofre-api.js';
 
 const esc = (v) => String(v ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -31,9 +34,11 @@ const partes = (ts) => {
 const ts = (data, hora) => data ? `${data}T${hora || '00:00'}:00-03:00` : null; // Brasília, sem horário de verão
 
 let ctx = null; // { cicloId, abrirItem(itemId) }
+let bandejaAberta = false; // v1.1.0 — "A encaixar" fechada ao abrir; fica como o usuário deixou enquanto o roteiro está aberto
 
 /** Abre o roteiro da viagem. ctx: { cicloId, abrirItem(itemId) } */
 export async function abrirRoteiro(c) {
+    if (c) bandejaAberta = false; // abertura nova (não é recarga depois de salvar)
     ctx = c || ctx; if (!ctx?.cicloId) return;
     const r = await ler(); if (!r) return;
     if (!r.pode_ver) { aviso('Seu perfil não vê esta viagem.', 'erro'); return; }
@@ -45,6 +50,13 @@ export async function abrirRoteiro(c) {
     icones();
     const fechado = C.situacao === 'fechado';
     sheet.querySelectorAll('[data-rt-oc]').forEach(b => b.addEventListener('click', () => acoesEntrada(r, b.dataset.rtOc, fechado)));
+    sheet.querySelector('[data-rt-bandeja]')?.addEventListener('click', (ev) => {
+        bandejaAberta = !bandejaAberta; const b = ev.currentTarget;
+        b.setAttribute('aria-expanded', String(bandejaAberta));
+        sheet.querySelector('[data-rt-bandeja-lista]')?.classList.toggle('hidden', !bandejaAberta);
+        const ic = b.querySelector('[data-lucide^="chevron"], svg.lucide-chevron-down, svg.lucide-chevron-up');
+        if (ic) { const n = document.createElement('i'); n.setAttribute('data-lucide', bandejaAberta ? 'chevron-up' : 'chevron-down'); ic.replaceWith(n); icones(); }
+    });
     sheet.querySelector('[data-rt-novo]')?.addEventListener('click', () => escolherItem(r));
     sheet.querySelector('[data-rt-trechos]')?.addEventListener('click', () => abrirEditarTrechos({ cicloId: ctx.cicloId, roteiro: r }));
 }
@@ -73,9 +85,11 @@ function diaHtml(d) {
 function corpoHtml(r) {
     const enc = r.a_encaixar || [];
     let h = '';
-    if (enc.length) h += `<div class="rz-group rz-group-t"><span>A encaixar · ${enc.length}</span></div>
-        <p class="rz-hint" style="margin:0 0 6px">Ainda sem dia. Toque para marcar o dia e, se quiser, a hora.</p>
-        <div class="rz-list" style="padding:0">${enc.map(e => linhaEntrada(e, false)).join('')}</div>`;
+    if (enc.length) h += `<button type="button" class="rz-row" data-rt-bandeja aria-expanded="${bandejaAberta}" style="width:100%;text-align:left">
+            <div class="rz-ic"><i data-lucide="inbox"></i></div><div class="rz-tx"><b>A encaixar · ${enc.length}</b><span>Ainda sem dia</span></div>
+            <i data-lucide="${bandejaAberta ? 'chevron-up' : 'chevron-down'}"></i></button>
+        <div data-rt-bandeja-lista class="rz-rt-bandeja${bandejaAberta ? '' : ' hidden'}"><p class="rz-hint" style="margin:4px 0 6px">Toque para marcar o dia e, se quiser, a hora.</p>
+        <div class="rz-list" style="padding:0">${enc.map(e => linhaEntrada(e, false)).join('')}</div></div>`;
     (r.trechos || []).forEach(t => {
         const ult = (t.dias || []).length ? t.dias[t.dias.length - 1].data : t.fim;
         h += `<div class="rz-group rz-group-t" style="margin-top:14px"><span>${esc(t.nome)} · ${dm(t.inicio)} a ${dm(ult)}</span></div>`

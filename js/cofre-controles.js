@@ -1,6 +1,11 @@
 // ============================================================================
 // cofre-controles.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.82.0 · 25/11/2026
+// Versão: 1.83.0 · 25/11/2026
+//
+// v1.83.0 (25/11/2026, sessão 20261125-0042-viagem-lista, demanda d8061e47; de acordo do Nicola 25/11 00:42) — no card Controles,
+// programa com várias execuções abertas (viagens) mostra uma linha por viagem (nome, tipo, ida a volta, quantos itens e o pior
+// status) em vez dos itens soltos; o toque abre aquela viagem. Itens sem viagem seguem na lista. Lê fn_programa_execucao_resumo
+// → ciclos. Versão anterior: 1.82.0
 //
 // v1.82.0 (25/11/2026, sessão 20261125-0021-viagem-roteiro, demanda d8061e47; FICHA_PROGRAMA_VIAGEM_FATIA2B v1.0.0, de acordo do
 // Nicola 25/11 00:21) — viagem: botão "Roteiro" no rodapé e "Editar trechos" no ⋮ do trecho, os dois em js/viagem-roteiro.js
@@ -19,15 +24,11 @@
 // programa com tipos de ciclo (programas.ciclo_config, ex.: Viagens): "Abrir" vira "+ Nova viagem" com tipo, nome, ida, volta
 // e trechos (fn_execucao_abrir com p_variante, p_fim_previsto e p_trechos); várias abertas ao mesmo tempo quando o programa
 // permite; "trecho" no lugar de "fase"; viagem planejada mostra ida e volta no subtítulo e o tipo nas abas. Versão anterior: 1.78.0
-//
-// v1.78.0 (24/11/2026, sessão 20261124-0916-seguros, demanda 6fbdad60; FICHA_COMPARATIVO_RENOVACAO_SEGUROS v1.5.0 §14, de acordo do
-// Nicola 24/11 22:41) — abrirComparativoPorLink(): o link do robô (#/seguro/<item>) abre a ficha do item de seguro e, por cima,
-// o comparativo das cotações. Item de outra empresa, sem acesso ou que não é seguro: aviso e fica na ficha/tela. Versão anterior: 1.77.0
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.77.0 … v1.77.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.78.0 … v1.78.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '1.82.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.83.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 import { estado } from './cofre-estado.js';
 import * as api from './cofre-api.js';
 import { mostrarToast, refrescarIcones, abrirModal, fecharModal, modalGenerico, perguntar, escolher, avisarComDesfazer } from './cofre-ui.js';
@@ -409,12 +410,23 @@ function grupoControlesHtml(g, aberto, cor) {
         ? `<button type="button" class="rz-more" data-prog-mais="${g.prog.id}" aria-label="Ações do programa ${escapeHtml(g.nome)}"><i data-lucide="ellipsis-vertical"></i></button>` : '';
     const sub = g.prog && g.prog.situacao === 'pausado' ? '<span>Pausado · os itens não avisam</span>' : '';
     return `<div class="rz-row rz-link rz-ctl-grp" role="button" tabindex="0" aria-expanded="${aberto}" data-ctl-grp="${escapeHtml(g.k)}" style="--ramo-grupo:${cor}">
-            <div class="rz-ic rz-ic-grupo"><i data-lucide="${escapeHtml(g.icone)}"></i><span class="rz-ic-n">${g.itens.length}</span></div>
+            <div class="rz-ic rz-ic-grupo"><i data-lucide="${escapeHtml(g.icone)}"></i><span class="rz-ic-n">${g.n ?? g.itens.length}</span></div>
             <div class="rz-tx"><b>${escapeHtml(g.nome)}</b>${sub}</div>${etiqueta}${mais}
             <span class="rz-ctl-tog"><i data-lucide="${aberto ? 'chevron-up' : 'chevron-down'}" class="rz-chev"></i></span></div>`
         + (g.exBtn || '')
         + `<div class="rz-subs rz-ctl-subs${aberto ? '' : ' hidden'}" data-ctl-subs="${escapeHtml(g.k)}" style="--ramo-grupo:${cor}">`
-        + g.itens.map(i => itemResumoHtml(i).replace('<div class="rz-row rz-link"', '<div class="rz-row rz-link rz-sub-row"')).join('') + '</div>';
+        + (g.linhas || '') + (g.soltos || g.itens).map(i => itemResumoHtml(i).replace('<div class="rz-row rz-link"', '<div class="rz-row rz-link rz-sub-row"')).join('') + '</div>';
+}
+const NOME_VARIANTE = { terrestre: 'Terrestre', aerea: 'Aérea nacional', internacional: 'Internacional' };
+function linhaCicloGrupoHtml(p, c, its) { // v1.83.0
+    const pior = its.length ? piorStatusItens(its) : ['neu', 'Sem itens'];
+    const etiqueta = ['bad', 'warn', 'run'].includes(pior[0]) ? `<div class="rz-rt">${statusHtml(pior[0], pior[1])}</div>` : '';
+    const vari = c.variante ? (NOME_VARIANTE[c.variante] || c.variante.charAt(0).toUpperCase() + c.variante.slice(1)) : '';
+    const quando = c.inicio ? formatarDataBR(c.inicio).slice(0, 5) + (c.fim_previsto ? ' a ' + formatarDataBR(c.fim_previsto) : '') : '';
+    const sub = [vari, quando, its.length + (its.length === 1 ? ' item' : ' itens')].filter(Boolean).join(' · ');
+    return `<div class="rz-row rz-link rz-sub-row" role="button" tabindex="0" data-ctl-ciclo="${p.id}|${c.id}">
+        <div class="rz-ic"><i data-lucide="${escapeHtml(p.icone || 'calendar-range')}"></i></div>
+        <div class="rz-tx"><b>${escapeHtml(c.nome)}</b><span>${escapeHtml(sub)}</span></div>${etiqueta}<i data-lucide="chevron-right" class="rz-chev"></i></div>`;
 }
 function programasAgrupadosHtml(lista) {
     const progs = filtroControles === 'ativos' && programasAtual?.pode_ver ? (programasAtual.ativos || []) : [];
@@ -427,6 +439,14 @@ function programasAgrupadosHtml(lista) {
         const ex = p.execucao; // obra (etapas), safra (ciclo e fases) ou animais em ciclo
         const exBtn = !ex ? '' : ex.por_membro ? (ex.em_ciclo ? `<button type="button" class="rz-prog-exec" data-prog-exec="${p.id}"><i data-lucide="heart-pulse"></i>Ver os animais em ciclo</button>` : '')
             : `<button type="button" class="rz-prog-exec" data-prog-exec="${p.id}"><i data-lucide="${escapeHtml(p.icone || (ex.tem_etapas ? 'hard-hat' : 'sprout'))}"></i>${ex.aberta ? 'Ver' : 'Abrir'} a ${ex.tem_etapas ? 'obra' : escapeHtml((ex.ciclo_rotulo || 'safra').toLowerCase())}</button>`;
+        // v1.83.0 — várias execuções abertas (viagens): uma linha por viagem no lugar dos itens soltos
+        const cics = (ex?.ciclos || []);
+        if (ex && !ex.por_membro && (cics.length > 1 || cics.some(c => c.variante))) {
+            const linhas = cics.map(c => linhaCicloGrupoHtml(p, c, its.filter(i => i.ciclo_id === c.id))).join('');
+            const soltos = its.filter(i => !cics.some(c => c.id === i.ciclo_id));
+            grupos.push({ k: 'p:' + p.id, nome: p.nome, itens: its, icone: p.icone || 'package', prog: p, exBtn: '', linhas, soltos, n: cics.length + soltos.length });
+            return;
+        }
         grupos.push({ k: 'p:' + p.id, nome: p.nome, itens: its, icone: p.icone || 'package', prog: p, exBtn });
     });
     const resto = lista.filter(i => !usados.has(i.id));
@@ -456,6 +476,7 @@ function ligarAcoesProgramas(alvo) {
     alvo.querySelectorAll('[data-prog-recusar]').forEach(b => b.addEventListener('click', () => recusarPrograma(b.dataset.progRecusar, b)));
     alvo.querySelectorAll('[data-prog-mais]').forEach(b => b.addEventListener('click', (ev) => { ev.stopPropagation(); abrirAcoesPrograma(b.dataset.progMais); }));
     alvo.querySelectorAll('[data-prog-exec]').forEach(b => b.addEventListener('click', (ev) => { ev.stopPropagation(); abrirExecucao(b.dataset.progExec); })); // v1.61.0
+    alvo.querySelectorAll('[data-ctl-ciclo]').forEach(b => b.addEventListener('click', (ev) => { ev.stopPropagation(); const [ap, ci] = b.dataset.ctlCiclo.split('|'); abrirExecucao(ap, ci); })); // v1.83.0
     // abre e fecha o grupo pelo toque no cabeçalho; o estado fica guardado enquanto o app está aberto
     alvo.querySelectorAll('[data-ctl-grp]').forEach(el => {
         const alternar = () => {
