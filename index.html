@@ -6,11 +6,11 @@
    (base derivada do RUMO v7.4.2 — histórico de versões anteriores
    preservado abaixo para referência técnica)
 
-   VERSÃO: Beta v1.490.91
-   LINHAS: 15545
-   DATA: 25/11/2026 (sessão 20261125-1019-viagem-compartilhar, dem faf717a1)
-   NOVIDADES (Beta v1.490.91) — Import map: viagem-compartilhar 1.0.0 (novo), viagem-roteiro 1.3.0, cofre-controles 1.85.0.
-   Anteriores: .90 locatário · .89 cartão descobrir · .88 viagem · .87 interessados
+   VERSÃO: Beta v1.490.92
+   LINHAS: 15546
+   DATA: 25/11/2026 (sessão 20261125-1238-toast-erro, dem 2be7ea1c)
+   NOVIDADES (Beta v1.490.92) — toast 'erro' em vermelho.
+   Anteriores: .91 viagem · .90 locatário · .89 cartão
    v1.490.8–25: ver CHANGELOG_APP.md.
    Versão anterior (Beta v1.490.7):
    DATA: 12/11/2026 (demanda f6be5483)
@@ -2852,7 +2852,7 @@
     <script>
 
         // Fonte ÚNICA da versão exibida no app (splash + Sobre); window.onload aplica nos dois.
-        const APP_VERSAO = "Beta v1.490.91"; // = cabeçalho (nota v1.178.8)
+        const APP_VERSAO = "Beta v1.490.92"; // = cabeçalho (nota v1.178.8)
 
         // ====================================================================
         // v1.105.0 — HELPERS DE SUPERFÍCIE DA GRAMÁTICA ÚNICA
@@ -6820,6 +6820,7 @@ async function criarLinkVitrineSupabase(token, idsSelecionados) {
         // mostra detalhe específico por item, útil demais pra trocar por um
         // toast genérico. Cores seguem DESIGN_SYSTEM_RAIZ_PATRIMONIO.md.
         function mostrarToast(mensagem, tipo = 'success') {
+            tipo = { erro: 'danger', sucesso: 'success' }[tipo] || tipo;
             if (tipo === 'danger' && typeof rzMensagemDeErro === 'function') mensagem = rzMensagemDeErro(mensagem); // v1.301.0
 
             let container = document.getElementById('toast-container');
