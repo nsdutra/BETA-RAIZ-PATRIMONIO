@@ -1,6 +1,11 @@
 // ============================================================================
 // cofre-controles.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.80.0 · 24/11/2026
+// Versão: 1.81.0 · 25/11/2026
+//
+// v1.81.0 (25/11/2026, sessão 20261124-2358-viagem-ajustes, demanda d8061e47; de acordo do Nicola 24/11 23:56, itens 1 a 6) —
+// Viagens no uso: o ícone do programa vem do catálogo (fn_ativo_programas → icone, ex.: avião) no grupo e no botão da execução;
+// as linhas dos itens da viagem ocupam a largura toda; "Nova viagem" não marca tipo sozinho (escolher é obrigatório);
+// viagem planejada não mostra "Avançar" e o "Fechar" sai do rodapé e vai para "Corrigir". Versão anterior: 1.80.0
 //
 // v1.80.0 (24/11/2026, sessão 20261124-0916-seguros, demanda 6fbdad60; teste do Nicola 23:15) — "Subir cotação" do comparativo usa
 // abrirUploadCotacaoSeguro (cofre-documentos 2.42.0): a cotação é lida como cotação, não como apólice, e aparece para comparar.
@@ -20,16 +25,11 @@
 // que abre js/cofre-seguro-renovacao.js. Depois de aprovar a renovação (fn_item_controle_renovar), refaz as ocorrências do
 // novo ciclo pelos mesmos geradores do formulário, sem apagar nenhuma aberta (a pendência da apólice emitida fica). Subir
 // cotação abre o envio do próprio item e volta ao comparativo quando o documento é salvo. Versão anterior: 1.76.0
-//
-// v1.76.0 (17/11/2026, sessão 20261117-2350-comercial-c3, demanda 285a0058; FICHA_RECEITA_UNIDADES_GERADORAS v1.14.0 §13.5a, Q5 com
-// de acordo do Nicola 17/11 23:30) — C3 do Comercial na safra: ⋮ da fase › "Itens produzidos" (código comercial.itens: sem o plano,
-// cadeado e oferta), linha "Produz: …" abaixo da fase e, no Fechar, "Total geral | Por item" no lugar do campo principal (as
-// quantidades vão em resultado.itens; o banco soma o total e rateia o custo). A tela vem de comercial-itens.js. Versão anterior: 1.75.0
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.75.0 … v1.75.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.76.0 … v1.76.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '1.80.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.81.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 import { estado } from './cofre-estado.js';
 import * as api from './cofre-api.js';
 import { mostrarToast, refrescarIcones, abrirModal, fecharModal, modalGenerico, perguntar, escolher, avisarComDesfazer } from './cofre-ui.js';
@@ -428,8 +428,8 @@ function programasAgrupadosHtml(lista) {
         its.forEach(i => usados.add(i.id));
         const ex = p.execucao; // obra (etapas), safra (ciclo e fases) ou animais em ciclo
         const exBtn = !ex ? '' : ex.por_membro ? (ex.em_ciclo ? `<button type="button" class="rz-prog-exec" data-prog-exec="${p.id}"><i data-lucide="heart-pulse"></i>Ver os animais em ciclo</button>` : '')
-            : `<button type="button" class="rz-prog-exec" data-prog-exec="${p.id}"><i data-lucide="${ex.tem_etapas ? 'hard-hat' : 'sprout'}"></i>${ex.aberta ? 'Ver' : 'Abrir'} a ${ex.tem_etapas ? 'obra' : escapeHtml((ex.ciclo_rotulo || 'safra').toLowerCase())}</button>`;
-        grupos.push({ k: 'p:' + p.id, nome: p.nome, itens: its, icone: 'package', prog: p, exBtn });
+            : `<button type="button" class="rz-prog-exec" data-prog-exec="${p.id}"><i data-lucide="${escapeHtml(p.icone || (ex.tem_etapas ? 'hard-hat' : 'sprout'))}"></i>${ex.aberta ? 'Ver' : 'Abrir'} a ${ex.tem_etapas ? 'obra' : escapeHtml((ex.ciclo_rotulo || 'safra').toLowerCase())}</button>`;
+        grupos.push({ k: 'p:' + p.id, nome: p.nome, itens: its, icone: p.icone || 'package', prog: p, exBtn });
     });
     const resto = lista.filter(i => !usados.has(i.id));
     const cat = catalogoTiposControle || [];
@@ -658,7 +658,7 @@ function linhaFaseHtml(f, d) {
 function linhaItemExecHtml(i) {
     const prox = i.proximo?.data ? (diasAte(i.proximo.data) < 0 ? 'Venceu ' : 'Próximo ') + formatarDataBR(i.proximo.data) : 'Sem pendência';
     const val = i.valor_previsto ? ' · ' + moedaBR(i.valor_previsto) : '';
-    return `<button type="button" class="rz-row" data-exec-item="${i.id}"><div class="rz-tx"><b>${escapeHtml(i.titulo)}</b><span>${escapeHtml(prox + val)}</span></div><i data-lucide="chevron-right"></i></button>`;
+    return `<button type="button" class="rz-row" data-exec-item="${i.id}" style="width:100%;text-align:left"><div class="rz-tx"><b>${escapeHtml(i.titulo)}</b><span>${escapeHtml(prox + val)}</span></div><i data-lucide="chevron-right"></i></button>`;
 }
 // A tela da execução: as fases (ou etapas) com situação e custo, o custo somado, os itens de agora e as ações.
 export async function abrirExecucao(apId, cicloId = null) {
@@ -694,8 +694,9 @@ export async function abrirExecucao(apId, cicloId = null) {
         else if (!d.aberta || (C && C.situacao === 'fechado' && !(d.ciclos || []).some(c => c.situacao !== 'fechado')))
             acoes.push(`<button type="button" class="rz-btn rz-btn-1" data-exec-abrir>${P.tem_etapas ? 'Abrir a obra' : (d.ciclos || []).length ? 'Abrir a próxima' : 'Abrir a ' + R.exec}</button>`);
         else if (C?.situacao !== 'fechado') {
-            if (d.proxima) acoes.push(`<button type="button" class="rz-btn rz-btn-1" data-exec-avancar>Avançar para ${escapeHtml(d.proxima.nome)}</button>`);
-            acoes.push(P.tem_etapas ? `<button type="button" class="rz-btn ${d.proxima ? 'rz-btn-2' : 'rz-btn-1'}" data-exec-concluir>Concluir a obra</button>`
+            const plan = C?.situacao === 'planejado'; // v1.81.0 — viagem ainda não começou: sem Avançar, Fechar fica em Corrigir
+            if (d.proxima && !plan) acoes.push(`<button type="button" class="rz-btn rz-btn-1" data-exec-avancar>Avançar para ${escapeHtml(d.proxima.nome)}</button>`);
+            if (!plan) acoes.push(P.tem_etapas ? `<button type="button" class="rz-btn ${d.proxima ? 'rz-btn-2' : 'rz-btn-1'}" data-exec-concluir>Concluir a obra</button>`
                 : `<button type="button" class="rz-btn ${d.proxima ? 'rz-btn-2' : 'rz-btn-1'}" data-exec-fechar>Fechar a ${escapeHtml(R.exec)}</button>`);
             if (sugN) acoes.push(`<button type="button" class="rz-btn rz-btn-3" data-exec-incluir>+ Do catálogo</button>`);
         }
@@ -1009,8 +1010,8 @@ function abrirFolhaNovoCicloVariante(d) {
     const sheet = window.abrirSheetForm({
         titulo: 'Nova ' + R.exec, sub: d.programa.nome, rotuloSalvar: 'Criar', empilhar: true,
         corpo: `<div class="rz-f"><label>Tipo</label><div class="rz-chips" data-vars>${vars.map((v, i) =>
-                `<button type="button" class="rz-chip ${i === 0 ? 'rz-on' : ''}" data-var="${escapeHtml(v.codigo)}">${escapeHtml(v.nome)}</button>`).join('')}</div>
-                <span class="rz-hint" data-var-desc>${escapeHtml(vars[0]?.descricao || '')}</span></div>
+                `<button type="button" class="rz-chip" data-var="${escapeHtml(v.codigo)}">${escapeHtml(v.nome)}</button>`).join('')}</div>
+                <span class="rz-hint" data-var-desc>Escolha o tipo: os itens de cada tipo vêm junto.</span></div>
             <div class="rz-f"><label for="nv-nome">Nome</label><input type="text" id="nv-nome" maxlength="60" placeholder="Ex.: Disney · Orlando"></div>
             <div class="rz-row" style="gap:8px"><div class="rz-f" style="flex:1"><label for="nv-ida">Ida</label><input type="date" id="nv-ida" value="${hojeLocalISO()}"></div>
                 <div class="rz-f" style="flex:1"><label for="nv-volta">Volta</label><input type="date" id="nv-volta"></div></div>
@@ -1022,6 +1023,7 @@ function abrirFolhaNovoCicloVariante(d) {
             const variante = el.querySelector('[data-var].rz-on')?.dataset.var || null;
             const nome = (el.querySelector('#nv-nome')?.value || '').trim();
             const ida = el.querySelector('#nv-ida')?.value || null, volta = el.querySelector('#nv-volta')?.value || null;
+            if (!variante) { mostrarToast('Escolha o tipo da ' + R.exec + '.', 'erro'); return false; }
             if (!nome) { mostrarToast('Dê um nome à ' + R.exec + '.', 'erro'); return false; }
             if (!ida || !volta) { mostrarToast('Informe a ida e a volta.', 'erro'); return false; }
             const trechos = [...el.querySelectorAll('.rz-trecho')].map(r => ({ nome: (r.querySelector('[data-t-nome]')?.value || '').trim(),
@@ -1049,6 +1051,7 @@ function abrirAcoesCorrigirCiclo(d) {
     sheetAcoes({ titulo: 'Corrigir ' + C.nome, sub: d.programa.nome, empilhar: true, acoes: [
         { icone: 'pencil', titulo: 'Editar ' + (ehFem(R) ? 'a ' : 'o ') + R.exec, codigo: 'ciclos.gerir', sub: 'Início, fim e nome', aoTocar: () => abrirFolhaEditarCiclo(d) },
         { icone: 'list-checks', titulo: 'Ver vínculos', codigo: 'ciclos.gerir', sub: 'O que está ligado', aoTocar: () => mostrarVinculosCiclo(d, false) },
+        ...(C.situacao === 'planejado' && !d.programa.tem_etapas ? [{ icone: 'flag', titulo: 'Fechar ' + (ehFem(R) ? 'a ' : 'o ') + R.exec, codigo: 'ciclos.gerir', sub: 'Encerrar antes da ida', aoTocar: () => abrirFolhaFecharCiclo(d) }] : []), // v1.81.0
         { icone: 'trash-2', titulo: 'Excluir ' + (ehFem(R) ? 'a ' : 'o ') + R.exec, codigo: 'ciclos.gerir', sub: 'Só sem vínculo', tipo: 'bad', aoTocar: () => mostrarVinculosCiclo(d, true) },
     ] });
 }
