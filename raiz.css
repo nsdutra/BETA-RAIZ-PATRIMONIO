@@ -1,6 +1,12 @@
 /* ============================================================================
    raiz.css — Raiz Patrimônio · estilos do app (index.html)
-   Versão: 1.32.0 · 25/11/2026
+   Versão: 1.33.0 · 25/11/2026
+
+   v1.33.0 (25/11/2026, sessão 20261125-1954-investimentos-i1-2, demanda 09dff31b; PLANO_EXECUCAO_I1_2_APLICACAO_FINANCEIRO_RAIZ v1.1.0 e
+   PROTOTIPO_INVESTIMENTOS_FINANCEIRO_INDICADORES_RAIZ v1.2.0) — botão "i" de ajuda ao lado de um rótulo (.rz-i: campos do catálogo,
+   tipos de movimento e métricas) e o card Indicadores (js/investimentos.js): .rz-ind-fixos / .rz-ind-fixo (No ano · 12 meses ·
+   Desde o início, sempre visíveis), .rz-ind e .rz-ind-dest (linhas do período do filtro do Financeiro).
+   Versão anterior: 1.32.0
 
    v1.32.0 (25/11/2026, sessão 20261125-0029-investimentos-i1, demanda e5d269c2; PLANO_EXECUCAO_I1_CONTA_E_APLICACOES_RAIZ v1.2.0) —
    card "Aplicações" da conta de investimento (js/investimentos.js): .rz-apl-seg (chave Por tipo | Por vencimento dentro do card).
@@ -1272,6 +1278,16 @@
         .rz-vb-fonte{font-size:var(--fs-sec,12.5px);color:var(--muted);margin:8px 0 0}
         .rz-cols .rz-vb-col{cursor:pointer}
         .rz-apl-seg{margin:8px 0 4px} /* v1.32.0 — Aplicações: Por tipo | Por vencimento */
+        /* v1.33.0 — "i" de ajuda e card Indicadores (investimentos.js) */
+        .rz-i{border:0;background:none;padding:0 0 0 4px;line-height:0;color:var(--muted);vertical-align:middle;cursor:pointer;display:inline-flex}
+        .rz-i svg{width:14px;height:14px}
+        .rz-ind-fixos{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin:4px 0 12px}
+        .rz-ind-fixo{background:var(--paper);border-radius:10px;padding:8px 8px 7px;display:flex;flex-direction:column;gap:1px}
+        .rz-ind-fixo small,.rz-ind-fixo span{font-size:var(--fs-mini);color:var(--muted)}
+        .rz-ind-fixo b{font-size:var(--fs-card)}
+        .rz-ind{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:8px 0;border-top:1px solid var(--line);font-size:var(--fs-sec)}
+        .rz-ind span{color:var(--muted)} .rz-ind b{font-weight:600}
+        .rz-ind-dest span{color:var(--ink);font-weight:600} .rz-ind-dest b{font-size:var(--fs-corpo)}
         .rz-cols .rz-res-barra-mes,.rz-cols .rz-res-barra-revisional{cursor:pointer}
         /* dem 43bc3cab — Indicadores de mercado (Fique por Dentro); dem 4de70503 — em blocos */
         .rz-ind .rz-rt span{font-size:12px;color:var(--muted)}

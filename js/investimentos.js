@@ -1,6 +1,22 @@
 // ============================================================================
 // investimentos.js — Raiz Patrimônio · Ramo Investimentos (conta e aplicações)
-// Versão: 1.1.0 · 25/11/2026
+// Versão: 1.2.0 · 25/11/2026
+//
+// v1.2.0 (25/11/2026, sessão 20261125-1954-investimentos-i1-2, demanda 09dff31b; PLANO_EXECUCAO_I1_2_APLICACAO_FINANCEIRO_RAIZ v1.1.0,
+// FICHA_F10_CATALOGO_CAMPOS_CONTRATO_RAIZ v1.0.0 fase 1 e PROTOTIPO_INVESTIMENTOS_FINANCEIRO_INDICADORES_RAIZ v1.2.0; de acordo do
+// Nicola 25/11 12:43, 13:40 e 19:54):
+//   A · Nova aplicação, Editar e Condições montados pelo catálogo do tipo (contrato_tipos_campos, js/contrato-catalogo.js e
+//       js/nucleo/campos.js), cada campo com o "i" da ajuda.
+//   C · na criação, a aplicação herda a divisão da Propriedade da conta (divisao_repasse_contrato), card Distribuição do aluguel.
+//   D · o card Financeiro da aplicação e o da conta são o mesmo do aluguel (rzFinCompetencias, olhar do investimento): este
+//       módulo dá a série do ganho do mês (window.__rzFinInvest) e recebe o filtro do gráfico (aoFiltrar).
+//   F · resgate com Bruto, IR, IOF, Taxa e Líquido: dois lados fecham o terceiro, cada desconto com o % do bruto e o IR também
+//       com o % sobre o ganho estimado e a alíquota da tabela (fn_aplicacao_movimento_registrar v3).
+//   G · um link só, "Rendimento": o tipo (juros/cupom, amortização, dividendos, JCP, rendimento; bonificação no I2) é o primeiro
+//       campo e a tela se ajusta, com o "i" do tipo; bruto, IR e líquido com o IR sugerido por tipo.
+//   H · card Indicadores separado, abaixo do Financeiro, sem filtro próprio: segue o filtro do card Financeiro (ano ou mês) e
+//       mostra sempre No ano · 12 meses · Desde o início. Ganho e rentabilidade pelo método de Dietz modificado, mês a mês,
+//       encadeado nos períodos maiores; cada métrica com o "i". O card Valor da aplicação perde o % "desde a aplicação".
 //
 // v1.1.0 (25/11/2026, sessão 20261125-0118-investimentos-i1-1, demanda 368d8f36; PLANO_EXECUCAO_I1_1_AJUSTES_APLICACAO_RAIZ v1.0.0,
 // de acordo do Nicola 25/11 01:18 "De acordo com A-E") — ajustes do teste no Cdb teste:
@@ -27,7 +43,7 @@
 //   · linhasValorConta: série da conta = soma das aplicações mês a mês (usada pelo card Valor do bem da conta, cofre-ativos.js).
 // O valor atual mora em contratos.valor; o histórico, nas ocorrências do item "Atualizar valor" (F3). Sem projeção (I3).
 // ============================================================================
-export const VERSAO = '1.1.0';
+export const VERSAO = '1.2.0';
 
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const toast = (m, t) => (typeof mostrarToast === 'function' ? mostrarToast(m, t) : console.log(m));
@@ -181,94 +197,38 @@ async function abrirNovaAplicacao(a, aoConcluir) {
     })) });
 }
 
-function campo(id, rot, html, extra = '') { return `<div class="rz-f"${extra}><label for="${id}">${esc(rot)}</label>${html}</div>`; }
-async function partesParaEmissor(clienteId) {
-    const [{ data: pts }, { data: pps }] = await Promise.all([
-        db().from('partes').select('id, nome, documento').eq('cliente_id', clienteId).order('nome'),
-        db().from('partes_papeis').select('parte_id').in('papel', ['emissor', 'instituicao']).eq('ativo', true),
-    ]);
-    const usados = new Set((pps || []).map(x => x.parte_id));
-    const l = (pts || []).map(p => ({ ...p, usado: usados.has(p.id) }));
-    return { usados: l.filter(p => p.usado), outras: l.filter(p => !p.usado) };
-}
+const campo = (id, rot, html, extra = '') => `<div class="rz-f"${extra}><label for="${id}">${rot}</label>${html}</div>`;
+const catalogo = () => import('./contrato-catalogo.js');
+const nucleoCampos = () => import('./nucleo/campos.js');
+
+// A (F10) — formulário pelo catálogo do tipo
 async function abrirFormAplicacao(a, t, aoConcluir) {
     if (typeof abrirSheetForm !== 'function') { toast('Abra pelo app principal.', 'erro'); return; }
-    let ptsEm = { usados: [], outras: [] };
-    try { ptsEm = await partesParaEmissor(a.cliente_id); } catch (e) { console.warn('[investimentos] partes:', e?.message || e); }
-    const todasPts = [...ptsEm.usados, ...ptsEm.outras];
-    const cod = t.codigo, venc = TEM_VENC(cod), fundo = cod === 'inv_fundo', prev = cod === 'inv_prev', poup = cod === 'inv_poup';
-    const sel = (id, ops, v) => `<select id="${id}">${ops.map(([k, r]) => `<option value="${k}"${k === v ? ' selected' : ''}>${esc(r)}</option>`).join('')}</select>`;
-    const indexPadrao = cod === 'inv_rf_tesouro' ? 'ipca' : poup ? 'poupanca' : 'cdi';
-    const rotEm = poup ? 'Banco' : fundo ? 'Fundo' : prev ? 'Seguradora' : 'Emissor';
-    const padraoNome = cod === 'inv_rf_tesouro' ? 'Tesouro Nacional' : '';
-    const padraoPt = padraoNome ? todasPts.find(p => String(p.nome).toLowerCase() === padraoNome.toLowerCase()) : null;
-    const escolhaIni = padraoPt ? padraoPt.id : (padraoNome || !todasPts.length) ? '__nova__' : '';
-    const opt = (p) => `<option value="${p.id}"${p.id === escolhaIni ? ' selected' : ''}>${esc(p.nome)}</option>`;
-    const optsEm = ['<option value="">— escolher —</option>',
-        ptsEm.usados.length ? `<optgroup label="Já usados em aplicações">${ptsEm.usados.map(opt).join('')}</optgroup>` : '',
-        ptsEm.outras.length ? `<optgroup label="Outras partes da empresa">${ptsEm.outras.map(opt).join('')}</optgroup>` : '',
-        `<option value="__nova__"${escolhaIni === '__nova__' ? ' selected' : ''}>+ Cadastrar ${esc(rotEm.toLowerCase())} novo</option>`].join('');
-    window.__invEmissor = (val) => {
-        const nova = val === '__nova__', pt = todasPts.find(p => p.id === val);
-        document.getElementById('inv-em-nova')?.classList.toggle('hidden', !nova);
-        const info = document.getElementById('inv-em-info');
-        if (info) { info.classList.toggle('hidden', !pt); info.textContent = pt ? (pt.documento ? `CNPJ ${pt.documento} · do cadastro` : 'Sem CNPJ no cadastro: complete em Partes.') : ''; }
-    };
-    const corpo = [
-        campo('inv-nome', 'Nome da aplicação', `<input type="text" id="inv-nome" maxlength="80" placeholder="${esc(poup ? 'Poupança Itaú' : fundo ? 'Multimercado FIC' : prev ? 'PGBL Brasilprev' : 'CDB Banco Pine 120% CDI')}">`),
-        campo('inv-em-sel', rotEm, `<select id="inv-em-sel" onchange="window.__invEmissor && window.__invEmissor(this.value)">${optsEm}</select>`),
-        `<p class="rz-desc${escolhaIni && escolhaIni !== '__nova__' ? '' : ' hidden'}" id="inv-em-info"></p>`,
-        `<div class="rz-f2${escolhaIni === '__nova__' ? '' : ' hidden'}" id="inv-em-nova">${campo('inv-emissor', fundo ? 'Nome do fundo' : 'Nome', `<input type="text" id="inv-emissor" maxlength="80" value="${esc(padraoPt ? '' : padraoNome)}">`)}
-         ${campo('inv-emissor-doc', fundo ? 'CNPJ do fundo' : 'CNPJ', `<input type="text" id="inv-emissor-doc" inputmode="numeric" maxlength="18" placeholder="00.000.000/0000-00">`)}</div>`,
-        `<div class="rz-f2">${campo('inv-data', 'Data da aplicação', `<input type="date" id="inv-data" max="${hoje()}" value="${hoje()}">`)}
-         ${campo('inv-valor', 'Valor aplicado (R$)', `<input type="number" id="inv-valor" step="0.01" min="0" inputmode="decimal">`)}</div>`,
-        venc ? campo('inv-venc', 'Vencimento', `<input type="date" id="inv-venc">`) : '',
-        (poup || prev) ? '' : `<div class="rz-f2">${campo('inv-index', 'Indexador', sel('inv-index', INDEXADORES, indexPadrao))}
-         ${campo('inv-taxa', 'Taxa', `<input type="number" id="inv-taxa" step="0.01" inputmode="decimal" placeholder="${cod === 'inv_rf_tesouro' ? '6,10' : '120'}">`)}</div>`,
-        venc ? campo('inv-liq', 'Liquidez', `<select id="inv-liq" onchange="document.getElementById('inv-car-wrap')?.classList.toggle('hidden', this.value !== 'carencia')">${LIQUIDEZ.map(([k, r]) => `<option value="${k}"${k === 'vencimento' ? ' selected' : ''}>${esc(r)}</option>`).join('')}</select>`) : '',
-        venc ? `<div id="inv-car-wrap" class="hidden">${campo('inv-car', 'Carência (dias)', `<input type="number" id="inv-car" min="1" max="3650" step="1" inputmode="numeric" placeholder="90">`)}</div>` : '',
-        prev ? `<div class="rz-f2">${campo('inv-regime', 'Plano', sel('inv-regime', [['pgbl', 'PGBL'], ['vgbl', 'VGBL']], 'vgbl'))}${campo('inv-trib', 'Tributação', sel('inv-trib', [['regressiva', 'Regressiva'], ['progressiva', 'Progressiva']], 'regressiva'))}</div>` : '',
-        poup ? campo('inv-aniv', 'Dia do aniversário', `<input type="number" id="inv-aniv" min="1" max="31" inputmode="numeric">`) : '',
-        `<p class="rz-desc">A aplicação conta no limite de contratos do plano. Novas aplicações no mesmo título e resgates entram depois, em "Registrar movimento".</p>`,
-    ].join('');
+    let cat, nc, campos = [], partes = { usados: [], outras: [] };
+    try {
+        [cat, nc] = await Promise.all([catalogo(), nucleoCampos()]);
+        campos = await cat.camposDoTipo(t.codigo);
+        const cp = campos.find(c => c.tipo_dado === 'parte');
+        if (cp) partes = await cat.partesParaCampo(a.cliente_id, cp.opcoes?.papeis_lista || []);
+    } catch (e) { toast(e?.message || 'Não consegui ler os campos do tipo.', 'erro'); return; }
+    const ctx = { novo: true, prefixo: 'inv-', row: {}, partes, infoBtn: cat.infoBtn };
     abrirSheetForm({
-        titulo: t.nome, sub: a.nome_exibicao, corpo, rotuloSalvar: 'Salvar aplicação',
+        titulo: t.nome, sub: a.nome_exibicao, rotuloSalvar: 'Salvar aplicação',
+        corpo: nc.camposHtml(campos, ctx) + '<p class="rz-desc">A aplicação conta no limite de contratos do plano. Novas aplicações no mesmo título e resgates entram depois, em "Registrar movimento".</p>',
         aoSalvar: async () => {
-            const v = (id) => (document.getElementById(id)?.value || '').trim();
-            const escolha = v('inv-em-sel'), ptEsc = todasPts.find(p => p.id === escolha);
-            if (!escolha) { toast(`Escolha ${poup ? 'o banco' : fundo ? 'o fundo' : prev ? 'a seguradora' : 'o emissor'} ou cadastre.`, 'erro'); return false; }
-            const nome = v('inv-nome'), data = v('inv-data');
-            const emissor = ptEsc ? ptEsc.nome : v('inv-emissor'), doc = ptEsc ? (ptEsc.documento || '') : v('inv-emissor-doc');
-            const valor = Number(String(v('inv-valor')).replace(',', '.'));
-            if (!nome) { toast('Dê um nome à aplicação.', 'erro'); return false; }
-            if (!emissor) { toast(`Informe ${poup ? 'o banco' : fundo ? 'o fundo' : prev ? 'a seguradora' : 'o emissor'}.`, 'erro'); return false; }
-            if (!data || data > hoje()) { toast('Informe a data da aplicação, até hoje.', 'erro'); return false; }
+            const r = nc.lerCampos(document, campos, ctx);
+            if (!r.ok) { toast(r.erro, 'erro'); return false; }
+            const valor = Number(r.dados.aplicado_inicial || 0);
             if (!(valor > 0)) { toast('Informe o valor aplicado.', 'erro'); return false; }
-            const fim = venc ? v('inv-venc') : '';
-            if (venc && !fim) { toast('Informe o vencimento.', 'erro'); return false; }
-            if (fim && fim <= data) { toast('O vencimento precisa ser depois da aplicação.', 'erro'); return false; }
-            const dm = { aplicado_inicial: valor, emissor_nome: emissor };
-            if (doc) dm.emissor_documento = doc;
-            if (!(poup || prev)) { dm.indexador = v('inv-index') || null; const tx = v('inv-taxa'); if (tx) dm.taxa = Number(tx.replace(',', '.')); }
-            if (poup) dm.indexador = 'poupanca';
-            if (venc) dm.liquidez = v('inv-liq') || 'vencimento';
-            if (dm.liquidez === 'carencia') {
-                const dias = Number(v('inv-car'));
-                if (!(Number.isInteger(dias) && dias >= 1 && dias <= 3650)) { toast('Informe os dias de carência.', 'erro'); return false; }
-                dm.carencia_dias = dias;
-            }
-            if (cod === 'inv_rf_lci') dm.isento_ir = true;
-            if (prev) { dm.regime = v('inv-regime'); dm.tributacao = v('inv-trib'); }
-            if (poup) { const an = Number(v('inv-aniv')); if (an >= 1 && an <= 31) dm.aniversario = an; }
             try {
-                await criarAplicacao(a, cod, { nome, emissor, doc, data, valor, fim: fim || null, dm, parteId: ptEsc?.id || null });
+                await criarAplicacao(a, t.codigo, r);
                 toast('Aplicação registrada', 'sucesso');
                 aoConcluir?.();
                 return true;
             } catch (e) { toast(e?.message || 'Não consegui registrar a aplicação.', 'erro'); return false; }
         },
     });
-    setTimeout(() => window.__invEmissor?.(escolhaIni), 0); // CNPJ do emissor já escolhido (Tesouro Nacional cadastrado)
+    setTimeout(() => { nc.ligarCampos(document, campos, ctx); cat.ligarInfos(document, campos); icones(); }, 0);
 }
 
 async function garantirUsoInvestimento(a, inicio) {
@@ -278,31 +238,26 @@ async function garantirUsoInvestimento(a, inicio) {
     const { error } = await db().rpc('fn_ativo_uso_iniciar', { p_ativo_id: a.id, p_modelo: 'investimento', p_inicio: inicio, p_fim: null, p_observacao: null, p_canal: 'app' });
     if (error) throw error;
 }
-async function parteEmissor(clienteId, nome, doc) {
-    const dig = String(doc || '').replace(/\D/g, '');
-    let q = db().from('partes').select('id').eq('cliente_id', clienteId).limit(1);
-    const { data } = dig ? await db().from('partes').select('id, documento').eq('cliente_id', clienteId).not('documento', 'is', null)
-        : await q.ilike('nome', nome);
-    const achada = dig ? (data || []).find(p => String(p.documento || '').replace(/\D/g, '') === dig) : (data || [])[0];
-    if (achada) return achada.id;
-    const { data: nova, error } = await db().from('partes').insert({ cliente_id: clienteId, nome, doc_tipo: dig ? (dig.length > 11 ? 'CNPJ' : 'CPF') : null, documento: dig ? doc : null })
-        .select('id').single();
+// C — a aplicação herda a divisão da Propriedade da conta (mesma solução do aluguel: divisao_repasse_contrato)
+async function herdarDivisaoDaConta(ativoId, contratoId) {
+    const { data } = await db().from('propriedade_ativo').select('tipo_proprietario, pessoa_id, nome_externo, percentual').eq('ativo_id', ativoId);
+    if (!(data || []).length) return;
+    const { error } = await db().from('divisao_repasse_contrato').insert(data.map(p => ({ contrato_id: contratoId, tipo_beneficiario: p.tipo_proprietario,
+        pessoa_id: p.pessoa_id, nome_externo: p.nome_externo, percentual: p.percentual })));
     if (error) throw error;
-    return nova.id;
 }
-async function criarAplicacao(a, cod, { nome, emissor, doc, data, valor, fim, dm, parteId: parteEscolhida }) {
-    const clienteId = a.cliente_id;
+async function criarAplicacao(a, cod, r) {
+    const clienteId = a.cliente_id, cat = await catalogo();
+    const data = r.colunas.inicio, valor = Number(r.dados.aplicado_inicial || 0);
     await garantirUsoInvestimento(a, data);
+    const dados = { ...r.dados }; Object.keys(dados).forEach(k => { if (dados[k] === null) delete dados[k]; });
     const { data: con, error } = await db().from('contratos').insert({
-        cliente_id: clienteId, ativo_id: a.id, modelo: 'investimento', tipo_contrato: cod, status: 'ativo',
-        inicio: data, fim, descricao: nome, dados_modelo: dm,
+        cliente_id: clienteId, ativo_id: a.id, modelo: 'investimento', tipo_contrato: cod, status: 'ativo', ...r.colunas, dados_modelo: dados,
     }).select('id').single();
     if (error) throw error;
-    // emissor (papel novo, F2) — falha aqui não desfaz a aplicação: aparece no Partes para completar
-    try {
-        const parteId = parteEscolhida || await parteEmissor(clienteId, emissor, doc);
-        await db().from('partes_papeis').insert({ parte_id: parteId, papel: 'emissor', entidade_tipo: 'contrato', entidade_id: con.id, ativo: true });
-    } catch (e) { console.warn('[investimentos] emissor:', e?.message || e); }
+    // emissor (papel do contrato) — falha aqui não desfaz a aplicação: aparece em Partes para completar
+    try { await cat.papelDoContratoGravar(con.id, clienteId, r.parte); } catch (e) { console.warn('[investimentos] emissor:', e?.message || e); }
+    try { await herdarDivisaoDaConta(a.id, con.id); } catch (e) { console.warn('[investimentos] divisão:', e?.message || e); }
     // itens do tipo (automáticos): "Atualizar valor"
     try {
         const { data: mods } = await db().from('cofre_modelos_item_controle').select('id').eq('escopo_tipo', 'contrato_tipo').eq('escopo_valor', cod).eq('automatico', true).eq('ativo', true);
@@ -324,13 +279,16 @@ async function recarregarContratosApp() {
 }
 
 // ---------------------------------------------------------------------------------------------------- ficha da aplicação
+async function lerAplicacao(id) {
+    const { data: row } = await db().from('contratos').select('id, cliente_id, descricao, valor, dados_modelo, status, inicio, fim, tipo_contrato, ativo_id').eq('id', id).maybeSingle();
+    return row ? { id: row.id, clienteId: row.cliente_id, descricao: row.descricao, valor: row.valor, dadosModelo: row.dados_modelo || {}, status: String(row.status || ''),
+        inicio: row.inicio, fim: row.fim, tipoContrato: row.tipo_contrato, ativoId: row.ativo_id, row } : null;
+}
 export async function aplicarFichaAplicacao(conApp, raiz) {
     if (!raiz) return;
     await tiposAplicacao().catch(() => []);
     // a lista do app não traz descricao nem o status 'finalizado' como no banco: a ficha lê a linha do contrato
-    const { data: row } = await db().from('contratos').select('id, descricao, valor, dados_modelo, status, inicio, fim, tipo_contrato, ativo_id').eq('id', conApp.id).maybeSingle();
-    const con = row ? { id: row.id, descricao: row.descricao, valor: row.valor, dadosModelo: row.dados_modelo || {}, status: String(row.status || ''),
-        inicio: row.inicio, fim: row.fim, tipoContrato: row.tipo_contrato, ativoId: row.ativo_id } : conApp;
+    const con = (await lerAplicacao(conApp.id)) || conApp;
     const dm = con.dadosModelo || {};
     const tipoNome = nomeTipo(con.tipoContrato);
     // título e faixa
@@ -343,42 +301,33 @@ export async function aplicarFichaAplicacao(conApp, raiz) {
     if (faixa) faixa.innerHTML = `<div><small>Valor atual</small><b>${esc(moeda(con.valor).replace(/,00$/, ''))}</b></div>
         <div><small>Aplicado</small><b>${esc(moeda(dm.aplicado_inicial || 0).replace(/,00$/, ''))}</b></div>
         <div><small>${vencimento ? 'Vence em' : 'Vencimento'}</small><b>${vencimento ? (meses > 0 ? `${meses} ${meses === 1 ? 'mês' : 'meses'}` : 'vencida') : 'sem'}</b></div>`;
-    // condições
+    // A (F10) — Condições pelo catálogo do tipo, com o "i" de cada campo
     const kv = raiz.querySelector('[data-fc-secao="resumo.condicoes"] .rz-kv');
-    if (kv) {
-        const k = (r, v, full) => `<div${full ? ' class="rz-full"' : ''}><small>${esc(r)}</small><b>${v}</b></div>`;
-        const LIQ = Object.fromEntries(LIQUIDEZ);
-        kv.innerHTML = [
-            k('Aplicado', esc(moeda(dm.aplicado_inicial || 0))),
-            dm.indexador ? k('Indexador', esc(indexadorTexto(dm))) : '',
-            k('Início', dataBR(con.inicio)),
-            TEM_VENC(con.tipoContrato) ? k('Vencimento', dataBR(con.fim)) : '',
-            dm.liquidez ? k('Liquidez', esc(LIQ[dm.liquidez] || dm.liquidez) + (dm.liquidez === 'carencia' && dm.carencia_dias ? esc(` · ${dm.carencia_dias} dias${con.inicio ? ' (até ' + dataBR(somaDias(con.inicio, dm.carencia_dias)) + ')' : ''}`) : '')) : '',
-            dm.isento_ir ? k('IR', 'Isenta para pessoa física') : '',
-            dm.regime ? k('Plano', esc(String(dm.regime).toUpperCase() + (dm.tributacao ? ' · ' + dm.tributacao : ''))) : '',
-            dm.aniversario ? k('Aniversário', 'dia ' + esc(dm.aniversario)) : '',
-            k(con.tipoContrato === 'inv_fundo' ? 'Fundo' : con.tipoContrato === 'inv_prev' ? 'Seguradora' : con.tipoContrato === 'inv_poup' ? 'Banco' : 'Emissor',
-              esc([dm.emissor_nome, dm.emissor_documento].filter(Boolean).join(' · ') || '—'), true),
-        ].join('');
+    if (kv && con.row) {
+        try {
+            const cat = await catalogo();
+            const campos = await cat.camposDoTipo(con.tipoContrato);
+            kv.innerHTML = cat.condicoesHtml(campos, con.row) || '<p class="rz-desc">Sem condições cadastradas.</p>';
+            cat.ligarInfos(kv, campos);
+        } catch (e) { console.warn('[investimentos] condições:', e?.message || e); }
     }
-    // cards do Resumo: Valor e Ocorrências (v1.1.0 — sem Movimentos e sem Itens; o card padrão de Ocorrências só lê
-    // ocorrência do contrato e a da aplicação mora no item "Atualizar valor": fica escondido aqui)
+    // cards do Resumo: Valor e Ocorrências (o card padrão de Ocorrências só lê ocorrência do contrato: fica escondido aqui)
     raiz.querySelector('#fc-card-ocorrencias')?.classList.add('hidden');
     const cond = raiz.querySelector('[data-fc-secao="resumo.condicoes"]');
     if (cond && !raiz.querySelector('#fc-card-apl-valor')) {
         cond.insertAdjacentHTML('afterend', `<div class="rz-card" id="fc-card-apl-valor">${sk(3)}</div>
             <div class="rz-card rz-list" id="fc-card-apl-oc"><div class="rz-card-h"><h3>Ocorrências</h3></div>${sk(2)}</div>`);
     }
-    // Financeiro e Partes
-    const fin = raiz.querySelector('#fc-painel-cobrancas');
-    if (fin) fin.innerHTML = `<div class="rz-card rz-list" id="fc-card-apl-fin"><div class="rz-card-h"><h3>Financeiro</h3></div>${sk(3)}</div>`;
+    // D/H — Financeiro: o card padrão (contratos.js, olhar do investimento) + o card Indicadores logo abaixo
+    const painel = raiz.querySelector('#fc-painel-cobrancas');
+    if (painel && !raiz.querySelector('#fc-card-apl-ind')) painel.insertAdjacentHTML('beforeend', `<div class="rz-card" id="fc-card-apl-ind">${sk(3)}</div>`);
     const chipFin = raiz.querySelector('#fc-chips [data-fc-chip="cobrancas"] .rz-n'); if (chipFin) chipFin.textContent = '';
     const partes = raiz.querySelector('#fc-painel-partes');
     if (partes) partes.innerHTML = `<div class="rz-card rz-list" id="fc-card-apl-partes"><div class="rz-card-h"><h3>Partes</h3></div>${sk(2)}</div>`;
     const chipPartes = raiz.querySelector('#fc-chips [data-fc-chip="partes"] .rz-n'); if (chipPartes) chipPartes.textContent = '';
     icones();
     montarValorAplicacao(con).catch(e => console.warn('[investimentos] valor:', e?.message || e));
-    montarFinanceiroAplicacao(con).catch(e => console.warn('[investimentos] financeiro:', e?.message || e));
+    prepararIndicadores([con.id], 'fc-fin-comp', 'fc-card-apl-ind').catch(e => console.warn('[investimentos] indicadores:', e?.message || e));
     montarOcorrenciasAplicacao(con).catch(e => console.warn('[investimentos] ocorrências:', e?.message || e));
     montarPartesAplicacao(con).catch(e => console.warn('[investimentos] partes:', e?.message || e));
 }
@@ -387,16 +336,19 @@ const modoValor = new Map();
 async function montarValorAplicacao(con) {
     const card = document.getElementById('fc-card-apl-valor'); if (!card) return;
     const hist = (await historicoValores([con.id])).map(h => ({ tipo: 'mercado', data_base: h.data_base, valor: h.valor, fonte: h.origem, criado_em: h.criado_em, obs: h.obs }));
+    const { data: lap } = await db().from('lancamentos').select('categoria, valor').eq('contrato_id', con.id).eq('categoria', 'inv_aplicacao');
+    const aplicado = (lap || []).reduce((s, l) => s + Number(l.valor || 0), 0);
     const ca = await import('./cofre-ativos.js');
     const rot = (x) => ORIGEM_ROT[x.fonte] || 'Informado';
     const modoIni = ca.vbModoInicial(hist);
     const modo = modoIni ? (modoValor.get(con.id) || modoIni) : null;
+    const op = { semVariacao: true }; // H — sem a frase de %: o % vai para o card Indicadores
     const menu = `<button type="button" class="rz-more" data-apl-valor-menu aria-label="Ações do valor"><i data-lucide="ellipsis-vertical"></i></button>`;
     card.innerHTML = `<div class="rz-card-h"><h3>Valor</h3>${menu}</div>
         <div class="rz-kv"><div><small>Valor atual</small><b>${esc(moeda(con.valor))}</b>${hist.length ? `<small>${esc(dataBR(hist.slice().sort((a, b) => a.data_base.localeCompare(b.data_base)).pop().data_base))}</small>` : ''}</div>
-        <div><small>Desde a aplicação</small><b>${con.dadosModelo?.aplicado_inicial ? esc(pct(con.valor, con.dadosModelo.aplicado_inicial)) : '—'}</b></div></div>
+        <div><small>Aplicado no total</small><b>${esc(moeda(aplicado))}</b></div></div>
         ${modo ? `<div class="rz-seg rz-vb-seg" role="group"><button type="button" data-vb-modo="mes" class="${modo === 'mes' ? 'rz-on' : ''}">Mês</button><button type="button" data-vb-modo="ano" class="${modo === 'ano' ? 'rz-on' : ''}">Ano</button></div>
-        <div data-vb-grafico>${ca.vbGraficoHtml(hist, modo, rot)}</div>` : '<p class="rz-vb-sub">As colunas aparecem a partir do segundo valor informado.</p>'}`;
+        <div data-vb-grafico>${ca.vbGraficoHtml(hist, modo, rot, op)}</div>` : '<p class="rz-vb-sub">As colunas aparecem a partir do segundo valor informado.</p>'}`;
     const ligar = (m) => {
         const cols = ca.vbSerie(hist, m);
         card.querySelectorAll('[data-vb-grafico] .rz-vb-col').forEach(g => g.addEventListener('click', () => {
@@ -411,7 +363,7 @@ async function montarValorAplicacao(con) {
         card.querySelectorAll('[data-vb-modo]').forEach(b => b.addEventListener('click', () => {
             const m = b.dataset.vbModo; modoValor.set(con.id, m);
             card.querySelectorAll('[data-vb-modo]').forEach(x => x.classList.toggle('rz-on', x === b));
-            card.querySelector('[data-vb-grafico]').innerHTML = ca.vbGraficoHtml(hist, m, rot); ligar(m);
+            card.querySelector('[data-vb-grafico]').innerHTML = ca.vbGraficoHtml(hist, m, rot, op); ligar(m);
         }));
     }
     card.querySelector('[data-apl-valor-menu]')?.addEventListener('click', () => abrirSheetAcoes({ titulo: 'Valor', sub: con.descricao || '', acoes: [
@@ -423,7 +375,6 @@ async function montarValorAplicacao(con) {
     icones();
 }
 const somaDias = (iso, n) => { const d = new Date(String(iso).slice(0, 10) + 'T12:00:00'); d.setDate(d.getDate() + Number(n || 0)); return d.toISOString().slice(0, 10); };
-const pct = (atual, base) => { const p = (Number(atual) / Number(base) - 1) * 100; return `${p >= 0 ? '+' : '−'}${Math.abs(p).toLocaleString('pt-BR', { maximumFractionDigits: 1 })}%`; };
 
 function abrirInformarValor(con, dataSugerida) {
     const dIni = dataSugerida && String(dataSugerida).slice(0, 10) <= hoje() ? String(dataSugerida).slice(0, 10) : hoje();
@@ -441,68 +392,324 @@ function abrirInformarValor(con, dataSugerida) {
         } });
 }
 
-const MOV = { aplicacao: ['Aplicação', 'No mesmo título e taxa', 'arrow-up-right'],
-    resgate_parcial: ['Resgate parcial', 'Reduz o valor da aplicação', 'arrow-down-left'],
-    resgate_total: ['Resgate total', 'A aplicação fica encerrada', 'arrow-down-left'] };
-const LANC = [['inv_rendimento', 'Rendimento', 'Juros recebidos', 'entrada', 'trending-up'], ['inv_taxa', 'Taxa', 'Taxa ou corretagem', 'saida', 'receipt'],
-    ['inv_ir', 'IR', 'IR retido', 'saida', 'landmark']];
-// v1.1.0 (E) — sinal no olhar da aplicação: o que entra nela (aplicação, rendimento) é +; o que sai dela (resgate, taxa, IR) é −
-const sinalAplicacao = (x) => (['inv_resgate', 'inv_taxa', 'inv_ir'].includes(x.categoria) ? -1 : x.categoria === 'inv_aplicacao' || x.categoria === 'inv_rendimento' ? 1 : (x.direcao === 'entrada' ? 1 : -1));
-async function montarFinanceiroAplicacao(con) {
-    const { data, error } = await db().from('lancamentos').select('id, direcao, categoria, valor, data_pagamento, vencimento, descricao, status, observacao')
-        .eq('contrato_id', con.id).order('data_pagamento', { ascending: false, nullsFirst: false });
-    if (error) throw error;
-    const l = data || [];
-    const fechada = ['encerrado', 'finalizado'].includes(String(con.status || '').toLowerCase());
-    const linha = (x) => { const sg = sinalAplicacao(x);
-        return `<div class="rz-row"><div class="rz-ic"><i data-lucide="${sg > 0 ? 'arrow-up-right' : 'arrow-down-left'}"></i></div>
-        <div class="rz-tx"><b>${esc(String(x.descricao || '').split(' · ')[0] || 'Lançamento')}</b><span>${esc(dataBR(x.data_pagamento || x.vencimento))}${x.observacao ? ' · ' + esc(x.observacao) : ''}</span></div>
-        <div class="rz-rt"><b${sg > 0 ? ' class="rz-in"' : ''}>${sg > 0 ? '+' : '−'}${esc(moeda(x.valor))}</b></div></div>`; };
-    const fin = document.getElementById('fc-card-apl-fin');
-    if (!fin) return;
-    fin.innerHTML = `<div class="rz-card-h"><h3>Financeiro</h3><span class="rz-sub">${l.length}</span></div>
-        ${l.length ? l.map(linha).join('') : '<p class="rz-desc">Nenhum lançamento desta aplicação.</p>'}
-        <button type="button" class="rz-add" data-apl-mov><i data-lucide="plus"></i> Registrar movimento</button>`;
-    fin.querySelector('[data-apl-mov]')?.addEventListener('click', () => abrirSheetAcoes({ titulo: 'Registrar movimento', sub: con.descricao || '', acoes: [
-        ...(fechada ? [] : Object.entries(MOV).map(([k, [t, s, i]]) => ({ icone: i, titulo: t, sub: s, codigo: 'cofre.editar', aoTocar: () => abrirFormMovimento(con, k) }))),
-        ...LANC.map(([k, t, s, , i]) => ({ icone: i, titulo: t, sub: s, codigo: 'cofre.editar', aoTocar: () => abrirFormLancamento(con, k) })),
-    ] }));
+// ---------------------------------------------------------------------------------------------------- movimentos (D, E, F, G)
+const INFO_MOV = {
+    aplicacao: ['Aplicação', 'Dinheiro novo no mesmo título (mesma taxa e vencimento). Aumenta o valor da aplicação e sai do seu caixa. Não é rendimento.'],
+    resgate_parcial: ['Resgate parcial', 'Você tira parte do dinheiro. O valor bruto sai da aplicação; IR, IOF e taxas são descontados; o líquido cai no caixa.'],
+    resgate_total: ['Resgate total', 'Você tira tudo: a aplicação vai para Encerradas e sai da soma da conta. O líquido cai no caixa.'],
+    rendimento: ['Rendimento', 'Tudo o que a aplicação paga sem você resgatar: juros/cupom, amortização, dividendos, JCP e rendimento de fundo ou poupança. O tipo se escolhe dentro.'],
+    taxa: ['Taxa ou custódia', 'Taxa cobrada à parte (custódia da B3, corretagem, administração cobrada fora do fundo). Entra em Impostos e taxas.'],
+};
+const TIPOS_REND = {
+    juros: { nome: 'Juros / cupom', cat: 'inv_juros', info: 'Juros pagos durante a vida do título, sem tirar o principal (ex.: Tesouro IPCA+ com juros semestrais, debêntures, CRI, CRA). IR pela tabela regressiva — 22,5% até 180 dias, 20% até 360, 17,5% até 720 e 15% acima —, exceto os isentos para pessoa física (LCI, LCA, CRI, CRA, debêntures incentivadas).' },
+    amortizacao: { nome: 'Amortização', cat: 'inv_amortizacao', info: 'Devolução de parte do dinheiro aplicado (principal) antes do vencimento. Reduz o valor da aplicação e não é rendimento; o IR só incide sobre juros que vierem junto.' },
+    dividendo: { nome: 'Dividendos', cat: 'inv_dividendo', info: 'Parte do lucro da empresa paga aos acionistas, em dinheiro. Isento de IR para pessoa física até R$ 50 mil por mês da mesma empresa; acima disso, desde 2026, há retenção de 10% sobre o total pago (Lei 15.270/2025).' },
+    jcp: { nome: 'JCP', cat: 'inv_jcp', info: 'Juros sobre capital próprio: outra forma de a empresa distribuir lucro. Tem 15% de IR retido na fonte — o que cai no caixa já é o líquido.' },
+    rendimento: { nome: 'Rendimento de fundo ou poupança', cat: 'inv_rendimento', info: 'Rendimento distribuído por fundo (ex.: FII todo mês) ou juros da poupança no aniversário. Em geral isento para pessoa física (poupança; FII que cumpre as regras).' },
+};
+const aliqTabela = (dias) => (dias <= 180 ? 0.225 : dias <= 360 ? 0.20 : dias <= 720 ? 0.175 : 0.15);
+const diasDesde = (iso) => Math.max(0, Math.round((new Date(hoje() + 'T12:00:00') - new Date(String(iso || hoje()).slice(0, 10) + 'T12:00:00')) / 86400000));
+const pctTxt = (v) => (v * 100).toLocaleString('pt-BR', { maximumFractionDigits: 1 }) + '%';
+const aviso = (titulo, texto) => (typeof rzAviso === 'function' ? rzAviso({ titulo, linhas: [texto] }) : toast(texto));
+const infoBtnHtml = (k) => `<button type="button" class="rz-i" data-inv-info="${k}" aria-label="O que é?"><svg data-lucide="info"></svg></button>`;
+const numero = (id) => { const v = String(document.getElementById(id)?.value || '').trim().replace(',', '.'); return v ? Number(v) : 0; };
+
+// E — "Registrar movimento" da aplicação (financeiro.js › rzRegistrarMovimento chama aqui)
+export async function abrirRegistrarMovimento(contratoId) {
+    const con = await lerAplicacao(contratoId); if (!con) return;
+    const fechada = ['encerrado', 'finalizado'].includes(con.status.toLowerCase());
+    const acoes = [
+        ...(fechada ? [] : [
+            { icone: 'arrow-up-right', titulo: 'Aplicação', sub: 'No mesmo título', codigo: 'cofre.editar', aoTocar: () => abrirFormAporte(con) },
+            { icone: 'arrow-down-left', titulo: 'Resgate parcial', sub: 'Bruto, impostos e líquido', codigo: 'cofre.editar', aoTocar: () => abrirFormResgate(con, 'resgate_parcial') },
+            { icone: 'log-out', titulo: 'Resgate total', sub: 'A aplicação fica encerrada', codigo: 'cofre.editar', aoTocar: () => abrirFormResgate(con, 'resgate_total') },
+        ]),
+        { icone: 'sprout', titulo: 'Rendimento', sub: 'Juros, dividendos, JCP…', codigo: 'cofre.editar', aoTocar: () => abrirFormRendimento(con, 'jcp') },
+        { icone: 'receipt', titulo: 'Taxa ou custódia', sub: 'Cobrada à parte', codigo: 'cofre.editar', aoTocar: () => abrirFormTaxa(con) },
+        { icone: 'arrow-up-right', titulo: 'Outra despesa', sub: 'Saída ligada à conta', codigo: 'saidas.registrar', aoTocar: () => (typeof window.abrirNovaDespesa === 'function' ? window.abrirNovaDespesa(con.ativoId || null) : null) },
+    ];
+    abrirSheetAcoes({ titulo: 'Registrar movimento', sub: con.descricao || '', acoes });
+}
+async function depoisDoMovimento(con) { await recarregarContratosApp(); await reabrirFicha(con.id); }
+function ligarInfosMov(extra = {}) {
+    document.querySelectorAll('[data-inv-info]').forEach(b => {
+        if (b.dataset.invLigado) return; b.dataset.invLigado = '1';
+        b.addEventListener('click', (ev) => { ev.preventDefault(); ev.stopPropagation(); const k = b.dataset.invInfo; const t = extra[k] || INFO_MOV[k]; if (t) aviso(t[0], t[1]); });
+    });
     icones();
 }
-function abrirFormMovimento(con, tipo) {
-    const [titulo] = MOV[tipo];
-    abrirSheetForm({ titulo, sub: con.descricao || '', rotuloSalvar: tipo === 'aplicacao' ? 'Registrar aplicação' : 'Registrar resgate', empilhar: true,
-        corpo: `<div class="rz-f2">${campo('inv-m-data', 'Data', `<input type="date" id="inv-m-data" max="${hoje()}" value="${hoje()}">`)}${campo('inv-m-valor', tipo === 'resgate_total' ? 'Valor recebido (R$)' : 'Valor (R$)', `<input type="number" id="inv-m-valor" step="0.01" min="0" inputmode="decimal">`)}</div>
-            ${campo('inv-m-obs', 'Observação (opcional)', `<input type="text" id="inv-m-obs" maxlength="120">`)}
-            ${tipo === 'aplicacao' ? '<p class="rz-desc">Taxa ou vencimento diferentes? Então é outra aplicação.</p>' : tipo === 'resgate_total' ? '<p class="rz-desc">O valor recebido entra no Financeiro e a aplicação fica encerrada.</p>' : ''}`,
+function abrirFormAporte(con) {
+    abrirSheetForm({ titulo: 'Aplicação', sub: con.descricao || '', rotuloSalvar: 'Registrar aplicação', empilhar: true,
+        corpo: `<p class="rz-desc">${esc(INFO_MOV.aplicacao[1])}</p>
+            <div class="rz-f2">${campo('inv-m-data', 'Data', `<input type="date" id="inv-m-data" max="${hoje()}" value="${hoje()}">`)}${campo('inv-m-valor', 'Valor (R$)', `<input type="number" id="inv-m-valor" step="0.01" min="0" inputmode="decimal">`)}</div>
+            ${campo('inv-m-obs', 'Observação (opcional)', `<input type="text" id="inv-m-obs" maxlength="120">`)}`,
         aoSalvar: async () => {
-            const data = document.getElementById('inv-m-data')?.value, valor = Number(String(document.getElementById('inv-m-valor')?.value || '').replace(',', '.'));
+            const data = document.getElementById('inv-m-data')?.value, valor = numero('inv-m-valor');
             if (!data || !(valor > 0)) { toast('Informe a data e o valor.', 'erro'); return false; }
-            const { error } = await db().rpc('fn_aplicacao_movimento_registrar', { p_contrato_id: con.id, p_tipo: tipo, p_data: data, p_valor: valor, p_observacao: document.getElementById('inv-m-obs')?.value || null });
+            const { error } = await db().rpc('fn_aplicacao_movimento_registrar', { p_contrato_id: con.id, p_tipo: 'aplicacao', p_data: data, p_valor: valor, p_observacao: document.getElementById('inv-m-obs')?.value || null });
             if (error) { toast(error.message || 'Não consegui registrar.', 'erro'); return false; }
-            toast(tipo === 'aplicacao' ? 'Aplicação registrada' : 'Resgate registrado', 'sucesso');
-            await recarregarContratosApp();
-            await reabrirFicha(con.id);
-            return true;
+            toast('Aplicação registrada', 'sucesso'); await depoisDoMovimento(con); return true;
         } });
 }
-function abrirFormLancamento(con, cat) {
-    const op = LANC.find(o => o[0] === cat) || LANC[0];
-    abrirSheetForm({ titulo: op[1], sub: con.descricao || '', rotuloSalvar: 'Lançar', empilhar: true,
-        corpo: `<div class="rz-f2">${campo('inv-l-data', 'Data', `<input type="date" id="inv-l-data" max="${hoje()}" value="${hoje()}">`)}${campo('inv-l-valor', 'Valor (R$)', `<input type="number" id="inv-l-valor" step="0.01" min="0" inputmode="decimal">`)}</div>`,
+
+// F — resgate: Bruto, IR, IOF, Taxa e Líquido; dois lados fecham o terceiro
+async function abrirFormResgate(con, tipo) {
+    const total = tipo === 'resgate_total';
+    const { data: lanc } = await db().from('lancamentos').select('categoria, valor').eq('contrato_id', con.id).in('categoria', ['inv_aplicacao', 'inv_resgate', 'inv_amortizacao']);
+    const aplicado = (lanc || []).filter(l => l.categoria === 'inv_aplicacao').reduce((s, l) => s + Number(l.valor || 0), 0);
+    const tirado = (lanc || []).filter(l => l.categoria !== 'inv_aplicacao').reduce((s, l) => s + Number(l.valor || 0), 0);
+    const custo = Math.max(aplicado - tirado, 0), valorAtual = Number(con.valor || 0);
+    const isento = !!con.dadosModelo?.isento_ir, dias = diasDesde(con.inicio), aliq = aliqTabela(dias);
+    const vl = (id, rot) => campo(id, rot, `<input type="number" id="${id}" step="0.01" min="0" inputmode="decimal"><span class="rz-hint" id="${id}-pc"></span>`);
+    abrirSheetForm({ titulo: INFO_MOV[tipo][0], sub: con.descricao || '', rotuloSalvar: 'Registrar resgate', empilhar: true,
+        corpo: `<p class="rz-desc">${esc(INFO_MOV[tipo][1])} ${infoBtnHtml(tipo)}</p>
+            <div class="rz-f2">${campo('inv-r-data', 'Data', `<input type="date" id="inv-r-data" max="${hoje()}" value="${hoje()}">`)}${campo('inv-r-atual', 'Valor atual', `<input type="text" id="inv-r-atual" value="${esc(moeda(valorAtual))}" disabled>`)}</div>
+            ${vl('inv-r-bruto', 'Bruto (sai da aplicação)')}
+            <div class="rz-f2">${vl('inv-r-ir', 'IR')}${vl('inv-r-iof', 'IOF')}</div>
+            ${vl('inv-r-taxa', 'Taxa')}
+            ${vl('inv-r-liq', 'Líquido (cai no caixa)')}
+            <p class="rz-desc" id="inv-r-calc">Preencha dois lados: bruto e descontos, bruto e líquido, ou líquido e descontos.</p>
+            ${campo('inv-r-obs', 'Observação (opcional)', `<input type="text" id="inv-r-obs" maxlength="120">`)}`,
         aoSalvar: async () => {
-            const data = document.getElementById('inv-l-data')?.value;
-            const valor = Number(String(document.getElementById('inv-l-valor')?.value || '').replace(',', '.'));
+            const data = document.getElementById('inv-r-data')?.value;
+            const bruto = numero('inv-r-bruto'), ir = numero('inv-r-ir'), iof = numero('inv-r-iof'), taxa = numero('inv-r-taxa');
+            if (!data || !(bruto > 0)) { toast('Informe a data e o bruto.', 'erro'); return false; }
+            if (bruto - ir - iof - taxa <= 0) { toast('Os descontos passam do bruto.', 'erro'); return false; }
+            const { error } = await db().rpc('fn_aplicacao_movimento_registrar', { p_contrato_id: con.id, p_tipo: tipo, p_data: data, p_valor: bruto,
+                p_observacao: document.getElementById('inv-r-obs')?.value || null, p_ir: ir, p_iof: iof, p_taxa: taxa });
+            if (error) { toast(error.message || 'Não consegui registrar.', 'erro'); return false; }
+            toast('Resgate registrado', 'sucesso'); await depoisDoMovimento(con); return true;
+        } });
+    setTimeout(() => {
+        const ids = ['inv-r-bruto', 'inv-r-ir', 'inv-r-iof', 'inv-r-taxa', 'inv-r-liq'], toque = [];
+        const set = (id, x) => { const el = document.getElementById(id); if (el) el.value = x > 0 ? String(Math.round(x * 100) / 100) : ''; };
+        const lado = (id) => (id === 'inv-r-bruto' ? 'B' : id === 'inv-r-liq' ? 'L' : 'D');
+        const recalc = (origem) => {
+            if (origem) { const i = toque.indexOf(origem); if (i >= 0) toque.splice(i, 1); toque.push(origem); }
+            const lados = [...new Set(toque.map(lado))].slice(-2);
+            const desc = () => numero('inv-r-ir') + numero('inv-r-iof') + numero('inv-r-taxa');
+            let msg = '';
+            if (lados.includes('B') && lados.includes('D') && toque[toque.length - 1] !== 'inv-r-liq') { set('inv-r-liq', numero('inv-r-bruto') - desc()); msg = 'Líquido = bruto − descontos.'; }
+            else if (lados.includes('B') && lados.includes('L')) { set('inv-r-ir', Math.max(numero('inv-r-bruto') - numero('inv-r-liq') - numero('inv-r-iof') - numero('inv-r-taxa'), 0)); msg = 'A diferença entre bruto e líquido foi para o IR — mova para IOF ou Taxa se for o caso.'; }
+            else if (lados.includes('L') && lados.includes('D')) { set('inv-r-bruto', numero('inv-r-liq') + desc()); msg = 'Bruto = líquido + descontos.'; }
+            const b = numero('inv-r-bruto');
+            ['inv-r-ir', 'inv-r-iof', 'inv-r-taxa', 'inv-r-liq'].forEach(id => { const el = document.getElementById(id + '-pc'); if (el) el.textContent = b > 0 && numero(id) > 0 ? pctTxt(numero(id) / b) + ' do bruto' : ''; });
+            if (b > 0) {
+                const ganho = valorAtual > 0 ? Math.max(b * (1 - custo / valorAtual), 0) : 0;
+                const irEl = document.getElementById('inv-r-ir-pc');
+                if (irEl && numero('inv-r-ir') > 0 && ganho > 0) irEl.textContent = `${pctTxt(numero('inv-r-ir') / b)} do bruto · ≈ ${pctTxt(numero('inv-r-ir') / ganho)} do ganho`;
+                msg += isento ? ' Esta aplicação é isenta de IR para pessoa física.'
+                    : ganho > 0 ? ` Tabela pelo prazo (${dias} dias): ${pctTxt(aliq)} do ganho ≈ ${moeda(ganho * aliq)}.` : '';
+            }
+            if (numero('inv-r-liq') < 0) msg = 'Os descontos passam do bruto.';
+            const c = document.getElementById('inv-r-calc'); if (c) c.textContent = msg || 'Preencha dois lados: bruto e descontos, bruto e líquido, ou líquido e descontos.';
+        };
+        ids.forEach(id => document.getElementById(id)?.addEventListener('input', () => recalc(id)));
+        if (total && valorAtual > 0) { set('inv-r-bruto', valorAtual); recalc('inv-r-bruto'); }
+        ligarInfosMov();
+    }, 0);
+}
+
+// G — um link só "Rendimento": o tipo é o primeiro campo e a tela se ajusta
+function abrirFormRendimento(con, tipo) {
+    const T = TIPOS_REND[tipo] || TIPOS_REND.jcp;
+    const dias = diasDesde(con.inicio), isento = !!con.dadosModelo?.isento_ir;
+    const sug = tipo === 'jcp' ? 0.15 : tipo === 'juros' ? (isento ? 0 : aliqTabela(dias)) : 0;
+    const sugTxt = tipo === 'jcp' ? 'sugerido 15% (retido na fonte)' : tipo === 'juros' ? (isento ? 'isenta para pessoa física' : `sugerido ${pctTxt(sug)} pela tabela (${dias} dias)`)
+        : tipo === 'dividendo' ? 'só acima de R$ 50 mil/mês da mesma empresa' : tipo === 'amortizacao' ? 'só sobre juros que vierem junto' : 'em geral isento';
+    const opcoes = Object.entries(TIPOS_REND).map(([k, t]) => `<option value="${k}"${k === tipo ? ' selected' : ''}>${esc(t.nome)}</option>`).join('') + '<option value="bonificacao" disabled>Bonificação · chega com a Renda variável</option>';
+    const vl = (id, rot) => campo(id, rot, `<input type="number" id="${id}" step="0.01" min="0" inputmode="decimal"><span class="rz-hint" id="${id}-pc"></span>`);
+    abrirSheetForm({ titulo: 'Rendimento', sub: con.descricao || '', rotuloSalvar: 'Lançar', empilhar: true,
+        corpo: `${campo('inv-p-tipo', `Tipo ${infoBtnHtml('tipo_' + tipo)}`, `<select id="inv-p-tipo">${opcoes}</select>`)}
+            ${campo('inv-p-data', 'Data do pagamento', `<input type="date" id="inv-p-data" max="${hoje()}" value="${hoje()}">`)}
+            ${vl('inv-p-bruto', 'Bruto')}
+            ${vl('inv-p-ir', `IR <small>${esc(sugTxt)}</small>`)}
+            ${vl('inv-p-liq', 'Líquido (cai no caixa)')}
+            ${tipo === 'amortizacao' ? '<p class="rz-desc">O bruto sai da aplicação (o valor dela cai), como num resgate; não conta como rendimento.</p>' : ''}`,
+        aoSalvar: async () => {
+            const data = document.getElementById('inv-p-data')?.value, bruto = numero('inv-p-bruto'), ir = numero('inv-p-ir');
+            if (!data || !(bruto > 0)) { toast('Informe a data e o bruto.', 'erro'); return false; }
+            if (ir >= bruto) { toast('O IR passa do bruto.', 'erro'); return false; }
+            if (tipo === 'amortizacao') {
+                const { error } = await db().rpc('fn_aplicacao_movimento_registrar', { p_contrato_id: con.id, p_tipo: 'amortizacao', p_data: data, p_valor: bruto, p_observacao: null, p_ir: ir, p_iof: 0, p_taxa: 0 });
+                if (error) { toast(error.message || 'Não consegui registrar.', 'erro'); return false; }
+            } else {
+                const origem = (crypto?.randomUUID ? crypto.randomUUID() : null);
+                const base = { cliente_id: con.clienteId, ativo_id: con.ativoId || null, contrato_id: con.id, competencia: data.slice(0, 7) + '-01', status: 'realizado', reembolsavel: false,
+                    origem_tipo: 'manual', origem_id: origem, vencimento: data, data_pagamento: data, incluir_contabilidade: true, natureza_economica: 'operacao' };
+                const linhas = [{ ...base, direcao: 'entrada', categoria: T.cat, valor: bruto, descricao: `${T.nome} · ${con.descricao || ''}` }];
+                if (ir > 0) linhas.push({ ...base, direcao: 'saida', categoria: 'inv_ir', valor: ir, descricao: `IR retido · ${T.nome} · ${con.descricao || ''}` });
+                const { error } = await db().from('lancamentos').insert(linhas);
+                if (error) { toast(error.message || 'Não consegui lançar.', 'erro'); return false; }
+            }
+            toast('Rendimento registrado', 'sucesso'); await depoisDoMovimento(con); return true;
+        } });
+    setTimeout(() => {
+        document.getElementById('inv-p-tipo')?.addEventListener('change', (e) => { if (typeof fecharSheet === 'function') fecharSheet(); setTimeout(() => abrirFormRendimento(con, e.target.value), 60); });
+        let ultimo = 'inv-p-bruto';
+        const set = (id, x) => { const el = document.getElementById(id); if (el) el.value = x > 0 ? String(Math.round(x * 100) / 100) : ''; };
+        const recalc = (o) => {
+            if (o) ultimo = o;
+            if (ultimo === 'inv-p-bruto') { set('inv-p-ir', numero('inv-p-bruto') * sug); set('inv-p-liq', numero('inv-p-bruto') - numero('inv-p-ir')); }
+            else if (ultimo === 'inv-p-ir') set('inv-p-liq', numero('inv-p-bruto') - numero('inv-p-ir'));
+            else { set('inv-p-bruto', sug < 1 ? numero('inv-p-liq') / (1 - sug) : numero('inv-p-liq')); set('inv-p-ir', numero('inv-p-bruto') - numero('inv-p-liq')); }
+            const b = numero('inv-p-bruto');
+            ['inv-p-ir', 'inv-p-liq'].forEach(id => { const el = document.getElementById(id + '-pc'); if (el) el.textContent = b > 0 && numero(id) > 0 ? pctTxt(numero(id) / b) + ' do bruto' : ''; });
+        };
+        ['inv-p-bruto', 'inv-p-ir', 'inv-p-liq'].forEach(id => document.getElementById(id)?.addEventListener('input', () => recalc(id)));
+        ligarInfosMov({ ['tipo_' + tipo]: [T.nome, T.info] });
+    }, 0);
+}
+function abrirFormTaxa(con) {
+    abrirSheetForm({ titulo: 'Taxa ou custódia', sub: con.descricao || '', rotuloSalvar: 'Lançar', empilhar: true,
+        corpo: `<p class="rz-desc">${esc(INFO_MOV.taxa[1])}</p>
+            <div class="rz-f2">${campo('inv-t-data', 'Data', `<input type="date" id="inv-t-data" max="${hoje()}" value="${hoje()}">`)}${campo('inv-t-valor', 'Valor (R$)', `<input type="number" id="inv-t-valor" step="0.01" min="0" inputmode="decimal">`)}</div>`,
+        aoSalvar: async () => {
+            const data = document.getElementById('inv-t-data')?.value, valor = numero('inv-t-valor');
             if (!data || !(valor > 0)) { toast('Informe a data e o valor.', 'erro'); return false; }
-            const { error } = await db().from('lancamentos').insert({ cliente_id: (typeof CLIENTE_ID_SUPABASE !== 'undefined' ? CLIENTE_ID_SUPABASE : null), direcao: op[3], categoria: op[0],
-                ativo_id: con.ativoId || null, contrato_id: con.id, competencia: data.slice(0, 7) + '-01', valor, status: 'realizado', reembolsavel: false,
-                origem_tipo: 'manual', descricao: op[2] + ' · ' + (con.descricao || ''), vencimento: data, data_pagamento: data, incluir_contabilidade: true });
+            const { error } = await db().from('lancamentos').insert({ cliente_id: con.clienteId, direcao: 'saida', categoria: 'inv_taxa', ativo_id: con.ativoId || null, contrato_id: con.id,
+                competencia: data.slice(0, 7) + '-01', valor, status: 'realizado', reembolsavel: false, origem_tipo: 'manual', descricao: 'Taxa · ' + (con.descricao || ''),
+                vencimento: data, data_pagamento: data, incluir_contabilidade: true, natureza_economica: 'operacao' });
             if (error) { toast(error.message || 'Não consegui lançar.', 'erro'); return false; }
-            toast('Lançamento registrado', 'sucesso');
-            montarFinanceiroAplicacao(con).catch(() => {});
-            return true;
+            toast('Taxa registrada', 'sucesso'); await depoisDoMovimento(con); return true;
         } });
 }
+
+// ---------------------------------------------------------------------------------------------------- indicadores (H)
+// Mês a mês, por aplicação: ganho = V1 − V0 − aplicações + resgates (bruto) + rendimentos pagos (bruto); capital médio (Dietz
+// modificado) = V0 + Σ aplicação × peso − Σ (resgate + rendimento) × peso, peso = dias do dinheiro no mês ÷ dias do mês. Nos
+// períodos maiores, as rentabilidades mensais encadeadas (1+r1)(1+r2)… − 1, como corretoras e fundos.
+const CAT_A = ['inv_aplicacao'], CAT_R = ['inv_resgate', 'inv_amortizacao'], CAT_P = ['inv_rendimento', 'inv_juros', 'inv_dividendo', 'inv_jcp'], CAT_T = ['inv_ir', 'inv_iof', 'inv_taxa'];
+const MESES_L = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
+const ymDe = (iso) => String(iso).slice(0, 7);
+const fimDoMes = (ym) => { const [y, m] = ym.split('-').map(Number); const f = `${ym}-${String(new Date(y, m, 0).getDate()).padStart(2, '0')}`; return f > hoje() ? hoje() : f; };
+const diasNoMes = (ym) => { const [y, m] = ym.split('-').map(Number); return new Date(y, m, 0).getDate(); };
+const INFO_IND = {
+    sempre: ['Sempre visíveis', 'No ano, Últimos 12 meses e Desde o início não dependem do filtro: rentabilidade e ganho bruto de cada período, encadeando os meses.'],
+    saldo_ini: ['Saldo inicial', 'Quanto a aplicação valia no último dia antes do período.'],
+    aplic: ['Aplicações', 'Dinheiro novo que você colocou no período. Aumenta o saldo, mas não é ganho: por isso fica fora do rendimento.'],
+    resg: ['Resgates', 'Valor bruto que você tirou da aplicação no período (antes de IR, IOF e taxas), mais amortizações. Diminui o saldo, mas não é perda.'],
+    valoriz: ['Valorização', 'Quanto o saldo mudou só pelo mercado: saldo final − saldo inicial − aplicações + resgates.'],
+    rend: ['Rendimentos pagos', 'Juros, cupons, dividendos, JCP e rendimentos que caíram no seu caixa no período, pelo valor bruto. São ganho, mesmo tendo saído da aplicação.'],
+    saldo_fim: ['Saldo final', 'Quanto a aplicação valia no último dia do período (último valor informado; mês sem valor repete o anterior).'],
+    ganho: ['Ganho bruto', 'Valorização + rendimentos pagos: o que o dinheiro rendeu no período, antes de impostos e taxas.'],
+    imp: ['Impostos e taxas', 'IR e IOF retidos nos resgates e nos rendimentos, e taxas lançadas (custódia, corretagem, administração cobrada à parte).'],
+    liq: ['Ganho líquido', 'Ganho bruto − impostos e taxas: o que de fato ficou para você.'],
+    rent: ['Rentabilidade', 'Ganho bruto ÷ capital médio do período. O capital médio pesa cada aplicação e resgate pelos dias em que ficou investido (método de Dietz modificado). Em mais de um mês, as rentabilidades mensais são encadeadas, como fazem corretoras e fundos — assim dinheiro novo não vira rendimento.'],
+    rent_liq: ['Rentabilidade líquida', 'O mesmo cálculo com o ganho líquido (depois de IR, IOF e taxas).'],
+};
+async function dadosIndicadores(ids) {
+    if (!ids.length) return { meses: [] };
+    const [{ data: rows, error: e1 }, hist, { data: lanc, error: e2 }] = await Promise.all([
+        db().from('contratos').select('id, inicio, fim, status').in('id', ids),
+        historicoValores(ids),
+        db().from('lancamentos').select('contrato_id, categoria, valor, data_pagamento, vencimento, competencia, status').in('contrato_id', ids).eq('status', 'realizado'),
+    ]);
+    if (e1) throw e1; if (e2) throw e2;
+    const apl = (rows || []).map(c => ({ ...c, st: String(c.status || '').toLowerCase() }));
+    const ini = apl.map(c => String(c.inicio || hoje()).slice(0, 7)).sort()[0] || ymDe(hoje());
+    const meses = [];
+    for (let [y, m] = ini.split('-').map(Number); `${y}-${String(m).padStart(2, '0')}` <= ymDe(hoje()); m === 12 ? (y++, m = 1) : m++) meses.push(`${y}-${String(m).padStart(2, '0')}`);
+    const valorEm = (c, ym) => {
+        const fim = fimDoMes(ym);
+        if (String(c.inicio || '') > fim) return 0;
+        if ((c.st === 'encerrado' || c.st === 'finalizado') && c.fim && String(c.fim).slice(0, 10) <= fim) return 0;
+        const ult = hist.filter(h => h.contrato_id === c.id && h.data_base <= fim).sort((a, b) => a.data_base.localeCompare(b.data_base)).pop();
+        return ult ? ult.valor : 0;
+    };
+    const fluxos = (lanc || []).map(l => ({ c: l.contrato_id, cat: l.categoria, v: Number(l.valor || 0), d: String(l.data_pagamento || l.vencimento || l.competencia).slice(0, 10) }));
+    const mm = meses.map((k, i) => {
+        let V0 = 0, V1 = 0, A = 0, R = 0, P = 0, T = 0, cap = 0;
+        apl.forEach(c => {
+            const v0 = i ? valorEm(c, meses[i - 1]) : 0, v1 = valorEm(c, k);
+            let capC = v0;
+            fluxos.filter(f => f.c === c.id && f.d.slice(0, 7) === k).forEach(f => {
+                const peso = (diasNoMes(k) - Number(f.d.slice(8, 10)) + 1) / diasNoMes(k);
+                if (CAT_A.includes(f.cat)) { A += f.v; capC += f.v * peso; }
+                else if (CAT_R.includes(f.cat)) { R += f.v; capC -= f.v * peso; }
+                else if (CAT_P.includes(f.cat)) { P += f.v; capC -= f.v * peso; }
+                else if (CAT_T.includes(f.cat)) T += f.v;
+            });
+            V0 += v0; V1 += v1; cap += Math.max(capC, 0);
+        });
+        const ganho = V1 - V0 - A + R + P, liq = ganho - T;
+        return { k, V0, V1, A, R, P, T, ganho, liq, cap, r: cap > 0 ? ganho / cap : 0, rl: cap > 0 ? liq / cap : 0 };
+    });
+    return { meses: mm };
+}
+function periodo(d, de, ate) {
+    const mm = d.meses.filter(x => x.k >= de && x.k <= ate);
+    if (!mm.length) return null;
+    const soma = (c) => mm.reduce((s, x) => s + x[c], 0);
+    const enc = (c) => mm.reduce((s, x) => s * (1 + x[c]), 1) - 1;
+    return { V0: mm[0].V0, V1: mm[mm.length - 1].V1, A: soma('A'), R: soma('R'), P: soma('P'), T: soma('T'), ganho: soma('ganho'), liq: soma('liq'), r: enc('r'), rl: enc('rl'), meses: mm.length };
+}
+const pctS = (v) => `${v < 0 ? '−' : v > 0 ? '+' : ''}${Math.abs(v * 100).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}%`;
+const kmil = (v) => { const a = Math.abs(v) / 1000; return (v < -0.004 ? '−' : '') + (a >= 10 ? Math.round(a).toLocaleString('pt-BR') : a.toLocaleString('pt-BR', { maximumFractionDigits: 1 })); };
+const moedaS = (v) => `${v < 0 ? '−' : ''}${moeda(Math.abs(v))}`;
+function desenharIndicadores(card, d, ano, sel, porAplicacao) {
+    if (!card) return;
+    const agora = ymDe(hoje()), anoAtual = Number(agora.slice(0, 4));
+    const ultimoAno = ano === anoAtual ? agora : `${ano}-12`;
+    const [de, ate, rotP] = sel === null || sel === undefined ? [`${ano}-01`, ultimoAno, `${ano}${ano === anoAtual ? ' até ' + MESES_L[Number(agora.slice(5)) - 1].toLowerCase() : ''}`]
+        : [`${ano}-${String(sel + 1).padStart(2, '0')}`, `${ano}-${String(sel + 1).padStart(2, '0')}`, `${MESES_L[sel]} de ${ano}`];
+    const r = periodo(d, de, ate);
+    const a12 = (() => { const [y, m] = agora.split('-').map(Number); const dd = new Date(y, m - 12, 1); return `${dd.getFullYear()}-${String(dd.getMonth() + 1).padStart(2, '0')}`; })();
+    const fixo = (rot, x) => `<div class="rz-ind-fixo"><small>${esc(rot)}</small><b class="${x && x.r >= 0 ? 'rz-in' : ''}">${x ? pctS(x.r) : '—'}</b><span>${x ? esc(moedaS(x.ganho).replace(/,\d\d$/, '')) : ''}</span></div>`;
+    const linha = (k, val, destaque, cls = '') => `<div class="rz-ind${destaque ? ' rz-ind-dest' : ''}"><span>${esc(INFO_IND[k][0])} ${infoInd(k)}</span><b class="${cls}">${esc(val)}</b></div>`;
+    const valoriz = r ? r.ganho - r.P : 0;
+    card.innerHTML = `<div class="rz-card-h"><h3>Indicadores</h3>${infoInd('sempre')}</div>
+        <div class="rz-ind-fixos">${fixo('No ano', periodo(d, `${anoAtual}-01`, agora))}${fixo('12 meses', periodo(d, a12 > agora ? agora : a12, agora))}${fixo('Desde o início', periodo(d, '0000-00', agora))}</div>
+        <div class="rz-card-h"><h3>${esc(rotP)}</h3><span class="rz-sub">filtro do Financeiro</span></div>
+        ${r ? [linha('saldo_ini', moeda(r.V0)), linha('aplic', '+' + moeda(r.A)), linha('resg', '−' + moeda(r.R)), linha('valoriz', (valoriz >= 0 ? '+' : '') + moedaS(valoriz)),
+            linha('rend', '+' + moeda(r.P)), linha('saldo_fim', moeda(r.V1)), linha('ganho', moedaS(r.ganho), true, r.ganho >= 0 ? 'rz-in' : ''), linha('imp', '−' + moeda(r.T)),
+            linha('liq', moedaS(r.liq), true, r.liq >= 0 ? 'rz-in' : ''), linha('rent', pctS(r.r), true, r.r >= 0 ? 'rz-in' : ''), linha('rent_liq', pctS(r.rl), false, r.rl >= 0 ? 'rz-in' : '')].join('')
+            + '<p class="rz-desc">Comparar com CDI, IPCA e poupança chega com as cotações (I3).</p>' : '<p class="rz-desc">Sem valores no período.</p>'}
+        ${porAplicacao ? porAplicacao(de, ate, rotP) : ''}`;
+    card.querySelectorAll('[data-ind-info]').forEach(b => b.addEventListener('click', (ev) => {
+        ev.stopPropagation(); const k = b.dataset.indInfo;
+        if (k === 'sempre') { if (typeof rzAviso === 'function') rzAviso({ titulo: 'Sobre os indicadores', linhas: Object.values(INFO_IND).map(([t, x]) => `${t}: ${x}`) }); return; }
+        aviso(INFO_IND[k][0], INFO_IND[k][1]);
+    }));
+    icones();
+}
+const infoInd = (k) => `<button type="button" class="rz-i" data-ind-info="${k}" aria-label="O que é ${esc(INFO_IND[k][0])}?"><svg data-lucide="info"></svg></button>`;
+function registrarFinanceiro(finId, d, card, porAplicacao) {
+    window.__rzFinInvest = window.__rzFinInvest || {};
+    window.__rzFinInvest[finId] = {
+        serie: (ano) => MES_CURTO.map((_, m) => d.meses.find(x => x.k === `${ano}-${String(m + 1).padStart(2, '0')}`)?.ganho || 0),
+        titulo: (ano, serie, mesHoje) => {
+            const viv = serie.slice(0, mesHoje + 1); if (!viv.length || viv.every(v => Math.abs(v) < 0.5)) return `Nenhum ganho registrado em ${ano}`;
+            const acum = viv.reduce((t, v) => t + v, 0), melhor = viv.indexOf(Math.max(...viv));
+            return `Ganho de R$ ${kmil(acum)} mil em ${ano}${mesHoje < 11 ? ' até ' + MES_CURTO[mesHoje] : ''}; ${MESES_L[melhor].toLowerCase()} foi o melhor mês`;
+        },
+        aoFiltrar: (ano, sel) => desenharIndicadores(card(), d, ano, sel, porAplicacao),
+    };
+}
+async function prepararIndicadores(ids, finId, cardId) {
+    const d = await dadosIndicadores(ids);
+    registrarFinanceiro(finId, d, () => document.getElementById(cardId));
+    desenharIndicadores(document.getElementById(cardId), d, new Date().getFullYear(), new Date().getMonth());
+    try { (await import('./financeiro.js')).rzFinRedesenhar(finId); } catch (e) { console.warn('[investimentos] financeiro:', e?.message || e); }
+}
+// H — conta: os mesmos indicadores somando as aplicações, com a tabela por aplicação no fim
+export async function montarIndicadoresConta(a, finId, cardId) {
+    const card = document.getElementById(cardId); if (card) card.innerHTML = sk(3);
+    await tiposAplicacao().catch(() => []);
+    const apl = await aplicacoesDaConta(a.id);
+    if (!apl.length) { if (card) card.innerHTML = '<div class="rz-card-h"><h3>Indicadores</h3></div><p class="rz-desc">Nenhuma aplicação nesta conta ainda.</p>'; return; }
+    const d = await dadosIndicadores(apl.map(c => c.id));
+    const porApl = {};
+    await Promise.all(apl.map(async c => { porApl[c.id] = await dadosIndicadores([c.id]); }));
+    const porAplicacao = (de, ate, rotP) => `<div class="rz-group">Por aplicação · ${esc(rotP)}</div>` + apl.map(c => {
+        const x = periodo(porApl[c.id], de, ate); if (!x || (!x.V0 && !x.V1 && !x.A && !x.R)) return '';
+        return `<div class="rz-row"><div class="rz-ic"><i data-lucide="${ICONE_TIPO[c.tipo_contrato] || 'coins'}"></i></div><div class="rz-tx"><b>${esc(c.descricao || nomeTipo(c.tipo_contrato))}</b><span>${esc(`ganho ${moedaS(x.ganho)} · saldo ${moeda(x.V1)}`)}</span></div><div class="rz-rt"><b class="${x.r >= 0 ? 'rz-in' : ''}">${pctS(x.r)}</b></div></div>`;
+    }).join('');
+    registrarFinanceiro(finId, d, () => document.getElementById(cardId), porAplicacao);
+    desenharIndicadores(document.getElementById(cardId), d, new Date().getFullYear(), new Date().getMonth(), porAplicacao);
+    try { (await import('./financeiro.js')).rzFinRedesenhar(finId); } catch (e) { console.warn('[investimentos] financeiro:', e?.message || e); }
+}
+
 const MES_CURTO = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez'];
 const mesAno = (iso) => { const [y, m] = String(iso || '').slice(0, 7).split('-'); return y && m ? `${MES_CURTO[Number(m) - 1]}/${y}` : '—'; };
 async function montarOcorrenciasAplicacao(con) {
@@ -537,7 +744,7 @@ async function montarOcorrenciasAplicacao(con) {
         ${lista.length ? lista.map(linha).join('') : '<div class="rz-empty"><div class="rz-ic"><i data-lucide="calendar-check"></i></div><p>Nada registrado ainda.</p></div>'}`;
     card.querySelectorAll('[data-apl-oc]').forEach(r => r.addEventListener('click', () => {
         const o = oc.find(x => x.id === r.dataset.aplOc); if (!o) return;
-        if (o.status_execucao === 'aberto') { if (ehAporte(o)) abrirFormMovimento(con, 'aplicacao'); else abrirInformarValor(con, o.data_prevista_atual); return; }
+        if (o.status_execucao === 'aberto') { if (ehAporte(o)) abrirFormAporte(con); else abrirInformarValor(con, o.data_prevista_atual); return; }
         const it = porItem[o.item_controle_id] || {};
         const linhas = [`${mesAno(o.data_prevista_atual)} · ${dataBR(o.data_prevista_atual)}`, o.valor_real != null ? `Valor: ${moeda(o.valor_real)}` : '', `Origem: ${ORIGEM_ROT[o.origem] || 'Informado'}`, o.tratamento_descricao || ''].filter(Boolean);
         if (typeof rzAviso === 'function') rzAviso({ titulo: it.titulo || 'Ocorrência', linhas }); else toast(linhas.join(' · '));

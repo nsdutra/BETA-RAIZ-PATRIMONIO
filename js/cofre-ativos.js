@@ -1,6 +1,13 @@
 // ============================================================================
 // cofre-ativos.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.171.0 · 25/11/2026
+// Versão: 1.172.0 · 25/11/2026
+//
+// v1.172.0 (25/11/2026, sessão 20261125-1954-investimentos-i1-2, demanda 09dff31b; PLANO_EXECUCAO_I1_2_APLICACAO_FINANCEIRO_RAIZ
+//   v1.1.0, itens D, E e H e D-b; de acordo do Nicola 25/11 12:43, 13:40 e 19:54) — (H) o card Valor do bem da conta de
+//   investimento perde a frase de % (ela misturava dinheiro novo com rendimento): vbGraficoHtml ganha a opção semVariacao; o
+//   imóvel mantém a frase (D-b). (D) o Financeiro da conta usa o olhar do investimento (escopo.investimento) e ganha, abaixo,
+//   o card Indicadores (js/investimentos.js), que segue o filtro do card Financeiro. (E) o card Financeiro de todo ativo ganha
+//   o botão "Registrar movimento" (recebimento e despesa, rzRegistrarMovimento do financeiro.js).
 //
 // v1.171.0 (25/11/2026, sessão 20261125-0029-investimentos-i1, demanda e5d269c2; PLANO_EXECUCAO_I1_CONTA_E_APLICACOES_RAIZ v1.2.0, de
 //   acordo do Nicola 25/11 00:29) — conta de investimento (tipo conta_investimento): a aba Usos e contratos mostra o card
@@ -50,15 +57,11 @@
 // ⋮ do card "Valor do bem" ganha "Registrar financiamento": credor, valor da parcela, parcelas e 1º vencimento viram um item
 // de controle "Parcela do financiamento" (subtipo de catálogo, saída em Amortização de financiamento) pela
 // criarItemParcelado() de cofre-controles.js. Versão anterior: 1.159.0
-//
-// v1.159.0 (15/11/2026, sessão 20261115-1630-comercial-r2, demanda 285a0058; plano R2 aprovado pelo Nicola 15/11 16:30) —
-// "Adicionar uso" agrupado por ramo (Contratos · <ramo>, Sem contrato). Tipo de ramo não contratado aparece com cadeado e abre
-// a oferta do ramo (Falar com a Raiz); os tipos do Comercial aparecem em ativo de qualquer ramo. Versão anterior: 1.158.1
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.158.1 … v1.158.1): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.159.0 … v1.159.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '1.171.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.172.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 import { estado } from './cofre-estado.js';
 import { rzCalendario, rzCalItemDaAgenda } from './nucleo/calendario.js'; // v1.152.0 — calendário único (DS §6.3)
 import { carregarBiblioteca } from './nucleo/bibliotecas.js'; // bibliotecas pesadas, sob demanda (dem 6b11c602)
@@ -528,14 +531,14 @@ export function vbModoInicial(linhas) {
     if (vbGravados(vbSerie(linhas, outro)) >= 2) return outro;
     return null; // sem gráfico
 }
-export function vbGraficoHtml(linhas, modo, rot) {
+export function vbGraficoHtml(linhas, modo, rot, opcoes = {}) { // v1.172.0 — opcoes.semVariacao: sem a frase de % (conta e aplicação)
     const cols = vbSerie(linhas, modo);
     if (vbGravados(cols) < 2) return `<p class="rz-vb-sub">Ainda não há dois valores ${modo === 'mes' ? 'nos últimos 12 meses' : 'nos últimos 5 anos'} para comparar.</p>`;
     const valores = cols.map(c => c.valor), estados = cols.map(c => c.estado);
     const unidade = unidadeColunas(valores);
     const atual = cols[cols.length - 1], prim = cols[0];
     const varPct = prim.valor ? (atual.valor / prim.valor - 1) * 100 : null;
-    const varTxt = varPct === null ? '' : `; ${varPct >= 0 ? '+' : '−'}${Math.abs(varPct).toLocaleString('pt-BR', { maximumFractionDigits: 1 })}% desde ${modo === 'mes' ? prim.longo : prim.rotulo}`;
+    const varTxt = (opcoes.semVariacao || varPct === null) ? '' : `; ${varPct >= 0 ? '+' : '−'}${Math.abs(varPct).toLocaleString('pt-BR', { maximumFractionDigits: 1 })}% desde ${modo === 'mes' ? prim.longo : prim.rotulo}`;
     const conclusao = `${valorNaUnidade(atual.valor, unidade)} em ${modo === 'mes' ? atual.longo : atual.rotulo}${cols.length > 1 ? varTxt : ''}`;
     const ult = atual.linha;
     return `<p class="rz-vb-conc">${escapeHtml(conclusao)}</p>
@@ -640,7 +643,7 @@ async function montarValorDaConta(a, card, dados) {
             <div><small>Aplicações</small><b>${r.ativas}</b>${r.total > r.ativas ? `<small>${r.total - r.ativas} encerrada${r.total - r.ativas === 1 ? '' : 's'}</small>` : ''}</div>
         </div>
         ${modo ? `<div class="rz-seg rz-vb-seg" role="group" aria-label="Período das colunas"><button type="button" data-vb-modo="mes" class="${modo === 'mes' ? 'rz-on' : ''}">Mês</button><button type="button" data-vb-modo="ano" class="${modo === 'ano' ? 'rz-on' : ''}">Ano</button></div>
-        <div data-vb-grafico>${vbGraficoHtml(linhas, modo, rot)}</div>` : (r.total ? '<p class="rz-vb-sub">As colunas aparecem quando houver valores em dois meses.</p>' : '')}`;
+        <div data-vb-grafico>${vbGraficoHtml(linhas, modo, rot, { semVariacao: true })}</div>` : (r.total ? '<p class="rz-vb-sub">As colunas aparecem quando houver valores em dois meses.</p>' : '')}`;
     const ligar = (m) => {
         const cols = vbSerie(linhas, m);
         card.querySelectorAll('[data-vb-grafico] .rz-vb-col').forEach(g => g.addEventListener('click', () => {
@@ -655,7 +658,7 @@ async function montarValorDaConta(a, card, dados) {
             vbModoPorAtivo.set(a.id, m);
             card.querySelectorAll('[data-vb-modo]').forEach(x => x.classList.toggle('rz-on', x === b));
             const alvo = card.querySelector('[data-vb-grafico]');
-            if (alvo) alvo.innerHTML = vbGraficoHtml(linhas, m, rot);
+            if (alvo) alvo.innerHTML = vbGraficoHtml(linhas, m, rot, { semVariacao: true });
             ligar(m);
         }));
     }
@@ -4169,10 +4172,16 @@ export async function montarMovimentoAtivo(a) {
     if (!corpo || !a) return;
     movAtivoId = a.id;
     const pessoaId = a.entidade_origem_tipo === 'pessoa' ? a.entidade_origem_id : null;
-    corpo.innerHTML = `<div id="fa-mov-plano"></div><div id="fa-mov-topo">${rzSk('linhas', 2)}</div><div id="fa-mov-comp"></div>`;
+    // v1.172.0 (E) — o card Financeiro do ativo ganha o botão "Registrar movimento"; (D) conta de investimento: olhar do investimento
+    const contaInv = ehContaInvestimento(a);
+    corpo.innerHTML = `<div id="fa-mov-plano"></div><div id="fa-mov-topo">${rzSk('linhas', 2)}</div>
+        <div class="rz-card" id="fa-mov-card"><div id="fa-mov-comp"></div><button type="button" class="rz-add" data-fa-mov-registrar><svg data-lucide="plus"></svg>Registrar movimento</button></div>
+        ${contaInv ? '<div class="rz-card" id="fa-card-indicadores"></div>' : ''}`;
+    corpo.querySelector('[data-fa-mov-registrar]')?.addEventListener('click', () => import('./financeiro.js').then(m => m.rzRegistrarMovimento({ ativoId: a.id })));
     refrescarIcones();
     montarPlanoFinanceiroAtivo(a); // v1.132.0 — situação do plano de pagamento do imóvel em construção (dem 83968339)
-    if (typeof window.rzFinCompetencias === 'function') window.rzFinCompetencias('fa-mov-comp', { ativoId: a.id, pessoaId, nome: a.nome_exibicao });
+    if (contaInv) import('./investimentos.js').then(m => m.montarIndicadoresConta(a, 'fa-mov-comp', 'fa-card-indicadores')).catch(e => console.warn('[cofre-ativos] indicadores:', e?.message || e));
+    if (typeof window.rzFinCompetencias === 'function') window.rzFinCompetencias('fa-mov-comp', contaInv ? { ativoId: a.id, pessoaId, nome: a.nome_exibicao, investimento: true } : { ativoId: a.id, pessoaId, nome: a.nome_exibicao });
     else document.getElementById('fa-mov-comp').innerHTML = `<p class="rz-desc">O financeiro do ativo abre só dentro do app principal.</p>`;
     try {
         const db = api.dbAuth, cli = estado.clienteId, hoje = new Date().toISOString().slice(0, 10);

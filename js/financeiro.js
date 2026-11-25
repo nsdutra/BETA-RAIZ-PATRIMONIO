@@ -1,7 +1,16 @@
 // ============================================================================
 // financeiro.js — Raiz Patrimônio · Financeiro (Recebimentos · Atrasados · Saídas
 //                  · conciliação de extrato · recibo · detalhe do recebimento)
-// Versão: 1.104.0 · 25/11/2026
+// Versão: 1.105.0 · 25/11/2026
+//
+// v1.105.0 (25/11/2026, sessão 20261125-1954-investimentos-i1-2, demanda 09dff31b; PLANO_EXECUCAO_I1_2_APLICACAO_FINANCEIRO_RAIZ
+// v1.1.0, itens D e E, e PROTOTIPO_INVESTIMENTOS_FINANCEIRO_INDICADORES_RAIZ v1.2.0; de acordo do Nicola 25/11 12:43, 13:40 e 19:54)
+// — o card Financeiro de contrato e de ativo (rzFinCompetencias) ganha o "olhar do investimento" (escopo.investimento): as colunas
+// mostram o ganho do mês que o js/investimentos.js calcula (window.__rzFinInvest[id].serie), aplicação e resgate não contam como
+// resultado, o resumo vira Aplicado · Resgatado · Rendimentos pagos · Impostos e taxas, o resgate e o provento aparecem numa linha
+// só com o líquido e o IR (mesmo origem_id) e o filtro do gráfico (ano ou mês) é avisado ao card Indicadores (aoFiltrar). Novos:
+// rzFinRedesenhar(id) e rzRegistrarMovimento({ contratoId, ativoId, modelo }) — o botão único "Registrar movimento" de todo card
+// Financeiro (recebimento e despesa; na aplicação, os movimentos dela). O aluguel e o ativo comuns não mudam de desenho.
 //
 // v1.104.0 (25/11/2026, sessão 20261125-0051-cartao-descobrir, demanda 1e32c5a1; de acordo do Nicola 25/11 00:51) — o "Editar" do
 // "Descobrir o que é" abre a classificação de sempre preenchida com a categoria sugerida (a sugestão do Raiz IA entra no lugar da
@@ -28,19 +37,11 @@
 // renderConciliacaoUnificadaLista, conciliacaoLigarDeslize, conciliacaoRevisarEmSequencia, conciliacaoSeqProximo,
 // conciliacaoSeqMostrar e verSugestaoConciliacaoAntigo. conciliacaoSugestaoDireta fica (é a regra do lote). As vistas antigas do
 // Balanço continuam: o "Quitar" e as retiradas do extrato da pessoa ainda passam por elas. Versão anterior: 1.100.0
-//
-// v1.100.0 (17/11/2026, sessão 20261117-1700-financeiro-avulsas, demanda 679b2700; pedido do Nicola 17/11 16:48 "ainda não
-// consigo editar receita outros" e "pode seguir" 16:51) — (1) EDITAR A RECEITA AVULSA: o menu da linha de Outras receitas
-// ganha "Editar" para todas (manual, extrato, licença): vínculo (bem), descrição, categoria e subcategoria, contabilidade,
-// competência e, nas lançadas à mão, valor, data e situação. Na que veio do extrato, valor e data ficam presos à linha do banco.
-// O formulário é o mesmo da receita nova (abrirReceitaAvulsa com { editarId }). (2) A receita que veio do extrato ganha
-// "Devolver à conciliação" (a linha volta a pendente e a receita sai, fn_extrato_estornar_vinculo). (3) O ⋮ volta a mostrar
-// Contador e Fiscal quando a rotina está desligada, apagados e com o motivo (levam a Minha empresa › Rotinas). Versão anterior: 1.99.0
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.99.0 … v1.99.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.100.0 … v1.100.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '1.104.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.105.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 
 // v1.17.0 (Fase 1 do wrapper de escrita, rollout Financeiro) — emitirEscrita
 // é o evento padrão pra "algo mudou que módulos DE FORA deste arquivo podem
@@ -7357,7 +7358,7 @@ async function fcCarregar(e, ano) {
     const ok = (r, nome) => { if (r?.error) throw new Error(`${nome}: ${r.error.message || r.error}`); return r?.data || []; };
     let contas = [];
     if (e.pessoaId) contas = ok(await dbAuth.from('conta_controle').select('id, nome, final_identificador').eq('cliente_id', cli).eq('titular_tipo', 'pessoa').eq('pessoa_id', e.pessoaId), 'contas');
-    let qL = dbAuth.from('lancamentos').select('id, descricao, categoria, valor, direcao, status, vencimento, data_pagamento, competencia, conta_id, fatura_id, conciliado_em')
+    let qL = dbAuth.from('lancamentos').select('id, descricao, categoria, valor, direcao, status, vencimento, data_pagamento, competencia, conta_id, fatura_id, conciliado_em, origem_id') // v1.105.0 + origem_id
         .eq('cliente_id', cli).gte('competencia', de).lte('competencia', ate);
     if (e.contratoId) qL = qL.eq('contrato_id', e.contratoId);
     else if (contas.length) qL = qL.or(`ativo_id.eq.${e.ativoId},conta_id.in.(${contas.map(c => c.id).join(',')})`);
@@ -7385,7 +7386,8 @@ async function fcCarregar(e, ano) {
             cat: cat[l.categoria] || l.categoria || 'Sem categoria', aClassificar: l.categoria === 'a_classificar',
             semConciliar: l.status === 'realizado' && !!l.conta_id && !l.conciliado_em && !l.fatura_id,
             titulo: l.descricao || cat[l.categoria] || 'Lançamento', data: l.data_pagamento || l.vencimento || l.competencia,
-            sub: contaPor[l.conta_id] || '', valor: (entrada ? 1 : -1) * Number(l.valor || 0), status: l.status === 'realizado' ? (entrada ? 'Recebido' : 'Pago') : 'Previsto' });
+            sub: contaPor[l.conta_id] || '', valor: (entrada ? 1 : -1) * Number(l.valor || 0), status: l.status === 'realizado' ? (entrada ? 'Recebido' : 'Pago') : 'Previsto',
+            codCat: l.categoria, origemId: l.origem_id }); // v1.105.0 — olhar do investimento
     });
     ok(rM, 'recebimentos').forEach(m => {
         const pago = m.status === 'pago';
@@ -7488,13 +7490,17 @@ function fcDesenharAtivo(el) {
     const aberto = (i) => (i.k === 'lanc' && i.status === 'Previsto') || (i.k === 'mens' && !i.pago && !i.isento);
     const vencido = (i) => aberto(i) && (i.k === 'mens' ? !!i.atraso : String(i.data || '') < hojeIso);
     const mov = it.filter(conta), temEntrada = mov.some(i => i.grupo === 'receita');
-    const serie = FC_MESES.map((_, m) => { const s = mov.filter(i => mi(i) === m).reduce((t, i) => t + i.valor, 0); return temEntrada ? s : -s; });
+    // v1.105.0 (D) — olhar do investimento: a série vem do js/investimentos.js (ganho do mês); sem ela, zeros até chegar
+    const inv = st.escopo.investimento ? (window.__rzFinInvest?.[el.id] || null) : null;
+    const serie = st.escopo.investimento ? (inv?.serie?.(anoN) || FC_MESES.map(() => 0))
+        : FC_MESES.map((_, m) => { const s = mov.filter(i => mi(i) === m).reduce((t, i) => t + i.valor, 0); return temEntrada ? s : -s; });
     const max = Math.max(1, ...serie.map(Math.abs));
     const kmil = (v) => { const a = Math.abs(v) / 1000; return (v < -0.004 ? '−' : '') + (a >= 10 ? Math.round(a).toLocaleString('pt-BR') : a.toLocaleString('pt-BR', { maximumFractionDigits: 1 })); };
     const vivido = serie.slice(0, mesHoje + 1), acum = vivido.reduce((t, v) => t + v, 0);
     const ateTxt = mesHoje >= 0 ? FC_MESES_L[mesHoje].toLowerCase() : '';
     let titulo;
-    if (!mov.length) titulo = `Nenhum movimento em ${anoN}`;
+    if (st.escopo.investimento) titulo = inv?.titulo?.(anoN, serie, mesHoje) || `Ganho por mês em ${anoN}`;
+    else if (!mov.length) titulo = `Nenhum movimento em ${anoN}`;
     else if (mesHoje < 0) titulo = `R$ ${kmil(serie.reduce((t, v) => t + v, 0))} mil previstos em ${anoN}`;
     else if (temEntrada) { const melhor = vivido.indexOf(Math.max(...vivido)); titulo = `${FC_MESES_L[melhor]} foi o melhor mês; o ano soma R$ ${kmil(acum)} mil até ${ateTxt}`; }
     else titulo = `R$ ${kmil(acum)} mil em saídas até ${ateTxt}`;
@@ -7502,7 +7508,7 @@ function fcDesenharAtivo(el) {
         <span class="v">${Math.abs(v) > 0.004 ? kmil(v) : ''}</span><i style="height:${Math.max(Math.abs(v) / max * 58, Math.abs(v) > 0.004 ? 2 : 0).toFixed(1)}px"></i></button>`).join('');
     const rotMes = FC_MESES.map((s, m) => `<span class="${st.sel === m ? 'on' : ''}">${s.charAt(0).toUpperCase() + s.slice(1)}</span>`).join('');
     const cardGraf = `<div class="rz-card"><div class="rz-card-h"><h3>Financeiro</h3><span class="rz-sub">${fcChipsAno(st)}</span></div>
-        <p class="rz-fc-tit">${fcEsc(titulo)}</p><span class="rz-fc-sub">${temEntrada ? 'Resultado' : 'Saídas'} por mês · R$ mil · ${anoN}</span>
+        <p class="rz-fc-tit">${fcEsc(titulo)}</p><span class="rz-fc-sub">${st.escopo.investimento ? 'Ganho' : temEntrada ? 'Resultado' : 'Saídas'} por mês · R$ mil · ${anoN}</span>
         <div class="rz-fc-chart" role="group" aria-label="Meses de ${anoN}; toque para filtrar">${barras}</div><div class="rz-fc-mes">${rotMes}</div>
         <div class="rz-fc-pe"><span>Toque num mês para filtrar</span>${st.sel === null ? '' : '<button type="button" data-fc-anotodo>Ano todo</button>'}</div></div>`;
     const lista = st.sel === null ? it : it.filter(i => mi(i) === st.sel);
@@ -7510,6 +7516,7 @@ function fcDesenharAtivo(el) {
     const base = lista.filter(conta);
     const previsto = ab(base), pago = ab(base.filter(i => !aberto(i))), venc = ab(base.filter(vencido)), falta = ab(base.filter(i => aberto(i) && !vencido(i)));
     const rot = st.sel === null ? `Ano de ${anoN}` : `${FC_MESES_L[st.sel]} de ${anoN}`;
+    if (st.escopo.investimento) { fcDesenharInvestimento(el, st, { cardGraf, lista, rot, anoN, inv }); return; }
     const cardKpi = `<div class="rz-card"><div class="rz-card-h"><h3>${rot}</h3><span class="rz-sub">${lista.length} ${lista.length === 1 ? 'lançamento' : 'lançamentos'}</span></div>
         <div class="rz-kv"><div><small>Previsto</small><b>${formatarMoedaBR(previsto)}</b></div><div><small>${st.escopo.contratoId ? 'Recebido' : temEntrada ? 'Realizado' : 'Pago'}</small><b>${formatarMoedaBR(pago)}</b></div>
         <div><small>Vencido</small><b style="color:${venc > 0.004 ? 'var(--danger)' : 'inherit'}">${formatarMoedaBR(venc)}</b></div><div><small>${temEntrada ? 'Em aberto' : 'A pagar'}</small><b>${formatarMoedaBR(falta)}</b></div></div></div>`;
@@ -7535,6 +7542,57 @@ function fcDesenharAtivo(el) {
         : cardGraf + cardKpi + cardLista;
     fcLigar(el);
     if (typeof lucide !== 'undefined') lucide.createIcons();
+}
+
+// v1.105.0 (D, E) — olhar do investimento: resumo e lista no olhar da aplicação; resgate e provento numa linha só (origem_id)
+const FC_INV_SINAL = { inv_aplicacao: 1, inv_rendimento: 1, inv_juros: 1, inv_dividendo: 1, inv_jcp: 1, inv_resgate: -1, inv_amortizacao: -1, inv_ir: -1, inv_iof: -1, inv_taxa: -1 };
+const FC_INV_PRINCIPAL = ['inv_resgate', 'inv_amortizacao', 'inv_juros', 'inv_dividendo', 'inv_jcp', 'inv_rendimento', 'inv_aplicacao'];
+const FC_INV_DESCONTO = { inv_ir: 'IR', inv_iof: 'IOF', inv_taxa: 'taxa' };
+function fcDesenharInvestimento(el, st, { cardGraf, lista, rot, anoN, inv }) {
+    const lanc = lista.filter(i => i.k === 'lanc');
+    const soma = (cats) => lanc.filter(i => cats.includes(i.codCat)).reduce((t, i) => t + Math.abs(i.valor), 0);
+    const kpi = `<div class="rz-card"><div class="rz-card-h"><h3>${fcEsc(rot)}</h3><span class="rz-sub">${lanc.length} ${lanc.length === 1 ? 'lançamento' : 'lançamentos'}</span></div>
+        <div class="rz-kv"><div><small>Aplicado</small><b>${formatarMoedaBR(soma(['inv_aplicacao']))}</b></div><div><small>Resgatado (bruto)</small><b>${formatarMoedaBR(soma(['inv_resgate', 'inv_amortizacao']))}</b></div>
+        <div><small>Rendimentos pagos</small><b>${formatarMoedaBR(soma(['inv_rendimento', 'inv_juros', 'inv_dividendo', 'inv_jcp']))}</b></div><div><small>Impostos e taxas</small><b>${formatarMoedaBR(soma(['inv_ir', 'inv_iof', 'inv_taxa']))}</b></div></div></div>`;
+    // junta descontos ao movimento principal do mesmo origem_id
+    const porOrigem = new Map(), soltos = [];
+    lanc.forEach(i => { if (i.origemId) { const g = porOrigem.get(i.origemId) || []; g.push(i); porOrigem.set(i.origemId, g); } else soltos.push([i]); });
+    const grupos = [...porOrigem.values(), ...soltos].map(g => {
+        const p = g.find(i => FC_INV_PRINCIPAL.includes(i.codCat)) || g[0];
+        const desc = g.filter(i => i !== p);
+        return { p, desc, data: String(p.data || '') };
+    }).sort((a, b) => b.data.localeCompare(a.data));
+    const linha = ({ p, desc }) => {
+        const sinal = FC_INV_SINAL[p.codCat] ?? (p.valor > 0 ? 1 : -1);
+        const bruto = Math.abs(p.valor), tDesc = desc.reduce((t, i) => t + Math.abs(i.valor), 0);
+        const pc = (v) => (bruto ? (v / bruto * 100).toLocaleString('pt-BR', { maximumFractionDigits: 1 }) + '%' : '');
+        const extra = desc.length ? ` · líquido ${formatarMoedaBR(bruto - tDesc)} · ${desc.map(i => `${FC_INV_DESCONTO[i.codCat] || 'desconto'} ${formatarMoedaBR(Math.abs(i.valor))} (${pc(Math.abs(i.valor))})`).join(' · ')}` : '';
+        return `<div class="rz-row rz-link" role="button" tabindex="0" data-fc-item="${st.itens.indexOf(p)}">
+            <div class="rz-ic${sinal > 0 ? '' : ' rz-neu'}"><svg data-lucide="${sinal > 0 ? 'arrow-up-right' : 'arrow-down-left'}"></svg></div>
+            <div class="rz-tx"><b>${fcEsc(String(p.titulo || '').split(' · ')[0])}</b><span>${formatarDataBR(p.data)}${fcEsc(extra)}</span></div>
+            <div class="rz-rt"><b class="${sinal > 0 ? 'rz-in' : ''}">${sinal > 0 ? '+' : '−'}${formatarMoedaBR(bruto)}</b></div></div>`;
+    };
+    const cardLista = `<div class="rz-card rz-list rz-fc-lista">${grupos.length ? grupos.map(linha).join('') : `<p class="rz-desc">Nada ${st.sel === null ? 'em ' + anoN : 'neste mês'}.</p>`}</div>`;
+    el.innerHTML = el.closest('.rz-card')
+        ? [cardGraf, kpi, cardLista].map(h => h.replace(/^<div class="rz-card( rz-list rz-fc-lista)?">/, (m, l) => `<div class="rz-fc-bloco${l ? ' rz-fc-lista' : ''}">`)).join('')
+        : cardGraf + kpi + cardLista;
+    fcLigar(el);
+    if (typeof lucide !== 'undefined') lucide.createIcons();
+    try { inv?.aoFiltrar?.(anoN, st.sel); } catch (e) { console.warn('[financeiro] indicadores:', e?.message || e); }
+}
+// v1.105.0 — redesenha o card (ex.: o investimentos.js registrou a série depois do primeiro desenho)
+export function rzFinRedesenhar(alvo) {
+    const el = typeof alvo === 'string' ? document.getElementById(alvo) : alvo;
+    if (el && fcEstado[el.id] && fcEstado[el.id].itens) fcDesenhar(el);
+}
+// v1.105.0 (E) — botão único "Registrar movimento" de todo card Financeiro: recebimento e despesa; na aplicação, os movimentos dela
+export function rzRegistrarMovimento({ contratoId = null, ativoId = null, modelo = null } = {}) {
+    if (modelo === 'investimento' && contratoId) { import('./investimentos.js').then(m => m.abrirRegistrarMovimento(contratoId)); return; }
+    if (typeof abrirSheetAcoes !== 'function') return;
+    abrirSheetAcoes({ titulo: 'Registrar movimento', acoes: [
+        { icone: 'arrow-down-left', titulo: 'Recebimento', sub: contratoId ? 'Avulso, deste contrato' : 'Algo que entrou', codigo: 'mensal.ver', aoTocar: () => abrirNovoRecebimento(contratoId || undefined) },
+        { icone: 'arrow-up-right', titulo: 'Despesa', sub: 'Algo que foi pago', codigo: 'saidas.registrar', aoTocar: () => abrirNovaDespesa(ativoId || null) },
+    ] });
 }
 
 function fcLigar(el) {

@@ -1,7 +1,15 @@
 // ============================================================================
 // contratos.js — Raiz Patrimônio · Contratos (lista · ficha · formulário ·
 //                 status/reajuste/detalhes · fiadores · documentos · histórico)
-// Versão: 1.77.0 · 25/11/2026
+// Versão: 1.78.0 · 25/11/2026
+//
+// v1.78.0 (25/11/2026, sessão 20261125-1954-investimentos-i1-2, demanda 09dff31b; PLANO_EXECUCAO_I1_2_APLICACAO_FINANCEIRO_RAIZ v1.1.0
+// itens A, C, D e E e FICHA_F10_CATALOGO_CAMPOS_CONTRATO_RAIZ v1.0.0 fase 1; de acordo do Nicola 25/11 12:43, 13:40 e 19:54) —
+// (A) tipo de contrato com formulario = 'catalogo' (hoje os 7 de aplicação): editarContrato e o ⋮ de Condições abrem o formulário
+// por catálogo (js/contrato-catalogo.js), sem os campos do aluguel; a aplicação não mostra o selo "Reajustar" nem o alerta de
+// reajuste. (C) o card Distribuição da aplicação diz "Divisão dos rendimentos". (D) o card Financeiro da aplicação usa o olhar
+// do investimento (rzFinCompetencias com escopo.investimento). (E) "Adicionar recebimento" vira "Registrar movimento" (mesmo
+// recebimento avulso, mais a despesa; na aplicação, os movimentos dela) — rzRegistrarMovimento do financeiro.js.
 //
 // v1.77.0 (25/11/2026, sessão 20261125-0918-cadastro-locatario; de acordo do Nicola 25/11 09:18, item 1) — no formulário do
 // contrato, só o nome do locatário é obrigatório: CPF/CNPJ, WhatsApp, e-mail, profissão, estado civil e endereço passam a
@@ -23,15 +31,8 @@
 // v1.74.0 (13/11/2026, sessão 20261113-1910-reajuste-desde, demanda 9dfa59ee; de acordo do Nicola 13/11 19:06) — Reajustar pergunta
 // o que fazer com os recebimentos em aberto: "Atualizar desde a data do reajuste" (padrão; fn_mensalidades_realinhar com p_desde =
 // vale a partir de) ou "Não mexer". Antes refazia sempre, sem perguntar, e só do mês atual em diante. Versão anterior: 1.73.0
-//
-// v1.73.0 (13/11/2026, sessão 20261113-1430-encerrar-contrato, demanda fed20783; FICHA_ENCERRAR_E_REATIVAR_CONTRATO_RAIZ v1.0.0,
-// de acordo do Nicola 13/11 14:05) — "Encerrar contrato" ganha tela própria (abrirEncerrarContrato) que separa os recebimentos
-// em aberto pela data de encerramento: até a data (manter em aberto · baixa como pago COM a data do pagamento · baixa sem
-// pagamento) e depois da data (cancelar · manter). Grava pela fn_contrato_encerrar (uma transação, com log do "antes") — sai o
-// update/delete direto do navegador, que dava baixa nos futuros com a data de vigência (caso Maria Tereza, 13/11).
-// "Reativar contrato" no ⋮ do contrato encerrado, pela fn_contrato_reativar (recusa se o bem tem outro contrato em vigor).
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.72.0 … v1.72.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.73.0 … v1.73.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
 import { avaliarProntidaoContratoParaMinuta } from './minutas.js'; // v1.0.1
@@ -44,7 +45,7 @@ import { renderizarBlocoEndereco, lerBlocoEndereco } from './comum-endereco.js';
 import { formatarEnderecoParte } from './comum-partes.js';
 import { sincronizarAdministradoraContrato } from './nucleo/porta.js'; // v1.72.0 — M3 prestadores→partes
 
-export const VERSAO = '1.77.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.78.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 
 // Faixa do cabeçalho da ficha do contrato: o resumo que se procura primeiro (valor, o que está em aberto e até quando vai).
 // Fim em mês/ano curto ("fev/28"); a data inteira fica no card Condições.
@@ -1687,7 +1688,8 @@ if (!window.__rzListenerEscritaParteContratoLigado) {
                 : con.status === 'Suspenso' ? 'bg-amber-100 text-amber-800'
                 : 'bg-slate-100 text-slate-700';
 
-            const temAlertaFicha = contratoPrecisaRevisao(con) || contratoVencido(con) || contratoAguardandoAssinatura(con);
+            const semReajusteFicha = con.modelo === 'investimento'; // v1.78.0 — aplicação não tem reajuste
+            const temAlertaFicha = (!semReajusteFicha && contratoPrecisaRevisao(con)) || contratoVencido(con) || contratoAguardandoAssinatura(con);
 
             // v1.46.0 — prontidão canônica, calculada uma vez e reaproveitada
             // no HTML abaixo (evita chamar avaliarProntidaoContratoParaMinuta
@@ -1714,7 +1716,7 @@ if (!window.__rzListenerEscritaParteContratoLigado) {
             // no banco pra estimar faixa/confiança/situação nem pra montar
             // o argumento de "Negociar acima do índice" (IA).
             const rs = (sem, txt) => (typeof renderStatus === 'function') ? renderStatus(sem, txt) : `<span class="rz-st rz-${sem}">${txt}</span>`;
-            const vencidoFicha = contratoVencido(con), revisarFicha = contratoPrecisaRevisao(con);
+            const vencidoFicha = contratoVencido(con), revisarFicha = !semReajusteFicha && contratoPrecisaRevisao(con);
             const statusFicha = vencidoFicha ? rs('bad', 'Vencido')
                 : (con.status === 'Assinando' || contratoAguardandoAssinatura(con)) ? rs('run', 'Assinando')
                 : revisarFicha ? rs('warn', 'Reajustar')
@@ -1837,7 +1839,7 @@ if (!window.__rzListenerEscritaParteContratoLigado) {
                          proprietários), não propriedade_ativo (dono do bem).
                          montarDistribuicaoContrato() abaixo. -->
                     <div class="rz-card" id="fc-card-distribuicao" data-fc-secao="resumo.distribuicao">
-                        <div class="rz-card-h"><h3>Distribuição</h3><span class="rz-sub">Rateio do aluguel entre proprietários</span><button type="button" onclick="abrirAcoesDistribuicaoContrato('${con.id}')" class="rz-more" aria-label="Ações da distribuição"><svg data-lucide="ellipsis-vertical"></svg></button></div>
+                        <div class="rz-card-h"><h3>Distribuição</h3><span class="rz-sub">${con.modelo === 'investimento' ? 'Divisão dos rendimentos' : 'Rateio do aluguel entre proprietários'}</span><button type="button" onclick="abrirAcoesDistribuicaoContrato('${con.id}')" class="rz-more" aria-label="Ações da distribuição"><svg data-lucide="ellipsis-vertical"></svg></button></div>
                         <div id="fc-distribuicao">${rzSk('linhas', 2)}</div>
                     </div>
                 </div>
@@ -1871,7 +1873,7 @@ if (!window.__rzListenerEscritaParteContratoLigado) {
                              array global mensalidades, o mesmo em
                              qualquer aba. -->
                         <div id="fc-fin-comp"></div> <!-- v1.51.0 — visão única por competência (rzFinCompetencias) -->
-                        <button type="button" class="rz-add" data-rz-codigo="mensal.ver" onclick="if (rzMostrarBloqueio('mensal.ver')) return; window.abrirNovoRecebimento && window.abrirNovoRecebimento('${con.id}')"><svg data-lucide="plus"></svg>Adicionar recebimento</button>
+                        <button type="button" class="rz-add" data-fc-registrar><svg data-lucide="plus"></svg>Registrar movimento</button> <!-- v1.78.0 (E) — era "Adicionar recebimento" -->
                         <button type="button" class="rz-add" data-rz-codigo="mensal.ver" onclick="if (rzMostrarBloqueio('mensal.ver')) return; abrirFinanceiroDoContrato('${con.id}')"><svg data-lucide="wallet"></svg>Ver no Financeiro</button> <!-- v1.64.0 — saiu do ⋮ do topo -->
 
                     </div>
@@ -1978,7 +1980,9 @@ if (!window.__rzListenerEscritaParteContratoLigado) {
             montarCobrancaContrato(con.id); // v1.70.0 — cobrança do mês
             montarSimulacaoReajusteContrato(con.id); // v1.14.0 (B1.2)
             montarItensControleContrato(con.id); // v1.27.0 (Bloco B)
-            if (typeof window.rzFinCompetencias === 'function') window.rzFinCompetencias('fc-fin-comp', { contratoId: con.id }); // v1.51.0
+            if (typeof window.rzFinCompetencias === 'function') window.rzFinCompetencias('fc-fin-comp', con.modelo === 'investimento' ? { contratoId: con.id, investimento: true } : { contratoId: con.id }); // v1.51.0; v1.78.0 olhar do investimento
+            document.querySelector('#fc-painel-cobrancas [data-fc-registrar]')?.addEventListener('click', () => import('./financeiro.js')
+                .then(m => m.rzRegistrarMovimento({ contratoId: con.id, ativoId: con.imovelId || null, modelo: con.modelo || null })));
         }
 
         // NOVO (19/09/2026, rodada 10, pedido explícito: "visão de
@@ -2974,6 +2978,13 @@ if (!window.__rzListenerEscritaParteContratoLigado) {
         export function abrirAcoesCondicoesContrato(contratoId) {
             const con = contratos.find(c => c.id === contratoId);
             if (!con || typeof abrirSheetAcoes !== 'function') return;
+            // v1.78.0 — aplicação: só editar (pelo catálogo); sem dados de aluguel, renovação nem carência
+            if (con.modelo === 'investimento') {
+                abrirSheetAcoes({ titulo: 'Condições', sub: 'Aplicação', acoes: [
+                    { icone: 'pencil', titulo: 'Editar aplicação', codigo: 'contratos.editar', sub: 'Nome, emissor, taxa e prazo', aoTocar: () => editarContrato(con.id) },
+                ] });
+                return;
+            }
             const acoes = [
                 { icone: 'file-text', titulo: 'Dados do contrato', codigo: 'contratos.ver', sub: 'Só leitura', aoTocar: () => abrirDadosContratoLeitura(con.id) },
                 { icone: 'pencil', titulo: 'Editar contrato', codigo: 'contratos.editar', sub: 'Datas, valor e índice', aoTocar: () => abrirEdicaoContratoContextual(con.id, 'fichaContrato', con.id) },
@@ -4176,13 +4187,15 @@ if (!window.__rzListenerEscritaParteContratoLigado) {
             if (contratoTiposCache) return contratoTiposCache;
             try {
                 const { data, error } = await dbAuth.from('contrato_tipos')
-                    .select('codigo, nome, descricao, modelo, status, revisional_meses_padrao, revisional_permitida, prazo_meses_min, prazo_meses_max, ordem, ficha_secoes').order('ordem'); // v1.75.0 + ficha_secoes
+                    .select('codigo, nome, descricao, modelo, status, revisional_meses_padrao, revisional_permitida, prazo_meses_min, prazo_meses_max, ordem, ficha_secoes, formulario').order('ordem'); // v1.75.0 + ficha_secoes; v1.78.0 + formulario (F10)
                 if (error) throw error;
                 contratoTiposCache = data || [];
             } catch (e) { console.warn('[contratos] tipos de contrato:', e.message); return []; }
             return contratoTiposCache;
         }
         export function nomeTipoContrato(codigo) { return (contratoTiposCache || []).find(t => t.codigo === codigo)?.nome || ''; }
+        // v1.78.0 (F10 fase 1) — tipo com formulário por catálogo (contrato_tipos.formulario = 'catalogo'); a aplicação vale mesmo sem o cache
+        export function tipoUsaCatalogo(con) { return !!con && ((contratoTiposCache || []).find(t => t.codigo === con.tipoContrato)?.formulario === 'catalogo' || con.modelo === 'investimento'); }
         async function prepararCampoTipoContrato(modelo, tipoAtual, aplicarPadrao) {
             const form = document.getElementById('form-contrato'); if (!form) return;
             const tipos = (await carregarContratoTipos()).filter(t => t.modelo === (modelo || 'aluguel') && (t.status === 'ativo' || t.codigo === tipoAtual));
@@ -4523,6 +4536,9 @@ if (!window.__rzListenerEscritaParteContratoLigado) {
         }
 
         export function editarContrato(id) {
+            // v1.78.0 (F10) — tipo por catálogo: formulário montado pelo tipo, sem os campos do aluguel
+            const conCatalogo = contratos.find(c => c.id === id);
+            if (tipoUsaCatalogo(conCatalogo)) { import('./contrato-catalogo.js').then(m => m.abrirEditarContratoCatalogo(id)).catch(e => console.warn('[contratos] catálogo:', e?.message || e)); return; }
 
             try {
 
