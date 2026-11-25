@@ -1,7 +1,16 @@
 // =====================================================================
 // RAIZ PATRIMÔNIO — js/ativo-interessados.js
-// Versão: 1.5.1 · 17/11/2026
+// Versão: 1.7.0 · 25/11/2026
 // -----------------------------------------------------------------
+// v1.7.0 (25/11/2026, sessão 20261125-0007-interessados-ficha, demanda 2be7ea1c; PROPOSTA_LINK_CONVITE_INTERESSADO_RAIZ v1.0.0, de
+//   acordo do Nicola 25/11 00:25) — "Link de convite" na ficha e no ⋮ do interessado da Venda de licença: ramos (o 1º é o de
+//   entrada do teste, fn_interessado_ramos_definir), destino (robô, site Amigos, landing Família) e validade → link e mensagem
+//   prontos (fn_lead_convite_gerar), com "Enviar no WhatsApp" e "Copiar"; abre empilhado e volta à ficha. Código de catálogo
+//   comercial.lead_link. Publicada junto com a 1.6.0. Versão anterior: 1.6.0
+// v1.6.0 (25/11/2026, sessão 20261125-0007-interessados-ficha, demanda 2be7ea1c; de acordo do Nicola 25/11 00:07) — ficha do
+//   interessado com Nome e WhatsApp editáveis (gravados no mesmo Salvar; telefone normalizado pelo banco e recusado quando outro
+//   contato da empresa já tem o número); "Propor reunião" abre empilhado: fechar ou enviar volta à ficha e à lista de
+//   Interessados, em vez de fechar tudo. Versão anterior: 1.5.1
 // v1.5.1 (17/11/2026, sessão 20261117-2250-comercial-relatorios, demanda 285a0058; achados do Nicola 17/11 23:11) — o Novo pedido aberto ao mover o interessado para "Pedido" atualiza o card Pedidos do ativo ao salvar (ficava "nenhum ainda" até recarregar o app). Versão anterior: 1.5.0
 // v1.5.0 (17/11/2026, sessão 20261117-1700-comercial-r5, demanda 285a0058; FICHA_RECEITA_UNIDADES_GERADORAS v1.12.0 §13.7) — interessado
 //   da esteira Venda movido para "Pedido" abre o Novo pedido com o comprador (js/comercial-pedidos.js); "Marcar como perdido" usa a
@@ -38,7 +47,7 @@
 //     comunicações da pessoa (fn_comunicacoes_pessoa: robô, comunicações, app e esteira). Grava por fn_interessado_mover.
 //   · O card aparece no bem com uso de agenda (temporada, short stay, cowork, atendimento) ou que já tenha interessado/pedido.
 // =====================================================================
-export const VERSAO = '1.5.1';
+export const VERSAO = '1.7.0';
 
 const MODELOS_AGENDA = ['temporada', 'short_stay', 'cowork', 'atendimento'];
 const esc = (s) => (typeof rzEsc === 'function' ? rzEsc(s) : String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])));
@@ -143,10 +152,16 @@ async function abrirFichaInteressado(a, i, aoMudar, empilhar = false) {
     const cat = (await etapas()).filter(x => x.fluxo_codigo === i.fluxo_codigo);
     const st = { etapa: i.etapa_codigo };
     const chip = (e) => `<button type="button" class="rz-chip${e.etapa_codigo === st.etapa ? ' rz-on' : ''}" data-ai-et="${e.etapa_codigo}">${esc(e.etapa_nome)}</button>`;
-    const wa = String(i.partes?.whatsapp || '').replace(/\D/g, '');
+    const nomeAtual = i.partes?.nome ?? i.nome ?? '';
+    const waAtual = String(i.partes?.whatsapp ?? i.whatsapp ?? '').replace(/\D/g, '');
+    const wa = waAtual;
     const corpo = `
+        <div class="rz-f"><label for="ai-f-nome">Nome</label><input type="text" id="ai-f-nome" maxlength="160" value="${esc(nomeAtual)}" placeholder="Como a pessoa se chama"></div>
+        <div class="rz-f"><label for="ai-f-wa">WhatsApp</label><input type="tel" inputmode="tel" id="ai-f-wa" value="${esc(waAtual ? telVisivel(waAtual) : '')}" placeholder="(11) 9…"></div>
         ${wa ? `<p class="rz-desc" style="margin:0 0 8px"><a href="https://wa.me/${wa}" target="_blank" rel="noopener">${esc(telVisivel(wa))} · abrir o WhatsApp</a></p>` : ''}
-        ${wa && i.fluxo_codigo === 'venda_licenca' ? '<button type="button" class="rz-btn rz-btn-2 rz-sm" id="ai-propor" style="margin:0 0 10px"><i data-lucide="video"></i> Propor reunião</button>' : ''}
+        ${i.fluxo_codigo === 'venda_licenca' ? `<div style="display:flex;gap:8px;flex-wrap:wrap;margin:0 0 10px">
+            ${wa ? '<button type="button" class="rz-btn rz-btn-2 rz-sm" id="ai-propor"><i data-lucide="video"></i> Propor reunião</button>' : ''}
+            <button type="button" class="rz-btn rz-btn-2 rz-sm" id="ai-link"><i data-lucide="${linkLiberado().ok ? 'link' : 'lock'}"></i> Link de convite</button></div>` : ''}
         ${cat.length ? `<div class="rz-group">Etapa${cat[0] ? ' · ' + esc(cat[0].fluxo_nome) : ''}</div>
         <div class="rz-chips" id="ai-etapas" style="margin:0 0 4px">${cat.filter(e => !e.opcional).map(chip).join('')}</div>
         ${cat.some(e => e.opcional) ? `<div class="rz-chips" style="margin:0 0 4px"><span class="rz-desc" style="align-self:center;margin-right:4px">Opcional:</span>${cat.filter(e => e.opcional).map(chip).join('')}</div>` : ''}
@@ -157,9 +172,10 @@ async function abrirFichaInteressado(a, i, aoMudar, empilhar = false) {
         <div class="rz-group" style="margin-top:6px">Comunicações<span></span></div>
         <div id="ai-com"><p class="rz-desc">Carregando…</p></div>`;
     const sheet = abrirSheetForm({
-        titulo: i.partes?.nome || 'Interessado', sub: a.nome_exibicao, corpo, rotuloSalvar: 'Salvar', empilhar,
+        titulo: nomeAtual || 'Interessado', sub: a.nome_exibicao, corpo, rotuloSalvar: 'Salvar', empilhar,
         aoSalvar: async () => {
-            if (!i.fluxo_codigo) { return true; }
+            if (!(await salvarContato(a, i, raiz, nomeAtual, waAtual))) return false;
+            if (!i.fluxo_codigo) { aoMudar && aoMudar(); return true; }
             const pp = (raiz.querySelector('#ai-pp')?.value || '').trim();
             const em = raiz.querySelector('#ai-em')?.value || null;
             const { data, error } = await dbAuth.rpc('fn_interessado_mover', { p_papel_id: i.id, p_etapa: st.etapa !== i.etapa_codigo ? st.etapa : null,
@@ -176,6 +192,7 @@ async function abrirFichaInteressado(a, i, aoMudar, empilhar = false) {
     });
     const raiz = sheet || document;
     raiz.querySelector('#ai-propor')?.addEventListener('click', () => setTimeout(() => abrirProporReuniao(a, i), 50)); // v1.2.0
+    raiz.querySelector('#ai-link')?.addEventListener('click', () => setTimeout(() => abrirLinkConvite(a, i), 50));
     raiz.querySelectorAll('[data-ai-et]').forEach(b => b.addEventListener('click', () => {
         st.etapa = b.dataset.aiEt;
         raiz.querySelectorAll('[data-ai-et]').forEach(x => x.classList.toggle('rz-on', x.dataset.aiEt === st.etapa));
@@ -263,6 +280,7 @@ function acoesLead(a, i, aoMudar) {
     const acoes = [
         { icone: 'pencil', titulo: 'Etapa e próximo passo', sub: i.etapa_nome || '', aoTocar: () => setTimeout(() => abrirFichaInteressado(a, i, aoMudar, true), 50) },
         ...(wa && i.fluxo_codigo === 'venda_licenca' ? [{ icone: 'video', titulo: 'Propor reunião', sub: 'Até 3 faixas, link próprio', aoTocar: () => setTimeout(() => abrirProporReuniao(a, i), 50) }] : []),
+        ...(i.fluxo_codigo === 'venda_licenca' ? [{ icone: linkLiberado().ok ? 'link' : 'lock', titulo: 'Link de convite', sub: 'Ramos, destino e mensagem prontos', aoTocar: () => setTimeout(() => abrirLinkConvite(a, i), 50) }] : []),
         ...(wa ? [{ icone: 'message-circle', titulo: 'Abrir o WhatsApp', sub: telVisivel(wa), aoTocar: () => window.open('https://wa.me/' + wa, '_blank', 'noopener') }] : []),
         ...(i.natureza !== 'perdido' && i.fluxo_codigo ? [{ icone: 'circle-x', tipo: 'bad', titulo: i.fluxo_codigo === 'venda' ? 'Marcar como cancelado' : 'Marcar como perdido', aoTocar: async () => {
             const perda = (await etapas()).find(e => e.fluxo_codigo === i.fluxo_codigo && e.natureza === 'perdido'); // v1.5.0 — etapa de perda da esteira
@@ -272,6 +290,105 @@ function acoesLead(a, i, aoMudar) {
         } }] : []),
     ];
     abrirSheetAcoes({ titulo: i.nome || 'Interessado', sub: [i.etapa_nome, i.empresa].filter(Boolean).join(' · '), acoes, empilhar: true });
+}
+
+// Nome e WhatsApp do interessado (a parte). O número passa pela fn_normalizar_telefone, a mesma do robô e do registro, e a
+// chave DDD + 8 últimos dígitos é a da fn_interessado_registrar: com outro contato já usando o número, recusa em vez de
+// duplicar a pessoa. Grava direto em partes, como a tela de Partes (RLS de escrita por perfil).
+async function salvarContato(a, i, raiz, nomeAtual, waAtual) {
+    const nome = (raiz.querySelector('#ai-f-nome')?.value || '').trim();
+    const waTxt = (raiz.querySelector('#ai-f-wa')?.value || '').replace(/\D/g, '');
+    if (!nome) { toast('Informe o nome.', 'erro'); return false; }
+    if (waTxt && waTxt.length < 10) { toast('O WhatsApp precisa do DDD.', 'erro'); return false; }
+    let tel = null;
+    if (waTxt) {
+        const { data, error } = await dbAuth.rpc('fn_normalizar_telefone', { numero: waTxt });
+        if (error || !data || String(data).length < 12) { toast('Não reconheci esse WhatsApp. Confira o DDD.', 'erro'); return false; }
+        tel = String(data);
+    }
+    if (nome === nomeAtual && (tel || '') === waAtual) return true;
+    if (!i.parte_id) { toast('Não achei o cadastro desta pessoa.', 'erro'); return false; }
+    if (tel && tel !== waAtual) {
+        const chave = (t) => { const d = String(t || '').replace(/\D/g, ''); return d.length >= 12 ? d.slice(2, 4) + d.slice(-8) : ''; };
+        const { data: outros } = await dbAuth.from('partes').select('id, nome, whatsapp')
+            .eq('cliente_id', a.cliente_id || CLIENTE_ID_SUPABASE).neq('id', i.parte_id).like('whatsapp', '%' + tel.slice(-8));
+        const dono = (outros || []).find(p => chave(p.whatsapp) === chave(tel));
+        if (dono) { toast(`Esse WhatsApp já é de ${dono.nome || 'outro contato'}.`, 'erro'); return false; }
+    }
+    const { error } = await dbAuth.from('partes').update({ nome, whatsapp: tel }).eq('id', i.parte_id);
+    if (error) { toast(error.message || 'Não consegui salvar o contato.', 'erro'); return false; }
+    if (i.partes) { i.partes.nome = nome; i.partes.whatsapp = tel; }
+    i.nome = nome; i.whatsapp = tel;
+    return true;
+}
+
+// Link de convite do lead (dem 2be7ea1c). Os destinos são os tipos de convite que o banco aceita; o endereço de cada um sai
+// pronto da fn_lead_convite_gerar, que também devolve o mesmo link quando o lead já tem um válido para o destino.
+const DESTINOS_LINK = [
+    { cod: 'robo', nome: 'Robô no WhatsApp' },
+    { cod: 'amigo', nome: 'Site Amigos' },
+    { cod: 'familia', nome: 'Landing Família', ramo: 'familia' },
+];
+const linkLiberado = () => (typeof window.podeUsar === 'function' ? window.podeUsar('comercial.lead_link') : { ok: true }) || { ok: false };
+async function abrirLinkConvite(a, i) {
+    const pode = linkLiberado();
+    if (!pode.ok) { toast(pode.motivo || 'Seu perfil não gera link de convite.', 'erro'); return; }
+    const { data: cat } = await dbAuth.from('ativo_ramos').select('codigo, nome, ordem').eq('status', 'ativo').neq('codigo', 'outros').order('ordem');
+    const st = { ramos: [...(Array.isArray(i.ramos) ? i.ramos : (i.dados_origem?.ramos || []))], destino: 'robo' };
+    const nome = i.partes?.nome || i.nome || 'Interessado';
+    let raiz = document;
+    const desenhar = () => {
+        raiz.querySelector('#lc-ramos').innerHTML = (cat || []).map(r => {
+            const n = st.ramos.indexOf(r.codigo);
+            return `<button type="button" class="rz-chip${n >= 0 ? ' rz-on' : ''}" data-lc-ramo="${esc(r.codigo)}">${n >= 0 && st.ramos.length > 1 ? (n + 1) + 'º ' : ''}${esc(r.nome)}</button>`;
+        }).join('');
+        const dests = DESTINOS_LINK.filter(d => !d.ramo || st.ramos.includes(d.ramo));
+        if (!dests.some(d => d.cod === st.destino)) st.destino = 'robo';
+        raiz.querySelector('#lc-dest').innerHTML = dests.map(d => `<button type="button" class="rz-chip${d.cod === st.destino ? ' rz-on' : ''}" data-lc-dest="${d.cod}">${esc(d.nome)}</button>`).join('');
+        raiz.querySelectorAll('[data-lc-ramo]').forEach(b => b.addEventListener('click', () => {
+            const c = b.dataset.lcRamo; const k = st.ramos.indexOf(c);
+            if (k >= 0) st.ramos.splice(k, 1); else st.ramos.push(c);
+            desenhar();
+        }));
+        raiz.querySelectorAll('[data-lc-dest]').forEach(b => b.addEventListener('click', () => { st.destino = b.dataset.lcDest; desenhar(); }));
+    };
+    const sheet = abrirSheetForm({
+        titulo: 'Link de convite', sub: nome, rotuloSalvar: 'Gerar link', empilhar: true, // fechar volta à ficha
+        corpo: `<div class="rz-group">Ramos</div><div class="rz-chips" id="lc-ramos" style="margin:0 0 4px"></div>
+            <p class="rz-desc" style="margin:0 0 10px">O primeiro escolhido é o ramo de entrada do teste.</p>
+            <div class="rz-group">Destino</div><div class="rz-chips" id="lc-dest" style="margin:0 0 10px"></div>
+            <div class="rz-f"><label for="lc-dias">Validade (dias)</label><input type="number" id="lc-dias" min="1" max="365" value="60" inputmode="numeric"></div>
+            <div id="lc-res"></div>`,
+        aoSalvar: async () => {
+            if (!st.ramos.length) { toast('Escolha ao menos um ramo.', 'erro'); return false; }
+            const r1 = await dbAuth.rpc('fn_interessado_ramos_definir', { p_papel_id: i.id, p_ramos: st.ramos, p_canal: 'app' });
+            if (r1.error) { toast(r1.error.message || 'Não consegui gravar os ramos.', 'erro'); return false; }
+            i.ramos = [...st.ramos];
+            const dias = Math.min(365, Math.max(1, Number(raiz.querySelector('#lc-dias')?.value) || 60));
+            const { data, error } = await dbAuth.rpc('fn_lead_convite_gerar', { p_papel_id: i.id, p_destino: st.destino, p_dias_validade: dias });
+            if (error || !data?.ok) { toast(error?.message || 'Não consegui gerar o link.', 'erro'); return false; }
+            const wa = String(i.partes?.whatsapp ?? i.whatsapp ?? '').replace(/\D/g, '');
+            const primeiro = nome.trim().split(/\s+/)[0];
+            const el = raiz.querySelector('#lc-res');
+            el.innerHTML = `<div class="rz-group" style="margin-top:6px">Link pronto</div>
+                <p class="rz-desc" style="margin:0 0 6px;word-break:break-all">${esc(data.url)}</p>
+                <p class="rz-desc" style="margin:0 0 10px">Mensagem: “${esc(data.texto_whatsapp)}”</p>
+                <div style="display:flex;gap:8px;flex-wrap:wrap">
+                ${wa ? `<a class="rz-btn rz-sm" href="https://wa.me/${wa}?text=${encodeURIComponent(data.texto_whatsapp)}" target="_blank" rel="noopener"><i data-lucide="send"></i> Enviar no WhatsApp de ${esc(primeiro)}</a>` : ''}
+                <button type="button" class="rz-btn rz-btn-2 rz-sm" id="lc-copiar"><i data-lucide="copy"></i> Copiar</button></div>
+                ${wa ? '' : '<p class="rz-desc" style="margin:8px 0 0">Sem WhatsApp no cadastro: copie e envie por onde preferir.</p>'}`;
+            el.querySelector('#lc-copiar')?.addEventListener('click', async () => {
+                try { await navigator.clipboard.writeText(data.texto_whatsapp); toast('Mensagem copiada.', 'sucesso'); }
+                catch (_) { toast('Não consegui copiar — segure no link para copiar.', 'erro'); }
+            });
+            icones();
+            toast('Link pronto.', 'sucesso');
+            return false; // fica aberta para enviar ou copiar
+        },
+    });
+    raiz = sheet || document;
+    desenhar();
+    icones();
 }
 
 // v1.2.0 — Propor reunião (lead da Raiz): faixas de dias + duração → prévia → convite pelo WhatsApp (Edge agenda-google)
@@ -288,7 +405,7 @@ function abrirProporReuniao(a, i) {
         duracao: Number(raiz.querySelector('#pr-du')?.value || 30),
     });
     const sheet = abrirSheetForm({
-        titulo: 'Propor reunião', sub: i.partes?.nome || '', rotuloSalvar: 'Enviar convite',
+        titulo: 'Propor reunião', sub: i.partes?.nome || i.nome || '', rotuloSalvar: 'Enviar convite', empilhar: true, // fechar volta à ficha
         corpo: `<p class="rz-desc" style="margin:0 0 8px">Até 3 faixas de dias (sem faixa: próximos 5 dias úteis). Os horários respeitam sua agenda, o Google da Raiz e as preferências do interessado.</p>
             ${faixa(1)}${faixa(2)}${faixa(3)}
             <div class="rz-f"><label>Duração</label><select id="pr-du"><option value="30">30 min</option><option value="60">1 hora</option></select></div>
