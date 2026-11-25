@@ -1,6 +1,12 @@
 // ============================================================================
 // cofre-documentos.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 2.41.0 · 16/11/2026
+// Versão: 2.42.0 · 24/11/2026
+//
+// v2.42.0 (24/11/2026, sessão 20261124-0916-seguros, demanda 6fbdad60; teste do Nicola 23:15) — (a) abrirUploadCotacaoSeguro():
+// a cotação subida pelo comparativo é lida já como "Cotação de seguro" (classificação forçada), não como apólice; (b) campo LISTA
+// (coberturas, assistências, formas de pagamento) aparece como resumo ("8 itens: …") e é gravado como veio da leitura — antes
+// virava "[object Object]" no formulário e na gravação; (c) leitura: o aviso "Mantenha o app aberto" em vermelho, o tempo em
+// m:ss a partir de 1 minuto e, passados 2 minutos, "está demorando mais que o normal". Versão anterior: 2.41.0
 //
 // v2.41.0 (16/11/2026, sessão 20261116-0853-doc-criar-item, demanda 711f52e5; FICHA_DOCUMENTO_CRIAR_ITEM_AGENDA_RAIZ v1.0.0, de
 // acordo do Nicola 16/11 08:53) — CRIAR ITEM NA AGENDA pela ficha do documento: todo documento sem item de controle ganha o botão,
@@ -22,16 +28,11 @@
 // Versão anterior: 2.39.0 · 23/10/2026
 //
 // v2.39.0 (23/10/2026, sessão 20261023-0915-computador-c6, demanda 15146a34; PROTOTIPO_COMPUTADOR_RAIZ v1.1.0 §11, de acordo do Nicola 23/10 08:51) — C6 · escala de letras: 18 tamanhos de letra escritos em número (font-size:13px etc.) trocados pelos da escala (--fs-mini 11 · --fs-sec 12,5 · --fs-corpo 14 · --fs-titulo 17; 16 px fica, por causa do zoom do iPhone em campo, e 18 px ou mais também — herói e números grandes). Nada muda de lugar; só o tamanho passa a ser o mesmo em todas as telas.
-// Versão anterior: 2.38.0 · 15/10/2026
-//
-// v2.38.0 (15/10/2026, sessão 20261015-0816-convite, demanda c59f09c5; FICHA_CONVITE_ANIVERSARIO_RAIZ v1.3.0, de acordo do
-// Nicola 15/10 08:16) — convite de festa: cada pessoa sugerida mostra a razão ("7 anos em 06/11", "quem enviou o convite");
-// o controle do tipo "Eventos e viagens" usa a data da festa como início e fim, sem campo "Início" na tela.
 // --------------------------------------------------------------------------
-// Versões anteriores (v2.37.0 … v2.37.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v2.38.0 … v2.38.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '2.41.0'; // v-check (22/09/2026): lido por Dev › Versões — manter igual ao header
+export const VERSAO = '2.42.0'; // v-check (22/09/2026): lido por Dev › Versões — manter igual ao header
 import { estado } from './cofre-estado.js';
 // v2.3.1 — import TOLERANTE: na v2.2.0 isto era um import estático. Quando o
 // cofre-imagem.js não subiu no deploy (faltava a linha no manifesto), o import
@@ -291,6 +292,8 @@ export async function abrirUploadNoAtivoComIA(ativo) { if (ativo) await abrirPic
 export async function abrirUploadNoAtivoSemIA(ativo) { if (ativo) await abrirPickerUpload({ entidadeTipo: 'ativo', entidadeId: ativo.id, nome: ativo.nome_exibicao, tipoAtivo: ativo.tipo_ativo }, false); }
 export async function abrirUploadContextualComFlag(entidadeTipo, entidadeId, nomeExibido, comIA) { await abrirPickerUpload({ entidadeTipo, entidadeId, nome: nomeExibido }, !!comIA); }
 export async function abrirUploadContextual(entidadeTipo, entidadeId, nomeExibido) { await abrirPickerUpload({ entidadeTipo, entidadeId, nome: nomeExibido }, true); }
+// v2.42.0 — cotação de seguro subida pelo comparativo: a leitura já sabe o tipo (não vira apólice)
+export async function abrirUploadCotacaoSeguro(itemId, nomeExibido) { await abrirPickerUpload({ entidadeTipo: 'item_controle', entidadeId: itemId, nome: nomeExibido, classificacaoForcada: 'seguro_cotacao' }, true); }
 
 // v2.26.0 (D2) — configuração inicial: o mesmo leitor, marcado com o tipo esperado.
 const ROTULO_TIPO_CFG = { lista_ativos: 'Lista de ativos', documentos_ativos: 'Documentos dos ativos', contratos: 'Contratos de aluguel', contas_apolices: 'Contas e apólices', documentos_pessoas: 'Documentos de pessoas' };
@@ -538,7 +541,7 @@ const CSS_LEITURA = `
 #up-progresso .up-barra{height:6px;background:var(--tile,#e9ece5);border-radius:3px;margin:16px 0 8px;overflow:hidden}
 #up-progresso .up-barra i{display:block;height:100%;width:0;background:var(--brass,#c68a3b);transition:width .6s}
 #up-progresso .up-tempo{font-size:var(--fs-sec,12.5px);color:var(--muted,#6f7a76)}
-#up-progresso .up-aviso{margin-top:14px;background:var(--brass-bg,#fbf1e2);border-radius:10px;padding:10px 12px;font-size:var(--fs-sec,12.5px);color:var(--brass-deep,#a86f27)}
+#up-progresso .up-aviso{margin-top:14px;background:var(--danger-bg);border-radius:10px;padding:10px 12px;font-size:var(--fs-sec,12.5px);font-weight:600;color:var(--danger)}
 #up-progresso .up-trava{font-size:var(--fs-mini,11px);color:var(--muted,#6f7a76);text-align:center;margin-top:10px}
 #up-progresso .up-res{display:flex;gap:12px;align-items:flex-start;border-radius:12px;padding:12px;margin-bottom:12px;background:var(--tile,#e9ece5)}
 #up-progresso .up-res.ok{background:#e6f0ea}
@@ -662,13 +665,16 @@ function desenharProgressoLeitura() {
     atualizarRelogioLeitura();
 }
 
+const tempoLeitura = (s) => s < 60 ? `${s} s` : `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`; // v2.42.0
 function atualizarRelogioLeitura() {
     if (!leitura || leitura.estado !== 'lendo') return;
     const s = Math.round((Date.now() - leitura.inicio) / 1000);
     const t = document.getElementById('up-tempo');
+    const rel = tempoLeitura(s); // v2.42.0 — m:ss a partir de 1 minuto
     if (t) t.textContent = leitura.comIA
-        ? (s < 60 ? `${s} s · costuma levar de 20 s a 1 min` : `${s} s · documento longo: ainda lendo, pode levar até 2 min`)
-        : `${s} s`;
+        ? (s < 60 ? `${rel} · costuma levar de 20 s a 1 min` : s <= 120 ? `${rel} · documento longo: ainda lendo, pode levar até 2 min`
+            : `${rel} · está demorando mais que o normal; continue com o app aberto`)
+        : rel;
     const b = document.getElementById('up-barra');
     if (b) {
         let pct = [8, 25, 25, 95][leitura.passo] ?? 95;
@@ -846,7 +852,7 @@ async function etapaLeituraIA() {
     let res;
     anotarLeituraPendente(); // v2.28.0 (U2) — se o app cair daqui em diante, dá para retomar
     try {
-        res = await lerComIALimitada(caminhoLeitura, mimeLeitura, { tipoAtivo: up.tipoAtivo, ativoId: up.vinculo?.tipo === 'ativo' ? up.vinculo.id : null, leituraId: up.documentoId });
+        res = await lerComIALimitada(caminhoLeitura, mimeLeitura, { tipoAtivo: up.tipoAtivo, ativoId: up.vinculo?.tipo === 'ativo' ? up.vinculo.id : null, leituraId: up.documentoId, classificacaoForcada: up.contexto?.classificacaoForcada || null }); // v2.42.0
     } finally {
         if (up?.storagePathTemp) { try { await api.removerArquivoDocumento(up.storagePathTemp); } catch (e) { /* melhor esforço */ } up.storagePathTemp = null; }
     }
@@ -1519,11 +1525,20 @@ function sugerirValorParcelasIA(s, m) {
     return { valorTotal, parcelas, intervalo };
 }
 
+// v2.42.0 — campos lista (coberturas, assistências, formas de pagamento): guardados à parte e resumidos na tela
+let listasLidas = {};
+function resumoLista(v) {
+    if (!Array.isArray(v) || !v.length) return 'Nenhum item lido';
+    const nomes = v.map(x => typeof x === 'string' ? x : (x?.nome || x?.meio || x?.descricao || '')).filter(Boolean);
+    const amostra = [...new Set(nomes)].slice(0, 4).join(', ');
+    return `${v.length} ${v.length === 1 ? 'item' : 'itens'}${amostra ? ': ' + amostra + (nomes.length > 4 ? '…' : '') : ''}`;
+}
 // Bloco "Dados do documento" — um input por campo do catálogo.
 function renderizarDadosCampos(s, m) {
     const bloco = document.getElementById('uc-dados-bloco');
     const cont = document.getElementById('uc-dados-campos');
     const campos = (s?.campos || []).filter(c => c.tipo !== 'partes');
+    listasLidas = {}; // v2.42.0
     if (!campos.length) { bloco.classList.add('hidden'); cont.innerHTML = ''; return; }
     const ruins = new Set((m?.validacoes || []).filter(v => !v.ok).flatMap(v => v.campos || []));
     const alertarTopo = new Set(); // 'confira' de campo escondido vai para o campo de cima
@@ -1534,6 +1549,11 @@ function renderizarDadosCampos(s, m) {
         const ev = m?.evidencias?.[c.campo] ? ` title="lido em: ${escapeHtml(String(m.evidencias[c.campo]).slice(0, 120))}"` : '';
         const tipoInput = c.tipo === 'data' ? 'date' : 'text';
         const extra = c.tipo === 'valor' ? ' inputmode="decimal" placeholder="0,00"' : (c.tipo === 'cpf' || c.tipo === 'renavam' ? ' inputmode="numeric"' : '');
+        if (c.tipo === 'lista') { // v2.42.0 — lista lida pela IA: resumo só de leitura, gravada como veio
+            listasLidas[c.campo] = Array.isArray(val) ? val : null;
+            return `<div><label class="text-xs block mb-0.5" style="color:var(--sage)">${escapeHtml(c.rotulo)}</label>
+            <div class="w-full border-2 border-slate-300 rounded-xl p-2 text-sm" style="background:var(--paper)">${escapeHtml(resumoLista(val))}</div></div>`;
+        }
         const mostrado = c.tipo === 'valor' ? formatarValorBR(val) : (val == null ? '' : String(val)); // v2.8.0
         const alvoTopo = c.tipo === 'data' ? DATAS_ESPELHADAS[c.campo] : null;
         const espelho = !!(alvoTopo && val && String(val) === (document.getElementById(alvoTopo)?.value || '')); // só esconde quando o de cima mostra o mesmo valor
@@ -1577,6 +1597,7 @@ function lerDadosEstruturados() {
         if (['placa', 'chassi'].includes(el.dataset.tipo)) v = v.toUpperCase().replace(/[^A-Z0-9]/g, '');
         out[el.dataset.campo] = v;
     });
+    Object.entries(listasLidas).forEach(([k, v]) => { out[k] = v; }); // v2.42.0 — lista vai como foi lida
     return out;
 }
 

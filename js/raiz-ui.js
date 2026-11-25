@@ -1,6 +1,9 @@
 // ============================================================================
 // raiz-ui.js — Raiz Patrimônio · Diálogos sem diálogo nativo (UXR-29/30)
-// Versão: 1.10.0 · 12/11/2026
+// Versão: 1.11.0 · 24/11/2026
+//
+// v1.11.0 (24/11/2026, sessão 20261124-0916-seguros, demanda 6fbdad60; pedido do Nicola 23:15) — tela de leitura (rzLeituraProgresso):
+// aviso "Mantenha o app aberto" em vermelho e tempo em m:ss a partir de 1 minuto, a mesma regra da leitura do Cofre. Versão anterior: 1.10.0
 //
 // v1.10.0 (12/11/2026, sessão 20261112-1516-rodrigo-ajustes, demanda 8a7e8fd4; de acordo do Nicola 12/11 15:16 "Trate tb
 // as msg de erro na tela") — rzTraduzirErro, NOVO: tradutor central de erro técnico para texto de usuário. O toast de
@@ -22,17 +25,11 @@
 //   preso ao botão que o abriu, como menu de contexto (popover de 300 px); o de formulário e os demais seguem como painel à
 //   direita, com o cabeçalho único do raiz.css 1.12.0. Classificação pelo conteúdo do sheet, sem mexer no abrirSheet do
 //   index: só ações (.rz-act) e nenhum campo = ações. Sem clique recente (teclado, abertura por código) fica o painel.
-// Versão anterior: 1.6.1 · 20/10/2026
-//
-// v1.6.1 (20/10/2026, sessão 20261020-1943-calendario-rapido, demanda b3aeefaf; Nicola 19:43 "não está atualizando o tempo de
-// carregamento ao passar de 45 s, apenas ao chegar nos 60 s") — rzProgressoLeitura: a barra parava no tempo típico e só
-// mudava o texto em 1,5× esse tempo. Agora a barra segue andando devagar (curva que nunca chega ao fim) e o texto passa por
-// três estados: dentro do tempo típico · "um pouco mais que o normal, ainda lendo" · "arquivo longo… até 2 min".
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.6.0 … v1.6.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.6.1 … v1.6.1): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '1.10.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.11.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 
 const esc = (v) => String(v ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 const g = (nome) => (typeof window !== 'undefined' && typeof window[nome] === 'function') ? window[nome] : null;
@@ -316,7 +313,7 @@ const CSS_PROGRESSO = `
 .rz-lp .rz-lp-barra{height:6px;background:var(--tile,#e9ece5);border-radius:3px;margin:16px 0 8px;overflow:hidden}
 .rz-lp .rz-lp-barra i{display:block;height:100%;width:0;background:var(--brass,#c68a3b);transition:width .6s}
 .rz-lp .rz-lp-tempo{font-size:var(--fs-sec,12.5px);color:var(--muted,#6f7a76)}
-.rz-lp .rz-lp-aviso{margin-top:14px;background:var(--brass-bg,#fbf1e2);border-radius:10px;padding:10px 12px;font-size:var(--fs-sec,12.5px);color:var(--brass-deep,#a86f27)}
+.rz-lp .rz-lp-aviso{margin-top:14px;background:var(--danger-bg);border-radius:10px;padding:10px 12px;font-size:var(--fs-sec,12.5px);font-weight:600;color:var(--danger)}
 `;
 function rzLpEsc(t) { return String(t ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
 function rzLpBytes(n) { n = Number(n) || 0; return n >= 1048576 ? (n / 1048576).toFixed(1).replace('.', ',') + ' MB' : Math.max(1, Math.round(n / 1024)) + ' KB'; }
@@ -337,12 +334,14 @@ export function rzProgressoLeitura({ alvo = null, titulo = 'Lendo o arquivo', ar
     const relogio = () => {
         if (!vivo) return;
         const s = Math.round((Date.now() - inicio) / 1000);
+        const rel = s < 60 ? `${s} s` : `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`; // v1.11.0 — m:ss
         const t = caixa.querySelector('.rz-lp-tempo');
         if (t) t.textContent = atual === passoIa
-            ? (s <= tempoTipicoS ? `${s} s · costuma levar até ${tempoTipicoS < 60 ? tempoTipicoS + ' s' : Math.round(tempoTipicoS / 60) + ' min'}`
-                : s < tempoTipicoS * 2 ? `${s} s · um pouco mais que o normal, ainda lendo`
-                : `${s} s · arquivo longo: ainda lendo, pode levar até 2 min`)
-            : `${s} s`; // v1.6.1 — três estados, sem "parar" entre o típico e 1,5×
+            ? (s <= tempoTipicoS ? `${rel} · costuma levar até ${tempoTipicoS < 60 ? tempoTipicoS + ' s' : Math.round(tempoTipicoS / 60) + ' min'}`
+                : s < tempoTipicoS * 2 ? `${rel} · um pouco mais que o normal, ainda lendo`
+                : s <= 120 ? `${rel} · arquivo longo: ainda lendo, pode levar até 2 min`
+                : `${rel} · está demorando mais que o normal; continue com o app aberto`)
+            : rel; // v1.6.1 — três estados, sem "parar" entre o típico e 1,5×
         const b = caixa.querySelector('.rz-lp-barra i');
         if (b) {
             const fatia = 90 / Math.max(1, passos.length - 1);

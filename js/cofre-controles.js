@@ -1,6 +1,10 @@
 // ============================================================================
 // cofre-controles.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.79.0 · 24/11/2026
+// Versão: 1.80.0 · 24/11/2026
+//
+// v1.80.0 (24/11/2026, sessão 20261124-0916-seguros, demanda 6fbdad60; teste do Nicola 23:15) — "Subir cotação" do comparativo usa
+// abrirUploadCotacaoSeguro (cofre-documentos 2.42.0): a cotação é lida como cotação, não como apólice, e aparece para comparar.
+// Versão anterior: 1.79.0
 //
 // v1.79.0 (24/11/2026, sessão 20261124-2257-viagem-app, demanda d8061e47; plano da fatia 2a, de acordo do Nicola 24/11 22:57) —
 // programa com tipos de ciclo (programas.ciclo_config, ex.: Viagens): "Abrir" vira "+ Nova viagem" com tipo, nome, ida, volta
@@ -21,20 +25,16 @@
 // de acordo do Nicola 17/11 23:30) — C3 do Comercial na safra: ⋮ da fase › "Itens produzidos" (código comercial.itens: sem o plano,
 // cadeado e oferta), linha "Produz: …" abaixo da fase e, no Fechar, "Total geral | Por item" no lugar do campo principal (as
 // quantidades vão em resultado.itens; o banco soma o total e rateia o custo). A tela vem de comercial-itens.js. Versão anterior: 1.75.0
-//
-// v1.75.0 (16/11/2026, sessão 20261114-2342-investimentos-patrimonio, demanda fd3898f7; FICHA_FORMA_DE_PAGAMENTO_DO_BEM v2.0.0,
-// "Agora sim. Pode seguir em frente." — Nicola 16/11 21:46) — criarItemParcelado() aceita a lista de pagamentos pronta
-// (datas e valores livres), a conta de quem paga e "já pagas" (datas passadas nascem baixadas). Versão anterior: 1.74.0
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.74.0 … v1.74.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.75.0 … v1.75.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '1.79.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.80.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 import { estado } from './cofre-estado.js';
 import * as api from './cofre-api.js';
 import { mostrarToast, refrescarIcones, abrirModal, fecharModal, modalGenerico, perguntar, escolher, avisarComDesfazer } from './cofre-ui.js';
 import { mudarTela } from './cofre-navegacao.js';
-import { abrirUploadContextual } from './cofre-documentos.js';
+import { abrirUploadContextual, abrirUploadCotacaoSeguro } from './cofre-documentos.js';
 import {
     escapeHtml, formatarDataBR, diasAte, chipVencimento,
     rotuloTipoControle, rotuloStatusOcorrencia, rotuloFrequencia, rotuloTipoAtivo, iconeAtivo,
@@ -2491,7 +2491,7 @@ function subirCotacaoSeguro(item) {
         cancelar?.(); clearTimeout(limite);
         if (itemEmFoco?.id === item.id) setTimeout(() => abrirComparativoDoItem(item), 400);
     });
-    setTimeout(() => abrirUploadContextual('item_controle', item.id, item.titulo), 30);
+    setTimeout(() => abrirUploadCotacaoSeguro(item.id, item.titulo), 30); // v1.80.0 — já como cotação
 }
 async function refazerOcorrenciasAposRenovar(itemNovo) {
     try {
