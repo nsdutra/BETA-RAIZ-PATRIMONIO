@@ -1,6 +1,10 @@
 // ============================================================================
 // cofre-controles.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.81.0 · 25/11/2026
+// Versão: 1.82.0 · 25/11/2026
+//
+// v1.82.0 (25/11/2026, sessão 20261125-0021-viagem-roteiro, demanda d8061e47; FICHA_PROGRAMA_VIAGEM_FATIA2B v1.0.0, de acordo do
+// Nicola 25/11 00:21) — viagem: botão "Roteiro" no rodapé e "Editar trechos" no ⋮ do trecho, os dois em js/viagem-roteiro.js
+// (módulo novo); o trecho mostra "de … a …"; "Itens produzidos" (Comercial) não aparece no trecho da viagem. Versão anterior: 1.81.0
 //
 // v1.81.0 (25/11/2026, sessão 20261124-2358-viagem-ajustes, demanda d8061e47; de acordo do Nicola 24/11 23:56, itens 1 a 6) —
 // Viagens no uso: o ícone do programa vem do catálogo (fn_ativo_programas → icone, ex.: avião) no grupo e no botão da execução;
@@ -19,17 +23,11 @@
 // v1.78.0 (24/11/2026, sessão 20261124-0916-seguros, demanda 6fbdad60; FICHA_COMPARATIVO_RENOVACAO_SEGUROS v1.5.0 §14, de acordo do
 // Nicola 24/11 22:41) — abrirComparativoPorLink(): o link do robô (#/seguro/<item>) abre a ficha do item de seguro e, por cima,
 // o comparativo das cotações. Item de outra empresa, sem acesso ou que não é seguro: aviso e fica na ficha/tela. Versão anterior: 1.77.0
-//
-// v1.77.0 (24/11/2026, sessão 20261124-0916-seguros, demanda d03eb567; FICHA_COMPARATIVO_RENOVACAO_SEGUROS v1.3.0, de acordo
-// do Nicola 24/11) — no vencimento em aberto de um item de seguro, ação "Comparar cotações" (código cofre.seguro_comparar),
-// que abre js/cofre-seguro-renovacao.js. Depois de aprovar a renovação (fn_item_controle_renovar), refaz as ocorrências do
-// novo ciclo pelos mesmos geradores do formulário, sem apagar nenhuma aberta (a pendência da apólice emitida fica). Subir
-// cotação abre o envio do próprio item e volta ao comparativo quando o documento é salvo. Versão anterior: 1.76.0
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.76.0 … v1.76.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.77.0 … v1.77.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '1.81.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.82.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 import { estado } from './cofre-estado.js';
 import * as api from './cofre-api.js';
 import { mostrarToast, refrescarIcones, abrirModal, fecharModal, modalGenerico, perguntar, escolher, avisarComDesfazer } from './cofre-ui.js';
@@ -645,6 +643,7 @@ function linhaFaseHtml(f, d) {
     const [ic, rot] = SIT_FASE[f.situacao] || ['circle', f.situacao];
     const quando = f.situacao === 'atual' && f.inicio ? 'desde ' + formatarDataBR(f.inicio)
         : f.situacao === 'concluida' && f.fim ? 'até ' + formatarDataBR(f.fim)
+        : f.inicio_previsto && f.fim_previsto && temVariantes(d) ? formatarDataBR(f.inicio_previsto) + ' a ' + formatarDataBR(f.fim_previsto) // v1.82.0
         : f.inicio_previsto ? 'prevista ' + formatarDataBR(f.inicio_previsto) : '';
     const custo = Number(f.realizado || 0) + Number(f.a_pagar || 0);
     const sub = [rot, quando, f.situacao === 'pulada' && f.motivo ? f.motivo : '', custo ? moedaBR(custo) + (f.custo_previsto ? ' de ' + moedaBR(f.custo_previsto) : '') : (f.custo_previsto ? 'previsto ' + moedaBR(f.custo_previsto) : '')]
@@ -703,6 +702,7 @@ export async function abrirExecucao(apId, cicloId = null) {
     }
     if (C?.situacao === 'fechado' && d.pode_reabrir && !(d.ciclos || []).some(c => c.situacao !== 'fechado'))
         acoes.push(`<button type="button" class="rz-btn rz-btn-3" data-exec-reabrir>Reabrir ${escapeHtml(C.nome)}</button>`);
+    if (C && temVariantes(d)) acoes.unshift(`<button type="button" class="rz-btn rz-btn-1" data-exec-roteiro>Roteiro</button>`); // v1.82.0
     if (C && d.pode_gerir) acoes.push(`<button type="button" class="rz-btn rz-btn-3" data-exec-corrigir>Corrigir ${escapeHtml(C.nome)}</button>`); // v1.63.0
     const corpo = ciclosChips + custoHtml
         + (d.aberta ? `<div class="rz-exec-fases">${(d.fases || []).map(f => linhaFaseHtml(f, d)).join('')}</div>`
@@ -723,6 +723,8 @@ export async function abrirExecucao(apId, cicloId = null) {
     sheet.querySelector('[data-exec-incluir]')?.addEventListener('click', () => abrirFolhaIncluirItens(d));
     sheet.querySelector('[data-exec-reabrir]')?.addEventListener('click', () => abrirFolhaReabrirCiclo(d));
     sheet.querySelector('[data-exec-corrigir]')?.addEventListener('click', () => abrirAcoesCorrigirCiclo(d));
+    sheet.querySelector('[data-exec-roteiro]')?.addEventListener('click', () => import('./viagem-roteiro.js').then(m => m.abrirRoteiro({ cicloId: C.id,
+        abrirItem: (id) => { window.fecharSheet(); window.fecharSheet(); abrirFichaItemControle(id); } }))); // v1.82.0
     if (C && window.podeUsar?.('comercial.itens')?.ok) import('./comercial-itens.js').then(m => m.preencherProduzidos(sheet, d)).catch(() => {}); // v1.76.0 — C3
 }
 window.__rzAbrirExecucao = (apId, cicloId) => abrirExecucao(apId, cicloId);
@@ -966,7 +968,10 @@ function abrirAcoesFase(d, faseId) {
     const acoes = [];
     const fechado = d.ciclo?.situacao === 'fechado';
     // v1.76.0 — C3 do Comercial: itens do catálogo produzidos nesta fase (sem o plano, cadeado e oferta)
-    if (!d.membro && d.ciclo) { const n = (d.ciclo.resultado?.itens || []).filter(x => x.fase_codigo === (f.codigo || f.id)).length;
+    if (temVariantes(d) && d.ciclo && d.pode_gerir && !fechado) // v1.82.0 — viagem: trechos se editam todos de uma vez
+        acoes.push({ icone: 'route', titulo: 'Editar trechos', codigo: 'ciclos.gerir', sub: 'Nome e datas, incluir ou tirar',
+            aoTocar: () => import('./viagem-roteiro.js').then(m => m.abrirEditarTrechos({ cicloId: d.ciclo.id, aoSalvar: () => aposMudarExecucao(d.programa.id, d.ciclo.id) })) });
+    if (!d.membro && d.ciclo && !temVariantes(d)) { const n = (d.ciclo.resultado?.itens || []).filter(x => x.fase_codigo === (f.codigo || f.id)).length;
         acoes.push({ icone: 'package', titulo: 'Itens produzidos', codigo: 'comercial.itens', sub: n ? `${n} ite${n > 1 ? 'ns' : 'm'} do catálogo` : 'Ligar item do catálogo',
             aoTocar: () => import('./comercial-itens.js').then(m => m.abrirItensProduzidosFase(d, f, () => aposMudarExecucao(d.programa.id, d.ciclo.id))) }); }
     if (!d.membro && (f.situacao === 'concluida' || f.situacao === 'atual'))
