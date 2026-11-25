@@ -1,6 +1,11 @@
 /* ============================================================================
    raiz.css — Raiz Patrimônio · estilos do app (index.html)
-   Versão: 1.30.0 · 17/11/2026
+   Versão: 1.31.0 · 25/11/2026
+
+   v1.31.0 (25/11/2026, sessão 20261125-0000-investimentos-i0, demandas e5d269c2 e fd3898f7; PLANO_EXECUCAO_I0_CARD_VALOR_DO_BEM_RAIZ
+   v1.0.0) — colunas comuns (js/nucleo/colunas.js): estados .rz-col-est (estimado, cinza claro) e .rz-col-proj (projeção,
+   contorno tracejado) e a legenda .rz-cols-leg; card Valor do bem: .rz-vb-seg, .rz-vb-conc (frase-conclusão), .rz-vb-sub,
+   .rz-vb-fonte e .rz-vb-col (coluna tocável). Versão anterior: 1.30.0
 
    v1.30.0 (17/11/2026, sessão 20261117-1540-financeiro-resumo, demanda 679b2700; FICHA_REVISAO_FINANCEIRO_RAIZ v1.0.0, Onda 3) —
    aba Resumo do Financeiro (js/financeiro-resumo.js): .rz-res-l (linha com rótulo, %, valor e seta), .rz-res-sub (resultado),
@@ -1251,6 +1256,17 @@
         .rz-cols .rz-col-m{font:400 10px var(--font-body);fill:var(--muted)}
         .rz-cols .rz-col-fut{fill-opacity:.45}
         .rz-cols .rz-col-alvo{fill:transparent}
+        .rz-cols .rz-col-est{fill:var(--sage);fill-opacity:.22} /* v1.31.0 — período que repete o último valor */
+        .rz-cols .rz-col-proj{fill:none;stroke:var(--sage);stroke-width:1.2;stroke-dasharray:3 2} /* v1.31.0 — projeção */
+        .rz-cols-leg{display:flex;flex-wrap:wrap;gap:12px;margin-top:6px;font-size:var(--fs-sec,12.5px);color:var(--muted)}
+        .rz-cols-leg i{display:inline-block;width:11px;height:11px;border-radius:3px;margin-right:5px;vertical-align:-1px}
+        .rz-cols-leg .rz-cols-leg-est{background:color-mix(in srgb,var(--sage) 22%,var(--card))}
+        .rz-cols-leg .rz-cols-leg-proj{border:1.2px dashed var(--sage)}
+        .rz-vb-seg{margin:12px 0 6px}
+        .rz-vb-conc{font-size:var(--fs-corpo,14px);font-weight:600;color:var(--ink);margin:4px 0 0;line-height:1.35}
+        .rz-vb-sub{font-size:var(--fs-sec,12.5px);color:var(--muted);margin:2px 0 0}
+        .rz-vb-fonte{font-size:var(--fs-sec,12.5px);color:var(--muted);margin:8px 0 0}
+        .rz-cols .rz-vb-col{cursor:pointer}
         .rz-cols .rz-res-barra-mes,.rz-cols .rz-res-barra-revisional{cursor:pointer}
         /* dem 43bc3cab — Indicadores de mercado (Fique por Dentro); dem 4de70503 — em blocos */
         .rz-ind .rz-rt span{font-size:12px;color:var(--muted)}

@@ -1,7 +1,12 @@
 // ============================================================================
 // cofre-ativos.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.169.0 · 18/11/2026
+// Versão: 1.170.0 · 25/11/2026
 //
+// v1.170.0 (25/11/2026, sessão 20261125-0000-investimentos-i0, demandas e5d269c2 e fd3898f7; PLANO_EXECUCAO_I0_CARD_VALOR_DO_BEM_RAIZ
+//   v1.0.0, de acordo do Nicola 24/11 23:59) — card "Valor do bem" padrão para todo bem: colunas por Mês | Ano no padrão
+//   executivo (js/nucleo/colunas.js, REGRAS §18.1), frase-conclusão, valor atual em destaque, período sem valor novo como
+//   "estimado", toque na coluna mostra valor, data e fonte. Menos de 2 valores no período: sem gráfico, como antes. A lista
+//   dos 6 últimos valores sai do card e vira o ⋮ "Ver todos os valores". Versão anterior: 1.169.0
 // v1.169.0 (18/11/2026, sessão 20261118-1440-financeiro-lente, demanda 679b2700; FICHA_REVISAO_FINANCEIRO_RAIZ v1.0.0 Onda 5 · fatia 5a, LEVANTAMENTO_LENTE_MULTI_RAMO_RAIZ v1.0.0, de acordo do Nicola 18/11 14:36) — lente com 2+ ramos (window.RZ_RAMOS_LENTE): em "Todo" a lista, os chips e os contadores mostram só os
 //   ativos dos ramos marcados (naLente). Versão anterior: 1.168.0
 // v1.168.0 (17/11/2026, sessão 20261117-2010-crm-3b; FICHA_TIPO_EM_MAIS_DE_UM_RAMO_RAIZ v1.4.0, de acordo do Nicola 17/11 20:09/20:27/22:24) —
@@ -48,7 +53,7 @@
 // Versões anteriores (v1.158.1 … v1.158.1): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '1.169.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.170.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 import { estado } from './cofre-estado.js';
 import { rzCalendario, rzCalItemDaAgenda } from './nucleo/calendario.js'; // v1.152.0 — calendário único (DS §6.3)
 import { carregarBiblioteca } from './nucleo/bibliotecas.js'; // bibliotecas pesadas, sob demanda (dem 6b11c602)
@@ -73,7 +78,8 @@ import { renderizarBlocoEndereco, lerBlocoEndereco } from './comum-endereco.js';
 // dentro). Piloto único desta entrega: salvarEdicaoAtivo() (ver
 // changelog do topo do arquivo).
 import { emitirEscrita, aoEscrever } from './raiz-eventos.js';
-import { rzEditarDivisao } from './raiz-ui.js'; // v1.76.0 — editor único de divisão
+import { rzEditarDivisao, rzAviso } from './raiz-ui.js'; // v1.76.0 — editor único de divisão; v1.170.0 — rzAviso (card Valor do bem)
+import { colunasSvg, legendaColunas, unidadeColunas, valorNaUnidade } from './nucleo/colunas.js'; // v1.170.0 — colunas comuns (REGRAS §18.1)
 import { rzMostrarBloqueio, recarregarFuncionalidadesLiberadas } from './comum-licenca.js'; // v1.62.0 — porta de licença
 
 // E6.2 — único critério usado em todo o arquivo pra decidir se um ativo
@@ -474,12 +480,81 @@ async function oferecerLancamentoCompra(a, valor, data) {
 }
 
 // Card "Valor do bem" no Resumo da ficha, logo abaixo de Dados do ativo
+// v1.170.0 (I0, dem e5d269c2/fd3898f7) — colunas por mês ou por ano no padrão executivo (REGRAS §18.1, js/nucleo/colunas.js):
+// valor no fim de cada período = último valor da série (compra ou mercado) com data até o fim dele; coluna sem valor novo no
+// período é "estimado"; o valor atual é o destaque. Menos de 2 colunas com valor gravado: o card fica como antes, sem gráfico.
+// O histórico (antes 6 linhas no card) vai para o ⋮ "Ver todos os valores". Sem projeção na I0 (imóvel não tem, D5).
+const MESES_CURTOS = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez'];
+const vbModoPorAtivo = new Map(); // escolha Mês | Ano da sessão, por ativo
+function vbPeriodos(modo, hoje = new Date()) {
+    const out = [];
+    if (modo === 'ano') {
+        for (let k = 4; k >= 0; k--) { const y = hoje.getFullYear() - k; out.push({ ini: `${y}-01-01`, fim: `${y}-12-31`, rotulo: String(y), longo: String(y) }); }
+    } else {
+        for (let k = 11; k >= 0; k--) {
+            const d = new Date(hoje.getFullYear(), hoje.getMonth() - k, 1);
+            const y = d.getFullYear(), m = d.getMonth();
+            const ult = new Date(y, m + 1, 0).getDate();
+            const mm = String(m + 1).padStart(2, '0');
+            out.push({ ini: `${y}-${mm}-01`, fim: `${y}-${mm}-${String(ult).padStart(2, '0')}`, rotulo: MESES_CURTOS[m], longo: `${MESES_CURTOS[m]}/${y}` });
+        }
+    }
+    return out;
+}
+// série em ordem de data → colunas do modo; descarta períodos antes do primeiro valor
+function vbSerie(linhas, modo) {
+    const asc = [...linhas].sort((x, y) => String(x.data_base).localeCompare(String(y.data_base)) || String(x.criado_em).localeCompare(String(y.criado_em)));
+    if (!asc.length) return [];
+    const cols = [];
+    for (const p of vbPeriodos(modo)) {
+        let ultimo = null, gravado = false;
+        for (const x of asc) { if (x.data_base <= p.fim) { ultimo = x; if (x.data_base >= p.ini) gravado = true; } }
+        if (!ultimo) continue; // antes do primeiro valor do bem
+        cols.push({ ...p, valor: Number(ultimo.valor), linha: ultimo, estado: gravado ? 'real' : 'est' });
+    }
+    return cols;
+}
+const vbGravados = (cols) => cols.filter(c => c.estado === 'real').length;
+function vbModoInicial(linhas) {
+    const corte = vbPeriodos('mes')[0].ini;
+    const recentes = linhas.filter(x => x.data_base >= corte).length;
+    const pref = recentes >= 3 ? 'mes' : 'ano', outro = pref === 'mes' ? 'ano' : 'mes';
+    if (vbGravados(vbSerie(linhas, pref)) >= 2) return pref;
+    if (vbGravados(vbSerie(linhas, outro)) >= 2) return outro;
+    return null; // sem gráfico
+}
+function vbGraficoHtml(linhas, modo, rot) {
+    const cols = vbSerie(linhas, modo);
+    if (vbGravados(cols) < 2) return `<p class="rz-vb-sub">Ainda não há dois valores ${modo === 'mes' ? 'nos últimos 12 meses' : 'nos últimos 5 anos'} para comparar.</p>`;
+    const valores = cols.map(c => c.valor), estados = cols.map(c => c.estado);
+    const unidade = unidadeColunas(valores);
+    const atual = cols[cols.length - 1], prim = cols[0];
+    const varPct = prim.valor ? (atual.valor / prim.valor - 1) * 100 : null;
+    const varTxt = varPct === null ? '' : `; ${varPct >= 0 ? '+' : '−'}${Math.abs(varPct).toLocaleString('pt-BR', { maximumFractionDigits: 1 })}% desde ${modo === 'mes' ? prim.longo : prim.rotulo}`;
+    const conclusao = `${valorNaUnidade(atual.valor, unidade)} em ${modo === 'mes' ? atual.longo : atual.rotulo}${cols.length > 1 ? varTxt : ''}`;
+    const ult = atual.linha;
+    return `<p class="rz-vb-conc">${escapeHtml(conclusao)}</p>
+        <p class="rz-vb-sub">Valor no fim de cada ${modo === 'mes' ? 'mês' : 'ano'} · ${escapeHtml(unidade.rotulo)}</p>
+        ${colunasSvg(valores, { rotulos: cols.map(c => c.rotulo), unidade, estados, destaque: cols.length - 1, classeBarra: 'rz-vb-col', rotuloAria: conclusao })}
+        ${legendaColunas(estados)}
+        <p class="rz-vb-fonte">Último valor: ${escapeHtml(formatarDataBR(ult.data_base))} · ${escapeHtml(rot(ult))}</p>`;
+}
+function vbDetalheColuna(a, c, rot) {
+    const linhas = c.estado === 'est'
+        ? [`${fmtMoedaValor(c.valor)} em ${c.longo}.`, `Sem valor novo neste período: repete o valor de ${formatarDataBR(c.linha.data_base)} (${rot(c.linha)}).`]
+        : [`${fmtMoedaValor(c.valor)} em ${c.longo}.`, `Valor de ${formatarDataBR(c.linha.data_base)} · ${rot(c.linha)}.`];
+    rzAviso({ titulo: `Valor do bem · ${c.longo}`, linhas: [a.nome_exibicao, ...linhas] });
+}
+function vbVerTodos(a, linhas, rot) {
+    const ord = [...linhas].sort((x, y) => String(y.data_base).localeCompare(String(x.data_base)) || String(y.criado_em).localeCompare(String(x.criado_em)));
+    rzAviso({ titulo: 'Todos os valores', linhas: ord.length ? ord.map(x => `${formatarDataBR(x.data_base)} · ${fmtMoedaValor(x.valor)} · ${rot(x)}`) : ['Nenhum valor registrado.'] });
+}
 async function montarValorDoBem(a) {
     const dados = document.getElementById('fa-dados-imovel-grid')?.closest('.rz-card');
     let card = document.getElementById('fa-card-valor-bem');
     if (a.tipo_ativo === 'vida') { card?.remove(); return; }
     const { data, error } = await api.dbAuth.from('ativo_valores').select('id, tipo, data_base, valor, fonte, criado_em')
-        .eq('ativo_id', a.id).order('data_base', { ascending: false }).order('criado_em', { ascending: false }).limit(30);
+        .eq('ativo_id', a.id).order('data_base', { ascending: false }).order('criado_em', { ascending: false }).limit(400);
     if (error) throw error;
     if (ativoAtualId && ativoAtualId !== a.id) return;
     if (!card) {
@@ -494,20 +569,42 @@ async function montarValorDoBem(a) {
     const variacao = compra && atual ? (Number(atual.valor) / Number(compra.valor) - 1) : null;
     const varTxt = variacao === null ? '' : `${variacao >= 0 ? '+' : ''}${(variacao * 100).toLocaleString('pt-BR', { maximumFractionDigits: 1 })}%`;
     const rot = (x) => x.tipo === 'aquisicao' ? 'Compra' : (FONTE_VALOR_ROTULO[x.fonte] || x.fonte);
-    const hist = linhas.slice(0, 6).map(x => `<div class="rz-row"><div class="rz-tx"><b>${escapeHtml(fmtMoedaValor(x.valor))}</b><span>${escapeHtml(formatarDataBR(x.data_base))} · ${escapeHtml(rot(x))}</span></div></div>`).join('');
+    const modoIni = vbModoInicial(linhas);
+    const modo = modoIni ? (vbModoPorAtivo.get(a.id) || modoIni) : null;
     card.innerHTML = `<div class="rz-card-h"><h3>Valor do bem</h3><button type="button" class="rz-more" data-valor-bem-menu aria-label="Ações do valor do bem"><i data-lucide="ellipsis-vertical"></i></button></div>
         <div class="rz-kv">
             <div><small>Compra</small><b>${compra ? escapeHtml(fmtMoedaValor(compra.valor)) : 'Não informada'}</b>${compra ? `<small>${escapeHtml(formatarDataBR(compra.data_base))}</small>` : ''}</div>
             <div><small>Valor atual</small><b>${atual ? escapeHtml(fmtMoedaValor(atual.valor)) : '—'}</b>${atual ? `<small>${escapeHtml(formatarDataBR(atual.data_base))} · ${escapeHtml(rot(atual))}</small>` : ''}</div>
             ${varTxt ? `<div class="rz-full"><small>Desde a compra</small><b>${escapeHtml(varTxt)}</b></div>` : ''}
         </div>
-        ${linhas.length > 1 ? `<div class="rz-list">${hist}</div>` : ''}`;
+        ${modo ? `<div class="rz-seg rz-vb-seg" role="group" aria-label="Período das colunas"><button type="button" data-vb-modo="mes" class="${modo === 'mes' ? 'rz-on' : ''}">Mês</button><button type="button" data-vb-modo="ano" class="${modo === 'ano' ? 'rz-on' : ''}">Ano</button></div>
+        <div data-vb-grafico>${vbGraficoHtml(linhas, modo, rot)}</div>` : ''}`;
+    const ligarColunas = (m) => {
+        const cols = vbSerie(linhas, m);
+        card.querySelectorAll('[data-vb-grafico] .rz-vb-col').forEach(g => g.addEventListener('click', () => {
+            const c = cols[Number(g.getAttribute('data-i'))];
+            if (c) vbDetalheColuna(a, c, rot);
+        }));
+    };
+    if (modo) {
+        ligarColunas(modo);
+        card.querySelectorAll('[data-vb-modo]').forEach(b => b.addEventListener('click', () => {
+            const m = b.getAttribute('data-vb-modo');
+            vbModoPorAtivo.set(a.id, m);
+            card.querySelectorAll('[data-vb-modo]').forEach(x => x.classList.toggle('rz-on', x === b));
+            const alvo = card.querySelector('[data-vb-grafico]');
+            if (alvo) alvo.innerHTML = vbGraficoHtml(linhas, m, rot);
+            ligarColunas(m);
+        }));
+    }
     card.querySelector('[data-valor-bem-menu]')?.addEventListener('click', () => sheetOuAviso({
         titulo: 'Valor do bem', sub: a.nome_exibicao,
         acoes: [{ icone: 'receipt', titulo: compra ? 'Corrigir compra' : 'Informar compra', codigo: 'cofre.editar', sub: 'Valor e data da compra',
             aoTocar: () => abrirFormCompra(a, compra) },
             { icone: 'list-ordered', titulo: 'Forma de pagamento', codigo: CODIGO_FORMA, sub: 'Como foi pago e por quem',
             aoTocar: () => abrirFormaPagamento(a, { aoConcluir: () => montarValorDoBem(a).catch(() => {}) }) },
+            { icone: 'history', titulo: 'Ver todos os valores', sub: `${linhas.length} ${linhas.length === 1 ? 'valor' : 'valores'}, com data e fonte`,
+            aoTocar: () => vbVerTodos(a, linhas, rot) },
             { icone: 'pencil', titulo: 'Editar dados', codigo: 'cofre.editar', sub: 'Valor de referência e mais',
             aoTocar: () => { faTrocarAba('resumo'); alternarEditarAtivo(); } }],
     }));

@@ -1,8 +1,12 @@
 // =====================================================================
 // RAIZ PATRIMÔNIO — js/resultados.js
-// VERSÃO: Beta v2.24.0 (18/11/2026 — demanda 679b2700)
+// VERSÃO: Beta v2.25.0 (25/11/2026 — demandas e5d269c2 e fd3898f7)
 // LINHAS: (ver versoes.json)
 // -----------------------------------------------------------------
+// NOVIDADES (Beta v2.25.0) (25/11/2026, sessão 20261125-0000-investimentos-i0, demandas e5d269c2 e fd3898f7; PLANO_EXECUCAO_I0_CARD_VALOR_DO_BEM_RAIZ v1.0.0,
+//   de acordo do Nicola 24/11 23:59) — o desenho de colunas (colunasExecutivasSvg, unidadeColunas, numeroNaUnidade e rzDesk) sai
+//   deste arquivo para o módulo comum js/nucleo/colunas.js, que o card Valor do bem também usa. O Resultado mês a mês, o Investido
+//   por mês e os reajustes/revisionais desenham igual: mesma largura, mesmas classes, mesmo data-mes. Versão anterior: 2.24.0
 // NOVIDADES (Beta v2.24.0) (18/11/2026, sessão 20261118-1850-financeiro-lente-5bc, demanda 679b2700; LEVANTAMENTO_LENTE_MULTI_RAMO_RAIZ v1.0.0 fatias 5b e 5c, de acordo do Nicola 18/11 14:36 e 18:45; Q1 caminho a) — Hoje com 2+ ramos marcados na lente
 // (window.RZ_RAMOS_LENTE): o painel "Resultado por ramo" (fn_hoje_por_ramo) só com as linhas dos ramos marcados e, no fim, a soma
 // delas; o herói de performance e os cards de Todo o patrimônio (ocupação, inadimplência, reajustes, por mês, por grupo) não
@@ -130,7 +134,8 @@
 // Versões anteriores (v2.4.0 … v2.4.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '2.24.0';
+export const VERSAO = '2.25.0';
+import { colunasSvg, unidadeColunas, numeroNaUnidade, rzDesk } from './nucleo/colunas.js'; // v2.25.0 — desenho comum (REGRAS §18.1)
 
 // ---------------------------------------------------------------------
 // Estado do filtro (module-scoped — sobrevive entre renders porque o
@@ -1193,42 +1198,15 @@ function montarIndicadoresMercado(indicadores) {
 // o título diz a conclusão; medida e unidade na linha de baixo; o valor fica em cima de cada coluna, na
 // unidade do subtítulo (sem eixo Y nem grade); o zero é a base (negativo desce); colunas em cinza e um
 // destaque só; mês que ainda não chegou fica apagado; a fonte vai embaixo. SVG com classes (sem style).
-function unidadeColunas(valores) {
-    const maxAbs = Math.max(0, ...valores.map(v => Math.abs(v)));
-    if (maxAbs >= 1e6) return { div: 1e6, casas: 1, rotulo: 'R$ mi' };
-    return { div: 1e3, casas: maxAbs >= 1e4 ? 0 : 1, rotulo: 'R$ mil' };
-}
-function numeroNaUnidade(v, u) {
-    const x = v / u.div;
-    const casas = u.casas === 0 && Math.abs(x) < 1 ? 1 : u.casas; // −729 em R$ mil vira −0,7, nunca −1
-    const s = Math.abs(x).toLocaleString('pt-BR', { minimumFractionDigits: casas, maximumFractionDigits: casas });
-    return (x < 0 ? '−' : '') + s;
-}
+// v2.25.0 — unidadeColunas e numeroNaUnidade vêm de js/nucleo/colunas.js
 function mesesFechadosNoAno() {
     return filtro.ano < ANO_ATUAL ? 12 : (filtro.ano > ANO_ATUAL ? 0 : new Date().getMonth() + 1);
 }
-// v2.17.0 — computador: Hoje em 2 colunas e gráfico de colunas mais largo (o texto fica na escala do app)
-const rzDesk = () => typeof window !== 'undefined' && typeof window.matchMedia === 'function' && window.matchMedia('(min-width:1024px)').matches;
+// v2.17.0 — computador: gráfico de colunas mais largo (rzDesk vem de js/nucleo/colunas.js desde a v2.25.0)
+// v2.25.0 — o desenho mora em js/nucleo/colunas.js; aqui fica só o recorte do ano (12 meses, mês que não chegou apagado)
 function colunasExecutivasSvg(valores, { destaque = -1, alerta = -1, unidade, classeBarra = '', rotuloAria = '' }) {
-    const W = rzDesk() ? 360 : 320, TOPO = 16, AREA = 112, BAIXO = 14, MES = 14;
-    const max = Math.max(0, ...valores), min = Math.min(0, ...valores);
-    const faixa = (max - min) || 1;
-    const yZero = TOPO + AREA * (max / faixa);
-    const H = TOPO + AREA + BAIXO + MES;
-    const passo = W / 12, larg = passo * 0.62;
-    const ate = mesesFechadosNoAno();
-    const colunas = valores.map((v, i) => {
-        const cx = i * passo + passo / 2;
-        const h = Math.max(Math.abs(v) / faixa * AREA, v ? 1.5 : 0);
-        const y = v >= 0 ? yZero - h : yZero;
-        const cls = v < 0 ? 'rz-col-neg' : i === alerta ? 'rz-col-warn' : i === destaque ? 'rz-col-hl' : 'rz-col';
-        const barra = v ? `<rect class="${cls}" x="${(cx - larg / 2).toFixed(1)}" y="${y.toFixed(1)}" width="${larg.toFixed(1)}" height="${h.toFixed(1)}" rx="2"/>` : '';
-        const valor = v ? `<text class="rz-col-v${v < 0 ? ' rz-col-v-neg' : ''}" x="${cx.toFixed(1)}" y="${(v >= 0 ? y - 4 : y + h + 11).toFixed(1)}" text-anchor="middle">${numeroNaUnidade(v, unidade)}</text>` : '';
-        const mes = `<text class="rz-col-m${i + 1 > ate ? ' rz-col-fut' : ''}" x="${cx.toFixed(1)}" y="${H - 3}" text-anchor="middle">${NOMES_MES[i]}</text>`;
-        const alvo = `<rect class="rz-col-alvo" x="${(i * passo).toFixed(1)}" y="0" width="${passo.toFixed(1)}" height="${H}"/>`;
-        return `<g${classeBarra ? ` class="${classeBarra}"` : ''} data-mes="${i + 1}">${barra}${valor}${mes}${alvo}</g>`;
-    }).join('');
-    return `<svg class="rz-cols" viewBox="0 0 ${W} ${H}" role="img" aria-label="${rzEsc(rotuloAria)}"><line class="rz-col-base" x1="0" x2="${W}" y1="${yZero.toFixed(1)}" y2="${yZero.toFixed(1)}"/>${colunas}</svg>`;
+    return colunasSvg(valores, { rotulos: NOMES_MES, unidade, destaque, alerta, classeBarra, rotuloAria,
+        futuroAPartir: mesesFechadosNoAno(), dados: (i) => `data-mes="${i + 1}"` });
 }
 function cabecalhoGrafico(titulo, sub, infoOnclick) {
     return `<div class="rz-card-h"><h3 class="rz-res-titulo">${rzEsc(titulo)}</h3>${botaoInfoCard(infoOnclick)}</div><p class="rz-res-sub">${rzEsc(sub)}</p>`;
