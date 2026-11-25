@@ -1,6 +1,10 @@
 // ============================================================================
 // cofre-controles.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.84.0 · 25/11/2026
+// Versão: 1.85.0 · 25/11/2026
+//
+// v1.85.0 (25/11/2026, sessão 20261125-1019-viagem-compartilhar, demanda faf717a1; FICHA_COMPARTILHAR_VIAGEM v1.0.0, de acordo do
+// Nicola 25/11 10:19) — "Compartilhar" no ⋮ do item (viagem-compartilhar.js): dados, registros e documentos escolhidos, pelo
+// compartilhar do celular. Versão anterior: 1.84.0
 //
 // v1.84.0 (25/11/2026, sessão 20261125-0120-viagem-2b2, demanda d8061e47; FICHA_PROGRAMA_VIAGEM_FATIA2B2 v1.0.0, de acordo do
 // Nicola 25/11 01:20) — viagem: cada item mostra a etapa num chip que troca a etapa (escolherEtapa da viagem-roteiro.js),
@@ -20,14 +24,11 @@
 // Viagens no uso: o ícone do programa vem do catálogo (fn_ativo_programas → icone, ex.: avião) no grupo e no botão da execução;
 // as linhas dos itens da viagem ocupam a largura toda; "Nova viagem" não marca tipo sozinho (escolher é obrigatório);
 // viagem planejada não mostra "Avançar" e o "Fechar" sai do rodapé e vai para "Corrigir". Versão anterior: 1.80.0
-//
-// v1.80.0 (24/11/2026, sessão 20261124-0916-seguros, demanda 6fbdad60; teste do Nicola 23:15) — "Subir cotação" do comparativo usa
-// abrirUploadCotacaoSeguro (cofre-documentos 2.42.0): a cotação é lida como cotação, não como apólice, e aparece para comparar.
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.79.0 … v1.79.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.80.0 … v1.80.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '1.84.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.85.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 import { estado } from './cofre-estado.js';
 import * as api from './cofre-api.js';
 import { mostrarToast, refrescarIcones, abrirModal, fecharModal, modalGenerico, perguntar, escolher, avisarComDesfazer } from './cofre-ui.js';
@@ -2174,6 +2175,8 @@ export async function abrirAcoesDadosItem() {
         codigo: m.codigo, sub: SUB[m.acao] || '', aoTocar: () => transicionarItemAtual(item, m) }));
     const ativoItem = (item.situacao || (item.ativo === false ? 'concluido' : 'ativo')) === 'ativo';
     sheetAcoes({ titulo: item.titulo, sub: rotuloTipoControle(item.tipo), acoes: [
+        { icone: 'share-2', titulo: 'Compartilhar', codigo: 'cofre.controles.ver', sub: 'Escolher dados e documentos e mandar', // v1.85.0
+            aoTocar: () => import('./viagem-compartilhar.js').then(m => m.compartilharItem({ itemId: item.id })) },
         ...(ativoItem && !item.grupo_status ? [{ icone: 'users-round', titulo: 'Abrir rateio', codigo: 'grupos.gerenciar', sub: 'Dividir despesas por link', aoTocar: () => abrirNovoRateio(item) }] : []), // v1.52.0
         ...(item.grupo_status === 'fechado' ? [{ icone: 'rotate-ccw', titulo: 'Reabrir o rateio', codigo: 'grupos.gerenciar', sub: 'Tira do Financeiro', aoTocar: () => reabrirRateio(item) }] : []),
         ...(ativoItem ? [{ icone: 'pencil', titulo: 'Editar item', codigo: 'cofre.controles.editar', aoTocar: () => abrirEditarItem() }] : []),

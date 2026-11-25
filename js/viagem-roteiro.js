@@ -1,6 +1,10 @@
 // ============================================================================
 // viagem-roteiro.js — Raiz Patrimônio · Roteiro da viagem (programa com tipos de ciclo)
-// Versão: 1.2.0 · 25/11/2026
+// Versão: 1.3.0 · 25/11/2026
+//
+// v1.3.0 (25/11/2026, sessão 20261125-1019-viagem-compartilhar, demanda faf717a1; FICHA_COMPARTILHAR_VIAGEM v1.0.0, de acordo do
+// Nicola 25/11 10:19) — "Compartilhar" no rodapé do Roteiro (viagem-compartilhar.js); no encaixe, a hora é a saída, o "Até" com
+// hora é a chegada e a descrição traz o exemplo de voo. Versão anterior: 1.2.0
 //
 // v1.2.0 (25/11/2026, sessão 20261125-0120-viagem-2b2, demanda d8061e47; FICHA_PROGRAMA_VIAGEM_FATIA2B2 v1.0.0, de acordo do
 // Nicola 25/11 01:20) — etapas: cada entrada mostra a etapa (A cotar, Reservado… ou Ideia, Escolhido… no lugar) e o toque troca
@@ -18,7 +22,7 @@
 // vez (fn_ciclo_trechos_salvar). O dia em que se muda de cidade é do trecho que começa nele (regra do banco). As regras são do
 // banco; aqui só se monta, colhe e manda. Aberto por cofre-controles.js (botão "Roteiro" e ⋮ do trecho).
 // ============================================================================
-export const VERSAO = '1.2.0';
+export const VERSAO = '1.3.0';
 import * as api from './cofre-api.js';
 
 const esc = (v) => String(v ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -52,7 +56,8 @@ export async function abrirRoteiro(c) {
     const C = r.ciclo;
     const sheet = abrirSheet(cab('Roteiro', `${C.nome} · ${dm(C.inicio)} a ${dmy(C.fim)}`) + `<div class="rz-sh-b">${corpoHtml(r)}</div>`
         + `<div class="rz-sh-f rz-exec-acoes">${r.pode_encaixar && C.situacao !== 'fechado' ? '<button type="button" class="rz-btn rz-btn-1" data-rt-novo>+ No roteiro</button>' : ''}`
-        + `${r.pode_gerir && C.situacao !== 'fechado' ? '<button type="button" class="rz-btn rz-btn-3" data-rt-trechos>Editar trechos</button>' : ''}</div>`);
+        + `${r.pode_gerir && C.situacao !== 'fechado' ? '<button type="button" class="rz-btn rz-btn-3" data-rt-trechos>Editar trechos</button>' : ''}`
+        + '<button type="button" class="rz-btn rz-btn-3" data-rt-compartilhar>Compartilhar</button></div>'); // v1.3.0
     icones();
     const fechado = C.situacao === 'fechado';
     sheet.querySelectorAll('[data-rt-oc]').forEach(b => b.addEventListener('click', () => acoesEntrada(r, b.dataset.rtOc, fechado)));
@@ -64,6 +69,7 @@ export async function abrirRoteiro(c) {
         if (ic) { const n = document.createElement('i'); n.setAttribute('data-lucide', bandejaAberta ? 'chevron-up' : 'chevron-down'); ic.replaceWith(n); icones(); }
     });
     sheet.querySelector('[data-rt-novo]')?.addEventListener('click', () => escolherItem(r));
+    sheet.querySelector('[data-rt-compartilhar]')?.addEventListener('click', () => import('./viagem-compartilhar.js').then(m => m.compartilharViagem({ cicloId: ctx.cicloId }))); // v1.3.0
     sheet.querySelector('[data-rt-trechos]')?.addEventListener('click', () => abrirEditarTrechos({ cicloId: ctx.cicloId, roteiro: r }));
 }
 
@@ -222,11 +228,11 @@ function folhaEncaixar(r, e, novo) {
     g('abrirSheetForm')?.({
         titulo: (novo ? 'Mais um em ' : '') + e.titulo, sub: r.ciclo.nome, rotuloSalvar: novo ? 'Incluir' : 'Salvar', empilhar: true,
         corpo: `<div class="rz-row" style="gap:8px"><div class="rz-f" style="flex:1"><label for="rt-dia">Dia</label><input type="date" id="rt-dia" value="${esc(dataIni)}"${jan}></div>
-                <div class="rz-f" style="flex:1"><label for="rt-hora">Hora (opcional)</label><input type="time" id="rt-hora" value="${esc(p.hora)}"></div></div>
+                <div class="rz-f" style="flex:1"><label for="rt-hora">Hora / saída (opcional)</label><input type="time" id="rt-hora" value="${esc(p.hora)}"></div></div>
             <div class="rz-row" style="gap:8px"><div class="rz-f" style="flex:1"><label for="rt-ate">Até (opcional)</label><input type="date" id="rt-ate" value="${esc(pf.data)}"></div>
-                <div class="rz-f" style="flex:1"><label for="rt-ate-h">Hora</label><input type="time" id="rt-ate-h" value="${esc(pf.hora)}"></div></div>
-            <span class="rz-hint">Ex.: check-in 23/12 14:00 até 27/12 11:00.</span>
-            <div class="rz-f"><label for="rt-desc">Descrição</label><input type="text" id="rt-desc" maxlength="80" value="${esc(e.descricao || '')}" placeholder="Ex.: Hotel Araxá, voo G3 1234"></div>
+                <div class="rz-f" style="flex:1"><label for="rt-ate-h">Hora / chegada</label><input type="time" id="rt-ate-h" value="${esc(pf.hora)}"></div></div>
+            <span class="rz-hint">Ex.: voo 29/11 21:45 até 30/11 06:10; check-in 23/12 14:00 até 27/12 11:00.</span>
+            <div class="rz-f"><label for="rt-desc">Descrição</label><input type="text" id="rt-desc" maxlength="80" value="${esc(e.descricao || '')}" placeholder="Ex.: AC97 GRU→YUL, Hotel Araxá, reserva B3VY9V"></div>
             <div class="rz-f"><label for="rt-valor">Valor (opcional)</label><input type="text" inputmode="decimal" id="rt-valor" value="${e.valor ? esc(String(e.valor).replace('.', ',')) : ''}" placeholder="0,00"></div>`,
         aoSalvar: async (el) => {
             const v = (s) => (el.querySelector(s)?.value || '').trim();

@@ -1,8 +1,8 @@
 {
   "app": "patrimonio",
-  "gerado_em": "2026-11-25T12:20:11",
+  "gerado_em": "2026-11-25T13:21:30",
   "arquivos": {
-    "index.html": "1.490.90",
+    "index.html": "1.490.91",
     "sw.js": "3.4",
     "js/cadastros.js": "1.3.0",
     "js/financeiro.js": "1.104.0",
@@ -14,7 +14,7 @@
     "js/cofre-api.js": "1.56.0",
     "js/cofre-app.js": "1.53.0",
     "js/cofre-ativos.js": "1.171.0",
-    "js/cofre-controles.js": "1.84.0",
+    "js/cofre-controles.js": "1.85.0",
     "js/cofre-documentos.js": "2.42.0",
     "js/cofre-imagem.js": "1.2.0",
     "js/cofre-estado.js": "1.5.2",
@@ -66,7 +66,8 @@
     "js/cartao-descobrir.js": "1.1.0",
     "js/cofre-seguro-renovacao.js": "1.0.0",
     "js/nucleo/colunas.js": "1.0.0",
-    "js/viagem-roteiro.js": "1.2.0",
+    "js/viagem-roteiro.js": "1.3.0",
+    "js/viagem-compartilhar.js": "1.0.0",
     "js/investimentos.js": "1.1.0"
   },
   "detalhes": {
@@ -119,7 +120,7 @@
       "funcoes": 214
     },
     "js/cofre-controles.js": {
-      "linhas": 4040,
+      "linhas": 4043,
       "funcoes": 194
     },
     "js/cofre-documentos.js": {
@@ -327,8 +328,12 @@
       "funcoes": 5
     },
     "js/viagem-roteiro.js": {
-      "linhas": 295,
+      "linhas": 301,
       "funcoes": 16
+    },
+    "js/viagem-compartilhar.js": {
+      "linhas": 144,
+      "funcoes": 7
     },
     "js/investimentos.js": {
       "linhas": 560,
