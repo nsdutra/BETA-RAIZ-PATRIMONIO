@@ -1,6 +1,10 @@
 /* ============================================================================
    raiz.css — Raiz Patrimônio · estilos do app (index.html)
-   Versão: 1.31.0 · 25/11/2026
+   Versão: 1.32.0 · 25/11/2026
+
+   v1.32.0 (25/11/2026, sessão 20261125-0029-investimentos-i1, demanda e5d269c2; PLANO_EXECUCAO_I1_CONTA_E_APLICACOES_RAIZ v1.2.0) —
+   card "Aplicações" da conta de investimento (js/investimentos.js): .rz-apl-seg (chave Por tipo | Por vencimento dentro do card).
+   Versão anterior: 1.31.0
 
    v1.31.0 (25/11/2026, sessão 20261125-0000-investimentos-i0, demandas e5d269c2 e fd3898f7; PLANO_EXECUCAO_I0_CARD_VALOR_DO_BEM_RAIZ
    v1.0.0) — colunas comuns (js/nucleo/colunas.js): estados .rz-col-est (estimado, cinza claro) e .rz-col-proj (projeção,
@@ -1267,6 +1271,7 @@
         .rz-vb-sub{font-size:var(--fs-sec,12.5px);color:var(--muted);margin:2px 0 0}
         .rz-vb-fonte{font-size:var(--fs-sec,12.5px);color:var(--muted);margin:8px 0 0}
         .rz-cols .rz-vb-col{cursor:pointer}
+        .rz-apl-seg{margin:8px 0 4px} /* v1.32.0 — Aplicações: Por tipo | Por vencimento */
         .rz-cols .rz-res-barra-mes,.rz-cols .rz-res-barra-revisional{cursor:pointer}
         /* dem 43bc3cab — Indicadores de mercado (Fique por Dentro); dem 4de70503 — em blocos */
         .rz-ind .rz-rt span{font-size:12px;color:var(--muted)}

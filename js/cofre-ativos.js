@@ -1,7 +1,12 @@
 // ============================================================================
 // cofre-ativos.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.170.0 · 25/11/2026
+// Versão: 1.171.0 · 25/11/2026
 //
+// v1.171.0 (25/11/2026, sessão 20261125-0029-investimentos-i1, demanda e5d269c2; PLANO_EXECUCAO_I1_CONTA_E_APLICACOES_RAIZ v1.2.0, de
+//   acordo do Nicola 25/11 00:29) — conta de investimento (tipo conta_investimento): a aba Usos e contratos mostra o card
+//   "Aplicações" (js/investimentos.js) no lugar da lista de contratos, e o card Valor do bem soma as aplicações mês a mês
+//   (linhasValorConta). vbSerie, vbModoInicial e vbGraficoHtml passam a ser exportadas (a ficha da aplicação usa as mesmas
+//   colunas). Versão anterior: 1.170.0
 // v1.170.0 (25/11/2026, sessão 20261125-0000-investimentos-i0, demandas e5d269c2 e fd3898f7; PLANO_EXECUCAO_I0_CARD_VALOR_DO_BEM_RAIZ
 //   v1.0.0, de acordo do Nicola 24/11 23:59) — card "Valor do bem" padrão para todo bem: colunas por Mês | Ano no padrão
 //   executivo (js/nucleo/colunas.js, REGRAS §18.1), frase-conclusão, valor atual em destaque, período sem valor novo como
@@ -53,7 +58,7 @@
 // Versões anteriores (v1.158.1 … v1.158.1): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '1.170.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.171.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 import { estado } from './cofre-estado.js';
 import { rzCalendario, rzCalItemDaAgenda } from './nucleo/calendario.js'; // v1.152.0 — calendário único (DS §6.3)
 import { carregarBiblioteca } from './nucleo/bibliotecas.js'; // bibliotecas pesadas, sob demanda (dem 6b11c602)
@@ -394,7 +399,7 @@ async function lerBlocoEmpreendimentoValor(prefixo, clienteId) {
 // ---- Compra e valor do bem (série ativo_valores, dem fd3898f7) ----------------------------------------------
 // A compra é um fato único por bem; o valor de mercado é a série. Os dois moram em ativo_valores: a compra entra
 // por fn_ativo_valor_registrar; cada mudança de valor de referência entra pelo gatilho do banco.
-const FONTE_VALOR_ROTULO = { cadastro: 'Cadastro', edicao: 'Edição', revisao: 'Revisão anual', migracao: 'Valor inicial', importacao: 'Importação', ia: 'Raiz IA' };
+const FONTE_VALOR_ROTULO = { cadastro: 'Cadastro', edicao: 'Edição', revisao: 'Revisão anual', migracao: 'Valor inicial', importacao: 'Importação', ia: 'Raiz IA', aplicacoes: 'Soma das aplicações' }; // v1.171.0 — aplicacoes (conta)
 const fmtMoedaValor = (v) => Number(v || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 
 function renderizarCamposCompra(prefixo, v = {}) {
@@ -502,7 +507,7 @@ function vbPeriodos(modo, hoje = new Date()) {
     return out;
 }
 // série em ordem de data → colunas do modo; descarta períodos antes do primeiro valor
-function vbSerie(linhas, modo) {
+export function vbSerie(linhas, modo) {
     const asc = [...linhas].sort((x, y) => String(x.data_base).localeCompare(String(y.data_base)) || String(x.criado_em).localeCompare(String(y.criado_em)));
     if (!asc.length) return [];
     const cols = [];
@@ -515,7 +520,7 @@ function vbSerie(linhas, modo) {
     return cols;
 }
 const vbGravados = (cols) => cols.filter(c => c.estado === 'real').length;
-function vbModoInicial(linhas) {
+export function vbModoInicial(linhas) {
     const corte = vbPeriodos('mes')[0].ini;
     const recentes = linhas.filter(x => x.data_base >= corte).length;
     const pref = recentes >= 3 ? 'mes' : 'ano', outro = pref === 'mes' ? 'ano' : 'mes';
@@ -523,7 +528,7 @@ function vbModoInicial(linhas) {
     if (vbGravados(vbSerie(linhas, outro)) >= 2) return outro;
     return null; // sem gráfico
 }
-function vbGraficoHtml(linhas, modo, rot) {
+export function vbGraficoHtml(linhas, modo, rot) {
     const cols = vbSerie(linhas, modo);
     if (vbGravados(cols) < 2) return `<p class="rz-vb-sub">Ainda não há dois valores ${modo === 'mes' ? 'nos últimos 12 meses' : 'nos últimos 5 anos'} para comparar.</p>`;
     const valores = cols.map(c => c.valor), estados = cols.map(c => c.estado);
@@ -553,6 +558,8 @@ async function montarValorDoBem(a) {
     const dados = document.getElementById('fa-dados-imovel-grid')?.closest('.rz-card');
     let card = document.getElementById('fa-card-valor-bem');
     if (a.tipo_ativo === 'vida') { card?.remove(); return; }
+    // v1.171.0 — conta de investimento: a série é a soma das aplicações (js/investimentos.js)
+    if (ehContaInvestimento(a)) return montarValorDaConta(a, card, dados);
     const { data, error } = await api.dbAuth.from('ativo_valores').select('id, tipo, data_base, valor, fonte, criado_em')
         .eq('ativo_id', a.id).order('data_base', { ascending: false }).order('criado_em', { ascending: false }).limit(400);
     if (error) throw error;
@@ -610,6 +617,49 @@ async function montarValorDoBem(a) {
     }));
     refrescarIcones?.();
     montarPagamentoNoCard(a, card).catch(() => {}); // resumo da compra no total e por pessoa (dem fd3898f7)
+}
+
+// v1.171.0 — conta de investimento (tipo conta_investimento)
+function ehContaInvestimento(a) { return tipoDoCatalogo(a?.tipo_detalhe_id)?.codigo === 'conta_investimento'; }
+async function montarValorDaConta(a, card, dados) {
+    const inv = await import('./investimentos.js');
+    const r = await inv.linhasValorConta(a.id);
+    if (ativoAtualId && ativoAtualId !== a.id) return;
+    if (!card) {
+        if (!dados) return;
+        card = document.createElement('div'); card.className = 'rz-card'; card.id = 'fa-card-valor-bem';
+        dados.insertAdjacentElement('afterend', card);
+    }
+    const linhas = r.linhas;
+    const rot = (x) => FONTE_VALOR_ROTULO[x.fonte] || x.fonte;
+    const modoIni = vbModoInicial(linhas);
+    const modo = modoIni ? (vbModoPorAtivo.get(a.id) || modoIni) : null;
+    card.innerHTML = `<div class="rz-card-h"><h3>Valor do bem</h3><span class="rz-sub">soma das aplicações</span></div>
+        <div class="rz-kv">
+            <div><small>Valor atual</small><b>${escapeHtml(fmtMoedaValor(r.atual))}</b></div>
+            <div><small>Aplicações</small><b>${r.ativas}</b>${r.total > r.ativas ? `<small>${r.total - r.ativas} encerrada${r.total - r.ativas === 1 ? '' : 's'}</small>` : ''}</div>
+        </div>
+        ${modo ? `<div class="rz-seg rz-vb-seg" role="group" aria-label="Período das colunas"><button type="button" data-vb-modo="mes" class="${modo === 'mes' ? 'rz-on' : ''}">Mês</button><button type="button" data-vb-modo="ano" class="${modo === 'ano' ? 'rz-on' : ''}">Ano</button></div>
+        <div data-vb-grafico>${vbGraficoHtml(linhas, modo, rot)}</div>` : (r.total ? '<p class="rz-vb-sub">As colunas aparecem quando houver valores em dois meses.</p>' : '')}`;
+    const ligar = (m) => {
+        const cols = vbSerie(linhas, m);
+        card.querySelectorAll('[data-vb-grafico] .rz-vb-col').forEach(g => g.addEventListener('click', () => {
+            const c = cols[Number(g.getAttribute('data-i'))];
+            if (c) rzAviso({ titulo: `Valor da conta · ${c.longo}`, linhas: [a.nome_exibicao, `${fmtMoedaValor(c.valor)} em ${c.longo}: soma do último valor de cada aplicação no fim do período.`] });
+        }));
+    };
+    if (modo) {
+        ligar(modo);
+        card.querySelectorAll('[data-vb-modo]').forEach(b => b.addEventListener('click', () => {
+            const m = b.getAttribute('data-vb-modo');
+            vbModoPorAtivo.set(a.id, m);
+            card.querySelectorAll('[data-vb-modo]').forEach(x => x.classList.toggle('rz-on', x === b));
+            const alvo = card.querySelector('[data-vb-grafico]');
+            if (alvo) alvo.innerHTML = vbGraficoHtml(linhas, m, rot);
+            ligar(m);
+        }));
+    }
+    refrescarIcones?.();
 }
 
 function abrirFormCompra(a, compra) {
@@ -2664,6 +2714,16 @@ async function montarContratosAtivo(a) {
     // sendo genuinamente do tipo imóvel.
     // v1.86.0 (F25) — fora de imóvel o card Contratos some; o chip mostra só os Usos.
     if (!ehCategoriaImovel(a.tipo_ativo)) { await garantirCatalogoTiposAtivo(); await carregarTiposComContrato(); } // v1.128.0 (item 52)
+    // v1.171.0 — conta de investimento: o card "Aplicações" (js/investimentos.js) no lugar da lista de contratos
+    if (ehContaInvestimento(a)) {
+        try {
+            const inv = await import('./investimentos.js');
+            await inv.montarCardAplicacoes(a, { abrirContrato: abrirContratoNoApp,
+                aoContar: (n) => faAtualizarContador('contratos', Math.max(n, usosAtivoId === a.id ? usosContagemFicha : 0)) });
+        } catch (e) { console.warn('[cofre-ativos] aplicações:', e?.message || e); }
+        return;
+    }
+    document.getElementById('fa-card-aplicacoes')?.remove();
     document.getElementById('fa-card-contratos')?.classList.toggle('hidden', !aceitaContrato(a));
     if (!aceitaContrato(a)) return;
 

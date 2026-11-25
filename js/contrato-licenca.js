@@ -1,7 +1,11 @@
 // =====================================================================
 // RAIZ PATRIMÔNIO — js/contrato-licenca.js
-// Versão: 1.0.0 · 15/11/2026
+// Versão: 1.1.0 · 25/11/2026
 // -----------------------------------------------------------------
+// v1.1.0 (25/11/2026, sessão 20261125-0029-investimentos-i1, demanda e5d269c2; PLANO_EXECUCAO_I1_CONTA_E_APLICACOES_RAIZ v1.2.0) —
+//   aplicação do ramo Investimentos (contrato de modelo 'investimento'): depois de esconder o que o tipo não usa, a ficha passa
+//   para o js/investimentos.js (aplicarFichaAplicacao: título, faixa, Condições, Valor, Movimentos, Itens, Financeiro e Partes).
+//   Versão anterior: 1.0.0
 // v1.0.0 (15/11/2026, sessão 20261115-1835-licencas-l3, demandas 285a0058 R4 e 954b4cca; FICHA_LICENCAS_LEADS_RAIZ v1.4.0
 // §3.3, §4.3 e §4.5 — de acordo do Nicola 15/11 17:34 e 18:33) — criação.
 //   · aplicarSecoesFicha: a ficha do contrato segue contrato_tipos.ficha_secoes ("chip" ou "chip.card"; vazio = ficha
@@ -14,7 +18,7 @@
 //     fica na própria ocorrência; a geração de mensalidades segue a carência, licencas_contratos_l2_v1) e oferece marcar
 //     como isentas as mensalidades pendentes dos meses inteiros dentro do período (o aluguel; encargos não mudam).
 // =====================================================================
-export const VERSAO = '1.0.0';
+export const VERSAO = '1.1.0';
 
 const esc = (s) => (typeof rzEsc === 'function' ? rzEsc(s) : String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])));
 const toast = (m, t) => (typeof mostrarToast === 'function' ? mostrarToast(m, t) : console.log(m));
@@ -49,6 +53,11 @@ export async function aplicarSecoesFicha(con, secoes) {
     raiz.querySelectorAll('#fc-chips [data-fc-chip]').forEach(b => { if (!tem(b.dataset.fcChip)) b.classList.add('hidden'); });
     // 2. cards marcados (data-fc-secao="chip.card") fora da lista saem
     raiz.querySelectorAll('[data-fc-secao]').forEach(el => { if (!tem(el.dataset.fcSecao)) el.classList.add('hidden'); });
+    if (con.modelo === 'investimento') { // v1.1.0 — aplicação do ramo Investimentos
+        import('./investimentos.js').then(m => m.aplicarFichaAplicacao(con, raiz)).catch(e => console.warn('[contrato-licenca] aplicação:', e?.message || e));
+        icones();
+        return;
+    }
     const licenca = con.modelo === 'licenca_uso';
     if (licenca) ajustarLicenca(con, raiz);
     // 3. chips só desta ficha, na ordem da lista
