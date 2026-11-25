@@ -1,6 +1,14 @@
 // ============================================================================
 // cofre-ativos.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.172.0 · 25/11/2026
+// Versão: 1.173.0 · 25/11/2026
+//
+// v1.173.0 (25/11/2026, sessão 20261125-1345-convite-ramos, demanda 0b6e3196 fase 1; ficha "convite com exemplos" de 20/11, de
+//   acordo do Nicola 25/11 13:41) — o Patrimônio vazio fala dos ramos da empresa, com as mesmas frases da campanha de boas-vindas
+//   (REGRAS §12.4): em Todo o patrimônio, "Comece pelo primeiro cadastro" + "Cadastre {convite} — ou envie uma foto ou um
+//   documento, como {exemplos}…" (contexto da fn_comunicacao_contexto_servidor v3) e o botão manual abre o "+" de Ativos, a
+//   mesma porta da campanha; numa lente de ramo, a frase do ramo ("Comece pela primeira pessoa da família", "como documentos
+//   pessoais"). Antes: em Todo o patrimônio sempre imóvel, e Família virava "Comece pela primeira vida". O "Novo ativo" do +
+//   em Todo o patrimônio dá exemplos dos ramos contratados (antes "Imóvel, veículo, arte…" fixo). Versão anterior: 1.172.0
 //
 // v1.172.0 (25/11/2026, sessão 20261125-1954-investimentos-i1-2, demanda 09dff31b; PLANO_EXECUCAO_I1_2_APLICACAO_FINANCEIRO_RAIZ
 //   v1.1.0, itens D, E e H e D-b; de acordo do Nicola 25/11 12:43, 13:40 e 19:54) — (H) o card Valor do bem da conta de
@@ -48,20 +56,11 @@
 // v1.162.0 (16/11/2026, sessão 20261116-0840-comercial-r3, demandas 285a0058 e cc3c667e; FICHA_RECEITA_UNIDADES_GERADORAS §11) —
 //   na lente Comercial a lista do Patrimônio ganha o chip "Itens": o catálogo do que a empresa vende (js/comercial-itens.js).
 //   O chip só aparece com o código comercial.itens liberado no plano. Versão anterior: 1.161.0
-//
-// v1.161.0 (15/11/2026, sessão 20261115-1820-ativos-ajustes, demanda 285a0058) — (1) sai a regra "Comercial em qualquer
-//   ativo" da R2: os modelos do Comercial aparecem só nos tipos ligados a eles em operacao_modelo_tipos, como os outros
-//   ramos (regra no banco; Nicola 15/11 16:55). (2) A linha do uso em Usos e contratos não abre mais o contrato — com
-//   vários contratos no mesmo ativo (licenças) confundia; o contrato abre pela lista de contratos. Versão anterior: 1.160.0
-// v1.160.0 (15/11/2026, sessão 20261114-2342-investimentos-patrimonio, demanda fd3898f7; de acordo do Nicola 15/11 16:39) —
-// ⋮ do card "Valor do bem" ganha "Registrar financiamento": credor, valor da parcela, parcelas e 1º vencimento viram um item
-// de controle "Parcela do financiamento" (subtipo de catálogo, saída em Amortização de financiamento) pela
-// criarItemParcelado() de cofre-controles.js. Versão anterior: 1.159.0
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.159.0 … v1.159.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.161.0 … v1.161.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '1.172.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.173.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 import { estado } from './cofre-estado.js';
 import { rzCalendario, rzCalItemDaAgenda } from './nucleo/calendario.js'; // v1.152.0 — calendário único (DS §6.3)
 import { carregarBiblioteca } from './nucleo/bibliotecas.js'; // bibliotecas pesadas, sob demanda (dem 6b11c602)
@@ -800,6 +799,13 @@ export function rotuloNovoAtivo() {
 }
 export function exemplosNovoAtivo() {
     const r = ramoDaLente();
+    if (r === 'tudo' && _catalogoAtivoTiposLista().length && typeof rzRamoLiberado === 'function') { // v1.173.0 — ramos contratados
+        const segs = [];
+        [..._catalogoAtivoTiposLista()].filter(t => t.ramo && rzRamoLiberado(t.ramo))
+            .sort((x, y) => ((rzRamoInfo(x.ramo)?.ordem ?? 999) - (rzRamoInfo(y.ramo)?.ordem ?? 999)) || ((x.ordem ?? 999) - (y.ordem ?? 999)))
+            .forEach(t => { if (t.segmento && !segs.includes(t.segmento)) segs.push(t.segmento); });
+        if (segs.length) return segs.slice(0, 3).join(', ') + (segs.length > 3 ? '…' : '');
+    }
     if (r === 'tudo' || !_catalogoAtivoTiposLista().length) return 'Imóvel, veículo, arte…';
     const segs = [];
     _catalogoAtivoTiposLista().filter(t => t.ramo === r).sort((x, y) => (x.ordem ?? 999) - (y.ordem ?? 999))
@@ -1031,14 +1037,53 @@ export function renderAtivosLista(filtroTipo = '', filtroTexto = '') {
 // Carteira vazia. O texto é o do passo "Comece pelo primeiro imóvel" da campanha de onboarding,
 // palavra por palavra: a pessoa lê o mesmo convite no modal e aqui. Sem rzVazio (cofre.html
 // avulso) fica o vazio que veio no markup. (dem b8602a3a)
-const TEXTO_PRIMEIRO_IMOVEL = 'Cadastre um imóvel — ou envie uma foto, documento, contrato aluguel ou Guia IPTU e a Raiz IA preenche por você. Depois você adiciona contrato e acompanha os recebimentos.';
-function desenharVazioAtivos(el) {
+const TEXTO_PRIMEIRO_IMOVEL = 'Cadastre um imóvel — ou envie uma foto, documento, contrato aluguel ou Guia IPTU e a Raiz IA preenche por você. Depois você adiciona contrato e acompanha os recebimentos.'; // sem contexto
+// v1.173.0 (dem 0b6e3196) — o texto vem do contexto da campanha (fn_comunicacao_contexto_servidor v3): convite e exemplos
+// dos ramos da empresa, as mesmas palavras do passo "Comece pelo primeiro cadastro". Sem contexto, frase de antes.
+let _ctxConvite = null; // { cliente, em, ctx } — 60 s, como o "Comece por aqui"
+async function contextoConvite() {
+    if (!estado.clienteId || !estado.pessoa?.id) return null;
+    if (_ctxConvite && _ctxConvite.cliente === estado.clienteId && Date.now() - _ctxConvite.em < 60000) return _ctxConvite.ctx;
+    try {
+        const { data, error } = await api.dbAuth.rpc('fn_comunicacao_contexto_servidor', { p_pessoa_id: estado.pessoa.id, p_cliente_id: estado.clienteId });
+        if (error) throw error;
+        _ctxConvite = { cliente: estado.clienteId, em: Date.now(), ctx: data || null };
+        return _ctxConvite.ctx;
+    } catch (e) { console.warn('[vazio] contexto:', e.message); return null; }
+}
+const pelo = s => s.replace(/^o /, 'pelo ').replace(/^a /, 'pela ').replace(/^os /, 'pelos ').replace(/^as /, 'pelas ');
+async function desenharVazioAtivos(el) {
     const gate = window.podeUsar ? window.podeUsar('cofre.ver') : { ok: true };
     if (!gate.ok) { explicarListaVazia(el); return; }
     if (typeof window.rzVazio !== 'function') return;
-    // v1.121.0 (item 33) — numa lente de ramo, o convite fala do ramo ("Comece pelo primeiro bem rural") e o cadastro abre
-    // com as categorias do ramo
+    const ctx = await contextoConvite();
     const r = ramoDaLente();
+    const ia = { rotulo: 'Enviar documento', codigo: 'cofre.analisar_ia', aoTocar: () => window.dispatchEvent(new CustomEvent('cofre:abrir-upload-home')) };
+    const fr = r !== 'tudo' ? ctx?.frasesRamo?.[r] : null;
+    if (fr?.convite) { // lente de um ramo com frase: "Comece pela primeira pessoa da família"
+        el.innerHTML = window.rzVazio({
+            dominio: 'ativos', id: 'ativos-lista',
+            titulo: `Comece ${pelo(fr.convite)}`,
+            beneficio: `Cadastre ${fr.convite} — ou envie uma foto ou um documento${fr.exemplo ? `, como ${fr.exemplo},` : ''} e a Raiz IA preenche por você. Depois você acompanha tudo por aqui.`,
+            acaoIA: ia,
+            acaoManual: { rotulo: 'Fazer o primeiro cadastro', codigo: 'cofre.ativos.criar', aoTocar: () => abrirFormAtivo() },
+        });
+        refrescarIcones();
+        return;
+    }
+    if (r === 'tudo' && ctx?.convitePrimeiro) { // a mesma frase e a mesma porta do passo da campanha
+        el.innerHTML = window.rzVazio({
+            dominio: 'ativos', id: 'ativos-lista',
+            titulo: 'Comece pelo primeiro cadastro',
+            beneficio: `Cadastre ${ctx.convitePrimeiro} — ou envie uma foto ou um documento${ctx.exemplosDocumento ? `, como ${ctx.exemplosDocumento},` : ''} e a Raiz IA preenche por você. Depois você acompanha tudo por aqui.`,
+            acaoIA: ia,
+            acaoManual: { rotulo: 'Fazer o primeiro cadastro', codigo: 'cofre.ativos.criar', aoTocar: () => (typeof window.rzAbrirMaisAtivos === 'function' ? window.rzAbrirMaisAtivos() : abrirFormAtivo()) },
+        });
+        refrescarIcones();
+        return;
+    }
+    // v1.121.0 (item 33) — numa lente de ramo sem frase própria, o convite fala da unidade do ramo e o cadastro abre
+    // com as categorias do ramo
     const un = r !== 'tudo' && typeof rzRamoInfo === 'function' ? rzRamoInfo(r)?.unidade_singular : null;
     if (un && r !== 'imoveis') {
         const fem = /^Nova/.test(rotuloNovoAtivo());
@@ -1049,6 +1094,7 @@ function desenharVazioAtivos(el) {
             acaoIA: { rotulo: 'Enviar documento', codigo: 'cofre.analisar_ia', aoTocar: () => window.dispatchEvent(new CustomEvent('cofre:abrir-upload-home')) },
             acaoManual: { rotulo: `Cadastrar ${un}`, codigo: 'cofre.ativos.criar', aoTocar: () => abrirFormAtivo() },
         });
+        refrescarIcones();
         return;
     }
     el.innerHTML = window.rzVazio({
@@ -1058,6 +1104,7 @@ function desenharVazioAtivos(el) {
         acaoIA: { rotulo: 'Enviar documento', codigo: 'cofre.analisar_ia', aoTocar: () => window.dispatchEvent(new CustomEvent('cofre:abrir-upload-home')) },
         acaoManual: { rotulo: 'Cadastrar primeiro imóvel', codigo: 'cofre.ativos.criar', aoTocar: () => abrirFormAtivoComCategoria('imovel_predial') },
     });
+    refrescarIcones();
 }
 
 // Lista vazia: distingue "não tem ativo" de "não pode ver" (licença/plano).
