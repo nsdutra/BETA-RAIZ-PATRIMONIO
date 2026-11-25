@@ -1,6 +1,10 @@
 // ============================================================================
 // cofre-controles.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.77.0 · 24/11/2026
+// Versão: 1.78.0 · 24/11/2026
+//
+// v1.78.0 (24/11/2026, sessão 20261124-0916-seguros, demanda 6fbdad60; FICHA_COMPARATIVO_RENOVACAO_SEGUROS v1.5.0 §14, de acordo do
+// Nicola 24/11 22:41) — abrirComparativoPorLink(): o link do robô (#/seguro/<item>) abre a ficha do item de seguro e, por cima,
+// o comparativo das cotações. Item de outra empresa, sem acesso ou que não é seguro: aviso e fica na ficha/tela. Versão anterior: 1.77.0
 //
 // v1.77.0 (24/11/2026, sessão 20261124-0916-seguros, demanda d03eb567; FICHA_COMPARATIVO_RENOVACAO_SEGUROS v1.3.0, de acordo
 // do Nicola 24/11) — no vencimento em aberto de um item de seguro, ação "Comparar cotações" (código cofre.seguro_comparar),
@@ -21,15 +25,11 @@
 // nova criarItemParcelado(): item de despesa em parcelas mensais criado por outra tela (o financiamento do bem, no card
 // "Valor do bem"), pelo mesmo caminho do formulário — item, histórico, ocorrências do horizonte até a data da última
 // parcela, log e evento. Nenhuma mudança no formulário. Versão anterior: 1.73.0
-//
-// v1.73.0 (11/11/2026, sessão 20261111-2330-agro-receita-safra, demanda 3cd0817a; de acordo do Nicola 11/11 23:30) — "Ver a
-//   safra" mostra também o recebido (receitas com destino na safra, nas fases ou nos itens dela — fn_execucao_detalhe) e o
-//   resultado (recebido − pago), quando houver receita. Versão anterior: 1.72.1 · 03/11/2026
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.72.1 … v1.72.1): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.73.0 … v1.73.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '1.77.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.78.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 import { estado } from './cofre-estado.js';
 import * as api from './cofre-api.js';
 import { mostrarToast, refrescarIcones, abrirModal, fecharModal, modalGenerico, perguntar, escolher, avisarComDesfazer } from './cofre-ui.js';
@@ -2417,6 +2417,13 @@ function abrirFaturaDaOcorrencia(faturaId) {
 function abrirComparativoDoItem(item) {
     if (typeof window.fecharSheet === 'function') window.fecharSheet();
     setTimeout(() => abrirComparativoSeguro(item, { subirCotacao: subirCotacaoSeguro, aposRenovar: refazerOcorrenciasAposRenovar }), 30);
+}
+// v1.78.0 — link do robô: #/seguro/<item_id> (rota no index.html) cai aqui
+export async function abrirComparativoPorLink(itemId) {
+    await abrirItemControleDaEmpresa(itemId);
+    if (!itemEmFoco || itemEmFoco.id !== itemId) return;
+    if (itemEmFoco.tipo !== 'seguro') { mostrarToast('Esse link não é de um seguro.', 'erro'); return; }
+    abrirComparativoDoItem(itemEmFoco);
 }
 function subirCotacaoSeguro(item) {
     if (typeof window.fecharSheet === 'function') window.fecharSheet();
