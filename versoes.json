@@ -1,8 +1,8 @@
 {
   "app": "patrimonio",
-  "gerado_em": "2026-11-25T03:57:03",
+  "gerado_em": "2026-11-25T04:20:52",
   "arquivos": {
-    "index.html": "1.490.85",
+    "index.html": "1.490.86",
     "sw.js": "3.4",
     "js/cadastros.js": "1.3.0",
     "js/financeiro.js": "1.103.0",
@@ -67,7 +67,7 @@
     "js/cofre-seguro-renovacao.js": "1.0.0",
     "js/nucleo/colunas.js": "1.0.0",
     "js/viagem-roteiro.js": "1.1.0",
-    "js/investimentos.js": "1.0.0"
+    "js/investimentos.js": "1.1.0"
   },
   "detalhes": {
     "index.html": {
@@ -331,8 +331,8 @@
       "funcoes": 12
     },
     "js/investimentos.js": {
-      "linhas": 479,
-      "funcoes": 22
+      "linhas": 560,
+      "funcoes": 23
     }
   }
 }
