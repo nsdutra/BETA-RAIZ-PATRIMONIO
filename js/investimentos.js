@@ -1,6 +1,12 @@
 // ============================================================================
 // investimentos.js — Raiz Patrimônio · Ramo Investimentos (conta e aplicações)
-// Versão: 1.3.0 · 25/11/2026
+// Versão: 1.4.0 · 26/11/2026
+//
+// v1.4.0 (26/11/2026, sessão 20261126-1330-investimentos-i2a, demanda 885410f9; PLANO_EXECUCAO_I2_I3_I4_INVESTIMENTOS_RAIZ v1.2.0, I2a, e
+// PROTOTIPO_INVESTIMENTOS_I2_I4_POSICAO_FGC v1.1.0; de acordo do Nicola 26/11 12:12 e 13:24) — renda variável pelo módulo novo
+// js/investimentos-rv.js: Nova aplicação (Ação / BDR / ETF e Fundo imobiliário) começa pela posição ou por uma compra e ganha o atalho
+// "Várias compras e vendas"; a ficha ganha o card Posição e custo médio; Registrar movimento e a linha do Financeiro de compra,
+// venda e amortização vão para o módulo. Grupo "Renda variável" no card Aplicações; posição zerada aparece como "Zerada".
 //
 // v1.3.0 (25/11/2026, sessão 20261125-2135-investimentos-i1-3, demanda e2b658a8; PLANO_EXECUCAO_I1_3_MOVIMENTOS_EDITAR_RAIZ v1.0.0
 // e ficha F11; de acordo do Nicola 25/11 21:35 "A B e C ok", "F11 ok") — movimento lançado se corrige e se exclui:
@@ -53,7 +59,7 @@
 //   · linhasValorConta: série da conta = soma das aplicações mês a mês (usada pelo card Valor do bem da conta, cofre-ativos.js).
 // O valor atual mora em contratos.valor; o histórico, nas ocorrências do item "Atualizar valor" (F3). Sem projeção (I3).
 // ============================================================================
-export const VERSAO = '1.3.0';
+export const VERSAO = '1.4.0';
 
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const toast = (m, t) => (typeof mostrarToast === 'function' ? mostrarToast(m, t) : console.log(m));
@@ -66,11 +72,13 @@ const sk = (n) => (typeof rzSk === 'function' ? rzSk('linhas', n) : '');
 
 // ---------------------------------------------------------------------------------------------------- catálogo
 const GRUPOS = [
-    { g: 'Renda fixa', pref: 'inv_rf_' }, { g: 'Fundos', pref: 'inv_fundo' },
+    { g: 'Renda fixa', pref: 'inv_rf_' }, { g: 'Renda variável', pref: 'inv_rv_' }, { g: 'Fundos', pref: 'inv_fundo' },
     { g: 'Previdência', pref: 'inv_prev' }, { g: 'Poupança', pref: 'inv_poup' },
 ];
 const grupoDoTipo = (cod) => (GRUPOS.find(x => String(cod || '').startsWith(x.pref)) || { g: 'Outras' }).g;
-const ICONE_TIPO = { inv_rf_cdb: 'percent', inv_rf_lci: 'percent', inv_rf_tesouro: 'landmark', inv_rf_credito: 'scroll-text', inv_fundo: 'pie-chart', inv_prev: 'umbrella', inv_poup: 'piggy-bank' };
+const ICONE_TIPO = { inv_rf_cdb: 'percent', inv_rf_lci: 'percent', inv_rf_tesouro: 'landmark', inv_rf_credito: 'scroll-text', inv_fundo: 'pie-chart', inv_prev: 'umbrella', inv_poup: 'piggy-bank', inv_rv_acao: 'line-chart', inv_rv_fii: 'building-2' };
+const EH_RV = (cod) => String(cod || '').startsWith('inv_rv_');
+const moduloRV = () => import('./investimentos-rv.js');
 const TEM_VENC = (cod) => String(cod || '').startsWith('inv_rf_');
 const INDEXADORES = [['cdi', '% do CDI'], ['ipca', 'IPCA +'], ['pre', 'Prefixado'], ['selic', 'Selic +'], ['poupanca', 'Poupança'], ['outro', 'Outro']];
 const LIQUIDEZ = [['vencimento', 'No vencimento'], ['diaria', 'Diária'], ['carencia', 'Depois da carência']];
@@ -163,9 +171,9 @@ export async function montarCardAplicacoes(a, { abrirContrato, aoContar } = {}) 
     const modo = modoLista.get(a.id) || 'tipo';
     const ordVenc = (x, y) => (x.fim && y.fim) ? String(x.fim).localeCompare(String(y.fim)) : x.fim ? -1 : y.fim ? 1 : Number(y.valor || 0) - Number(x.valor || 0);
     const linha = (c) => {
-        const venc = TEM_VENC(c.tipo_contrato) && c.fim ? 'vence ' + dataBR(c.fim) : 'sem vencimento';
+        const venc = EH_RV(c.tipo_contrato) ? (c.dados_modelo?.ticker || '') : TEM_VENC(c.tipo_contrato) && c.fim ? 'vence ' + dataBR(c.fim) : 'sem vencimento';
         const idx = indexadorTexto(c.dados_modelo || {});
-        const st = encerrada(c) ? '<span class="rz-st rz-neu">Encerrada</span>' : '<span class="rz-st rz-ok">Ativa</span>';
+        const st = encerrada(c) ? `<span class="rz-st rz-neu">${EH_RV(c.tipo_contrato) ? 'Zerada' : 'Encerrada'}</span>` : '<span class="rz-st rz-ok">Ativa</span>';
         return `<div class="rz-row rz-link" data-apl="${c.id}"><div class="rz-ic"><i data-lucide="${ICONE_TIPO[c.tipo_contrato] || 'coins'}"></i></div>
             <div class="rz-tx"><b>${esc(c.descricao || nomeTipo(c.tipo_contrato))}</b><span>${esc([nomeTipo(c.tipo_contrato), venc, idx].filter(Boolean).join(' · '))}</span></div>
             <div class="rz-rt"><b>${esc(moeda(c.valor))}</b>${st}</div><i data-lucide="chevron-right" class="rz-chev"></i></div>`;
@@ -201,10 +209,14 @@ async function abrirNovaAplicacao(a, aoConcluir) {
     let tipos = [];
     try { tipos = await tiposAplicacao(); } catch (e) { toast(e?.message || 'Não consegui ler os tipos.', 'erro'); return; }
     if (typeof abrirSheetAcoes !== 'function') { toast('Abra pelo app principal.', 'erro'); return; }
-    abrirSheetAcoes({ titulo: 'Nova aplicação', sub: a.nome_exibicao, acoes: tipos.map(t => ({
+    const acoes = tipos.map(t => ({
         icone: ICONE_TIPO[t.codigo] || 'coins', titulo: t.nome, sub: t.descricao || '', codigo: 'contratos.criar',
         aoTocar: () => abrirFormAplicacao(a, t, aoConcluir),
-    })) });
+    }));
+    // v1.4.0 — I2a: várias compras e vendas de ações e FII de uma vez (cria as aplicações dos códigos novos)
+    if (tipos.some(t => EH_RV(t.codigo))) acoes.push({ icone: 'list-checks', titulo: 'Várias compras e vendas', sub: 'Ações e FII, em lote', codigo: 'contratos.criar',
+        aoTocar: async () => (await moduloRV()).abrirLote(a, aoConcluir) });
+    abrirSheetAcoes({ titulo: 'Nova aplicação', sub: a.nome_exibicao, acoes });
 }
 
 const campo = (id, rot, html, extra = '') => `<div class="rz-f"${extra}><label for="${id}">${rot}</label>${html}</div>`;
@@ -222,6 +234,10 @@ async function abrirFormAplicacao(a, t, aoConcluir) {
         if (cp) partes = await cat.partesParaCampo(a.cliente_id, cp.opcoes?.papeis_lista || []);
     } catch (e) { toast(e?.message || 'Não consegui ler os campos do tipo.', 'erro'); return; }
     const ctx = { novo: true, prefixo: 'inv-', row: {}, partes, infoBtn: cat.infoBtn };
+    if (EH_RV(t.codigo)) { // v1.4.0 — I2a: começa pela posição que já tem ou por uma compra
+        const rv = await moduloRV();
+        return rv.abrirNovaRV(a, t, { campos, ctx, nc, cat, aoConcluir, criar: (r) => criarAplicacao(a, t.codigo, r) });
+    }
     abrirSheetForm({
         titulo: t.nome, sub: a.nome_exibicao, rotuloSalvar: 'Salvar aplicação',
         corpo: nc.camposHtml(campos, ctx) + '<p class="rz-desc">A aplicação conta no limite de contratos do plano. Novas aplicações no mesmo título e resgates entram depois, em "Registrar movimento".</p>',
@@ -274,8 +290,10 @@ async function criarAplicacao(a, cod, r) {
         const ids = (mods || []).map(m => m.id);
         if (ids.length) await db().rpc('fn_contrato_itens_sugeridos_criar', { p_contrato_id: con.id, p_modelos: ids, p_canal: 'app' });
     } catch (e) { console.warn('[investimentos] itens:', e?.message || e); }
-    const { error: eMov } = await db().rpc('fn_aplicacao_movimento_registrar', { p_contrato_id: con.id, p_tipo: 'aplicacao', p_data: data, p_valor: valor, p_observacao: 'Aplicação inicial' });
-    if (eMov) throw eMov;
+    if (!EH_RV(cod)) { // v1.4.0 — na renda variável a primeira posição vem por fn_rv_evento_registrar (investimentos-rv.js)
+        const { error: eMov } = await db().rpc('fn_aplicacao_movimento_registrar', { p_contrato_id: con.id, p_tipo: 'aplicacao', p_data: data, p_valor: valor, p_observacao: 'Aplicação inicial' });
+        if (eMov) throw eMov;
+    }
     await recarregarContratosApp();
     window.dispatchEvent(new CustomEvent('cofre:recarregar-eventos'));
     return con.id;
@@ -340,6 +358,10 @@ export async function aplicarFichaAplicacao(conApp, raiz) {
     prepararIndicadores([con.id], 'fc-fin-comp', 'fc-card-apl-ind').catch(e => console.warn('[investimentos] indicadores:', e?.message || e));
     montarOcorrenciasAplicacao(con).catch(e => console.warn('[investimentos] ocorrências:', e?.message || e));
     montarPartesAplicacao(con).catch(e => console.warn('[investimentos] partes:', e?.message || e));
+    if (EH_RV(con.tipoContrato)) { // v1.4.0 — I2a: card Posição e custo médio e a faixa de quantidade e preço médio
+        moduloRV().then(rv => rv.aplicarFichaRV(con, raiz, { aoMudar: () => reabrirFicha(con.id) }))
+            .catch(e => console.warn('[investimentos] posição:', e?.message || e));
+    }
 }
 
 const modoValor = new Map();
@@ -428,6 +450,11 @@ const numero = (id) => { const v = String(document.getElementById(id)?.value || 
 export async function abrirRegistrarMovimento(contratoId) {
     voltarParaConta = null;
     const con = await lerAplicacao(contratoId); if (!con) return;
+    if (EH_RV(con.tipoContrato)) { // v1.4.0 — I2a: compra, venda, lote e eventos no módulo de renda variável
+        const rv = await moduloRV();
+        return rv.abrirRegistrarRV(con, { rendimento: () => abrirFormRendimento(con, con.tipoContrato === 'inv_rv_fii' ? 'rendimento' : 'dividendo'),
+            taxa: () => abrirFormTaxa(con), despesa: () => (typeof window.abrirNovaDespesa === 'function' ? window.abrirNovaDespesa(con.ativoId || null) : null) });
+    }
     const fechada = ['encerrado', 'finalizado'].includes(con.status.toLowerCase());
     const acoes = [
         ...(fechada ? [] : [
@@ -634,6 +661,10 @@ export async function abrirMovimento(lancId, { origem = null } = {}) {
     const m = await lerMovimento(lancId);
     if (!m) { toast('Não encontrei este movimento.', 'erro'); return; }
     const con = await lerAplicacao(m.p.contrato_id); if (!con) return;
+    if (EH_RV(con.tipoContrato) && m.p.origem_id) { // v1.4.0 — I2a: compra, venda e amortização (e as taxas delas) abrem o evento
+        const rv = await moduloRV();
+        if (await rv.abrirEventoDoLancamento(con, m.p.origem_id, { contaVolta: origem === 'fa-mov-comp' ? con.ativoId : null })) return;
+    }
     const fechada = ['encerrado', 'finalizado'].includes(con.status.toLowerCase());
     let total = false;
     if (m.p.categoria === 'inv_resgate' && fechada) {

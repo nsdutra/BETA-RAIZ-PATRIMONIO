@@ -1,7 +1,12 @@
 // ============================================================================
 // relatorios-executivos.js — Raiz Patrimônio · Relatórios no modelo executivo
-// Versão: 1.19.0 · 26/11/2026
+// Versão: 1.20.0 · 26/11/2026
 //
+// v1.20.0 (26/11/2026, sessão 20261126-1330-investimentos-i2a, demanda 885410f9; PLANO_EXECUCAO_I2_I3_I4_INVESTIMENTOS_RAIZ v1.2.0, I2a, e
+//   PROTOTIPO_INVESTIMENTOS_I2_I4_POSICAO_FGC v1.1.0, tela 13; de acordo do Nicola 26/11 12:12, "relatórios ok") — R6 Renda variável:
+//   posição e resultado (tipo rv, código relatorios.investimentos, fn_rv_carteira): uma linha por código com quantidade, preço médio,
+//   custo, valor pelo último preço, não realizado, realizado e proventos do ano; as vendas do ano por mês com a marca dos R$ 20 mil
+//   (informativa, sem DARF); planilha com uma linha por aplicação. Situação de hoje, sem chip de período. Abre por abrirRelatorioExecutivo('rv').
 // v1.19.0 (26/11/2026, sessão 20261126-1215-investimentos-i4, demanda 885410f9; PLANO_EXECUCAO_I2_I3_I4_INVESTIMENTOS_RAIZ v1.2.0, I4, e
 //   PROTOTIPO_INVESTIMENTOS_I2_I4_POSICAO_FGC v1.1.0; de acordo do Nicola 26/11 12:12, "relatórios ok") — Exposição ao FGC
 //   (relatorios.investimentos_fgc, fn_fgc_exposicao, tipo fgc): por titular e banco (CNPJ raiz), o total coberto em % do limite de
@@ -55,7 +60,7 @@ import { rzMostrarBloqueio } from './comum-licenca.js';
 import { rzToast } from './raiz-ui.js';
 import RaizDevice from './raiz-device.js';
 
-export const VERSAO = '1.19.0';
+export const VERSAO = '1.20.0';
 
 // ---------------------------------------------------------------------------
 // Formatos (REL-13 a REL-17)
@@ -1287,6 +1292,76 @@ function montarFgc(d) {
                 ['Cobertura', 'R$ 250 mil por CPF e por instituição; teto de R$ 1 milhão por CPF a cada 4 anos.']] } };
 }
 
+// ---------------------------------------------------------------------------
+// v1.20.0 (I2a, 26/11/2026) — R6 Renda variável: posição e resultado (relatorios.investimentos). Posição de cada código pronta em
+// fn_rv_carteira (quantidade, preço médio, custo, valor pelo último preço, realizado e proventos do ano); as vendas do ano vêm de
+// investimento_eventos. A marca dos R$ 20 mil é só informativa (D-I2-3: sem DARF).
+// ---------------------------------------------------------------------------
+function montarRv(d) {
+    const ls = (d.linhas || []).slice().sort((a, b) => num(b.valor) - num(a.valor));
+    const abertas = ls.filter(x => x.situacao === 'aberta'), zeradas = ls.filter(x => x.situacao !== 'aberta');
+    const soma = (l, k) => l.reduce((t, x) => t + num(x[k]), 0);
+    const valor = soma(abertas, 'valor'), custo = soma(abertas, 'custo'), aberto = valor - custo;
+    const realAno = soma(ls, 'realizado_ano'), provAno = soma(ls, 'proventos_ano');
+    const ano = String(d.situacao_em).slice(0, 4);
+    const contas = [...new Set(ls.map(x => x.conta).filter(Boolean))];
+    const cfg = { nome: 'Renda variável', medida: 'Posição e resultado em R$', previa: false,
+        subtitulo: [`posição em ${dma(d.situacao_em)}`, 'valor pelo último preço negociado', contas.length === 1 ? contas[0] : `${contas.length} contas`].join(' · ') };
+    const linha = abertas.length
+        ? `${qtdTxt(abertas.length, 'código', 'códigos')} em carteira, ${brl(valor)}; ${aberto >= 0 ? 'ganho' : 'perda'} não realizado de ${brl(Math.abs(aberto))}.`
+        : 'Nenhuma posição de ações ou fundos imobiliários em aberto.';
+    const kpis = `<div class="kpis">${kpi('Valor', compacto(valor), qtdTxt(abertas.length, 'código', 'códigos'))}${kpi('Não realizado', compacto(aberto), custo > 0 ? nf(aberto / custo * 100, 1) + '% sobre o custo' : '', aberto >= 0 ? 'pos' : 'neg')}${kpi('Realizado em ' + ano, compacto(realAno), 'vendas do ano', realAno >= 0 ? 'pos' : 'neg')}${kpi('Proventos em ' + ano, compacto(provAno), 'dividendos, JCP e rendimentos')}</div>`;
+    const maior = Math.max(1, ...abertas.map(x => num(x.valor)));
+    const barras = abertas.map(x => `<div class="hbar"><span style="width:110px">${esc(x.ticker)}</span><div class="trk2"><i style="width:${Math.max(0.6, num(x.valor) / maior * 100).toFixed(1)}%"></i></div><b>${valor > 0 ? nf(num(x.valor) / valor * 100, 0) : '0'}%</b></div>`).join('') || '<p class="mut">Nenhuma posição.</p>';
+    const fonte = 'Raiz · fn_rv_carteira · ' + dma(d.situacao_em);
+    const tr = (x) => `<tr><td>${esc(x.ticker)}${contas.length > 1 ? `<br><small class="mut">${esc(x.conta || '')}</small>` : ''}</td><td class="n">${esc(num(x.quantidade).toLocaleString('pt-BR', { maximumFractionDigits: 8 }))}</td><td class="n">${tab(x.pm)}</td><td class="n">${tab(x.custo)}</td><td class="n">${tab(x.valor)}</td><td class="n ${num(x.resultado_aberto) < 0 ? 'neg' : ''}">${tab(x.resultado_aberto)}</td><td class="n ${num(x.realizado_ano) < 0 ? 'neg' : ''}">${num(x.realizado_ano) ? tab(x.realizado_ano) : '—'}</td><td class="n">${num(x.proventos_ano) ? tab(x.proventos_ano) : '—'}</td></tr>`;
+    const cab = '<thead><tr><th>Código</th><th class="n">Qtd</th><th class="n">PM</th><th class="n">Custo</th><th class="n">Valor</th><th class="n">Não real.</th><th class="n">Real. ' + ano + '</th><th class="n">Prov. ' + ano + '</th></tr></thead>';
+    // vendas do ano por mês: ações (isenção de R$ 20 mil por mês para pessoa física) e FII (sem isenção)
+    const porMes = new Map();
+    (d.vendas || []).forEach(v => {
+        const k = String(v.data).slice(0, 7), fii = v.tipo_contrato === 'inv_rv_fii';
+        const m = porMes.get(k) || { acoes: 0, res_acoes: 0, fii: 0, res_fii: 0 };
+        const bruto = num(v.quantidade) * num(v.preco_unitario);
+        if (fii) { m.fii += bruto; m.res_fii += num(v.resultado); } else { m.acoes += bruto; m.res_acoes += num(v.resultado); }
+        porMes.set(k, m);
+    });
+    const MESES = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez'];
+    const mesTxt = (k) => `${MESES[Number(k.slice(5, 7)) - 1]}/${k.slice(0, 4)}`;
+    const vendas = [...porMes.entries()].sort((a, b) => a[0].localeCompare(b[0]));
+    const capa = `
+      <div class="acao-sub rx-resumo">${esc(linha)}</div>${kpis}
+      ${figura('Quanto cada código pesa na carteira', '% do valor das posições em aberto', '', fonte, barras)}
+      ${secao('Posição por código', 'R$ · preço médio pelo custo de compra com taxas; valor pelo último preço negociado')}
+      <table>${cab}<tbody>${abertas.map(tr).join('') || '<tr><td colspan="8" class="mut">Nenhuma posição em aberto.</td></tr>'}
+        ${abertas.length > 1 ? `<tr><td><b>Total</b></td><td></td><td></td><td class="n"><b>${tab(custo)}</b></td><td class="n"><b>${tab(valor)}</b></td><td class="n ${aberto < 0 ? 'neg' : ''}"><b>${tab(aberto)}</b></td><td class="n"><b>${tab(soma(abertas, 'realizado_ano'))}</b></td><td class="n"><b>${tab(soma(abertas, 'proventos_ano'))}</b></td></tr>` : ''}</tbody></table>
+      ${zeradas.some(x => num(x.realizado_ano) || num(x.proventos_ano)) ? secao('Zeradas com resultado em ' + ano, 'R$ · vendidas por inteiro') + `<table>${cab}<tbody>${zeradas.filter(x => num(x.realizado_ano) || num(x.proventos_ano)).map(tr).join('')}</tbody></table>` : ''}
+      ${secao('Vendas em ' + ano, 'R$ · por mês; a marca dos R$ 20 mil vale para ações de pessoa física')}
+      <table><thead><tr><th>Mês</th><th class="n">Vendas de ações</th><th class="n">Resultado</th><th>R$ 20 mil</th><th class="n">Vendas de FII</th><th class="n">Resultado</th></tr></thead><tbody>${
+        vendas.map(([k, m]) => `<tr><td>${mesTxt(k)}</td><td class="n">${m.acoes ? tab(m.acoes) : '—'}</td><td class="n ${m.res_acoes < 0 ? 'neg' : ''}">${m.acoes ? tab(m.res_acoes) : '—'}</td><td class="${m.acoes > 20000 ? 'neg' : 'mut'}">${m.acoes ? (m.acoes > 20000 ? 'acima' : 'abaixo') : ''}</td><td class="n">${m.fii ? tab(m.fii) : '—'}</td><td class="n ${m.res_fii < 0 ? 'neg' : ''}">${m.fii ? tab(m.res_fii) : '—'}</td></tr>`).join('') || '<tr><td colspan="6" class="mut">Nenhuma venda no ano.</td></tr>'
+      }</tbody></table>
+      <div class="notes">
+        <p><b>Preço médio</b>: custo ÷ quantidade. A compra soma quantidade × preço + taxas; a venda tira a quantidade pelo preço médio e a diferença é o resultado. Bonificação, desdobramento, grupamento, amortização e ajustes entram como estão na memória do cálculo de cada aplicação.</p>
+        <p><b>Valor</b>: quantidade × último preço negociado (compra, venda ou emissão), corrigido pelos eventos. Até a cotação automática chegar, pode estar defasado.</p>
+        <p><b>IR</b>: informativo. Vendas de ações até R$ 20 mil no mês são isentas para pessoa física; ganho com FII é tributado a 20%, sem isenção. Este relatório não calcula DARF.</p>
+        <p><b>Origem</b>: fn_rv_carteira v1 e investimento_eventos · posição em ${dma(d.situacao_em)}.</p></div>`;
+    const plan = ls.map(x => ({ conta: x.conta || '', ticker: x.ticker, tipo: x.tipo_contrato === 'inv_rv_fii' ? 'Fundo imobiliário' : 'Ação / BDR / ETF', situacao: x.situacao === 'aberta' ? 'Aberta' : 'Zerada',
+        quantidade: num(x.quantidade), pm: num(x.pm), custo: num(x.custo), preco: num(x.preco_ref), valor: num(x.valor), aberto: num(x.resultado_aberto),
+        real_ano: num(x.realizado_ano), real_tot: num(x.realizado_total), prov_ano: num(x.proventos_ano) }));
+    return { cfg, linhas3: [`${cfg.nome} · ${dma(d.situacao_em)}`, abertas.length ? `${brl(valor)} em ${qtdTxt(abertas.length, 'código', 'códigos')}` : 'Sem posição em aberto', linha],
+        paginas: [[capa, ['Resumo', 'Posição', 'Vendas', 'Notas']]],
+        planilha: { aba: 'Renda variável', recorte: `posição em ${dma(d.situacao_em)}`, sufixo: String(d.situacao_em).slice(0, 10).replace(/-/g, '_'),
+            fonte: 'fn_rv_carteira', colunas: [
+                { cab: 'Conta', larg: 22, ler: r => r.conta }, { cab: 'Código', larg: 12, ler: r => r.ticker }, { cab: 'Tipo', larg: 18, ler: r => r.tipo },
+                { cab: 'Situação', larg: 10, ler: r => r.situacao }, { cab: 'Quantidade', larg: 12, ler: r => r.quantidade.toLocaleString('pt-BR', { maximumFractionDigits: 8 }) },
+                { cab: 'Preço médio (R$)', larg: 14, ler: r => nf(r.pm, 4) }, { cab: 'Custo (R$)', larg: 14, fmt: 'moeda', ler: r => r.custo, total: true },
+                { cab: 'Último preço (R$)', larg: 14, ler: r => nf(r.preco, 4) }, { cab: 'Valor (R$)', larg: 14, fmt: 'moeda', ler: r => r.valor, total: true },
+                { cab: 'Não realizado (R$)', larg: 16, fmt: 'moeda', ler: r => r.aberto, total: true }, { cab: 'Realizado no ano (R$)', larg: 16, fmt: 'moeda', ler: r => r.real_ano, total: true },
+                { cab: 'Realizado total (R$)', larg: 16, fmt: 'moeda', ler: r => r.real_tot }, { cab: 'Proventos no ano (R$)', larg: 16, fmt: 'moeda', ler: r => r.prov_ano, total: true }],
+            linhas: plan, kpis: [{ rot: 'Códigos', formula: f => `COUNTA(${f('Código')})`, fmt: 'int' }, { rot: 'Valor (R$)', formula: f => `SUM(${f('Valor (R$)')})` }],
+            sobre: [['Linha', 'Uma aplicação de renda variável (um código numa conta), aberta ou zerada.'],
+                ['Valor', 'Quantidade × último preço negociado, corrigido pelos eventos.'], ['IR', 'Informativo: este relatório não calcula DARF.']] } };
+}
+
 const COMERCIAL = { com_pedidos: 'pedidos', com_itens: 'itens', com_clientes: 'clientes', com_ativos: 'ativos',
     com_margem: 'margem', com_funil: 'funil', com_recebiveis: 'recebiveis', com_entregas: 'entregas', com_precos: 'precos' }; // v1.15.0
 const ehComercial = t => !!COMERCIAL[t];
@@ -1335,7 +1410,8 @@ const RELATORIOS = {
     com_precos: { codigo: 'comercial.rel_precos', nome: 'Preços e tabelas', arquivo: 'precos_tabelas', montar: montarComPrecos },
     balanco_analitico: { codigo: 'relatorios.balanco_analitico', nome: 'Balanço entre pessoas · analítico', arquivo: 'balanco_pessoas_analitico', montar: montarBalancoAnalitico }, // v1.16.0
     ativos_pessoa: { codigo: 'relatorios.ativos_por_pessoa', nome: 'Ativos e contratos por pessoa', arquivo: 'ativos_contratos_por_pessoa', montar: montarAtivosPessoa }, // v1.16.0
-    fgc: { codigo: 'relatorios.investimentos_fgc', nome: 'Exposição ao FGC', arquivo: 'exposicao_fgc', montar: montarFgc } // v1.19.0 — I4
+    fgc: { codigo: 'relatorios.investimentos_fgc', nome: 'Exposição ao FGC', arquivo: 'exposicao_fgc', montar: montarFgc }, // v1.19.0 — I4
+    rv: { codigo: 'relatorios.investimentos', nome: 'Renda variável', arquivo: 'renda_variavel', montar: montarRv } // v1.20.0 — I2a (R6)
 };
 let estado = null; // { tipo, filtro, dados, montado }
 
@@ -1346,7 +1422,7 @@ function filtroPadrao(tipo, opcoes = {}) {
     if (tipo === 'retiradas') return { ano: hoje.getFullYear(), pessoaId: opcoes.pessoaId || null, pessoaNome: opcoes.pessoaNome || null }; // v1.3.0
     if (tipo === 'balanco_analitico') return { competencia: opcoes.competencia || iso(m0), pessoaId: opcoes.pessoaId || null, pessoaNome: opcoes.pessoaNome || null }; // v1.16.0
     if (tipo === 'ativos_pessoa') return {}; // v1.16.0 — situação do dia
-    if (tipo === 'fgc') return {}; // v1.19.0 — situação do dia
+    if (tipo === 'fgc' || tipo === 'rv') return {}; // v1.19.0 · v1.20.0 — situação do dia
     if (tipo === 'executivo' || tipo === 'investimentos') return { ano: opcoes.ano || hoje.getFullYear(), ramo: opcoes.ramo || null, ramoNome: opcoes.ramoNome || null }; // v1.6.0 · v1.13.0
     if (ehComercial(tipo)) return { competencia: iso(m0), ativoId: opcoes.ativoId || null, ativoNome: opcoes.ativoNome || null }; // v1.14.0 — mês atual
     if (tipo === 'fluxo') return { de: iso(somaMeses(m0, -3)), ate: iso(somaMeses(m0, 2)), conta: null, contaNome: null, rotulo: 'Últimos 3 meses e próximos 2' };
@@ -1357,7 +1433,7 @@ function rotuloFiltro() {
     if (estado.tipo === 'fluxo') return `${comp(estado.filtro.de)} a ${comp(estado.filtro.ate)}`;
     if (estado.tipo === 'retiradas') return estado.filtro.ano ? String(estado.filtro.ano) : 'Todos os anos';
     if (estado.tipo === 'balanco_analitico') return estado.filtro.competencia ? comp(estado.filtro.competencia) : 'Desde o início'; // v1.16.0
-    if (estado.tipo === 'ativos_pessoa' || estado.tipo === 'fgc') return 'Hoje';
+    if (estado.tipo === 'ativos_pessoa' || estado.tipo === 'fgc' || estado.tipo === 'rv') return 'Hoje';
     if (estado.tipo === 'executivo' || estado.tipo === 'investimentos') return String(estado.filtro.ano); // v1.6.0 · v1.13.0
     return comp(estado.filtro.competencia);
 }
@@ -1365,6 +1441,22 @@ function rotuloFiltro() {
 async function buscar() {
     const f = estado.filtro;
     if (estado.tipo === 'balanco_analitico') return buscarBalancoAnalitico(f); // v1.16.0
+    if (estado.tipo === 'rv') { // v1.20.0 — I2a (R6): carteira de renda variável (fn_rv_carteira) e as vendas do ano
+        const h = new Date(), hoje = h.getFullYear() + '-' + String(h.getMonth() + 1).padStart(2, '0') + '-' + String(h.getDate()).padStart(2, '0');
+        const [{ data, error }, quem] = await Promise.all([dbAuth.rpc('fn_rv_carteira', { p_cliente_id: CLIENTE_ID_SUPABASE }), quemGera()]);
+        if (error) throw new Error(error.message);
+        const tipos = Object.fromEntries((data || []).map(x => [x.contrato_id, x.tipo_contrato]));
+        let vendas = [];
+        if ((data || []).length) {
+            const { data: ev, error: e2 } = await dbAuth.from('investimento_eventos').select('contrato_id, data, quantidade, preco_unitario, resultado')
+                .eq('cliente_id', CLIENTE_ID_SUPABASE).eq('tipo', 'venda').eq('situacao', 'realizado').gte('data', h.getFullYear() + '-01-01');
+            if (e2) throw new Error(e2.message);
+            vendas = (ev || []).map(v => ({ ...v, tipo_contrato: tipos[v.contrato_id] || 'inv_rv_acao' }));
+        }
+        const empresa = (typeof CONFIG_CLIENTE === 'object' && CONFIG_CLIENTE?.nomeEmpresa) || 'Empresa';
+        return { linhas: data || [], vendas, situacao_em: hoje, empresa, gerado_em: new Date().toISOString(), gerado_por: quem,
+                 relatorio: 'relatorios.investimentos', versao: 1, visao: 'situacao' };
+    }
     if (estado.tipo === 'fgc') { // v1.19.0 — I4: exposição ao FGC (fn_fgc_exposicao), situação de hoje
         const [{ data, error }, quem] = await Promise.all([dbAuth.rpc('fn_fgc_exposicao', { p_cliente_id: CLIENTE_ID_SUPABASE }), quemGera()]);
         if (error) throw new Error(error.message);
@@ -1436,7 +1528,7 @@ function telaHtml() {
     return `<div class="rx-top">
         <button type="button" class="rx-voltar" data-rx="fechar" aria-label="Voltar para Relatórios"><svg data-lucide="chevron-left"></svg>Relatórios</button>
         <span class="rx-sp"></span>
-        ${estado.tipo === 'ativos_pessoa' || estado.tipo === 'fgc' ? '' : `<button type="button" data-rx="periodo"><svg data-lucide="calendar"></svg>${esc(rotuloFiltro())}<svg data-lucide="chevron-down"></svg></button>`}
+        ${estado.tipo === 'ativos_pessoa' || estado.tipo === 'fgc' || estado.tipo === 'rv' ? '' : `<button type="button" data-rx="periodo"><svg data-lucide="calendar"></svg>${esc(rotuloFiltro())}<svg data-lucide="chevron-down"></svg></button>`}
         ${contaChip}
       </div>
       <div class="rx-corpo" aria-live="polite"><div class="rx-msg">Montando ${esc(r.nome)}…</div></div>
