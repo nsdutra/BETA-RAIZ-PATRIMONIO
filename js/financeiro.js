@@ -1,7 +1,13 @@
 // ============================================================================
 // financeiro.js — Raiz Patrimônio · Financeiro (Recebimentos · Atrasados · Saídas
 //                  · conciliação de extrato · recibo · detalhe do recebimento)
-// Versão: 1.106.0 · 25/11/2026
+// Versão: 1.107.0 · 25/11/2026
+//
+// v1.107.0 (25/11/2026, sessão 20261125-2315-cobranca-lembrete, demanda a8b41eb3 item 3; achado do Nicola 23:05 — DEM-09) — o
+// card Financeiro da ficha do contrato e do ativo (fcCarregar) mostrava o recebimento em aberto pelo valor ATUAL do contrato, não
+// pelo valor do mês: depois de reajustes com vigência (1.500 desde 06/2025, 1.600 desde 06/2026) o gráfico ficava 1.600 o ano
+// todo, enquanto o Financeiro › Recebimentos mostrava o certo. Agora usa o valor do próprio recebimento (valor_confirmado) e só
+// cai no valor do contrato se ele estiver vazio. Versão anterior: 1.106.0.
 //
 // v1.106.0 (25/11/2026, sessão 20261125-2135-investimentos-i1-3, demanda e2b658a8; PLANO_EXECUCAO_I1_3_MOVIMENTOS_EDITAR_RAIZ
 // v1.0.0, item A; de acordo do Nicola 25/11 21:35) — no olhar do investimento, a linha do movimento (aporte, resgate, provento,
@@ -24,13 +30,11 @@
 // v1.103.0 (23/11/2026, sessão 20261123-2310-cartao-descobrir, demanda 1e32c5a1; FICHA_CARTAO_DESCOBRIR_COMPRA_RAIZ v1.1.0, E5;
 // de acordo do Nicola 23/11 23:09) — compra "A classificar" da fatura ganha a ação "Descobrir o que é" (código cartao.descobrir),
 // que abre o js/cartao-descobrir.js por cima da fatura. Confirmar grava pela financeiroGravarClassificacao de sempre.
-//
-// v1.102.0 (18/11/2026, sessão 20261118-1440-financeiro-lente, demanda 679b2700; FICHA_REVISAO_FINANCEIRO_RAIZ v1.0.0 Onda 5 · fatia 5a, LEVANTAMENTO_LENTE_MULTI_RAMO_RAIZ v1.0.0, de acordo do Nicola 18/11 14:36) — Resumo com 2+ ramos: manda a lista para o financeiro-resumo.js e o rótulo "Imóveis + Comercial". Versão anterior: 1.101.0
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.101.0 … v1.101.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.102.0 … v1.102.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '1.106.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.107.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 
 // v1.17.0 (Fase 1 do wrapper de escrita, rollout Financeiro) — emitirEscrita
 // é o evento padrão pra "algo mudou que módulos DE FORA deste arquivo podem
@@ -7383,7 +7387,7 @@ async function fcCarregar(e, ano) {
         itens.push({ k: 'mens', id: m.id, comp: m.competencia, grupo: 'receita', cat: 'Aluguel', atraso: m.status === 'atrasado',
             titulo: `Aluguel · ${m.contratos?.locatario || 'contrato'}`, data: m.data_pgto || m.competencia,
             sub: pago ? `recebido em ${formatarDataBR(m.data_pgto)}` : `vence dia ${m.contratos?.vencimento_dia || '—'}`,
-            valor: Number((pago ? m.valor_confirmado : null) ?? m.contratos?.valor ?? 0), pago, isento: m.status === 'isento',
+            valor: Number(m.valor_confirmado ?? m.contratos?.valor ?? 0), pago, isento: m.status === 'isento', // v1.107.0 — em aberto também vale o valor do mês (reajuste com vigência), não o valor atual do contrato
             status: pago ? 'Pago' : m.status === 'atrasado' ? 'Em atraso' : m.status === 'isento' ? 'Isento' : 'A receber' });
     });
     reps.forEach(r => {

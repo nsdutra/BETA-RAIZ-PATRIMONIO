@@ -1,7 +1,13 @@
 // ============================================================================
 // contratos.js — Raiz Patrimônio · Contratos (lista · ficha · formulário ·
 //                 status/reajuste/detalhes · fiadores · documentos · histórico)
-// Versão: 1.80.0 · 25/11/2026
+// Versão: 1.81.0 · 25/11/2026
+//
+// v1.81.0 (25/11/2026, sessão 20261125-2315-cobranca-lembrete, demanda db5c60c8; de acordo do Nicola 22:46) — Cobrança do mês:
+// no modo "Mensagem pronta", o Envio diz para quem vai o lembrete ("Mensagem pronta para Claudia · 5 dias antes"), lido da
+// fn_contrato_cobranca_regras v2 (proprietário com acesso e WhatsApp; senão o admin; com administradora, "Cobrança com a
+// administradora"). A opção do seletor passa a se chamar "Mensagem pronta (aviso ao dono)". O lembrete em si sai pela rotina
+// diária (diario-eventos 1.37). Versão anterior: 1.80.0.
 //
 // v1.80.0 (25/11/2026, sessão 20261125-2250-doc-atualiza-1-etapa, demanda 25856a66; teste e pedido do Nicola 22:46 "sem 2 etapas")
 // — (1) UMA ETAPA: abrirNovoContratoDoDocumento ganha modo 'comparar' (devolve as linhas No cadastro × No documento para o Cofre
@@ -31,12 +37,8 @@
 // v1.77.0 (25/11/2026, sessão 20261125-0918-cadastro-locatario; de acordo do Nicola 25/11 09:18, item 1) — no formulário do
 // contrato, só o nome do locatário é obrigatório: CPF/CNPJ, WhatsApp, e-mail, profissão, estado civil e endereço passam a
 // opcionais. O CPF/CNPJ só tem o dígito conferido quando foi digitado; sem documento, doc_tipo grava vazio. Versão anterior: 1.76.0
-//
-// v1.76.0 (18/11/2026, sessão 20261118-2125-cadastro-em-tela, demanda 6412873a; PLANO_CADASTRO_EM_TELA_CORRECOES_RAIZ v1.2.0, de acordo do Nicola 18/11 21:21 (Q1–Q3 sim)) — contexto de retorno 'relatorio': o contrato
-// aberto ou criado a partir do Cadastro da carteira, ao salvar, só fecha o formulário (o relatório, que ficou por baixo, relê o
-// banco) em vez de abrir a ficha ou a lista. window.rzContratoVoltarAoRelatorio() marca esse retorno depois de abrir o formulário.
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.75.0 … v1.75.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.76.0 … v1.76.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
 import { avaliarProntidaoContratoParaMinuta } from './minutas.js'; // v1.0.1
@@ -49,7 +51,7 @@ import { renderizarBlocoEndereco, lerBlocoEndereco } from './comum-endereco.js';
 import { formatarEnderecoParte } from './comum-partes.js';
 import { sincronizarAdministradoraContrato } from './nucleo/porta.js'; // v1.72.0 — M3 prestadores→partes
 
-export const VERSAO = '1.80.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.81.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 
 // Faixa do cabeçalho da ficha do contrato: o resumo que se procura primeiro (valor, o que está em aberto e até quando vai).
 // Fim em mês/ano curto ("fev/28"); a data inteira fica no card Condições.
@@ -5615,7 +5617,14 @@ const RZ_COB_REGRAS = [
     ['proprietario_reembolso', 'Proprietário paga e cobra reembolso à parte'],
     ['proprietario_nao_repassa', 'Proprietário paga e não repassa'],
 ];
-const RZ_COB_ENVIO = [['gestor', 'Mensagem pronta para você'], ['robo', 'O robô manda ao inquilino'], ['desligado', 'Desligado']];
+// v1.81.0 (db5c60c8) — no modo "Mensagem pronta", diz para quem vai o lembrete (fn_contrato_cobranca_regras v2).
+function rzCobEnvioTexto(r) {
+    if ((r?.envio || 'gestor') !== 'gestor') return rzCobRotulo(RZ_COB_ENVIO, r?.envio);
+    if (r?.tem_administradora) return 'Cobrança com a administradora';
+    const nome = String(r?.destinatario?.nome || '').trim().split(/\s+/)[0];
+    return nome ? `Mensagem pronta para ${nome}` : 'Mensagem pronta (sem responsável com WhatsApp)';
+}
+const RZ_COB_ENVIO = [['gestor', 'Mensagem pronta (aviso ao dono)'], ['robo', 'O robô manda ao inquilino'], ['desligado', 'Desligado']];
 const rzCobRotulo = (lista, v) => (lista.find(x => x[0] === v) || [null, '—'])[1];
 function rzCobLiberada() {
     return typeof podeUsar === 'function' ? !!podeUsar('encargos.esteira')?.ok : false;
@@ -5648,7 +5657,7 @@ export async function montarCobrancaContrato(contratoId) {
         el.innerHTML = `<div class="rz-kv">
             ${semCond ? kvC('Condomínio', 'Imóvel sem condomínio') : kvC('Condomínio', escapeHtmlSaidas(rzCobRotulo(RZ_COB_REGRAS, r?.encargos?.condominio?.regra) + rzCobDetalhe(r?.encargos?.condominio)))}
             ${kvC('IPTU', escapeHtmlSaidas(rzCobRotulo(RZ_COB_REGRAS, r?.encargos?.iptu?.regra) + rzCobDetalhe(r?.encargos?.iptu)))}
-            ${kvC('Envio', escapeHtmlSaidas(`${rzCobRotulo(RZ_COB_ENVIO, r?.envio)} · ${r?.dias_antes ?? 5} dias antes · recibo ${r?.recibo_auto ? 'automático' : 'manual'}`))}
+            ${kvC('Envio', escapeHtmlSaidas(`${rzCobEnvioTexto(r)} · ${r?.dias_antes ?? 5} dias antes · recibo ${r?.recibo_auto ? 'automático' : 'manual'}`))}
         </div>`;
     } catch (err) {
         el.innerHTML = `<p class="rz-desc">Não consegui carregar a cobrança do mês.</p>`;
