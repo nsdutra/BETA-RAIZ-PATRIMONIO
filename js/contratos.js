@@ -1,7 +1,12 @@
 // ============================================================================
 // contratos.js — Raiz Patrimônio · Contratos (lista · ficha · formulário ·
 //                 status/reajuste/detalhes · fiadores · documentos · histórico)
-// Versão: 1.81.0 · 25/11/2026
+// Versão: 1.82.0 · 26/11/2026
+//
+// v1.82.0 (26/11/2026, sessão 20261126-1023-contrato-recebimentos; de acordo do Nicola 10:23) — contrato salvo no formulário
+// já como Ativo (novo, ou que passa a Ativo na edição) gera os recebimentos na hora: mesma pergunta de retroativos e mesma
+// fn_gerar_mensalidades_horizonte (90 dias) da troca de status, agora numa função só (gerarRecebimentosAoAtivar). Antes
+// esperava a rotina diária do dia seguinte (caso Apto 702, Dutra, 26/11). Versão anterior: 1.81.0
 //
 // v1.81.0 (25/11/2026, sessão 20261125-2315-cobranca-lembrete, demanda db5c60c8; de acordo do Nicola 22:46) — Cobrança do mês:
 // no modo "Mensagem pronta", o Envio diz para quem vai o lembrete ("Mensagem pronta para Claudia · 5 dias antes"), lido da
@@ -33,12 +38,8 @@
 // reajuste. (C) o card Distribuição da aplicação diz "Divisão dos rendimentos". (D) o card Financeiro da aplicação usa o olhar
 // do investimento (rzFinCompetencias com escopo.investimento). (E) "Adicionar recebimento" vira "Registrar movimento" (mesmo
 // recebimento avulso, mais a despesa; na aplicação, os movimentos dela) — rzRegistrarMovimento do financeiro.js.
-//
-// v1.77.0 (25/11/2026, sessão 20261125-0918-cadastro-locatario; de acordo do Nicola 25/11 09:18, item 1) — no formulário do
-// contrato, só o nome do locatário é obrigatório: CPF/CNPJ, WhatsApp, e-mail, profissão, estado civil e endereço passam a
-// opcionais. O CPF/CNPJ só tem o dígito conferido quando foi digitado; sem documento, doc_tipo grava vazio. Versão anterior: 1.76.0
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.76.0 … v1.76.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.77.0 … v1.77.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
 import { avaliarProntidaoContratoParaMinuta } from './minutas.js'; // v1.0.1
@@ -51,7 +52,7 @@ import { renderizarBlocoEndereco, lerBlocoEndereco } from './comum-endereco.js';
 import { formatarEnderecoParte } from './comum-partes.js';
 import { sincronizarAdministradoraContrato } from './nucleo/porta.js'; // v1.72.0 — M3 prestadores→partes
 
-export const VERSAO = '1.81.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.82.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 
 // Faixa do cabeçalho da ficha do contrato: o resumo que se procura primeiro (valor, o que está em aberto e até quando vai).
 // Fim em mês/ano curto ("fev/28"); a data inteira fica no card Condições.
@@ -548,6 +549,62 @@ if (!window.__rzListenerEscritaParteContratoLigado) {
         //    exclusão. Corrigido: desvincula essa referência antes de
         //    excluir (contrato_id = null no processo, o processo em si
         //    não é apagado, só para de apontar pro contrato excluído).
+        // Recebimentos de um contrato que acabou de ficar Ativo: pergunta pelos meses antes deste
+        // (retroativos) e gera daqui até 90 dias pela fn_gerar_mensalidades_horizonte — a mesma da rotina
+        // diária. Usada na troca de status e no salvar do formulário; sem isto, contrato que nasce Ativo
+        // no formulário só ganhava recebimentos na rotina do dia seguinte.
+        async function gerarRecebimentosAoAtivar(contratoId, con) {
+            const hoje = new Date();
+            const primeiroDiaMesAtual = new Date(hoje.getFullYear(), hoje.getMonth(), 1);
+            const inicioContrato = con.inicio ? new Date(con.inicio + 'T00:00:00') : null;
+            const mesesRetroativos = [];
+            if (inicioContrato && inicioContrato < primeiroDiaMesAtual) {
+                const cursor = new Date(inicioContrato.getFullYear(), inicioContrato.getMonth(), 1);
+                while (cursor < primeiroDiaMesAtual) {
+                    mesesRetroativos.push(`${String(cursor.getMonth() + 1).padStart(2, '0')}/${cursor.getFullYear()}`);
+                    cursor.setMonth(cursor.getMonth() + 1);
+                }
+            }
+
+            let geradasRetroativo = 0;
+            if (mesesRetroativos.length > 0) {
+                const primeiroMes = mesesRetroativos[0];
+                const rotuloRange = mesesRetroativos.length === 1 ? primeiroMes : `${primeiroMes} a ${mesesRetroativos[mesesRetroativos.length - 1]}`;
+                const querRetroativo = await rzPerguntar({
+                    titulo: 'Criar recebimentos retroativos?',
+                    impacto: `Este contrato começa em ${primeiroMes}. Criar também os recebimentos de ${rotuloRange} (${mesesRetroativos.length} ${mesesRetroativos.length === 1 ? 'mês' : 'meses'})?`,
+                    rotuloConfirmar: 'Criar retroativos', rotuloCancelar: 'Só daqui para frente',
+                });
+                if (querRetroativo) {
+                    for (const ref of mesesRetroativos) {
+                        const [mesRef, anoRef] = ref.split('/');
+                        try {
+                            const { data: geradasRef, error: erroRetro } = await dbAuth.rpc('fn_gerar_mensalidades_competencia', {
+                                p_cliente_id: CLIENTE_ID_SUPABASE, p_referencia: `${anoRef}-${mesRef}-01`, p_contrato_id: contratoId,
+                            });
+                            if (erroRetro) throw erroRetro;
+                            geradasRetroativo += (geradasRef || []).length;
+                        } catch (errRetro) {
+                            devLog('ERRO_ATIVACAO', `Falha ao gerar retroativo ${ref}: ${(errRetro.message || errRetro)}`);
+                        }
+                    }
+                }
+            }
+
+            const { data: geradas, error: erroGerar } = await dbAuth.rpc('fn_gerar_mensalidades_horizonte', {
+                p_cliente_id: CLIENTE_ID_SUPABASE, p_contrato_id: contratoId, p_dias_horizonte: 90,
+            });
+            if (erroGerar) {
+                console.warn('fn_gerar_mensalidades_horizonte falhou na ativação:', erroGerar.message);
+            }
+            const totalGerado = (erroGerar ? 0 : (geradas || []).length) + geradasRetroativo;
+            if (totalGerado > 0) {
+                mensalidades = await carregarMensalidadesSupabase();
+                mostrarToast(`${totalGerado} item(ns) a receber gerado(s)${geradasRetroativo > 0 ? ', incluindo retroativos' : ', até 90 dias'}.`, 'success');
+                registrarLog('mensalidades.gerar_automatico_ativacao', { contratoId, quantidade: totalGerado, retroativos: geradasRetroativo });
+            }
+        }
+
         export async function excluirContrato(id) {
 
             const con = contratos.find(c => c.id === id);
@@ -1162,58 +1219,7 @@ if (!window.__rzListenerEscritaParteContratoLigado) {
                 // ela. Antes disso era o botão "Gerar mês" que completava
                 // (agora removido, Etapa 7). Pergunta antes de gerar
                 // retroativo — nunca decide sozinho.
-                if (acao === 'Ativo' && !mensalidades.some(m => m.contratoId === contratoId)) {
-                    const hoje = new Date();
-                    const primeiroDiaMesAtual = new Date(hoje.getFullYear(), hoje.getMonth(), 1);
-                    const inicioContrato = con.inicio ? new Date(con.inicio + 'T00:00:00') : null;
-                    const mesesRetroativos = [];
-                    if (inicioContrato && inicioContrato < primeiroDiaMesAtual) {
-                        const cursor = new Date(inicioContrato.getFullYear(), inicioContrato.getMonth(), 1);
-                        while (cursor < primeiroDiaMesAtual) {
-                            mesesRetroativos.push(`${String(cursor.getMonth() + 1).padStart(2, '0')}/${cursor.getFullYear()}`);
-                            cursor.setMonth(cursor.getMonth() + 1);
-                        }
-                    }
-
-                    let geradasRetroativo = 0;
-                    if (mesesRetroativos.length > 0) {
-                        const primeiroMes = mesesRetroativos[0];
-                        const rotuloRange = mesesRetroativos.length === 1 ? primeiroMes : `${primeiroMes} a ${mesesRetroativos[mesesRetroativos.length - 1]}`;
-                        const querRetroativo = await rzPerguntar({
-                            titulo: 'Criar recebimentos retroativos?',
-                            impacto: `Este contrato começa em ${primeiroMes}. Criar também os recebimentos de ${rotuloRange} (${mesesRetroativos.length} ${mesesRetroativos.length === 1 ? 'mês' : 'meses'})?`,
-                            rotuloConfirmar: 'Criar retroativos', rotuloCancelar: 'Só daqui para frente',
-                        });
-                        if (querRetroativo) {
-                            for (const ref of mesesRetroativos) {
-                                const [mesRef, anoRef] = ref.split('/');
-                                try {
-                                    const { data: geradasRef, error: erroRetro } = await dbAuth.rpc('fn_gerar_mensalidades_competencia', {
-                                        p_cliente_id: CLIENTE_ID_SUPABASE, p_referencia: `${anoRef}-${mesRef}-01`, p_contrato_id: contratoId,
-                                    });
-                                    if (erroRetro) throw erroRetro;
-                                    geradasRetroativo += (geradasRef || []).length;
-                                } catch (errRetro) {
-                                    devLog('ERRO_ATIVACAO', `Falha ao gerar retroativo ${ref}: ${(errRetro.message || errRetro)}`);
-                                }
-                            }
-                        }
-                    }
-
-                    const { data: geradas, error: erroGerar } = await dbAuth.rpc('fn_gerar_mensalidades_horizonte', {
-                        p_cliente_id: CLIENTE_ID_SUPABASE, p_contrato_id: contratoId, p_dias_horizonte: 90,
-                    });
-                    if (erroGerar) {
-                        console.warn('fn_gerar_mensalidades_horizonte falhou na ativação:', erroGerar.message);
-                    }
-                    const totalGerado = (erroGerar ? 0 : (geradas || []).length) + geradasRetroativo;
-                    if (totalGerado > 0) {
-                        mensalidades = await carregarMensalidadesSupabase();
-                        mostrarToast(`${totalGerado} item(ns) a receber gerado(s)${geradasRetroativo > 0 ? ', incluindo retroativos' : ', até 90 dias'}.`, 'success');
-                        registrarLog('mensalidades.gerar_automatico_ativacao', { contratoId, quantidade: totalGerado, retroativos: geradasRetroativo });
-                    }
-                }
-
+                if (acao === 'Ativo' && !mensalidades.some(m => m.contratoId === contratoId)) await gerarRecebimentosAoAtivar(contratoId, con);
                 if (fichaImovelAtualId === con.imovelId) renderFichaImovelUnica(imoveis.find(i => i.id === con.imovelId));
                 if (fichaContratoAtualId === contratoId) abrirFichaContrato(contratoId);
                 // CORRIGIDO (bug real, 30/08/2026): alterar o status do
@@ -3851,6 +3857,7 @@ if (!window.__rzListenerEscritaParteContratoLigado) {
             // o campo ficou em branco, o valor vigente não muda nesta edição.
 
             const contratoExistente = id ? contratos.find(c => c.id === id) : null;
+            const statusAnterior = contratoExistente ? contratoExistente.status : null;
 
             const novoValorDigitado = parseFloat(document.getElementById('con-valor-anterior').value);
 
@@ -4251,6 +4258,11 @@ if (!window.__rzListenerEscritaParteContratoLigado) {
             // contexto (ficha do imóvel ou ficha do próprio contrato).
             // v1.31.0 — contrato NOVO sem contexto abre a própria ficha.
             if (gravou !== false) {
+                // Contrato que nasce Ativo, ou que passa a Ativo nesta edição, já sai com os recebimentos.
+                if (contratoDados.status === 'Ativo' && statusAnterior !== 'Ativo' && /^[0-9a-f]{8}-/i.test(contratoDados.id || '')) {
+                    try { await gerarRecebimentosAoAtivar(contratoDados.id, contratoDados); }
+                    catch (errGerar) { console.warn('[contratos] recebimentos ao salvar:', errGerar.message); }
+                }
                 // v1.41.0 (be7cdd7c) — contrato nascido de um documento: anexa o documento ao contrato.
                 if (documentoParaVincularContrato && !id) {
                     window.dispatchEvent(new CustomEvent('cofre:vincular-documento', { detail: { documentoId: documentoParaVincularContrato, entidadeTipo: 'contrato', entidadeId: contratoDados.id } }));
