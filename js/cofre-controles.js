@@ -1,6 +1,9 @@
 // ============================================================================
 // cofre-controles.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.87.0 · 26/11/2026
+// Versão: 1.88.0 · 26/11/2026
+//
+// v1.88.0 (26/11/2026, sessão 20261126-1213-viagem-icones, demanda d8061e47; de acordo do Nicola 26/11 12:13) — uma tela só para a
+// viagem: o botão Roteiro da "Ver como lista" abre a viagem (abrirExecucao), não mais o Roteiro avulso. Versão anterior: 1.87.0
 //
 // v1.87.0 (26/11/2026, sessão 20261126-1015-viagem-2b3, demanda d8061e47; FICHA_PROGRAMA_VIAGEM_FATIA2B3 v1.1.0, de acordo do
 // Nicola 26/11 10:15) — viagem (programa com tipos) abre direto no roteiro (abrirViagem da viagem-roteiro.js), com "+ Nova viagem",
@@ -19,16 +22,11 @@
 // Nicola 25/11 01:20) — viagem: cada item mostra a etapa num chip que troca a etapa (escolherEtapa da viagem-roteiro.js),
 // Cancelado/Descartado riscado; resumo "A cotar 4 · Reservado 1" acima dos itens; "+ Outro item" (folhaIncluir). Card Controles:
 // a linha da viagem diz quantos itens faltam cotar. Itens de quem viaja junto já vêm pela viagem (fn_execucao_detalhe). Versão anterior: 1.83.0
-//
-// v1.83.0 (25/11/2026, sessão 20261125-0042-viagem-lista, demanda d8061e47; de acordo do Nicola 25/11 00:42) — no card Controles,
-// programa com várias execuções abertas (viagens) mostra uma linha por viagem (nome, tipo, ida a volta, quantos itens e o pior
-// status) em vez dos itens soltos; o toque abre aquela viagem. Itens sem viagem seguem na lista. Lê fn_programa_execucao_resumo
-// → ciclos. Versão anterior: 1.82.0
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.82.0 … v1.82.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.83.0 … v1.83.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '1.87.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.88.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 import { estado } from './cofre-estado.js';
 import * as api from './cofre-api.js';
 import { mostrarToast, refrescarIcones, abrirModal, fecharModal, modalGenerico, perguntar, escolher, avisarComDesfazer } from './cofre-ui.js';
@@ -774,10 +772,7 @@ export async function abrirExecucao(apId, cicloId = null, opc = {}) {
         import('./viagem-roteiro.js').then(m => m.escolherEtapa({ itemId: it.id, titulo: it.titulo, fluxo: it.fluxo, etapa: it.etapa }, () => aposMudarExecucao(P.id, C?.id || null))); }));
     sheet.querySelector('[data-exec-outro]')?.addEventListener('click', () => import('./viagem-roteiro.js').then(m => m.folhaIncluir(
         { ciclo: { id: C.id, nome: C.nome, inicio: C.inicio, fim: C.fim_previsto || C.inicio } }, 'item', () => aposMudarExecucao(P.id, C.id)))); // v1.84.0
-    sheet.querySelector('[data-exec-roteiro]')?.addEventListener('click', () => import('./viagem-roteiro.js').then(m => m.abrirRoteiro({ cicloId: C.id,
-        abrirItem: function abrirDoRoteiro(id) { // v1.86.0 — volta para o Roteiro ao sair da ficha
-            retornoItem = () => import('./viagem-roteiro.js').then(m => m.abrirRoteiro({ cicloId: C.id, abrirItem: abrirDoRoteiro }));
-            window.fecharSheet(); window.fecharSheet(); abrirFichaItemControle(id); } }))); // v1.82.0
+    sheet.querySelector('[data-exec-roteiro]')?.addEventListener('click', () => abrirExecucao(apId, C.id)); // v1.88.0 — uma tela só: a viagem
     if (C && window.podeUsar?.('comercial.itens')?.ok) import('./comercial-itens.js').then(m => m.preencherProduzidos(sheet, d)).catch(() => {}); // v1.76.0 — C3
 }
 window.__rzAbrirExecucao = (apId, cicloId) => abrirExecucao(apId, cicloId);

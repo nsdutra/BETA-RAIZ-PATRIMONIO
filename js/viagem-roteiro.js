@@ -1,6 +1,10 @@
 // ============================================================================
 // viagem-roteiro.js — Raiz Patrimônio · Roteiro da viagem (programa com tipos de ciclo)
-// Versão: 1.5.0 · 26/11/2026
+// Versão: 1.6.0 · 26/11/2026
+//
+// v1.6.0 (26/11/2026, sessão 20261126-1213-viagem-icones, demanda d8061e47; de acordo do Nicola 26/11 12:13) — ícone da categoria em
+// cada linha (voo, cama, carro, ingresso, talheres, alfinete) e etapa como etiqueta pequena, com menos texto; "A encaixar" sem a
+// frase de ajuda; abrirRoteiro sem viagem aberta só existe para quem ainda chama (a tela é a da viagem). Versão anterior: 1.5.0
 //
 // v1.5.0 (26/11/2026, sessão 20261126-1015-viagem-2b3, demanda d8061e47; FICHA_PROGRAMA_VIAGEM_FATIA2B3 v1.1.0, de acordo do
 // Nicola 26/11 10:15) — a viagem abre direto no roteiro (abrirViagem: cabeçalho com tipo, datas, pago/a pagar, quem vai e etapas;
@@ -23,14 +27,11 @@
 // (fn_item_etapa_mover; escolherEtapa exportada para a cofre-controles.js); registro com início e fim aparece também no dia do
 // fim; "+ No roteiro" oferece Lugar, Passe (janela e dias de uso) e Outro item (fn_ciclo_item_incluir) além de "Mais um em…";
 // na bandeja o passe vira uma linha "0 de 4 dias" e o dia só pode cair na janela. Versão anterior: 1.1.0
-//
-// v1.1.0 (25/11/2026, sessão 20261125-0042-viagem-lista, demanda d8061e47; de acordo do Nicola 25/11 00:42) — "A encaixar" vira
-// uma linha que abre no toque (fechada ao abrir o roteiro), para os dias aparecerem logo no começo. Versão anterior: 1.0.0
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.0.0 … v1.0.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.1.0 … v1.1.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '1.5.0';
+export const VERSAO = '1.6.0';
 import { estado } from './cofre-estado.js';
 import * as api from './cofre-api.js';
 
@@ -100,15 +101,19 @@ async function ler() {
     return data;
 }
 
+const ICONE_CAT = { viagem_deslocamento: 'plane', viagem_hospedagem: 'bed', viagem_locomocao: 'car', viagem_atracao: 'ticket',
+    viagem_alimentacao: 'utensils', viagem_lugar: 'map-pin', seguro_viagem: 'shield-check', evento_viagem: 'calendar' }; // v1.6.0
+export const iconeCategoria = (sub) => ICONE_CAT[sub] || 'calendar';
+const etiqueta = (e) => e.etapa_nome ? `<span class="rz-chip${['reservado', 'pago', 'feito', 'escolhido'].includes(e.etapa) ? ' rz-on' : ''}" style="flex:none;font-size:12px;padding:2px 8px;pointer-events:none">${esc(e.etapa_nome)}</span>` : '';
 function linhaEntrada(e, comHora = true) {
     const p = partes(e.inicio_em), pf = partes(e.fim_em);
     const quando = !comHora ? '' : e.papel === 'fim' ? 'Termina hoje' + (pf.hora ? ' ' + pf.hora : '') + ' · desde ' + dm(p.data)
         : (p.hora || 'Dia todo') + (e.fim_em ? ' – ' + (pf.data !== p.data ? dm(pf.data) + ' ' : '') + (pf.hora || '') : '');
-    const sub = [e.etapa_nome, quando, e.papel !== 'fim' && e.valor ? moeda(e.valor) : '', e.status === 'concluido' ? 'Feito' : ''].filter(Boolean).join(' · ');
-    const titulo = e.descricao ? `${e.titulo} · ${e.descricao}` : e.titulo;
-    return `<button type="button" class="rz-row" data-rt-oc="${e.ocorrencia_id}" style="width:100%;text-align:left">
-        <div class="rz-tx"><b>${esc(titulo)}</b>${sub ? `<span>${esc(sub)}</span>` : ''}</div>
-        ${e.docs ? '<i data-lucide="paperclip"></i>' : ''}<i data-lucide="chevron-right"></i></button>`;
+    const sub = [quando, e.descricao || '', e.papel !== 'fim' && e.valor ? moeda(e.valor) : '', e.status === 'concluido' ? 'Feito' : ''].filter(Boolean).join(' · ');
+    return `<button type="button" class="rz-row" data-rt-oc="${e.ocorrencia_id}" style="width:100%;text-align:left;gap:10px">
+        <div class="rz-ic"><i data-lucide="${e.papel === 'fim' ? 'corner-down-left' : iconeCategoria(e.sub)}"></i></div>
+        <div class="rz-tx" style="min-width:0"><b>${esc(e.titulo)}</b>${sub ? `<span>${esc(sub)}</span>` : ''}</div>
+        ${etiqueta(e)}${e.docs ? '<i data-lucide="paperclip" style="flex:none;width:16px"></i>' : ''}</button>`;
 }
 function diaHtml(d) {
     const ent = d.entradas || [];
@@ -120,9 +125,9 @@ function corpoHtml(r) {
     const enc = r.a_encaixar || [];
     let h = '';
     if (enc.length) h += `<button type="button" class="rz-row" data-rt-bandeja aria-expanded="${bandejaAberta}" style="width:100%;text-align:left">
-            <div class="rz-ic"><i data-lucide="inbox"></i></div><div class="rz-tx"><b>A encaixar · ${enc.length}</b><span>Ainda sem dia</span></div>
+            <div class="rz-ic"><i data-lucide="inbox"></i></div><div class="rz-tx"><b>A encaixar · ${enc.length}</b><span>Sem dia ainda · toque num item para pôr dia e hora</span></div>
             <i data-lucide="${bandejaAberta ? 'chevron-up' : 'chevron-down'}"></i></button>
-        <div data-rt-bandeja-lista class="rz-rt-bandeja${bandejaAberta ? '' : ' hidden'}"><p class="rz-hint" style="margin:4px 0 6px">Toque para marcar o dia e, se quiser, a hora.</p>
+        <div data-rt-bandeja-lista class="rz-rt-bandeja${bandejaAberta ? '' : ' hidden'}">
         <div class="rz-list" style="padding:0">${bandejaAgrupada(enc).map(linhaBandeja).join('')}</div></div>`;
     (r.trechos || []).forEach(t => {
         const ult = (t.dias || []).length ? t.dias[t.dias.length - 1].data : t.fim;
@@ -148,10 +153,11 @@ function bandejaAgrupada(enc) {
 }
 function linhaBandeja(e) {
     if (!(e.dias_total > 1)) return linhaEntrada(e, false);
-    const sub = [e.etapa_nome, `${e.dias_marcados} de ${e.dias_total} dias`, e.janela_fim ? 'válido ' + dm(e.janela_inicio) + ' a ' + dm(e.janela_fim) : '',
+    const sub = [`${e.dias_marcados} de ${e.dias_total} dias`, e.janela_fim ? 'válido ' + dm(e.janela_inicio) + ' a ' + dm(e.janela_fim) : '',
         e.valor ? moeda(e.valor) : ''].filter(Boolean).join(' · ');
-    return `<button type="button" class="rz-row" data-rt-oc="${e.ocorrencia_id}" style="width:100%;text-align:left">
-        <div class="rz-tx"><b>${esc(e.titulo)}</b><span>${esc(sub)}</span></div>${e.docs ? '<i data-lucide="paperclip"></i>' : ''}<i data-lucide="chevron-right"></i></button>`;
+    return `<button type="button" class="rz-row" data-rt-oc="${e.ocorrencia_id}" style="width:100%;text-align:left;gap:10px">
+        <div class="rz-ic"><i data-lucide="${iconeCategoria(e.sub)}"></i></div><div class="rz-tx" style="min-width:0"><b>${esc(e.titulo)}</b><span>${esc(sub)}</span></div>
+        ${e.docs ? '<i data-lucide="paperclip" style="flex:none;width:16px"></i>' : ''}</button>`;
 }
 function achar(r, ocId) {
     const todas = [...(r.a_encaixar || []), ...(r.fora_dos_trechos || [])];

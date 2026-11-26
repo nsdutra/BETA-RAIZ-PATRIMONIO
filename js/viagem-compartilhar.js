@@ -1,6 +1,10 @@
 // ============================================================================
 // viagem-compartilhar.js — Raiz Patrimônio · Compartilhar dados de uma viagem ou de um item com quem não está no Raiz
-// Versão: 1.1.0 · 26/11/2026
+// Versão: 1.2.0 · 26/11/2026
+//
+// v1.2.0 (26/11/2026, sessão 20261126-1213-viagem-icones, demanda d8061e47; de acordo do Nicola 26/11 12:13) — viagem sai na ordem do
+// roteiro (por dia e hora, com o dia como título e o emoji da categoria), Datas e Quem vai no topo, "Sem dia ainda" no fim; Valores no
+// topo das opções, com o valor de cada entrada e o total; documentos como "📎 N documentos anexos". Versão anterior: 1.1.0
 //
 // v1.1.0 (26/11/2026, sessão 20261126-1015-viagem-2b3, demanda d8061e47; FICHA_PROGRAMA_VIAGEM_FATIA2B3 v1.1.0) — bloco "Quem vai"
 // (fn_ciclo_roteiro → viajantes), com "(só Araxá)" para quem vai só em alguns trechos. Versão anterior: 1.0.0
@@ -12,7 +16,7 @@
 // toque). Sem o compartilhar do sistema, copia o texto e baixa os arquivos. Lê fn_ciclo_roteiro (viagem) ou o próprio item
 // (avulso); nada muda no banco. Cancelado e Descartado não entram; lugar em Ideia fica desmarcado.
 // ============================================================================
-export const VERSAO = '1.1.0';
+export const VERSAO = '1.2.0';
 import * as api from './cofre-api.js';
 
 const esc = (v) => String(v ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -36,14 +40,35 @@ function linhaRegistro(e) {
     }
     return { txt: quando + (e.descricao ? ' · ' + e.descricao : ''), valor: e.valor };
 }
+const EMOJI = { viagem_deslocamento: '✈️', viagem_hospedagem: '🏨', viagem_locomocao: '🚗', viagem_atracao: '🎟️', viagem_alimentacao: '🍽️',
+    viagem_lugar: '📍', seguro_viagem: '🛡️' };
+const emoji = (sub) => EMOJI[sub] || '•';
 function montarTexto() {
+    if (st.modo === 'viagem') return montarTextoViagem();
     const out = [st.cabecalho];
     st.blocos.filter(b => b.on).forEach(b => {
         out.push('', '*' + b.rotulo + '*');
         b.linhas.forEach(l => out.push('• ' + l.txt + (st.valores && l.valor ? ' · ' + moeda(l.valor) : '')));
     });
     const docs = st.docs.filter(d => d.on);
-    if (docs.length) out.push('', 'Documentos anexos: ' + docs.map(d => d.nome).join(', '));
+    if (docs.length) out.push('', '📎 ' + docs.length + (docs.length === 1 ? ' documento anexo' : ' documentos anexos'));
+    return out.join('\n');
+}
+// v1.2.0 — viagem na ordem do roteiro
+function montarTextoViagem() {
+    const on = (k) => st.blocos.find(b => b.k === k)?.on;
+    const out = [st.cabecalho];
+    if (on('datas')) out.push('📅 ' + st.datas);
+    if (on('quem') && st.quem) out.push('👥 ' + st.quem);
+    let dia = null, total = 0;
+    st.entradas.filter(x => on(x.item)).forEach(x => {
+        if (x.dia !== dia) { dia = x.dia; out.push('', '*' + (dia ? diaRot(dia) : 'Sem dia ainda') + '*'); }
+        out.push(emoji(x.sub) + ' ' + x.txt + (st.valores && x.valor ? ' · ' + moeda(x.valor) : ''));
+        if (x.valor) total += Number(x.valor);
+    });
+    if (st.valores && total) out.push('', '💰 Total: ' + moeda(total));
+    const docs = st.docs.filter(d => d.on);
+    if (docs.length) out.push('', '📎 ' + docs.length + (docs.length === 1 ? ' documento anexo' : ' documentos anexos'));
     return out.join('\n');
 }
 
@@ -61,26 +86,36 @@ async function docsDosItens(itemIds) {
     return [...m.values()];
 }
 
-/** Compartilhar uma viagem (ciclo). */
+/** Compartilhar uma viagem (ciclo). v1.2.0: na ordem do roteiro. */
 export async function compartilharViagem({ cicloId }) {
     const { data: r, error } = await api.dbAuth.rpc('fn_ciclo_roteiro', { p_ciclo_id: cicloId });
     if (error || !r?.pode_ver) { aviso(error?.message || 'Não foi possível ler a viagem.', 'erro'); return; }
-    const porItem = new Map();
-    const add = (e) => { if (e.papel === 'fim') return; if (!porItem.has(e.item_id)) porItem.set(e.item_id, { titulo: e.titulo, etapa: e.etapa, fluxo: e.fluxo, regs: [] }); porItem.get(e.item_id).regs.push(e); };
-    (r.trechos || []).forEach(t => (t.dias || []).forEach(d => (d.entradas || []).forEach(add)));
-    (r.fora_dos_trechos || []).forEach(add);
-    (r.a_encaixar || []).forEach(add);
-    const blocos = [{ k: 'datas', rotulo: 'Datas', linhas: [{ txt: 'Ida ' + dmy(r.ciclo.inicio) + ' · Volta ' + dmy(r.ciclo.fim) }]
-        .concat((r.trechos || []).length > 1 ? r.trechos.map(t => ({ txt: t.nome + ': ' + dmy(t.inicio) + ' a ' + dmy(t.fim) })) : []), on: true }];
-    if ((r.viajantes || []).length) { // v1.1.0
-        const nomeT = (id) => (r.trechos || []).find(t => t.id === id)?.nome || '';
-        blocos.push({ k: 'quem', rotulo: 'Quem vai', on: true, linhas: r.viajantes.map(v => ({ txt: v.nome + (v.toda ? '' : ' (só ' + (v.trechos || []).map(nomeT).filter(Boolean).join(', ') + ')') })) });
-    }
-    [...porItem].sort((a, b) => a[1].titulo.localeCompare(b[1].titulo, 'pt-BR')).forEach(([id, it]) => {
-        const regs = it.regs.sort((a, b) => String(a.inicio_em || '9').localeCompare(String(b.inicio_em || '9')));
-        blocos.push({ k: id, rotulo: it.titulo, linhas: regs.map(linhaRegistro), on: it.etapa !== 'ideia' && regs.some(x => x.inicio_em || x.descricao) });
+    const vistos = new Set(), entradas = [];
+    const add = (e, dia) => {
+        if (e.papel === 'fim' || vistos.has(e.ocorrencia_id)) return; vistos.add(e.ocorrencia_id);
+        const p = partes(e.inicio_em), f = partes(e.fim_em);
+        let quando = p?.hora || '';
+        if (f) quando += (quando ? ' ' : '') + '→ ' + (f.data !== (p?.data || dia) ? diaRot(f.data) + ' ' : '') + (f.hora || '');
+        entradas.push({ item: e.item_id, sub: e.sub, dia, ord: (dia || '9999') + ' ' + (p?.hora || '00:00'), valor: e.valor,
+            txt: [e.titulo, quando.trim(), e.descricao].filter(Boolean).join(' · ') });
+    };
+    (r.trechos || []).forEach(t => (t.dias || []).forEach(d => (d.entradas || []).forEach(e => add(e, d.data))));
+    (r.fora_dos_trechos || []).forEach(e => add(e, e.dia || partes(e.inicio_em)?.data || null));
+    (r.a_encaixar || []).forEach(e => add(e, null));
+    entradas.sort((a, b) => a.ord.localeCompare(b.ord));
+    const nomeT = (id) => (r.trechos || []).find(t => t.id === id)?.nome || '';
+    const quem = (r.viajantes || []).map(v => String(v.nome || '').split(' ')[0] + (v.toda ? '' : ' (só ' + (v.trechos || []).map(nomeT).filter(Boolean).join(', ') + ')')).join(', ');
+    const blocos = [{ k: 'datas', rotulo: 'Datas', linhas: [{ txt: 'Ida ' + dmy(r.ciclo.inicio) + ' · Volta ' + dmy(r.ciclo.fim) }], on: true }];
+    if (quem) blocos.push({ k: 'quem', rotulo: 'Quem vai', linhas: [{ txt: quem }], on: true });
+    const ordemItens = [];
+    entradas.forEach(x => { if (!ordemItens.includes(x.item)) ordemItens.push(x.item); });
+    ordemItens.forEach(id => {
+        const es = entradas.filter(x => x.item === id);
+        blocos.push({ k: id, rotulo: emoji(es[0].sub) + ' ' + es[0].txt.split(' · ')[0], linhas: es.map(x => ({ txt: (x.dia ? diaRot(x.dia) : 'sem dia') + ' · ' + x.txt.split(' · ').slice(1).join(' · ') })),
+            on: es.some(x => x.dia) });
     });
-    st = { titulo: r.ciclo.nome, cabecalho: '*' + r.ciclo.nome + '*', blocos, docs: await docsDosItens([...porItem.keys()]), valores: false };
+    st = { modo: 'viagem', titulo: r.ciclo.nome, cabecalho: '*' + r.ciclo.nome + '*', datas: 'Ida ' + dmy(r.ciclo.inicio) + ' · Volta ' + dmy(r.ciclo.fim),
+        quem: quem ? 'Quem vai: ' + quem : '', entradas, blocos, docs: await docsDosItens(ordemItens), valores: false };
     abrirFolha();
 }
 
@@ -105,8 +140,8 @@ function abrirFolha() {
         <input type="checkbox" ${attr}="${esc(id)}" ${on ? 'checked' : ''} style="margin-top:3px;flex:none">
         <div class="rz-tx"><b>${esc(rot)}</b>${sub ? `<span>${esc(sub)}</span>` : ''}</div></label>`;
     const corpo = `<p class="rz-hint" style="margin:0 0 6px">Marque o que vai. Você vê o texto antes de enviar.</p>`
+        + chk('data-cp-valores', '1', false, 'Valores', 'Valor de cada entrada e o total') // v1.2.0 — no topo
         + st.blocos.map(b => chk('data-cp-b', b.k, b.on, b.rotulo, b.linhas.slice(0, 2).map(l => l.txt).join(' · ') + (b.linhas.length > 2 ? ' …' : ''))).join('')
-        + chk('data-cp-valores', '1', false, 'Valores', 'Mostra o valor de cada registro')
         + (st.docs.length ? `<div class="rz-group rz-group-t" style="margin-top:12px"><span>Documentos</span></div>` + st.docs.map(d => chk('data-cp-d', d.id, false, d.nome)).join('') : '')
         + `<div class="rz-group rz-group-t" style="margin-top:12px"><span>Prévia</span></div>
            <textarea id="cp-texto" rows="10" style="width:100%;font:inherit;font-size:14px;padding:10px;border:1px solid var(--line);border-radius:12px"></textarea>
