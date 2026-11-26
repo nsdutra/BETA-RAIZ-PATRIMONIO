@@ -1,7 +1,12 @@
 // ============================================================================
 // financeiro.js — Raiz Patrimônio · Financeiro (Recebimentos · Atrasados · Saídas
 //                  · conciliação de extrato · recibo · detalhe do recebimento)
-// Versão: 1.105.0 · 25/11/2026
+// Versão: 1.106.0 · 25/11/2026
+//
+// v1.106.0 (25/11/2026, sessão 20261125-2135-investimentos-i1-3, demanda e2b658a8; PLANO_EXECUCAO_I1_3_MOVIMENTOS_EDITAR_RAIZ
+// v1.0.0, item A; de acordo do Nicola 25/11 21:35) — no olhar do investimento, a linha do movimento (aporte, resgate, provento,
+// taxa) abre a ficha do movimento do js/investimentos.js (abrirMovimento) e não mais a ação de despesa ou de receita avulsa, que
+// não acertava o valor da aplicação. O Financeiro de aluguel e dos demais contratos segue igual.
 //
 // v1.105.0 (25/11/2026, sessão 20261125-1954-investimentos-i1-2, demanda 09dff31b; PLANO_EXECUCAO_I1_2_APLICACAO_FINANCEIRO_RAIZ
 // v1.1.0, itens D e E, e PROTOTIPO_INVESTIMENTOS_FINANCEIRO_INDICADORES_RAIZ v1.2.0; de acordo do Nicola 25/11 12:43, 13:40 e 19:54)
@@ -21,27 +26,11 @@
 // que abre o js/cartao-descobrir.js por cima da fatura. Confirmar grava pela financeiroGravarClassificacao de sempre.
 //
 // v1.102.0 (18/11/2026, sessão 20261118-1440-financeiro-lente, demanda 679b2700; FICHA_REVISAO_FINANCEIRO_RAIZ v1.0.0 Onda 5 · fatia 5a, LEVANTAMENTO_LENTE_MULTI_RAMO_RAIZ v1.0.0, de acordo do Nicola 18/11 14:36) — Resumo com 2+ ramos: manda a lista para o financeiro-resumo.js e o rótulo "Imóveis + Comercial". Versão anterior: 1.101.0
-//
-// v1.101.0 (17/11/2026, sessão 20261117-2000-financeiro-grupos, demanda 679b2700; FICHA_REVISAO_FINANCEIRO_RAIZ v1.0.0, Onda 3,
-// parte 2, D4; "pode seguir" do Nicola 17/11 19:54) — RECEBIMENTOS E SAÍDAS NIVELADOS: as duas listas ficam com os mesmos grupos:
-// De contratos e controles · Avulsas · De sócios (Recebimentos) / Para sócios (Saídas).
-//   · Recebimentos: os aluguéis são "De contratos e controles"; o card "Outras receitas" vira "Avulsas" e "De sócios" (aportes e
-//     empréstimos de sócio, pela categoria-pai grp_aportes_socios).
-//   · Saídas: "De contratos e controles" = as que nascem de um controle do bem (origem ocorrencia_controle) e as faturas de
-//     cartão; "Para sócios" = as de natureza pessoal; "Avulsas" = o resto. No fim de "Para sócios", o atalho para as retiradas
-//     (aba Pessoas), que não são despesa e não entram nos números de Saídas.
-//   · Nova entrada e Nova saída espelhadas: a entrada escolhe De contrato · Avulsa · De sócio (aporte ou empréstimo); a saída
-//     escolhe Avulsa · Para sócio (retirada). A saída de um controle continua nascendo no próprio bem.
-//   · Os grupos mostram a quantidade; os valores continuam vindo do banco nos números do topo (REGRAS §11).
-// LIMPEZA: saem da Conciliação a lista corrida e o "Revisar em sequência" (sem chamador desde a 1.97.0): linhaConciliacaoUniHtml,
-// renderConciliacaoUnificadaLista, conciliacaoLigarDeslize, conciliacaoRevisarEmSequencia, conciliacaoSeqProximo,
-// conciliacaoSeqMostrar e verSugestaoConciliacaoAntigo. conciliacaoSugestaoDireta fica (é a regra do lote). As vistas antigas do
-// Balanço continuam: o "Quitar" e as retiradas do extrato da pessoa ainda passam por elas. Versão anterior: 1.100.0
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.100.0 … v1.100.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.101.0 … v1.101.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '1.105.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.106.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 
 // v1.17.0 (Fase 1 do wrapper de escrita, rollout Financeiro) — emitirEscrita
 // é o evento padrão pra "algo mudou que módulos DE FORA deste arquivo podem
@@ -7567,7 +7556,7 @@ function fcDesenharInvestimento(el, st, { cardGraf, lista, rot, anoN, inv }) {
         const bruto = Math.abs(p.valor), tDesc = desc.reduce((t, i) => t + Math.abs(i.valor), 0);
         const pc = (v) => (bruto ? (v / bruto * 100).toLocaleString('pt-BR', { maximumFractionDigits: 1 }) + '%' : '');
         const extra = desc.length ? ` · líquido ${formatarMoedaBR(bruto - tDesc)} · ${desc.map(i => `${FC_INV_DESCONTO[i.codCat] || 'desconto'} ${formatarMoedaBR(Math.abs(i.valor))} (${pc(Math.abs(i.valor))})`).join(' · ')}` : '';
-        return `<div class="rz-row rz-link" role="button" tabindex="0" data-fc-item="${st.itens.indexOf(p)}">
+        return `<div class="rz-row rz-link" role="button" tabindex="0" ${String(p.codCat || '').startsWith('inv_') ? `data-fc-inv-lanc="${fcEsc(p.id)}"` : `data-fc-item="${st.itens.indexOf(p)}"`}>
             <div class="rz-ic${sinal > 0 ? '' : ' rz-neu'}"><svg data-lucide="${sinal > 0 ? 'arrow-up-right' : 'arrow-down-left'}"></svg></div>
             <div class="rz-tx"><b>${fcEsc(String(p.titulo || '').split(' · ')[0])}</b><span>${formatarDataBR(p.data)}${fcEsc(extra)}</span></div>
             <div class="rz-rt"><b class="${sinal > 0 ? 'rz-in' : ''}">${sinal > 0 ? '+' : '−'}${formatarMoedaBR(bruto)}</b></div></div>`;
@@ -7577,6 +7566,8 @@ function fcDesenharInvestimento(el, st, { cardGraf, lista, rot, anoN, inv }) {
         ? [cardGraf, kpi, cardLista].map(h => h.replace(/^<div class="rz-card( rz-list rz-fc-lista)?">/, (m, l) => `<div class="rz-fc-bloco${l ? ' rz-fc-lista' : ''}">`)).join('')
         : cardGraf + kpi + cardLista;
     fcLigar(el);
+    // v1.106.0 (I1.3) — o movimento da aplicação (categoria inv_*) abre a ficha do movimento (investimentos.js), não a despesa/receita avulsa
+    el.querySelectorAll('[data-fc-inv-lanc]').forEach(b => b.addEventListener('click', (ev) => { ev.stopPropagation(); import('./investimentos.js').then(m => m.abrirMovimento(b.dataset.fcInvLanc, { origem: el.id })); }));
     if (typeof lucide !== 'undefined') lucide.createIcons();
     try { inv?.aoFiltrar?.(anoN, st.sel); } catch (e) { console.warn('[financeiro] indicadores:', e?.message || e); }
 }

@@ -1,6 +1,16 @@
 // ============================================================================
 // investimentos.js — Raiz Patrimônio · Ramo Investimentos (conta e aplicações)
-// Versão: 1.2.0 · 25/11/2026
+// Versão: 1.3.0 · 25/11/2026
+//
+// v1.3.0 (25/11/2026, sessão 20261125-2135-investimentos-i1-3, demanda e2b658a8; PLANO_EXECUCAO_I1_3_MOVIMENTOS_EDITAR_RAIZ v1.0.0
+// e ficha F11; de acordo do Nicola 25/11 21:35 "A B e C ok", "F11 ok") — movimento lançado se corrige e se exclui:
+//   A · abrirMovimento(lancId): a linha do movimento no card Financeiro (aplicação e conta) abre a ficha do movimento — tipo,
+//       data, bruto, IR, IOF, taxa (com o % do bruto), líquido e observação, com o "i" do tipo.
+//   B · "Corrigir dados": data e observação (em aplicação, resgate e amortização só a observação, porque a data deles também está no
+//       histórico de valor) e "Excluir e lançar de novo": o formulário do tipo vem preenchido e, ao salvar, exclui o antigo antes.
+//   C · "Excluir movimento" com confirmação: fn_aplicacao_movimento_excluir (F11) apaga o movimento e os descontos dele e
+//       desfaz o efeito no valor; o último resgate de aplicação encerrada a reabre e pede para conferir o vencimento.
+//   Aberto pelo Financeiro da conta, volta para a conta (chip Movimento).
 //
 // v1.2.0 (25/11/2026, sessão 20261125-1954-investimentos-i1-2, demanda 09dff31b; PLANO_EXECUCAO_I1_2_APLICACAO_FINANCEIRO_RAIZ v1.1.0,
 // FICHA_F10_CATALOGO_CAMPOS_CONTRATO_RAIZ v1.0.0 fase 1 e PROTOTIPO_INVESTIMENTOS_FINANCEIRO_INDICADORES_RAIZ v1.2.0; de acordo do
@@ -43,7 +53,7 @@
 //   · linhasValorConta: série da conta = soma das aplicações mês a mês (usada pelo card Valor do bem da conta, cofre-ativos.js).
 // O valor atual mora em contratos.valor; o histórico, nas ocorrências do item "Atualizar valor" (F3). Sem projeção (I3).
 // ============================================================================
-export const VERSAO = '1.2.0';
+export const VERSAO = '1.3.0';
 
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const toast = (m, t) => (typeof mostrarToast === 'function' ? mostrarToast(m, t) : console.log(m));
@@ -416,6 +426,7 @@ const numero = (id) => { const v = String(document.getElementById(id)?.value || 
 
 // E — "Registrar movimento" da aplicação (financeiro.js › rzRegistrarMovimento chama aqui)
 export async function abrirRegistrarMovimento(contratoId) {
+    voltarParaConta = null;
     const con = await lerAplicacao(contratoId); if (!con) return;
     const fechada = ['encerrado', 'finalizado'].includes(con.status.toLowerCase());
     const acoes = [
@@ -430,7 +441,21 @@ export async function abrirRegistrarMovimento(contratoId) {
     ];
     abrirSheetAcoes({ titulo: 'Registrar movimento', sub: con.descricao || '', acoes });
 }
-async function depoisDoMovimento(con) { await recarregarContratosApp(); await reabrirFicha(con.id); }
+// v1.3.0 — quem abriu o movimento pelo Financeiro da conta volta para a conta (chip Movimento), não para a ficha da aplicação
+let voltarParaConta = null;
+async function depoisDoMovimento(con) {
+    const conta = voltarParaConta; voltarParaConta = null;
+    await recarregarContratosApp();
+    if (conta && typeof window.abrirFichaAtivoNoChip === 'function') { window.abrirFichaAtivoNoChip(conta, 'movimento'); return; }
+    await reabrirFicha(con.id);
+}
+// v1.3.0 (B) — "Excluir e lançar de novo": o formulário vem preenchido e, ao salvar, exclui o movimento antigo antes (F11)
+async function antesDeSalvar(pre) {
+    if (!pre?.antes || pre.feito) return true;
+    const ok = await pre.antes(); if (ok) pre.feito = true; return ok;
+}
+const erroRelancar = (pre, error) => toast((pre?.feito ? 'O movimento antigo já foi excluído: confira e salve de novo. ' : '') + (error?.message || 'Não consegui registrar.'), 'erro');
+const valorPre = (v) => (Number(v) > 0 ? String(Math.round(Number(v) * 100) / 100) : '');
 function ligarInfosMov(extra = {}) {
     document.querySelectorAll('[data-inv-info]').forEach(b => {
         if (b.dataset.invLigado) return; b.dataset.invLigado = '1';
@@ -438,22 +463,23 @@ function ligarInfosMov(extra = {}) {
     });
     icones();
 }
-function abrirFormAporte(con) {
-    abrirSheetForm({ titulo: 'Aplicação', sub: con.descricao || '', rotuloSalvar: 'Registrar aplicação', empilhar: true,
+function abrirFormAporte(con, pre = null) {
+    abrirSheetForm({ titulo: 'Aplicação', sub: con.descricao || '', rotuloSalvar: pre ? 'Excluir o antigo e registrar' : 'Registrar aplicação', empilhar: true,
         corpo: `<p class="rz-desc">${esc(INFO_MOV.aplicacao[1])}</p>
-            <div class="rz-f2">${campo('inv-m-data', 'Data', `<input type="date" id="inv-m-data" max="${hoje()}" value="${hoje()}">`)}${campo('inv-m-valor', 'Valor (R$)', `<input type="number" id="inv-m-valor" step="0.01" min="0" inputmode="decimal">`)}</div>
-            ${campo('inv-m-obs', 'Observação (opcional)', `<input type="text" id="inv-m-obs" maxlength="120">`)}`,
+            <div class="rz-f2">${campo('inv-m-data', 'Data', `<input type="date" id="inv-m-data" max="${hoje()}" value="${esc(pre?.data || hoje())}">`)}${campo('inv-m-valor', 'Valor (R$)', `<input type="number" id="inv-m-valor" step="0.01" min="0" inputmode="decimal" value="${valorPre(pre?.bruto)}">`)}</div>
+            ${campo('inv-m-obs', 'Observação (opcional)', `<input type="text" id="inv-m-obs" maxlength="120" value="${esc(pre?.obs || '')}">`)}`,
         aoSalvar: async () => {
             const data = document.getElementById('inv-m-data')?.value, valor = numero('inv-m-valor');
             if (!data || !(valor > 0)) { toast('Informe a data e o valor.', 'erro'); return false; }
+            if (!(await antesDeSalvar(pre))) return false;
             const { error } = await db().rpc('fn_aplicacao_movimento_registrar', { p_contrato_id: con.id, p_tipo: 'aplicacao', p_data: data, p_valor: valor, p_observacao: document.getElementById('inv-m-obs')?.value || null });
-            if (error) { toast(error.message || 'Não consegui registrar.', 'erro'); return false; }
+            if (error) { erroRelancar(pre, error); return false; }
             toast('Aplicação registrada', 'sucesso'); await depoisDoMovimento(con); return true;
         } });
 }
 
 // F — resgate: Bruto, IR, IOF, Taxa e Líquido; dois lados fecham o terceiro
-async function abrirFormResgate(con, tipo) {
+async function abrirFormResgate(con, tipo, pre = null) {
     const total = tipo === 'resgate_total';
     const { data: lanc } = await db().from('lancamentos').select('categoria, valor').eq('contrato_id', con.id).in('categoria', ['inv_aplicacao', 'inv_resgate', 'inv_amortizacao']);
     const aplicado = (lanc || []).filter(l => l.categoria === 'inv_aplicacao').reduce((s, l) => s + Number(l.valor || 0), 0);
@@ -461,23 +487,24 @@ async function abrirFormResgate(con, tipo) {
     const custo = Math.max(aplicado - tirado, 0), valorAtual = Number(con.valor || 0);
     const isento = !!con.dadosModelo?.isento_ir, dias = diasDesde(con.inicio), aliq = aliqTabela(dias);
     const vl = (id, rot) => campo(id, rot, `<input type="number" id="${id}" step="0.01" min="0" inputmode="decimal"><span class="rz-hint" id="${id}-pc"></span>`);
-    abrirSheetForm({ titulo: INFO_MOV[tipo][0], sub: con.descricao || '', rotuloSalvar: 'Registrar resgate', empilhar: true,
+    abrirSheetForm({ titulo: INFO_MOV[tipo][0], sub: con.descricao || '', rotuloSalvar: pre ? 'Excluir o antigo e registrar' : 'Registrar resgate', empilhar: true,
         corpo: `<p class="rz-desc">${esc(INFO_MOV[tipo][1])} ${infoBtnHtml(tipo)}</p>
-            <div class="rz-f2">${campo('inv-r-data', 'Data', `<input type="date" id="inv-r-data" max="${hoje()}" value="${hoje()}">`)}${campo('inv-r-atual', 'Valor atual', `<input type="text" id="inv-r-atual" value="${esc(moeda(valorAtual))}" disabled>`)}</div>
+            <div class="rz-f2">${campo('inv-r-data', 'Data', `<input type="date" id="inv-r-data" max="${hoje()}" value="${esc(pre?.data || hoje())}">`)}${campo('inv-r-atual', 'Valor atual', `<input type="text" id="inv-r-atual" value="${esc(moeda(valorAtual))}" disabled>`)}</div>
             ${vl('inv-r-bruto', 'Bruto (sai da aplicação)')}
             <div class="rz-f2">${vl('inv-r-ir', 'IR')}${vl('inv-r-iof', 'IOF')}</div>
             ${vl('inv-r-taxa', 'Taxa')}
             ${vl('inv-r-liq', 'Líquido (cai no caixa)')}
             <p class="rz-desc" id="inv-r-calc">Preencha dois lados: bruto e descontos, bruto e líquido, ou líquido e descontos.</p>
-            ${campo('inv-r-obs', 'Observação (opcional)', `<input type="text" id="inv-r-obs" maxlength="120">`)}`,
+            ${campo('inv-r-obs', 'Observação (opcional)', `<input type="text" id="inv-r-obs" maxlength="120" value="${esc(pre?.obs || '')}">`)}`,
         aoSalvar: async () => {
             const data = document.getElementById('inv-r-data')?.value;
             const bruto = numero('inv-r-bruto'), ir = numero('inv-r-ir'), iof = numero('inv-r-iof'), taxa = numero('inv-r-taxa');
             if (!data || !(bruto > 0)) { toast('Informe a data e o bruto.', 'erro'); return false; }
             if (bruto - ir - iof - taxa <= 0) { toast('Os descontos passam do bruto.', 'erro'); return false; }
+            if (!(await antesDeSalvar(pre))) return false;
             const { error } = await db().rpc('fn_aplicacao_movimento_registrar', { p_contrato_id: con.id, p_tipo: tipo, p_data: data, p_valor: bruto,
                 p_observacao: document.getElementById('inv-r-obs')?.value || null, p_ir: ir, p_iof: iof, p_taxa: taxa });
-            if (error) { toast(error.message || 'Não consegui registrar.', 'erro'); return false; }
+            if (error) { erroRelancar(pre, error); return false; }
             toast('Resgate registrado', 'sucesso'); await depoisDoMovimento(con); return true;
         } });
     setTimeout(() => {
@@ -505,13 +532,14 @@ async function abrirFormResgate(con, tipo) {
             const c = document.getElementById('inv-r-calc'); if (c) c.textContent = msg || 'Preencha dois lados: bruto e descontos, bruto e líquido, ou líquido e descontos.';
         };
         ids.forEach(id => document.getElementById(id)?.addEventListener('input', () => recalc(id)));
-        if (total && valorAtual > 0) { set('inv-r-bruto', valorAtual); recalc('inv-r-bruto'); }
+        if (pre) { set('inv-r-bruto', pre.bruto); set('inv-r-ir', pre.ir); set('inv-r-iof', pre.iof); set('inv-r-taxa', pre.taxa); toque.push('inv-r-bruto', 'inv-r-ir'); recalc(); }
+        else if (total && valorAtual > 0) { set('inv-r-bruto', valorAtual); recalc('inv-r-bruto'); }
         ligarInfosMov();
     }, 0);
 }
 
 // G — um link só "Rendimento": o tipo é o primeiro campo e a tela se ajusta
-function abrirFormRendimento(con, tipo) {
+function abrirFormRendimento(con, tipo, pre = null) {
     const T = TIPOS_REND[tipo] || TIPOS_REND.jcp;
     const dias = diasDesde(con.inicio), isento = !!con.dadosModelo?.isento_ir;
     const sug = tipo === 'jcp' ? 0.15 : tipo === 'juros' ? (isento ? 0 : aliqTabela(dias)) : 0;
@@ -519,9 +547,9 @@ function abrirFormRendimento(con, tipo) {
         : tipo === 'dividendo' ? 'só acima de R$ 50 mil/mês da mesma empresa' : tipo === 'amortizacao' ? 'só sobre juros que vierem junto' : 'em geral isento';
     const opcoes = Object.entries(TIPOS_REND).map(([k, t]) => `<option value="${k}"${k === tipo ? ' selected' : ''}>${esc(t.nome)}</option>`).join('') + '<option value="bonificacao" disabled>Bonificação · chega com a Renda variável</option>';
     const vl = (id, rot) => campo(id, rot, `<input type="number" id="${id}" step="0.01" min="0" inputmode="decimal"><span class="rz-hint" id="${id}-pc"></span>`);
-    abrirSheetForm({ titulo: 'Rendimento', sub: con.descricao || '', rotuloSalvar: 'Lançar', empilhar: true,
+    abrirSheetForm({ titulo: 'Rendimento', sub: con.descricao || '', rotuloSalvar: pre ? 'Excluir o antigo e lançar' : 'Lançar', empilhar: true,
         corpo: `${campo('inv-p-tipo', `Tipo ${infoBtnHtml('tipo_' + tipo)}`, `<select id="inv-p-tipo">${opcoes}</select>`)}
-            ${campo('inv-p-data', 'Data do pagamento', `<input type="date" id="inv-p-data" max="${hoje()}" value="${hoje()}">`)}
+            ${campo('inv-p-data', 'Data do pagamento', `<input type="date" id="inv-p-data" max="${hoje()}" value="${esc(pre?.data || hoje())}">`)}
             ${vl('inv-p-bruto', 'Bruto')}
             ${vl('inv-p-ir', `IR <small>${esc(sugTxt)}</small>`)}
             ${vl('inv-p-liq', 'Líquido (cai no caixa)')}
@@ -530,22 +558,23 @@ function abrirFormRendimento(con, tipo) {
             const data = document.getElementById('inv-p-data')?.value, bruto = numero('inv-p-bruto'), ir = numero('inv-p-ir');
             if (!data || !(bruto > 0)) { toast('Informe a data e o bruto.', 'erro'); return false; }
             if (ir >= bruto) { toast('O IR passa do bruto.', 'erro'); return false; }
+            if (!(await antesDeSalvar(pre))) return false;
             if (tipo === 'amortizacao') {
-                const { error } = await db().rpc('fn_aplicacao_movimento_registrar', { p_contrato_id: con.id, p_tipo: 'amortizacao', p_data: data, p_valor: bruto, p_observacao: null, p_ir: ir, p_iof: 0, p_taxa: 0 });
-                if (error) { toast(error.message || 'Não consegui registrar.', 'erro'); return false; }
+                const { error } = await db().rpc('fn_aplicacao_movimento_registrar', { p_contrato_id: con.id, p_tipo: 'amortizacao', p_data: data, p_valor: bruto, p_observacao: pre?.obs || null, p_ir: ir, p_iof: 0, p_taxa: 0 });
+                if (error) { erroRelancar(pre, error); return false; }
             } else {
                 const origem = (crypto?.randomUUID ? crypto.randomUUID() : null);
                 const base = { cliente_id: con.clienteId, ativo_id: con.ativoId || null, contrato_id: con.id, competencia: data.slice(0, 7) + '-01', status: 'realizado', reembolsavel: false,
-                    origem_tipo: 'manual', origem_id: origem, vencimento: data, data_pagamento: data, incluir_contabilidade: true, natureza_economica: 'operacao' };
+                    origem_tipo: 'manual', origem_id: origem, vencimento: data, data_pagamento: data, incluir_contabilidade: true, natureza_economica: 'operacao', observacao: pre?.obs || null };
                 const linhas = [{ ...base, direcao: 'entrada', categoria: T.cat, valor: bruto, descricao: `${T.nome} · ${con.descricao || ''}` }];
                 if (ir > 0) linhas.push({ ...base, direcao: 'saida', categoria: 'inv_ir', valor: ir, descricao: `IR retido · ${T.nome} · ${con.descricao || ''}` });
                 const { error } = await db().from('lancamentos').insert(linhas);
-                if (error) { toast(error.message || 'Não consegui lançar.', 'erro'); return false; }
+                if (error) { erroRelancar(pre, error); return false; }
             }
             toast('Rendimento registrado', 'sucesso'); await depoisDoMovimento(con); return true;
         } });
     setTimeout(() => {
-        document.getElementById('inv-p-tipo')?.addEventListener('change', (e) => { if (typeof fecharSheet === 'function') fecharSheet(); setTimeout(() => abrirFormRendimento(con, e.target.value), 60); });
+        document.getElementById('inv-p-tipo')?.addEventListener('change', (e) => { if (typeof fecharSheet === 'function') fecharSheet(); setTimeout(() => abrirFormRendimento(con, e.target.value, pre), 60); });
         let ultimo = 'inv-p-bruto';
         const set = (id, x) => { const el = document.getElementById(id); if (el) el.value = x > 0 ? String(Math.round(x * 100) / 100) : ''; };
         const recalc = (o) => {
@@ -557,21 +586,141 @@ function abrirFormRendimento(con, tipo) {
             ['inv-p-ir', 'inv-p-liq'].forEach(id => { const el = document.getElementById(id + '-pc'); if (el) el.textContent = b > 0 && numero(id) > 0 ? pctTxt(numero(id) / b) + ' do bruto' : ''; });
         };
         ['inv-p-bruto', 'inv-p-ir', 'inv-p-liq'].forEach(id => document.getElementById(id)?.addEventListener('input', () => recalc(id)));
+        if (pre) { set('inv-p-bruto', pre.bruto); set('inv-p-ir', pre.ir); recalc('inv-p-ir'); }
         ligarInfosMov({ ['tipo_' + tipo]: [T.nome, T.info] });
     }, 0);
 }
-function abrirFormTaxa(con) {
-    abrirSheetForm({ titulo: 'Taxa ou custódia', sub: con.descricao || '', rotuloSalvar: 'Lançar', empilhar: true,
+function abrirFormTaxa(con, pre = null) {
+    abrirSheetForm({ titulo: 'Taxa ou custódia', sub: con.descricao || '', rotuloSalvar: pre ? 'Excluir o antigo e lançar' : 'Lançar', empilhar: true,
         corpo: `<p class="rz-desc">${esc(INFO_MOV.taxa[1])}</p>
-            <div class="rz-f2">${campo('inv-t-data', 'Data', `<input type="date" id="inv-t-data" max="${hoje()}" value="${hoje()}">`)}${campo('inv-t-valor', 'Valor (R$)', `<input type="number" id="inv-t-valor" step="0.01" min="0" inputmode="decimal">`)}</div>`,
+            <div class="rz-f2">${campo('inv-t-data', 'Data', `<input type="date" id="inv-t-data" max="${hoje()}" value="${esc(pre?.data || hoje())}">`)}${campo('inv-t-valor', 'Valor (R$)', `<input type="number" id="inv-t-valor" step="0.01" min="0" inputmode="decimal" value="${valorPre(pre?.bruto)}">`)}</div>`,
         aoSalvar: async () => {
             const data = document.getElementById('inv-t-data')?.value, valor = numero('inv-t-valor');
             if (!data || !(valor > 0)) { toast('Informe a data e o valor.', 'erro'); return false; }
+            if (!(await antesDeSalvar(pre))) return false;
             const { error } = await db().from('lancamentos').insert({ cliente_id: con.clienteId, direcao: 'saida', categoria: 'inv_taxa', ativo_id: con.ativoId || null, contrato_id: con.id,
                 competencia: data.slice(0, 7) + '-01', valor, status: 'realizado', reembolsavel: false, origem_tipo: 'manual', descricao: 'Taxa · ' + (con.descricao || ''),
-                vencimento: data, data_pagamento: data, incluir_contabilidade: true, natureza_economica: 'operacao' });
-            if (error) { toast(error.message || 'Não consegui lançar.', 'erro'); return false; }
+                vencimento: data, data_pagamento: data, incluir_contabilidade: true, natureza_economica: 'operacao', observacao: pre?.obs || null });
+            if (error) { erroRelancar(pre, error); return false; }
             toast('Taxa registrada', 'sucesso'); await depoisDoMovimento(con); return true;
+        } });
+}
+
+// ---------------------------------------------------------------------------------------------------- ficha do movimento (I1.3)
+// A linha do movimento no card Financeiro (olhar do investimento) abre aqui: o que foi lançado (bruto, descontos e líquido do
+// mesmo origem_id) e três ações — corrigir data ou observação, excluir e lançar de novo, excluir (fn_aplicacao_movimento_excluir).
+const CAT_PRINCIPAL = ['inv_aplicacao', 'inv_resgate', 'inv_amortizacao'];
+const CAT_VALOR = { inv_aplicacao: 'aplicacao', inv_resgate: 'resgate_parcial', inv_amortizacao: 'amortizacao' };
+const REND_DA_CAT = Object.fromEntries(Object.entries(TIPOS_REND).map(([k, t]) => [t.cat, k]));
+const NOME_DESC = { inv_ir: 'IR', inv_iof: 'IOF', inv_taxa: 'Taxa' };
+function nomeMovimento(cat, total) {
+    if (cat === 'inv_aplicacao') return 'Aplicação';
+    if (cat === 'inv_resgate') return total ? 'Resgate total' : 'Resgate';
+    if (REND_DA_CAT[cat]) return TIPOS_REND[REND_DA_CAT[cat]].nome;
+    return cat === 'inv_taxa' ? 'Taxa ou custódia' : NOME_DESC[cat] || 'Movimento';
+}
+async function lerMovimento(lancId) {
+    const cols = 'id, contrato_id, origem_id, categoria, direcao, valor, data_pagamento, vencimento, observacao, criado_em';
+    const { data: l } = await db().from('lancamentos').select(cols).eq('id', lancId).maybeSingle();
+    if (!l?.contrato_id) return null;
+    const { data: grupo } = l.origem_id ? await db().from('lancamentos').select(cols).eq('origem_id', l.origem_id).eq('contrato_id', l.contrato_id) : { data: [l] };
+    const linhas = grupo?.length ? grupo : [l];
+    const p = linhas.slice().sort((a, b) => (CAT_PRINCIPAL.includes(b.categoria) - CAT_PRINCIPAL.includes(a.categoria)) || ((b.direcao === 'entrada') - (a.direcao === 'entrada')))[0];
+    const desc = linhas.filter(x => x !== p && NOME_DESC[x.categoria]);
+    const dsc = (c) => desc.filter(x => x.categoria === c).reduce((t, x) => t + Number(x.valor || 0), 0);
+    return { p, ids: linhas.map(x => x.id), bruto: Number(p.valor || 0), ir: dsc('inv_ir'), iof: dsc('inv_iof'), taxa: dsc('inv_taxa'), linhas };
+}
+export async function abrirMovimento(lancId, { origem = null } = {}) {
+    const m = await lerMovimento(lancId);
+    if (!m) { toast('Não encontrei este movimento.', 'erro'); return; }
+    const con = await lerAplicacao(m.p.contrato_id); if (!con) return;
+    const fechada = ['encerrado', 'finalizado'].includes(con.status.toLowerCase());
+    let total = false;
+    if (m.p.categoria === 'inv_resgate' && fechada) {
+        const { data: rs } = await db().from('lancamentos').select('id, data_pagamento, criado_em').eq('contrato_id', con.id).eq('categoria', 'inv_resgate');
+        const ult = (rs || []).slice().sort((a, b) => String(b.data_pagamento).localeCompare(String(a.data_pagamento)) || String(b.criado_em).localeCompare(String(a.criado_em)) || String(b.id).localeCompare(String(a.id)))[0];
+        total = ult?.id === m.p.id;
+    }
+    const contaVolta = origem === 'fa-mov-comp' ? con.ativoId : null;
+    const cat = m.p.categoria, nome = nomeMovimento(cat, total), mudaValor = !!CAT_VALOR[cat];
+    const liquido = m.bruto - m.ir - m.iof - m.taxa;
+    const pc = (v) => (m.bruto > 0 ? ` (${pctTxt(v / m.bruto)})` : '');
+    const kv = [['Data', dataBR(m.p.data_pagamento || m.p.vencimento)], [cat === 'inv_aplicacao' || cat === 'inv_taxa' ? 'Valor' : 'Bruto', moeda(m.bruto)],
+        ...[['IR', m.ir], ['IOF', m.iof], ['Taxa', m.taxa]].filter(x => x[1] > 0).map(([k, v]) => [k, moeda(v) + pc(v)]),
+        ...(m.ir + m.iof + m.taxa > 0 ? [['Líquido', moeda(liquido)]] : []),
+        ...(m.p.observacao ? [['Observação', m.p.observacao]] : [])];
+    const efeito = cat === 'inv_aplicacao' ? `O valor da aplicação cai ${moeda(m.bruto)}.`
+        : cat === 'inv_resgate' && total ? 'A aplicação volta para Ativas e a soma da conta é refeita.'
+        : mudaValor ? `O valor da aplicação volta a somar ${moeda(m.bruto)}.` : 'O valor da aplicação não muda; sai do Financeiro e dos Indicadores.';
+    const pre = { data: String(m.p.data_pagamento || m.p.vencimento || '').slice(0, 10), bruto: m.bruto, ir: m.ir, iof: m.iof, taxa: m.taxa, obs: m.p.observacao || '',
+        antes: async () => { const r = await excluirMovimentoRpc(m.p.id); return !!r; } };
+    const relancar = () => {
+        voltarParaConta = contaVolta;
+        if (cat === 'inv_aplicacao') return abrirFormAporte(con, pre);
+        if (cat === 'inv_resgate') return abrirFormResgate(con, total ? 'resgate_total' : 'resgate_parcial', pre);
+        if (cat === 'inv_amortizacao') return abrirFormRendimento(con, 'amortizacao', pre);
+        if (REND_DA_CAT[cat]) return abrirFormRendimento(con, REND_DA_CAT[cat], pre);
+        if (cat === 'inv_taxa') return abrirFormTaxa(con, pre);
+    };
+    const podeRelancar = cat === 'inv_aplicacao' || cat === 'inv_resgate' || cat === 'inv_amortizacao' || !!REND_DA_CAT[cat] || cat === 'inv_taxa';
+    const chaveInfo = cat === 'inv_aplicacao' ? 'aplicacao' : cat === 'inv_resgate' ? (total ? 'resgate_total' : 'resgate_parcial') : cat === 'inv_taxa' ? 'taxa' : REND_DA_CAT[cat] ? 'tipo_' + REND_DA_CAT[cat] : '';
+    const extraInfo = REND_DA_CAT[cat] ? { ['tipo_' + REND_DA_CAT[cat]]: [TIPOS_REND[REND_DA_CAT[cat]].nome, TIPOS_REND[REND_DA_CAT[cat]].info] } : {};
+    const acoes = [
+        { k: 'corrigir', icone: 'pencil', titulo: 'Corrigir dados', sub: mudaValor ? 'Só a observação' : 'Data e observação' },
+        ...(podeRelancar ? [{ k: 'relancar', icone: 'rotate-ccw', titulo: 'Excluir e lançar de novo', sub: 'Vem preenchido para ajustar' }] : []),
+        { k: 'excluir', icone: 'trash-2', titulo: 'Excluir movimento', sub: mudaValor ? 'Desfaz o efeito no valor' : 'O valor não muda', tipo: 'bad' },
+    ];
+    abrirSheetForm({ titulo: nome, sub: con.descricao || '', semRodape: true, empilhar: true,
+        corpo: `<div class="rz-card"><div class="rz-card-h"><h3>O que foi lançado</h3>${chaveInfo ? infoBtnHtml(chaveInfo) : ''}</div>
+            <div class="rz-kv">${kv.map(([k, v]) => `<div><small>${esc(k)}</small><b>${esc(v)}</b></div>`).join('')}</div></div>
+            <div class="rz-group">O que fazer</div>${acoes.map((a, i) => `<button type="button" class="rz-act${a.tipo === 'bad' ? ' rz-bad' : ''}" data-inv-mov="${i}"><div class="rz-ic${a.tipo ? ' rz-' + a.tipo : ''}"><svg data-lucide="${a.icone}"></svg></div><div>${esc(a.titulo)}<small>${esc(a.sub)}</small></div></button>`).join('')}` });
+    setTimeout(() => {
+        ligarInfosMov(extraInfo);
+        document.querySelectorAll('[data-inv-mov]').forEach(b => b.addEventListener('click', () => {
+            if (typeof rzMostrarBloqueio === 'function' && rzMostrarBloqueio('cofre.editar')) return;
+            const a = acoes[Number(b.dataset.invMov)];
+            if (typeof fecharSheet === 'function') fecharSheet();
+            setTimeout(() => {
+                if (a.k === 'corrigir') abrirCorrigirMovimento(con, m, mudaValor, contaVolta);
+                else if (a.k === 'relancar') relancar();
+                else confirmarExcluirMovimento(con, m, nome, efeito, contaVolta);
+            }, 60);
+        }));
+    }, 0);
+}
+async function excluirMovimentoRpc(lancId) {
+    const { data, error } = await db().rpc('fn_aplicacao_movimento_excluir', { p_lancamento_id: lancId });
+    if (error) { toast(error.message || 'Não consegui excluir o movimento.', 'erro'); return null; }
+    if (data?.conferir_vencimento) aviso('Aplicação reaberta', 'Ela voltou para Ativas. Confira o vencimento em Editar aplicação.');
+    return data || { ok: true };
+}
+function confirmarExcluirMovimento(con, m, nome, efeito, contaVolta) {
+    const junto = m.ids.length > 2 ? ` Saem também os ${m.ids.length - 1} descontos dele.` : m.ids.length > 1 ? ' Sai também o desconto dele.' : '';
+    abrirSheetAcoes({ titulo: 'Excluir este movimento?', sub: `${nome} · ${dataBR(m.p.data_pagamento)} · ${moeda(m.bruto)}. ${efeito}${junto}`, empilhar: true, acoes: [
+        { icone: 'trash-2', titulo: 'Excluir', sub: 'Não dá para desfazer', tipo: 'bad', codigo: 'cofre.editar',
+            aoTocar: async () => {
+                const r = await excluirMovimentoRpc(m.p.id); if (!r) return;
+                toast('Movimento excluído', 'sucesso'); voltarParaConta = contaVolta; await depoisDoMovimento(con);
+            } },
+    ] });
+}
+function abrirCorrigirMovimento(con, m, soObs, contaVolta) {
+    const data0 = String(m.p.data_pagamento || m.p.vencimento || '').slice(0, 10);
+    abrirSheetForm({ titulo: 'Corrigir dados', sub: con.descricao || '', rotuloSalvar: 'Salvar', empilhar: true,
+        corpo: `${soObs ? '' : campo('inv-c-data', 'Data', `<input type="date" id="inv-c-data" max="${hoje()}" value="${esc(data0)}">`)}
+            ${campo('inv-c-obs', 'Observação', `<input type="text" id="inv-c-obs" maxlength="120" value="${esc(m.p.observacao || '')}">`)}
+            ${m.ids.length > 1 ? `<p class="rz-desc">Vale para o movimento e ${m.ids.length > 2 ? `os ${m.ids.length - 1} descontos` : 'o desconto'} dele.</p>` : ''}`,
+        aoSalvar: async () => {
+            const obs = document.getElementById('inv-c-obs')?.value.trim() || null;
+            const muda = { observacao: obs };
+            if (!soObs) {
+                const data = document.getElementById('inv-c-data')?.value;
+                if (!data) { toast('Informe a data.', 'erro'); return false; }
+                Object.assign(muda, { data_pagamento: data, vencimento: data, competencia: data.slice(0, 7) + '-01' });
+            }
+            const { error } = await db().from('lancamentos').update(muda).in('id', m.ids);
+            if (error) { toast(error.message || 'Não consegui salvar.', 'erro'); return false; }
+            toast('Movimento corrigido', 'sucesso'); voltarParaConta = contaVolta; await depoisDoMovimento(con); return true;
         } });
 }
 
