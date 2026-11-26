@@ -1,7 +1,11 @@
 // ============================================================================
 // relatorios-executivos.js — Raiz Patrimônio · Relatórios no modelo executivo
-// Versão: 1.17.0 · 18/11/2026
+// Versão: 1.18.0 · 25/11/2026
 //
+// v1.18.0 (25/11/2026, sessão 20261125-2330-rel-ficha-imovel, demanda bf8ab9a9; plano + protótipo v1.0.0, de acordo do Nicola 25/11 23:24) — Ficha financeira do imóvel
+//   (relatorios.ficha_imovel, fn_relatorio_ficha_imovel): o ano por imóvel em tela (KPIs, abas Imóveis/Atrasos/Proprietários/Administradoras, detalhe com
+//   cadastro, contrato vigente, mês a mês, despesas, atrasos e parte de cada proprietário) e planilha de 5 abas. Proprietários só com a parte no
+//   resultado, sem volume de repasses (pedido do Nicola). Abre por abrirRelatorioExecutivo('ficha_imovel').
 // v1.17.0 (18/11/2026, sessão 20261118-2125-cadastro-em-tela, demanda 6412873a; PLANO_CADASTRO_EM_TELA_CORRECOES_RAIZ v1.2.0, de acordo do Nicola 18/11 21:21 (Q1–Q3 sim)) — Cadastro da carteira: corrigir direto da linha. Tocar num imóvel abre:
 //   Reajustar (a tela de reajuste), Corrigir o inquilino (o formulário do inquilino), Corrigir o contrato (a edição do contrato),
 //   Dar baixa nos recebimentos (o Financeiro do contrato, com "‹ Voltar ao Cadastro"), Encerrar o contrato (e, encerrado, "Criar o
@@ -46,7 +50,7 @@ import { rzMostrarBloqueio } from './comum-licenca.js';
 import { rzToast } from './raiz-ui.js';
 import RaizDevice from './raiz-device.js';
 
-export const VERSAO = '1.17.0';
+export const VERSAO = '1.18.0';
 
 // ---------------------------------------------------------------------------
 // Formatos (REL-13 a REL-17)
@@ -1512,6 +1516,7 @@ export function fecharRelatorioExecutivo() {
 }
 
 export function abrirRelatorioExecutivo(tipo, opcoes = {}) {
+    if (tipo === 'ficha_imovel') return abrirRelatorioFichaImovel(opcoes); // v1.18.0 — tela própria
     const r = RELATORIOS[tipo];
     if (!r) return;
     if (rzMostrarBloqueio(r.codigo)) return; // ACE-04: bloqueado mostra o motivo
@@ -2835,3 +2840,349 @@ async function baixarPlanilhaAcompanhamento() {
 
 // usados por testes e pelo protótipo
 export const _interno = { montarFluxo, montarGerencial, montarRetiradas, montarExecutivo, compacto, comp, montarPlanilhaCadastro };
+
+// =====================================================================
+// v1.18.0 (25/11/2026, demanda bf8ab9a9) — FICHA FINANCEIRA DO IMÓVEL (rel.ficha_imovel)
+// O ano de cada imóvel: a receber, recebido, atraso, taxa, despesas, investimentos e resultado; cadastro, contrato vigente,
+// inadimplência, parte de cada proprietário (sem os repasses, pedido do Nicola 23:24) e administradoras.
+// Números da fn_relatorio_ficha_imovel (REL-02: o app só formata). Abre pela ponte abrirRelatorioExecutivo('ficha_imovel').
+// =====================================================================
+const FICHA_CODIGO = 'relatorios.ficha_imovel';
+let ficha = null; // { ano, emp, imovel, prop, soAtraso, aba, abertoId, dados }
+const FICHA_CSS = `
+ #rz-relexec .rf-k{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+ @media(min-width:720px){#rz-relexec .rf-k{grid-template-columns:repeat(3,1fr)}}
+ #rz-relexec .rf-sp{display:flex;align-items:flex-end;gap:2px;height:22px;margin-top:6px}
+ #rz-relexec .rf-sp i{flex:1;background:var(--line,#e6e3da);border-radius:2px;position:relative;overflow:hidden}
+ #rz-relexec .rf-sp i.at{background:#f0d0cb}
+ #rz-relexec .rf-sp i u{position:absolute;left:0;right:0;bottom:0;background:var(--sprout,#2f6a51)}
+ #rz-relexec .rf-c{background:var(--card,#fff);border:1px solid var(--line,#e6e3da);border-radius:12px;padding:12px}
+ #rz-relexec .rf-c h4{margin:0 0 8px;font-size:var(--fs-sec);color:var(--pine,#1e3a32)}
+ #rz-relexec .rf-kv{display:grid;grid-template-columns:1fr 1fr;gap:6px 10px;font-size:var(--fs-sec)}
+ #rz-relexec .rf-kv small{display:block;color:var(--muted,#6f7a76);font-size:var(--fs-mini)}
+ #rz-relexec .rf-t{width:100%;border-collapse:collapse;font-size:var(--fs-min);font-variant-numeric:tabular-nums}
+ #rz-relexec .rf-t th{color:var(--muted,#6f7a76);font-weight:600;text-align:right;padding:4px 3px;border-bottom:1px solid var(--line,#e6e3da)}
+ #rz-relexec .rf-t td{text-align:right;padding:4px 3px;border-bottom:1px solid var(--line,#e6e3da)}
+ #rz-relexec .rf-t th:first-child,#rz-relexec .rf-t td:first-child{text-align:left}
+ #rz-relexec .rf-t tr.tot td{font-weight:700;border-top:2px solid var(--pine,#1e3a32)}
+ #rz-relexec .rf-n{color:var(--danger,#c1463a)}`;
+const MES_CURTO = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
+const nBr = v => Math.round(num(v)).toLocaleString('pt-BR');
+const kBrl = v => { const a = Math.abs(num(v)); const s = a >= 1e6 ? (a / 1e6).toLocaleString('pt-BR', { maximumFractionDigits: 2 }) + ' mi' : a >= 1e3 ? (a / 1e3).toLocaleString('pt-BR', { maximumFractionDigits: 1 }) + ' mil' : a.toLocaleString('pt-BR', { maximumFractionDigits: 0 }); return (num(v) < 0 ? '− ' : '') + 'R$ ' + s; };
+function fichaTot(im) {
+    const t = { a_receber: 0, recebido: 0, taxa: 0, atraso: 0, despesas: 0, invest: 0, outras_entr: 0 };
+    (im.meses || []).forEach(m => Object.keys(t).forEach(k => { t[k] += num(m[k]); }));
+    t.resultado = t.recebido + t.outras_entr - t.taxa - t.despesas;
+    return t;
+}
+function fichaImoveis() {
+    const L = (ficha.dados?.imoveis || []).map(im => ({ ...im, tot: fichaTot(im) }));
+    return L.filter(i => (!ficha.emp || i.emp === ficha.emp) && (!ficha.imovel || i.id === ficha.imovel)
+        && (!ficha.prop || (i.props || []).some(p => p.nome === ficha.prop)) && (!ficha.soAtraso || i.tot.atraso > 0.99));
+}
+function fichaSoma(L, k) { return L.reduce((s, i) => s + num(i.tot[k]), 0); }
+function fichaKpis(t) {
+    const itens = [['A receber', t.a_receber], ['Recebido', t.recebido], ['Em atraso', t.atraso, 1], ['Taxa + despesas', t.taxa + t.despesas], ['Investimentos', t.invest], ['Resultado', t.resultado]];
+    return `<div class="ra-k rf-k">${itens.map(([r, v, n]) => `<div class="${n && v > 0.99 ? 'neg' : ''}"><small>${r}</small><b>${kBrl(v)}</b></div>`).join('')}</div>`;
+}
+function fichaTelaHtml() {
+    const filtro = [ficha.emp, ficha.imovel ? (ficha.dados?.imoveis || []).find(i => i.id === ficha.imovel)?.nome : null, ficha.prop].filter(Boolean).join(' · ') || 'Todos';
+    return `<div class="rx-top">
+        <button type="button" class="rx-voltar" data-rf="fechar" aria-label="Voltar para Relatórios"><svg data-lucide="chevron-left"></svg>Relatórios</button>
+        <span class="rx-sp"></span>
+        <button type="button" data-rf="ano"><svg data-lucide="calendar"></svg>${ficha.ano}<svg data-lucide="chevron-down"></svg></button>
+        <button type="button" data-rf="filtro"><svg data-lucide="filter"></svg>${esc(filtro)}<svg data-lucide="chevron-down"></svg></button>
+      </div>
+      <div class="rx-corpo" aria-live="polite"><div class="rx-msg">Montando a ficha financeira…</div></div>
+      <div class="rx-pe"><button type="button" class="rx-sec" data-rf="compartilhar"><svg data-lucide="share-2"></svg>Compartilhar</button><button type="button" class="rx-pri" data-rf="planilha"><svg data-lucide="sheet"></svg>Exportar planilha</button></div>`;
+}
+function fichaListaHtml() {
+    const L = fichaImoveis();
+    const t = { a_receber: fichaSoma(L, 'a_receber'), recebido: fichaSoma(L, 'recebido'), atraso: fichaSoma(L, 'atraso'), taxa: fichaSoma(L, 'taxa'), despesas: fichaSoma(L, 'despesas'), invest: fichaSoma(L, 'invest'), resultado: fichaSoma(L, 'resultado') };
+    const nInad = L.reduce((s, i) => s + (i.inad || []).length, 0);
+    const tabs = `<div class="ra-tabs">${[['im', `Imóveis ${L.length}`], ['inad', `Atrasos ${nInad}`], ['prop', 'Donos e %'], ['adm', 'Adm.']]
+        .map(([c, r]) => `<button type="button" data-rf-aba="${c}" class="${ficha.aba === c ? 'on' : ''}">${esc(r)}</button>`).join('')}</div>`;
+    const chips = `<div class="ra-f"><button type="button" data-rf-f="atraso" class="${ficha.soAtraso ? 'on' : ''}">Só com atraso</button></div>`;
+    let lista = '';
+    if (!L.length) lista = `<div class="ra-v">Nenhum imóvel com esses filtros.</div>`;
+    else if (ficha.aba === 'im') {
+        let g = null;
+        L.forEach(i => {
+            if (i.emp !== g) { g = i.emp; lista += `<div class="ra-g">${esc(g)} · ${L.filter(x => x.emp === g).length}</div>`; }
+            const mx = Math.max(1, ...(i.meses || []).map(m => num(m.a_receber)));
+            const sp = (i.meses || []).map(m => `<i class="${num(m.atraso) > 0.99 ? 'at' : ''}" style="height:${Math.max(2, num(m.a_receber) / mx * 22)}px"><u style="height:${num(m.a_receber) ? Math.min(100, num(m.recebido) / num(m.a_receber) * 100) : 0}%"></u></i>`).join('');
+            const ct = i.contrato;
+            lista += `<button type="button" class="ra-l" data-rf-im="${esc(i.id)}"><div class="ra-l1"><b>${esc(i.nome)}</b><span>${ct && ct.valor ? brl(ct.valor) + '/mês' : ''}</span></div>
+              <div class="ra-l2"><span>${ct ? esc(ct.locatario || '—') + (ct.adm ? ' · ' + esc(String(ct.adm).split(' ')[0]) : '') : 'Sem contrato'}</span><span>${esc((i.props || []).map(p => String(p.nome || '').split(' ')[0] + (num(p.pct) < 100 ? ' ' + num(p.pct) + '%' : '')).join(', '))}</span></div>
+              <div class="rf-sp">${sp}</div>
+              <div class="ra-l2"><span>recebido ${kBrl(i.tot.recebido)}${i.tot.atraso > 0.99 ? ` · <span class="n">atraso ${kBrl(i.tot.atraso)}</span>` : ''}</span><span>resultado ${kBrl(i.tot.resultado)}</span></div></button>`;
+        });
+    } else if (ficha.aba === 'inad') {
+        const por = {};
+        L.forEach(i => (i.inad || []).forEach(x => { const k = i.id + '|' + (x.locatario || ''); const r = por[k] = por[k] || { id: i.id, im: i.nome, loc: x.locatario, n: 0, v: 0, d: 0 }; r.n++; r.v += num(x.valor); r.d = Math.max(r.d, num(x.dias)); }));
+        const rows = Object.values(por).sort((a, b) => b.v - a.v);
+        lista = rows.length ? rows.map(x => `<button type="button" class="ra-l" data-rf-im="${esc(x.id)}"><div class="ra-l1"><b>${esc(x.loc || '—')}</b><span class="rf-n">${brl(x.v)}</span></div>
+            <div class="ra-l2"><span>${esc(x.im)}</span><span>${x.n} ${x.n > 1 ? 'meses' : 'mês'} · mais antigo há ${x.d} dias</span></div></button>`).join('')
+            + `<p class="ra-n">Meses da carga inicial ainda não ligados ao extrato aparecem aqui: concilie para tirar os que já foram pagos.</p>`
+            : `<div class="ra-v">Nada em atraso.</div>`;
+    } else if (ficha.aba === 'prop') {
+        const P = {};
+        L.forEach(i => (i.props || []).forEach(p => { if (ficha.prop && p.nome !== ficha.prop) return; const r = P[p.nome] = P[p.nome] || { n: p.nome, im: 0, parte: 0 }; r.im++; r.parte += i.tot.resultado * num(p.pct) / 100; }));
+        lista = Object.values(P).sort((a, b) => b.parte - a.parte).map(r => `<div class="ra-l" style="cursor:default"><div class="ra-l1"><b>${esc(r.n || '—')}</b><span>${brl(r.parte)}</span></div>
+            <div class="ra-l2"><span>${r.im} ${r.im > 1 ? 'imóveis' : 'imóvel'}</span><span>parte no resultado</span></div></div>`).join('')
+            + `<p class="ra-n">Parte no resultado = resultado de cada imóvel × % do proprietário.</p>`;
+    } else {
+        const A = {};
+        L.forEach(i => { const a = i.contrato?.adm; if (!a) return; const r = A[a] = A[a] || { n: a, c: 0, b: 0, t: 0 }; r.c++; r.b += i.tot.recebido; r.t += i.tot.taxa; });
+        const rows = Object.values(A);
+        lista = rows.length ? rows.map(r => `<div class="ra-l" style="cursor:default"><div class="ra-l1"><b>${esc(r.n)}</b><span>${brl(r.b - r.t)}</span></div>
+            <div class="ra-l2"><span>${r.c} ${r.c > 1 ? 'contratos' : 'contrato'} · bruto ${brl(r.b)}</span><span>taxa ${brl(r.t)} (${r.b ? (r.t / r.b * 100).toLocaleString('pt-BR', { maximumFractionDigits: 1 }) : 0}%)</span></div></div>`).join('')
+            : `<div class="ra-v">Nenhum imóvel com administradora neste filtro.</div>`;
+    }
+    return `<div class="ra">${fichaKpis(t)}${tabs}${ficha.aba === 'im' || ficha.aba === 'inad' ? chips : ''}${lista}<p class="ra-n">Recebido é o valor bruto; a taxa da administradora sai à parte. Investimentos (compra e benfeitorias) ficam fora do resultado.</p></div>`;
+}
+function fichaImovelHtml(id) {
+    const i = fichaImoveis().find(x => x.id === id) || (ficha.dados?.imoveis || []).map(x => ({ ...x, tot: fichaTot(x) })).find(x => x.id === id);
+    if (!i) return `<div class="ra-v">Imóvel não encontrado.</div>`;
+    const t = i.tot, ct = i.contrato, hoje = String(ficha.dados?.hoje || '');
+    const linhas = (i.meses || []).map((m, k) => [num(m.a_receber), num(m.recebido), num(m.atraso), num(m.taxa) + num(m.despesas), num(m.recebido) + num(m.outras_entr) - num(m.taxa) - num(m.despesas), num(m.invest)])
+        .map((v, k) => v.some(x => Math.abs(x) > 0.004) ? `<tr><td>${MES_CURTO[k]}</td><td>${nBr(v[0])}</td><td>${nBr(v[1])}</td><td class="${v[2] > 0.99 ? 'rf-n' : ''}">${v[2] > 0.99 ? nBr(v[2]) : '—'}</td><td>${v[3] ? nBr(v[3]) : '—'}</td><td>${nBr(v[4])}</td></tr>` : '').join('');
+    const kv = (r, v) => `<div><small>${r}</small>${v}</div>`;
+    return `<div class="ra">
+      <button type="button" class="ra-l" data-rf-voltar="1" style="cursor:pointer"><div class="ra-l1"><b>‹ ${esc(i.nome)}</b><span>${ficha.ano}</span></div><div class="ra-l2"><span>${esc(i.emp)}</span><span>voltar à lista</span></div></button>
+      ${fichaKpis(t)}
+      <div class="rf-c"><h4>Cadastro do imóvel</h4><div class="rf-kv">${kv('Endereço', esc(i.endereco || '—'))}${kv('Situação', esc(SIT_ATIVO[i.situacao] || i.situacao || '—'))}
+        ${kv('Área', i.area ? esc(String(i.area)) + ' m²' : '—')}${kv('Valor de referência', i.valor_ref ? brl(i.valor_ref) : '—')}
+        <div style="grid-column:1/3"><small>Proprietários</small>${esc((i.props || []).map(p => `${p.nome} ${num(p.pct)}%`).join(' · ') || '—')}</div></div></div>
+      <div class="rf-c"><h4>Contrato vigente</h4>${ct ? `<div class="rf-kv">${kv('Locatário', esc(ct.locatario || '—') + (ct.cpf ? `<br><span class="ra-n">${esc(ct.cpf)}</span>` : ''))}${kv('Aluguel', `${brl(ct.valor)} · dia ${esc(String(ct.venc || '—'))}`)}
+        ${kv('Vigência', `${ct.inicio ? dma(ct.inicio) : '—'} a ${ct.fim ? dma(ct.fim) : '—'}${ct.fim && ct.fim < hoje ? ' <span class="rf-n">· vencida</span>' : ''}`)}${kv('Reajuste', esc(ct.reajuste || '—'))}
+        ${kv('Administradora', esc(ct.adm || 'Não tem'))}${kv('Fiador', esc((ct.fiadores || []).join(', ') || '—'))}
+        ${kv('Contato', esc(ct.contato || '—') + (ct.zap ? ' · ' + esc(ct.zap) : ''))}${kv('Outros pagadores', esc((ct.pagadores || []).join(', ') || '—'))}</div>` : `<div class="ra-v">Sem contrato vigente.</div>`}</div>
+      <div class="rf-c"><h4>Mês a mês <span class="ra-n">(R$)</span></h4><table class="rf-t"><tr><th>Mês</th><th>Previsto</th><th>Recebido</th><th>Atraso</th><th>Taxa+desp.</th><th>Result.</th></tr>${linhas}
+        <tr class="tot"><td>Ano</td><td>${nBr(t.a_receber)}</td><td>${nBr(t.recebido)}</td><td class="rf-n">${t.atraso > 0.99 ? nBr(t.atraso) : '—'}</td><td>${nBr(t.taxa + t.despesas)}</td><td>${nBr(t.resultado)}</td></tr></table></div>
+      <div class="rf-c"><h4>Despesas e investimentos</h4>${t.taxa || Object.keys(i.desp_cat || {}).length || t.invest ? `<div class="rf-kv">
+        ${t.taxa ? kv('Taxa da administradora', brl(t.taxa)) : ''}${Object.entries(i.desp_cat || {}).map(([k, v]) => kv(esc(k), brl(v))).join('')}${t.invest ? kv('Investimentos (fora do resultado)', brl(t.invest)) : ''}</div>`
+        : `<div class="ra-v">Nenhuma despesa ligada a este imóvel no ano.</div>`}</div>
+      <div class="rf-c"><h4>Em atraso</h4>${(i.inad || []).length ? (i.inad || []).map(x => `<div class="ra-l1" style="font-size:var(--fs-min);padding:3px 0"><span>${esc(comp(x.comp))} · venceu ${dma(x.venc)} · ${num(x.dias)} dias</span><span class="rf-n">${brl(x.valor)}</span></div>`).join('') : `<div class="ra-v">Nada em atraso.</div>`}</div>
+      <div class="rf-c"><h4>Parte de cada proprietário</h4>${(i.props || []).map(p => `<div class="ra-l1" style="font-size:var(--fs-min);padding:3px 0"><span>${esc(p.nome || '—')} · ${num(p.pct)}%</span><span>${brl(t.resultado * num(p.pct) / 100)}</span></div>`).join('') || '—'}</div>
+    </div>`;
+}
+function fichaDesenhar() {
+    const corpo = document.querySelector('#rz-relexec .rx-corpo'); if (!corpo || !ficha?.dados) return;
+    corpo.innerHTML = ficha.abertoId ? fichaImovelHtml(ficha.abertoId) : fichaListaHtml();
+    corpo.scrollTop = 0;
+    corpo.querySelectorAll('[data-rf-aba]').forEach(b => b.addEventListener('click', () => { ficha.aba = b.dataset.rfAba; fichaDesenhar(); }));
+    corpo.querySelectorAll('[data-rf-f]').forEach(b => b.addEventListener('click', () => { ficha.soAtraso = !ficha.soAtraso; fichaDesenhar(); }));
+    corpo.querySelectorAll('[data-rf-im]').forEach(b => b.addEventListener('click', () => { ficha.abertoId = b.dataset.rfIm; fichaDesenhar(); }));
+    corpo.querySelectorAll('[data-rf-voltar]').forEach(b => b.addEventListener('click', () => { ficha.abertoId = null; fichaDesenhar(); }));
+}
+async function fichaCarregar() {
+    const el = document.getElementById('rz-relexec'); if (!el || !ficha) return;
+    el.innerHTML = fichaTelaHtml();
+    el.querySelectorAll('[data-rf]').forEach(b => b.addEventListener('click', () => fichaAcao(b.dataset.rf)));
+    if (typeof rzIcones === 'function') rzIcones();
+    const corpo = el.querySelector('.rx-corpo');
+    try {
+        const [{ data, error }, quem] = await Promise.all([dbAuth.rpc('fn_relatorio_ficha_imovel', { p_cliente_id: CLIENTE_ID_SUPABASE, p_ano: ficha.ano }), quemGera()]);
+        if (error) throw new Error(error.message);
+        if (!data?.ok) throw new Error('O relatório não veio.');
+        ficha.dados = { ...data, gerado_por: quem };
+        fichaDesenhar();
+    } catch (e) {
+        console.error('[rz] ficha do imóvel', e);
+        corpo.innerHTML = `<div class="rx-msg">Não foi possível montar a ficha financeira.<br><small>${esc(e.message || e)}</small></div>`;
+    }
+}
+function fichaAcao(a) {
+    if (a === 'fechar') { fecharRelatorioExecutivo(); ficha = null; return; }
+    if (a === 'ano') {
+        const y = new Date().getFullYear();
+        abrirSheetAcoes({ titulo: 'Ano', sub: 'Ficha financeira do imóvel', acoes: [y, y - 1, y - 2, y - 3].map(n => ({ icone: 'calendar', titulo: String(n), aoTocar: () => { ficha.ano = n; ficha.abertoId = null; fichaCarregar(); } })) });
+    } else if (a === 'filtro') {
+        const D = ficha.dados?.imoveis || [];
+        const emps = [...new Set(D.map(i => i.emp))].sort(), props = [...new Set(D.flatMap(i => (i.props || []).map(p => p.nome)).filter(Boolean))].sort();
+        const redes = () => { ficha.abertoId = null; fichaCarregarTopo(); fichaDesenhar(); };
+        abrirSheetAcoes({ titulo: 'Filtrar', sub: 'Ficha financeira do imóvel', acoes: [
+            { icone: 'layers', titulo: 'Tudo', sub: 'Tira os filtros', aoTocar: () => { Object.assign(ficha, { emp: null, imovel: null, prop: null }); redes(); } },
+            { icone: 'building-2', titulo: 'Empreendimento', sub: ficha.emp || 'Todos', aoTocar: () => setTimeout(() => abrirSheetAcoes({ titulo: 'Empreendimento', acoes: emps.map(e => ({ icone: 'building-2', titulo: e, aoTocar: () => { Object.assign(ficha, { emp: e, imovel: null }); redes(); } })) }), 250) },
+            { icone: 'home', titulo: 'Imóvel', sub: ficha.imovel ? (D.find(i => i.id === ficha.imovel)?.nome || '') : 'Todos', aoTocar: () => setTimeout(() => abrirSheetAcoes({ titulo: 'Imóvel', acoes: D.filter(i => !ficha.emp || i.emp === ficha.emp).map(i => ({ icone: 'home', titulo: i.nome, sub: i.emp, aoTocar: () => { ficha.imovel = i.id; redes(); } })) }), 250) },
+            { icone: 'user', titulo: 'Proprietário', sub: ficha.prop || 'Todos', aoTocar: () => setTimeout(() => abrirSheetAcoes({ titulo: 'Proprietário', acoes: props.map(p => ({ icone: 'user', titulo: p, aoTocar: () => { ficha.prop = p; redes(); } })) }), 250) },
+        ] });
+    } else if (a === 'planilha') baixarPlanilhaFichaImovel();
+    else if (a === 'compartilhar') fichaCompartilhar();
+}
+function fichaCarregarTopo() {
+    const el = document.getElementById('rz-relexec'); if (!el) return;
+    const top = el.querySelector('.rx-top'); if (!top) return;
+    const tmp = document.createElement('div'); tmp.innerHTML = fichaTelaHtml();
+    top.replaceWith(tmp.querySelector('.rx-top'));
+    el.querySelectorAll('.rx-top [data-rf]').forEach(b => b.addEventListener('click', () => fichaAcao(b.dataset.rf)));
+    if (typeof rzIcones === 'function') rzIcones();
+}
+async function fichaCompartilhar() {
+    const L = fichaImoveis(); if (!ficha?.dados) return;
+    const l1 = `Ficha financeira dos imóveis · ${ficha.ano} · ${ficha.dados.empresa || ''}`;
+    const l2 = `A receber ${brl(fichaSoma(L, 'a_receber'))} · recebido ${brl(fichaSoma(L, 'recebido'))} · em atraso ${brl(fichaSoma(L, 'atraso'))}`;
+    const l3 = `Resultado ${brl(fichaSoma(L, 'resultado'))} · ${L.length} imóveis`;
+    const r = await RaizDevice.share({ titulo: l1, texto: `${l1}\n${l2}\n${l3}` });
+    if (r && r.ok === false && r.motivo === 'sem_share') {
+        try { await navigator.clipboard.writeText(`${l1}\n${l2}\n${l3}`); rzToast('Resumo copiado'); } catch (e) { rzToast('Use a planilha.', 'warning'); }
+    }
+}
+export function abrirRelatorioFichaImovel(opcoes = {}) {
+    if (rzMostrarBloqueio(FICHA_CODIGO)) return; // ACE-04
+    garantirCss();
+    if (!document.getElementById('rz-relacomp-css')) { const st = document.createElement('style'); st.id = 'rz-relacomp-css'; st.textContent = ACOMP_CSS; document.head.appendChild(st); }
+    if (!document.getElementById('rz-relficha-css')) { const st = document.createElement('style'); st.id = 'rz-relficha-css'; st.textContent = FICHA_CSS; document.head.appendChild(st); }
+    fecharRelatorioExecutivo();
+    ficha = { ano: opcoes.ano || new Date().getFullYear(), emp: null, imovel: null, prop: null, soAtraso: false, aba: 'im', abertoId: null, dados: null };
+    const el = document.createElement('div');
+    el.id = 'rz-relexec'; el.setAttribute('role', 'dialog'); el.setAttribute('aria-modal', 'true'); el.setAttribute('aria-label', 'Ficha financeira do imóvel');
+    document.body.appendChild(el);
+    fichaCarregar();
+}
+async function baixarArquivoPlanilha(buf, nome) {
+    const url = URL.createObjectURL(new Blob([buf], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }));
+    const a = document.createElement('a'); a.href = url; a.download = nome; document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 30000);
+    rzToast('Planilha baixada');
+}
+async function baixarPlanilhaFichaImovel() {
+    const d = ficha?.dados; if (!d) return;
+    rzToast('Montando a planilha…');
+    try {
+        const ExcelJS = await carregarExcelJs();
+        const empresa = d.empresa || 'Empresa', quem = d.gerado_por || '';
+        const agora = new Date(), p2 = n => String(n).padStart(2, '0');
+        const quando = `${p2(agora.getDate())}/${p2(agora.getMonth() + 1)}/${agora.getFullYear()} às ${p2(agora.getHours())}:${p2(agora.getMinutes())}`;
+        const L = fichaImoveis();
+        const recorte = `ano ${ficha.ano} · ${[ficha.emp, ficha.prop].filter(Boolean).join(' · ') || 'todos os imóveis'}${ficha.soAtraso ? ' · só com atraso' : ''}`;
+        const F = (sz = 9, b = false, cor = CC.ink, i = false) => ({ name: 'Arial', size: sz, bold: b, italic: i, color: { argb: cor } });
+        const fundo = c => ({ type: 'pattern', pattern: 'solid', fgColor: { argb: c } });
+        const fio = { style: 'thin', color: { argb: CC.line } }, med = { style: 'medium', color: { argb: CC.pine } };
+        const MO = '#,##0.00;[Red]-#,##0.00', DT = 'dd/mm/yyyy';
+        const png = await simboloPng();
+        const wb = new ExcelJS.Workbook(); wb.creator = 'Raiz Patrimônio'; wb.title = `Ficha financeira do imóvel · ${empresa}`; wb.created = agora;
+        wb.calcProperties = { fullCalcOnLoad: true };
+        const topo = (ws, titulo, nc) => {
+            ws.getRow(1).height = 30;
+            ws.getCell('A1').value = empresa; ws.getCell('A1').font = F(18, true, CC.pine);
+            ws.getCell('A2').value = titulo; ws.getCell('A2').font = F(12, true);
+            ws.getCell('A3').value = `${recorte} · gerado em ${quando}${quem ? ' por ' + quem : ''}`; ws.getCell('A3').font = F(9, false, CC.muted);
+            const cm = Math.max(3, nc - 1);
+            if (png) { const id = wb.addImage({ base64: png, extension: 'png' }); ws.addImage(id, { tl: { col: cm - 1, row: 0 }, ext: { width: 30, height: 38 } }); }
+            ws.getCell(1, cm + 1).value = 'Raiz'; ws.getCell(1, cm + 1).font = F(12, true, CC.pine);
+            ws.getCell(2, cm + 1).value = 'Patrimônio'; ws.getCell(2, cm + 1).font = F(8, true, CC.sprout);
+            ws.headerFooter.oddFooter = `&L&8${titulo.replace(/&/g, '&&')} · ${empresa.replace(/&/g, '&&')} · gerado em ${quando}&R&8Página &P de &N`;
+        };
+        const kpis = (ws, itens, nc) => itens.forEach(([rot, formula, fmt], i) => {
+            const c0 = 1 + i * 2, a = ws.getCell(5, c0), b = ws.getCell(6, c0);
+            if ((ws.getColumn(c0).width || 0) < 15) ws.getColumn(c0).width = 15;
+            a.value = rot; a.font = F(8, false, CC.muted); b.value = { formula }; b.font = F(14, true, CC.pine); b.numFmt = fmt; b.alignment = { horizontal: 'left' };
+            [5, 6].forEach(rr => [c0, c0 + 1].forEach(cc => { if (cc <= Math.max(nc, 8)) ws.getCell(rr, cc).fill = fundo(CC.paper); }));
+        });
+        const tabela = (ws, HDR, cols, linhas, o = {}) => {
+            cols.forEach((c, i) => {
+                ws.getColumn(i + 1).width = c[1];
+                const cl = ws.getCell(HDR, i + 1); cl.value = c[0]; cl.font = F(9, true, c[4]?.edit ? CC.brassTx : CC.pine); cl.fill = fundo(c[4]?.edit ? CC.brassBg : CC.paper);
+                cl.alignment = { wrapText: true, vertical: 'middle', horizontal: c[2] && c[2] !== DT ? 'right' : 'left' }; cl.border = { bottom: med };
+            });
+            ws.getRow(HDR).height = 32;
+            const INI = HDR + 1, FIM = Math.max(INI, INI + linhas.length - 1);
+            linhas.forEach((r, k) => cols.forEach((c, i) => {
+                const cl = ws.getCell(INI + k, i + 1); const v = c[3](r, INI + k);
+                if (v && typeof v === 'object' && v.formula) cl.value = v; else if (c[2] === DT) cl.value = dataXl(v); else if (c[2]) cl.value = nOuNulo(v); else cl.value = tOuNulo(v);
+                cl.font = F(9); cl.border = { bottom: fio }; if (c[2]) cl.numFmt = c[2];
+                if (c[2] && c[2] !== DT) cl.alignment = { horizontal: 'right' };
+                if (c[4]?.edit) { cl.fill = fundo(CC.brassBg); cl.font = F(9, false, CC.brassTx); } else if (k % 2 === 1) cl.fill = fundo(CC.zebra);
+                if (c[4]?.alerta && c[4].alerta(r)) cl.font = F(9, true, CC.danger);
+            }));
+            ws.autoFilter = { from: { row: HDR, column: 1 }, to: { row: FIM, column: cols.length } };
+            ws.views = [{ state: 'frozen', xSplit: o.xSplit || 0, ySplit: HDR, showGridLines: false }];
+            const TR = FIM + 1;
+            ws.getCell(TR, 1).value = 'Total'; ws.getCell(TR, 1).font = F(9, true);
+            cols.forEach((c, i) => { const cl = ws.getCell(TR, i + 1); cl.border = { top: med };
+                if (c[4]?.total) { const Lc = colLetra(i + 1); cl.value = { formula: `SUBTOTAL(9,${Lc}${INI}:${Lc}${FIM})` }; cl.numFmt = c[2]; cl.font = F(9, true); cl.alignment = { horizontal: 'right' }; } });
+            ws.pageSetup = { orientation: cols.length > 6 ? 'landscape' : 'portrait', fitToPage: true, fitToWidth: 1, fitToHeight: 0, printTitlesRow: `${HDR}:${HDR}` };
+            return { INI, FIM, TR };
+        };
+        const fonte = (ws, row) => { ws.getCell(row, 1).value = `Fonte: Raiz · Ficha financeira do imóvel · ${recorte} · situação em ${quando.slice(0, 10)} · Raiz Patrimônio · raizpatrimonio.com.br`; ws.getCell(row, 1).font = F(8, false, CC.muted, true); };
+        const ct = i => i.contrato || {};
+        // 1. Resumo por imóvel
+        const w1 = wb.addWorksheet('Resumo por imóvel');
+        const c1 = [
+            ['Empreendimento', 16, null, i => i.emp], ['Imóvel', 26, null, i => i.nome], ['Endereço', 30, null, i => i.endereco], ['Área (m²)', 8, '0', i => i.area],
+            ['Valor de referência', 13, MO, i => i.valor_ref], ['Proprietários e %', 26, null, i => (i.props || []).map(p => `${p.nome} ${num(p.pct)}%`).join(', ')],
+            ['Locatário', 26, null, i => ct(i).locatario], ['CPF/CNPJ', 16, null, i => ct(i).cpf], ['Aluguel atual', 11, MO, i => ct(i).valor], ['Venc.', 6, '0', i => ct(i).venc],
+            ['Início', 10, DT, i => ct(i).inicio], ['Fim', 10, DT, i => ct(i).fim], ['Índice', 7, null, i => ct(i).reajuste], ['Administradora', 20, null, i => ct(i).adm],
+            ['Fiador', 20, null, i => (ct(i).fiadores || []).join(', ')], ['Outros pagadores', 20, null, i => (ct(i).pagadores || []).join(', ')],
+            ['A receber', 12, MO, i => i.tot.a_receber, { total: true }], ['Recebido', 12, MO, i => i.tot.recebido, { total: true }],
+            ['Em atraso', 12, MO, i => i.tot.atraso, { total: true, alerta: i => i.tot.atraso > 0.99 }], ['Taxa adm.', 10, MO, i => i.tot.taxa, { total: true }],
+            ['Despesas', 10, MO, i => i.tot.despesas, { total: true }], ['Resultado', 12, MO, (i, n) => ({ formula: `R${n}-T${n}-U${n}${i.tot.outras_entr ? '+' + i.tot.outras_entr : ''}` }), { total: true }],
+            ['Investimentos', 12, MO, i => i.tot.invest, { total: true }], ['Observação (pode escrever)', 24, null, () => null, { edit: true }],
+        ];
+        topo(w1, 'Ficha financeira do imóvel · resumo do ano', c1.length);
+        const t1 = tabela(w1, 9, c1, L, { xSplit: 2 });
+        kpis(w1, [['A receber', `SUBTOTAL(9,Q${t1.INI}:Q${t1.FIM})`, MO], ['Recebido', `SUBTOTAL(9,R${t1.INI}:R${t1.FIM})`, MO], ['Em atraso', `SUBTOTAL(9,S${t1.INI}:S${t1.FIM})`, MO],
+                  ['Taxa + despesas', `SUBTOTAL(9,T${t1.INI}:T${t1.FIM})+SUBTOTAL(9,U${t1.INI}:U${t1.FIM})`, MO], ['Resultado', `SUBTOTAL(9,V${t1.INI}:V${t1.FIM})`, MO], ['Investimentos', `SUBTOTAL(9,W${t1.INI}:W${t1.FIM})`, MO]], c1.length);
+        fonte(w1, t1.TR + 2);
+        // 2. Mês a mês
+        const linhasM = [];
+        L.forEach(i => (i.meses || []).forEach(m => { if ([m.a_receber, m.recebido, m.despesas, m.invest].some(v => Math.abs(num(v)) > 0.004)) linhasM.push({ i, m }); }));
+        const w2 = wb.addWorksheet('Mês a mês');
+        const c2 = [['Empreendimento', 16, null, x => x.i.emp], ['Imóvel', 26, null, x => x.i.nome], ['Mês', 9, null, x => `${MES_CURTO[x.m.mes - 1]}/${ficha.ano}`],
+            ['A receber', 12, MO, x => x.m.a_receber, { total: true }], ['Recebido', 12, MO, x => x.m.recebido, { total: true }], ['Em atraso', 12, MO, x => x.m.atraso, { total: true }],
+            ['Taxa adm.', 10, MO, x => x.m.taxa, { total: true }], ['Despesas', 10, MO, x => x.m.despesas, { total: true }],
+            ['Resultado', 12, MO, (x, n) => ({ formula: `E${n}-G${n}-H${n}${num(x.m.outras_entr) ? '+' + num(x.m.outras_entr) : ''}` }), { total: true }], ['Investimentos', 12, MO, x => x.m.invest, { total: true }]];
+        topo(w2, 'Ficha financeira do imóvel · mês a mês', c2.length);
+        const t2 = tabela(w2, 9, c2, linhasM, { xSplit: 3 });
+        kpis(w2, [['A receber', `SUBTOTAL(9,D${t2.INI}:D${t2.FIM})`, MO], ['Recebido', `SUBTOTAL(9,E${t2.INI}:E${t2.FIM})`, MO], ['Resultado', `SUBTOTAL(9,I${t2.INI}:I${t2.FIM})`, MO]], c2.length);
+        fonte(w2, t2.TR + 2);
+        // 3. Inadimplência
+        const linhasI = []; L.forEach(i => (i.inad || []).forEach(x => linhasI.push({ i, x }))); linhasI.sort((a, b) => num(b.x.dias) - num(a.x.dias));
+        const w3 = wb.addWorksheet('Inadimplência');
+        const c3 = [['Empreendimento', 16, null, r => r.i.emp], ['Imóvel', 26, null, r => r.i.nome], ['Locatário', 28, null, r => r.x.locatario], ['Competência', 11, null, r => comp(r.x.comp)],
+            ['Vencimento', 11, DT, r => r.x.venc], ['Dias em atraso', 9, '0', r => r.x.dias], ['Valor', 12, MO, r => r.x.valor, { total: true }],
+            ['Faixa', 14, null, (r, n) => ({ formula: `IF(F${n}>90,"mais de 90 dias",IF(F${n}>30,"31 a 90 dias","até 30 dias"))` })], ['O que foi feito (pode escrever)', 28, null, () => null, { edit: true }]];
+        topo(w3, 'Ficha financeira do imóvel · inadimplência', c3.length);
+        const t3 = tabela(w3, 9, c3, linhasI);
+        kpis(w3, [['Em atraso', `SUBTOTAL(9,G${t3.INI}:G${t3.FIM})`, MO], ['Meses em aberto', `SUBTOTAL(3,G${t3.INI}:G${t3.FIM})`, '0'], ['Mais de 90 dias', `SUMIF(H${t3.INI}:H${t3.FIM},"mais de 90 dias",G${t3.INI}:G${t3.FIM})`, MO]], c3.length);
+        w3.getCell(t3.TR + 2, 1).value = 'Meses da carga inicial ainda não ligados ao extrato aparecem aqui: concilie para tirar os que já foram pagos.'; w3.getCell(t3.TR + 2, 1).font = F(8, false, CC.muted, true);
+        fonte(w3, t3.TR + 3);
+        // 4. Proprietários (só a parte no resultado) e administradoras
+        const P = {}; L.forEach(i => (i.props || []).forEach(p => { if (ficha.prop && p.nome !== ficha.prop) return; const r = P[p.nome] = P[p.nome] || { n: p.nome, im: 0, parte: 0 }; r.im++; r.parte += i.tot.resultado * num(p.pct) / 100; }));
+        const w4 = wb.addWorksheet('Proprietários');
+        const c4 = [['Proprietário', 30, null, r => r.n], ['Imóveis', 8, '0', r => r.im], ['Parte no resultado', 16, MO, r => r.parte, { total: true }]];
+        topo(w4, 'Ficha financeira do imóvel · proprietários', 6);
+        const t4 = tabela(w4, 9, c4, Object.values(P).sort((a, b) => b.parte - a.parte));
+        w4.getCell(t4.TR + 2, 1).value = 'Parte no resultado = resultado de cada imóvel × % do proprietário.'; w4.getCell(t4.TR + 2, 1).font = F(8, false, CC.muted, true);
+        const A = {}; L.forEach(i => { const a = i.contrato?.adm; if (!a) return; const r = A[a] = A[a] || { n: a, c: 0, b: 0, t: 0 }; r.c++; r.b += i.tot.recebido; r.t += i.tot.taxa; });
+        const r0 = t4.TR + 5;
+        w4.getCell(r0 - 1, 1).value = 'Administradoras'; w4.getCell(r0 - 1, 1).font = F(11, true, CC.pine);
+        const c5 = [['Administradora', 30, null, r => r.n], ['Contratos', 8, '0', r => r.c], ['Recebido bruto', 16, MO, r => r.b, { total: true }], ['Taxa', 14, MO, r => r.t, { total: true }],
+            ['% da taxa', 10, '0.0%', (r, n) => ({ formula: `IF(C${n}>0,D${n}/C${n},0)` })], ['Líquido repassado', 16, MO, (r, n) => ({ formula: `C${n}-D${n}` }), { total: true }]];
+        const t5 = tabela(w4, r0, c5, Object.values(A));
+        w4.autoFilter = undefined;
+        fonte(w4, t5.TR + 2);
+        // 5. Sobre
+        const w6 = wb.addWorksheet('Sobre'); w6.views = [{ showGridLines: false }];
+        w6.getColumn(1).width = 24; w6.getColumn(2).width = 100;
+        w6.getCell('A1').value = 'Sobre esta planilha'; w6.getCell('A1').font = F(14, true, CC.pine);
+        [['Para quê', 'O extrato do ano de cada imóvel: a receber, recebido, atrasos, despesas, investimentos, resultado e a parte de cada proprietário.'],
+         ['Recebido', 'Valor bruto pago pelo inquilino. A taxa da administradora aparece à parte e sai do resultado.'],
+         ['Resultado', 'Recebido − taxa da administradora − despesas do imóvel. Investimentos (compra, sinal, cartório, benfeitorias) ficam fora.'],
+         ['Em atraso', 'Meses vencidos e não recebidos. Meses da carga inicial ainda não conciliados podem estar pagos.'],
+         ['Proprietários', 'Parte no resultado = resultado de cada imóvel × % do proprietário.'],
+         ['Colunas amarelas', 'Para você anotar. A planilha não altera o sistema.'],
+         ['LGPD', 'Contém nomes e documentos de locatários. Compartilhe só com quem precisa.']].forEach(([a, b], k) => {
+            w6.getCell(3 + k, 1).value = a; w6.getCell(3 + k, 1).font = F(10, true, CC.pine);
+            w6.getCell(3 + k, 2).value = b; w6.getCell(3 + k, 2).font = F(10); w6.getCell(3 + k, 2).alignment = { wrapText: true, vertical: 'top' }; w6.getRow(3 + k).height = 30;
+        });
+        const buf = await wb.xlsx.writeBuffer();
+        const nome = `raiz_ficha_financeira_imovel_${String(empresa).normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '')}_${ficha.ano}.xlsx`;
+        await baixarArquivoPlanilha(buf, nome);
+    } catch (e) {
+        console.error('[rz] planilha da ficha', e);
+        rzToast('Não consegui montar a planilha.', 'danger');
+    }
+}
