@@ -1,7 +1,15 @@
 // ============================================================================
 // contratos.js — Raiz Patrimônio · Contratos (lista · ficha · formulário ·
 //                 status/reajuste/detalhes · fiadores · documentos · histórico)
-// Versão: 1.79.0 · 25/11/2026
+// Versão: 1.80.0 · 25/11/2026
+//
+// v1.80.0 (25/11/2026, sessão 20261125-2250-doc-atualiza-1-etapa, demanda 25856a66; teste e pedido do Nicola 22:46 "sem 2 etapas")
+// — (1) UMA ETAPA: abrirNovoContratoDoDocumento ganha modo 'comparar' (devolve as linhas No cadastro × No documento para o Cofre
+// mostrar as caixas na própria tela de confirmação) e modo 'aplicar' (grava direto: campos marcados pelo mesmo
+// salvarContratoIndividual do formulário, com a entrada "Alteração" no histórico; fiadores pela substituir_fiadores_contrato;
+// documento anexado). O formulário não abre mais depois. (2) CORRIGIDO: o fiador não era gravado — a leitura da IA traz o
+// documento em cpf_cnpj e o código lia só 'documento'; o fiador chegava sem CPF e o salvar o descartava. Agora lê os dois.
+// Versão anterior: 1.79.0.
 //
 // v1.79.0 (25/11/2026, sessão 20261125-2225-doc-atualiza-contrato, demanda 25856a66; plano de 25/11 22:20, de acordo do Nicola
 // 22:25) — documento lido pela IA atualiza um contrato que JÁ existe: abrirNovoContratoDoDocumento({ contratoId, ... }) abre a
@@ -27,17 +35,8 @@
 // v1.76.0 (18/11/2026, sessão 20261118-2125-cadastro-em-tela, demanda 6412873a; PLANO_CADASTRO_EM_TELA_CORRECOES_RAIZ v1.2.0, de acordo do Nicola 18/11 21:21 (Q1–Q3 sim)) — contexto de retorno 'relatorio': o contrato
 // aberto ou criado a partir do Cadastro da carteira, ao salvar, só fecha o formulário (o relatório, que ficou por baixo, relê o
 // banco) em vez de abrir a ficha ou a lista. window.rzContratoVoltarAoRelatorio() marca esse retorno depois de abrir o formulário.
-// Versão anterior: 1.75.0
-//
-// v1.75.0 (15/11/2026, sessão 20261115-1835-licencas-l3, demandas 285a0058 e 954b4cca; FICHA_LICENCAS_LEADS_RAIZ v1.4.0 §4.5 e
-// L3, de acordo do Nicola 15/11 17:34 e 18:33) — (1) a ficha segue contrato_tipos.ficha_secoes: os cards do Resumo ganham
-// data-fc-secao e, quando o tipo tem seções, o js/contrato-licenca.js esconde o que o tipo não usa e monta o que é só dele
-// (licença: Uso e limites, Comunicações, NPS, Aceites). (2) "Carência" no ⋮ de Condições de qualquer contrato (a ocorrência
-// para a geração do aluguel; encargos seguem). (3) Ocorrências com período (carência, cortesia) mostram "de … a …" com o
-// combinado, sem "vence"/atraso; rótulos Carência e Cortesia. (4) Título da ficha: sem endereço no bem, vale o locatário
-// (antes saía ","). Versão anterior: 1.74.0
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.74.0 … v1.74.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.75.0 … v1.75.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
 import { avaliarProntidaoContratoParaMinuta } from './minutas.js'; // v1.0.1
@@ -50,7 +49,7 @@ import { renderizarBlocoEndereco, lerBlocoEndereco } from './comum-endereco.js';
 import { formatarEnderecoParte } from './comum-partes.js';
 import { sincronizarAdministradoraContrato } from './nucleo/porta.js'; // v1.72.0 — M3 prestadores→partes
 
-export const VERSAO = '1.79.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.80.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 
 // Faixa do cabeçalho da ficha do contrato: o resumo que se procura primeiro (valor, o que está em aberto e até quando vai).
 // Fim em mês/ano curto ("fev/28"); a data inteira fica no card Condições.
@@ -3304,8 +3303,10 @@ if (!window.__rzListenerEscritaParteContratoLigado) {
         let documentoParaVincularContrato = null;
         let aoTerminarContratoDoDocumento = null;
 
-        export async function abrirNovoContratoDoDocumento({ ativoId = null, dados = {}, documentoId = null, aoTerminar = null, contratoId = null } = {}) {
+        export async function abrirNovoContratoDoDocumento({ ativoId = null, dados = {}, documentoId = null, aoTerminar = null, contratoId = null, modo = null, escolhas = [], modoLocatario = 'corrigir' } = {}) {
             // v1.79.0 (25856a66) — com contratoId, o documento atualiza um contrato existente (mesma ponte do index, sem nome novo).
+            if (contratoId && modo === 'comparar') return compararParaCofre(contratoId, dados); // v1.80.0 — uma etapa (Cofre)
+            if (contratoId && modo === 'aplicar') return aplicarDoCofre({ contratoId, dados, documentoId, escolhas, modoLocatario, aoTerminar });
             if (contratoId) return abrirAtualizarContratoDoDocumento({ contratoId, dados, documentoId, aoTerminar });
             const d = dados || {};
             const temAssinando = ativoId && contratos.some(c => c.imovelId === ativoId && c.status === 'Assinando');
@@ -3346,137 +3347,146 @@ if (!window.__rzListenerEscritaParteContratoLigado) {
         const docDataBR = (iso) => iso ? iso.split('-').reverse().join('/') : '—';
         const docMascaraDoc = (dig) => dig.length === 11 ? dig.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4') : dig.length === 14 ? dig.replace(/(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})/, '$1.$2.$3/$4-$5') : dig;
 
-        async function abrirAtualizarContratoDoDocumento({ contratoId, dados = {}, documentoId = null, aoTerminar = null } = {}) {
-            const con = contratos.find(c => c.id === contratoId);
-            if (!con) { rzAvisar('Não achei esse contrato na lista. O documento ficou guardado no ativo.', 'warning'); return; }
+        // Comparação documento × cadastro (comum ao modo de uma etapa do Cofre e ao sheet de reserva).
+        async function compararContratoDocumento(con, dados) {
             const d = dados || {};
             const partes = Array.isArray(d.partes) ? d.partes : [];
+            const docDaParte = (p) => docDigitos(p?.documento || p?.cpf_cnpj || p?.cpf || p?.cnpj); // v1.80.0 — a leitura usa cpf_cnpj
             const loc = partes.find(p => docNorm(p.papel).startsWith('locat')) || null;
             const fiadoresDoc = partes.filter(p => docNorm(p.papel).startsWith('fiador') && p.nome);
-            const ehAtivo = docNorm(con.status) === 'ativo';
             const hoje = new Date().toISOString().slice(0, 10);
-
-            // Fiadores já cadastrados (para não sugerir o mesmo de novo)
             let fiadoresBanco = [];
             if (idEhUuidValido(con.id)) {
-                const { data } = await dbAuth.from('contrato_fiadores').select('nome, cpf').eq('contrato_id', con.id);
+                const { data } = await dbAuth.from('contrato_fiadores').select('*').eq('contrato_id', con.id).order('ordem');
                 fiadoresBanco = data || [];
             }
-
-            // Linhas da comparação: só o que o documento traz e é diferente do cadastro.
             const linhas = [];
-            const add = (k, rotulo, atualTxt, docTxt, valor, marcado, nota) => linhas.push({ k, rotulo, atualTxt: atualTxt || '—', docTxt, valor, marcado, nota });
+            const add = (k, rotulo, atualTxt, docTxt, valor, marcado, nota) => linhas.push({ k, rotulo, atualTxt: atualTxt || '—', docTxt, valor, marcado, nota: nota || '' });
             if (loc?.nome && docNorm(loc.nome) !== docNorm(con.locatario)) add('locatario', 'Locatário', con.locatario, loc.nome, loc.nome, true);
-            const docLoc = docDigitos(loc?.documento || loc?.cpf_cnpj);
+            const docLoc = docDaParte(loc);
             if (docLoc && docLoc !== docDigitos(con.cpf)) add('cpf', 'CPF/CNPJ do locatário', con.cpf, docMascaraDoc(docLoc), docMascaraDoc(docLoc), true);
             const vDoc = docNum(d.valor_aluguel ?? d.valor);
             if (vDoc && Math.abs(vDoc - (Number(con.valor) || 0)) > 0.005) {
-                add('valor', 'Aluguel', con.valor ? formatarMoedaBR(Number(con.valor)) : '', formatarMoedaBR(vDoc), String(vDoc), !con.valor,
-                    con.valor ? 'Valor do documento. Se houve reajuste depois, o do cadastro é o atual.' : '');
+                add('valor', 'Aluguel', con.valor ? formatarMoedaBR(Number(con.valor)) : '', formatarMoedaBR(vDoc), vDoc, !con.valor,
+                    con.valor ? 'Se houve reajuste depois do documento, o do cadastro é o atual.' : '');
             }
             const dia = parseInt(d.dia_vencimento, 10);
-            if (dia >= 1 && dia <= 31 && dia !== Number(con.vencimentoDia)) add('vencimento', 'Dia de vencimento', con.vencimentoDia ? `Dia ${con.vencimentoDia}` : '', `Dia ${dia}`, String(dia), !con.vencimentoDia);
+            if (dia >= 1 && dia <= 31 && dia !== Number(con.vencimentoDia)) add('vencimento', 'Dia de vencimento', con.vencimentoDia ? `Dia ${con.vencimentoDia}` : '', `Dia ${dia}`, dia, !con.vencimentoDia);
             const ini = docIso(d.vigencia_inicio || d.data_inicio || d.data_assinatura);
             if (ini && ini !== docIso(con.inicio)) add('inicio', 'Início da vigência', docDataBR(docIso(con.inicio)), docDataBR(ini), ini, !con.inicio);
             const fim = docIso(d.vigencia_fim || d.data_fim);
             if (fim && fim !== docIso(con.fim)) add('fim', 'Fim da vigência', docDataBR(docIso(con.fim)), docDataBR(fim), fim, !con.fim,
-                fim < hoje ? 'O fim do documento já passou. Se o contrato foi renovado, mantenha o do cadastro.' : '');
+                fim < hoje ? 'Esta data já passou. Se o contrato foi renovado, mantenha a do cadastro.' : '');
             const indice = String(d.indice_reajuste || d.indice || '').toUpperCase();
             const indiceApp = indice ? (indice.includes('IGP') ? 'IGP-M' : (indice.includes('IPCA') ? 'IPCA' : '')) : '';
             if (indiceApp && indiceApp !== con.reajuste) add('reajuste', 'Índice de reajuste', con.reajuste, indiceApp, indiceApp, !con.reajuste);
             fiadoresDoc.forEach((f, i) => {
-                const dig = docDigitos(f.documento);
+                const dig = docDaParte(f);
                 const ja = fiadoresBanco.some(b => (dig && docDigitos(b.cpf) === dig) || docNorm(b.nome) === docNorm(f.nome));
-                if (!ja) add('fiador' + i, 'Fiador', '', f.nome + (dig ? ' · ' + docMascaraDoc(dig) : ''), { nome: f.nome, cpf: dig ? docMascaraDoc(dig) : '', doc_tipo: dig.length === 14 ? 'CNPJ' : 'CPF' }, true,
-                    dig ? '' : 'Sem CPF no documento: complete no formulário antes de salvar.');
+                if (!ja) add('fiador' + i, 'Fiador', '', f.nome + (dig ? ' · ' + docMascaraDoc(dig) : ''), { nome: f.nome, cpf: dig ? docMascaraDoc(dig) : '', doc_tipo: dig.length === 14 ? 'CNPJ' : 'CPF' }, !!dig,
+                    dig ? '' : 'Sem CPF no documento: inclua depois pelo card Fiadores.');
             });
-
-            // Endereço do imóvel: só aviso, nunca troca aqui.
-            const imo = imoveis.find(i => i.id === con.imovelId);
+            const imo = imoveis.find(x => x.id === con.imovelId);
             const endDoc = String(d.imovel_endereco || d.endereco_imovel || '').trim();
             let avisoEndereco = '';
             if (imo && endDoc) {
                 const numCad = String(imo.enderecoNum || '').trim();
                 const numerosDoc = (endDoc.match(/\b\d{1,5}\b/g) || []);
                 if (numCad && numerosDoc.length && !numerosDoc.includes(numCad)) {
-                    avisoEndereco = `O documento fala em "${rzEsc(endDoc)}". No cadastro o imóvel é ${rzEsc(imo.enderecoRua || '')}, ${rzEsc(numCad)}. Confira se é o mesmo imóvel; o endereço não é trocado aqui.`;
+                    avisoEndereco = `O documento fala em "${endDoc}". No cadastro o imóvel é ${imo.enderecoRua || ''}, ${numCad}. Confira se é o mesmo imóvel; o endereço não é trocado aqui.`;
                 }
             }
-
-            const anexar = () => {
-                if (documentoId) window.dispatchEvent(new CustomEvent('cofre:vincular-documento', { detail: { documentoId, entidadeTipo: 'contrato', entidadeId: con.id } }));
-            };
-
-            if (!linhas.length) {
-                anexar();
-                abrirSheetForm({
-                    titulo: 'Nada a atualizar', sub: con.locatario || '', rotuloSalvar: 'Ok',
-                    corpo: `<p class="rz-desc">O que a IA leu no documento já está igual ao cadastro deste contrato. O documento foi anexado a ele.</p>${avisoEndereco ? `<div class="rz-card" style="margin-top:10px;border-color:var(--warning);background:var(--warning-bg)"><p class="rz-desc">${avisoEndereco}</p></div>` : ''}`,
-                    aoSalvar: () => { if (typeof aoTerminar === 'function') setTimeout(aoTerminar, 300); return true; },
-                });
-                return;
-            }
-
-            const trocaLocatario = linhas.some(l => l.k === 'locatario') && ehAtivo;
-            const corpo = `
-                <p class="rz-desc">Marque o que quer trocar no contrato. O resto fica como está.</p>
-                ${avisoEndereco ? `<div class="rz-card" style="margin:10px 0;border-color:var(--warning);background:var(--warning-bg)"><b>Endereço diferente</b><p class="rz-desc">${avisoEndereco}</p></div>` : ''}
-                ${trocaLocatario ? `<div class="rz-card" style="margin:10px 0">
-                    <b>O locatário do documento é outro. É:</b>
-                    <label class="rz-row rz-chk"><input type="radio" name="atz-loc-modo" value="corrigir" checked>
-                        <div class="rz-tx rz-wrap"><b>Correção do cadastro</b><span>O mesmo contrato, com o nome certo.</span></div></label>
-                    <label class="rz-row rz-chk"><input type="radio" name="atz-loc-modo" value="novo">
-                        <div class="rz-tx rz-wrap"><b>Inquilino novo</b><span>Encerra este contrato e cria outro com o documento.</span></div></label>
-                </div>` : ''}
-                <div class="rz-card" id="atz-linhas">
-                    ${linhas.map((l, i) => `<label class="rz-row rz-chk" style="align-items:flex-start">
-                        <input type="checkbox" data-atz="${i}" ${l.marcado ? 'checked' : ''}>
-                        <div class="rz-tx rz-wrap"><b>${rzEsc(l.rotulo)}</b>
-                            <span>No cadastro: ${rzEsc(l.atualTxt)}</span>
-                            <span>No documento: <b>${rzEsc(l.docTxt)}</b></span>
-                            ${l.nota ? `<span style="color:var(--sage)">${rzEsc(l.nota)}</span>` : ''}</div></label>`).join('')}
-                </div>
-                <p class="rz-desc" style="margin-top:8px">O documento fica anexado ao contrato. Ao continuar, o formulário do contrato abre já preenchido para você conferir e salvar.</p>`;
-
-            abrirSheetForm({
-                titulo: 'Atualizar o contrato', sub: `${con.locatario || ''}${imo ? ' · ' + (imo.enderecoRua || '') + ', ' + (imo.enderecoNum || '') : ''}`,
-                corpo, rotuloSalvar: 'Continuar',
-                aoSalvar: (el) => {
-                    const modo = el.querySelector('input[name="atz-loc-modo"]:checked')?.value || 'corrigir';
-                    if (modo === 'novo') {
-                        depoisDeEncerrarContrato = { contratoId: con.id, fazer: () => abrirNovoContratoDoDocumento({ ativoId: con.imovelId, dados: d, documentoId, aoTerminar }) };
-                        setTimeout(() => abrirEncerrarContrato(con.id), 350);
-                        mostrarToast('Encerre este; o novo abre em seguida.', 'info');
-                        return true;
-                    }
-                    const escolhidas = linhas.filter((l, i) => el.querySelector(`[data-atz="${i}"]`)?.checked);
-                    anexar();
-                    setTimeout(() => aplicarAtualizacaoNoFormulario(con, escolhidas, aoTerminar), 350);
-                    return true;
-                },
-            });
+            return { linhas, avisoEndereco, fiadoresBanco, imo, trocaLocatario: linhas.some(l => l.k === 'locatario') && docNorm(con.status) === 'ativo' };
         }
 
-        async function aplicarAtualizacaoNoFormulario(con, escolhidas, aoTerminar) {
-            abrirEdicaoContratoContextual(con.id, 'contrato', con.id);
-            const pôr = (id, v, ev = 'change') => { const el = document.getElementById(id); if (!el || v == null || v === '') return; el.value = v; el.dispatchEvent(new Event(ev, { bubbles: true })); };
-            const campo = { locatario: ['con-locatario', 'input'], cpf: ['con-cpf', 'input'], valor: ['con-valor', 'input'], vencimento: ['con-vencimento-dia', 'input'],
-                            inicio: ['con-inicio', 'change'], fim: ['con-fim', 'change'], reajuste: ['con-reajuste', 'change'] };
-            escolhidas.filter(l => campo[l.k]).forEach(l => pôr(campo[l.k][0], l.valor, campo[l.k][1]));
-            if (escolhidas.some(l => l.k === 'cpf') && typeof formatarMascaraDocumento === 'function') formatarMascaraDocumento();
-            const novosFiadores = escolhidas.filter(l => l.k.startsWith('fiador')).map(l => l.valor);
-            if (novosFiadores.length) {
-                // editarContrato carrega os fiadores do banco em segundo plano; espera a lista ser deste contrato antes de somar.
-                for (let t = 0; t < 50 && fiadoresContratoAtualPertenceAoId !== con.id; t++) await new Promise(r => setTimeout(r, 100));
-                if (fiadoresContratoAtualPertenceAoId === con.id) {
-                    novosFiadores.forEach(f => fiadoresContratoAtual.push(Object.assign({}, FIADOR_CAMPO_VAZIO, f)));
-                    renderFiadoresPopup();
-                } else {
-                    mostrarToast('Inclua o fiador pelo formulário.', 'warning');
-                }
+        // v1.80.0 — modo de uma etapa: o Cofre pede a comparação, mostra as caixas na própria tela e manda aplicar.
+        async function compararParaCofre(contratoId, dados) {
+            const con = contratos.find(c => c.id === contratoId);
+            if (!con) return { ok: false, erro: 'Contrato não encontrado na lista.' };
+            const r = await compararContratoDocumento(con, dados);
+            return { ok: true, locatario: con.locatario || '', trocaLocatario: r.trocaLocatario, avisoEndereco: r.avisoEndereco,
+                     linhas: r.linhas.map(l => ({ k: l.k, rotulo: l.rotulo, atualTxt: l.atualTxt, docTxt: l.docTxt, marcado: l.marcado, nota: l.nota })) };
+        }
+
+        async function aplicarDoCofre({ contratoId, dados, documentoId = null, escolhas = [], modoLocatario = 'corrigir', aoTerminar = null }) {
+            const idx = contratos.findIndex(c => c.id === contratoId);
+            if (idx === -1) { rzAvisar('Não achei esse contrato. O documento ficou guardado no ativo.', 'warning'); return { ok: false }; }
+            const anterior = contratos[idx];
+            if (modoLocatario === 'novo') {
+                depoisDeEncerrarContrato = { contratoId, fazer: () => abrirNovoContratoDoDocumento({ ativoId: anterior.imovelId, dados, documentoId, aoTerminar }) };
+                setTimeout(() => abrirEncerrarContrato(contratoId), 350);
+                mostrarToast('Encerre este; o novo abre em seguida.', 'info');
+                return { ok: true, modo: 'novo' };
             }
-            mostrarToast(escolhidas.length ? 'Confira e salve.' : 'Documento anexado.');
-            if (typeof aoTerminar === 'function') aoTerminarContratoDoDocumento = aoTerminar;
+            const anexar = () => { if (documentoId) window.dispatchEvent(new CustomEvent('cofre:vincular-documento', { detail: { documentoId, entidadeTipo: 'contrato', entidadeId: contratoId } })); };
+            const r = await compararContratoDocumento(anterior, dados);
+            const escolhidas = r.linhas.filter(l => escolhas.includes(l.k));
+            anexar();
+            if (!escolhidas.length) { mostrarToast('Documento anexado.'); if (typeof aoTerminar === 'function') setTimeout(aoTerminar, 300); return { ok: true, alterados: 0 }; }
+
+            const novo = Object.assign({}, anterior);
+            const ROT = { locatario: 'Locatário', cpf: 'Documento (CPF/CNPJ)', valor: 'Valor do aluguel', vencimento: 'Dia de vencimento', inicio: 'Início da vigência', fim: 'Data de término', reajuste: 'Índice de reajuste' };
+            const CAMPO = { locatario: 'locatario', cpf: 'cpf', valor: 'valor', vencimento: 'vencimentoDia', inicio: 'inicio', fim: 'fim', reajuste: 'reajuste' };
+            const alteracoes = [];
+            escolhidas.filter(l => CAMPO[l.k]).forEach(l => {
+                const campo = CAMPO[l.k];
+                alteracoes.push({ campo: ROT[l.k], de: anterior[campo] ?? '-', para: l.valor });
+                novo[campo] = l.valor;
+                if (l.k === 'cpf') novo.docTipo = docDigitos(l.valor).length === 14 ? 'CNPJ' : 'CPF';
+            });
+            const novosFiadores = escolhidas.filter(l => l.k.startsWith('fiador')).map(l => l.valor).filter(f => f.nome && f.cpf);
+            novosFiadores.forEach(f => alteracoes.push({ campo: 'Fiador', de: '-', para: `${f.nome} (${f.cpf})` }));
+            alteracoes.push({ campo: 'Observação', de: '-', para: 'Atualizado a partir do documento lido pela Raiz IA' });
+
+            try {
+                if (alteracoes.length > novosFiadores.length + 1) {
+                    const hoje = new Date().toISOString().split('T')[0];
+                    novo.historico = [...(anterior.historico || []), { data: new Date().toISOString(), vigenteDesde: hoje, alteracoes }];
+                    contratos[idx] = novo;
+                    const gravou = await salvarContratoIndividual(novo, null);
+                    if (gravou === false) { contratos[idx] = anterior; return { ok: false }; }
+                }
+                if (novosFiadores.length) {
+                    const lista = r.fiadoresBanco.map(b => Object.assign({}, b)).concat(novosFiadores.map(f => Object.assign({}, FIADOR_CAMPO_VAZIO, f)));
+                    const linhasF = lista.filter(x => x.nome && x.cpf).map((x, i) => { const y = Object.assign({}, x, { ordem: i + 1 }); delete y.id; delete y.contrato_id; delete y.cliente_id; delete y.criado_em; return y; });
+                    const { error } = await dbAuth.rpc('substituir_fiadores_contrato', { p_contrato_id: contratoId, p_cliente_id: CLIENTE_ID_SUPABASE, p_linhas: linhasF });
+                    if (error) throw error;
+                    if (alteracoes.length === novosFiadores.length + 1) {
+                        await dbAuth.from('historico_contrato').insert({ contrato_id: contratoId, tipo: 'alteracao', descricao: alteracoes.map(a => `${a.campo}: ${a.para}`).join('; ') });
+                    }
+                }
+                emitirEscrita('contrato', { id: contratoId, acao: 'editar' });
+                registrarLog('contratos.editar', { contratoId, o_que: 'documento', campos: escolhidas.map(l => l.k) });
+                mostrarToast('Contrato atualizado.', 'success');
+                if (fichaContratoAtualId === contratoId) abrirFichaContrato(contratoId);
+                if (typeof aoTerminar === 'function') setTimeout(aoTerminar, 500);
+                return { ok: true, alterados: escolhidas.length };
+            } catch (err) {
+                rzAvisar('Não consegui atualizar o contrato: ' + (err.message || String(err)), 'danger');
+                return { ok: false };
+            }
+        }
+
+        // Sheet de reserva (contratoId sem modo): mesma comparação, em sheet.
+        async function abrirAtualizarContratoDoDocumento({ contratoId, dados = {}, documentoId = null, aoTerminar = null } = {}) {
+            const con = contratos.find(c => c.id === contratoId);
+            if (!con) { rzAvisar('Não achei esse contrato na lista. O documento ficou guardado no ativo.', 'warning'); return; }
+            const r = await compararContratoDocumento(con, dados);
+            const corpo = `
+                ${r.avisoEndereco ? `<div class="rz-card" style="margin:10px 0;border-color:var(--warning);background:var(--warning-bg)"><b>Endereço diferente</b><p class="rz-desc">${rzEsc(r.avisoEndereco)}</p></div>` : ''}
+                ${r.trocaLocatario ? `<div class="rz-card" style="margin:10px 0"><b>O locatário do documento é outro. É:</b>
+                    <label class="rz-row rz-chk"><input type="radio" name="atz-loc-modo" value="corrigir" checked><div class="rz-tx rz-wrap"><b>Correção do cadastro</b><span>O mesmo contrato, com o nome certo.</span></div></label>
+                    <label class="rz-row rz-chk"><input type="radio" name="atz-loc-modo" value="novo"><div class="rz-tx rz-wrap"><b>Inquilino novo</b><span>Encerra este contrato e cria outro com o documento.</span></div></label></div>` : ''}
+                ${r.linhas.length ? `<div class="rz-card">${r.linhas.map((l, i) => `<label class="rz-row rz-chk" style="align-items:flex-start"><input type="checkbox" data-atz="${l.k}" ${l.marcado ? 'checked' : ''}>
+                    <div class="rz-tx rz-wrap"><b>${rzEsc(l.rotulo)}</b><span>No cadastro: ${rzEsc(l.atualTxt)}</span><span>No documento: <b>${rzEsc(l.docTxt)}</b></span>${l.nota ? `<span style="color:var(--sage)">${rzEsc(l.nota)}</span>` : ''}</div></label>`).join('')}</div>`
+                    : '<p class="rz-desc">O documento já está igual ao cadastro. Ele fica anexado ao contrato.</p>'}`;
+            abrirSheetForm({ titulo: 'Atualizar o contrato', sub: con.locatario || '', corpo, rotuloSalvar: 'Salvar',
+                aoSalvar: async (el) => {
+                    const escolhas = [...el.querySelectorAll('[data-atz]')].filter(x => x.checked).map(x => x.dataset.atz);
+                    const modoLocatario = el.querySelector('input[name="atz-loc-modo"]:checked')?.value || 'corrigir';
+                    const res = await aplicarDoCofre({ contratoId, dados, documentoId, escolhas, modoLocatario, aoTerminar });
+                    return res.ok !== false;
+                } });
         }
 
         export async function abrirFormularioContrato() {

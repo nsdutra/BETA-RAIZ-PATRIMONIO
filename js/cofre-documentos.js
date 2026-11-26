@@ -1,6 +1,12 @@
 // ============================================================================
 // cofre-documentos.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 2.43.0 · 25/11/2026
+// Versão: 2.44.0 · 25/11/2026
+//
+// v2.44.0 (25/11/2026, sessão 20261125-2250-doc-atualiza-1-etapa, demanda 25856a66; pedido do Nicola 22:46 "sem 2 etapas") —
+// "Atualizar um contrato que já existe" mostra as caixas No cadastro × No documento na própria tela de confirmação (comparação
+// pelo contratos.js 1.80.0, modo 'comparar'); "Salvar" guarda o documento e grava no contrato só o que está marcado (modo
+// 'aplicar'), sem abrir o formulário depois. Troca de locatário em contrato ativo pergunta ali mesmo: correção ou inquilino novo.
+// Versão anterior: 2.43.0.
 //
 // v2.43.0 (25/11/2026, sessão 20261125-2225-doc-atualiza-contrato, demanda 25856a66; plano de 25/11 22:20, de acordo do Nicola
 // 22:25) — contrato de locação lido pela IA ganha a 3ª opção "Atualizar um contrato que já existe", com a lista dos contratos
@@ -25,17 +31,11 @@
 // NO APP: a ficha do documento mostra a miniatura da imagem e, para PDF, "Ver o documento"; tocar abre o visualizador em tela
 // cheia (imagem com zoom do aparelho; PDF página a página pelo pdf.js de bibliotecas.js), com Baixar e Fechar. Vale em todo
 // lugar que abre a ficha (Cofre, Anexos do ativo, contrato, item). Outros formatos continuam só com Baixar.
-// Versão anterior: 2.39.1 · 06/11/2026
-//
-// v2.39.1 (06/11/2026, sessão 20261106-0859-hotfix-confira, demanda 2f81d543) — CORREÇÃO: "Conferir e salvar" não abria
-// a conferência quando o tipo lido não gera controle (ex.: Matrícula). aplicarSubtipoUpload usava `vencido`, variável que
-// só existe em atualizarDisponibilidadeControleUpload; com gera_controle=false o ReferenceError parava o fluxo depois de
-// fechar o painel, e nada era gravado. Passa a ler o vencido do próprio motor (m.vencimento?.vencido).
 // --------------------------------------------------------------------------
-// Versões anteriores (v2.39.0 … v2.39.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v2.39.1 … v2.39.1): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '2.43.0'; // v-check (22/09/2026): lido por Dev › Versões — manter igual ao header
+export const VERSAO = '2.44.0'; // v-check (22/09/2026): lido por Dev › Versões — manter igual ao header
 import { estado } from './cofre-estado.js';
 // v2.3.1 — import TOLERANTE: na v2.2.0 isto era um import estático. Quando o
 // cofre-imagem.js não subiu no deploy (faltava a linha no manifesto), o import
@@ -1285,9 +1285,50 @@ function atualizarEscolhaContrato() {
             <div class="rz-f hidden" id="uc-contrato-atualizar-qual" style="margin:0 0 8px 34px"><select id="uc-contrato-atualizar-id">${opcoesContratosParaAtualizar(lista)}</select></div>`;
         el.querySelectorAll('input[name="uc-contrato-acao"]').forEach(r => r.addEventListener('change', () => {
             document.getElementById('uc-contrato-atualizar-qual')?.classList.toggle('hidden', !escolheuAtualizarContrato());
+            desenharComparacaoContrato();
         }));
+        document.getElementById('uc-contrato-atualizar-id')?.addEventListener('change', desenharComparacaoContrato);
     });
 }
+
+// v2.44.0 (25856a66) — dados lidos do contrato, como vão para o contratos.js.
+function dadosContratoDoUpload() {
+    return { ...(up?.motor?.campos || {}), ...lerDadosEstruturados(), partes: up?.motor?.partes || up?.motor?.campos?.partes || [] };
+}
+// v2.44.0 — a comparação aparece logo abaixo da escolha do contrato (uma etapa só).
+let comparacaoPedida = 0;
+async function desenharComparacaoContrato() {
+    const alvo = document.getElementById('uc-contrato-atualizar-qual');
+    if (!alvo) return;
+    let box = document.getElementById('uc-contrato-cmp');
+    if (!box) { box = document.createElement('div'); box.id = 'uc-contrato-cmp'; alvo.appendChild(box); }
+    const contratoId = escolheuAtualizarContrato();
+    if (!contratoId || typeof window.abrirNovoContratoDoDocumento !== 'function') { box.innerHTML = ''; return; }
+    const pedido = ++comparacaoPedida;
+    box.innerHTML = '<p class="rz-desc">Comparando com o cadastro…</p>';
+    let r;
+    try { r = await window.abrirNovoContratoDoDocumento({ contratoId, dados: dadosContratoDoUpload(), modo: 'comparar' }); }
+    catch (err) { r = { ok: false, erro: err.message }; }
+    if (pedido !== comparacaoPedida) return;
+    if (!r?.ok) { box.innerHTML = `<p class="rz-desc">Não consegui comparar: ${esc(r?.erro || 'erro')}</p>`; return; }
+    const linhas = r.linhas || [];
+    box.innerHTML = `
+        ${r.avisoEndereco ? `<p class="rz-desc" style="color:var(--warning)"><b>Endereço diferente.</b> ${esc(r.avisoEndereco)}</p>` : ''}
+        ${r.trocaLocatario ? `<div style="margin:6px 0"><b>O locatário do documento é outro. É:</b>
+            <label class="rz-row rz-chk"><input type="radio" name="uc-cmp-loc-modo" value="corrigir" checked><div class="rz-tx rz-wrap"><b>Correção do cadastro</b><span>O mesmo contrato, com o nome certo.</span></div></label>
+            <label class="rz-row rz-chk"><input type="radio" name="uc-cmp-loc-modo" value="novo"><div class="rz-tx rz-wrap"><b>Inquilino novo</b><span>Encerra este e cria outro.</span></div></label></div>` : ''}
+        ${linhas.length ? `<p class="rz-desc">Marque o que trocar no contrato:</p>${linhas.map(l => `<label class="rz-row rz-chk" style="align-items:flex-start">
+            <input type="checkbox" data-uc-cmp="${esc(l.k)}" ${l.marcado ? 'checked' : ''}>
+            <div class="rz-tx rz-wrap"><b>${esc(l.rotulo)}</b><span>No cadastro: ${esc(l.atualTxt)}</span><span>No documento: <b>${esc(l.docTxt)}</b></span>${l.nota ? `<span style="color:var(--sage)">${esc(l.nota)}</span>` : ''}</div></label>`).join('')}`
+            : '<p class="rz-desc">Tudo igual ao cadastro. O documento só será anexado.</p>'}`;
+}
+function escolhasComparacaoContrato() {
+    return {
+        escolhas: [...document.querySelectorAll('[data-uc-cmp]')].filter(x => x.checked).map(x => x.dataset.ucCmp),
+        modoLocatario: document.querySelector('input[name="uc-cmp-loc-modo"]:checked')?.value || 'corrigir',
+    };
+}
+function esc(t) { return String(t ?? '').replace(/[&<>"]/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[ch])); }
 
 function escolheuCriarContrato() {
     return subtipoSelecionado()?.codigo === 'contrato_locacao'
@@ -1385,8 +1426,10 @@ async function depoisDeSalvarUpload(docId, p) {
             mostrarToast('Salvo; equipe não avisada: ' + err.message, 'aviso');
         }
     }
-    if (p.atualizarContratoId && typeof window.abrirNovoContratoDoDocumento === 'function') { // v2.43.0 (25856a66)
-        window.abrirNovoContratoDoDocumento({ contratoId: p.atualizarContratoId, ativoId: p.ativoId, dados: p.dadosContrato, documentoId: docId, aoTerminar: p.cfg ? () => avisarConfig(p.cfg, {}) : null });
+    if (p.atualizarContratoId && typeof window.abrirNovoContratoDoDocumento === 'function') { // v2.43.0 · v2.44.0 grava direto (uma etapa)
+        await window.abrirNovoContratoDoDocumento({ contratoId: p.atualizarContratoId, ativoId: p.ativoId, dados: p.dadosContrato, documentoId: docId,
+            modo: 'aplicar', escolhas: p.atualizarEscolhas || [], modoLocatario: p.atualizarModoLocatario || 'corrigir',
+            aoTerminar: p.cfg ? () => avisarConfig(p.cfg, {}) : null });
         return;
     }
     if (p.criarContrato && typeof window.abrirNovoContratoDoDocumento === 'function') {
@@ -1930,6 +1973,7 @@ export async function salvarConfirmacaoUpload() {
     // tem os dele); documento mandado para a equipe também não (a leitura é incerta).
     const criarContrato = !up.pedirEquipe && escolheuCriarContrato();
     const atualizarContratoId = !up.pedirEquipe ? escolheuAtualizarContrato() : null; // v2.43.0 (25856a66)
+    const atualizarCmp = atualizarContratoId ? escolhasComparacaoContrato() : null; // v2.44.0 — lido antes de fechar a tela
     const controlar = g('uc-controlar').checked && !g('uc-controlar').disabled && !criarContrato && !atualizarContratoId && !up.pedirEquipe;
     if (!nome) return marcarErroConfirmacao('Informe o nome de exibição.');
     if (!categoriaId) return marcarErroConfirmacao('Selecione uma categoria.');
@@ -2079,7 +2123,7 @@ export async function salvarConfirmacaoUpload() {
     // v2.26.0 (D2) — o que acontece depois de salvar, capturado antes de `up = null`.
     const posSalvar = {
         cfg: up.config || null, extracaoId: up.extracaoId || null, pedirEquipe: !!up.pedirEquipe, nome,
-        criarContrato, atualizarContratoId, ativoId: up.vinculo?.tipo === 'ativo' ? up.vinculo.id : null,
+        criarContrato, atualizarContratoId, atualizarEscolhas: atualizarCmp?.escolhas || [], atualizarModoLocatario: atualizarCmp?.modoLocatario || 'corrigir', ativoId: up.vinculo?.tipo === 'ativo' ? up.vinculo.id : null,
         dadosContrato: (criarContrato || atualizarContratoId) ? { ...(up.motor?.campos || {}), ...dadosEstruturados, partes: up.motor?.partes || up.motor?.campos?.partes || [] } : null,
     };
     esquecerLeituraPendente(); // v2.28.0 (U2)
