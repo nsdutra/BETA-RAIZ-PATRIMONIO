@@ -1,6 +1,10 @@
 // ============================================================================
 // cofre-controles.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.85.0 · 25/11/2026
+// Versão: 1.86.0 · 25/11/2026
+//
+// v1.86.0 (25/11/2026, sessão 20261125-2326-viagem-roteiro-ux, demanda d8061e47; de acordo do Nicola 25/11 23:26) — viagem: tocar
+// num item abre as ações dele (Marcar dia e hora, Etapa, Abrir o item — acoesItemViagem da viagem-roteiro.js); quem abre o item
+// pela viagem ou pelo Roteiro volta para a mesma viagem/Roteiro ao sair da ficha (retornoItem). Versão anterior: 1.85.0
 //
 // v1.85.0 (25/11/2026, sessão 20261125-1019-viagem-compartilhar, demanda faf717a1; FICHA_COMPARTILHAR_VIAGEM v1.0.0, de acordo do
 // Nicola 25/11 10:19) — "Compartilhar" no ⋮ do item (viagem-compartilhar.js): dados, registros e documentos escolhidos, pelo
@@ -19,16 +23,11 @@
 // v1.82.0 (25/11/2026, sessão 20261125-0021-viagem-roteiro, demanda d8061e47; FICHA_PROGRAMA_VIAGEM_FATIA2B v1.0.0, de acordo do
 // Nicola 25/11 00:21) — viagem: botão "Roteiro" no rodapé e "Editar trechos" no ⋮ do trecho, os dois em js/viagem-roteiro.js
 // (módulo novo); o trecho mostra "de … a …"; "Itens produzidos" (Comercial) não aparece no trecho da viagem. Versão anterior: 1.81.0
-//
-// v1.81.0 (25/11/2026, sessão 20261124-2358-viagem-ajustes, demanda d8061e47; de acordo do Nicola 24/11 23:56, itens 1 a 6) —
-// Viagens no uso: o ícone do programa vem do catálogo (fn_ativo_programas → icone, ex.: avião) no grupo e no botão da execução;
-// as linhas dos itens da viagem ocupam a largura toda; "Nova viagem" não marca tipo sozinho (escolher é obrigatório);
-// viagem planejada não mostra "Avançar" e o "Fechar" sai do rodapé e vai para "Corrigir". Versão anterior: 1.80.0
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.80.0 … v1.80.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.81.0 … v1.81.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '1.85.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.86.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 import { estado } from './cofre-estado.js';
 import * as api from './cofre-api.js';
 import { mostrarToast, refrescarIcones, abrirModal, fecharModal, modalGenerico, perguntar, escolher, avisarComDesfazer } from './cofre-ui.js';
@@ -78,6 +77,7 @@ function moedaBR(v) { return (typeof window.formatarMoedaBR === 'function') ? wi
 // pra Visão Geral. Mesma classe de bug já corrigida no Imóveis
 // (fichaImovelOrigemTab, index.html v1.61.5).
 let itemControleOrigemTela = null;
+let retornoItem = null; // v1.86.0 — ao sair da ficha do item aberta pela viagem/Roteiro, reabre a viagem/Roteiro
 // v1.49.0 (demanda a30da78b) — card "Controles da empresa" (⚙️ › Minha empresa):
 // itens da empresa (sem ativo), filtro próprio e o vínculo do formulário "Novo item"
 // ('empresa' quando aberto pelo card; null no fluxo de sempre, a partir do ativo).
@@ -743,7 +743,14 @@ export async function abrirExecucao(apId, cicloId = null) {
         + (acoes.length ? `<div class="rz-sh-f rz-exec-acoes">${acoes.join('')}</div>` : ''));
     refrescarIcones();
     sheet.querySelectorAll('[data-exec-ciclo]').forEach(b => b.addEventListener('click', () => abrirExecucao(apId, b.dataset.execCiclo)));
-    sheet.querySelectorAll('[data-exec-item]').forEach(b => b.addEventListener('click', () => { window.fecharSheet(); abrirFichaItemControle(b.dataset.execItem); }));
+    // v1.86.0 — viagem: o toque no item abre as ações dele; abrir a ficha guarda o caminho de volta
+    const abrirItemDaViagem = (id) => { retornoItem = () => abrirExecucao(apId, C?.id || cicloId); window.fecharSheet(); window.fecharSheet(); abrirFichaItemControle(id); };
+    sheet.querySelectorAll('[data-exec-item]').forEach(b => b.addEventListener('click', () => {
+        const it = (d.itens || []).find(x => x.id === b.dataset.execItem);
+        if (temVariantes(d) && C && it) import('./viagem-roteiro.js').then(m => m.acoesItemViagem({ cicloId: C.id, itemId: it.id, titulo: it.titulo,
+            fluxo: it.fluxo, etapa: it.etapa, abrirItem: abrirItemDaViagem, aoVoltar: () => aposMudarExecucao(P.id, C.id) }));
+        else abrirItemDaViagem(b.dataset.execItem);
+    }));
     sheet.querySelectorAll('[data-exec-fase]').forEach(b => b.addEventListener('click', (ev) => { ev.stopPropagation(); abrirAcoesFase(d, b.dataset.execFase); }));
     sheet.querySelector('[data-exec-abrir]')?.addEventListener('click', () => P.tem_etapas ? abrirFolhaAbrirObra(d) : abrirFolhaAbrirCiclo(d));
     sheet.querySelector('[data-exec-avancar]')?.addEventListener('click', () => abrirFolhaAvancar(d));
@@ -758,7 +765,9 @@ export async function abrirExecucao(apId, cicloId = null) {
     sheet.querySelector('[data-exec-outro]')?.addEventListener('click', () => import('./viagem-roteiro.js').then(m => m.folhaIncluir(
         { ciclo: { id: C.id, nome: C.nome, inicio: C.inicio, fim: C.fim_previsto || C.inicio } }, 'item', () => aposMudarExecucao(P.id, C.id)))); // v1.84.0
     sheet.querySelector('[data-exec-roteiro]')?.addEventListener('click', () => import('./viagem-roteiro.js').then(m => m.abrirRoteiro({ cicloId: C.id,
-        abrirItem: (id) => { window.fecharSheet(); window.fecharSheet(); abrirFichaItemControle(id); } }))); // v1.82.0
+        abrirItem: function abrirDoRoteiro(id) { // v1.86.0 — volta para o Roteiro ao sair da ficha
+            retornoItem = () => import('./viagem-roteiro.js').then(m => m.abrirRoteiro({ cicloId: C.id, abrirItem: abrirDoRoteiro }));
+            window.fecharSheet(); window.fecharSheet(); abrirFichaItemControle(id); } }))); // v1.82.0
     if (C && window.podeUsar?.('comercial.itens')?.ok) import('./comercial-itens.js').then(m => m.preencherProduzidos(sheet, d)).catch(() => {}); // v1.76.0 — C3
 }
 window.__rzAbrirExecucao = (apId, cicloId) => abrirExecucao(apId, cicloId);
@@ -1772,6 +1781,7 @@ export async function recarregarFichaItemControle() {
 
 export function voltarFichaItemControle() {
     const origem = itemControleOrigemTela;
+    const retorno = retornoItem; retornoItem = null; // v1.86.0
     const ativo = estado.ativoEmFoco;
     itemEmFoco = null;
     itemControleOrigemTela = null;
@@ -1805,6 +1815,7 @@ export function voltarFichaItemControle() {
     // excluído durante a visita) — mesmo mecanismo que já mantém a
     // Visão Geral sincronizada em qualquer outro ponto do Cofre.
     window.dispatchEvent(new CustomEvent('cofre:recarregar-eventos'));
+    if (typeof retorno === 'function') setTimeout(retorno, 80); // v1.86.0
 }
 
 function renderizarFichaItemControle() {

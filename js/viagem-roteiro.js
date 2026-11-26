@@ -1,6 +1,11 @@
 // ============================================================================
 // viagem-roteiro.js — Raiz Patrimônio · Roteiro da viagem (programa com tipos de ciclo)
-// Versão: 1.3.0 · 25/11/2026
+// Versão: 1.4.0 · 25/11/2026
+//
+// v1.4.0 (25/11/2026, sessão 20261125-2326-viagem-roteiro-ux, demanda d8061e47; de acordo do Nicola 25/11 23:26) — item com data e
+// sem hora já aparece no dia (regra do banco, fn_ciclo_roteiro) como "Dia todo"; "A encaixar" vem aberta quando há algo que a
+// pessoa ainda não viu ali; acoesItemViagem() dá à tela da viagem as ações do item (Marcar dia e hora, Etapa, Abrir o item) e o
+// encaixe feito fora do Roteiro volta para quem chamou. Versão anterior: 1.3.0
 //
 // v1.3.0 (25/11/2026, sessão 20261125-1019-viagem-compartilhar, demanda faf717a1; FICHA_COMPARTILHAR_VIAGEM v1.0.0, de acordo do
 // Nicola 25/11 10:19) — "Compartilhar" no rodapé do Roteiro (viagem-compartilhar.js); no encaixe, a hora é a saída, o "Até" com
@@ -22,7 +27,7 @@
 // vez (fn_ciclo_trechos_salvar). O dia em que se muda de cidade é do trecho que começa nele (regra do banco). As regras são do
 // banco; aqui só se monta, colhe e manda. Aberto por cofre-controles.js (botão "Roteiro" e ⋮ do trecho).
 // ============================================================================
-export const VERSAO = '1.3.0';
+export const VERSAO = '1.4.0';
 import * as api from './cofre-api.js';
 
 const esc = (v) => String(v ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -44,14 +49,25 @@ const partes = (ts) => {
 const ts = (data, hora) => data ? `${data}T${hora || '00:00'}:00-03:00` : null; // Brasília, sem horário de verão
 
 let ctx = null; // { cicloId, abrirItem(itemId) }
-let bandejaAberta = false; // v1.1.0 — "A encaixar" fechada ao abrir; fica como o usuário deixou enquanto o roteiro está aberto
+let bandejaAberta = false;
+let aposEncaixe = null; // v1.4.0 — encaixe aberto fora do Roteiro (tela da viagem) volta para quem chamou
+// v1.4.0 — "A encaixar" abre sozinha quando tem registro que a pessoa ainda não viu ali (guardado por viagem, neste aparelho)
+function novidadeNaBandeja(cicloId, enc) {
+    let vistos = [];
+    try { vistos = JSON.parse(localStorage.getItem('rz.bandeja.' + cicloId) || '[]'); } catch (e) { vistos = []; }
+    const ids = enc.map(e => e.ocorrencia_id);
+    try { localStorage.setItem('rz.bandeja.' + cicloId, JSON.stringify(ids)); } catch (e) { /* sem armazenamento: fica fechada */ }
+    return ids.some(id => !vistos.includes(id));
+} // v1.1.0 — "A encaixar" fechada ao abrir; fica como o usuário deixou enquanto o roteiro está aberto
 
 /** Abre o roteiro da viagem. ctx: { cicloId, abrirItem(itemId) } */
 export async function abrirRoteiro(c) {
-    if (c) bandejaAberta = false; // abertura nova (não é recarga depois de salvar)
+    if (c) bandejaAberta = null; // abertura nova: decide pela novidade (v1.4.0)
+    aposEncaixe = null;
     ctx = c || ctx; if (!ctx?.cicloId) return;
     const r = await ler(); if (!r) return;
     if (!r.pode_ver) { aviso('Seu perfil não vê esta viagem.', 'erro'); return; }
+    if (bandejaAberta === null) bandejaAberta = novidadeNaBandeja(ctx.cicloId, r.a_encaixar || []);
     const abrirSheet = g('abrirSheet'), cab = g('rzSheetCabecalho'); if (!abrirSheet || !cab) return;
     const C = r.ciclo;
     const sheet = abrirSheet(cab('Roteiro', `${C.nome} · ${dm(C.inicio)} a ${dmy(C.fim)}`) + `<div class="rz-sh-b">${corpoHtml(r)}</div>`
@@ -253,8 +269,32 @@ async function mandar(args) {
     const { data, error } = await api.dbAuth.rpc('fn_roteiro_encaixar', { p_canal: 'app', ...args });
     if (error) { aviso(error.message || 'Não foi possível salvar.', 'erro'); return false; }
     aviso(data?.mensagem || 'Feito.', 'sucesso');
-    setTimeout(() => abrirRoteiro(), 0);
+    const volta = aposEncaixe; // v1.4.0
+    setTimeout(() => (typeof volta === 'function' ? volta() : abrirRoteiro()), 0);
     return true;
+}
+/** v1.4.0 — ações do item a partir da tela da viagem: { cicloId, itemId, titulo, fluxo, etapa, abrirItem(id), aoVoltar() } */
+export async function acoesItemViagem(o) {
+    ctx = { ...(ctx || {}), cicloId: o.cicloId, abrirItem: o.abrirItem };
+    const r = await ler(); if (!r || !r.pode_ver) return;
+    const todas = [...(r.a_encaixar || []), ...(r.fora_dos_trechos || [])];
+    (r.trechos || []).forEach(t => (t.dias || []).forEach(d => todas.push(...(d.entradas || []))));
+    const doItem = todas.filter(e => e.item_id === o.itemId && e.papel !== 'fim');
+    const e = doItem.find(x => x.status === 'aberto') || doItem[0];
+    const fechado = r.ciclo.situacao === 'fechado';
+    const acoes = [];
+    if (e && !fechado && r.pode_encaixar && e.status === 'aberto')
+        acoes.push({ icone: 'calendar-clock', titulo: e.inicio_em ? 'Mudar dia e hora' : 'Marcar dia e hora', codigo: 'cofre.controles.editar',
+            sub: e.inicio_em || e.data_prevista ? 'Hoje: ' + (partes(e.inicio_em).data ? dm(partes(e.inicio_em).data) + (partes(e.inicio_em).hora ? ' ' + partes(e.inicio_em).hora : '') : dm(e.data_prevista) + ' (sem hora)') : 'Ainda sem dia',
+            aoTocar: () => { aposEncaixe = o.aoVoltar || null; folhaEncaixar(r, e, false); } });
+    if (e && !fechado && r.pode_encaixar)
+        acoes.push({ icone: 'copy-plus', titulo: 'Mais um em ' + o.titulo, codigo: 'cofre.controles.editar', sub: 'Outro hotel, o voo de volta…',
+            aoTocar: () => { aposEncaixe = o.aoVoltar || null; folhaEncaixar(r, { item_id: o.itemId, titulo: o.titulo }, true); } });
+    if (!fechado && r.pode_encaixar && o.fluxo && (r.etapas || {})[o.fluxo])
+        acoes.push({ icone: 'list-checks', titulo: 'Etapa: ' + (e?.etapa_nome || '—'), codigo: 'cofre.controles.editar', sub: 'Toque para mudar',
+            aoTocar: () => escolherEtapa({ itemId: o.itemId, titulo: o.titulo, fluxo: o.fluxo, etapa: o.etapa, etapas: r.etapas[o.fluxo] }, o.aoVoltar) });
+    acoes.push({ icone: 'paperclip', titulo: 'Abrir o item', codigo: 'cofre.controles.ver', sub: 'Documentos, pagamento, rateio e compartilhar', aoTocar: () => o.abrirItem?.(o.itemId) });
+    g('abrirSheetAcoes')?.({ titulo: o.titulo, sub: r.ciclo.nome, acoes, empilhar: true });
 }
 
 /** Editar trechos: a lista inteira, de uma vez. c: { cicloId, roteiro?, aoSalvar? } */
