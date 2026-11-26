@@ -1,6 +1,12 @@
 // ============================================================================
 // cofre-documentos.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 2.42.0 · 24/11/2026
+// Versão: 2.43.0 · 25/11/2026
+//
+// v2.43.0 (25/11/2026, sessão 20261125-2225-doc-atualiza-contrato, demanda 25856a66; plano de 25/11 22:20, de acordo do Nicola
+// 22:25) — contrato de locação lido pela IA ganha a 3ª opção "Atualizar um contrato que já existe", com a lista dos contratos
+// (primeiro os do ativo escolhido). Ao salvar, o documento vai para o Cofre como sempre e abre a comparação "No cadastro × No
+// documento" do contratos.js 1.79.0 (abrirNovoContratoDoDocumento com contratoId, a mesma ponte do index). Como em "Criar o
+// contrato", o documento não gera item de vencimento próprio. Versão anterior: 2.42.0.
 //
 // v2.42.0 (24/11/2026, sessão 20261124-0916-seguros, demanda 6fbdad60; teste do Nicola 23:15) — (a) abrirUploadCotacaoSeguro():
 // a cotação subida pelo comparativo é lida já como "Cotação de seguro" (classificação forçada), não como apólice; (b) campo LISTA
@@ -25,14 +31,11 @@
 // a conferência quando o tipo lido não gera controle (ex.: Matrícula). aplicarSubtipoUpload usava `vencido`, variável que
 // só existe em atualizarDisponibilidadeControleUpload; com gera_controle=false o ReferenceError parava o fluxo depois de
 // fechar o painel, e nada era gravado. Passa a ler o vencido do próprio motor (m.vencimento?.vencido).
-// Versão anterior: 2.39.0 · 23/10/2026
-//
-// v2.39.0 (23/10/2026, sessão 20261023-0915-computador-c6, demanda 15146a34; PROTOTIPO_COMPUTADOR_RAIZ v1.1.0 §11, de acordo do Nicola 23/10 08:51) — C6 · escala de letras: 18 tamanhos de letra escritos em número (font-size:13px etc.) trocados pelos da escala (--fs-mini 11 · --fs-sec 12,5 · --fs-corpo 14 · --fs-titulo 17; 16 px fica, por causa do zoom do iPhone em campo, e 18 px ou mais também — herói e números grandes). Nada muda de lugar; só o tamanho passa a ser o mesmo em todas as telas.
 // --------------------------------------------------------------------------
-// Versões anteriores (v2.38.0 … v2.38.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v2.39.0 … v2.39.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '2.42.0'; // v-check (22/09/2026): lido por Dev › Versões — manter igual ao header
+export const VERSAO = '2.43.0'; // v-check (22/09/2026): lido por Dev › Versões — manter igual ao header
 import { estado } from './cofre-estado.js';
 // v2.3.1 — import TOLERANTE: na v2.2.0 isto era um import estático. Quando o
 // cofre-imagem.js não subiu no deploy (faltava a linha no manifesto), o import
@@ -1235,25 +1238,66 @@ function montarBlocoConfiguracao() {
 }
 
 // be7cdd7c — contrato de locação: criar o contrato ou só guardar no ativo.
+// v2.43.0 (25856a66) — 3ª opção: atualizar um contrato que já existe (lista carregada do banco).
+let contratosParaAtualizar = null; // cache por upload: [{ id, locatario, status, ativo_id, ativo_nome }]
+async function carregarContratosParaAtualizar() {
+    if (contratosParaAtualizar) return contratosParaAtualizar;
+    try {
+        const { data, error } = await dbAuth.from('contratos').select('id, locatario, status, ativo_id, cofre_ativos(nome_exibicao)')
+            .eq('cliente_id', estado.clienteId).neq('status', 'finalizado').order('locatario');
+        if (error) throw error;
+        contratosParaAtualizar = (data || []).map(c => ({ id: c.id, locatario: c.locatario || '(sem nome)', status: c.status, ativo_id: c.ativo_id, ativo_nome: c.cofre_ativos?.nome_exibicao || '' }));
+    } catch (err) { console.warn('[cofre] contratos para atualizar:', err.message); contratosParaAtualizar = []; }
+    return contratosParaAtualizar;
+}
+function opcoesContratosParaAtualizar(lista) {
+    const ativoId = up?.vinculo?.tipo === 'ativo' ? up.vinculo.id : null;
+    const esc = (t) => String(t ?? '').replace(/[&<>"]/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[ch]));
+    const op = c => `<option value="${c.id}">${esc(c.locatario)}${c.ativo_nome ? ' · ' + esc(c.ativo_nome) : ''}${c.status === 'assinando' ? ' (assinando)' : ''}</option>`;
+    const doAtivo = ativoId ? lista.filter(c => c.ativo_id === ativoId) : [];
+    const outros = lista.filter(c => !doAtivo.includes(c));
+    return (doAtivo.length ? `<optgroup label="Deste ativo">${doAtivo.map(op).join('')}</optgroup>` : '')
+        + (outros.length ? `<optgroup label="${doAtivo.length ? 'Outros contratos' : 'Contratos da empresa'}">${outros.map(op).join('')}</optgroup>` : '');
+}
 function atualizarEscolhaContrato() {
     const el = document.getElementById('uc-contrato-escolha');
     if (!el || !up) return;
     const ehContrato = subtipoSelecionado()?.codigo === 'contrato_locacao';
     const podeCriar = window.podeUsar ? window.podeUsar('contratos.criar').ok : true;
-    if (!ehContrato || !podeCriar) { el.innerHTML = ''; return; }
+    const podeEditar = window.podeUsar ? window.podeUsar('contratos.editar').ok : true;
+    if (!ehContrato || (!podeCriar && !podeEditar)) { el.innerHTML = ''; return; }
     if (el.innerHTML) return; // mantém a escolha feita
     el.innerHTML = `<div class="rz-card">
         <div class="rz-card-h"><b>É um contrato de locação. O que fazer com ele?</b></div>
-        <label class="rz-row rz-chk"><input type="radio" name="uc-contrato-acao" value="criar" checked>
-            <div class="rz-tx rz-wrap"><b>Criar o contrato</b><span>Abre o contrato já preenchido para você revisar e salvar. O documento fica anexado a ele.</span></div></label>
-        <label class="rz-row rz-chk"><input type="radio" name="uc-contrato-acao" value="guardar">
+        ${podeCriar ? `<label class="rz-row rz-chk"><input type="radio" name="uc-contrato-acao" value="criar" checked>
+            <div class="rz-tx rz-wrap"><b>Criar o contrato</b><span>Abre o contrato já preenchido para você revisar e salvar. O documento fica anexado a ele.</span></div></label>` : ''}
+        ${podeEditar ? `<div id="uc-contrato-atualizar-op"></div>` : ''}
+        <label class="rz-row rz-chk"><input type="radio" name="uc-contrato-acao" value="guardar"${podeCriar ? '' : ' checked'}>
             <div class="rz-tx rz-wrap"><b>Só guardar no ativo</b><span>Vira um documento do ativo, sem contrato no sistema.</span></div></label>
     </div>`;
+    if (!podeEditar) return;
+    contratosParaAtualizar = null;
+    carregarContratosParaAtualizar().then(lista => {
+        const alvo = document.getElementById('uc-contrato-atualizar-op');
+        if (!alvo || !lista.length) return;
+        alvo.innerHTML = `<label class="rz-row rz-chk"><input type="radio" name="uc-contrato-acao" value="atualizar">
+            <div class="rz-tx rz-wrap"><b>Atualizar um contrato que já existe</b><span>Compara o documento com o cadastro e você escolhe o que trocar. O documento fica anexado a ele.</span></div></label>
+            <div class="rz-f hidden" id="uc-contrato-atualizar-qual" style="margin:0 0 8px 34px"><select id="uc-contrato-atualizar-id">${opcoesContratosParaAtualizar(lista)}</select></div>`;
+        el.querySelectorAll('input[name="uc-contrato-acao"]').forEach(r => r.addEventListener('change', () => {
+            document.getElementById('uc-contrato-atualizar-qual')?.classList.toggle('hidden', !escolheuAtualizarContrato());
+        }));
+    });
 }
 
 function escolheuCriarContrato() {
     return subtipoSelecionado()?.codigo === 'contrato_locacao'
         && document.querySelector('input[name="uc-contrato-acao"]:checked')?.value === 'criar';
+}
+// v2.43.0 (25856a66) — id do contrato escolhido para atualizar, ou null.
+function escolheuAtualizarContrato() {
+    if (subtipoSelecionado()?.codigo !== 'contrato_locacao') return null;
+    if (document.querySelector('input[name="uc-contrato-acao"]:checked')?.value !== 'atualizar') return null;
+    return document.getElementById('uc-contrato-atualizar-id')?.value || null;
 }
 
 async function tentarOutraFotoConfiguracao() {
@@ -1340,6 +1384,10 @@ async function depoisDeSalvarUpload(docId, p) {
         } catch (err) {
             mostrarToast('Salvo; equipe não avisada: ' + err.message, 'aviso');
         }
+    }
+    if (p.atualizarContratoId && typeof window.abrirNovoContratoDoDocumento === 'function') { // v2.43.0 (25856a66)
+        window.abrirNovoContratoDoDocumento({ contratoId: p.atualizarContratoId, ativoId: p.ativoId, dados: p.dadosContrato, documentoId: docId, aoTerminar: p.cfg ? () => avisarConfig(p.cfg, {}) : null });
+        return;
     }
     if (p.criarContrato && typeof window.abrirNovoContratoDoDocumento === 'function') {
         window.abrirNovoContratoDoDocumento({ ativoId: p.ativoId, dados: p.dadosContrato, documentoId: docId, aoTerminar: p.cfg ? () => avisarConfig(p.cfg, {}) : null });
@@ -1881,7 +1929,8 @@ export async function salvarConfirmacaoUpload() {
     // v2.26.0 (D2) — contrato que vai virar contrato não ganha item de vencimento próprio (o contrato
     // tem os dele); documento mandado para a equipe também não (a leitura é incerta).
     const criarContrato = !up.pedirEquipe && escolheuCriarContrato();
-    const controlar = g('uc-controlar').checked && !g('uc-controlar').disabled && !criarContrato && !up.pedirEquipe;
+    const atualizarContratoId = !up.pedirEquipe ? escolheuAtualizarContrato() : null; // v2.43.0 (25856a66)
+    const controlar = g('uc-controlar').checked && !g('uc-controlar').disabled && !criarContrato && !atualizarContratoId && !up.pedirEquipe;
     if (!nome) return marcarErroConfirmacao('Informe o nome de exibição.');
     if (!categoriaId) return marcarErroConfirmacao('Selecione uma categoria.');
     g('uc-ctl-data-fim').value = g('uc-validade').value || g('uc-ctl-data-fim').value || '';
@@ -2030,8 +2079,8 @@ export async function salvarConfirmacaoUpload() {
     // v2.26.0 (D2) — o que acontece depois de salvar, capturado antes de `up = null`.
     const posSalvar = {
         cfg: up.config || null, extracaoId: up.extracaoId || null, pedirEquipe: !!up.pedirEquipe, nome,
-        criarContrato, ativoId: up.vinculo?.tipo === 'ativo' ? up.vinculo.id : null,
-        dadosContrato: criarContrato ? { ...(up.motor?.campos || {}), ...dadosEstruturados, partes: up.motor?.partes || up.motor?.campos?.partes || [] } : null,
+        criarContrato, atualizarContratoId, ativoId: up.vinculo?.tipo === 'ativo' ? up.vinculo.id : null,
+        dadosContrato: (criarContrato || atualizarContratoId) ? { ...(up.motor?.campos || {}), ...dadosEstruturados, partes: up.motor?.partes || up.motor?.campos?.partes || [] } : null,
     };
     esquecerLeituraPendente(); // v2.28.0 (U2)
     up = null;
