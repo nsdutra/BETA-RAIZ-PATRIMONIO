@@ -1,6 +1,13 @@
 // ============================================================================
 // comum-pessoas.js — Raiz Patrimônio · Administração compartilhada
-// Versão: 1.217.0 · 23/10/2026
+// Versão: 1.218.0 · 25/11/2026
+//
+// v1.218.0 (25/11/2026, sessão 20261125-2330-notificacoes-icones, demanda 4fa77b06; achado do Nicola 25/11 23:28: "na Maia Dutra
+// não consigo configurar a mim pra receber msg diariamente" e "os itens mudam") — Minhas notificações e Pessoas › avisos:
+// buscarProativasDisponiveis lia plano_funcionalidade INTEIRA (1.832 linhas) e o servidor devolve no máximo 1.000, em ordem
+// qualquer — cada empresa via um pedaço diferente da lista (na Maia Dutra, só os 3 alertas de cartão; sumia o resumo da
+// carteira, que é o que tem a frequência Diário). Agora lê as licenças primeiro e só as linhas dos planos vigentes da empresa.
+// Versão anterior: 1.217.0.
 //
 // v1.217.0 (23/10/2026, sessão 20261023-0910-isolamento, demanda a4935151; de acordo do Nicola 23/10 09:09) — criar, editar
 // e excluir pessoa passam a avisar o resto do app pelo raiz-eventos.js (entidade 'pessoa'). Quem guarda lista de pessoas
@@ -23,16 +30,11 @@
 // v1.214.0 (14/10/2026, sessão 20261014-2215-ajustes-9d, demanda a05ad2ee; teste do Nicola 14/10 22:12 — "no menu ativos achei
 // uns itens ainda grandinhos") — textos dentro de condição (sub/titulo com ? :) e dicionários de descrição também no limite
 // da D6 (ação 24, descrição 28). Nada de comportamento mudou.
-// Versão anterior: 1.213.0 · 14/10/2026
-//
-// v1.213.0 (14/10/2026, sessão 20261014-2145-onda9c-textos, demanda a05ad2ee; onda 9c do estudo PROTOTIPO_UX_DENSIDADE_RAMOS_RAIZ
-// v1.2.0, D6 seção 10) — textos no limite: ação até 24 caracteres, descrição até 28, aviso até 40 com o resultado e tela
-// vazia em 1 frase de até 40. A explicação longa fica na confirmação, quando existe. Nada de comportamento mudou.
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.212.0 … v1.212.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.213.0 … v1.213.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '1.217.0'; // v-check (18/09/2026): lido por Dev › Versões — manter igual ao header
+export const VERSAO = '1.218.0'; // v-check (18/09/2026): lido por Dev › Versões — manter igual ao header
 import { perguntar, avisarComDesfazer } from './cofre-ui.js'; // v1.203.0 (F0.2b) — sem diálogo nativo
 import { buscarContas, contasListaHtml, abrirFichaConta, abrirAcoesConta } from './comum-minha-empresa.js'; // v1.204.0 — contas da pessoa (P4a)
 import { rzMostrarBloqueio as rzBloqueio } from './comum-licenca.js'; // v1.204.0
@@ -117,15 +119,20 @@ async function buscarModulosPorPerfil(dbAuth) {
 export async function buscarProativasDisponiveis(dbAuth, clienteId) {
     try {
         const agora = new Date().toISOString();
-        const [r1, r2, r3, r4, r5, r6] = await Promise.all([
-            dbAuth.from('licencas').select('plano_codigo, data_expiracao').eq('cliente_id', clienteId).eq('status', 'ativo'),
-            dbAuth.from('plano_funcionalidade').select('plano_codigo, funcionalidade_codigo'),
+        // v1.218.0 — licenças primeiro: plano_funcionalidade inteira passa de 1.000 linhas e vinha cortada
+        const r1 = await dbAuth.from('licencas').select('plano_codigo, data_expiracao').eq('cliente_id', clienteId).eq('status', 'ativo');
+        if (r1.error) throw r1.error;
+        const planosDaEmpresa = [...new Set((r1.data || []).filter(l => !l.data_expiracao || l.data_expiracao > agora).map(l => l.plano_codigo))];
+        const [r2, r3, r4, r5, r6] = await Promise.all([
+            planosDaEmpresa.length
+                ? dbAuth.from('plano_funcionalidade').select('plano_codigo, funcionalidade_codigo').in('plano_codigo', planosDaEmpresa)
+                : Promise.resolve({ data: [], error: null }),
             dbAuth.from('funcionalidades').select('codigo, descricao, area, tipo').eq('ativo', true),
             dbAuth.from('alerta_tipos').select('funcionalidade_codigo, tema').eq('ativo', true),
             dbAuth.from('aviso_temas').select('codigo, nome, ordem, controle_empresa'),
             dbAuth.rpc('fn_empresa_temas_listar', { p_cliente_id: clienteId }),
         ]);
-        const erro = [r1, r2, r3, r4, r5].find(r => r.error);
+        const erro = [r2, r3, r4, r5].find(r => r.error);
         if (erro) throw erro.error;
 
         // Só licenças vigentes (sem data de expiração, ou expirando no futuro).
