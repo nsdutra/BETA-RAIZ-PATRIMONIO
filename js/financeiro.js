@@ -1,7 +1,12 @@
 // ============================================================================
 // financeiro.js — Raiz Patrimônio · Financeiro (Recebimentos · Atrasados · Saídas
 //                  · conciliação de extrato · recibo · detalhe do recebimento)
-// Versão: 1.108.1 · 26/11/2026
+// Versão: 1.108.2 · 26/11/2026
+//
+// v1.108.2 (26/11/2026, sessão 20261126-0945-grants-estorno, demanda 08dd8ec3; achado no Glenio 03/2026, de acordo do Nicola 09:41)
+// — Estornar tira do recebimento as notas automáticas da conciliação ("Conciliado automaticamente…", "Ligado ao extrato…"); as
+// notas do usuário ficam. A data já voltava ao vencimento. O Desfazer da linha do extrato (banco, fn_extrato_estornar_vinculo)
+// passou a fazer o mesmo e a devolver o vencimento. Versão anterior: 1.108.1.
 //
 // v1.108.1 (26/11/2026, sessão 20261126-0855-selo-extrato, demanda 08dd8ec3; print do Nicola 08:46) — o selo "✨ N% extrato" da linha
 // ocupava a largura toda (ícone em cima, texto embaixo): ficava dentro do <span> da linha e herdava display:block. Agora é <em>,
@@ -26,20 +31,11 @@
 // v1.0.0, item A; de acordo do Nicola 25/11 21:35) — no olhar do investimento, a linha do movimento (aporte, resgate, provento,
 // taxa) abre a ficha do movimento do js/investimentos.js (abrirMovimento) e não mais a ação de despesa ou de receita avulsa, que
 // não acertava o valor da aplicação. O Financeiro de aluguel e dos demais contratos segue igual.
-//
-// v1.105.0 (25/11/2026, sessão 20261125-1954-investimentos-i1-2, demanda 09dff31b; PLANO_EXECUCAO_I1_2_APLICACAO_FINANCEIRO_RAIZ
-// v1.1.0, itens D e E, e PROTOTIPO_INVESTIMENTOS_FINANCEIRO_INDICADORES_RAIZ v1.2.0; de acordo do Nicola 25/11 12:43, 13:40 e 19:54)
-// — o card Financeiro de contrato e de ativo (rzFinCompetencias) ganha o "olhar do investimento" (escopo.investimento): as colunas
-// mostram o ganho do mês que o js/investimentos.js calcula (window.__rzFinInvest[id].serie), aplicação e resgate não contam como
-// resultado, o resumo vira Aplicado · Resgatado · Rendimentos pagos · Impostos e taxas, o resgate e o provento aparecem numa linha
-// só com o líquido e o IR (mesmo origem_id) e o filtro do gráfico (ano ou mês) é avisado ao card Indicadores (aoFiltrar). Novos:
-// rzFinRedesenhar(id) e rzRegistrarMovimento({ contratoId, ativoId, modelo }) — o botão único "Registrar movimento" de todo card
-// Financeiro (recebimento e despesa; na aplicação, os movimentos dela). O aluguel e o ativo comuns não mudam de desenho.
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.104.0 … v1.104.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.105.0 … v1.105.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '1.108.1'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.108.2'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 
 // v1.17.0 (Fase 1 do wrapper de escrita, rollout Financeiro) — emitirEscrita
 // é o evento padrão pra "algo mudou que módulos DE FORA deste arquivo podem
@@ -3103,6 +3099,10 @@ function financeiroRenderCabecalho(aba) {
 
                 mensalidades[idx].chaveTransacaoOrigem = '';
                 mensalidades[idx].multaEncargos = null; // v1.29.0 (RF-05) — estorno zera a multa da baixa
+                // v1.108.2 (08dd8ec3) — tira as notas automáticas da conciliação ("Conciliado…", "Ligado ao extrato…", "Extrato …");
+                // notas do usuário ficam. O banco faz o mesmo no Desfazer da linha do extrato (fn_extrato_estornar_vinculo).
+                mensalidades[idx].observacao = String(mensalidades[idx].observacao || '').split(' · ')
+                    .filter(t => t && !/^(Conciliado|Ligado ao extrato|Extrato )/.test(t)).join(' · ');
 
                 const con = contratos.find(c => c.id === mensalidades[idx].contratoId);
 
