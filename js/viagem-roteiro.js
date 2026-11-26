@@ -1,6 +1,13 @@
 // ============================================================================
 // viagem-roteiro.js — Raiz Patrimônio · Roteiro da viagem (programa com tipos de ciclo)
-// Versão: 1.4.0 · 25/11/2026
+// Versão: 1.5.0 · 26/11/2026
+//
+// v1.5.0 (26/11/2026, sessão 20261126-1015-viagem-2b3, demanda d8061e47; FICHA_PROGRAMA_VIAGEM_FATIA2B3 v1.1.0, de acordo do
+// Nicola 26/11 10:15) — a viagem abre direto no roteiro (abrirViagem: cabeçalho com tipo, datas, pago/a pagar, quem vai e etapas;
+// abas das outras viagens; "+ No roteiro" e "Mais"); formulário único para criar e editar (folhaItem → fn_roteiro_salvar: nome,
+// categoria, dia, hora, até, descrição, valor, etapa) — tocar numa entrada abre o formulário preenchido e salvar atualiza na hora;
+// "Quem vai" (folhaQuemVai → fn_ciclo_viajantes_salvar): pessoa da família ou de fora, toda a viagem ou só alguns trechos; o trecho
+// mostra quem está só nele. Versão anterior: 1.4.0
 //
 // v1.4.0 (25/11/2026, sessão 20261125-2326-viagem-roteiro-ux, demanda d8061e47; de acordo do Nicola 25/11 23:26) — item com data e
 // sem hora já aparece no dia (regra do banco, fn_ciclo_roteiro) como "Dia todo"; "A encaixar" vem aberta quando há algo que a
@@ -19,15 +26,12 @@
 //
 // v1.1.0 (25/11/2026, sessão 20261125-0042-viagem-lista, demanda d8061e47; de acordo do Nicola 25/11 00:42) — "A encaixar" vira
 // uma linha que abre no toque (fechada ao abrir o roteiro), para os dias aparecerem logo no começo. Versão anterior: 1.0.0
-//
-// v1.0.0 (25/11/2026, sessão 20261125-0021-viagem-roteiro, demanda d8061e47; FICHA_PROGRAMA_VIAGEM_FATIA2B v1.0.0, de acordo
-// do Nicola 25/11 00:21) — criação. Tela Roteiro: trechos › dias › o que está marcado no dia (fn_ciclo_roteiro), a bandeja
-// "A encaixar" (registro aberto sem dia) e "Outros dias" (fora dos trechos). Encaixar marca dia e hora num registro do item ou
-// inclui mais um no mesmo item — 2º hotel, voo de volta (fn_roteiro_encaixar). "Editar trechos" grava a lista inteira de uma
-// vez (fn_ciclo_trechos_salvar). O dia em que se muda de cidade é do trecho que começa nele (regra do banco). As regras são do
-// banco; aqui só se monta, colhe e manda. Aberto por cofre-controles.js (botão "Roteiro" e ⋮ do trecho).
-// ============================================================================
-export const VERSAO = '1.4.0';
+// --------------------------------------------------------------------------
+// Versões anteriores (v1.0.0 … v1.0.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
+// mais recentes deste cabeçalho (VER-06).
+export const VERSAO = '1.5.0';
+import { estado } from './cofre-estado.js';
 import * as api from './cofre-api.js';
 
 const esc = (v) => String(v ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -62,6 +66,7 @@ function novidadeNaBandeja(cicloId, enc) {
 
 /** Abre o roteiro da viagem. ctx: { cicloId, abrirItem(itemId) } */
 export async function abrirRoteiro(c) {
+    if (!c && typeof ctx?.recarregar === 'function') return ctx.recarregar(); // v1.5.0 — dentro da viagem, recarrega a viagem
     if (c) bandejaAberta = null; // abertura nova: decide pela novidade (v1.4.0)
     aposEncaixe = null;
     ctx = c || ctx; if (!ctx?.cicloId) return;
@@ -76,15 +81,15 @@ export async function abrirRoteiro(c) {
         + '<button type="button" class="rz-btn rz-btn-3" data-rt-compartilhar>Compartilhar</button></div>'); // v1.3.0
     icones();
     const fechado = C.situacao === 'fechado';
-    sheet.querySelectorAll('[data-rt-oc]').forEach(b => b.addEventListener('click', () => acoesEntrada(r, b.dataset.rtOc, fechado)));
-    sheet.querySelector('[data-rt-bandeja]')?.addEventListener('click', (ev) => {
+    ligarCorpo(sheet, r, fechado);
+    sheet.querySelector('[data-rt-bandeja-x]')?.addEventListener('click', (ev) => {
         bandejaAberta = !bandejaAberta; const b = ev.currentTarget;
         b.setAttribute('aria-expanded', String(bandejaAberta));
         sheet.querySelector('[data-rt-bandeja-lista]')?.classList.toggle('hidden', !bandejaAberta);
         const ic = b.querySelector('[data-lucide^="chevron"], svg.lucide-chevron-down, svg.lucide-chevron-up');
         if (ic) { const n = document.createElement('i'); n.setAttribute('data-lucide', bandejaAberta ? 'chevron-up' : 'chevron-down'); ic.replaceWith(n); icones(); }
     });
-    sheet.querySelector('[data-rt-novo]')?.addEventListener('click', () => escolherItem(r));
+    sheet.querySelector('[data-rt-novo]')?.addEventListener('click', () => folhaItem(r, null)); // v1.5.0 — formulário único
     sheet.querySelector('[data-rt-compartilhar]')?.addEventListener('click', () => import('./viagem-compartilhar.js').then(m => m.compartilharViagem({ cicloId: ctx.cicloId }))); // v1.3.0
     sheet.querySelector('[data-rt-trechos]')?.addEventListener('click', () => abrirEditarTrechos({ cicloId: ctx.cicloId, roteiro: r }));
 }
@@ -121,7 +126,8 @@ function corpoHtml(r) {
         <div class="rz-list" style="padding:0">${bandejaAgrupada(enc).map(linhaBandeja).join('')}</div></div>`;
     (r.trechos || []).forEach(t => {
         const ult = (t.dias || []).length ? t.dias[t.dias.length - 1].data : t.fim;
-        h += `<div class="rz-group rz-group-t" style="margin-top:14px"><span>${esc(t.nome)} · ${dm(t.inicio)} a ${dm(ult)}</span></div>`
+        const so = (r.viajantes || []).filter(v => !v.toda && (v.trechos || []).includes(t.id)).map(v => String(v.nome || '').split(' ')[0]); // v1.5.0
+        h += `<div class="rz-group rz-group-t" style="margin-top:14px"><span>${esc(t.nome)} · ${dm(t.inicio)} a ${dm(ult)}${so.length ? ' · + ' + esc(so.join(', ')) : ''}</span></div>`
             + ((t.dias || []).length ? t.dias.map(diaHtml).join('') : '<p class="rz-hint">Os dias deste trecho ficaram com o trecho seguinte.</p>');
     });
     const sem = r.dias_sem_trecho || [], fora = r.fora_dos_trechos || [];
@@ -338,4 +344,189 @@ export async function abrirEditarTrechos(c) {
     const ligar = () => { raiz.querySelectorAll('[data-t-tirar]').forEach(b => { b.onclick = () => b.closest('.rz-rt-trecho')?.remove(); }); icones(); };
     raiz.querySelector('[data-t-add]')?.addEventListener('click', () => { raiz.querySelector('[data-t-lista]')?.insertAdjacentHTML('beforeend', linha()); ligar(); });
     ligar();
+}
+
+// ---------------------------------------------------------------------------------------------------------------------------
+// v1.5.0 — viagem = roteiro; formulário único; quem vai
+// ---------------------------------------------------------------------------------------------------------------------------
+const CATS = [['deslocamento', 'Voo e deslocamento', 'viagem_deslocamento'], ['hospedagem', 'Hospedagem', 'viagem_hospedagem'],
+    ['transporte', 'Carro e transporte', 'viagem_locomocao'], ['atracao', 'Ingresso e atração', 'viagem_atracao'],
+    ['alimentacao', 'Restaurante', 'viagem_alimentacao'], ['lugar', 'Lugar', 'viagem_lugar'], ['outro', 'Outro', 'evento_viagem']];
+const NOME_VAR = { terrestre: 'Terrestre', aerea: 'Aérea nacional', internacional: 'Internacional' };
+const primeiro = (n) => String(n || '').split(' ')[0];
+
+function ligarCorpo(sheet, r, fechado) {
+    sheet.querySelectorAll('[data-rt-oc]').forEach(b => b.addEventListener('click', () => tocarEntrada(r, b.dataset.rtOc, fechado)));
+    sheet.querySelector('[data-rt-bandeja]')?.addEventListener('click', (ev) => {
+        bandejaAberta = !bandejaAberta; const b = ev.currentTarget;
+        b.setAttribute('aria-expanded', String(bandejaAberta));
+        sheet.querySelector('[data-rt-bandeja-lista]')?.classList.toggle('hidden', !bandejaAberta);
+        const ic = b.querySelector('[data-lucide^="chevron"], svg.lucide-chevron-down, svg.lucide-chevron-up');
+        if (ic) { const n = document.createElement('i'); n.setAttribute('data-lucide', bandejaAberta ? 'chevron-up' : 'chevron-down'); ic.replaceWith(n); icones(); }
+    });
+}
+function tocarEntrada(r, ocId, fechado) {
+    const e = achar(r, ocId); if (!e) return;
+    if (!fechado && r.pode_encaixar && e.status === 'aberto') folhaItem(r, e); else acoesEntrada(r, ocId, fechado);
+}
+function quemVaiResumo(r) {
+    const vs = r.viajantes || []; if (!vs.length) return '';
+    const nomeTrecho = (id) => (r.trechos || []).find(t => t.id === id)?.nome || '';
+    return vs.map(v => primeiro(v.nome) + (v.toda ? '' : ' (só ' + (v.trechos || []).map(nomeTrecho).filter(Boolean).join(', ') + ')')).join(', ');
+}
+
+/** A viagem aberta já no roteiro. o: { d, abrirItem(id), recarregar(), abrirCiclo(id), novaViagem(), corrigir(), verLista() } */
+export async function abrirViagem(o) {
+    const d = o.d, P = d.programa, C0 = d.ciclo;
+    if (!ctx || ctx.cicloId !== C0.id) bandejaAberta = null;
+    ctx = { cicloId: C0.id, abrirItem: o.abrirItem, recarregar: o.recarregar };
+    aposEncaixe = null;
+    const r = await ler(); if (!r) return;
+    if (!r.pode_ver) { aviso('Seu perfil não vê esta viagem.', 'erro'); return; }
+    if (bandejaAberta === null) bandejaAberta = novidadeNaBandeja(C0.id, r.a_encaixar || []);
+    const abrirSheet = g('abrirSheet'), cab = g('rzSheetCabecalho'); if (!abrirSheet || !cab) return;
+    const C = r.ciclo, fechado = C.situacao === 'fechado';
+    const vari = (P.ciclo_config?.variantes || []).find(v => v.codigo === C.variante)?.nome || NOME_VAR[C.variante] || '';
+    const sub = [vari, 'ida ' + dmy(C.inicio), 'volta ' + dmy(C.fim)].filter(Boolean).join(' · ') + (fechado ? ' · fechada' : '');
+    const abas = (d.ciclos || []).length > 1 ? `<div class="rz-chips" style="margin:0 0 10px">${d.ciclos.map(c =>
+        `<button type="button" class="rz-chip ${c.id === C.id ? 'rz-on' : ''}" data-vg-ciclo="${c.id}">${esc(c.nome)}</button>`).join('')}</div>` : '';
+    const custo = d.custo || {};
+    const custoHtml = `<div class="rz-exec-custo"><span><b>${moeda(custo.realizado || 0)}</b> pago</span><span><b>${moeda(custo.a_pagar || 0)}</b> a pagar</span></div>`;
+    const qv = quemVaiResumo(r);
+    const quem = `<button type="button" class="rz-row" data-vg-quem style="width:100%;text-align:left"><div class="rz-ic"><i data-lucide="users"></i></div>
+        <div class="rz-tx"><b>Quem vai</b><span>${esc(qv || (fechado ? 'Ninguém na lista' : 'Ninguém ainda · toque para incluir'))}</span></div><i data-lucide="chevron-right"></i></button>`;
+    const cont = (d.itens || []).filter(i => i.etapa_nome).reduce((m, i) => (m.set(i.etapa_nome, (m.get(i.etapa_nome) || 0) + 1), m), new Map());
+    const etapas = cont.size ? `<p class="rz-hint" style="margin:6px 0 0">${esc([...cont].map(([k, n]) => k + ' ' + n).join(' · '))}</p>` : '';
+    const sheet = abrirSheet(cab(P.nome + ' · ' + C.nome, sub) + `<div class="rz-sh-b">${abas}${custoHtml}${quem}${etapas}<div style="margin-top:8px">${corpoHtml(r)}</div></div>`
+        + `<div class="rz-sh-f rz-exec-acoes">${!fechado && r.pode_encaixar ? '<button type="button" class="rz-btn rz-btn-1" data-vg-novo>+ No roteiro</button>' : ''}`
+        + '<button type="button" class="rz-btn rz-btn-3" data-vg-mais>Mais</button></div>');
+    icones();
+    ligarCorpo(sheet, r, fechado);
+    sheet.querySelectorAll('[data-vg-ciclo]').forEach(b => b.addEventListener('click', () => o.abrirCiclo?.(b.dataset.vgCiclo)));
+    sheet.querySelector('[data-vg-novo]')?.addEventListener('click', () => folhaItem(r, null));
+    sheet.querySelector('[data-vg-quem]')?.addEventListener('click', () => { if (!fechado && r.pode_gerir) folhaQuemVai(r); });
+    sheet.querySelector('[data-vg-mais]')?.addEventListener('click', () => g('abrirSheetAcoes')?.({ titulo: C.nome, sub: P.nome, empilhar: true, acoes: [
+        ...(!fechado && r.pode_gerir ? [{ icone: 'route', titulo: 'Editar trechos', codigo: 'ciclos.gerir', sub: 'Nome e datas, incluir ou tirar', aoTocar: () => abrirEditarTrechos({ cicloId: C.id, roteiro: r }) },
+            { icone: 'users', titulo: 'Quem vai', codigo: 'ciclos.gerir', sub: 'Toda a viagem ou só alguns trechos', aoTocar: () => folhaQuemVai(r) }] : []),
+        { icone: 'share-2', titulo: 'Compartilhar', codigo: 'ciclos.ver', sub: 'Escolher dados e documentos e mandar', aoTocar: () => import('./viagem-compartilhar.js').then(m => m.compartilharViagem({ cicloId: C.id })) },
+        ...(!fechado && r.pode_incluir ? [{ icone: 'ticket', titulo: '+ Passe de vários dias', codigo: 'cofre.controles.criar', sub: 'Ingresso com janela e dias de uso', aoTocar: () => folhaIncluir(r, 'passe') }] : []),
+        ...(o.novaViagem ? [{ icone: 'plus', titulo: '+ Nova viagem', codigo: 'ciclos.gerir', aoTocar: o.novaViagem }] : []),
+        ...(o.corrigir ? [{ icone: 'pencil', titulo: 'Corrigir ' + C.nome, codigo: 'ciclos.gerir', sub: 'Datas, nome, fechar ou excluir', aoTocar: o.corrigir }] : []),
+        ...(o.verLista ? [{ icone: 'list', titulo: 'Ver como lista', codigo: 'ciclos.ver', sub: 'Itens da viagem em lista', aoTocar: o.verLista }] : []),
+    ] }));
+}
+
+/** Formulário único: criar (e = null) ou editar uma entrada do roteiro. */
+export function folhaItem(r, e) {
+    const C = r.ciclo, novo = !e;
+    const p = e ? partes(e.inicio_em) : { data: '', hora: '' }, pf = e ? partes(e.fim_em) : { data: '', hora: '' };
+    const dataIni = p.data || (e && e.data_prevista && e.data_prevista !== C.inicio ? e.data_prevista : '');
+    let cat = e ? (CATS.find(c => c[2] === e.sub)?.[0] || null) : null;
+    const etapaIni = e?.etapa || null; let etapa = etapaIni;
+    const jan = e && e.dias_total > 1 && e.janela_fim ? ` min="${esc(e.janela_inicio)}" max="${esc(e.janela_fim)}"` : '';
+    const chipsCat = CATS.map(([k, n]) => `<button type="button" class="rz-chip${k === cat ? ' rz-on' : ''}" data-fi-cat="${k}">${esc(n)}</button>`).join('');
+    const sheet = g('abrirSheetForm')?.({
+        titulo: novo ? 'No roteiro' : (e.titulo || 'Editar'), sub: C.nome, rotuloSalvar: 'Salvar', empilhar: true,
+        corpo: `<div class="rz-f"><label for="fi-nome">Nome</label><input type="text" id="fi-nome" maxlength="80" value="${esc(e?.titulo || '')}" placeholder="Ex.: Show do Seinfeld, Hotel Araxá, voo de ida"></div>
+            <div class="rz-f"><label>Categoria</label><div class="rz-chips" data-fi-cats>${chipsCat}</div></div>
+            <div class="rz-row" style="gap:8px"><div class="rz-f" style="flex:1"><label for="fi-dia">Dia</label><input type="date" id="fi-dia" value="${esc(dataIni)}"${jan || ` min="${esc(C.inicio)}" max="${esc(C.fim)}"`}></div>
+                <div class="rz-f" style="flex:1"><label for="fi-hora">Hora / saída</label><input type="time" id="fi-hora" value="${esc(p.hora)}"></div></div>
+            <div class="rz-row" style="gap:8px"><div class="rz-f" style="flex:1"><label for="fi-ate">Até (opcional)</label><input type="date" id="fi-ate" value="${esc(pf.data)}"></div>
+                <div class="rz-f" style="flex:1"><label for="fi-ate-h">Hora / chegada</label><input type="time" id="fi-ate-h" value="${esc(pf.hora)}"></div></div>
+            <span class="rz-hint">Sem dia, fica em "A encaixar". Ex.: voo 29/11 21:45 até 30/11 06:10; check-in 23/12 14:00 até 27/12 11:00.</span>
+            <div class="rz-f"><label for="fi-desc">Descrição</label><input type="text" id="fi-desc" maxlength="120" value="${esc(e?.descricao || '')}" placeholder="Nº do voo, reserva, endereço"></div>
+            <div class="rz-f"><label for="fi-valor">Valor (opcional)</label><input type="text" inputmode="decimal" id="fi-valor" value="${e?.valor ? esc(String(e.valor).replace('.', ',')) : ''}" placeholder="0,00"></div>
+            <div class="rz-f"><label>Etapa</label><div class="rz-chips" data-fi-etapas></div></div>`
+            + (novo ? '' : `<div class="rz-chips" style="margin-top:10px">
+                <button type="button" class="rz-btn rz-btn-3" data-fi-abrir>Documentos e pagamento</button>
+                <button type="button" class="rz-btn rz-btn-3" data-fi-mais>Mais um em ${esc(e.titulo)}</button></div>`),
+        aoSalvar: async (el) => {
+            const v = (q) => (el.querySelector(q)?.value || '').trim();
+            const nome = v('#fi-nome'); if (!nome) { aviso('Dê um nome.', 'erro'); return false; }
+            if (novo && !cat) { aviso('Escolha a categoria.', 'erro'); return false; }
+            const dia = v('#fi-dia'), hora = v('#fi-hora'); let ate = v('#fi-ate'); const ateH = v('#fi-ate-h');
+            if ((hora || ate || ateH) && !dia) { aviso('Informe o dia.', 'erro'); return false; }
+            if (ateH && !ate) ate = dia;
+            if (jan && dia && (dia < e.janela_inicio || dia > e.janela_fim)) { aviso(`O passe vale de ${dm(e.janela_inicio)} a ${dm(e.janela_fim)}.`, 'erro'); return false; }
+            const valorTxt = v('#fi-valor').replace(/\./g, '').replace(',', '.'); const valor = valorTxt ? Number(valorTxt) : null;
+            if (valorTxt && (isNaN(valor) || valor < 0)) { aviso('Valor inválido.', 'erro'); return false; }
+            const catOrig = e ? (CATS.find(c => c[2] === e.sub)?.[0] || null) : null;
+            const { data, error } = await api.dbAuth.rpc('fn_roteiro_salvar', { p_ciclo_id: C.id, p_item_id: e?.item_id || null, p_ocorrencia_id: e?.ocorrencia_id || null,
+                p_categoria: cat && cat !== catOrig ? cat : (novo ? cat : null), p_titulo: nome, p_inicio_em: dia ? ts(dia, hora) : null,
+                p_fim_em: ate ? ts(ate, ateH) : null, p_descricao: v('#fi-desc'), p_valor: valor, p_etapa: etapa && etapa !== etapaIni ? etapa : null, p_canal: 'app' });
+            if (error) { aviso(error.message || 'Não foi possível salvar.', 'erro'); return false; }
+            aviso(data?.mensagem || 'Salvo.', 'sucesso');
+            setTimeout(() => abrirRoteiro(), 0);
+            return true;
+        },
+    });
+    const raiz = sheet || document;
+    const desenharEtapas = () => {
+        const fl = cat === 'lugar' ? 'lugar' : 'reserva_viagem';
+        const lst = (r.etapas || {})[fl] || [];
+        if (etapa && !lst.some(x => x.codigo === etapa)) etapa = null;
+        const box = raiz.querySelector('[data-fi-etapas]'); if (!box) return;
+        box.innerHTML = lst.map(x => `<button type="button" class="rz-chip${x.codigo === (etapa || lst[0]?.codigo) ? ' rz-on' : ''}" data-fi-et="${x.codigo}">${esc(x.nome)}</button>`).join('');
+        box.querySelectorAll('[data-fi-et]').forEach(b => b.addEventListener('click', () => { etapa = b.dataset.fiEt; desenharEtapas(); }));
+    };
+    raiz.querySelectorAll('[data-fi-cat]').forEach(b => b.addEventListener('click', () => {
+        cat = b.dataset.fiCat; raiz.querySelectorAll('[data-fi-cat]').forEach(x => x.classList.toggle('rz-on', x === b)); desenharEtapas(); }));
+    desenharEtapas();
+    raiz.querySelector('[data-fi-abrir]')?.addEventListener('click', () => { g('fecharSheet')?.(); ctx?.abrirItem?.(e.item_id); });
+    raiz.querySelector('[data-fi-mais]')?.addEventListener('click', () => { g('fecharSheet')?.(); setTimeout(() => folhaEncaixar(r, { item_id: e.item_id, titulo: e.titulo }, true), 0); });
+}
+
+/** Quem vai: família (vidas) e pessoas de fora; toda a viagem ou só alguns trechos. */
+export async function folhaQuemVai(r) {
+    const C = r.ciclo, trechos = r.trechos || [];
+    let vidas = [];
+    try {
+        const { data } = await api.dbAuth.from('cofre_ativos').select('id, nome_exibicao').eq('cliente_id', estado.clienteId)
+            .eq('tipo_ativo', 'vida').eq('status', 'ativo').order('nome_exibicao');
+        vidas = data || [];
+    } catch (err) { vidas = []; }
+    const atual = new Map((r.viajantes || []).map(v => [v.ativo_id || 'p:' + v.parte_id, v]));
+    const linha = (chave, nome, sub, extra = '') => {
+        const v = atual.get(chave), on = !!v || extra === 'novo';
+        const tchips = trechos.length > 1 ? `<div class="rz-chips" data-qv-trechos style="margin:4px 0 0 30px${on ? '' : ';display:none'}">${trechos.map(t =>
+            `<button type="button" class="rz-chip${v && !v.toda && (v.trechos || []).includes(t.id) ? ' rz-on' : ''}" data-qv-t="${t.id}">${esc(t.nome)}</button>`).join('')}</div>` : '';
+        return `<div class="rz-qv" data-qv="${esc(chave)}" style="padding:6px 0;border-bottom:1px solid var(--line)">
+            <label style="display:flex;gap:10px;align-items:center;cursor:pointer"><input type="checkbox" data-qv-on ${on ? 'checked' : ''}>
+            <span><b>${esc(nome)}</b>${sub ? `<br><span class="rz-hint">${esc(sub)}</span>` : ''}</span></label>${extra === 'novo' ? `
+            <div class="rz-row" style="gap:6px;margin:4px 0 0 30px"><input type="text" data-qv-nome maxlength="80" placeholder="Nome" style="flex:2">
+            <input type="tel" data-qv-zap maxlength="20" placeholder="WhatsApp (opcional)" style="flex:1.4"></div>` : ''}${tchips}</div>`;
+    };
+    const externos = (r.viajantes || []).filter(v => v.parte_id);
+    const corpo = `<p class="rz-hint" style="margin:0 0 6px">${trechos.length > 1 ? 'Sem trecho marcado, a pessoa vai na viagem toda.' : 'Marque quem vai.'}</p>
+        <div data-qv-lista>${vidas.map(a => linha(a.id, a.nome_exibicao, 'Da família')).join('')}
+        ${externos.map(v => linha('p:' + v.parte_id, v.nome, 'De fora' + (v.whatsapp ? ' · ' + v.whatsapp : ''))).join('')}</div>
+        <button type="button" class="rz-btn rz-btn-3" data-qv-add style="margin-top:8px">+ Pessoa de fora</button>`;
+    const sheet = g('abrirSheetForm')?.({ titulo: 'Quem vai', sub: C.nome, rotuloSalvar: 'Salvar', empilhar: true, corpo,
+        aoSalvar: async (el) => {
+            const lista = [];
+            for (const row of el.querySelectorAll('[data-qv]')) {
+                if (!row.querySelector('[data-qv-on]')?.checked) continue;
+                const chave = row.dataset.qv, ts2 = [...row.querySelectorAll('[data-qv-t].rz-on')].map(b => b.dataset.qvT);
+                const item = { trechos: ts2.length && ts2.length < trechos.length ? ts2 : null };
+                if (chave === 'novo') { const nome = (row.querySelector('[data-qv-nome]')?.value || '').trim(); if (!nome) continue;
+                    item.nome = nome; item.whatsapp = (row.querySelector('[data-qv-zap]')?.value || '').trim() || null; }
+                else if (chave.startsWith('p:')) item.parte_id = chave.slice(2); else item.ativo_id = chave;
+                lista.push(item);
+            }
+            const { data, error } = await api.dbAuth.rpc('fn_ciclo_viajantes_salvar', { p_ciclo_id: C.id, p_viajantes: lista, p_canal: 'app' });
+            if (error) { aviso(error.message || 'Não foi possível salvar.', 'erro'); return false; }
+            aviso(data?.mensagem || 'Salvo.', 'sucesso');
+            setTimeout(() => abrirRoteiro(), 0);
+            return true;
+        } });
+    const raiz = sheet || document;
+    const ligar = (row) => {
+        row.querySelector('[data-qv-on]')?.addEventListener('change', (ev) => { const t = row.querySelector('[data-qv-trechos]'); if (t) t.style.display = ev.target.checked ? '' : 'none'; });
+        row.querySelectorAll('[data-qv-t]').forEach(b => b.addEventListener('click', () => b.classList.toggle('rz-on')));
+    };
+    raiz.querySelectorAll('[data-qv]').forEach(ligar);
+    raiz.querySelector('[data-qv-add]')?.addEventListener('click', () => {
+        const box = raiz.querySelector('[data-qv-lista]'); box.insertAdjacentHTML('beforeend', linha('novo', 'Pessoa de fora', 'Não precisa estar no Raiz', 'novo'));
+        ligar(box.lastElementChild); box.lastElementChild.querySelector('[data-qv-nome]')?.focus();
+    });
 }

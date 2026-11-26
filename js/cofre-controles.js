@@ -1,6 +1,11 @@
 // ============================================================================
 // cofre-controles.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.86.0 · 25/11/2026
+// Versão: 1.87.0 · 26/11/2026
+//
+// v1.87.0 (26/11/2026, sessão 20261126-1015-viagem-2b3, demanda d8061e47; FICHA_PROGRAMA_VIAGEM_FATIA2B3 v1.1.0, de acordo do
+// Nicola 26/11 10:15) — viagem (programa com tipos) abre direto no roteiro (abrirViagem da viagem-roteiro.js), com "+ Nova viagem",
+// Corrigir e "Ver como lista" no "Mais"; abrirExecucao(apId, cicloId, { lista: true }) mantém a tela antiga. Safra e obra não mudam.
+// Versão anterior: 1.86.0
 //
 // v1.86.0 (25/11/2026, sessão 20261125-2326-viagem-roteiro-ux, demanda d8061e47; de acordo do Nicola 25/11 23:26) — viagem: tocar
 // num item abre as ações dele (Marcar dia e hora, Etapa, Abrir o item — acoesItemViagem da viagem-roteiro.js); quem abre o item
@@ -19,15 +24,11 @@
 // programa com várias execuções abertas (viagens) mostra uma linha por viagem (nome, tipo, ida a volta, quantos itens e o pior
 // status) em vez dos itens soltos; o toque abre aquela viagem. Itens sem viagem seguem na lista. Lê fn_programa_execucao_resumo
 // → ciclos. Versão anterior: 1.82.0
-//
-// v1.82.0 (25/11/2026, sessão 20261125-0021-viagem-roteiro, demanda d8061e47; FICHA_PROGRAMA_VIAGEM_FATIA2B v1.0.0, de acordo do
-// Nicola 25/11 00:21) — viagem: botão "Roteiro" no rodapé e "Editar trechos" no ⋮ do trecho, os dois em js/viagem-roteiro.js
-// (módulo novo); o trecho mostra "de … a …"; "Itens produzidos" (Comercial) não aparece no trecho da viagem. Versão anterior: 1.81.0
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.81.0 … v1.81.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.82.0 … v1.82.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '1.86.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.87.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 import { estado } from './cofre-estado.js';
 import * as api from './cofre-api.js';
 import { mostrarToast, refrescarIcones, abrirModal, fecharModal, modalGenerico, perguntar, escolher, avisarComDesfazer } from './cofre-ui.js';
@@ -684,11 +685,20 @@ function linhaItemExecHtml(i) {
     return `<div style="display:flex;align-items:center;gap:6px;width:100%">${linha}<button type="button" class="rz-chip${i.etapa === 'pago' || i.etapa === 'reservado' || i.etapa === 'feito' ? ' rz-on' : ''}" data-exec-etapa="${i.id}" style="flex:none;white-space:nowrap">${escapeHtml(i.etapa_nome)}</button></div>`;
 }
 // A tela da execução: as fases (ou etapas) com situação e custo, o custo somado, os itens de agora e as ações.
-export async function abrirExecucao(apId, cicloId = null) {
+export async function abrirExecucao(apId, cicloId = null, opc = {}) {
     if (typeof window.abrirSheet !== 'function') { mostrarToast('Abra pelo app principal.', 'erro'); return; }
     const d = await lerExecucao(apId, cicloId); if (!d) return;
     if (d.por_membro && !d.ciclo) { abrirListaPorMembro(d); return; } // v1.62.0 (fatia 7): programa por animal
     if (d.membro) { abrirExecucaoMembro(d); return; }
+    // v1.87.0 — viagem abre direto no roteiro (a tela de lista fica no "Ver como lista")
+    if (!opc.lista && temVariantes(d) && d.ciclo) {
+        const ci = d.ciclo.id;
+        const abrirItem = (id) => { retornoItem = () => abrirExecucao(apId, ci); window.fecharSheet(); window.fecharSheet(); abrirFichaItemControle(id); };
+        import('./viagem-roteiro.js').then(m => m.abrirViagem({ d, abrirItem, recarregar: () => abrirExecucao(apId, ci), abrirCiclo: (id) => abrirExecucao(apId, id),
+            novaViagem: d.pode_gerir && d.programa.situacao === 'ativo' ? () => abrirFolhaAbrirCiclo(d) : null,
+            corrigir: d.pode_gerir ? () => abrirAcoesCorrigirCiclo(d) : null, verLista: () => abrirExecucao(apId, ci, { lista: true }) }));
+        return;
+    }
     const R = execRot(d), P = d.programa, C = d.ciclo;
     const titulo = P.nome + (C ? ' · ' + C.nome : '');
     const sub = !d.aberta ? (P.tem_etapas ? 'Obra ainda não aberta' : 'Nenhuma ' + R.exec + ' aberta')

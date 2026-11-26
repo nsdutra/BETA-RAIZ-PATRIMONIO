@@ -1,6 +1,9 @@
 // ============================================================================
 // viagem-compartilhar.js — Raiz Patrimônio · Compartilhar dados de uma viagem ou de um item com quem não está no Raiz
-// Versão: 1.0.0 · 25/11/2026
+// Versão: 1.1.0 · 26/11/2026
+//
+// v1.1.0 (26/11/2026, sessão 20261126-1015-viagem-2b3, demanda d8061e47; FICHA_PROGRAMA_VIAGEM_FATIA2B3 v1.1.0) — bloco "Quem vai"
+// (fn_ciclo_roteiro → viajantes), com "(só Araxá)" para quem vai só em alguns trechos. Versão anterior: 1.0.0
 //
 // v1.0.0 (25/11/2026, sessão 20261125-1019-viagem-compartilhar, demanda faf717a1; FICHA_COMPARTILHAR_VIAGEM_RAIZ v1.0.0, de
 // acordo do Nicola 25/11 10:19) — criação. Folha "Compartilhar": a pessoa marca o que vai (datas, cada item com seus registros —
@@ -9,7 +12,7 @@
 // toque). Sem o compartilhar do sistema, copia o texto e baixa os arquivos. Lê fn_ciclo_roteiro (viagem) ou o próprio item
 // (avulso); nada muda no banco. Cancelado e Descartado não entram; lugar em Ideia fica desmarcado.
 // ============================================================================
-export const VERSAO = '1.0.0';
+export const VERSAO = '1.1.0';
 import * as api from './cofre-api.js';
 
 const esc = (v) => String(v ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -69,6 +72,10 @@ export async function compartilharViagem({ cicloId }) {
     (r.a_encaixar || []).forEach(add);
     const blocos = [{ k: 'datas', rotulo: 'Datas', linhas: [{ txt: 'Ida ' + dmy(r.ciclo.inicio) + ' · Volta ' + dmy(r.ciclo.fim) }]
         .concat((r.trechos || []).length > 1 ? r.trechos.map(t => ({ txt: t.nome + ': ' + dmy(t.inicio) + ' a ' + dmy(t.fim) })) : []), on: true }];
+    if ((r.viajantes || []).length) { // v1.1.0
+        const nomeT = (id) => (r.trechos || []).find(t => t.id === id)?.nome || '';
+        blocos.push({ k: 'quem', rotulo: 'Quem vai', on: true, linhas: r.viajantes.map(v => ({ txt: v.nome + (v.toda ? '' : ' (só ' + (v.trechos || []).map(nomeT).filter(Boolean).join(', ') + ')') })) });
+    }
     [...porItem].sort((a, b) => a[1].titulo.localeCompare(b[1].titulo, 'pt-BR')).forEach(([id, it]) => {
         const regs = it.regs.sort((a, b) => String(a.inicio_em || '9').localeCompare(String(b.inicio_em || '9')));
         blocos.push({ k: id, rotulo: it.titulo, linhas: regs.map(linhaRegistro), on: it.etapa !== 'ideia' && regs.some(x => x.inicio_em || x.descricao) });
