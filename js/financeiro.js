@@ -1,7 +1,16 @@
 // ============================================================================
 // financeiro.js — Raiz Patrimônio · Financeiro (Recebimentos · Atrasados · Saídas
 //                  · conciliação de extrato · recibo · detalhe do recebimento)
-// Versão: 1.107.0 · 25/11/2026
+// Versão: 1.108.0 · 26/11/2026
+//
+// v1.108.0 (26/11/2026, sessão 20261126-0815-recebimento-rastreavel, demanda 08dd8ec3; plano de 25/11 23:52 + pedido do Nicola
+// de 26/11 08:06) — RECEBIMENTO RASTREÁVEL. (1) "Histórico" no ⋮ de todo recebimento (abrirHistoricoRecebimento): quem baixou,
+// quando, por qual canal e processo e a linha do extrato, lidos de status_historico (trg_mensalidade_historico, migration
+// recebimento_rastreavel_v1); antes de 26/11, a linha do extrato ligada e o registro de ações. (2) Extrato provável: a leitura da
+// Conciliação (fn_conciliacao_sugestoes) invertida por recebimento — selo "✨ N% extrato" nos itens em aberto e em atraso
+// (Recebimentos, Atrasados e a tabela do computador), atalho "Extrato provável" no ⋮ e cartão no Dar baixa com data, valor,
+// nome, documento e histórico da linha para conferir, com "Usar o extrato" (vínculo, fn_extrato_vincular_recebimento) ou
+// "Confirmar recebimento" (baixa manual). Versão anterior: 1.107.0.
 //
 // v1.107.0 (25/11/2026, sessão 20261125-2315-cobranca-lembrete, demanda a8b41eb3 item 3; achado do Nicola 23:05 — DEM-09) — o
 // card Financeiro da ficha do contrato e do ativo (fcCarregar) mostrava o recebimento em aberto pelo valor ATUAL do contrato, não
@@ -26,15 +35,11 @@
 // v1.104.0 (25/11/2026, sessão 20261125-0051-cartao-descobrir, demanda 1e32c5a1; de acordo do Nicola 25/11 00:51) — o "Editar" do
 // "Descobrir o que é" abre a classificação de sempre preenchida com a categoria sugerida (a sugestão do Raiz IA entra no lugar da
 // sugestão do motor só para este formulário).
-//
-// v1.103.0 (23/11/2026, sessão 20261123-2310-cartao-descobrir, demanda 1e32c5a1; FICHA_CARTAO_DESCOBRIR_COMPRA_RAIZ v1.1.0, E5;
-// de acordo do Nicola 23/11 23:09) — compra "A classificar" da fatura ganha a ação "Descobrir o que é" (código cartao.descobrir),
-// que abre o js/cartao-descobrir.js por cima da fatura. Confirmar grava pela financeiroGravarClassificacao de sempre.
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.102.0 … v1.102.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.103.0 … v1.103.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '1.107.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.108.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 
 // v1.17.0 (Fase 1 do wrapper de escrita, rollout Financeiro) — emitirEscrita
 // é o evento padrão pra "algo mudou que módulos DE FORA deste arquivo podem
@@ -5283,6 +5288,7 @@ function financeiroRenderCabecalho(aba) {
             if (men.status === 'Pago') {
                 const acoesPago = [
                     { icone: 'receipt', titulo: 'Recibo', sub: 'Gerar ou reenviar', codigo: 'recibo.gerar', aoTocar: () => abrirModalOpcoesRecibo(men.id, con.id) },
+                    { icone: 'history', titulo: 'Histórico', sub: 'Quem baixou e por onde', aoTocar: () => abrirHistoricoRecebimento(men.id) }, // v1.108.0
                 ];
                 // v1.23.0 (Fase 6 fiscal) — status fiscal do recebimento no
                 // subtítulo; o toque abre a tela Fiscal da competência já nas
@@ -5344,12 +5350,17 @@ function financeiroRenderCabecalho(aba) {
             }
             const emAtraso = mensalidadeEmAtraso(men);
             const valorMen = Number(men.valorConfirmado ?? men.valor ?? 0);
+            const provavel = recExtrato && recExtrato[men.id]; // v1.108.0 (08dd8ec3)
             abrirSheetAcoes({ titulo: emAtraso ? 'Em atraso' : 'A receber', sub, acoes: [
+                ...(provavel ? [{ icone: 'sparkles', tipo: 'ia', titulo: `Extrato provável · ${Math.round(Number(provavel.sug.confianca) || 0)}%`,
+                    sub: `${formatarDataBR(provavel.f.data)} · R$ ${fmtBR(Math.abs(parseFloat(provavel.f.valor)) || 0)} · ${provavel.f.razao_social || ''}`, codigo: 'mensal.baixar',
+                    aoTocar: () => rzAbrirBaixaMensalidade(men.id) }] : []),
                 { icone: 'check', titulo: 'Dar baixa', sub: 'Registrar o recebimento', codigo: 'mensal.baixar', aoTocar: () => rzAbrirBaixaMensalidade(men.id) },
                 ...(emAtraso ? [{ icone: 'message-circle', titulo: 'Cobrar pelo WhatsApp', sub: 'Com o Pix da empresa', codigo: 'cobrar.lembrete',
                     aoTocar: () => financeiroCobrarMensalidade(men.id) }] : []), // v1.44.0 — mesma função do deslize
                 ...financeiroAcaoConta('mensalidade', men.id, men.contaId, (v) => { men.contaId = v; renderMensalidades(); }), // v1.33.0
                 ...financeiroAcaoDivisao('mensalidade', men.id, valorMen, men.divisaoAjustada, (aj) => { men.divisaoAjustada = aj; renderMensalidades(); }), // v1.35.0
+                { icone: 'history', titulo: 'Histórico', sub: 'Atrasos, ajustes e estornos', aoTocar: () => abrirHistoricoRecebimento(men.id) }, // v1.108.0
                 { icone: 'trash-2', titulo: 'Excluir lançamento', tipo: 'bad', codigo: 'mensal.excluir', aoTocar: () => excluirLancamentoMensal(men.id) },
             ] });
         }
@@ -5368,7 +5379,7 @@ function financeiroRenderCabecalho(aba) {
             const bruto0 = men.valorBruto != null ? men.valorBruto : (men.valorConfirmado || 0);
             const taxa0 = men.valorTaxaAdm || 0;
             // mesmos ids que liquidarMensalidade() lê — o sheet vive no <body>
-            const corpo = `
+            const corpo = `<div id="rec-ext-${men.id}"></div>
                 <div class="rz-f2">
                     <div class="rz-f"><label>Forma de recebimento</label><select id="banco-${men.id}"><option value="PIX">PIX</option><option value="Boleto">Boleto</option><option value="Dinheiro">Dinheiro</option><option value="Transferência">Transferência</option><option value="Cheque">Cheque</option></select></div>
                     <div class="rz-f"><label>Data do recebimento <i>*</i></label><input type="date" id="data-${men.id}" value="${dataPadrao}"></div>
@@ -5389,7 +5400,154 @@ function financeiroRenderCabecalho(aba) {
                     <div class="rz-f"><label>Multa / juros (R$)</label><input type="number" step="0.01" id="multa-${men.id}" value="0" data-multa-anterior="0" oninput="recalcularTotalBaixaExtra('${men.id}')"></div>
                 </div>`;
             abrirSheetForm({ titulo: 'Dar baixa', sub: `${con.locatario || ''} · ${men.referencia} · ${formatarMoedaBR(men.valorConfirmado)}`, corpo, rotuloSalvar: 'Confirmar recebimento',
-                aoSalvar: async () => (await liquidarMensalidade(men.id)) });
+                aoSalvar: async () => { const ok = await liquidarMensalidade(men.id); recExtratoInvalidar(); return ok; } });
+            recPreencherCartaoExtrato(men); // v1.108.0 (08dd8ec3) — extrato provável para conferir
+        }
+
+
+        // ===================================================================
+        // v1.108.0 (26/11/2026, demanda 08dd8ec3; de acordo do Nicola 08:06) — RECEBIMENTO RASTREÁVEL
+        // (1) Histórico do recebimento: quem baixou, quando, por qual canal e processo (status_historico, gravado pelo
+        //     trg_mensalidade_historico; antes de 26/11 cai no registro de ações e na linha do extrato ligada).
+        // (2) Extrato provável: a mesma leitura da Conciliação (fn_conciliacao_sugestoes, 1 chamada) invertida por recebimento —
+        //     selo "✨ N%" nos itens em aberto/atraso e cartão no Dar baixa com a linha do extrato para conferir e
+        //     "Usar o extrato" (vínculo pela fn_extrato_vincular_recebimento) ou "Confirmar recebimento" (baixa manual).
+        // ===================================================================
+        let recExtrato = null, recExtratoEm = 0, recExtratoPromessa = null;
+        function recExtratoInvalidar() { recExtrato = null; recExtratoEm = 0; }
+        async function recCarregarExtratoProvavel(forcar = false) {
+            if (!forcar && recExtrato && Date.now() - recExtratoEm < 180000) return recExtrato;
+            if (recExtratoPromessa) return recExtratoPromessa;
+            recExtratoPromessa = (async () => {
+                const mapa = {};
+                try {
+                    const { data: sug, error } = await dbAuth.rpc('fn_conciliacao_sugestoes', { p_cliente_id: CLIENTE_ID_SUPABASE, p_ids: null });
+                    if (error) throw error;
+                    const alvo = (sug || []).filter(s => s.destino_tipo === 'mensalidade' && s.destino_id && ['dar_baixa', 'sugerir_recebimento'].includes(s.acao));
+                    const ids = [...new Set(alvo.map(s => s.fingerprint_id))], fps = {};
+                    for (let i = 0; i < ids.length; i += 150) {
+                        const { data } = await dbAuth.from('extrato_fingerprints')
+                            .select('id, data, valor, direcao, razao_social, documento_original, descricao_original, chave, banco_origem, status_conciliacao')
+                            .in('id', ids.slice(i, i + 150)).eq('status_conciliacao', 'pendente');
+                        (data || []).forEach(f => { fps[f.id] = f; });
+                    }
+                    alvo.forEach(s => {
+                        const f = fps[s.fingerprint_id];
+                        if (!f || f.direcao !== 'entrada') return;
+                        const atual = mapa[s.destino_id];
+                        if (!atual || Number(s.confianca) > Number(atual.sug.confianca)) mapa[s.destino_id] = { sug: s, f };
+                    });
+                } catch (e) { console.warn('[rz] extrato provável', e?.message || e); }
+                recExtrato = mapa; recExtratoEm = Date.now(); recExtratoPromessa = null;
+                return mapa;
+            })();
+            return recExtratoPromessa;
+        }
+        // selo da linha (só para recebimento em aberto com linha do extrato pendente que aponta para ele)
+        function recSeloExtrato(menId) {
+            const x = recExtrato && recExtrato[menId];
+            if (!x) return '';
+            return ` <span class="rz-ia-tag" title="Há uma linha do extrato que pode ser este pagamento"><svg data-lucide="sparkles"></svg>${Math.round(Number(x.sug.confianca) || 0)}% extrato</span>`;
+        }
+        // primeira vez: carrega e redesenha as duas listas uma vez (sem laço: o mapa já existe na volta)
+        function recGarantirExtrato() {
+            if (recExtrato || recExtratoPromessa) return;
+            recCarregarExtratoProvavel().then(() => {
+                if (document.getElementById('lista-mensalidades')) renderMensalidades();
+                if (document.getElementById('lista-inadimplencia')?.childElementCount) renderInadimplencia();
+            });
+        }
+        function recCartaoExtratoHtml(men, x) {
+            const e = escapeHtmlSaidas, f = x.f, pct = Math.round(Number(x.sug.confianca) || 0);
+            const dig = String(f.documento_original || '').replace(/\D/g, '');
+            const doc = dig.length === 14 ? dig.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})$/, '$1.$2.$3/$4-$5')
+                : dig.length === 11 ? dig.replace(/^(\d{3})(\d{3})(\d{3})(\d{2})$/, '$1.$2.$3-$4') : '';
+            const vExt = Math.abs(parseFloat(f.valor)) || 0, vMen = Number(men.valorConfirmado ?? men.valor ?? 0);
+            const linhas = [['Extrato', `${formatarDataBR(f.data)} · + R$ ${fmtBR(vExt)}${f.banco_origem ? ' · ' + f.banco_origem : ''}`],
+                ['Nome no banco', f.razao_social || '—']];
+            if (doc) linhas.push([dig.length === 14 ? 'CNPJ' : 'CPF', doc]);
+            if (f.descricao_original) linhas.push(['Histórico', f.descricao_original]);
+            linhas.push([`Raiz IA · ${pct}%`, x.sug.detalhe || 'Pode ser este pagamento']);
+            const dif = Math.abs(vExt - vMen) > 0.009
+                ? `<span class="rz-hint">O extrato tem R$ ${fmtBR(vExt)} e o recebimento R$ ${fmtBR(vMen)}: usando o extrato, vale o valor do extrato.</span>` : '';
+            return `<div class="rz-card" style="margin-bottom:12px;border-color:var(--sprout)">
+                <div class="rz-card-h"><h3 style="display:flex;align-items:center;gap:6px"><svg data-lucide="sparkles" style="width:16px;height:16px"></svg>Extrato provável</h3><span class="rz-sub">confira</span></div>
+                <div class="rz-kv">${linhas.map(([r, v]) => `<div class="rz-full"><small>${e(r)}</small><b style="font-weight:500;font-size:var(--fs-sec,12.5px)">${e(v)}</b></div>`).join('')}</div>
+                ${dif}
+                <button type="button" class="rz-btn rz-btn-1 rz-wide" style="margin-top:10px" data-rec-usar-extrato="${men.id}"><svg data-lucide="link-2"></svg>Usar o extrato</button>
+                <span class="rz-hint">Ou preencha abaixo e toque em "Confirmar recebimento" para a baixa manual.</span></div>`;
+        }
+        async function recPreencherCartaoExtrato(men) {
+            const alvo = document.getElementById('rec-ext-' + men.id); if (!alvo) return;
+            const mapa = await recCarregarExtratoProvavel();
+            const x = mapa[men.id];
+            if (!x || !document.body.contains(alvo)) return;
+            alvo.innerHTML = recCartaoExtratoHtml(men, x);
+            alvo.querySelector('[data-rec-usar-extrato]')?.addEventListener('click', () => recUsarExtrato(men.id));
+            if (typeof lucide !== 'undefined') lucide.createIcons();
+        }
+        async function recUsarExtrato(menId) {
+            const x = recExtrato && recExtrato[menId]; if (!x) return;
+            if (typeof rzMostrarBloqueio === 'function' && rzMostrarBloqueio('mensal.baixar')) return;
+            await confirmarVincularConciliacaoRecebimento(x.f.id, menId, { ...x.f, valor: Math.abs(parseFloat(x.f.valor)) || 0 });
+            recExtratoInvalidar();
+            renderMensalidades();
+            if (document.getElementById('lista-inadimplencia')?.childElementCount) renderInadimplencia();
+        }
+
+        const REC_PROCESSO = { motor: 'conciliação automática do extrato', extrato: 'ligado ao extrato', ligar_extrato: 'baixa manual ligada ao extrato',
+            comprovante: 'comprovante no WhatsApp', manual: 'baixa manual', gateway: 'pagamento online', estorno: 'estorno', ajuste: 'ajuste de valores',
+            vencimento: 'passou do vencimento', reabertura: 'voltou para a receber' };
+        const REC_CANAL = { app: 'pelo app', bot: 'pelo robô do WhatsApp', whatsapp: 'pelo robô do WhatsApp', claude: 'pelo suporte', rotina: 'pela rotina automática', gestao: 'pelo Raiz Gestão' };
+        function recQuando(iso) { const d = new Date(iso); return `${d.toLocaleDateString('pt-BR')} às ${d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}`; }
+        // v1.108.0 — histórico do recebimento (sheet só de leitura)
+        export async function abrirHistoricoRecebimento(menId) {
+            const men = mensalidades.find(m => m.id === menId); if (!men) return;
+            const con = contratos.find(c => c.id === men.contratoId) || {};
+            const e = escapeHtmlSaidas;
+            abrirSheetForm({ titulo: 'Histórico do recebimento', sub: `${con.locatario || ''} · ${men.referencia}`, semRodape: true, empilhar: true,
+                corpo: `<div id="rec-hist-${menId}">${typeof rzSkeleton === 'function' ? rzSkeleton('lista', 3) : 'Carregando…'}</div>` });
+            const alvo = document.getElementById('rec-hist-' + menId);
+            const linhas = [];
+            try {
+                const [{ data: hist }, { data: fps }, { data: logs }] = await Promise.all([
+                    dbAuth.from('status_historico').select('de, para, gatilho, canal, motivo, dados, criado_em, pessoas(nome)')
+                        .eq('cliente_id', CLIENTE_ID_SUPABASE).eq('entidade', 'mensalidade').eq('entidade_id', menId).order('criado_em', { ascending: false }).limit(40),
+                    dbAuth.from('extrato_fingerprints').select('id, data, valor, razao_social, banco_origem, conciliado_em, canal, regra_codigo, pessoas:conciliado_por(nome)')
+                        .eq('cliente_id', CLIENTE_ID_SUPABASE).eq('destino_tipo', 'mensalidade').eq('destino_id', menId).eq('status_conciliacao', 'conciliado'),
+                    dbAuth.from('log_acessos').select('acao, detalhe, criado_em, pessoas(nome)').eq('cliente_id', CLIENTE_ID_SUPABASE)
+                        .in('acao', ['mensal.baixar', 'mensal.estornar']).eq('detalhe->>mensalidadeId', menId).order('criado_em', { ascending: false }).limit(10),
+                ]);
+                const fpPorId = {}; (fps || []).forEach(f => { fpPorId[f.id] = f; });
+                const txtExtrato = (f) => f ? `Extrato ${f.banco_origem || ''} ${formatarDataBR(f.data)} · ${f.razao_social || ''} · R$ ${fmtBR(Math.abs(parseFloat(f.valor)) || 0)}`.replace(/\s+/g, ' ') : '';
+                (hist || []).forEach(h => {
+                    const d = h.dados || {}, dep = d.depois || {}, ant = d.antes || {};
+                    const titulo = h.para === 'pago' && h.de !== 'pago' ? `Recebido · R$ ${fmtBR(Number(dep.valor_confirmado) || 0)} em ${formatarDataBR(dep.data_pgto)}`
+                        : h.de === 'pago' && h.para !== 'pago' ? 'Estornado · voltou para a receber'
+                        : d.processo === 'vencimento' ? 'Ficou em atraso'
+                        : `Valores · R$ ${fmtBR(Number(ant.valor_confirmado) || 0)} → R$ ${fmtBR(Number(dep.valor_confirmado) || 0)}`;
+                    const quem = h.pessoas?.nome ? h.pessoas.nome.split(' ')[0] : (h.canal === 'rotina' ? 'Raiz' : 'sem registro de quem');
+                    const sub = [recQuando(h.criado_em), quem, REC_CANAL[h.canal] || h.canal, REC_PROCESSO[d.processo] || d.processo].filter(Boolean).join(' · ');
+                    const ext = d.fingerprint_id && fpPorId[d.fingerprint_id] ? txtExtrato(fpPorId[d.fingerprint_id]) : '';
+                    linhas.push({ em: h.criado_em, titulo, sub: sub + (ext ? ' · ' + ext : '') + (h.motivo ? ' · ' + h.motivo : '') });
+                });
+                // antes do histórico (26/11/2026): a linha do extrato ligada e o registro de ações
+                const temHist = (hist || []).some(h => h.para === 'pago');
+                if (!temHist) {
+                    (fps || []).forEach(f => linhas.push({ em: f.conciliado_em, titulo: 'Ligado ao extrato', sub: [f.conciliado_em ? recQuando(f.conciliado_em) : '',
+                        f.pessoas?.nome ? f.pessoas.nome.split(' ')[0] : '', REC_CANAL[f.canal] || '', f.regra_codigo === 'CT05' ? 'baixa manual ligada ao extrato' : '', txtExtrato(f)].filter(Boolean).join(' · ') }));
+                    (logs || []).forEach(l => linhas.push({ em: l.criado_em, titulo: l.acao === 'mensal.estornar' ? 'Estornado' : 'Baixa registrada',
+                        sub: [recQuando(l.criado_em), l.pessoas?.nome ? l.pessoas.nome.split(' ')[0] : '', /whats|bot/i.test(JSON.stringify(l.detalhe || {})) ? 'pelo robô do WhatsApp' : 'pelo app'].filter(Boolean).join(' · ') }));
+                }
+                linhas.sort((a, b) => String(b.em || '').localeCompare(String(a.em || '')));
+            } catch (err) { console.warn('[rz] histórico do recebimento', err?.message || err); }
+            if (!alvo || !document.body.contains(alvo)) return;
+            const antigo = men.status === 'Pago' && !linhas.length
+                ? `<p class="rz-desc">Baixa anterior a 26/11/2026, sem registro de quem fez.${men.banco ? ' Forma: ' + e(men.banco) + '.' : ''}${men.dataPgto ? ' Data: ' + formatarDataBR(men.dataPgto) + '.' : ''}</p>` : '';
+            alvo.innerHTML = (linhas.length ? `<div class="rz-card rz-list">${linhas.map(l => `<div class="rz-row"><div class="rz-ic"><svg data-lucide="history"></svg></div>
+                <div class="rz-tx"><b>${e(l.titulo)}</b><span>${e(l.sub)}</span></div></div>`).join('')}</div>` : (antigo || '<p class="rz-desc">Nada registrado ainda.</p>'))
+                + `<span class="rz-hint">Desde 26/11/2026 toda baixa, estorno, atraso e ajuste fica aqui, com quem fez e por onde.</span>`;
+            if (typeof lucide !== 'undefined') lucide.createIcons();
         }
 
         // v1.24.0 (demanda d92a6dfc) — correção de bruto/taxa/líquido de um
@@ -5581,7 +5739,7 @@ function financeiroRenderCabecalho(aba) {
                 const empB = imoB ? imoB.empreendimento : '';
                 return empA.localeCompare(empB) || (conA?.locatario || '').localeCompare(conB?.locatario || '');
             });
-            if (finMesa()) { finDesenharTabela('rec', container, itens.map(men => finLinhaRec(men, dataVencMensal))); return; } // v1.63.0 — ONDA 8c
+            if (finMesa()) { finDesenharTabela('rec', container, itens.map(men => finLinhaRec(men, dataVencMensal))); recGarantirExtrato(); return; } // v1.63.0 — ONDA 8c · v1.108.0 selo
             const linhas = itens.map(men => {
                 const con = contratos.find(c => c.id === men.contratoId) || {};
                 if (men.status === 'Pago') {
@@ -5600,12 +5758,13 @@ function financeiroRenderCabecalho(aba) {
                 // forma que ficou fixa.
                 return `<div class="rz-row rz-link" data-men="${men.id}" onclick="rzAcoesMensalidade('${men.id}')">
                     <div class="rz-ic${atrasada ? ' rz-bad' : ''}"><svg data-lucide="arrow-down-left"></svg></div>
-                    <div class="rz-tx"><b>${escapeHtmlSaidas(con.locatario || 'Locatário')}</b><span>${dataVencMensal(men, con)}${men.divisaoAjustada ? ' · divisão ajustada' : ''}</span></div>
+                    <div class="rz-tx"><b>${escapeHtmlSaidas(con.locatario || 'Locatário')}</b><span>${dataVencMensal(men, con)}${men.divisaoAjustada ? ' · divisão ajustada' : ''}${recSeloExtrato(men.id)}</span></div>
                     <div class="rz-rt"><b>${formatarMoedaBR(men.valorConfirmado)}</b>${atrasada ? rsM('bad', 'Em atraso') : rsM('run', 'A vencer')}</div>
                     <svg data-lucide="ellipsis-vertical" class="rz-chev"></svg>
                 </div>`;
             }).join('');
             container.innerHTML = `<div class="rz-group">De contratos e controles · ${itens.length}</div><div class="rz-card rz-list">${linhas}</div>`; // v1.101.0 (D4)
+            recGarantirExtrato(); // v1.108.0 — selo "extrato provável" (1ª vez carrega e redesenha)
             financeiroLigarDeslizeMensal(container); // v1.44.0 (etapa 6 · B)
 
             if (typeof lucide !== 'undefined') lucide.createIcons();
@@ -5651,7 +5810,8 @@ function financeiroRenderCabecalho(aba) {
             const con = contratos.find(c => c.id === men.contratoId) || {};
             const pago = men.status === 'Pago'; const atr = !pago && mensalidadeEmAtraso(men);
             const dataTxt = dataVencMensal(men, con);
-            return { id: men.id, sel: true, aberto: !pago, nome: con.locatario || 'Locatário', local: finRotuloImovel(imoveis.find(i => i.id === con.imovelId)),
+            const ext = !pago && recExtrato && recExtrato[men.id]; // v1.108.0 — extrato provável
+            return { id: men.id, sel: true, aberto: !pago, nome: con.locatario || 'Locatário', local: finRotuloImovel(imoveis.find(i => i.id === con.imovelId)) + (ext ? ` · ✨ ${Math.round(Number(ext.sug.confianca) || 0)}% extrato` : ''),
                 data: finIso(dataTxt), dataTxt, valor: Number(men.valorConfirmado || 0), sem: pago ? 'ok' : atr ? 'bad' : 'run', situ: pago ? 'Pago' : atr ? 'Em atraso' : 'A vencer',
                 abrir: () => rzAcoesMensalidade(men.id) };
         }
@@ -6199,7 +6359,7 @@ function financeiroRenderCabecalho(aba) {
                     subItensHtml += `
                         <div class="rz-row rz-link" onclick="rzAcoesMensalidade('${item.men.id}')">
                             <div class="rz-ic rz-bad"><svg data-lucide="arrow-down-left"></svg></div>
-                            <div class="rz-tx"><b>${escapeHtmlSaidas(item.con.locatario || 'Locatário')} · ${item.men.referencia}</b><span>${escapeHtmlSaidas(localImovelInad)}</span></div>
+                            <div class="rz-tx"><b>${escapeHtmlSaidas(item.con.locatario || 'Locatário')} · ${item.men.referencia}</b><span>${escapeHtmlSaidas(localImovelInad)}${recSeloExtrato(item.men.id)}</span></div>
                             <div class="rz-rt"><b>${formatarMoedaBR(item.men.valorConfirmado)}</b>${(typeof renderStatus === 'function') ? renderStatus('bad', 'Em atraso') : ''}</div>
                             <svg data-lucide="ellipsis-vertical" class="rz-chev"></svg>
                         </div>`;
@@ -6233,6 +6393,7 @@ function financeiroRenderCabecalho(aba) {
                     </div>
                     <div id="${grupoIdInad}" class="rz-card rz-list rz-critico ${abertoInad ? '' : 'hidden'}">${subItensHtml}</div>`;
             }
+            recGarantirExtrato(); // v1.108.0 — selo "extrato provável"
             if (typeof lucide !== 'undefined') lucide.createIcons();
         }
 
