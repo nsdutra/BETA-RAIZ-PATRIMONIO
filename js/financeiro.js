@@ -1,7 +1,11 @@
 // ============================================================================
 // financeiro.js — Raiz Patrimônio · Financeiro (Recebimentos · Atrasados · Saídas
 //                  · conciliação de extrato · recibo · detalhe do recebimento)
-// Versão: 1.108.0 · 26/11/2026
+// Versão: 1.108.1 · 26/11/2026
+//
+// v1.108.1 (26/11/2026, sessão 20261126-0855-selo-extrato, demanda 08dd8ec3; print do Nicola 08:46) — o selo "✨ N% extrato" da linha
+// ocupava a largura toda (ícone em cima, texto embaixo): ficava dentro do <span> da linha e herdava display:block. Agora é <em>,
+// pílula do tamanho do texto, ao lado da data. Versão anterior: 1.108.0.
 //
 // v1.108.0 (26/11/2026, sessão 20261126-0815-recebimento-rastreavel, demanda 08dd8ec3; plano de 25/11 23:52 + pedido do Nicola
 // de 26/11 08:06) — RECEBIMENTO RASTREÁVEL. (1) "Histórico" no ⋮ de todo recebimento (abrirHistoricoRecebimento): quem baixou,
@@ -31,15 +35,11 @@
 // só com o líquido e o IR (mesmo origem_id) e o filtro do gráfico (ano ou mês) é avisado ao card Indicadores (aoFiltrar). Novos:
 // rzFinRedesenhar(id) e rzRegistrarMovimento({ contratoId, ativoId, modelo }) — o botão único "Registrar movimento" de todo card
 // Financeiro (recebimento e despesa; na aplicação, os movimentos dela). O aluguel e o ativo comuns não mudam de desenho.
-//
-// v1.104.0 (25/11/2026, sessão 20261125-0051-cartao-descobrir, demanda 1e32c5a1; de acordo do Nicola 25/11 00:51) — o "Editar" do
-// "Descobrir o que é" abre a classificação de sempre preenchida com a categoria sugerida (a sugestão do Raiz IA entra no lugar da
-// sugestão do motor só para este formulário).
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.103.0 … v1.103.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.104.0 … v1.104.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '1.108.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.108.1'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 
 // v1.17.0 (Fase 1 do wrapper de escrita, rollout Financeiro) — emitirEscrita
 // é o evento padrão pra "algo mudou que módulos DE FORA deste arquivo podem
@@ -5447,7 +5447,8 @@ function financeiroRenderCabecalho(aba) {
         function recSeloExtrato(menId) {
             const x = recExtrato && recExtrato[menId];
             if (!x) return '';
-            return ` <span class="rz-ia-tag" title="Há uma linha do extrato que pode ser este pagamento"><svg data-lucide="sparkles"></svg>${Math.round(Number(x.sug.confianca) || 0)}% extrato</span>`;
+            // v1.108.1 — <em>, não <span>: dentro de .rz-tx a regra ".rz-row .rz-tx span{display:block}" esticava o selo na largura toda
+            return `<em class="rz-ia-tag" style="font-style:normal;margin-left:6px;vertical-align:middle" title="Há uma linha do extrato que pode ser este pagamento"><svg data-lucide="sparkles"></svg>${Math.round(Number(x.sug.confianca) || 0)}% extrato</em>`;
         }
         // primeira vez: carrega e redesenha as duas listas uma vez (sem laço: o mapa já existe na volta)
         function recGarantirExtrato() {
