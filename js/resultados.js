@@ -1,8 +1,13 @@
 // =====================================================================
 // RAIZ PATRIMÔNIO — js/resultados.js
-// VERSÃO: Beta v2.25.0 (25/11/2026 — demandas e5d269c2 e fd3898f7)
+// VERSÃO: Beta v2.26.0 (26/11/2026 — demanda 885410f9)
 // LINHAS: (ver versoes.json)
 // -----------------------------------------------------------------
+// NOVIDADES (Beta v2.26.0) (26/11/2026, sessão 20261126-1215-investimentos-i4, demanda 885410f9; PLANO_EXECUCAO_I2_I3_I4_INVESTIMENTOS_RAIZ
+//   v1.2.0, I4, e PROTOTIPO_INVESTIMENTOS_I2_I4_POSICAO_FGC v1.1.0; de acordo do Nicola 26/11 12:12, com o card gráfico) — na lente
+//   Investimentos, o card "Exposição ao FGC": os 5 bancos com mais aplicações cobertas, barra do total contra o limite de R$ 250 mil
+//   (traço no limite quando passa), % do limite e o excesso até quando (fn_fgc_exposicao). Tocar abre o relatório Exposição ao
+//   FGC (relatorios-executivos, tipo fgc). Versão anterior: 2.25.0
 // NOVIDADES (Beta v2.25.0) (25/11/2026, sessão 20261125-0000-investimentos-i0, demandas e5d269c2 e fd3898f7; PLANO_EXECUCAO_I0_CARD_VALOR_DO_BEM_RAIZ v1.0.0,
 //   de acordo do Nicola 24/11 23:59) — o desenho de colunas (colunasExecutivasSvg, unidadeColunas, numeroNaUnidade e rzDesk) sai
 //   deste arquivo para o módulo comum js/nucleo/colunas.js, que o card Valor do bem também usa. O Resultado mês a mês, o Investido
@@ -134,7 +139,7 @@
 // Versões anteriores (v2.4.0 … v2.4.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '2.25.0';
+export const VERSAO = '2.26.0';
 import { colunasSvg, unidadeColunas, numeroNaUnidade, rzDesk } from './nucleo/colunas.js'; // v2.25.0 — desenho comum (REGRAS §18.1)
 
 // ---------------------------------------------------------------------
@@ -720,19 +725,21 @@ async function renderizarConteudo() {
         // v2.11.0 (fatia 8) — o ano anterior (todo número compara), o resultado por ramo (Todo o patrimônio) e os indicadores
         // do ramo (lente). Erro aqui só tira a comparação ou o card; o resto do Hoje segue.
         const pr = podeVerPorRamo() && filtro.abrangencia === 'carteira';
-        const [antR, porRamoR, indR] = await Promise.all([
+        const [antR, porRamoR, indR, fgcR] = await Promise.all([
             filtro.abrangencia === 'carteira'
                 ? dbAuth.rpc('fn_resumo_resultados', { p_cliente_id: CLIENTE_ID_SUPABASE, p_uso, p_ano: filtro.ano - 1, p_ramo })
                 : Promise.resolve({ data: null }),
             pr && !p_ramo && !p_uso ? dbAuth.rpc('fn_hoje_por_ramo', { p_cliente_id: CLIENTE_ID_SUPABASE, p_ano: filtro.ano }) : Promise.resolve({ data: null }),
             pr && p_ramo ? dbAuth.rpc('fn_hoje_ramo_indicadores', { p_cliente_id: CLIENTE_ID_SUPABASE, p_ramo, p_ano: filtro.ano }) : Promise.resolve({ data: null }),
+            pr && p_ramo === 'investimentos' ? dbAuth.rpc('fn_fgc_exposicao', { p_cliente_id: CLIENTE_ID_SUPABASE }) : Promise.resolve({ data: null }), // v2.26.0 — I4
         ]);
         if (minha !== geracao) return;
-        [antR, porRamoR, indR].forEach(x => { if (x.error) console.warn('[resultados] fatia 8:', x.error.message); });
+        [antR, porRamoR, indR, fgcR].forEach(x => { if (x.error) console.warn('[resultados] fatia 8:', x.error.message); });
         const resumoAnt = antR.error ? null : (Array.isArray(antR.data) ? antR.data[0] : antR.data);
         const porRamo = porRamoR.error ? null : porRamoR.data;
         if (porRamo) ultimoPorRamo = porRamo; // v2.12.0
         const indRamo = indR.error ? null : indR.data;
+        if (indRamo && fgcR && !fgcR.error && Array.isArray(fgcR.data)) indRamo.fgc = fgcR.data; // v2.26.0 — card Exposição ao FGC
         if (resumoR.error) throw resumoR.error;
         if (perfR.error) throw perfR.error;
         if (mensalR.error) throw mensalR.error;
@@ -1091,6 +1098,23 @@ function montarCardsDoRamo(ramo, ind) {
         }).join('');
         cards.push(card('Obras em andamento', '', (corpo + corpoPl) || '<p class="rz-desc">Nenhuma obra em andamento.</p>',
             obras.length ? 'Barra escura = pago; traço = avanço físico. Gasto passando do físico pede atenção.' : (planos.length ? 'Barra escura = pago do plano de pagamento.' : '')));
+    }
+
+    // v2.26.0 (I4) — Investimentos: exposição ao FGC por banco, em % do limite de R$ 250 mil (as 5 maiores). Traço = limite.
+    if (ramo === 'investimentos' && Array.isArray(ind.fgc) && ind.fgc.length) {
+        const LIM = 250000, fgc = ind.fgc.slice(0, 5), varios = new Set(ind.fgc.map(x => x.titular_chave)).size > 1;
+        const abrirR3 = "typeof abrirRelatorioExecutivo==='function'&&!(typeof rzMostrarBloqueio==='function'&&rzMostrarBloqueio('relatorios.investimentos_fgc'))&&abrirRelatorioExecutivo('fgc')";
+        const dataBR = d => (d ? String(d).slice(0, 10).split('-').reverse().join('/') : '');
+        const corpo = fgc.map(x => {
+            const tot = Number(x.total) || 0, exc = Number(x.excesso) || 0;
+            const sub = exc > 0 ? `${moedaCurta(exc)} acima${x.excesso_ate ? ' até ' + dataBR(x.excesso_ate) : ''}` : `cabem mais ${moedaCurta(LIM - tot)}`;
+            return linha({ ic: 'landmark', tit: x.emissor_nome + (varios ? ' · ' + (x.titular_nome || '') : ''), sub: x.sem_cnpj ? sub + ' · sem CNPJ' : sub,
+                rt: `${fmtNum(x.pct, 0)}%`, rtSub: 'do limite', toque: abrirR3,
+                extra: barraBala({ pago: tot, previsto: LIM, alerta: exc > 0, marcador: tot > LIM ? LIM / tot * 100 : null,
+                    esquerda: moedaCurta(tot), direita: 'limite R$ 250 mil' }) });
+        }).join('') + linha({ ic: 'file-text', tit: 'Exposição ao FGC', sub: 'Por banco e vencimento', toque: abrirR3 });
+        cards.push(card('Exposição ao FGC', ind.fgc.length > 5 ? `5 de ${ind.fgc.length} bancos` : '', corpo,
+            'CDB, LCI, LCA e poupança do mesmo banco, em todas as contas. Traço = limite de R$ 250 mil por CPF.'));
     }
 
     // Pecuária: rebanho, próximos avisos e vendas (D8-3, D8-5, D8-9)

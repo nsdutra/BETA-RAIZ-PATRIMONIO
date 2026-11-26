@@ -1,6 +1,12 @@
 // ============================================================================
 // comum-licenca.js — Raiz Patrimônio · Administração compartilhada
-// Versão: 1.14.0 · 18/11/2026
+// Versão: 1.15.0 · 26/11/2026
+//
+// v1.15.0 (26/11/2026, sessão 20261126-1215-investimentos-i4, demanda 885410f9; PLANO_EXECUCAO_I2_I3_I4_INVESTIMENTOS_RAIZ v1.2.0, passo 0;
+// achado do Nicola 26/11 10:19 no print do Uso do plano da Maia Dutra) — Uso do plano mostra o limite efetivo (plano principal +
+// adicionais dos ramos, regra F25), que já vinha de fn_verificar_limite, e o aviso sobe junto com o adicional. Antes mostrava só o
+// limite da linha do plano principal (280 contratos, em vez de 380).
+// Versão anterior: 1.14.0 · 18/11/2026
 //
 // v1.14.0 (18/11/2026, sessão 20261118-2150-oferta-ramo, demanda 14a20035; teste do Nicola 18/11 21:45 na Rumo) — função de um
 // ramo que a empresa não tem (motivo sem_ramo, fn_porta_mensagem v3): o sheet mostra o ramo e o preço dele e o botão
@@ -24,18 +30,11 @@
 // mais por mês, com o preço de tabela riscado — tudo da oferta de fn_porta_mensagem v2 (quem não contrata não recebe preço;
 // "Agora não" grava fn_porta_oferta_dispensar e silencia o preço por 30 dias; função só do Premium leva para a conversa).
 // "Ver o plano" abre a renovação já no plano oferecido. podeUsar devolve também a descrição comercial.
-// Versão anterior: 1.10.0 · 11/11/2026
-//
-// v1.10.0 (11/11/2026, sessão 20261111-1341-porta-mensagem, demandas b3d771d7 e c5e23028; FICHA_PORTA_MENSAGEM_UNICA_RAIZ
-// v1.0.0, de acordo do Nicola 11/11 13:41) — a frase de bloqueio e de aviso vem do banco. Junto da lista de liberações, o
-// boot lê fn_porta_mensagem (mapa só do que está bloqueado ou em aviso) e podeUsar devolve o título, o texto, o aviso, a
-// oferta de upsell e a ação de lá — as frases copiadas da fn_porta_texto saem daqui (CAN-03). O contrato de podeUsar e de
-// rzMostrarBloqueio não muda; ganha aviso, oferta e acao. Versão anterior: 1.9.0 · 14/10/2026
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.9.0 … v1.9.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.10.0 … v1.10.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '1.14.0'; // v-check (22/09/2026): lido por Dev › Versões — manter igual ao header
+export const VERSAO = '1.15.0'; // v-check (22/09/2026): lido por Dev › Versões — manter igual ao header
 export const COMUM_LICENCA_VERSAO = '1.0.0';
 
 // ----------------------------------------------------------------------------
@@ -333,8 +332,10 @@ async function buscarFuncionalidadesDoPlano(dbAuth, clienteId, licenca) {
             codigo,
             rotulo: nomesComerciais[codigo] || codigo,
             usado: (usos[i] && usos[i].usado != null) ? usos[i].usado : 0,
-            limite: f.limite,
-            limiteAviso: f.limite_aviso,
+            // v1.15.0 — o limite efetivo (plano principal + adicionais dos ramos, F25) vem de fn_verificar_limite; o aviso sobe
+            // junto com o adicional. Sem a resposta, fica o limite da linha do plano, como antes.
+            limite: (usos[i] && usos[i].limite != null) ? usos[i].limite : f.limite,
+            limiteAviso: (f.limite_aviso != null && usos[i] && usos[i].limite != null && f.limite != null) ? f.limite_aviso + (usos[i].limite - f.limite) : f.limite_aviso,
             cotaTipo: cotaTipos[codigo] || 'mensal',
         };
     });

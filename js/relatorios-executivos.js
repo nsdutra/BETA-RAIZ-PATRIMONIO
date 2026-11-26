@@ -1,7 +1,12 @@
 // ============================================================================
 // relatorios-executivos.js — Raiz Patrimônio · Relatórios no modelo executivo
-// Versão: 1.18.0 · 25/11/2026
+// Versão: 1.19.0 · 26/11/2026
 //
+// v1.19.0 (26/11/2026, sessão 20261126-1215-investimentos-i4, demanda 885410f9; PLANO_EXECUCAO_I2_I3_I4_INVESTIMENTOS_RAIZ v1.2.0, I4, e
+//   PROTOTIPO_INVESTIMENTOS_I2_I4_POSICAO_FGC v1.1.0; de acordo do Nicola 26/11 12:12, "relatórios ok") — Exposição ao FGC
+//   (relatorios.investimentos_fgc, fn_fgc_exposicao, tipo fgc): por titular e banco (CNPJ raiz), o total coberto em % do limite de
+//   R$ 250 mil, o excesso e até quando; os vencimentos de cada banco com a soma que sobra; total do titular contra o teto de R$ 1 milhão;
+//   planilha com uma linha por aplicação. Situação de hoje, sem chip de período. Abre por abrirRelatorioExecutivo('fgc').
 // v1.18.0 (25/11/2026, sessão 20261125-2330-rel-ficha-imovel, demanda bf8ab9a9; plano + protótipo v1.0.0, de acordo do Nicola 25/11 23:24) — Ficha financeira do imóvel
 //   (relatorios.ficha_imovel, fn_relatorio_ficha_imovel): o ano por imóvel em tela (KPIs, abas Imóveis/Atrasos/Proprietários/Administradoras, detalhe com
 //   cadastro, contrato vigente, mês a mês, despesas, atrasos e parte de cada proprietário) e planilha de 5 abas. Proprietários só com a parte no
@@ -50,7 +55,7 @@ import { rzMostrarBloqueio } from './comum-licenca.js';
 import { rzToast } from './raiz-ui.js';
 import RaizDevice from './raiz-device.js';
 
-export const VERSAO = '1.18.0';
+export const VERSAO = '1.19.0';
 
 // ---------------------------------------------------------------------------
 // Formatos (REL-13 a REL-17)
@@ -1229,6 +1234,59 @@ function montarAtivosPessoa(d) {
                 ['Parte na receita', 'A divisão do contrato quando existe; senão, a parte no ativo.']] } };
 }
 
+// ---------------------------------------------------------------------------
+// v1.19.0 (I4, 26/11/2026) — Exposição ao FGC (relatorios.investimentos_fgc). Tudo vem pronto de fn_fgc_exposicao (por titular e
+// CNPJ raiz do emissor: total coberto, excesso, até quando e as aplicações em ordem de vencimento); aqui só a casca.
+// ---------------------------------------------------------------------------
+function montarFgc(d) {
+    const ls = d.linhas || [], LIM = 250000;
+    const acima = ls.filter(x => num(x.excesso) > 0), semCnpj = ls.filter(x => x.sem_cnpj);
+    const titulares = [...new Map(ls.map(x => [x.titular_chave, { nome: x.titular_nome, total: num(x.total_titular) }])).values()];
+    const exc = acima.reduce((t, x) => t + num(x.excesso), 0);
+    const cfg = { nome: 'Exposição ao FGC', medida: 'Aplicações cobertas pelo FGC em R$', previa: false,
+        subtitulo: [`situação em ${dma(d.situacao_em)}`, 'valor atual de cada aplicação', titulares.length === 1 ? titulares[0].nome : `${titulares.length} titulares`].join(' · ') };
+    const linha = acima.length
+        ? `${qtdTxt(acima.length, 'banco passa', 'bancos passam')} do limite de R$ 250 mil: ${brl(exc)} sem garantia do FGC hoje.`
+        : (ls.length ? 'Nenhum banco passa do limite de R$ 250 mil por titular.' : 'Nenhuma aplicação coberta pelo FGC (CDB, LCI, LCA ou poupança).');
+    const kpis = `<div class="kpis">${kpi('Coberto pelo FGC', compacto(ls.reduce((t, x) => t + num(x.total), 0)), qtdTxt(ls.length, 'banco', 'bancos'))}${kpi('Acima do limite', compacto(exc), qtdTxt(acima.length, 'banco', 'bancos'), acima.length ? 'neg' : 'mut')}${kpi('Maior exposição', ls.length ? nf(ls[0].pct, 0) + '%' : '—', ls.length ? ls[0].emissor_nome : '')}${kpi('Titulares', String(titulares.length), 'teto de R$ 1 milhão em 4 anos')}</div>`;
+    const barras = ls.map(x => `<div class="hbar"><span style="width:170px">${esc(x.emissor_nome)}${titulares.length > 1 ? ' · ' + esc(x.titular_nome) : ''}</span><div class="trk2"><i style="width:${Math.max(0.6, Math.min(100, num(x.total) / LIM * 100)).toFixed(1)}%${num(x.excesso) > 0 ? ';background:var(--danger)' : ''}"></i></div><b>${nf(x.pct, 0)}%</b></div>`).join('') || '<p class="mut">Nenhuma aplicação coberta.</p>';
+    const fonte = 'Raiz · fn_fgc_exposicao · ' + dma(d.situacao_em);
+    const capa = `
+      <div class="acao-sub rx-resumo">${esc(linha)}</div>${kpis}
+      ${figura('Quanto de cada banco está coberto', '% do limite de R$ 250 mil por titular · barra cheia = no limite', '', fonte, barras)}
+      ${secao('Por banco', 'R$ · soma das aplicações cobertas do titular no mesmo CNPJ raiz, em todas as contas')}
+      <table><thead><tr><th>Banco</th>${titulares.length > 1 ? '<th>Titular</th>' : ''}<th class="n">Coberto</th><th class="n">% do limite</th><th class="n">Acima</th><th>Até</th></tr></thead><tbody>${
+        ls.map(x => `<tr><td>${esc(x.emissor_nome)}${x.sem_cnpj ? ' <span class="mut">(sem CNPJ)</span>' : x.emissor_cnpj ? `<br><small class="mut">${esc(x.emissor_cnpj)}</small>` : ''}</td>${titulares.length > 1 ? `<td>${esc(x.titular_nome)}</td>` : ''}<td class="n">${tab(x.total)}</td><td class="n">${nf(x.pct, 0)}%</td><td class="n ${num(x.excesso) > 0 ? 'neg' : ''}">${num(x.excesso) > 0 ? tab(x.excesso) : '—'}</td><td>${x.excesso_ate ? dma(x.excesso_ate) : num(x.excesso) > 0 ? 'sem vencimento' : ''}</td></tr>`).join('') || `<tr><td colspan="${titulares.length > 1 ? 6 : 5}" class="mut">Nenhuma aplicação coberta.</td></tr>`
+      }</tbody></table>
+      ${titulares.length ? secao('Total coberto por titular', 'R$ · o FGC tem teto de R$ 1 milhão por CPF a cada 4 anos') + `<table><tbody>${titulares.map(t => `<tr><td>${esc(t.nome)}</td><td class="n">${tab(t.total)}</td><td class="n ${t.total > 1000000 ? 'neg' : 'mut'}">${nf(t.total / 10000, 0)}% de R$ 1 milhão</td></tr>`).join('')}</tbody></table>` : ''}
+      <div class="notes">
+        <p><b>Cobertura</b>: o FGC garante até R$ 250 mil por CPF (ou CNPJ) e por instituição (CNPJ raiz), somando principal e rendimento; há ainda um teto de R$ 1 milhão por CPF a cada 4 anos. Entram CDB, RDB, LC, LCI, LCA, LIG e poupança. Tesouro, debêntures, CRI, CRA, fundos, previdência e renda variável não entram.</p>
+        <p><b>Titular</b>: o proprietário da conta de investimento (Propriedade do ativo). Conta com mais de um titular divide igualmente entre eles, como faz o FGC.</p>
+        <p><b>Até quando</b>: a data do vencimento a partir da qual a soma do banco volta a caber no limite, pela ordem dos vencimentos.</p>
+        ${semCnpj.length ? `<p><b>Sem CNPJ</b>: ${semCnpj.map(x => esc(x.emissor_nome)).join(', ')}. Sem o CNPJ, bancos do mesmo grupo não se juntam; cadastre o CNPJ do emissor em Partes.</p>` : ''}
+        <p><b>Origem</b>: fn_fgc_exposicao v1 · situação em ${dma(d.situacao_em)}. Conglomerados (bancos diferentes do mesmo grupo) ainda não são somados.</p></div>`;
+    const paginas = [[capa, ['Resumo', 'Por banco', 'Notas']]];
+    const exp = ls.filter(x => (x.aplicacoes || []).length);
+    if (exp.length) paginas.push([`${secao('Vencimentos por banco', 'R$ · o que vence e quanto sobra coberto depois')}
+      ${exp.map(x => `<p style="margin:10px 0 4px"><b>${esc(x.emissor_nome)}</b>${titulares.length > 1 ? ' · ' + esc(x.titular_nome) : ''} · ${brl(x.total)} (${nf(x.pct, 0)}%)</p>
+        <table><thead><tr><th>Aplicação</th><th>Vence</th><th class="n">Valor</th><th class="n">Soma depois</th></tr></thead><tbody>${
+          (x.aplicacoes || []).map(a => `<tr><td>${esc(a.descricao || '—')}</td><td>${a.fim ? dma(a.fim) : 'sem vencimento'}</td><td class="n">${tab(a.valor)}</td><td class="n ${num(a.restante_depois) > LIM ? 'neg' : ''}">${tab(a.restante_depois)}</td></tr>`).join('')}</tbody></table>`).join('')}`, ['Detalhe']]);
+    const plan = [];
+    ls.forEach(x => (x.aplicacoes || []).forEach(a => plan.push({ titular: x.titular_nome, banco: x.emissor_nome, cnpj: x.emissor_cnpj || '', aplicacao: a.descricao || '',
+        fim: a.fim, valor: num(a.valor), total: num(x.total), pct: num(x.pct), excesso: num(x.excesso), ate: x.excesso_ate })));
+    return { cfg, linhas3: [`${cfg.nome} · ${dma(d.situacao_em)}`, acima.length ? `${brl(exc)} acima do limite em ${qtdTxt(acima.length, 'banco', 'bancos')}` : 'Tudo dentro do limite', linha],
+        paginas,
+        planilha: { aba: 'Exposição ao FGC', recorte: `situação em ${dma(d.situacao_em)}`, sufixo: String(d.situacao_em).slice(0, 10).replace(/-/g, '_'),
+            fonte: 'fn_fgc_exposicao', colunas: [
+                { cab: 'Titular', larg: 24, ler: r => r.titular }, { cab: 'Banco', larg: 26, ler: r => r.banco }, { cab: 'CNPJ', larg: 20, ler: r => r.cnpj },
+                { cab: 'Aplicação', larg: 32, ler: r => r.aplicacao }, { cab: 'Vencimento', larg: 12, fmt: 'data', ler: r => r.fim },
+                { cab: 'Valor (R$)', larg: 14, fmt: 'moeda', ler: r => r.valor, total: true }, { cab: 'Total do banco (R$)', larg: 16, fmt: 'moeda', ler: r => r.total },
+                { cab: '% do limite', larg: 10, fmt: '0.0', ler: r => r.pct }, { cab: 'Acima (R$)', larg: 14, fmt: 'moeda', ler: r => r.excesso }, { cab: 'Acima até', larg: 12, fmt: 'data', ler: r => r.ate }],
+            linhas: plan, kpis: [{ rot: 'Aplicações', formula: f => `COUNTA(${f('Aplicação')})`, fmt: 'int' }, { rot: 'Valor (R$)', formula: f => `SUM(${f('Valor (R$)')})` }],
+            sobre: [['Linha', 'Uma aplicação coberta pelo FGC de um titular. O total, o % e o excesso são do banco (CNPJ raiz) para aquele titular.'],
+                ['Cobertura', 'R$ 250 mil por CPF e por instituição; teto de R$ 1 milhão por CPF a cada 4 anos.']] } };
+}
+
 const COMERCIAL = { com_pedidos: 'pedidos', com_itens: 'itens', com_clientes: 'clientes', com_ativos: 'ativos',
     com_margem: 'margem', com_funil: 'funil', com_recebiveis: 'recebiveis', com_entregas: 'entregas', com_precos: 'precos' }; // v1.15.0
 const ehComercial = t => !!COMERCIAL[t];
@@ -1276,7 +1334,8 @@ const RELATORIOS = {
     com_entregas: { codigo: 'comercial.rel_entregas', nome: 'Entregas', arquivo: 'entregas', montar: montarComEntregas },
     com_precos: { codigo: 'comercial.rel_precos', nome: 'Preços e tabelas', arquivo: 'precos_tabelas', montar: montarComPrecos },
     balanco_analitico: { codigo: 'relatorios.balanco_analitico', nome: 'Balanço entre pessoas · analítico', arquivo: 'balanco_pessoas_analitico', montar: montarBalancoAnalitico }, // v1.16.0
-    ativos_pessoa: { codigo: 'relatorios.ativos_por_pessoa', nome: 'Ativos e contratos por pessoa', arquivo: 'ativos_contratos_por_pessoa', montar: montarAtivosPessoa } // v1.16.0
+    ativos_pessoa: { codigo: 'relatorios.ativos_por_pessoa', nome: 'Ativos e contratos por pessoa', arquivo: 'ativos_contratos_por_pessoa', montar: montarAtivosPessoa }, // v1.16.0
+    fgc: { codigo: 'relatorios.investimentos_fgc', nome: 'Exposição ao FGC', arquivo: 'exposicao_fgc', montar: montarFgc } // v1.19.0 — I4
 };
 let estado = null; // { tipo, filtro, dados, montado }
 
@@ -1287,6 +1346,7 @@ function filtroPadrao(tipo, opcoes = {}) {
     if (tipo === 'retiradas') return { ano: hoje.getFullYear(), pessoaId: opcoes.pessoaId || null, pessoaNome: opcoes.pessoaNome || null }; // v1.3.0
     if (tipo === 'balanco_analitico') return { competencia: opcoes.competencia || iso(m0), pessoaId: opcoes.pessoaId || null, pessoaNome: opcoes.pessoaNome || null }; // v1.16.0
     if (tipo === 'ativos_pessoa') return {}; // v1.16.0 — situação do dia
+    if (tipo === 'fgc') return {}; // v1.19.0 — situação do dia
     if (tipo === 'executivo' || tipo === 'investimentos') return { ano: opcoes.ano || hoje.getFullYear(), ramo: opcoes.ramo || null, ramoNome: opcoes.ramoNome || null }; // v1.6.0 · v1.13.0
     if (ehComercial(tipo)) return { competencia: iso(m0), ativoId: opcoes.ativoId || null, ativoNome: opcoes.ativoNome || null }; // v1.14.0 — mês atual
     if (tipo === 'fluxo') return { de: iso(somaMeses(m0, -3)), ate: iso(somaMeses(m0, 2)), conta: null, contaNome: null, rotulo: 'Últimos 3 meses e próximos 2' };
@@ -1297,7 +1357,7 @@ function rotuloFiltro() {
     if (estado.tipo === 'fluxo') return `${comp(estado.filtro.de)} a ${comp(estado.filtro.ate)}`;
     if (estado.tipo === 'retiradas') return estado.filtro.ano ? String(estado.filtro.ano) : 'Todos os anos';
     if (estado.tipo === 'balanco_analitico') return estado.filtro.competencia ? comp(estado.filtro.competencia) : 'Desde o início'; // v1.16.0
-    if (estado.tipo === 'ativos_pessoa') return 'Hoje';
+    if (estado.tipo === 'ativos_pessoa' || estado.tipo === 'fgc') return 'Hoje';
     if (estado.tipo === 'executivo' || estado.tipo === 'investimentos') return String(estado.filtro.ano); // v1.6.0 · v1.13.0
     return comp(estado.filtro.competencia);
 }
@@ -1305,6 +1365,14 @@ function rotuloFiltro() {
 async function buscar() {
     const f = estado.filtro;
     if (estado.tipo === 'balanco_analitico') return buscarBalancoAnalitico(f); // v1.16.0
+    if (estado.tipo === 'fgc') { // v1.19.0 — I4: exposição ao FGC (fn_fgc_exposicao), situação de hoje
+        const [{ data, error }, quem] = await Promise.all([dbAuth.rpc('fn_fgc_exposicao', { p_cliente_id: CLIENTE_ID_SUPABASE }), quemGera()]);
+        if (error) throw new Error(error.message);
+        const empresa = (typeof CONFIG_CLIENTE === 'object' && CONFIG_CLIENTE?.nomeEmpresa) || 'Empresa';
+        const h = new Date(), hoje = h.getFullYear() + '-' + String(h.getMonth() + 1).padStart(2, '0') + '-' + String(h.getDate()).padStart(2, '0');
+        return { linhas: data || [], situacao_em: hoje, empresa, gerado_em: new Date().toISOString(), gerado_por: quem,
+                 relatorio: 'relatorios.investimentos_fgc', versao: 1, visao: 'situacao' };
+    }
     if (estado.tipo === 'ativos_pessoa') { // v1.16.0 — F4
         const [{ data, error }, quem] = await Promise.all([
             dbAuth.rpc('fn_relatorio_ativos_por_pessoa', { p_cliente_id: CLIENTE_ID_SUPABASE, p_pessoa_id: null }), quemGera()]);
@@ -1368,7 +1436,7 @@ function telaHtml() {
     return `<div class="rx-top">
         <button type="button" class="rx-voltar" data-rx="fechar" aria-label="Voltar para Relatórios"><svg data-lucide="chevron-left"></svg>Relatórios</button>
         <span class="rx-sp"></span>
-        ${estado.tipo === 'ativos_pessoa' ? '' : `<button type="button" data-rx="periodo"><svg data-lucide="calendar"></svg>${esc(rotuloFiltro())}<svg data-lucide="chevron-down"></svg></button>`}
+        ${estado.tipo === 'ativos_pessoa' || estado.tipo === 'fgc' ? '' : `<button type="button" data-rx="periodo"><svg data-lucide="calendar"></svg>${esc(rotuloFiltro())}<svg data-lucide="chevron-down"></svg></button>`}
         ${contaChip}
       </div>
       <div class="rx-corpo" aria-live="polite"><div class="rx-msg">Montando ${esc(r.nome)}…</div></div>
