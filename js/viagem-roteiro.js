@@ -1,6 +1,10 @@
 // ============================================================================
 // viagem-roteiro.js — Raiz Patrimônio · Roteiro da viagem (programa com tipos de ciclo)
-// Versão: 1.6.0 · 26/11/2026
+// Versão: 1.7.0 · 27/11/2026
+//
+// v1.7.0 (27/11/2026, sessão 20261127-1233-viagem-icone-catalogo, demanda d8061e47; de acordo do Nicola 27/11 12:33) — REU: o ícone
+// de cada linha vem do catálogo (cofre_controle_subtipos.icone, via fn_ciclo_roteiro → icone), como nos alertas; sai o mapa próprio
+// da v1.6.0. A linha do dia de volta usa undo-2 (está no recorte icones-raiz.js; corner-down-left não estava). Versão anterior: 1.6.0
 //
 // v1.6.0 (26/11/2026, sessão 20261126-1213-viagem-icones, demanda d8061e47; de acordo do Nicola 26/11 12:13) — ícone da categoria em
 // cada linha (voo, cama, carro, ingresso, talheres, alfinete) e etapa como etiqueta pequena, com menos texto; "A encaixar" sem a
@@ -21,17 +25,11 @@
 // v1.3.0 (25/11/2026, sessão 20261125-1019-viagem-compartilhar, demanda faf717a1; FICHA_COMPARTILHAR_VIAGEM v1.0.0, de acordo do
 // Nicola 25/11 10:19) — "Compartilhar" no rodapé do Roteiro (viagem-compartilhar.js); no encaixe, a hora é a saída, o "Até" com
 // hora é a chegada e a descrição traz o exemplo de voo. Versão anterior: 1.2.0
-//
-// v1.2.0 (25/11/2026, sessão 20261125-0120-viagem-2b2, demanda d8061e47; FICHA_PROGRAMA_VIAGEM_FATIA2B2 v1.0.0, de acordo do
-// Nicola 25/11 01:20) — etapas: cada entrada mostra a etapa (A cotar, Reservado… ou Ideia, Escolhido… no lugar) e o toque troca
-// (fn_item_etapa_mover; escolherEtapa exportada para a cofre-controles.js); registro com início e fim aparece também no dia do
-// fim; "+ No roteiro" oferece Lugar, Passe (janela e dias de uso) e Outro item (fn_ciclo_item_incluir) além de "Mais um em…";
-// na bandeja o passe vira uma linha "0 de 4 dias" e o dia só pode cair na janela. Versão anterior: 1.1.0
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.1.0 … v1.1.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.2.0 … v1.2.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '1.6.0';
+export const VERSAO = '1.7.0';
 import { estado } from './cofre-estado.js';
 import * as api from './cofre-api.js';
 
@@ -101,9 +99,7 @@ async function ler() {
     return data;
 }
 
-const ICONE_CAT = { viagem_deslocamento: 'plane', viagem_hospedagem: 'bed', viagem_locomocao: 'car', viagem_atracao: 'ticket',
-    viagem_alimentacao: 'utensils', viagem_lugar: 'map-pin', seguro_viagem: 'shield-check', evento_viagem: 'calendar' }; // v1.6.0
-export const iconeCategoria = (sub) => ICONE_CAT[sub] || 'calendar';
+export const iconeCategoria = (e) => (e && e.icone) || 'calendar'; // v1.7.0 — ícone do catálogo (subtipo); sem ícone, calendário
 const etiqueta = (e) => e.etapa_nome ? `<span class="rz-chip${['reservado', 'pago', 'feito', 'escolhido'].includes(e.etapa) ? ' rz-on' : ''}" style="flex:none;font-size:12px;padding:2px 8px;pointer-events:none">${esc(e.etapa_nome)}</span>` : '';
 function linhaEntrada(e, comHora = true) {
     const p = partes(e.inicio_em), pf = partes(e.fim_em);
@@ -111,7 +107,7 @@ function linhaEntrada(e, comHora = true) {
         : (p.hora || 'Dia todo') + (e.fim_em ? ' – ' + (pf.data !== p.data ? dm(pf.data) + ' ' : '') + (pf.hora || '') : '');
     const sub = [quando, e.descricao || '', e.papel !== 'fim' && e.valor ? moeda(e.valor) : '', e.status === 'concluido' ? 'Feito' : ''].filter(Boolean).join(' · ');
     return `<button type="button" class="rz-row" data-rt-oc="${e.ocorrencia_id}" style="width:100%;text-align:left;gap:10px">
-        <div class="rz-ic"><i data-lucide="${e.papel === 'fim' ? 'corner-down-left' : iconeCategoria(e.sub)}"></i></div>
+        <div class="rz-ic"><i data-lucide="${e.papel === 'fim' ? 'undo-2' : iconeCategoria(e)}"></i></div>
         <div class="rz-tx" style="min-width:0"><b>${esc(e.titulo)}</b>${sub ? `<span>${esc(sub)}</span>` : ''}</div>
         ${etiqueta(e)}${e.docs ? '<i data-lucide="paperclip" style="flex:none;width:16px"></i>' : ''}</button>`;
 }
@@ -156,7 +152,7 @@ function linhaBandeja(e) {
     const sub = [`${e.dias_marcados} de ${e.dias_total} dias`, e.janela_fim ? 'válido ' + dm(e.janela_inicio) + ' a ' + dm(e.janela_fim) : '',
         e.valor ? moeda(e.valor) : ''].filter(Boolean).join(' · ');
     return `<button type="button" class="rz-row" data-rt-oc="${e.ocorrencia_id}" style="width:100%;text-align:left;gap:10px">
-        <div class="rz-ic"><i data-lucide="${iconeCategoria(e.sub)}"></i></div><div class="rz-tx" style="min-width:0"><b>${esc(e.titulo)}</b><span>${esc(sub)}</span></div>
+        <div class="rz-ic"><i data-lucide="${iconeCategoria(e)}"></i></div><div class="rz-tx" style="min-width:0"><b>${esc(e.titulo)}</b><span>${esc(sub)}</span></div>
         ${e.docs ? '<i data-lucide="paperclip" style="flex:none;width:16px"></i>' : ''}</button>`;
 }
 function achar(r, ocId) {
