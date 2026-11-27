@@ -1,6 +1,9 @@
 // ============================================================================
 // investimentos.js — Raiz Patrimônio · Ramo Investimentos (conta e aplicações)
-// Versão: 1.5.0 · 27/11/2026
+// Versão: 1.6.0 · 27/11/2026
+//
+// v1.6.0 (27/11/2026, sessão 20261127-1810-investimentos-i3a-2, demanda 885410f9; FICHA_I3A_COLAR_PRECOS v1.0.0, F30) — "Colar preços"
+// também no Nova aplicação da conta (ações e FII), ao lado de "Várias compras e vendas".
 //
 // v1.5.0 (27/11/2026, sessão 20261127-1730-investimentos-i3a, demanda 885410f9; PLANO_EXECUCAO_I2_I3_I4_INVESTIMENTOS_RAIZ v1.2.0, I3a) —
 // valores que chegam sozinhos: as origens "Cotação" (Tesouro Transparente, CVM e brapi, pela rotina cotacoes-captura) e "Planilha"
@@ -38,24 +41,11 @@
 //   H · card Indicadores separado, abaixo do Financeiro, sem filtro próprio: segue o filtro do card Financeiro (ano ou mês) e
 //       mostra sempre No ano · 12 meses · Desde o início. Ganho e rentabilidade pelo método de Dietz modificado, mês a mês,
 //       encadeado nos períodos maiores; cada métrica com o "i". O card Valor da aplicação perde o % "desde a aplicação".
-//
-// v1.1.0 (25/11/2026, sessão 20261125-0118-investimentos-i1-1, demanda 368d8f36; PLANO_EXECUCAO_I1_1_AJUSTES_APLICACAO_RAIZ v1.0.0,
-// de acordo do Nicola 25/11 01:18 "De acordo com A-E") — ajustes do teste no Cdb teste:
-//   A · liquidez "Depois da carência" pede os dias (dados_modelo.carencia_dias); Condições mostra os dias e a data que libera.
-//   B · sai o card Movimentos do Resumo: a aba Financeiro tem um botão só, "Registrar movimento", com aplicação, resgates,
-//       rendimento, taxa e IR (aplicação encerrada só lança rendimento, taxa e IR).
-//   C · sai o card "Itens da aplicação": o card Ocorrências da aplicação lista as ocorrências dos itens dela ("Atualizar valor"
-//       todo mês, "Aporte" na previdência) — a aberta abre Informar valor; a concluída mostra data, valor e origem. O card
-//       padrão (contratos.js) só lê ocorrência do próprio contrato, por isso fica escondido nesta ficha.
-//   D · Emissor escolhido da lista de partes da empresa (as que já são emissor ou instituição primeiro) ou "+ Cadastrar
-//       emissor novo"; escolhido, o CNPJ vem do cadastro e a aplicação reusa a parte (só ganha o papel emissor).
-//   E · Financeiro da aplicação no olhar da aplicação: aplicação e rendimento +, resgate, taxa e IR −. O lançamento no
-//       Financeiro geral não muda (resgate = entrada de caixa).
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.0.0 … v1.0.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.0.0 … v1.1.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '1.5.0';
+export const VERSAO = '1.6.0';
 
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const toast = (m, t) => (typeof mostrarToast === 'function' ? mostrarToast(m, t) : console.log(m));
@@ -212,6 +202,8 @@ async function abrirNovaAplicacao(a, aoConcluir) {
     // v1.4.0 — I2a: várias compras e vendas de ações e FII de uma vez (cria as aplicações dos códigos novos)
     if (tipos.some(t => EH_RV(t.codigo))) acoes.push({ icone: 'list-checks', titulo: 'Várias compras e vendas', sub: 'Ações e FII, em lote', codigo: 'contratos.criar',
         aoTocar: async () => (await moduloRV()).abrirLote(a, aoConcluir) });
+    if (tipos.some(t => EH_RV(t.codigo))) acoes.push({ icone: 'clipboard', titulo: 'Colar preços', sub: 'Ações e FII, da planilha', codigo: 'cofre.editar', // v1.6.0 — F30
+        aoTocar: async () => (await moduloRV()).abrirColarPrecos(a.cliente_id, aoConcluir) });
     abrirSheetAcoes({ titulo: 'Nova aplicação', sub: a.nome_exibicao, acoes });
 }
 

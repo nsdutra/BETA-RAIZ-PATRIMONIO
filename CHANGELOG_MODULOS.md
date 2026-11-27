@@ -1117,6 +1117,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/cofre-api.js`
 
 // Versão anterior: 1.52.0 · 18/10/2026
@@ -2102,6 +2104,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/cofre-app.js`
 
 //
@@ -2547,6 +2551,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 // cofre-ativos.js). Prefere addEventListener a onclick inline em todo
 // código novo (Diretriz Arquitetural — Passo 2).
 // ============================================================================
+
+---
 
 ---
 
@@ -5352,6 +5358,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/cofre-controles.js`
 
 //
@@ -6396,6 +6404,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 // não está implementado (geração automática de ocorrências recorrentes,
 // Central de Alertas consolidada).
 // ============================================================================
+
+---
 
 ---
 
@@ -8073,6 +8083,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/cofre-estado.js`
 
 //
@@ -8218,6 +8230,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 // v1.21.6 (Arquivar/RLS, sessão paralela) nem esta entrega — fechado
 // agora. Ver changelog completo em cofre.html v1.22.0 (merge das 2
 // sessões paralelas + badge fix + form fix + função Vendido).
+
+---
 
 ---
 
@@ -9314,6 +9328,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/cofre-ui.js`
 
 //
@@ -9345,6 +9361,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 // genérica, template de card, indicador de "liga/desliga" (Design System
 // v1.43.0 §2). Não importa cofre-api.js — não sabe nada de Supabase.
 // ============================================================================
+
+---
 
 ---
 
@@ -10032,6 +10050,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 // pilha; os demais (cofre-ui, cofre-documentos, cofre-ativos) importam
 // daqui, nunca o contrário.
 // ============================================================================
+
+---
 
 ---
 
@@ -11219,6 +11239,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/comum-minha-empresa.js`
 
 // Versão anterior: 1.17.0 · 14/10/2026
@@ -11438,6 +11460,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 // `dbAuth` já autenticado do host, por parâmetro (ver nota completa em
 // comum-licenca.js).
 // ============================================================================
+
+---
 
 ---
 
@@ -12784,6 +12808,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/comum-renovacao.js`
 
 //
@@ -12869,6 +12895,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 // jsdelivr (mesma origem já usada pelo app); se não carregar, o "copia e cola"
 // continua funcionando sozinho.
 // ============================================================================
+
+---
 
 ---
 
@@ -13903,6 +13931,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/conta.js`
 
 // Versão anterior: 1.1.0 · 14/10/2026
@@ -13949,6 +13979,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 //    virar assíncrona poderia deixar o primeiro render com o filtro errado. Não vale o risco
 //    por 345 bytes — é a mesma classe de armadilha do montarBoxDivisaoSocietaria.
 // ============================================================================
+
+---
 
 ---
 
@@ -15760,6 +15792,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/fechamento.js`
 
 //
@@ -16103,6 +16137,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 // window.jspdf, CONFIG_CLIENTE (todos já globais no index.html clássico —
 // mesmo acesso que financeiro.js já faz).
 // ============================================================================
+
+---
 
 ---
 
@@ -18940,6 +18976,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/fiscal.js`
 
 //
@@ -19036,6 +19074,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 // abrirSheet, abrirSheetAcoes, abrirSheetForm, rzSheetCabecalho, fecharSheet,
 // mostrarToast, switchTab, rzIcones, podeUsar, window.fechamentoAbrirChecklistFiscalAtualizado.
 // ============================================================================
+
+---
 
 ---
 
@@ -20137,7 +20177,23 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/investimentos.js`
+
+//
+// v1.1.0 (25/11/2026, sessão 20261125-0118-investimentos-i1-1, demanda 368d8f36; PLANO_EXECUCAO_I1_1_AJUSTES_APLICACAO_RAIZ v1.0.0,
+// de acordo do Nicola 25/11 01:18 "De acordo com A-E") — ajustes do teste no Cdb teste:
+//   A · liquidez "Depois da carência" pede os dias (dados_modelo.carencia_dias); Condições mostra os dias e a data que libera.
+//   B · sai o card Movimentos do Resumo: a aba Financeiro tem um botão só, "Registrar movimento", com aplicação, resgates,
+//       rendimento, taxa e IR (aplicação encerrada só lança rendimento, taxa e IR).
+//   C · sai o card "Itens da aplicação": o card Ocorrências da aplicação lista as ocorrências dos itens dela ("Atualizar valor"
+//       todo mês, "Aporte" na previdência) — a aberta abre Informar valor; a concluída mostra data, valor e origem. O card
+//       padrão (contratos.js) só lê ocorrência do próprio contrato, por isso fica escondido nesta ficha.
+//   D · Emissor escolhido da lista de partes da empresa (as que já são emissor ou instituição primeiro) ou "+ Cadastrar
+//       emissor novo"; escolhido, o CNPJ vem do cadastro e a aplicação reusa a parte (só ganha o papel emissor).
+//   E · Financeiro da aplicação no olhar da aplicação: aplicação e rendimento +, resgate, taxa e IR −. O lançamento no
+//       Financeiro geral não muda (resgate = entrada de caixa).
 
 //
 // v1.0.0 (25/11/2026, sessão 20261125-0029-investimentos-i1, demanda e5d269c2; PLANO_EXECUCAO_I1_CONTA_E_APLICACOES_RAIZ v1.2.0,
@@ -20152,6 +20208,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 //   · linhasValorConta: série da conta = soma das aplicações mês a mês (usada pelo card Valor do bem da conta, cofre-ativos.js).
 // O valor atual mora em contratos.valor; o histórico, nas ocorrências do item "Atualizar valor" (F3). Sem projeção (I3).
 // ============================================================================
+
+---
 
 ---
 
@@ -20261,6 +20319,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 // pessoaIdLogada. Exclusivo (`__minzEstado`) virou nível de módulo.
 // Indentação de origem mantida (template literals). Strict verificado.
 // ============================================================================
+
+---
 
 ---
 
@@ -20911,6 +20971,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/partes.js`
 
 //
@@ -20945,6 +21007,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 // Chamadas de fora chegam pela ponte window[nome] do index (bloco "PARTES"), que é o
 // mesmo rzPonteModulo dos outros módulos R8.
 // ============================================================================
+
+---
 
 ---
 
@@ -21488,6 +21552,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/relatorios-executivos.js`
 
 //   Versão anterior: 1.12.0
@@ -21689,6 +21755,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 // que o bot usa); aqui só se monta o texto e o desenho — nunca se recalcula
 // (REL-02). Protótipo: raiz\docs\PROTOTIPO_RELATORIOS_FLUXO_GERENCIAL v1.1.0.
 // ============================================================================
+
+---
 
 ---
 
@@ -22820,6 +22888,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/viagem-roteiro.js`
 
 //
@@ -22849,6 +22919,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 // vez (fn_ciclo_trechos_salvar). O dia em que se muda de cidade é do trecho que começa nele (regra do banco). As regras são do
 // banco; aqui só se monta, colhe e manda. Aberto por cofre-controles.js (botão "Roteiro" e ⋮ do trecho).
 // ============================================================================
+
+---
 
 ---
 
@@ -23013,6 +23085,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 // CLIENTE_ID_SUPABASE, dbAuth. Exclusivo (4) virou nível de módulo.
 // Indentação de origem mantida. Strict verificado.
 // ============================================================================
+
+---
 
 ---
 

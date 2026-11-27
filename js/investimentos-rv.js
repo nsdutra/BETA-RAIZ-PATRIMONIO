@@ -1,6 +1,10 @@
 // ============================================================================
 // investimentos-rv.js — Raiz Patrimônio · Ramo Investimentos · renda variável (ações, BDR, ETF e fundos imobiliários)
-// Versão: 1.1.0 · 27/11/2026
+// Versão: 1.2.0 · 27/11/2026
+//
+// v1.2.0 (27/11/2026, sessão 20261127-1810-investimentos-i3a-2, demanda 885410f9; FICHA_I3A_COLAR_PRECOS v1.0.0, F30; Nicola
+// 27/11 18:09 "2 e 3 ok") — "Colar preços": uma linha por código (código; preço; data opcional) colada da planilha do cliente;
+// conferência com o valor novo de cada posição antes de gravar (fn_cotacoes_colar). Sem API de cotação de ações.
 //
 // v1.1.0 (27/11/2026, sessão 20261127-1730-investimentos-i3a, demanda 885410f9; PLANO_EXECUCAO_I2_I3_I4_INVESTIMENTOS_RAIZ v1.2.0, I3a) —
 // o valor da posição usa a cotação do dia (brapi, pela rotina cotacoes-captura) quando ela existe; o card diz "cotação dd/mm" ou
@@ -19,7 +23,7 @@
 //   · Compra, venda e amortização caem no Financeiro (lançamentos com o mesmo origem_id); tocar na linha abre o evento.
 // Chamado por js/investimentos.js (import dinâmico); não mexe no index.
 // ============================================================================
-export const VERSAO = '1.1.0';
+export const VERSAO = '1.2.0';
 
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const toast = (m, t) => (typeof mostrarToast === 'function' ? mostrarToast(m, t) : console.log(m));
@@ -376,6 +380,7 @@ export async function abrirRegistrarRV(con, { rendimento, taxa, despesa } = {}) 
         { icone: 'arrow-down-left', titulo: 'Compra', sub: 'Quantidade e preço', codigo: 'cofre.editar', aoTocar: () => abrirCompraVenda(con, p, 'compra') },
         ...(Number(p.quantidade) > 0 ? [{ icone: 'arrow-up-right', titulo: 'Venda', sub: 'Com o resultado', codigo: 'cofre.editar', aoTocar: () => abrirCompraVenda(con, p, 'venda') }] : []),
         ...(conta ? [{ icone: 'list-checks', titulo: 'Várias compras e vendas', sub: 'Em lote, de vários códigos', codigo: 'cofre.editar', aoTocar: () => abrirLote(conta, null) }] : []),
+        { icone: 'clipboard', titulo: 'Colar preços', sub: 'Da sua planilha', codigo: 'cofre.editar', aoTocar: () => abrirColarPrecos(con.clienteId, () => depois(con, 'Preços gravados')) },
         { icone: 'sprout', titulo: 'Rendimento', sub: 'Dividendos, JCP, FII', codigo: 'cofre.editar', aoTocar: () => rendimento?.() },
         { icone: 'git-branch', titulo: 'Evento da posição', sub: 'Emissão, bonificação…', codigo: 'cofre.editar', aoTocar: () => abrirEventoPosicao(con, p) },
         { icone: 'receipt', titulo: 'Taxa ou custódia', sub: 'Cobrada à parte', codigo: 'cofre.editar', aoTocar: () => taxa?.() },
@@ -518,5 +523,41 @@ export function abrirLote(a, aoConcluir) {
         document.querySelector('[data-rv-mais]')?.addEventListener('click', () => { const u = linhas[linhas.length - 1]; linhas.push({ data: u?.data || hoje(), op: 'compra', ticker: '', q: '', p: '', t: '' }); desenhar(); marcarMudou(); });
         document.querySelector('[data-rv-colar]')?.addEventListener('click', colar);
         icones();
+    }, 0);
+}
+
+// ---------------------------------------------------------------------------------------------------- colar preços (F30)
+export function abrirColarPrecos(clienteId, aoConcluir) {
+    let conferido = null, assinatura = '';
+    const ler = () => String(val('rv-precos')).split(/\r?\n/).map(t => t.trim()).filter(Boolean).map(t => {
+        const c = t.includes('\t') ? t.split('\t') : t.includes(';') ? t.split(';') : t.split(/\s+/);
+        return { codigo: String(c[0] || '').trim().toUpperCase(), preco: lerNumBR(c[1]), data: lerDataBR(c[2]) || null };
+    }).filter(l => l.codigo);
+    const mostrar = (r) => {
+        const box = document.getElementById('rv-precos-conf'); if (!box) return;
+        box.innerHTML = `<div class="rz-group">Como fica · ${r.ok} ${r.ok === 1 ? 'código' : 'códigos'}${r.erros ? ` · ${r.erros} com erro` : ''}</div>
+            ${(r.itens || []).map(x => `<div class="rz-row"><div class="rz-tx"><b>${esc(x.codigo || '—')} · ${esc(moeda(x.preco))}</b>
+                <span>${esc(x.status === 'ok' ? (x.aplicacoes || []).map(a => `${qtd(a.quantidade)} × ${n2(x.preco)} = ${moeda(a.valor)}`).join(' · ') : x.mensagem || '')}</span></div>
+                <div class="rz-rt"><span class="rz-st rz-${x.status === 'ok' ? 'ok' : 'bad'}">${x.status === 'ok' ? 'Entra' : 'Erro'}</span></div></div>`).join('')}
+            ${r.erros ? '<p class="rz-desc">As linhas com erro ficam de fora; as outras são gravadas.</p>' : ''}`;
+    };
+    abrirSheetForm({ titulo: 'Colar preços', sub: 'Ações, FII, ETF e BDR', rotuloSalvar: 'Conferir', empilhar: true,
+        corpo: `<p class="rz-desc">Uma linha por código: código, preço e a data (opcional, padrão hoje), separados por tabulação ou ponto e vírgula. Ex.: VALE3; 58,29</p>
+            ${campo('rv-precos', 'Preços', '<textarea id="rv-precos" rows="8" style="width:100%"></textarea>')}
+            <div id="rv-precos-conf"></div>`,
+        aoSalvar: async () => {
+            const itens = ler();
+            if (!itens.length) { toast('Cole ao menos uma linha.', 'erro'); return false; }
+            const sig = JSON.stringify(itens), gravar = !!conferido && assinatura === sig && conferido.ok > 0;
+            const { data, error } = await db().rpc('fn_cotacoes_colar', { p_cliente_id: clienteId, p_itens: itens, p_simular: !gravar });
+            if (error) { toast(error.message || 'Não consegui conferir.', 'erro'); return false; }
+            if (gravar) { toast(`${data.ok} ${data.ok === 1 ? 'preço gravado' : 'preços gravados'}`, 'sucesso'); aoConcluir?.(); return true; }
+            conferido = data; assinatura = sig; mostrar(data);
+            const b = document.getElementById('rz-sheet-salvar');
+            if (b) b.textContent = data.ok ? `Gravar ${data.ok} ${data.ok === 1 ? 'preço' : 'preços'}` : 'Conferir';
+            return false;
+        } });
+    setTimeout(() => {
+        document.getElementById('rv-precos')?.addEventListener('input', () => { const b = document.getElementById('rz-sheet-salvar'); if (b && conferido && assinatura !== JSON.stringify(ler())) b.textContent = 'Conferir'; });
     }, 0);
 }
