@@ -1,7 +1,16 @@
 // ============================================================================
 // financeiro.js — Raiz Patrimônio · Financeiro (Recebimentos · Atrasados · Saídas
 //                  · conciliação de extrato · recibo · detalhe do recebimento)
-// Versão: 1.108.2 · 26/11/2026
+// Versão: 1.109.0 · 27/11/2026
+//
+// v1.109.0 (27/11/2026, sessão 20261127-1840-duplicidade, demanda a7b62194; FICHA_DUPLICIDADE_RECEBIMENTO v1.0.0, de acordo do Nicola
+// 27/11 18:36 e 18:48) — PAGAMENTO DUPLICADO. (1) Conciliação ganha o bloco "Possíveis duplicidades" no topo
+// (fn_recebimento_duplicidades): cada grupo abre as ações Desfazer a baixa, É o mesmo pagamento (fn_extrato_ligar_baixa),
+// Pagamento a mais › usar no próximo mês (fn_extrato_vincular_recebimento) ou › vou devolver (fn_extrato_marcar_nao_controlado),
+// Dividir a linha e Manter (log 'duplicidade.manter'). (2) Importação de extrato: lançamentos iguais no mesmo arquivo (data,
+// valor e nome) entram como linhas distintas — a 2ª ganha "#2" na chave, a 3ª "#3" (achado Nefro 15/07). (3) Linha cujo
+// contrato já tem o pagamento baixado (motivo pagamento_ja_baixado) fica pendente com a nota "Pagamento já baixado em MM/AAAA"
+// e não aparece como "extrato provável" de outro mês. Versão anterior: 1.108.2.
 //
 // v1.108.2 (26/11/2026, sessão 20261126-0945-grants-estorno, demanda 08dd8ec3; achado no Glenio 03/2026, de acordo do Nicola 09:41)
 // — Estornar tira do recebimento as notas automáticas da conciliação ("Conciliado automaticamente…", "Ligado ao extrato…"); as
@@ -26,16 +35,11 @@
 // pelo valor do mês: depois de reajustes com vigência (1.500 desde 06/2025, 1.600 desde 06/2026) o gráfico ficava 1.600 o ano
 // todo, enquanto o Financeiro › Recebimentos mostrava o certo. Agora usa o valor do próprio recebimento (valor_confirmado) e só
 // cai no valor do contrato se ele estiver vazio. Versão anterior: 1.106.0.
-//
-// v1.106.0 (25/11/2026, sessão 20261125-2135-investimentos-i1-3, demanda e2b658a8; PLANO_EXECUCAO_I1_3_MOVIMENTOS_EDITAR_RAIZ
-// v1.0.0, item A; de acordo do Nicola 25/11 21:35) — no olhar do investimento, a linha do movimento (aporte, resgate, provento,
-// taxa) abre a ficha do movimento do js/investimentos.js (abrirMovimento) e não mais a ação de despesa ou de receita avulsa, que
-// não acertava o valor da aplicação. O Financeiro de aluguel e dos demais contratos segue igual.
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.105.0 … v1.105.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.106.0 … v1.106.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '1.108.2'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.109.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 
 // v1.17.0 (Fase 1 do wrapper de escrita, rollout Financeiro) — emitirEscrita
 // é o evento padrão pra "algo mudou que módulos DE FORA deste arquivo podem
@@ -3410,7 +3414,8 @@ function financeiroRenderCabecalho(aba) {
                 razao_social: f.razaoSocial || null, documento_original: f.documento || null,
                 descricao_original: f.descricao || null, // v1.87.0 — histórico do banco (ex.: REND PAGO APLIC), lido pela regra R01
                 status_conciliacao: f.statusConciliacao || 'pendente', destino_tipo: f.statusConciliacao ? (f.destinoTipo || null) : null,
-                destino_id: f.statusConciliacao ? (f.destinoId || null) : null, conciliado_em: f.statusConciliacao ? agora : null
+                destino_id: f.statusConciliacao ? (f.destinoId || null) : null, conciliado_em: f.statusConciliacao ? agora : null,
+                observacao_usuario: f.observacao || null // v1.109.0 — "Pagamento já baixado em MM/AAAA [rec:id]"
             });
             const gravadas = new Set();
             const { data, error } = await dbAuth.from('extrato_fingerprints').insert(novos.map(linha)).select('chave');
@@ -3533,9 +3538,12 @@ function financeiroRenderCabecalho(aba) {
             // forEach vira `continue;` num for...of — um `return` aqui dentro
             // sairia da função INTEIRA na primeira transação, não só pulando
             // pra próxima (armadilha clássica dessa conversão).
+            const ocorrenciasChave = {}; // v1.109.0 (a7b62194) — lançamentos iguais no mesmo arquivo são pagamentos distintos
             for (const t of transacoes) {
 
-                const chave = `${t.dataISO}|${t.valor.toFixed(2)}|${t.razaoSocial.toUpperCase()}`;
+                const chaveBase = `${t.dataISO}|${t.valor.toFixed(2)}|${t.razaoSocial.toUpperCase()}`;
+                ocorrenciasChave[chaveBase] = (ocorrenciasChave[chaveBase] || 0) + 1;
+                const chave = chaveBase + (ocorrenciasChave[chaveBase] > 1 ? '#' + ocorrenciasChave[chaveBase] : '');
 
                 // v1.2 — mantém a referência pra poder marcar o resultado da
                 // conciliação (match/pendência/ignorado) no próprio objeto,
@@ -3620,7 +3628,9 @@ function financeiroRenderCabecalho(aba) {
                     if (cls && cls.classificacao === 'ja_conciliado') {
                         // v1.87.0 (P2) — o mês já está pago, mas por OUTRA baixa (chave diferente): este pagamento
                         // é de outro mês ou duplicado. Fica pendente e o resumo diz "para conferir", não "já conciliado".
-                        if (cls.motivo === 'competencia_ja_paga') { qtdConferir++; qtdPendencias++; } else { qtdJaProcessadas++; }
+                        // v1.109.0 — pagamento_ja_baixado: o contrato já tem este pagamento em outro mês; fica para conferir em Possíveis duplicidades
+                        if (cls.motivo === 'pagamento_ja_baixado') { fpAtual.observacao = `Pagamento já baixado em ${cls.ref_baixada || ''} [rec:${cls.mensalidade_id}]`; qtdConferir++; qtdPendencias++; }
+                        else if (cls.motivo === 'competencia_ja_paga') { qtdConferir++; qtdPendencias++; } else { qtdJaProcessadas++; }
                         continue;
                     }
 
@@ -3995,6 +4005,7 @@ function financeiroRenderCabecalho(aba) {
                 } catch (eSug) { /* sem sugestão em lote — linha cai no fluxo de toque de sempre, não bloqueia a lista */ }
 
                 renderConciliacaoUnificada();
+                conciliacaoDuplicidadesCarregar(); // v1.109.0 (a7b62194) — não espera: a lista já está na tela
             } catch (err) {
                 lista.innerHTML = `<p class="text-xs text-center py-3" style="color:var(--wine)">Não consegui carregar: ${err.message}</p>`;
             }
@@ -4454,6 +4465,104 @@ function financeiroRenderCabecalho(aba) {
                 ligarBaixa: conciliacaoLigarBaixa,         // v1.98.0
                 outra: (id) => abrirAcoesConciliacaoLinha(id),
             });
+        }
+
+        // ===================================================================
+        // v1.109.0 (27/11/2026, demanda a7b62194; FICHA_DUPLICIDADE_RECEBIMENTO v1.0.0) — POSSÍVEIS DUPLICIDADES.
+        // Bloco no topo da Conciliação (fora das pilhas, num irmão de #conc-uni-lista). Lê fn_recebimento_duplicidades
+        // (todas as competências) e cada grupo abre as ações com funções que já existem. Mesmas ações do robô
+        // (Tratar processos › Possíveis duplicidades).
+        // ===================================================================
+        let concDupGrupos = [];
+        const CONC_DUP_TIPO = {
+            mesma_transacao: 'Mesma linha do extrato em dois meses',
+            mesmo_pagamento: 'Dois meses pagos com o mesmo valor',
+            baixa_em_lote: 'Vários meses baixados no mesmo dia',
+            extrato_duplicado: 'Linha do extrato repetida',
+            ja_baixado: 'Pagamento já baixado em outro mês',
+        };
+        const concDupValor = (v) => 'R$ ' + fmtBR(Math.abs(Number(v)) || 0);
+        const concDupData = (d) => d ? formatarDataBR(String(d).slice(0, 10)) : '—';
+        async function conciliacaoDuplicidadesCarregar() {
+            const lista = document.getElementById('conc-uni-lista');
+            if (!lista) return;
+            let caixa = document.getElementById('conc-dup');
+            if (!caixa) { caixa = document.createElement('div'); caixa.id = 'conc-dup'; lista.parentNode.insertBefore(caixa, lista); }
+            try {
+                const { data, error } = await dbAuth.rpc('fn_recebimento_duplicidades', { p_cliente_id: CLIENTE_ID_SUPABASE });
+                if (error) throw error;
+                concDupGrupos = (data && data.grupos) || [];
+            } catch (e) { console.warn('[rz] duplicidades', e?.message || e); concDupGrupos = []; }
+            if (!concDupGrupos.length) { caixa.innerHTML = ''; return; }
+            const e = escapeHtmlSaidas;
+            caixa.innerHTML = `<div class="rz-group">Possíveis duplicidades · ${concDupGrupos.length}</div><div class="rz-card rz-list">${concDupGrupos.map((g, i) => {
+                const meses = (g.itens || []).map(x => x.ref).filter(Boolean).join(', ');
+                return `<div class="rz-row rz-link" role="button" tabindex="0" data-conc-dup="${i}">
+                    <div class="rz-ic rz-bad"><svg data-lucide="copy"></svg></div>
+                    <div class="rz-tx"><b>${e(g.locatario || limparRotuloConciliacao((g.linhas || [])[0]?.razao_social) || 'Recebimento')}</b><span>${e(CONC_DUP_TIPO[g.tipo] || g.tipo)}${meses ? ' · ' + e(meses) : ''}</span></div>
+                    <div class="rz-rt"><b>${concDupValor(g.valor)}</b><span>${concDupData(g.data)}</span></div>
+                    <svg data-lucide="chevron-right" class="rz-chev"></svg></div>`;
+            }).join('')}</div>`;
+            caixa.querySelectorAll('[data-conc-dup]').forEach(el => el.addEventListener('click', () => conciliacaoDuplicidadeAbrir(Number(el.dataset.concDup))));
+            if (typeof lucide !== 'undefined') lucide.createIcons();
+        }
+        // próximo mês em aberto do contrato (o mais antigo que não está pago)
+        function conciliacaoDuplicidadeProximoAberto(contratoId) {
+            const chave = (r) => { const [m, a] = String(r || '').split('/'); return `${a}-${m}`; };
+            return mensalidades.filter(m => m.contratoId === contratoId && m.status !== 'Pago')
+                .sort((a, b) => chave(a.referencia).localeCompare(chave(b.referencia)))[0] || null;
+        }
+        function conciliacaoDuplicidadeAbrir(i) {
+            const g = concDupGrupos[i];
+            if (!g) return;
+            const acoes = [];
+            const pagos = (g.itens || []).filter(x => String(x.status).toLowerCase() === 'pago');
+            const pendentes = (g.linhas || []).filter(l => l.status === 'pendente');
+            pagos.forEach(x => acoes.push({ icone: 'undo-2', tipo: 'bad', titulo: `Desfazer ${x.ref}`, sub: `${concDupData(x.data)} · ${concDupValor(x.valor)}`,
+                aoTocar: () => estornarMensalidade(x.mensalidade_id) }));
+            pendentes.forEach(l => {
+                const rot = `${concDupData(l.data)} · ${concDupValor(l.valor)}`;
+                const alvo = pagos[0];
+                if (alvo) acoes.push({ icone: 'link', titulo: 'É o mesmo pagamento', sub: `${rot} · baixa de ${alvo.ref}`,
+                    aoTocar: () => conciliacaoDuplicidadeMesmo(g, l, alvo) });
+                const prox = g.contrato_id ? conciliacaoDuplicidadeProximoAberto(g.contrato_id) : null;
+                if (prox) acoes.push({ icone: 'calendar-plus', titulo: `Usar em ${prox.referencia}`, sub: `Pago a mais · ${rot}`,
+                    aoTocar: () => conciliacaoDuplicidadeProximo(g, l, prox) });
+                acoes.push({ icone: 'hand-coins', titulo: 'Vou devolver', sub: `Pago a mais · ${rot}`,
+                    aoTocar: () => conciliacaoDuplicidadeDevolver(g, l) });
+                if (conciliacaoUniCache.some(f => f.id === l.fingerprint_id)) acoes.push({ icone: 'split', titulo: 'Dividir a linha', sub: 'Em mais de um mês',
+                    aoTocar: () => abrirDividirRecebimento(l.fingerprint_id) });
+            });
+            acoes.push({ icone: 'check', titulo: 'Manter como está', sub: 'Está certo; sai desta lista', aoTocar: () => conciliacaoDuplicidadeManter(g) });
+            const detalhe = (g.linhas || []).length ? (g.linhas || []).map(l => `${concDupData(l.data)} ${concDupValor(l.valor)}${l.observacao ? ' (' + l.observacao.replace(/\s*\[rec:[^\]]*\]/, '') + ')' : ''}`).join(' · ') : '';
+            abrirSheetAcoes({ titulo: g.locatario || 'Possível duplicidade', sub: (CONC_DUP_TIPO[g.tipo] || g.tipo) + (detalhe ? ' · ' + detalhe : ''), acoes });
+        }
+        async function conciliacaoDuplicidadeMesmo(g, l, alvo) {
+            const ok = await conciliacaoLigarBaixa(l.fingerprint_id, alvo.mensalidade_id, false);
+            if (ok) registrarLog('duplicidade.mesmo_pagamento', { chave: g.chave, fingerprintId: l.fingerprint_id, mensalidadeId: alvo.mensalidade_id, canal: 'app' });
+        }
+        async function conciliacaoDuplicidadeProximo(g, l, prox) {
+            const f = conciliacaoUniCache.find(x => x.id === l.fingerprint_id);
+            let fp = f;
+            if (!fp) { const r = await dbAuth.from('extrato_fingerprints').select('id, valor, data, razao_social, chave').eq('id', l.fingerprint_id).maybeSingle(); fp = r.data; }
+            if (!fp) { rzToast('Não achei a linha do extrato.', { tipo: 'danger' }); return; }
+            await confirmarVincularConciliacaoRecebimento(fp.id, prox.id, fp);
+            registrarLog('duplicidade.pagamento_a_mais', { chave: g.chave, fingerprintId: fp.id, mensalidadeId: prox.id, destino: 'proximo_mes', canal: 'app' });
+        }
+        async function conciliacaoDuplicidadeDevolver(g, l) {
+            mostrarCarregamentoGlobal('Marcando…');
+            try {
+                const { error } = await dbAuth.rpc('fn_extrato_marcar_nao_controlado', { p_fingerprint_id: l.fingerprint_id, p_observacao: 'Pagamento a mais — devolver' });
+                if (error) throw error;
+                registrarLog('duplicidade.pagamento_a_mais', { chave: g.chave, fingerprintId: l.fingerprint_id, destino: 'devolver', canal: 'app' });
+                esconderCarregamentoGlobal(); rzToast('Marcada: pago a mais, a devolver.');
+                await carregarConciliacaoUnificada();
+            } catch (err) { esconderCarregamentoGlobal(); rzToast('Não consegui marcar: ' + (err.message || err), { tipo: 'danger' }); }
+        }
+        async function conciliacaoDuplicidadeManter(g) {
+            await registrarLog('duplicidade.manter', { chave: g.chave, tipo: g.tipo, canal: 'app' });
+            rzToast('Mantido. Saiu da lista de duplicidades.');
+            await conciliacaoDuplicidadesCarregar();
         }
 
         // v1.98.0 — o recebimento que a sugestão "ligar à baixa" aponta, para o antes e o depois.
@@ -5427,13 +5536,14 @@ function financeiroRenderCabecalho(aba) {
                     const ids = [...new Set(alvo.map(s => s.fingerprint_id))], fps = {};
                     for (let i = 0; i < ids.length; i += 150) {
                         const { data } = await dbAuth.from('extrato_fingerprints')
-                            .select('id, data, valor, direcao, razao_social, documento_original, descricao_original, chave, banco_origem, status_conciliacao')
+                            .select('id, data, valor, direcao, razao_social, documento_original, descricao_original, chave, banco_origem, status_conciliacao, observacao_usuario')
                             .in('id', ids.slice(i, i + 150)).eq('status_conciliacao', 'pendente');
                         (data || []).forEach(f => { fps[f.id] = f; });
                     }
                     alvo.forEach(s => {
                         const f = fps[s.fingerprint_id];
                         if (!f || f.direcao !== 'entrada') return;
+                        if (String(f.observacao_usuario || '').includes('[rec:')) return; // v1.109.0 — pagamento já baixado noutro mês: não é extrato provável
                         const atual = mapa[s.destino_id];
                         if (!atual || Number(s.confianca) > Number(atual.sug.confianca)) mapa[s.destino_id] = { sug: s, f };
                     });
