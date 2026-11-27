@@ -1,6 +1,11 @@
 // ============================================================================
 // investimentos.js — Raiz Patrimônio · Ramo Investimentos (conta e aplicações)
-// Versão: 1.4.0 · 26/11/2026
+// Versão: 1.5.0 · 27/11/2026
+//
+// v1.5.0 (27/11/2026, sessão 20261127-1730-investimentos-i3a, demanda 885410f9; PLANO_EXECUCAO_I2_I3_I4_INVESTIMENTOS_RAIZ v1.2.0, I3a) —
+// valores que chegam sozinhos: as origens "Cotação" (Tesouro Transparente, CVM e brapi, pela rotina cotacoes-captura) e "Planilha"
+// aparecem no card Valor e nas ocorrências; o valor atual mostra a data e a origem. Card Indicadores ganha "Comparação": CDI do
+// período, % do CDI e ganho acima do IPCA (indicador_valores). IFIX e Ibovespa entram quando a fonte de ações estiver ligada.
 //
 // v1.4.0 (26/11/2026, sessão 20261126-1330-investimentos-i2a, demanda 885410f9; PLANO_EXECUCAO_I2_I3_I4_INVESTIMENTOS_RAIZ v1.2.0, I2a, e
 // PROTOTIPO_INVESTIMENTOS_I2_I4_POSICAO_FGC v1.1.0; de acordo do Nicola 26/11 12:12 e 13:24) — renda variável pelo módulo novo
@@ -46,20 +51,11 @@
 //       emissor novo"; escolhido, o CNPJ vem do cadastro e a aplicação reusa a parte (só ganha o papel emissor).
 //   E · Financeiro da aplicação no olhar da aplicação: aplicação e rendimento +, resgate, taxa e IR −. O lançamento no
 //       Financeiro geral não muda (resgate = entrada de caixa).
-//
-// v1.0.0 (25/11/2026, sessão 20261125-0029-investimentos-i1, demanda e5d269c2; PLANO_EXECUCAO_I1_CONTA_E_APLICACOES_RAIZ v1.2.0,
-// de acordo do Nicola 25/11 00:29 e F5) — criação. A conta de investimento é um ativo (ou sub-ativo da pessoa) com o uso
-// Investimento; cada aplicação é um contrato de modelo 'investimento' (tipos inv_*), sem uso próprio (F5).
-//   · montarCardAplicacoes: na aba Usos e contratos da conta, o card "Aplicações" no lugar da lista de contratos — agrupado por
-//     tipo (subtotal, vencimento crescente; sem vencimento por último, pelo valor) ou corrido por vencimento; "+ Nova aplicação".
-//   · Nova aplicação: tipo → formulário → uso Investimento (se ainda não houver) + contrato + emissor (parte, papel emissor) +
-//     itens do tipo (fn_contrato_itens_sugeridos_criar) + 1º movimento (fn_aplicacao_movimento_registrar).
-//   · aplicarFichaAplicacao: a ficha do contrato com as seções do tipo (chamada pelo contrato-licenca.js): título, faixa,
-//     Condições, Valor (colunas da I0, valor de cada mês = ocorrência de "Atualizar valor"), Ocorrências, Financeiro e Partes.
-//   · linhasValorConta: série da conta = soma das aplicações mês a mês (usada pelo card Valor do bem da conta, cofre-ativos.js).
-// O valor atual mora em contratos.valor; o histórico, nas ocorrências do item "Atualizar valor" (F3). Sem projeção (I3).
-// ============================================================================
-export const VERSAO = '1.4.0';
+// --------------------------------------------------------------------------
+// Versões anteriores (v1.0.0 … v1.0.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
+// mais recentes deste cabeçalho (VER-06).
+export const VERSAO = '1.5.0';
 
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const toast = (m, t) => (typeof mostrarToast === 'function' ? mostrarToast(m, t) : console.log(m));
@@ -130,7 +126,7 @@ async function historicoValores(contratoIds) {
     return (oc || []).map(o => ({ contrato_id: porItem[o.item_controle_id], data_base: String(o.data_prevista_atual).slice(0, 10), valor: Number(o.valor_real),
         origem: o.origem, obs: o.tratamento_descricao, criado_em: o.tratado_em || '' }));
 }
-const ORIGEM_ROT = { manual: 'Informado', extrato: 'Extrato', print: 'Print', movimento: 'Movimento', estimativa: 'Estimativa' };
+const ORIGEM_ROT = { manual: 'Informado', extrato: 'Extrato', print: 'Print', movimento: 'Movimento', estimativa: 'Estimativa', cotacao: 'Cotação', planilha: 'Planilha' }; // v1.5.0 — I3a
 
 // Série da conta para o card Valor do bem: uma linha por mês em que alguma aplicação teve valor novo (ou foi encerrada),
 // com a soma do último valor de cada aplicação naquele fim de mês. Mês sem evento repete a soma (o card marca "estimado").
@@ -377,7 +373,7 @@ async function montarValorAplicacao(con) {
     const op = { semVariacao: true }; // H — sem a frase de %: o % vai para o card Indicadores
     const menu = `<button type="button" class="rz-more" data-apl-valor-menu aria-label="Ações do valor"><i data-lucide="ellipsis-vertical"></i></button>`;
     card.innerHTML = `<div class="rz-card-h"><h3>Valor</h3>${menu}</div>
-        <div class="rz-kv"><div><small>Valor atual</small><b>${esc(moeda(con.valor))}</b>${hist.length ? `<small>${esc(dataBR(hist.slice().sort((a, b) => a.data_base.localeCompare(b.data_base)).pop().data_base))}</small>` : ''}</div>
+        <div class="rz-kv"><div><small>Valor atual</small><b>${esc(moeda(con.valor))}</b>${hist.length ? (() => { const u = hist.slice().sort((a, b) => a.data_base.localeCompare(b.data_base)).pop(); return `<small>${esc(dataBR(u.data_base))} · ${esc(rot(u))}</small>`; })() : ''}</div>
         <div><small>Aplicado no total</small><b>${esc(moeda(aplicado))}</b></div></div>
         ${modo ? `<div class="rz-seg rz-vb-seg" role="group"><button type="button" data-vb-modo="mes" class="${modo === 'mes' ? 'rz-on' : ''}">Mês</button><button type="button" data-vb-modo="ano" class="${modo === 'ano' ? 'rz-on' : ''}">Ano</button></div>
         <div data-vb-grafico>${ca.vbGraficoHtml(hist, modo, rot, op)}</div>` : '<p class="rz-vb-sub">As colunas aparecem a partir do segundo valor informado.</p>'}`;
@@ -777,6 +773,9 @@ const INFO_IND = {
     liq: ['Ganho líquido', 'Ganho bruto − impostos e taxas: o que de fato ficou para você.'],
     rent: ['Rentabilidade', 'Ganho bruto ÷ capital médio do período. O capital médio pesa cada aplicação e resgate pelos dias em que ficou investido (método de Dietz modificado). Em mais de um mês, as rentabilidades mensais são encadeadas, como fazem corretoras e fundos — assim dinheiro novo não vira rendimento.'],
     rent_liq: ['Rentabilidade líquida', 'O mesmo cálculo com o ganho líquido (depois de IR, IOF e taxas).'],
+    cdi: ['CDI no período', 'O CDI acumulado nos mesmos meses (Banco Central, série 4391). O mês corrente entra até o último dia divulgado.'],
+    pct_cdi: ['% do CDI', 'Rentabilidade ÷ CDI do período. 100% é render igual ao CDI; um CDB de 110% do CDI tende a ficar perto de 110%.'],
+    real: ['Acima do IPCA', 'Ganho real: (1 + rentabilidade) ÷ (1 + IPCA do período) − 1. IPCA do Banco Central (série 433); mês ainda sem IPCA divulgado fica de fora.'],
 };
 async function dadosIndicadores(ids) {
     if (!ids.length) return { meses: [] };
@@ -785,6 +784,16 @@ async function dadosIndicadores(ids) {
         historicoValores(ids),
         db().from('lancamentos').select('contrato_id, categoria, valor, data_pagamento, vencimento, competencia, status').in('contrato_id', ids).eq('status', 'realizado'),
     ]);
+    // v1.5.0 — I3a: CDI e IPCA do mês (indicador_valores) para comparar no período
+    const idx = { cdi: {}, ipca: {} };
+    try {
+        const { data: ser } = await db().from('indicador_series').select('id, codigo').in('codigo', ['cdi', 'ipca']);
+        const porId = Object.fromEntries((ser || []).map(x => [x.id, x.codigo]));
+        if ((ser || []).length) {
+            const { data: vals } = await db().from('indicador_valores').select('serie_id, competencia, valor').in('serie_id', Object.keys(porId));
+            (vals || []).forEach(v => { idx[porId[v.serie_id]][String(v.competencia).slice(0, 7)] = Number(v.valor) / 100; });
+        }
+    } catch (e) { console.warn('[investimentos] índices:', e?.message || e); }
     if (e1) throw e1; if (e2) throw e2;
     const apl = (rows || []).map(c => ({ ...c, st: String(c.status || '').toLowerCase() }));
     const ini = apl.map(c => String(c.inicio || hoje()).slice(0, 7)).sort()[0] || ymDe(hoje());
@@ -815,14 +824,19 @@ async function dadosIndicadores(ids) {
         const ganho = V1 - V0 - A + R + P, liq = ganho - T;
         return { k, V0, V1, A, R, P, T, ganho, liq, cap, r: cap > 0 ? ganho / cap : 0, rl: cap > 0 ? liq / cap : 0 };
     });
-    return { meses: mm };
+    return { meses: mm, idx };
 }
 function periodo(d, de, ate) {
     const mm = d.meses.filter(x => x.k >= de && x.k <= ate);
     if (!mm.length) return null;
     const soma = (c) => mm.reduce((s, x) => s + x[c], 0);
     const enc = (c) => mm.reduce((s, x) => s * (1 + x[c]), 1) - 1;
-    return { V0: mm[0].V0, V1: mm[mm.length - 1].V1, A: soma('A'), R: soma('R'), P: soma('P'), T: soma('T'), ganho: soma('ganho'), liq: soma('liq'), r: enc('r'), rl: enc('rl'), meses: mm.length };
+    // v1.5.0 — I3a: CDI e IPCA acumulados nos mesmos meses (null quando falta algum mês)
+    const acum = (serie) => { let f = 1; for (const x of mm) { const v = d.idx?.[serie]?.[x.k]; if (v == null) return null; f *= 1 + v; } return f - 1; };
+    const ipcaMeses = mm.filter(x => d.idx?.ipca?.[x.k] != null);
+    const ipca = ipcaMeses.length ? ipcaMeses.reduce((f, x) => f * (1 + d.idx.ipca[x.k]), 1) - 1 : null;
+    return { V0: mm[0].V0, V1: mm[mm.length - 1].V1, A: soma('A'), R: soma('R'), P: soma('P'), T: soma('T'), ganho: soma('ganho'), liq: soma('liq'), r: enc('r'), rl: enc('rl'), meses: mm.length,
+        cdi: acum('cdi'), ipca };
 }
 const pctS = (v) => `${v < 0 ? '−' : v > 0 ? '+' : ''}${Math.abs(v * 100).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}%`;
 const kmil = (v) => { const a = Math.abs(v) / 1000; return (v < -0.004 ? '−' : '') + (a >= 10 ? Math.round(a).toLocaleString('pt-BR') : a.toLocaleString('pt-BR', { maximumFractionDigits: 1 })); };
@@ -844,7 +858,7 @@ function desenharIndicadores(card, d, ano, sel, porAplicacao) {
         ${r ? [linha('saldo_ini', moeda(r.V0)), linha('aplic', '+' + moeda(r.A)), linha('resg', '−' + moeda(r.R)), linha('valoriz', (valoriz >= 0 ? '+' : '') + moedaS(valoriz)),
             linha('rend', '+' + moeda(r.P)), linha('saldo_fim', moeda(r.V1)), linha('ganho', moedaS(r.ganho), true, r.ganho >= 0 ? 'rz-in' : ''), linha('imp', '−' + moeda(r.T)),
             linha('liq', moedaS(r.liq), true, r.liq >= 0 ? 'rz-in' : ''), linha('rent', pctS(r.r), true, r.r >= 0 ? 'rz-in' : ''), linha('rent_liq', pctS(r.rl), false, r.rl >= 0 ? 'rz-in' : '')].join('')
-            + '<p class="rz-desc">Comparar com CDI, IPCA e poupança chega com as cotações (I3).</p>' : '<p class="rz-desc">Sem valores no período.</p>'}
+            + comparar(r) : '<p class="rz-desc">Sem valores no período.</p>'}
         ${porAplicacao ? porAplicacao(de, ate, rotP) : ''}`;
     card.querySelectorAll('[data-ind-info]').forEach(b => b.addEventListener('click', (ev) => {
         ev.stopPropagation(); const k = b.dataset.indInfo;
@@ -852,6 +866,17 @@ function desenharIndicadores(card, d, ano, sel, porAplicacao) {
         aviso(INFO_IND[k][0], INFO_IND[k][1]);
     }));
     icones();
+}
+// v1.5.0 — I3a: comparar com o CDI e o IPCA do mesmo período
+function comparar(r) {
+    const linha = (k, val, cls = '') => `<div class="rz-ind"><span>${esc(INFO_IND[k][0])} ${infoInd(k)}</span><b class="${cls}">${esc(val)}</b></div>`;
+    const out = [];
+    if (r.cdi != null) {
+        out.push(linha('cdi', pctS(r.cdi)));
+        if (r.cdi > 0) out.push(linha('pct_cdi', `${Math.round(r.r / r.cdi * 100).toLocaleString('pt-BR')}%`, r.r >= r.cdi ? 'rz-in' : ''));
+    }
+    if (r.ipca != null) { const real = (1 + r.r) / (1 + r.ipca) - 1; out.push(linha('real', pctS(real), real >= 0 ? 'rz-in' : '')); }
+    return out.length ? `<div class="rz-group">Comparação</div>${out.join('')}` : '';
 }
 const infoInd = (k) => `<button type="button" class="rz-i" data-ind-info="${k}" aria-label="O que é ${esc(INFO_IND[k][0])}?"><svg data-lucide="info"></svg></button>`;
 function registrarFinanceiro(finId, d, card, porAplicacao) {

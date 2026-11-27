@@ -1,8 +1,8 @@
 {
   "app": "patrimonio",
-  "gerado_em": "2026-11-27T15:34:32",
+  "gerado_em": "2026-11-27T20:58:12",
   "arquivos": {
-    "index.html": "1.490.106",
+    "index.html": "1.490.107",
     "sw.js": "3.4",
     "js/cadastros.js": "1.3.0",
     "js/financeiro.js": "1.108.2",
@@ -68,10 +68,10 @@
     "js/nucleo/colunas.js": "1.0.0",
     "js/viagem-roteiro.js": "1.7.0",
     "js/viagem-compartilhar.js": "1.2.0",
-    "js/investimentos.js": "1.4.0",
+    "js/investimentos.js": "1.5.0",
     "js/contrato-catalogo.js": "1.0.0",
     "js/nucleo/campos.js": "1.0.0",
-    "js/investimentos-rv.js": "1.0.0"
+    "js/investimentos-rv.js": "1.1.0"
   },
   "detalhes": {
     "index.html": {
@@ -339,8 +339,8 @@
       "funcoes": 8
     },
     "js/investimentos.js": {
-      "linhas": 947,
-      "funcoes": 39
+      "linhas": 972,
+      "funcoes": 40
     },
     "js/contrato-catalogo.js": {
       "linhas": 129,
@@ -351,7 +351,7 @@
       "funcoes": 6
     },
     "js/investimentos-rv.js": {
-      "linhas": 518,
+      "linhas": 522,
       "funcoes": 20
     }
   }

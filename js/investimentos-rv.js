@@ -1,6 +1,10 @@
 // ============================================================================
 // investimentos-rv.js — Raiz Patrimônio · Ramo Investimentos · renda variável (ações, BDR, ETF e fundos imobiliários)
-// Versão: 1.0.0 · 26/11/2026
+// Versão: 1.1.0 · 27/11/2026
+//
+// v1.1.0 (27/11/2026, sessão 20261127-1730-investimentos-i3a, demanda 885410f9; PLANO_EXECUCAO_I2_I3_I4_INVESTIMENTOS_RAIZ v1.2.0, I3a) —
+// o valor da posição usa a cotação do dia (brapi, pela rotina cotacoes-captura) quando ela existe; o card diz "cotação dd/mm" ou
+// "último preço".
 //
 // v1.0.0 (26/11/2026, sessão 20261126-1330-investimentos-i2a, demanda 885410f9; PLANO_EXECUCAO_I2_I3_I4_INVESTIMENTOS_RAIZ v1.2.0,
 // I2a, fichas F15–F19 e F27, e PROTOTIPO_INVESTIMENTOS_I2_I4_POSICAO_FGC v1.1.0, telas 4, 5, 7, 8, 9, 11 e 12; de acordo do Nicola
@@ -15,7 +19,7 @@
 //   · Compra, venda e amortização caem no Financeiro (lançamentos com o mesmo origem_id); tocar na linha abre o evento.
 // Chamado por js/investimentos.js (import dinâmico); não mexe no index.
 // ============================================================================
-export const VERSAO = '1.0.0';
+export const VERSAO = '1.1.0';
 
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const toast = (m, t) => (typeof mostrarToast === 'function' ? mostrarToast(m, t) : console.log(m));
@@ -40,7 +44,7 @@ const unidade = (con, n) => (con?.tipoContrato === 'inv_rv_fii' ? (Number(n) ===
 const codigo = (con) => con?.dadosModelo?.ticker || con?.descricao || 'Ativo';
 
 const INFO = {
-    posicao: ['Posição e custo médio', 'Preço médio = custo ÷ quantidade. A compra soma quantidade × preço + taxas; a venda tira a quantidade pelo preço médio (o preço médio não muda) e a diferença é o resultado. O valor usa o último preço negociado até chegar a cotação.'],
+    posicao: ['Posição e custo médio', 'Preço médio = custo ÷ quantidade. A compra soma quantidade × preço + taxas; a venda tira a quantidade pelo preço médio (o preço médio não muda) e a diferença é o resultado. O valor usa a cotação do dia quando existe; sem ela, o último preço negociado.'],
     subscricao: ['Emissão (subscrição)', 'A empresa ou o fundo vende ações ou cotas novas. Quem já tem pode comprar primeiro (direito de preferência), na proporção do que tem e até a data-limite. O que você comprar entra pelo preço da emissão e o preço médio é recalculado.'],
     bonificacao: ['Bonificação', 'A empresa distribui ações novas aos acionistas, sem você pagar. A quantidade sobe e o preço médio cai. Se a empresa informar um custo atribuído por ação, ele soma ao custo (é o que vale para o IR).'],
     desdobramento: ['Desdobramento', 'Cada ação vira mais de uma (fator 2: cada 1 vira 2). A quantidade multiplica pelo fator e o preço médio divide; o custo não muda.'],
@@ -112,7 +116,7 @@ function desenharPosicao(con, p) {
             <div><small>Quantidade</small><b>${esc(qtd(q))}</b></div>
             <div><small>Preço médio</small><b>${esc(moeda(p.pm))}</b></div>
             <div><small>Custo</small><b>${esc(moeda(p.custo))}</b></div>
-            <div><small>Valor</small><b>${esc(moeda(p.valor))}</b>${p.preco_ref ? `<small>${esc(moeda(p.preco_ref))} · último preço</small>` : ''}</div>
+            <div><small>Valor</small><b>${esc(moeda(p.valor))}</b>${p.preco_ref ? `<small>${esc(moeda(p.preco_ref))} · ${p.cotacao_data ? 'cotação ' + esc(dataBR(p.cotacao_data).slice(0, 5)) : 'último preço'}</small>` : ''}</div>
             ${q > 0 ? `<div><small>Não realizado</small><b${aberto < 0 ? ' style="color:var(--danger)"' : ''}>${esc(sinal(aberto) + pctAberto)}</b></div>` : ''}
             <div><small>Realizado em ${ANO}</small><b>${esc(sinal(p.realizado_ano))}</b></div>
             <div><small>Proventos em ${ANO}</small><b>${esc(moeda(p.proventos_ano))}</b></div></div>`
