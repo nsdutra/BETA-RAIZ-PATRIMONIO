@@ -1,8 +1,12 @@
 // =====================================================================
 // RAIZ PATRIMÔNIO — js/agenda.js
-// VERSÃO: Beta v1.24.1 (27/11/2026 — agenda na busca geral)
+// VERSÃO: Beta v1.25.0 (28/11/2026 — a lupa do topo filtra a agenda por texto)
 // LINHAS: (ver versoes.json)
 // -----------------------------------------------------------------
+// NOVIDADES (Beta v1.25.0) (28/11/2026, sessão 20261128-0050-lupa-global, demanda c0e5dcbc; FICHA_BUSCA_E_FILTRO_DAS_TELAS_RAIZ v1.3.0,
+// Nicola 28/11 00:34 e 00:47) — a lupa do topo é a mesma em todo o app: aqui o termo filtra compromissos, reservas, reuniões e
+// alertas do período (título, bem, quem, assunto, complemento), nos números e nas linhas. O filtro por bem fica só no chip
+// "Ativo ▾"; a lupa não abre mais a escolha do bem (v1.23.0). Versão anterior: 1.24.1
 // NOVIDADES (Beta v1.24.1) (27/11/2026, teste no ar) — a busca da agenda pedia 120 dias e a função aceita até 62: agora −14 a +45 dias.
 // Versão anterior: 1.24.0
 // NOVIDADES (Beta v1.24.0) (27/11/2026, sessão 20261127-2235-busca-geral; FICHA_BUSCA_E_FILTRO_DAS_TELAS_RAIZ v1.1.0, D3 de acordo do
@@ -41,7 +45,7 @@
 // mais recentes deste cabeçalho (VER-06).
 import { rzCalendario, rzCalItemDaAgenda } from './nucleo/calendario.js'; // v1.16.0 — calendário único (DS §6.3)
 
-export const VERSAO = '1.24.1';
+export const VERSAO = '1.25.0';
 
 const TIPOS = {
     ocorrencia:   { rotulo: 'Ocorrência',  icone: 'wrench',          dominio: 'ocorrencias' },
@@ -62,7 +66,7 @@ const DIA_SEM = ['dom', 'seg', 'ter', 'qua', 'qui', 'sex', 'sáb'];
 const JANELA_ATENCAO = 7; // D7.10
 
 const st = { vista: 'mes', semana: null, mes: null, dia: null, status: new Set(), assuntos: null, dados: [], seq: 0, el: null, icones: new Map(),
-    ativo: null }; // v1.16.0 — { id, nome } do filtro por bem (chip Ativo ▾ e lupa)
+    ativo: null, texto: '' }; // v1.16.0 — { id, nome } do filtro por bem (chip Ativo ▾); v1.25.0 — texto: termo da lupa do topo
 
 // v1.11.0 — ícone do item de controle (id → nome lucide), na regra de Controles (iconeDoItem, cofre-controles.js):
 // subtipo › tipo no catálogo › conta (cartão ou banco) › prancheta. Lê só os ids que ainda não tem.
@@ -163,7 +167,11 @@ function universo(de, ate) {
     });
     return itens;
 }
-const visivel = (it) => passaStatus(it.status) && passaAssunto(it.assunto);
+// v1.25.0 — termo da lupa do topo: bate em qualquer texto da linha (e do detalhe do alerta), sem acento nem maiúscula
+const semAcento = (v) => String(v ?? '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+const textoDoItem = (it) => { const o = it.r || it.a || {}; return semAcento([it.assunto, ...Object.values(o), ...Object.values(o.detalhe || {})].filter(v => typeof v === 'string').join(' ')); };
+const passaTexto = (it) => !st.texto.trim() || textoDoItem(it).includes(semAcento(st.texto.trim()));
+const visivel = (it) => passaStatus(it.status) && passaAssunto(it.assunto) && passaTexto(it);
 function intervaloContado() { // o que os números contam (sem as bordas da grade)
     if (st.vista === 'semana') return [iso(st.semana), iso(somaDias(st.semana, 6))];
     const ini = iso(new Date(st.mes.getFullYear(), st.mes.getMonth(), 1)), fim = iso(new Date(st.mes.getFullYear(), st.mes.getMonth() + 1, 0));
@@ -448,9 +456,8 @@ async function escolherAtivoAgenda() {
     if (st.ativo) acoes.unshift({ icone: 'x', titulo: 'Todos os bens', sub: 'Tirar o filtro', aoTocar: () => { st.ativo = null; carregar(); } });
     abrirSheetAcoes({ titulo: 'Agenda de um bem', sub: 'O calendário mostra só o que é dele', acoes });
 }
-// v1.16.0 — a lupa do topo (rzHdrBusca, index) aciona o .rz-search visível da tela: na Agenda ele abre o filtro por bem
-// v1.23.0 — data-filtrado: a lupa do topo fica dourada enquanto há bem filtrado
-const buscaLupaHtml = () => `<button type="button" class="rz-search" data-ag-busca data-lupa data-filtrado="${st.ativo ? '1' : ''}" style="display:none" tabindex="-1" aria-hidden="true"></button>`;
+// v1.25.0 — campo escondido que a lupa do topo (js/busca-filtro.js) preenche com o termo do app; o bem fica no chip Ativo ▾
+const buscaLupaHtml = () => `<label class="rz-search" data-lupa style="display:none"><input type="search" data-ag-texto tabindex="-1" aria-hidden="true" value="${rzEsc(st.texto)}"></label>`;
 
 // ---- eventos
 function ligar() {
@@ -476,9 +483,8 @@ function ligar() {
         if (st.ativo && ev.target.closest('[data-ag-ativo-x]')) { st.ativo = null; carregar(); return; }
         escolherAtivoAgenda();
     });
-    const lupa = st.el.querySelector('[data-ag-busca]');
-    // v1.23.0 (Nicola 27/11) — a lupa sempre abre a escolha do bem; filtrado, a lista começa por "Todos os bens · Tirar o filtro"
-    if (lupa) lupa.addEventListener('click', escolherAtivoAgenda);
+    const txt = st.el.querySelector('[data-ag-texto]'); // v1.25.0
+    if (txt) txt.addEventListener('input', () => { if (txt.value !== st.texto) { st.texto = txt.value; desenhar(false); } });
     if (typeof window.rzHdrBuscaSync === 'function') window.rzHdrBuscaSync();
     st.el.querySelectorAll('[data-ag-i]').forEach(b => b.addEventListener('click', () => abrirCompromisso(st.dados[Number(b.dataset.agI)])));
     const mais = st.el.querySelector('[data-ag-mais]');

@@ -1,6 +1,10 @@
 // ============================================================================
 // cofre-ativos.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.173.0 · 25/11/2026
+// Versão: 1.174.0 · 28/11/2026
+//
+// v1.174.0 (28/11/2026, sessão 20261128-0050-lupa-global, demanda c0e5dcbc; FICHA_BUSCA_E_FILTRO_DAS_TELAS_RAIZ v1.3.0, Nicola 28/11
+//   00:47: a busca olha nome, locatário, partes, itens abertos, endereço…) — a lista de Ativos (e o grupo Ativos da busca geral)
+//   também acha o bem pelo endereço: rua, número, bairro e cidade. Versão anterior: 1.173.0
 //
 // v1.173.0 (25/11/2026, sessão 20261125-1345-convite-ramos, demanda 0b6e3196 fase 1; ficha "convite com exemplos" de 20/11, de
 //   acordo do Nicola 25/11 13:41) — o Patrimônio vazio fala dos ramos da empresa, com as mesmas frases da campanha de boas-vindas
@@ -47,20 +51,11 @@
 //   do Nicola 16/11 21:31 e 23:19) — o chip "Itens" da lente Comercial aparece sempre; sem o comercial.itens no plano, vem com
 //   cadeado (rz-off) e o toque mostra o convite do Raiz Comercial e abre a oferta do ramo (abrirOfertaRamo), como os outros ramos.
 //   window.rzAbrirItensComercial(): Configurações › Comercial (conta.js 1.7.0) abre direto o chip Itens da lente Comercial.
-//   Versão anterior: 1.163.0
-// v1.163.0 (16/11/2026, sessão 20261114-2342-investimentos-patrimonio, demanda fd3898f7; FICHA_FORMA_DE_PAGAMENTO_DO_BEM v2.0.0,
-//   "Agora sim. Pode seguir em frente." — Nicola 16/11 21:46) — o ⋮ do card "Valor do bem" troca "Registrar financiamento" por
-//   "Forma de pagamento" (js/ativo-forma-pagamento.js, código cofre.ativos.forma_pagamento, do plano Patrimônio em diante);
-//   o card ganha o resumo do pagamento no total e por pessoa. Compra nova no cadastro, com o código liberado, abre "Como o bem
-//   foi pago?" no lugar de "Lançar a compra no financeiro?". Versão anterior: 1.162.0
-// v1.162.0 (16/11/2026, sessão 20261116-0840-comercial-r3, demandas 285a0058 e cc3c667e; FICHA_RECEITA_UNIDADES_GERADORAS §11) —
-//   na lente Comercial a lista do Patrimônio ganha o chip "Itens": o catálogo do que a empresa vende (js/comercial-itens.js).
-//   O chip só aparece com o código comercial.itens liberado no plano. Versão anterior: 1.161.0
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.161.0 … v1.161.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.163.0 … v1.163.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '1.173.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.174.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 import { estado } from './cofre-estado.js';
 import { rzCalendario, rzCalItemDaAgenda } from './nucleo/calendario.js'; // v1.152.0 — calendário único (DS §6.3)
 import { carregarBiblioteca } from './nucleo/bibliotecas.js'; // bibliotecas pesadas, sob demanda (dem 6b11c602)
@@ -1370,6 +1365,7 @@ function ativoBateComTexto(a, resumo, termo, ocorrenciasPorAtivo) {
     if ((a.nome_exibicao || '').toLowerCase().includes(termo)) return true;
     if (resumo?.contratoPrincipal?.locatario && resumo.contratoPrincipal.locatario.toLowerCase().includes(termo)) return true;
     if ((window.__rzRelacionadosPorAtivo?.get(a.id) || '').includes(termo)) return true; // v1.151.0 — administradora, fiador, proprietário…
+    if ([a, resumo || {}].some(o => [o.endereco_rua, o.endereco_num, o.endereco_bairro, o.endereco_cidade].filter(Boolean).join(' ').toLowerCase().includes(termo))) return true; // v1.174.0 — endereço
     const ocorrencias = ocorrenciasPorAtivo[a.id] || [];
     return ocorrencias.some(oc => (oc.cofre_itens_controle?.titulo || '').toLowerCase().includes(termo));
 }
