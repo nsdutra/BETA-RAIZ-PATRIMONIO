@@ -1,6 +1,10 @@
 // ============================================================================
 // busca-filtro.js — Raiz Patrimônio · lupa do topo: um termo só, para o app todo
-// Versão: 1.0.0 · 28/11/2026
+// Versão: 1.0.1 · 28/11/2026
+//
+// v1.0.1 (28/11/2026, teste no ar) — o termo vai para os campos de TODAS as telas, não só da aberta: limpar dentro da ficha de um
+// bem deixava a lista de Ativos ainda filtrada ao voltar (a lista estava escondida, e voltar da ficha não é troca de tela).
+// Versão anterior: 1.0.0
 //
 // v1.0.0 (28/11/2026, sessão 20261128-0050-lupa-global, demanda c0e5dcbc; FICHA_BUSCA_E_FILTRO_DAS_TELAS_RAIZ v1.3.0, Nicola 28/11
 // 00:34 "o componente de busca é global e seu comportamento não varia por botão" e 00:47 "ao navegar entre botões e ações o
@@ -14,7 +18,7 @@
 //   · trocar de empresa limpa o termo (os dados são outros).
 // O index só carrega este módulo (import no boot); o HTML da caixa e da lupa continua no index.
 // ============================================================================
-export const VERSAO = '1.0.0';
+export const VERSAO = '1.0.1';
 
 const $ = (id) => document.getElementById(id);
 const SEM_LISTA = new Set(['hoje-busca-q']); // o Hoje tem a busca geral na própria tela: a lupa usa o painel
@@ -33,6 +37,9 @@ function aplicar(inp) {
     if (!inp || inp.value === termo) return;
     inp.value = termo; inp.dispatchEvent(new Event('input', { bubbles: true }));
 }
+// v1.0.1 — os campos que a lupa comanda (as barras escondidas pelo CSS da v1.390.0 e o da Agenda), em todas as telas
+const CAMPOS = '#main-content .rz-topo > .rz-search input, #main-content .rz-fin-busca input, #main-content [data-lupa] input';
+const aplicarTodos = () => document.querySelectorAll(CAMPOS).forEach(i => { if (!SEM_LISTA.has(i.id)) aplicar(i); });
 const pintarLupa = () => $('btn-busca-header')?.classList.toggle('rz-filtrado', !!termo.trim());
 
 // painel da busca geral, logo abaixo do topo (telas sem lista); usa a busca universal do index sobre um campo invisível
@@ -63,8 +70,8 @@ export function sincronizar() {
     const id = typeof CLIENTE_ID_SUPABASE !== 'undefined' ? CLIENTE_ID_SUPABASE : null;
     if (id !== empresa) { empresa = id; termo = ''; }
     if (document.activeElement !== $('rz-hdr-busca-q')) fechar(); else pintarLupa();
-    const inp = campoDaTela(); aplicar(inp);
-    if (inp) setTimeout(() => aplicar(campoDaTela()), 400); // a tela pode redesenhar a barra logo depois de abrir
+    aplicarTodos();
+    setTimeout(aplicarTodos, 400); // a tela pode redesenhar a barra logo depois de abrir
 }
 
 export function abrir() {
@@ -79,8 +86,8 @@ export function abrir() {
     if (!inp) { garantirPainel(); termoGeral(); mostrarPainel(true); }
     q.oninput = () => {
         termo = q.value; pintarLupa();
-        const alvo = campoDaTela();
-        if (alvo) aplicar(alvo); else if (proxy) termoGeral();
+        aplicarTodos();
+        if (!campoDaTela() && proxy) termoGeral();
     };
     q.onkeydown = (ev) => {
         if (ev.key !== 'Enter') return;

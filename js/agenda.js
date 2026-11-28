@@ -1,8 +1,10 @@
 // =====================================================================
 // RAIZ PATRIMÔNIO — js/agenda.js
-// VERSÃO: Beta v1.25.0 (28/11/2026 — a lupa do topo filtra a agenda por texto)
+// VERSÃO: Beta v1.25.1 (28/11/2026 — o termo da lupa também nos números dos chips)
 // LINHAS: (ver versoes.json)
 // -----------------------------------------------------------------
+// NOVIDADES (Beta v1.25.1) (28/11/2026, teste no ar) — os números dos chips de status e a lista de assuntos também contam só o que bate
+// com o termo da lupa. Versão anterior: 1.25.0
 // NOVIDADES (Beta v1.25.0) (28/11/2026, sessão 20261128-0050-lupa-global, demanda c0e5dcbc; FICHA_BUSCA_E_FILTRO_DAS_TELAS_RAIZ v1.3.0,
 // Nicola 28/11 00:34 e 00:47) — a lupa do topo é a mesma em todo o app: aqui o termo filtra compromissos, reservas, reuniões e
 // alertas do período (título, bem, quem, assunto, complemento), nos números e nas linhas. O filtro por bem fica só no chip
@@ -45,7 +47,7 @@
 // mais recentes deste cabeçalho (VER-06).
 import { rzCalendario, rzCalItemDaAgenda } from './nucleo/calendario.js'; // v1.16.0 — calendário único (DS §6.3)
 
-export const VERSAO = '1.25.0';
+export const VERSAO = '1.25.1';
 
 const TIPOS = {
     ocorrencia:   { rotulo: 'Ocorrência',  icone: 'wrench',          dominio: 'ocorrencias' },
@@ -252,7 +254,7 @@ function desenhar(carregando) {
     if (listaAl && st.el && st.el.contains(listaAl)) st.el.after(listaAl);
     if (agDesk() && st.vista !== 'alertas') return desenharComputador(carregando);
     const [de, ate] = intervaloContado();
-    const base = carregando ? [] : universo(de, ate).filter(it => passaAssunto(it.assunto));
+    const base = carregando ? [] : universo(de, ate).filter(it => passaAssunto(it.assunto) && passaTexto(it));
     const conta = (s) => base.filter(it => it.status === s).length;
     const todos = st.assuntos.size === ASSUNTOS.length;
     const rotAss = todos ? 'Assunto' : !st.assuntos.size ? 'Nenhum assunto' : st.assuntos.size === 1 ? ASSUNTOS.find(a => st.assuntos.has(a[0]))[1] : `Assunto · ${st.assuntos.size} de ${ASSUNTOS.length}`;
@@ -372,7 +374,7 @@ function semanaHtml() {
 // ---- Computador (v1.13.0): mês e filtros à esquerda; Pendentes, o dia e os próximos 7 dias à direita
 function desenharComputador(carregando) {
     const [de, ate] = intervaloContado();
-    const base = carregando ? [] : universo(de, ate).filter(it => passaAssunto(it.assunto));
+    const base = carregando ? [] : universo(de, ate).filter(it => passaAssunto(it.assunto) && passaTexto(it));
     const conta = (s) => base.filter(it => it.status === s).length;
     const todos = st.assuntos.size === ASSUNTOS.length;
     const rotAss = todos ? 'Assunto' : !st.assuntos.size ? 'Nenhum assunto' : st.assuntos.size === 1 ? ASSUNTOS.find(a => st.assuntos.has(a[0]))[1] : `Assunto · ${st.assuntos.size} de ${ASSUNTOS.length}`;
@@ -511,7 +513,7 @@ function navegar(n) {
 function abrirAssunto() {
     const marcados = new Set(st.assuntos);
     const [de, ate] = intervaloContado();
-    const base = universo(de, ate).filter(it => passaStatus(it.status)).map(it => it.assunto);
+    const base = universo(de, ate).filter(it => passaStatus(it.status) && passaTexto(it)).map(it => it.assunto);
     const corpo = () => ASSUNTOS.map(([k, n]) => `<button type="button" class="rz-row rz-link rz-ag-op${marcados.has(k) ? ' rz-on' : ''}" data-ag-op="${k}">
             <span class="rz-ag-ck">${marcados.has(k) ? '<svg data-lucide="check"></svg>' : ''}</span>
             <div class="rz-tx"><b>${n}</b></div><span class="rz-ag-valor">${base.filter(x => x === k).length}</span></button>`).join('')
