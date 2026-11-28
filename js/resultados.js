@@ -1,8 +1,10 @@
 // =====================================================================
 // RAIZ PATRIMÔNIO — js/resultados.js
-// VERSÃO: Beta v2.26.0 (26/11/2026 — demanda 885410f9)
+// VERSÃO: Beta v2.27.0 (27/11/2026 — card Por grupo em ordem decrescente)
 // LINHAS: (ver versoes.json)
 // -----------------------------------------------------------------
+// NOVIDADES (Beta v2.27.0) (27/11/2026, sessão 20261127-2210-busca-filtro, pedido do Nicola 27/11 22:05) — card "Por grupo" do Hoje:
+//   receitas, despesas e fora do resultado em ordem decrescente de valor. Versão anterior: 2.26.0
 // NOVIDADES (Beta v2.26.0) (26/11/2026, sessão 20261126-1215-investimentos-i4, demanda 885410f9; PLANO_EXECUCAO_I2_I3_I4_INVESTIMENTOS_RAIZ
 //   v1.2.0, I4, e PROTOTIPO_INVESTIMENTOS_I2_I4_POSICAO_FGC v1.1.0; de acordo do Nicola 26/11 12:12, com o card gráfico) — na lente
 //   Investimentos, o card "Exposição ao FGC": os 5 bancos com mais aplicações cobertas, barra do total contra o limite de R$ 250 mil
@@ -139,7 +141,7 @@
 // Versões anteriores (v2.4.0 … v2.4.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '2.26.0';
+export const VERSAO = '2.27.0';
 import { colunasSvg, unidadeColunas, numeroNaUnidade, rzDesk } from './nucleo/colunas.js'; // v2.25.0 — desenho comum (REGRAS §18.1)
 
 // ---------------------------------------------------------------------
@@ -1451,7 +1453,8 @@ function montarPorGrupo(linhas) {
     const secao = (titulo, itens, { entrada, neutro }) => {
         if (!itens.length) return '';
         const total = itens.reduce((s, l) => s + Number(l.valor || 0), 0);
-        const rows = itens.map(l => {
+        // v2.27.0 (Nicola 27/11 22:05) — maior valor primeiro, em todas as seções do card
+        const rows = [...itens].sort((a, b) => Number(b.valor || 0) - Number(a.valor || 0)).map(l => {
             const pct = total > 0 ? Math.round(Number(l.valor || 0) / total * 100) : 0;
             const qtd = Number(l.qtd || 0);
             return `<div class="rz-row">

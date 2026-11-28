@@ -1,6 +1,9 @@
 /* ============================================================================
    raiz.css — Raiz Patrimônio · estilos do app (index.html)
-   Versão: 1.33.0 · 25/11/2026
+   Versão: 1.34.0 · 27/11/2026
+
+   v1.34.0 (27/11/2026, sessão 20261127-2210-busca-filtro; FICHA_BUSCA_E_FILTRO_DAS_TELAS_RAIZ v1.1.0) — filtro ativo: a lupa do
+   topo fica dourada com o miolo do círculo preenchido (sai o ponto). Versão anterior: 1.33.0
 
    v1.33.0 (25/11/2026, sessão 20261125-1954-investimentos-i1-2, demanda 09dff31b; PLANO_EXECUCAO_I1_2_APLICACAO_FINANCEIRO_RAIZ v1.1.0 e
    PROTOTIPO_INVESTIMENTOS_FINANCEIRO_INDICADORES_RAIZ v1.2.0) — botão "i" de ajuda ao lado de um rótulo (.rz-i: campos do catálogo,
@@ -1655,8 +1658,13 @@
         .rz-hdr-busca.rz-aberta{transform:scaleX(1);opacity:1;pointer-events:auto}
         .rz-hdr-busca input{flex:1;min-width:0;height:40px;border:0;background:none;font:400 16px var(--font-body);color:var(--ink);outline:none}
         .rz-hdr .rz-busca-hdr{position:relative;z-index:3}
-        .rz-hdr .rz-busca-hdr.rz-filtrado{background:rgba(255,255,255,.16)}
-        .rz-hdr .rz-busca-hdr.rz-filtrado::after{content:"";position:absolute;top:6px;right:6px;width:8px;height:8px;border-radius:50%;background:var(--brass)}
+        /* v1.34.0 — filtro ativo: lupa dourada com o miolo do círculo preenchido (sem ponto) */
+        .rz-hdr .rz-busca-hdr.rz-filtrado{background:rgba(255,255,255,.16);color:var(--brass)}
+        .rz-hdr .rz-busca-hdr.rz-filtrado svg{color:var(--brass);stroke:var(--brass)}
+        .rz-hdr .rz-busca-hdr.rz-filtrado svg circle{fill:var(--brass);fill-opacity:.55}
+        .rz-hdr-busca input::-webkit-search-cancel-button{display:none}
+        .rz-hdr-busca-x{flex:none;width:36px;height:36px;border:0;background:none;color:var(--muted);display:flex;align-items:center;justify-content:center;cursor:pointer}
+        .rz-hdr-busca-x svg{width:18px;height:18px}
         .rz-hdr.rz-buscando .rz-brand{visibility:hidden}
         @media (prefers-reduced-motion:reduce){.rz-hdr-busca{transition:none}}
         #main-content .rz-topo > .rz-search,#main-content .rz-topo > .rz-search-x,#main-content .rz-fin-busca,#main-content .rz-fin-lupa{display:none!important}

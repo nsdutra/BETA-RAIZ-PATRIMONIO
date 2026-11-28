@@ -1,8 +1,11 @@
 // =====================================================================
 // RAIZ PATRIMÔNIO — js/agenda.js
-// VERSÃO: Beta v1.22.0 (24/11/2026 — linha única da agenda, a mesma do robô)
+// VERSÃO: Beta v1.23.0 (27/11/2026 — lupa do topo abre o filtro por bem)
 // LINHAS: (ver versoes.json)
 // -----------------------------------------------------------------
+// NOVIDADES (Beta v1.23.0) (27/11/2026, sessão 20261127-2210-busca-filtro; FICHA_BUSCA_E_FILTRO_DAS_TELAS_RAIZ v1.1.0, de acordo do
+// Nicola 27/11 21:59 e 22:05) — a lupa do topo sempre abre a escolha do bem (filtrado, a lista começa por "Todos os bens"); com bem
+// filtrado a lupa fica dourada. Versão anterior: 1.22.0
 // NOVIDADES (Beta v1.22.0) (24/11/2026, sessão 20261124-1843-agenda-linha, demanda 4fa77b06; FICHA_AGENDA_LINHA_UNICA_RAIZ v1.0.0,
 // de acordo do Nicola 24/11 18:43) — a agenda e o "Enviar a semana" leem fn_agenda_linhas: título curto, ícone, quem e bem vêm
 // prontos do banco, os mesmos do robô (sem endereço nem final de cartão repetido, documento e item do mesmo dia numa linha só).
@@ -171,7 +174,7 @@
 
 import { rzCalendario, rzCalItemDaAgenda } from './nucleo/calendario.js'; // v1.16.0 — calendário único (DS §6.3)
 
-export const VERSAO = '1.22.0';
+export const VERSAO = '1.23.0';
 
 const TIPOS = {
     ocorrencia:   { rotulo: 'Ocorrência',  icone: 'wrench',          dominio: 'ocorrencias' },
@@ -579,7 +582,8 @@ async function escolherAtivoAgenda() {
     abrirSheetAcoes({ titulo: 'Agenda de um bem', sub: 'O calendário mostra só o que é dele', acoes });
 }
 // v1.16.0 — a lupa do topo (rzHdrBusca, index) aciona o .rz-search visível da tela: na Agenda ele abre o filtro por bem
-const buscaLupaHtml = () => '<button type="button" class="rz-search" data-ag-busca style="display:none" tabindex="-1" aria-hidden="true"></button>';
+// v1.23.0 — data-filtrado: a lupa do topo fica dourada enquanto há bem filtrado
+const buscaLupaHtml = () => `<button type="button" class="rz-search" data-ag-busca data-filtrado="${st.ativo ? '1' : ''}" style="display:none" tabindex="-1" aria-hidden="true"></button>`;
 
 // ---- eventos
 function ligar() {
@@ -606,7 +610,9 @@ function ligar() {
         escolherAtivoAgenda();
     });
     const lupa = st.el.querySelector('[data-ag-busca]');
-    if (lupa) lupa.addEventListener('click', () => (st.ativo ? (st.ativo = null, carregar()) : escolherAtivoAgenda()));
+    // v1.23.0 (Nicola 27/11) — a lupa sempre abre a escolha do bem; filtrado, a lista começa por "Todos os bens · Tirar o filtro"
+    if (lupa) lupa.addEventListener('click', escolherAtivoAgenda);
+    if (typeof window.rzHdrBuscaSync === 'function') window.rzHdrBuscaSync();
     st.el.querySelectorAll('[data-ag-i]').forEach(b => b.addEventListener('click', () => abrirCompromisso(st.dados[Number(b.dataset.agI)])));
     const mais = st.el.querySelector('[data-ag-mais]');
     if (mais) mais.addEventListener('click', () => abrirSheetAcoes({ titulo: 'Agenda', sub: tituloPeriodo(), acoes: [
