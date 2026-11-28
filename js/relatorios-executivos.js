@@ -1,6 +1,10 @@
 // ============================================================================
 // relatorios-executivos.js — Raiz Patrimônio · Relatórios no modelo executivo
-// Versão: 1.25.0 · 28/11/2026
+// Versão: 1.26.0 · 28/11/2026
+//
+// v1.26.0 (28/11/2026, sessão 20261128-0120-viagens-categorias, demanda d8061e47; pedido do Nicola 28/11 01:15) — relatório Viagens
+//   abre cada viagem nos custos por categoria (voos, hospedagem, carro, ingressos…): valor dos itens pagos, com a mesma regra do
+//   Relatório de viagem (lido de fn_ciclo_roteiro de cada viagem, sem mudança no banco). Versão anterior: 1.25.0
 //
 // v1.25.0 (28/11/2026, sessão 20261128-0055-viagens-resumo-2, demanda d8061e47; revisão do Nicola 28/11 00:50) — relatório Viagens
 //   sem tabela: cada viagem em 2 linhas (nome e pago; período, dias, tipo e pessoas embaixo) e o total; sai Cotado. Versão anterior: 1.24.0
@@ -19,19 +23,15 @@
 //   situação, Cotado/Reservado/Pago, participantes com documentos de viagem e validade — nunca o número —, resumo de bolso por
 //   categoria, roteiro por dia, financeiro por etapa, quem pagou e documentos; chip Com/Sem valores) e "Viagens" (tipo viagens,
 //   fn_viagens_resumo: uma linha por viagem com datas, dias, tipo, quem vai e custos; chip do ano). Abrem por abrirRelatorioExecutivo.
-//   Versão anterior: 1.21.0
-//
-// v1.21.0 (27/11/2026, sessão 20261127-2235-busca-geral, decisão do Nicola 27/11 22:31) — Investimentos no patrimônio: "Compra de bem"
-//   e "Compra de imóvel e custos" viram uma linha só, "Compra de bens" (o detalhe por bem continua na seção Por bem). Versão anterior: 1.20.0
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.20.0 … v1.20.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.21.0 … v1.21.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
 import { rzMostrarBloqueio } from './comum-licenca.js';
 import { rzToast } from './raiz-ui.js';
 import RaizDevice from './raiz-device.js';
 
-export const VERSAO = '1.25.0';
+export const VERSAO = '1.26.0';
 
 // ---------------------------------------------------------------------------
 // Formatos (REL-13 a REL-17)
@@ -1454,12 +1454,13 @@ function montarViagens(d) {
         subtitulo: [d.ano ? String(d.ano) : 'todas as viagens', qtdTxt(T.viagens, 'viagem', 'viagens'), qtdTxt(T.dias, 'dia', 'dias')].join(' · ') };
     const linha = vs.length ? `${qtdTxt(T.viagens, 'viagem', 'viagens')}, ${qtdTxt(T.dias, 'dia', 'dias')}; pago ${brl(T.pago)}.` : 'Nenhuma viagem no período.';
     const kpis = `<div class="kpis">${kpi('Viagens', String(num(T.viagens)), '')}${kpi('Dias', String(num(T.dias)), '')}${kpi('Pago', compacto(T.pago), '')}</div>`;
-    const bloco = (titulo, valor, sub, forte) => `<div style="padding:10px 0;border-bottom:1px solid #e6e2d8">
+    const bloco = (titulo, valor, sub, forte, cats) => `<div style="padding:10px 0;border-bottom:1px solid #e6e2d8">
         <div style="display:flex;justify-content:space-between;gap:12px;align-items:baseline"><span style="font-weight:${forte ? 700 : 600}">${titulo}</span><span style="white-space:nowrap;font-weight:${forte ? 700 : 600};font-variant-numeric:tabular-nums">${valor}</span></div>
-        ${sub ? `<div class="mut" style="font-size:.9em;margin-top:2px">${sub}</div>` : ''}</div>`;
-    const lista = `${secao('Por viagem', 'R$ pago · período, dias, tipo e quem vai')}
+        ${sub ? `<div class="mut" style="font-size:.9em;margin-top:2px">${sub}</div>` : ''}
+        ${cats && cats.length ? `<div style="display:flex;flex-wrap:wrap;gap:2px 14px;font-size:.9em;margin-top:4px">${cats.map(c => `<span style="white-space:nowrap">${esc(c.nome)} <b style="font-variant-numeric:tabular-nums">${tab(c.valor)}</b></span>`).join('')}</div>` : ''}</div>`;
+    const lista = `${secao('Por viagem', 'R$ pago · período, dias, tipo e quem vai · custos por categoria')}
       <div>${vs.map(v => bloco(esc(v.nome), tab(v.pago),
-          esc([`${dma(v.inicio).slice(0, 5)} a ${dma(v.fim)}`, qtdTxt(v.dias, 'dia', 'dias'), v.tipo || '', (v.viajantes || []).join(', ')].filter(Boolean).join(' · ')))).join('')}
+          esc([`${dma(v.inicio).slice(0, 5)} a ${dma(v.fim)}`, qtdTxt(v.dias, 'dia', 'dias'), v.tipo || '', (v.viajantes || []).join(', ')].filter(Boolean).join(' · ')), false, v.categorias)).join('')}
         ${vs.length ? bloco(`Total · ${qtdTxt(T.viagens, 'viagem', 'viagens')} · ${qtdTxt(T.dias, 'dia', 'dias')}`, tab(T.pago), '', true) : ''}</div>
       <div class="notes"><p>Dias contam ida e volta. Origem: fn_viagens_resumo v1.</p></div>`;
     return { cfg, linhas3: [`Viagens · ${d.ano || 'todas'}`, `${qtdTxt(T.viagens, 'viagem', 'viagens')} · ${qtdTxt(T.dias, 'dia', 'dias')} · pago ${brl(T.pago)}`, linha], paginas: [[`<div class="acao-sub rx-resumo">${esc(linha)}</div>${kpis}${lista}`, ['Resumo', 'Detalhe']]] };
@@ -1523,6 +1524,13 @@ async function buscar() {
             ? dbAuth.rpc('fn_viagem_relatorio', { p_ciclo_id: f.cicloId }) : dbAuth.rpc('fn_viagens_resumo', { p_cliente_id: CLIENTE_ID_SUPABASE, p_ano: f.ano || null }), quemGera()]);
         if (error) throw new Error(error.message);
         if (data && data.pode_ver === false) throw new Error('Seu perfil não vê viagens.');
+        if (estado.tipo === 'viagens' && data && Array.isArray(data.viagens)) { // v1.26.0 — custos por categoria de cada viagem
+            const rots = await Promise.all(data.viagens.map(v => dbAuth.rpc('fn_ciclo_roteiro', { p_ciclo_id: v.id }).then(x => x.data).catch(() => null)));
+            data.viagens.forEach((v, i) => { const r = rots[i]; if (!r) return;
+                const porItem = new Map(); vgEntradas(r).forEach(e => { const it = porItem.get(e.item_id) || { sub: e.sub || 'evento_viagem', etapa: e.etapa, valor: 0 }; it.valor += num(e.valor); porItem.set(e.item_id, it); });
+                v.categorias = VG_CAT.map(([sub, nome]) => ({ nome, valor: [...porItem.values()].filter(it => it.sub === sub && it.etapa === 'pago').reduce((a, it) => a + it.valor, 0) }))
+                    .filter(c => c.valor > 0).sort((a, b) => b.valor - a.valor); });
+        }
         const empresa = (data && data.empresa && data.empresa.nome) || (typeof CONFIG_CLIENTE === 'object' && CONFIG_CLIENTE?.nomeEmpresa) || 'Empresa';
         return { ...(data || {}), empresa, gerado_em: new Date().toISOString(), gerado_por: quem, relatorio: estado.tipo === 'viagem' ? 'fn_viagem_relatorio' : 'fn_viagens_resumo', versao: 1, visao: 'situacao' };
     }
