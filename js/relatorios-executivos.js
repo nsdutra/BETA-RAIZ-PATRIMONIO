@@ -1,6 +1,10 @@
 // ============================================================================
 // relatorios-executivos.js — Raiz Patrimônio · Relatórios no modelo executivo
-// Versão: 1.23.0 · 28/11/2026
+// Versão: 1.24.0 · 28/11/2026
+//
+// v1.24.0 (28/11/2026, sessão 20261128-0040-viagens-resumo, demanda d8061e47; revisão do Nicola 28/11 00:37) — relatório Viagens sem
+//   texto espremido: Viagem (tipo e pessoas embaixo), Período, Dias, Cotado, Pago; sai Reservado e as menções a "fora do Financeiro".
+//   Versão anterior: 1.23.0
 //
 // v1.23.0 (28/11/2026, sessão 20261128-0035-viagem-relatorio-2, demanda d8061e47; revisão do Nicola 28/11 00:32) — Relatório de viagem
 //   mais enxuto: resumo com período, duração e os totais da tela (sem "faltam N dias"); participantes com ✓ nos documentos que estão
@@ -37,25 +41,15 @@
 //   novo contrato neste imóvel"), Criar contrato neste imóvel (vago) e Anexar documento (ao contrato ou ao imóvel). Ao salvar ou
 //   fechar, o relatório relê o banco. Os ids e o "N em aberto" vêm da fn_relatorio_cadastro_carteira (F1); sem id, acha pelo nome
 //   como antes. Versão anterior: 1.16.0
-//
-// v1.16.0 (18/11/2026, sessão 20261118-0815-financeiro-relatorios, demanda 679b2700; FICHA_REVISAO_FINANCEIRO_RAIZ v1.0.0, Onda 4;
-//   de acordo do Nicola 16/11 23:44 e Onda 4 liberada 18/11 08:14; protótipo PROTOTIPO_FINANCEIRO_REVISAO_RAIZ v1.4.0) — dois
-//   relatórios novos, só fatos e dados (REL-56): "Balanço entre pessoas · analítico" (relatorios.balanco_analitico, Plus e acima):
-//   capa com os números, saldo por pessoa e composição (Distribuição + Com a empresa + Entre pessoas = Saldo, fn_balanco_pessoas);
-//   uma página por pessoa com o saldo anterior, os itens do mês e o saldo corrido (fn_balanco_extrato, a mesma do extrato da
-//   pessoa); tocar numa linha de lançamento ou recebimento abre o mesmo ajuste da Onda 1 (pessoas-extrato.js 1.1.0). Mês ou
-//   "Desde o início". "Ativos e contratos por pessoa" (relatorios.ativos_por_pessoa, todos os planos com Relatórios): capa com a
-//   parte de cada um no valor e na receita; uma página por pessoa com ativo, vínculo, parte, contrato vigente, valor por mês e
-//   parte por mês (fn_relatorio_ativos_por_pessoa, F4). Os dois com PDF e planilha (Compartilhar › Baixar a planilha).
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.15.0 … v1.15.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.16.0 … v1.16.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
 import { rzMostrarBloqueio } from './comum-licenca.js';
 import { rzToast } from './raiz-ui.js';
 import RaizDevice from './raiz-device.js';
 
-export const VERSAO = '1.23.0';
+export const VERSAO = '1.24.0';
 
 // ---------------------------------------------------------------------------
 // Formatos (REL-13 a REL-17)
@@ -1454,16 +1448,15 @@ function montarViagem(d) {
         const soma = (sub, ets) => its.filter(i => i.sub === sub && ets.includes(i.etapa)).reduce((a, i) => a + i.valor, 0);
         const cats = VG_CAT.filter(([sub]) => its.some(i => i.sub === sub && num(i.valor)));
         const pags = d.pagadores || [], totPag = pags.reduce((a, p) => a + num(p.valor), 0);
-        custos = `${secao('Custos', 'R$ · por categoria; Pago = Financeiro (inclui o que está no cartão)')}
-          <table><thead><tr><th>Categoria</th><th class="n">Cotado</th><th class="n">Reservado</th><th class="n">Pago*</th></tr></thead><tbody>${cats.map(([sub, nomeCat]) =>
+        custos = `${secao('Custos', 'R$ · por categoria')}
+          <table><thead><tr><th>Categoria</th><th class="n">Cotado</th><th class="n">Reservado</th><th class="n">Pago</th></tr></thead><tbody>${cats.map(([sub, nomeCat]) =>
             `<tr><td>${esc(nomeCat)}</td><td class="n">${tab(soma(sub, ['a_cotar', 'cotado']))}</td><td class="n">${tab(soma(sub, ['reservado']))}</td><td class="n">${tab(soma(sub, ['pago']))}</td></tr>`).join('')}</tbody>
           <tfoot><tr><td><b>Total</b></td><td class="n"><b>${tab(t.cotado)}</b></td><td class="n"><b>${tab(t.reservado)}</b></td><td class="n"><b>${tab(t.pago)}</b></td></tr></tfoot></table>
-          <p class="mut" style="margin:4px 0 0">* Pago por categoria soma o valor dos itens em Pago; o total é o que está no Financeiro${(d.pagos_fora_financeiro || []).length ? ` (${qtdTxt((d.pagos_fora_financeiro || []).length, 'item pago ainda sem lançamento', 'itens pagos ainda sem lançamento')})` : ''}.</p>
-          ${secao('Balanço por pessoa', 'R$ · quem pagou, pelo titular da conta ou do cartão')}
+          ${secao('Balanço por pessoa', 'R$ · quem pagou')}
           <table><thead><tr><th>Pessoa</th><th class="n">Pagou</th><th class="n">% do pago</th></tr></thead><tbody>${pags.map(p =>
             `<tr><td>${esc(p.titular)}</td><td class="n">${tab(p.valor)}</td><td class="n">${totPag ? nf(num(p.valor) / totPag * 100, 0) + '%' : '—'}</td></tr>`).join('') || '<tr><td colspan="3" class="mut">Nada pago no Financeiro ainda.</td></tr>'}</tbody></table>`;
     }
-    const notas = `<div class="notes"><p><b>Totais</b>: Cotado soma A cotar e Cotado; Pago é o Financeiro desta viagem. Quem deve a quem sai do rateio da viagem (próxima etapa).</p>
+    const notas = `<div class="notes"><p><b>Totais</b>: Cotado soma A cotar e Cotado. Quem deve a quem sai do rateio da viagem (próxima etapa).</p>
       <p><b>Origem</b>: fn_viagem_relatorio v1.</p></div>`;
     const paginas = [[`<div class="acao-sub rx-resumo">${esc(linha)}</div>${kpis}${pessoas}`, ['Resumo']], [roteiro, ['Detalhe']]];
     if (!sem) paginas.push([`${custos}${notas}`, ['Detalhe', 'Notas']]); else paginas[1][0] += notas;
@@ -1472,16 +1465,22 @@ function montarViagem(d) {
         ligar: () => { if (typeof rzIcones === 'function') rzIcones(); } };
 }
 function montarViagens(d) {
+    // v1.24.0 — revisão do Nicola 28/11 00:37: colunas sem espremer texto (Viagem com tipo e pessoas embaixo, Período, Dias, Cotado,
+    // Pago); sai Reservado e as menções a "dentro/fora do Financeiro".
     const vs = d.viagens || [], T = d.total || {};
     const cfg = { nome: 'Viagens', medida: 'Viagens · dias e custos em R$', previa: false,
-        subtitulo: [d.ano ? String(d.ano) : 'todas as viagens', qtdTxt(T.viagens, 'viagem', 'viagens'), 'Pago = Financeiro'].join(' · ') };
-    const linha = vs.length ? `${qtdTxt(T.viagens, 'viagem', 'viagens')}, ${qtdTxt(T.dias, 'dia', 'dias')} fora; pago ${brl(T.pago)}, reservado ${brl(T.reservado)}, cotado ${brl(T.cotado)}.` : 'Nenhuma viagem no período.';
-    const kpis = `<div class="kpis">${kpi('Viagens', String(num(T.viagens)), qtdTxt(T.dias, 'dia', 'dias'))}${kpi('Pago', compacto(T.pago), 'no Financeiro')}${kpi('Reservado', compacto(T.reservado), '')}${kpi('Cotado', compacto(T.cotado), '')}</div>`;
-    const tabela = `${secao('Por viagem', 'R$ · Pago inclui o que está no cartão aguardando a fatura')}
-      <table><thead><tr><th>Viagem</th><th>Datas</th><th class="n">Dias</th><th>Quem vai</th><th class="n">Cotado</th><th class="n">Reservado</th><th class="n">Pago</th></tr></thead><tbody>${vs.map(v => `<tr><td>${esc(v.nome)}<br><small class="mut">${esc(v.tipo || '')}${num(v.pagos_fora_financeiro) ? ' · ' + qtdTxt(v.pagos_fora_financeiro, 'pago fora do Financeiro', 'pagos fora do Financeiro') : ''}</small></td><td>${dma(v.inicio).slice(0, 5)} a ${dma(v.fim)}</td><td class="n">${num(v.dias)}</td><td>${esc((v.viajantes || []).join(', '))}</td><td class="n">${tab(v.cotado)}</td><td class="n">${tab(v.reservado)}</td><td class="n">${tab(v.pago)}</td></tr>`).join('')}</tbody>
-      <tfoot><tr><td><b>Total</b></td><td></td><td class="n"><b>${num(T.dias)}</b></td><td></td><td class="n"><b>${tab(T.cotado)}</b></td><td class="n"><b>${tab(T.reservado)}</b></td><td class="n"><b>${tab(T.pago)}</b></td></tr></tfoot></table>
-      <div class="notes"><p><b>Origem</b>: fn_viagens_resumo v1 · os mesmos totais da tela de cada viagem. Dias contam ida e volta.</p></div>`;
-    return { cfg, linhas3: [`Viagens · ${d.ano || 'todas'}`, `${qtdTxt(T.viagens, 'viagem', 'viagens')} · pago ${brl(T.pago)}`, linha], paginas: [[`<div class="acao-sub rx-resumo">${esc(linha)}</div>${kpis}${tabela}`, ['Resumo', 'Detalhe']]] };
+        subtitulo: [d.ano ? String(d.ano) : 'todas as viagens', qtdTxt(T.viagens, 'viagem', 'viagens'), qtdTxt(T.dias, 'dia', 'dias')].join(' · ') };
+    const linha = vs.length ? `${qtdTxt(T.viagens, 'viagem', 'viagens')}, ${qtdTxt(T.dias, 'dia', 'dias')}; pago ${brl(T.pago)}, cotado ${brl(T.cotado)}.` : 'Nenhuma viagem no período.';
+    const kpis = `<div class="kpis">${kpi('Viagens', String(num(T.viagens)), '')}${kpi('Dias', String(num(T.dias)), '')}${kpi('Cotado', compacto(T.cotado), '')}${kpi('Pago', compacto(T.pago), '')}</div>`;
+    const nw = 'white-space:nowrap';
+    const tabela = `${secao('Por viagem', 'R$')}
+      <table style="width:100%"><thead><tr><th>Viagem</th><th style="${nw}">Período</th><th class="n">Dias</th><th class="n">Cotado</th><th class="n">Pago</th></tr></thead><tbody>${vs.map(v => `<tr>
+        <td><b>${esc(v.nome)}</b><br><small class="mut">${esc([v.tipo || '', (v.viajantes || []).join(', ')].filter(Boolean).join(' · '))}</small></td>
+        <td style="${nw}">${dma(v.inicio).slice(0, 5)} a ${dma(v.fim).slice(0, 5)}<br><small class="mut">${String(v.fim).slice(0, 4)}</small></td>
+        <td class="n" style="${nw}">${num(v.dias)}</td><td class="n" style="${nw}">${tab(v.cotado)}</td><td class="n" style="${nw}">${tab(v.pago)}</td></tr>`).join('')}</tbody>
+      <tfoot><tr><td><b>Total</b></td><td></td><td class="n"><b>${num(T.dias)}</b></td><td class="n" style="${nw}"><b>${tab(T.cotado)}</b></td><td class="n" style="${nw}"><b>${tab(T.pago)}</b></td></tr></tfoot></table>
+      <div class="notes"><p>Dias contam ida e volta. Cotado soma A cotar e Cotado; Pago é o que foi pago da viagem. Origem: fn_viagens_resumo v1.</p></div>`;
+    return { cfg, linhas3: [`Viagens · ${d.ano || 'todas'}`, `${qtdTxt(T.viagens, 'viagem', 'viagens')} · ${qtdTxt(T.dias, 'dia', 'dias')} · pago ${brl(T.pago)}`, linha], paginas: [[`<div class="acao-sub rx-resumo">${esc(linha)}</div>${kpis}${tabela}`, ['Resumo', 'Detalhe']]] };
 }
 
 const RELATORIOS = {
