@@ -1,6 +1,9 @@
 // ============================================================================
 // relatorios-executivos.js — Raiz Patrimônio · Relatórios no modelo executivo
-// Versão: 1.20.0 · 26/11/2026
+// Versão: 1.21.0 · 27/11/2026
+//
+// v1.21.0 (27/11/2026, sessão 20261127-2235-busca-geral, decisão do Nicola 27/11 22:31) — Investimentos no patrimônio: "Compra de bem"
+//   e "Compra de imóvel e custos" viram uma linha só, "Compra de bens" (o detalhe por bem continua na seção Por bem). Versão anterior: 1.20.0
 //
 // v1.20.0 (26/11/2026, sessão 20261126-1330-investimentos-i2a, demanda 885410f9; PLANO_EXECUCAO_I2_I3_I4_INVESTIMENTOS_RAIZ v1.2.0, I2a, e
 //   PROTOTIPO_INVESTIMENTOS_I2_I4_POSICAO_FGC v1.1.0, tela 13; de acordo do Nicola 26/11 12:12, "relatórios ok") — R6 Renda variável:
@@ -46,21 +49,15 @@
 //   (comercial.rel_itens), Faturamento por cliente (comercial.rel_clientes) e Vendas por ponto de venda (comercial.rel_ativos).
 //   Filtros: mês e ponto de venda (ativos com tabela de venda); mês em andamento sai com PRÉVIA. Compartilhar abre "Enviar o
 //   resumo" e "Baixar a planilha" (baixarPlanilhaLista, REL-41/61). Versão anterior: 1.13.0
-//
-// v1.13.0 (16/11/2026, sessão 20261114-2342-investimentos-patrimonio, demanda fd3898f7; FICHA_RELATORIO_INVESTIMENTOS_PATRIMONIO
-//   v1.0.0 e protótipo aprovados pelo Nicola 15/11) — relatório novo "Investimentos no patrimônio" (relatorios.investimentos, Premium),
-//   tipo 'investimentos' do modelo executivo, lido só de fn_relatorio_investimentos_patrimonio (CAN-01): capa com a leitura, os 4
-//   números (gerado, reinvestido, taxa, distribuído), cascata do caixa e reinvestido por mês; página 2 por ramo, por tipo, por bem
-//   (custo investido × valor atual) e os maiores lançamentos. Ano e ramo nos filtros; PDF e Compartilhar como os outros.
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.12.0 … v1.12.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.13.0 … v1.13.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
 import { rzMostrarBloqueio } from './comum-licenca.js';
 import { rzToast } from './raiz-ui.js';
 import RaizDevice from './raiz-device.js';
 
-export const VERSAO = '1.20.0';
+export const VERSAO = '1.21.0';
 
 // ---------------------------------------------------------------------------
 // Formatos (REL-13 a REL-17)
@@ -761,7 +758,9 @@ function montarRetiradas(d) {
 // ---------------------------------------------------------------------------
 // Investimentos no patrimônio (v1.13.0, dem fd3898f7) — tudo vem pronto de fn_relatorio_investimentos_patrimonio
 // ---------------------------------------------------------------------------
-const TIPO_INV = { compra_bem: 'Compra de bem', benfeitoria: 'Melhoria e benfeitoria', aquisicao_imovel: 'Compra de imóvel e custos', financiamento_pago: 'Parcelas de financiamento' };
+// v1.21.0 (Nicola 27/11 22:31: "juntar numa linha") — compra de imóvel (sinal, parcelas, ITBI…) e de outros bens numa linha só
+const TIPO_INV = { compra_bens: 'Compra de bens', benfeitoria: 'Melhoria e benfeitoria', financiamento_pago: 'Parcelas de financiamento' };
+const somaInv = (o, x) => (o == null ? null : x === 'compra_bens' ? (o.compra_bem == null && o.aquisicao_imovel == null ? null : Number(o.compra_bem || 0) + Number(o.aquisicao_imovel || 0)) : o[x]);
 function montarInvestimentos(d) {
     const cab = d.cabecalho || {}, k = d.kpis || {}, c = d.cascata || {}, t = d.por_tipo || {}, lei = d.leitura || {};
     const ano = dataIso(cab.ate).getFullYear(), anoHoje = new Date().getFullYear();
@@ -792,7 +791,7 @@ function montarInvestimentos(d) {
         ${figura(`Reinvestido por mês em ${ano}`, 'R$ mil · data do pagamento', mensal.some(m => m.v) ? svgColunas(mensal, { aria: 'Reinvestido por mês' }) : '<p class="mut">Sem investimento no período.</p>', fonte)}
       </div>`;
     const ramos = (d.por_ramo || []).map(r => ({ l: r.nome, v: num(r.valor) }));
-    const linTipo = Object.keys(TIPO_INV).map(x => `<tr><td>${esc(TIPO_INV[x])}</td><td class="n">${tab(t[x])}</td><td class="n hm">${t.anterior && t.anterior[x] != null ? tab(t.anterior[x]) : '—'}</td></tr>`).join('');
+    const linTipo = Object.keys(TIPO_INV).map(x => `<tr><td>${esc(TIPO_INV[x])}</td><td class="n">${tab(somaInv(t, x))}</td><td class="n hm">${somaInv(t.anterior, x) != null ? tab(somaInv(t.anterior, x)) : '—'}</td></tr>`).join('');
     const bens = d.por_bem || [];
     const linBem = bens.map(b => `<tr><td>${esc(b.nome)}${b.status === 'vendido' ? ' <span class="mut">(vendido)</span>' : ''}</td><td class="n">${tab(b.investido_periodo)}</td><td class="n">${tab(b.custo_investido)}</td><td class="n">${b.valor_atual != null ? tab(b.valor_atual) : '—'}</td><td class="n ${b.variacao_pct == null ? '' : num(b.variacao_pct) >= 0 ? 'pos' : 'neg'}">${b.variacao_pct != null ? pct(b.variacao_pct, true) : '—'}</td></tr>`).join('');
     const maiores = (d.maiores || []).map(m => `<tr><td>${dma(m.data)}</td><td>${esc(m.descricao || '—')}</td><td class="hm">${esc(m.ativo || '—')}</td><td class="n">${tab(m.valor)}</td></tr>`).join('');

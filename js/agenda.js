@@ -1,8 +1,10 @@
 // =====================================================================
 // RAIZ PATRIMÔNIO — js/agenda.js
-// VERSÃO: Beta v1.23.1 (27/11/2026 — lupa do topo abre o filtro por bem)
+// VERSÃO: Beta v1.24.0 (27/11/2026 — agenda na busca geral)
 // LINHAS: (ver versoes.json)
 // -----------------------------------------------------------------
+// NOVIDADES (Beta v1.24.0) (27/11/2026, sessão 20261127-2235-busca-geral; FICHA_BUSCA_E_FILTRO_DAS_TELAS_RAIZ v1.1.0, D3 de acordo do
+// Nicola 27/11 22:31) — buscarAgendaTexto: a busca geral (lupa do Hoje e do Resumo) acha compromissos da agenda. Versão anterior: 1.23.1
 // NOVIDADES (Beta v1.23.1) (27/11/2026, teste no ar) — o botão da lupa ganha data-lupa: no computador a tela da Agenda também tem a
 // busca de alertas, e a lupa do topo abria essa. Versão anterior: 1.23.0
 // NOVIDADES (Beta v1.23.0) (27/11/2026, sessão 20261127-2210-busca-filtro; FICHA_BUSCA_E_FILTRO_DAS_TELAS_RAIZ v1.1.0, de acordo do
@@ -176,7 +178,7 @@
 
 import { rzCalendario, rzCalItemDaAgenda } from './nucleo/calendario.js'; // v1.16.0 — calendário único (DS §6.3)
 
-export const VERSAO = '1.23.1';
+export const VERSAO = '1.24.0';
 
 const TIPOS = {
     ocorrencia:   { rotulo: 'Ocorrência',  icone: 'wrench',          dominio: 'ocorrencias' },
@@ -666,6 +668,20 @@ function abrirAssunto() {
 // v1.17.0 — a linha e o toque da Agenda para o card Calendário da ficha do ativo (cofre-ativos.js 1.154.0)
 export function linhaCompromissoHtml(r, i) { return linhaHtml(r, i); }
 export function abrirCompromissoAgenda(r) { return abrirCompromisso(r); }
+
+// v1.24.0 (D3, Nicola 27/11 22:31) — busca geral (lupa do Hoje e do Resumo): compromissos, vencimentos, reservas e reuniões de 30 dias
+// atrás até 90 dias à frente, pela mesma linha do robô (fn_agenda_linhas); bate no título, no bem, em quem e no complemento.
+export async function buscarAgendaTexto(termo) {
+    const t = String(termo || '').trim().toLowerCase();
+    if (t.length < 2 || typeof CLIENTE_ID_SUPABASE === 'undefined' || !CLIENTE_ID_SUPABASE) return [];
+    const h = hoje();
+    const { data, error } = await dbAuth.rpc('fn_agenda_linhas', { p_cliente_id: CLIENTE_ID_SUPABASE, p_de: iso(somaDias(h, -30)), p_ate: iso(somaDias(h, 90)) });
+    if (error) throw error;
+    const dmy = (d) => (d ? `${d.slice(8, 10)}/${d.slice(5, 7)}` : '');
+    return (data || []).filter(r => [r.titulo, r.sub, r.quem, r.bem_curto].some(c => String(c || '').toLowerCase().includes(t)))
+        .slice(0, 30).map((r, i) => ({ id: String(i), nome: r.titulo_curto || r.titulo || 'Compromisso', icone: r.icone || 'calendar',
+            sub: [dmy(r.data) + (r.hora ? ' ' + String(r.hora).slice(0, 5) : ''), r.sub].filter(Boolean).join(' · '), linha: r }));
+}
 function abrirCompromisso(r) {
     if (!r) return;
     if (r.tipo === 'feriado') { if (typeof mostrarToast === 'function') mostrarToast(`${r.titulo} · ${r.sub || 'Nacional'}`); return; } // v1.8.0

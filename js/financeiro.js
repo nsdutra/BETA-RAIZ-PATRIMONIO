@@ -1,7 +1,11 @@
 // ============================================================================
 // financeiro.js — Raiz Patrimônio · Financeiro (Recebimentos · Atrasados · Saídas
 //                  · conciliação de extrato · recibo · detalhe do recebimento)
-// Versão: 1.109.0 · 27/11/2026
+// Versão: 1.110.0 · 27/11/2026
+//
+// v1.110.0 (27/11/2026, sessão 20261127-2235-busca-geral; FICHA_BUSCA_E_FILTRO_DAS_TELAS_RAIZ v1.1.0, D3 de acordo do Nicola 27/11 22:31)
+// — buscarLancamentosTexto e abrirLancamentoDaBusca: a busca geral acha lançamentos e recebimentos do mês e abre a aba já filtrada.
+// Versão anterior: 1.109.0
 //
 // v1.109.0 (27/11/2026, sessão 20261127-1840-duplicidade, demanda a7b62194; FICHA_DUPLICIDADE_RECEBIMENTO v1.0.0, de acordo do Nicola
 // 27/11 18:36 e 18:48) — PAGAMENTO DUPLICADO. (1) Conciliação ganha o bloco "Possíveis duplicidades" no topo
@@ -29,17 +33,11 @@
 // (Recebimentos, Atrasados e a tabela do computador), atalho "Extrato provável" no ⋮ e cartão no Dar baixa com data, valor,
 // nome, documento e histórico da linha para conferir, com "Usar o extrato" (vínculo, fn_extrato_vincular_recebimento) ou
 // "Confirmar recebimento" (baixa manual). Versão anterior: 1.107.0.
-//
-// v1.107.0 (25/11/2026, sessão 20261125-2315-cobranca-lembrete, demanda a8b41eb3 item 3; achado do Nicola 23:05 — DEM-09) — o
-// card Financeiro da ficha do contrato e do ativo (fcCarregar) mostrava o recebimento em aberto pelo valor ATUAL do contrato, não
-// pelo valor do mês: depois de reajustes com vigência (1.500 desde 06/2025, 1.600 desde 06/2026) o gráfico ficava 1.600 o ano
-// todo, enquanto o Financeiro › Recebimentos mostrava o certo. Agora usa o valor do próprio recebimento (valor_confirmado) e só
-// cai no valor do contrato se ele estiver vazio. Versão anterior: 1.106.0.
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.106.0 … v1.106.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.107.0 … v1.107.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '1.109.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.110.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 
 // v1.17.0 (Fase 1 do wrapper de escrita, rollout Financeiro) — emitirEscrita
 // é o evento padrão pra "algo mudou que módulos DE FORA deste arquivo podem
@@ -75,6 +73,36 @@ function financeiroTextoBate(termo, campos, valor) {
     if (!dig || valor == null || isNaN(Number(valor))) return false;
     const v = Math.abs(Number(valor));
     return String(Math.round(v)).includes(dig) || String(Math.round(v * 100)).includes(dig);
+}
+// v1.110.0 (D3, Nicola 27/11 22:31) — busca geral (lupa do Hoje e do Resumo): lançamentos e recebimentos do mês aberto no
+// Financeiro (sem mês aberto, o mês de hoje), por descrição, locatário ou valor. Tocar abre Saídas ou Recebimentos já filtrado.
+export async function buscarLancamentosTexto(termo) {
+    const t = String(termo || '').trim().toLowerCase();
+    if (t.length < 2 || typeof CLIENTE_ID_SUPABASE === 'undefined' || !CLIENTE_ID_SUPABASE) return [];
+    const comp = String(financeiroCompetenciaAtual || financeiroCompetenciaHojeISO()).slice(0, 7) + '-01';
+    const [rL, rM] = await Promise.all([
+        dbAuth.from('lancamentos').select('id, descricao, valor, direcao, vencimento, data_pagamento').eq('cliente_id', CLIENTE_ID_SUPABASE).eq('competencia', comp).limit(1000),
+        dbAuth.from('mensalidades').select('id, valor_confirmado, data_pgto, status, contratos!inner(locatario)').eq('cliente_id', CLIENTE_ID_SUPABASE).eq('competencia', comp).limit(1000),
+    ]);
+    if (rL.error) throw rL.error;
+    const dmy = (d) => (d ? `${String(d).slice(8, 10)}/${String(d).slice(5, 7)}` : '');
+    const itens = (rL.data || []).filter(l => financeiroTextoBate(t, [l.descricao], l.valor)).map(l => ({ id: 'l' + l.id, nome: l.descricao || (l.direcao === 'entrada' ? 'Entrada' : 'Saída'),
+        sub: [formatarMoedaBR(Math.abs(Number(l.valor || 0))), dmy(l.data_pagamento || l.vencimento)].filter(Boolean).join(' · '),
+        icone: l.direcao === 'entrada' ? 'arrow-down-left' : 'arrow-up-right', aba: l.direcao === 'entrada' ? 'mensal' : 'saidas', termo: l.descricao || '', competencia: comp }));
+    (rM.error ? [] : (rM.data || [])).filter(m => financeiroTextoBate(t, [m.contratos?.locatario], m.valor_confirmado)).forEach(m => itens.push({ id: 'm' + m.id,
+        nome: 'Aluguel · ' + (m.contratos?.locatario || ''), sub: [formatarMoedaBR(Number(m.valor_confirmado || 0)), dmy(m.data_pgto)].filter(Boolean).join(' · '),
+        icone: 'arrow-down-left', aba: 'mensal', termo: m.contratos?.locatario || '', competencia: comp }));
+    return itens.slice(0, 30);
+}
+export function abrirLancamentoDaBusca(it) {
+    if (!it) return;
+    financeiroDefinirCompetencia(it.competencia);
+    switchTab(it.aba === 'mensal' ? 'tab-mensal' : 'tab-saidas');
+    setTimeout(() => {
+        const q = document.getElementById('fin-busca-q-' + it.aba);
+        if (q) { q.value = it.termo; q.dispatchEvent(new Event('input', { bubbles: true })); }
+        setTimeout(() => { if (typeof rzHdrBuscaSync === 'function') rzHdrBuscaSync(); }, 300);
+    }, 400);
 }
 export function montarAbaFinanceiro(tabId) {
     // v1.30.1 — rotinas podem ter sido ligadas/desligadas em Minha empresa
