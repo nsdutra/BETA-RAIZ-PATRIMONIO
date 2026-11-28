@@ -161,6 +161,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/ativos/ativos-markup.js`
 
 // Versão anterior: 1.64.0 · 14/10/2026
@@ -791,6 +793,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 // sem este ícone, Home/Alertas/"Em triagem"/"Comece pelo documento"
 // ficariam sem NENHUMA porta de entrada dentro da aba Ativos.
 // ============================================================================
+
+---
 
 ---
 
@@ -2291,6 +2295,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/cofre-app.js`
 
 //
@@ -2736,6 +2742,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 // cofre-ativos.js). Prefere addEventListener a onclick inline em todo
 // código novo (Diretriz Arquitetural — Passo 2).
 // ============================================================================
+
+---
 
 ---
 
@@ -5587,6 +5595,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/cofre-controles.js`
 
 //
@@ -6641,6 +6651,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 // não está implementado (geração automática de ocorrências recorrentes,
 // Central de Alertas consolidada).
 // ============================================================================
+
+---
 
 ---
 
@@ -8350,6 +8362,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/cofre-estado.js`
 
 //
@@ -8495,6 +8509,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 // v1.21.6 (Arquivar/RLS, sessão paralela) nem esta entrega — fechado
 // agora. Ver changelog completo em cofre.html v1.22.0 (merge das 2
 // sessões paralelas + badge fix + form fix + função Vendido).
+
+---
 
 ---
 
@@ -9623,6 +9639,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/cofre-ui.js`
 
 //
@@ -9654,6 +9672,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 // genérica, template de card, indicador de "liga/desliga" (Design System
 // v1.43.0 §2). Não importa cofre-api.js — não sabe nada de Supabase.
 // ============================================================================
+
+---
 
 ---
 
@@ -10357,6 +10377,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 // pilha; os demais (cofre-ui, cofre-documentos, cofre-ativos) importam
 // daqui, nunca o contrário.
 // ============================================================================
+
+---
 
 ---
 
@@ -11576,6 +11598,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/comum-minha-empresa.js`
 
 // Versão anterior: 1.17.0 · 14/10/2026
@@ -11795,6 +11819,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 // `dbAuth` já autenticado do host, por parâmetro (ver nota completa em
 // comum-licenca.js).
 // ============================================================================
+
+---
 
 ---
 
@@ -13173,6 +13199,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/comum-renovacao.js`
 
 //
@@ -13258,6 +13286,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 // jsdelivr (mesma origem já usada pelo app); se não carregar, o "copia e cola"
 // continua funcionando sozinho.
 // ============================================================================
+
+---
 
 ---
 
@@ -14324,6 +14354,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/conta.js`
 
 // Versão anterior: 1.1.0 · 14/10/2026
@@ -14370,6 +14402,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 //    virar assíncrona poderia deixar o primeiro render com o filtro errado. Não vale o risco
 //    por 345 bytes — é a mesma classe de armadilha do montarBoxDivisaoSocietaria.
 // ============================================================================
+
+---
 
 ---
 
@@ -16213,6 +16247,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/fechamento.js`
 
 //
@@ -16556,6 +16592,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 // window.jspdf, CONFIG_CLIENTE (todos já globais no index.html clássico —
 // mesmo acesso que financeiro.js já faz).
 // ============================================================================
+
+---
 
 ---
 
@@ -19436,6 +19474,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/fiscal.js`
 
 //
@@ -19532,6 +19572,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 // abrirSheet, abrirSheetAcoes, abrirSheetForm, rzSheetCabecalho, fecharSheet,
 // mostrarToast, switchTab, rzIcones, podeUsar, window.fechamentoAbrirChecklistFiscalAtualizado.
 // ============================================================================
+
+---
 
 ---
 
@@ -20665,6 +20707,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/investimentos.js`
 
 //
@@ -20694,6 +20738,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 //   · linhasValorConta: série da conta = soma das aplicações mês a mês (usada pelo card Valor do bem da conta, cofre-ativos.js).
 // O valor atual mora em contratos.valor; o histórico, nas ocorrências do item "Atualizar valor" (F3). Sem projeção (I3).
 // ============================================================================
+
+---
 
 ---
 
@@ -20819,6 +20865,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 // pessoaIdLogada. Exclusivo (`__minzEstado`) virou nível de módulo.
 // Indentação de origem mantida (template literals). Strict verificado.
 // ============================================================================
+
+---
 
 ---
 
@@ -21501,6 +21549,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/partes.js`
 
 //
@@ -21535,6 +21585,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 // Chamadas de fora chegam pela ponte window[nome] do index (bloco "PARTES"), que é o
 // mesmo rzPonteModulo dos outros módulos R8.
 // ============================================================================
+
+---
 
 ---
 
@@ -22110,7 +22162,35 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/relatorios-executivos.js`
+
+//
+// v1.20.0 (26/11/2026, sessão 20261126-1330-investimentos-i2a, demanda 885410f9; PLANO_EXECUCAO_I2_I3_I4_INVESTIMENTOS_RAIZ v1.2.0, I2a, e
+//   PROTOTIPO_INVESTIMENTOS_I2_I4_POSICAO_FGC v1.1.0, tela 13; de acordo do Nicola 26/11 12:12, "relatórios ok") — R6 Renda variável:
+//   posição e resultado (tipo rv, código relatorios.investimentos, fn_rv_carteira): uma linha por código com quantidade, preço médio,
+//   custo, valor pelo último preço, não realizado, realizado e proventos do ano; as vendas do ano por mês com a marca dos R$ 20 mil
+//   (informativa, sem DARF); planilha com uma linha por aplicação. Situação de hoje, sem chip de período. Abre por abrirRelatorioExecutivo('rv').
+// v1.19.0 (26/11/2026, sessão 20261126-1215-investimentos-i4, demanda 885410f9; PLANO_EXECUCAO_I2_I3_I4_INVESTIMENTOS_RAIZ v1.2.0, I4, e
+//   PROTOTIPO_INVESTIMENTOS_I2_I4_POSICAO_FGC v1.1.0; de acordo do Nicola 26/11 12:12, "relatórios ok") — Exposição ao FGC
+//   (relatorios.investimentos_fgc, fn_fgc_exposicao, tipo fgc): por titular e banco (CNPJ raiz), o total coberto em % do limite de
+//   R$ 250 mil, o excesso e até quando; os vencimentos de cada banco com a soma que sobra; total do titular contra o teto de R$ 1 milhão;
+//   planilha com uma linha por aplicação. Situação de hoje, sem chip de período. Abre por abrirRelatorioExecutivo('fgc').
+// v1.18.0 (25/11/2026, sessão 20261125-2330-rel-ficha-imovel, demanda bf8ab9a9; plano + protótipo v1.0.0, de acordo do Nicola 25/11 23:24) — Ficha financeira do imóvel
+//   (relatorios.ficha_imovel, fn_relatorio_ficha_imovel): o ano por imóvel em tela (KPIs, abas Imóveis/Atrasos/Proprietários/Administradoras, detalhe com
+//   cadastro, contrato vigente, mês a mês, despesas, atrasos e parte de cada proprietário) e planilha de 5 abas. Proprietários só com a parte no
+//   resultado, sem volume de repasses (pedido do Nicola). Abre por abrirRelatorioExecutivo('ficha_imovel').
+// v1.17.0 (18/11/2026, sessão 20261118-2125-cadastro-em-tela, demanda 6412873a; PLANO_CADASTRO_EM_TELA_CORRECOES_RAIZ v1.2.0, de acordo do Nicola 18/11 21:21 (Q1–Q3 sim)) — Cadastro da carteira: corrigir direto da linha. Tocar num imóvel abre:
+//   Reajustar (a tela de reajuste), Corrigir o inquilino (o formulário do inquilino), Corrigir o contrato (a edição do contrato),
+//   Dar baixa nos recebimentos (o Financeiro do contrato, com "‹ Voltar ao Cadastro"), Encerrar o contrato (e, encerrado, "Criar o
+//   novo contrato neste imóvel"), Criar contrato neste imóvel (vago) e Anexar documento (ao contrato ou ao imóvel). Ao salvar ou
+//   fechar, o relatório relê o banco. Os ids e o "N em aberto" vêm da fn_relatorio_cadastro_carteira (F1); sem id, acha pelo nome
+//   como antes. Versão anterior: 1.16.0
+// --------------------------------------------------------------------------
+// Versões anteriores (v1.16.0 … v1.16.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
+// mais recentes deste cabeçalho (VER-06).
 
 //
 // v1.16.0 (18/11/2026, sessão 20261118-0815-financeiro-relatorios, demanda 679b2700; FICHA_REVISAO_FINANCEIRO_RAIZ v1.0.0, Onda 4;
@@ -22361,6 +22441,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 // que o bot usa); aqui só se monta o texto e o desenho — nunca se recalcula
 // (REL-02). Protótipo: raiz\docs\PROTOTIPO_RELATORIOS_FLUXO_GERENCIAL v1.1.0.
 // ============================================================================
+
+---
 
 ---
 
@@ -23524,6 +23606,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/viagem-roteiro.js`
 
 //
@@ -23584,6 +23668,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 // vez (fn_ciclo_trechos_salvar). O dia em que se muda de cidade é do trecho que começa nele (regra do banco). As regras são do
 // banco; aqui só se monta, colhe e manda. Aberto por cofre-controles.js (botão "Roteiro" e ⋮ do trecho).
 // ============================================================================
+
+---
 
 ---
 
@@ -23764,6 +23850,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 // CLIENTE_ID_SUPABASE, dbAuth. Exclusivo (4) virou nível de módulo.
 // Indentação de origem mantida. Strict verificado.
 // ============================================================================
+
+---
 
 ---
 

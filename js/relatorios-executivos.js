@@ -1,6 +1,9 @@
 // ============================================================================
 // relatorios-executivos.js — Raiz Patrimônio · Relatórios no modelo executivo
-// Versão: 1.24.0 · 28/11/2026
+// Versão: 1.25.0 · 28/11/2026
+//
+// v1.25.0 (28/11/2026, sessão 20261128-0055-viagens-resumo-2, demanda d8061e47; revisão do Nicola 28/11 00:50) — relatório Viagens
+//   sem tabela: cada viagem em 2 linhas (nome e pago; período, dias, tipo e pessoas embaixo) e o total; sai Cotado. Versão anterior: 1.24.0
 //
 // v1.24.0 (28/11/2026, sessão 20261128-0040-viagens-resumo, demanda d8061e47; revisão do Nicola 28/11 00:37) — relatório Viagens sem
 //   texto espremido: Viagem (tipo e pessoas embaixo), Período, Dias, Cotado, Pago; sai Reservado e as menções a "fora do Financeiro".
@@ -20,36 +23,15 @@
 //
 // v1.21.0 (27/11/2026, sessão 20261127-2235-busca-geral, decisão do Nicola 27/11 22:31) — Investimentos no patrimônio: "Compra de bem"
 //   e "Compra de imóvel e custos" viram uma linha só, "Compra de bens" (o detalhe por bem continua na seção Por bem). Versão anterior: 1.20.0
-//
-// v1.20.0 (26/11/2026, sessão 20261126-1330-investimentos-i2a, demanda 885410f9; PLANO_EXECUCAO_I2_I3_I4_INVESTIMENTOS_RAIZ v1.2.0, I2a, e
-//   PROTOTIPO_INVESTIMENTOS_I2_I4_POSICAO_FGC v1.1.0, tela 13; de acordo do Nicola 26/11 12:12, "relatórios ok") — R6 Renda variável:
-//   posição e resultado (tipo rv, código relatorios.investimentos, fn_rv_carteira): uma linha por código com quantidade, preço médio,
-//   custo, valor pelo último preço, não realizado, realizado e proventos do ano; as vendas do ano por mês com a marca dos R$ 20 mil
-//   (informativa, sem DARF); planilha com uma linha por aplicação. Situação de hoje, sem chip de período. Abre por abrirRelatorioExecutivo('rv').
-// v1.19.0 (26/11/2026, sessão 20261126-1215-investimentos-i4, demanda 885410f9; PLANO_EXECUCAO_I2_I3_I4_INVESTIMENTOS_RAIZ v1.2.0, I4, e
-//   PROTOTIPO_INVESTIMENTOS_I2_I4_POSICAO_FGC v1.1.0; de acordo do Nicola 26/11 12:12, "relatórios ok") — Exposição ao FGC
-//   (relatorios.investimentos_fgc, fn_fgc_exposicao, tipo fgc): por titular e banco (CNPJ raiz), o total coberto em % do limite de
-//   R$ 250 mil, o excesso e até quando; os vencimentos de cada banco com a soma que sobra; total do titular contra o teto de R$ 1 milhão;
-//   planilha com uma linha por aplicação. Situação de hoje, sem chip de período. Abre por abrirRelatorioExecutivo('fgc').
-// v1.18.0 (25/11/2026, sessão 20261125-2330-rel-ficha-imovel, demanda bf8ab9a9; plano + protótipo v1.0.0, de acordo do Nicola 25/11 23:24) — Ficha financeira do imóvel
-//   (relatorios.ficha_imovel, fn_relatorio_ficha_imovel): o ano por imóvel em tela (KPIs, abas Imóveis/Atrasos/Proprietários/Administradoras, detalhe com
-//   cadastro, contrato vigente, mês a mês, despesas, atrasos e parte de cada proprietário) e planilha de 5 abas. Proprietários só com a parte no
-//   resultado, sem volume de repasses (pedido do Nicola). Abre por abrirRelatorioExecutivo('ficha_imovel').
-// v1.17.0 (18/11/2026, sessão 20261118-2125-cadastro-em-tela, demanda 6412873a; PLANO_CADASTRO_EM_TELA_CORRECOES_RAIZ v1.2.0, de acordo do Nicola 18/11 21:21 (Q1–Q3 sim)) — Cadastro da carteira: corrigir direto da linha. Tocar num imóvel abre:
-//   Reajustar (a tela de reajuste), Corrigir o inquilino (o formulário do inquilino), Corrigir o contrato (a edição do contrato),
-//   Dar baixa nos recebimentos (o Financeiro do contrato, com "‹ Voltar ao Cadastro"), Encerrar o contrato (e, encerrado, "Criar o
-//   novo contrato neste imóvel"), Criar contrato neste imóvel (vago) e Anexar documento (ao contrato ou ao imóvel). Ao salvar ou
-//   fechar, o relatório relê o banco. Os ids e o "N em aberto" vêm da fn_relatorio_cadastro_carteira (F1); sem id, acha pelo nome
-//   como antes. Versão anterior: 1.16.0
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.16.0 … v1.16.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.20.0 … v1.20.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
 import { rzMostrarBloqueio } from './comum-licenca.js';
 import { rzToast } from './raiz-ui.js';
 import RaizDevice from './raiz-device.js';
 
-export const VERSAO = '1.24.0';
+export const VERSAO = '1.25.0';
 
 // ---------------------------------------------------------------------------
 // Formatos (REL-13 a REL-17)
@@ -1465,22 +1447,22 @@ function montarViagem(d) {
         ligar: () => { if (typeof rzIcones === 'function') rzIcones(); } };
 }
 function montarViagens(d) {
-    // v1.24.0 — revisão do Nicola 28/11 00:37: colunas sem espremer texto (Viagem com tipo e pessoas embaixo, Período, Dias, Cotado,
-    // Pago); sai Reservado e as menções a "dentro/fora do Financeiro".
+    // v1.25.0 — revisão do Nicola 28/11 00:50: sem tabela espremida; cada viagem em 2 linhas (nome e valor pago; período, dias, tipo e
+    // pessoas embaixo); sai Cotado.
     const vs = d.viagens || [], T = d.total || {};
-    const cfg = { nome: 'Viagens', medida: 'Viagens · dias e custos em R$', previa: false,
+    const cfg = { nome: 'Viagens', medida: 'Viagens · dias e custo pago em R$', previa: false,
         subtitulo: [d.ano ? String(d.ano) : 'todas as viagens', qtdTxt(T.viagens, 'viagem', 'viagens'), qtdTxt(T.dias, 'dia', 'dias')].join(' · ') };
-    const linha = vs.length ? `${qtdTxt(T.viagens, 'viagem', 'viagens')}, ${qtdTxt(T.dias, 'dia', 'dias')}; pago ${brl(T.pago)}, cotado ${brl(T.cotado)}.` : 'Nenhuma viagem no período.';
-    const kpis = `<div class="kpis">${kpi('Viagens', String(num(T.viagens)), '')}${kpi('Dias', String(num(T.dias)), '')}${kpi('Cotado', compacto(T.cotado), '')}${kpi('Pago', compacto(T.pago), '')}</div>`;
-    const nw = 'white-space:nowrap';
-    const tabela = `${secao('Por viagem', 'R$')}
-      <table style="width:100%"><thead><tr><th>Viagem</th><th style="${nw}">Período</th><th class="n">Dias</th><th class="n">Cotado</th><th class="n">Pago</th></tr></thead><tbody>${vs.map(v => `<tr>
-        <td><b>${esc(v.nome)}</b><br><small class="mut">${esc([v.tipo || '', (v.viajantes || []).join(', ')].filter(Boolean).join(' · '))}</small></td>
-        <td style="${nw}">${dma(v.inicio).slice(0, 5)} a ${dma(v.fim).slice(0, 5)}<br><small class="mut">${String(v.fim).slice(0, 4)}</small></td>
-        <td class="n" style="${nw}">${num(v.dias)}</td><td class="n" style="${nw}">${tab(v.cotado)}</td><td class="n" style="${nw}">${tab(v.pago)}</td></tr>`).join('')}</tbody>
-      <tfoot><tr><td><b>Total</b></td><td></td><td class="n"><b>${num(T.dias)}</b></td><td class="n" style="${nw}"><b>${tab(T.cotado)}</b></td><td class="n" style="${nw}"><b>${tab(T.pago)}</b></td></tr></tfoot></table>
-      <div class="notes"><p>Dias contam ida e volta. Cotado soma A cotar e Cotado; Pago é o que foi pago da viagem. Origem: fn_viagens_resumo v1.</p></div>`;
-    return { cfg, linhas3: [`Viagens · ${d.ano || 'todas'}`, `${qtdTxt(T.viagens, 'viagem', 'viagens')} · ${qtdTxt(T.dias, 'dia', 'dias')} · pago ${brl(T.pago)}`, linha], paginas: [[`<div class="acao-sub rx-resumo">${esc(linha)}</div>${kpis}${tabela}`, ['Resumo', 'Detalhe']]] };
+    const linha = vs.length ? `${qtdTxt(T.viagens, 'viagem', 'viagens')}, ${qtdTxt(T.dias, 'dia', 'dias')}; pago ${brl(T.pago)}.` : 'Nenhuma viagem no período.';
+    const kpis = `<div class="kpis">${kpi('Viagens', String(num(T.viagens)), '')}${kpi('Dias', String(num(T.dias)), '')}${kpi('Pago', compacto(T.pago), '')}</div>`;
+    const bloco = (titulo, valor, sub, forte) => `<div style="padding:10px 0;border-bottom:1px solid #e6e2d8">
+        <div style="display:flex;justify-content:space-between;gap:12px;align-items:baseline"><span style="font-weight:${forte ? 700 : 600}">${titulo}</span><span style="white-space:nowrap;font-weight:${forte ? 700 : 600};font-variant-numeric:tabular-nums">${valor}</span></div>
+        ${sub ? `<div class="mut" style="font-size:.9em;margin-top:2px">${sub}</div>` : ''}</div>`;
+    const lista = `${secao('Por viagem', 'R$ pago · período, dias, tipo e quem vai')}
+      <div>${vs.map(v => bloco(esc(v.nome), tab(v.pago),
+          esc([`${dma(v.inicio).slice(0, 5)} a ${dma(v.fim)}`, qtdTxt(v.dias, 'dia', 'dias'), v.tipo || '', (v.viajantes || []).join(', ')].filter(Boolean).join(' · ')))).join('')}
+        ${vs.length ? bloco(`Total · ${qtdTxt(T.viagens, 'viagem', 'viagens')} · ${qtdTxt(T.dias, 'dia', 'dias')}`, tab(T.pago), '', true) : ''}</div>
+      <div class="notes"><p>Dias contam ida e volta. Origem: fn_viagens_resumo v1.</p></div>`;
+    return { cfg, linhas3: [`Viagens · ${d.ano || 'todas'}`, `${qtdTxt(T.viagens, 'viagem', 'viagens')} · ${qtdTxt(T.dias, 'dia', 'dias')} · pago ${brl(T.pago)}`, linha], paginas: [[`<div class="acao-sub rx-resumo">${esc(linha)}</div>${kpis}${lista}`, ['Resumo', 'Detalhe']]] };
 }
 
 const RELATORIOS = {
