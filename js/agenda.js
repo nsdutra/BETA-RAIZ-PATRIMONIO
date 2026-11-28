@@ -1,8 +1,10 @@
 // =====================================================================
 // RAIZ PATRIMÔNIO — js/agenda.js
-// VERSÃO: Beta v1.23.0 (27/11/2026 — lupa do topo abre o filtro por bem)
+// VERSÃO: Beta v1.23.1 (27/11/2026 — lupa do topo abre o filtro por bem)
 // LINHAS: (ver versoes.json)
 // -----------------------------------------------------------------
+// NOVIDADES (Beta v1.23.1) (27/11/2026, teste no ar) — o botão da lupa ganha data-lupa: no computador a tela da Agenda também tem a
+// busca de alertas, e a lupa do topo abria essa. Versão anterior: 1.23.0
 // NOVIDADES (Beta v1.23.0) (27/11/2026, sessão 20261127-2210-busca-filtro; FICHA_BUSCA_E_FILTRO_DAS_TELAS_RAIZ v1.1.0, de acordo do
 // Nicola 27/11 21:59 e 22:05) — a lupa do topo sempre abre a escolha do bem (filtrado, a lista começa por "Todos os bens"); com bem
 // filtrado a lupa fica dourada. Versão anterior: 1.22.0
@@ -174,7 +176,7 @@
 
 import { rzCalendario, rzCalItemDaAgenda } from './nucleo/calendario.js'; // v1.16.0 — calendário único (DS §6.3)
 
-export const VERSAO = '1.23.0';
+export const VERSAO = '1.23.1';
 
 const TIPOS = {
     ocorrencia:   { rotulo: 'Ocorrência',  icone: 'wrench',          dominio: 'ocorrencias' },
@@ -583,7 +585,7 @@ async function escolherAtivoAgenda() {
 }
 // v1.16.0 — a lupa do topo (rzHdrBusca, index) aciona o .rz-search visível da tela: na Agenda ele abre o filtro por bem
 // v1.23.0 — data-filtrado: a lupa do topo fica dourada enquanto há bem filtrado
-const buscaLupaHtml = () => `<button type="button" class="rz-search" data-ag-busca data-filtrado="${st.ativo ? '1' : ''}" style="display:none" tabindex="-1" aria-hidden="true"></button>`;
+const buscaLupaHtml = () => `<button type="button" class="rz-search" data-ag-busca data-lupa data-filtrado="${st.ativo ? '1' : ''}" style="display:none" tabindex="-1" aria-hidden="true"></button>`;
 
 // ---- eventos
 function ligar() {
