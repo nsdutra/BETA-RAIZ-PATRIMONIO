@@ -4,6 +4,153 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+## `js/agenda.js`
+
+// -----------------------------------------------------------------
+// NOVIDADES (Beta v1.16.0) (13/11/2026, sessão 20261113-0712-crm-f2a; FICHA_CRM_AGENDA_OCUPACAO_RAIZ v1.2.0 F2a, aprovada pelo
+//   Nicola 12/11 08:44; PLANO_EXECUCAO_CRM_F2A_RAIZ v1.0.0, ida 13/11 07:12) — CALENDÁRIO ÚNICO E AGENDA POR HORA:
+//   (1) o mês passa a ser desenhado pelo componente único js/nucleo/calendario.js (rzCalendario, DS §6.3): semana de
+//   domingo a sábado, dia pintado pela situação (confirmado · aguardando tracejado), pontos na cor do status para o que
+//   só tem data, hoje com o traço do ramo, legenda só do que aparece; (2) lê fn_agenda_periodo_v2 — severidade com a
+//   antecedência do próprio item, assunto, hora de início e fim e situação vêm do banco (absorve a demanda 09277cba);
+//   (3) chip "Ativo ▾": filtra a agenda por um bem (✕ limpa); a lupa do topo, na Agenda, abre o mesmo filtro;
+//   (4) a linha com hora mostra início e fim; pedido de reserva (aguardando) entra na lista. Versão anterior: 1.15.0.
+// Versão anterior (Beta v1.15.0):
+// NOVIDADES (Beta v1.15.0) (30/10/2026, sessão 20261030-0014-compromisso-bem, demanda 2441dd55; de acordo do Nicola 29/10
+//   14:14 e 30/10 00:14) — NOVO COMPROMISSO: "Para quem" vira "Vincular a", com pessoas e bens (imóvel, veículo) na ordem
+//   da natureza do pedido; o bem citado à Raiz IA ("apartamento RSVP") já vem marcado; um item só, ligado a todos. Tipo
+//   novo "Manutenção". Data dita só com o mês ou o ano: chips Início · Fim · Mesmo dia de hoje embaixo da data.
+// Versão anterior (Beta v1.14.0):
+// NOVIDADES (Beta v1.14.0) (23/10/2026, sessão 20261023-0915-computador-c6, demanda 15146a34; PROTOTIPO_COMPUTADOR_RAIZ v1.1.0 §11, de acordo do Nicola 23/10 08:51) — C6 · escala de letras: 5 tamanhos de letra escritos em número (font-size:13px etc.) trocados pelos da escala (--fs-mini 11 · --fs-sec 12,5 · --fs-corpo 14 · --fs-titulo 17; 16 px fica, por causa do zoom do iPhone em campo, e 18 px ou mais também — herói e números grandes). Nada muda de lugar; só o tamanho passa a ser o mesmo em todas as telas.
+// Versão anterior (Beta v1.13.0):
+// NOVIDADES (Beta v1.13.0) (23/10/2026, sessão 20261023-0045-computador-c3, demanda 15146a34; PROTOTIPO_COMPUTADOR_RAIZ v1.0.0
+//   §6, de acordo do Nicola 22/10 10:32 e "siga em frente" 23/10 00:22) — AGENDA NO COMPUTADOR (≥ 1024 px): sem as vistas
+//   Mês · Semana · Alertas no topo. À esquerda o mês (‹ período › e ⋮ no alto da grade) e os filtros (status e Assunto);
+//   à direita, nesta ordem, Pendentes (a lista de alertas de sempre, #agenda-lista do index), o dia escolhido e os
+//   próximos 7 dias. No celular nada muda.
+// Versão anterior (Beta v1.12.0):
+// NOVIDADES (Beta v1.12.0) (22/10/2026, sessão 20261022-1155-vinculos-compromisso, demanda 0e70b85a; FICHA_RAIZ_IA_COMPROMISSO_RAIZ
+//   v1.2.0, de acordo do Nicola 22/10 11:55) — NOVO COMPROMISSO: cortina "Novo compromisso" (o quê, data com dia da semana,
+//   hora, para quem em chips — várias pessoas —, tipo, aviso Sem · 1 dia · 3 dias, valor e local), aberta pelo ⋮ da Agenda e
+//   pela Raiz IA ("agende o exame de faixa do Murilo dia 14/11" chega preenchida). Grava fn_agenda_compromisso_criar: UM item,
+//   as pessoas em `vinculos`. rzIaAgenda(): a Raiz IA despacha aqui compromisso, agenda (abre o período falado) e calendário.
+//   Importar calendário: a linha para "Tomás e Murilo" manda as pessoas (fn_calendario_escolar_aplicar v4) e o título vai sem
+//   os nomes (D4).
+// Versão anterior (Beta v1.11.0):
+// NOVIDADES (Beta v1.11.0) (21/10/2026, sessão 20261021-1735-ux-onda4, demanda 15146a34; Nicola 21/10 17:31: "ícones
+//   estranhos na agenda") — o item de controle saía sempre com a chave inglesa (ícone do tipo "Ocorrência"), fosse cartão,
+//   condomínio, obra ou inscrição. Agora usa o ícone do próprio item, o mesmo de Controles: o do subtipo, senão o do tipo
+//   no catálogo (controle_tipos), senão a prancheta. Vale para o compromisso e para o alerta do Motor ligado a um item.
+//   Uma leitura por período (ids do período), sem mudança no banco.
+// Versão anterior (Beta v1.10.0):
+// NOVIDADES (Beta v1.10.0) (21/10/2026, sessão 20261021-1342-calendario-generico, demanda 6f9e5b7d;
+//   FICHA_CALENDARIO_GENERICO_RAIZ v1.1.0, D1–D3 ok do Nicola 21/10 13:08 e 13:42) — IMPORTAR CALENDÁRIO GENÉRICO. ⋮ da Agenda
+//   › "Importar calendário" (escola, esporte, curso). No topo da revisão, o perfil lido (Escola · Esporte · Curso · Genérico),
+//   que dá para trocar — a Edge refaz só a regra, sem ler de novo. Tipos do perfil (esporte: jogo, treino, torneio…).
+//   Jogo com times: "Qual o time do Murilo?" com os times lidos como chips; a resposta marca os jogos dele, recolhe os de
+//   outros times ("Outros times") e fica gravada nas Atividades da pessoa para a próxima vez. Prazo com valor (inscrição)
+//   mostra o valor e vai com aviso 3 dias + repetição 2 (3 e 1 dia antes). Na agenda: troféu para "Esporte · ", paleta para
+//   "Atividade · ".
+// Versão anterior (Beta v1.9.4):
+// NOVIDADES (Beta v1.9.4) (20/10/2026, sessão 20261020-2149-calendario-ja, demanda b3aeefaf; Nicola 21:49 "não vi
+//   nenhuma menção de já está na agenda. Destaque… ao clicar na setinha pra abrir a cortina não funciona") — linha já
+//   importada ganha o selo verde "✓ Já está na agenda" na 2ª linha (marcada de novo, vira aviso "vai repetir"); a seta
+//   também abre e fecha os ajustes; a chave de origem não leva mais o nome da escola (igual à Edge, sugestoes.ts 1.1.0).
+// Versão anterior (Beta v1.9.3):
+// NOVIDADES (Beta v1.9.3) (20/10/2026, sessão 20261020-2117-calendario-lista, demanda b3aeefaf; Nicola 21:17 "os
+//   componentes ao abrir a cortina ficam grandes. Murilo e Tomás · Evento na escola pode ficar numa linha só menor. A sala
+//   também… e a confirmar. Abaixo as opções de alerta") — os ajustes da linha viram chips pequenos: 1ª linha Para quem ·
+//   Tipo · Turma (tocar abre a lista de escolha por cima, sem campo de seleção grande); 2ª linha Aviso: Sem · 1 dia ·
+//   3 dias | A confirmar (não coube na 1ª linha num celular de 400 px quando há turma).
+// Versão anterior (Beta v1.9.2):
+// NOVIDADES (Beta v1.9.2) (20/10/2026, sessão 20261020-1943-calendario-rapido, demanda b3aeefaf; Nicola 19:43 após a 1ª
+//   importação real: "lista quebrada e grande… cada compromisso em no máximo 2 linhas · avisar 1 dia antes ou 3 dias · mostre
+//   a data, ano e dia da semana") — a revisão do calendário fica em 2 linhas por compromisso: (1) marcar + título; (2) dia da
+//   semana, data com ano, para quem, tipo e aviso. Tocar no texto abre os ajustes (filho, tipo, turma, Aviso: sem · 1 dia ·
+//   3 dias, A confirmar); linha com data por turma já abre pedindo a turma. Envia lembrete_dias (fn_calendario_escolar_aplicar v2).
+// Versão anterior (Beta v1.9.1):
+// NOVIDADES (Beta v1.9.1) (20/10/2026, sessão 20261020-1926-importar-ajustes, demanda b3aeefaf; achado do Nicola 19:26 "ainda
+//   sem aparecer o menu 3 pontos na agenda") — CORRIGIDO: o ⋮ da Agenda usava a classe rz-fin-lupa, que o index esconde em todo
+//   o #main-content desde que a busca subiu para o topo — o botão existia, mas nunca aparecia (nem "Enviar a semana"). Ganha
+//   classe própria (rz-ag-mais) com o mesmo visual.
+// Versão anterior (Beta v1.9.0):
+// NOVIDADES (Beta v1.9.0) (20/10/2026, sessão 20261020-1900-calendario-escolar, demanda b3aeefaf; FICHA_FAMILIA_CALENDARIO_E_FERIADOS_RAIZ v1.0.0, E3, de acordo do Nicola 20/10 18:34) — IMPORTAR
+//   CALENDÁRIO ESCOLAR: ⋮ da Agenda › "Importar calendário escolar". Tela única: escolhe o PDF/foto (ou o que chegou pelo
+//   WhatsApp e está no Cofre); a Edge calendario-escolar-ler sugere cada linha (filho pela série, lembrete de 3 dias em prova,
+//   reunião e passeio, "a confirmar" em recuperação, optativa e reforço longo); outras séries, datas passadas e feriados já na
+//   agenda ficam recolhidos. Marca/desmarca, troca tipo e filho, "Importar N" grava (fn_calendario_escolar_aplicar) e fecha.
+//   Itens da escola ganham o ícone de mochila na Agenda.
+// Versão anterior (Beta v1.8.0):
+// NOVIDADES (Beta v1.8.0) (20/10/2026, sessão 20261020-1834-feriados, demanda bf1c1ba7; FICHA_FAMILIA_CALENDARIO_E_FERIADOS_RAIZ v1.0.0, de acordo do Nicola 20/10 18:34) — FERIADOS: a Agenda
+//   traz o tipo 'feriado' de fn_agenda_periodo (rotina Feriados ligada em Minha empresa › Rotinas e alertas; nacionais e os das
+//   UFs/cidades dos imóveis). Ícone party-popper, assunto novo "Feriados" no filtro, sempre Informativo (não pede ação) e o
+//   toque mostra o feriado e a abrangência num aviso — não há tela para abrir.
+// Versão anterior (Beta v1.7.0):
+// NOVIDADES (Beta v1.7.0) — Nicola 19/10 12:16 (dem 9404081c, item 42; sessão 20261019-1250-carga-silva-patrimonio): a Agenda
+//   abre no Mês e as abas ficam Mês · Semana · Alertas. A escolha da pessoa vale enquanto o app estiver aberto.
+// Versão anterior (Beta v1.6.0):
+// NOVIDADES (Beta v1.6.0) — Nicola 19/10 11:19 (dem 9404081c, itens 35 e 36; sessão 20261019-1125-carga-silva-ajustes):
+//   — volta a lista de alertas de antes como a vista "Alertas", ao lado de Semana e Mês: é o bloco #agenda-lista do index
+//     (busca, severidade, linhas e gestos de sempre, montarAlertasPatrimonio), mostrado logo abaixo das abas;
+//   — na Semana, arrastar a faixa dos dias para os lados troca a semana; no Mês, arrastar a grade para cima/baixo troca o mês
+//     (para cima = próximo). As setas ‹ › continuam.
+// Versão anterior (Beta v1.5.0):
+// NOVIDADES (Beta v1.5.0) — usos fatia 7 (FICHA_FATIA7_MEMBROS_RAIZ v1.2.0 §2A, de acordo do Nicola 16/10 00:05): entra o que
+//   o relógio prevê para os animais (fn_agenda_periodo, tipo 'membro': parto previsto, diagnóstico, secagem, desmame), no
+//   assunto Ativos; o toque abre a ficha do animal (cofre-membros.js). Sessão 20261016-0020-usos-fatia7.
+// Versão anterior (Beta v1.4.0):
+// NOVIDADES (Beta v1.4.0) — Nicola 14/10 21:26 ("a visão de lista prefiro eliminar ela. Pode retirar e deixar apenas
+//   semana e mês"): a vista Lista sai; a Agenda abre na Semana (com a lista do dia embaixo) e tem só Semana · Mês. A
+//   ação do ⋮ vira "Enviar a semana" (estudo D6, ação até 24 caracteres; a descrição continua dizendo o WhatsApp).
+//   Sessão 20261014-2130-ajustes-9b.
+// Versão anterior (Beta v1.3.0):
+// NOVIDADES (Beta v1.3.0) — Nicola 14/10 09:50: as datas se vinculam ao FATO GERADOR, não a hoje. O alerta e o
+//   compromisso pendentes ficam no dia de origem (ex.: o fechamento de 01/10 aparece em 01/10 com "Há 13d"), nas três
+//   vistas. A Lista do mês de hoje mostra o mês inteiro por dia e, antes dele, o que ainda está pendente de meses
+//   anteriores. O compromisso atrasado ganha o mesmo selo "Há Nd" das linhas de alerta. Sessão 20261014-0955-agenda-datas.
+// Versão anterior (Beta v1.2.0):
+// NOVIDADES (Beta v1.2.0) — teste do Nicola 14/10 08:58 ("as quantidades parecem estranhas (...) no grid da semana não
+//   aparece nenhum compromisso, mas no grid do dia aparece. No mês também não está batendo (...) no filtro por tipo o
+//   ideal seria abrir todo marcado"). Sessão 20261014-0900-agenda-contas.
+//   — UM universo só (universo()) para linhas, números dos chips, pontos da grade e resumo da semana: o que se conta é
+//     exatamente o que se vê. Antes os chips contavam compromissos escondidos pela regra de não repetir e as bordas da
+//     grade, e a Semana/Mês não tinham os alertas.
+//   — Alertas também na Semana e no Mês, no dia em que vencem (hoje + dias; rotina pronta e extrato ficam em hoje). Na
+//     Lista, o que já venceu entra em hoje. Linha, gestos e regras do alerta continuam os de sempre.
+//   — Status do alerta no filtro = o que a linha mostra: vencido (vermelho) conta como crítico; os demais pela
+//     severidade dele. Nenhuma regra de alerta muda.
+//   — Assunto abre com todos marcados; desmarca o que não quer ver ("Marcar todos" / "Desmarcar todos").
+// Versão anterior (Beta v1.1.0):
+// NOVIDADES (Beta v1.1.0) — revisão das três vistas, FICHA_ONDA_7_AGENDA_RAIZ v1.2.0 §7–§8 (D7.7 a D7.13; Nicola 14/10
+//   00:51: "Gostei. Faria só 2 ajustes (...) Restante ok. Não mexer nas regras de alerta atuais"). Sessão
+//   20261014-0055-agenda-vistas. O módulo passa a desenhar a Agenda inteira:
+//   — Topo no padrão do Financeiro (D7.7): linha 1 = período como título (‹ outubro 2026 › / ‹ 12–18 out ›) e ⋮;
+//     linha 2 = vistas Lista · Semana · Mês (abas sublinhadas); linha 3 = filtros.
+//   — Filtros (D7.11): status (● Crítico · ● Atenção · ● Informativo, múltipla escolha) e o chip "Assunto ▾", que abre a
+//     escolha múltipla (Ativos · Itens de controle · Contratos e usos · Ocorrências · Financeiro · Documentos). Valem nas
+//     três vistas.
+//   — Lista (D7.8 ajustada): lista corrente por dia, sem "Precisa de você". No mês atual começa em hoje: os alertas de
+//     hoje (mesma linha, gestos e regras de sempre — linhaAlertaHtml/rzLigarGestosAlertas do index) e os compromissos
+//     do dia; depois os próximos dias com algo. O compromisso que um alerta já mostra (mesma entidade, até 7 dias) não
+//     se repete.
+//   — Semana (D7.9): faixa de 7 dias com pontos de status + resumo + a lista do dia escolhido; abre em hoje.
+//   — Mês: grade com pontos por status (antes por tipo) + a lista do dia.
+//   — Status do compromisso (D7.10): atrasado = crítico; vence em até 7 dias = atenção; o resto = informativo. Calculado
+//     aqui, no app (a troca do retorno da fn_agenda_periodo foi barrada duas vezes na confirmação do banco; nenhuma
+//     regra de alerta muda — os alertas usam a severidade que já têm em alerta_tipos).
+//   — Dia por hora (D7.13): a lista do dia separa "Dia todo" e os horários (r.hora) e marca o realizado (r.situacao);
+//     hoje nada tem hora — fica pronto para o registro do dia (6b).
+// Versão anterior (Beta v1.0.0):
+// NOVIDADES (Beta v1.0.0) — onda 7a/7b (D14), FICHA_ONDA_7_AGENDA_RAIZ v1.0.0 aprovada pelo Nicola 14/10 00:09.
+//   Semana e Mês lendo fn_agenda_periodo; chips de tipo; toque abre o lugar; ⋮ "Enviar a semana por WhatsApp".
+// =====================================================================
+// Depende de globais do index.html: dbAuth, CLIENTE_ID_SUPABASE, geralRamoFiltro, alertasVisiveisTodos,
+// agruparEMapearAlertas, linhaAlertaHtml, rzOrdemAlertas, rzLigarGestosAlertas, rzEsc, rzIcones, rzSkeleton,
+// formatarMoedaBR, abrirSheet, abrirSheetAcoes, rzSheetCabecalho, fecharSheet, abrirAlertaItemControle,
+// abrirFichaContrato, switchTab, mostrarToast, rzDev.
+
+---
+
 ## `js/ativos/ativos-markup.js`
 
 // Versão anterior: 1.64.0 · 14/10/2026
@@ -634,6 +781,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 // sem este ícone, Home/Alertas/"Em triagem"/"Comece pelo documento"
 // ficariam sem NENHUMA porta de entrada dentro da aba Ativos.
 // ============================================================================
+
+---
 
 ---
 
@@ -2110,6 +2259,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/cofre-app.js`
 
 //
@@ -2555,6 +2706,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 // cofre-ativos.js). Prefere addEventListener a onclick inline em todo
 // código novo (Diretriz Arquitetural — Passo 2).
 // ============================================================================
+
+---
 
 ---
 
@@ -5368,6 +5521,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/cofre-controles.js`
 
 //
@@ -6412,6 +6567,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 // não está implementado (geração automática de ocorrências recorrentes,
 // Central de Alertas consolidada).
 // ============================================================================
+
+---
 
 ---
 
@@ -8097,6 +8254,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/cofre-estado.js`
 
 //
@@ -8242,6 +8401,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 // v1.21.6 (Arquivar/RLS, sessão paralela) nem esta entrega — fechado
 // agora. Ver changelog completo em cofre.html v1.22.0 (merge das 2
 // sessões paralelas + badge fix + form fix + função Vendido).
+
+---
 
 ---
 
@@ -9346,6 +9507,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/cofre-ui.js`
 
 //
@@ -9377,6 +9540,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 // genérica, template de card, indicador de "liga/desliga" (Design System
 // v1.43.0 §2). Não importa cofre-api.js — não sabe nada de Supabase.
 // ============================================================================
+
+---
 
 ---
 
@@ -10068,6 +10233,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 // pilha; os demais (cofre-ui, cofre-documentos, cofre-ativos) importam
 // daqui, nunca o contrário.
 // ============================================================================
+
+---
 
 ---
 
@@ -11263,6 +11430,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/comum-minha-empresa.js`
 
 // Versão anterior: 1.17.0 · 14/10/2026
@@ -11482,6 +11651,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 // `dbAuth` já autenticado do host, por parâmetro (ver nota completa em
 // comum-licenca.js).
 // ============================================================================
+
+---
 
 ---
 
@@ -12836,6 +13007,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/comum-renovacao.js`
 
 //
@@ -12921,6 +13094,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 // jsdelivr (mesma origem já usada pelo app); se não carregar, o "copia e cola"
 // continua funcionando sozinho.
 // ============================================================================
+
+---
 
 ---
 
@@ -13963,6 +14138,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/conta.js`
 
 // Versão anterior: 1.1.0 · 14/10/2026
@@ -14009,6 +14186,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 //    virar assíncrona poderia deixar o primeiro render com o filtro errado. Não vale o risco
 //    por 345 bytes — é a mesma classe de armadilha do montarBoxDivisaoSocietaria.
 // ============================================================================
+
+---
 
 ---
 
@@ -15828,6 +16007,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/fechamento.js`
 
 //
@@ -16171,6 +16352,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 // window.jspdf, CONFIG_CLIENTE (todos já globais no index.html clássico —
 // mesmo acesso que financeiro.js já faz).
 // ============================================================================
+
+---
 
 ---
 
@@ -19027,6 +19210,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/fiscal.js`
 
 //
@@ -19123,6 +19308,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 // abrirSheet, abrirSheetAcoes, abrirSheetForm, rzSheetCabecalho, fecharSheet,
 // mostrarToast, switchTab, rzIcones, podeUsar, window.fechamentoAbrirChecklistFiscalAtualizado.
 // ============================================================================
+
+---
 
 ---
 
@@ -20232,6 +20419,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/investimentos.js`
 
 //
@@ -20261,6 +20450,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 //   · linhasValorConta: série da conta = soma das aplicações mês a mês (usada pelo card Valor do bem da conta, cofre-ativos.js).
 // O valor atual mora em contratos.valor; o histórico, nas ocorrências do item "Atualizar valor" (F3). Sem projeção (I3).
 // ============================================================================
+
+---
 
 ---
 
@@ -20374,6 +20565,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 // pessoaIdLogada. Exclusivo (`__minzEstado`) virou nível de módulo.
 // Indentação de origem mantida (template literals). Strict verificado.
 // ============================================================================
+
+---
 
 ---
 
@@ -21032,6 +21225,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/partes.js`
 
 //
@@ -21066,6 +21261,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 // Chamadas de fora chegam pela ponte window[nome] do index (bloco "PARTES"), que é o
 // mesmo rzPonteModulo dos outros módulos R8.
 // ============================================================================
+
+---
 
 ---
 
@@ -21617,6 +21814,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/relatorios-executivos.js`
 
 //
@@ -21829,6 +22028,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 // que o bot usa); aqui só se monta o texto e o desenho — nunca se recalcula
 // (REL-02). Protótipo: raiz\docs\PROTOTIPO_RELATORIOS_FLUXO_GERENCIAL v1.1.0.
 // ============================================================================
+
+---
 
 ---
 
@@ -22968,6 +23169,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/viagem-roteiro.js`
 
 //
@@ -22997,6 +23200,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 // vez (fn_ciclo_trechos_salvar). O dia em que se muda de cidade é do trecho que começa nele (regra do banco). As regras são do
 // banco; aqui só se monta, colhe e manda. Aberto por cofre-controles.js (botão "Roteiro" e ⋮ do trecho).
 // ============================================================================
+
+---
 
 ---
 
@@ -23165,6 +23370,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 // CLIENTE_ID_SUPABASE, dbAuth. Exclusivo (4) virou nível de módulo.
 // Indentação de origem mantida. Strict verificado.
 // ============================================================================
+
+---
 
 ---
 
