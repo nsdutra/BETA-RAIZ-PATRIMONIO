@@ -1,6 +1,13 @@
 // ============================================================================
 // relatorios-executivos.js — Raiz Patrimônio · Relatórios no modelo executivo
-// Versão: 1.21.0 · 27/11/2026
+// Versão: 1.22.0 · 28/11/2026
+//
+// v1.22.0 (28/11/2026, sessão 20261128-0005-viagem-relatorio, demanda d8061e47; FICHA_RELATORIO_DE_VIAGEM v1.1.0, de acordo do Nicola
+//   28/11 00:00) — dois relatórios do programa Viagens no modelo executivo: "Relatório de viagem" (tipo viagem, fn_viagem_relatorio:
+//   situação, Cotado/Reservado/Pago, participantes com documentos de viagem e validade — nunca o número —, resumo de bolso por
+//   categoria, roteiro por dia, financeiro por etapa, quem pagou e documentos; chip Com/Sem valores) e "Viagens" (tipo viagens,
+//   fn_viagens_resumo: uma linha por viagem com datas, dias, tipo, quem vai e custos; chip do ano). Abrem por abrirRelatorioExecutivo.
+//   Versão anterior: 1.21.0
 //
 // v1.21.0 (27/11/2026, sessão 20261127-2235-busca-geral, decisão do Nicola 27/11 22:31) — Investimentos no patrimônio: "Compra de bem"
 //   e "Compra de imóvel e custos" viram uma linha só, "Compra de bens" (o detalhe por bem continua na seção Por bem). Versão anterior: 1.20.0
@@ -42,22 +49,15 @@
 //   item e safra (comercial.rel_margem), Funil de interessados (rel_funil), Recebíveis das vendas (rel_recebiveis, pelo vencimento),
 //   Entregas (rel_entregas, pela entrega prevista) e Preços e tabelas (rel_precos, vigentes no fim do mês). Mesma casca, filtros,
 //   PDF e planilha dos 4 primeiros. Versão anterior: 1.14.0
-//
-// v1.14.0 (17/11/2026, sessão 20261117-2250-comercial-relatorios, demanda 285a0058; FICHA_RECEITA_UNIDADES_GERADORAS v1.13.0 §13.14,
-//   de acordo do Nicola 17/11 23:07 — Q9 sem quebra por tabela, Q10 ok) — os 4 primeiros relatórios do Raiz Comercial, no modelo
-//   executivo e lidos só de fn_relatorio_comercial (CAN-01): Pedidos do mês (comercial.rel_pedidos), Itens mais vendidos
-//   (comercial.rel_itens), Faturamento por cliente (comercial.rel_clientes) e Vendas por ponto de venda (comercial.rel_ativos).
-//   Filtros: mês e ponto de venda (ativos com tabela de venda); mês em andamento sai com PRÉVIA. Compartilhar abre "Enviar o
-//   resumo" e "Baixar a planilha" (baixarPlanilhaLista, REL-41/61). Versão anterior: 1.13.0
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.13.0 … v1.13.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.14.0 … v1.14.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
 import { rzMostrarBloqueio } from './comum-licenca.js';
 import { rzToast } from './raiz-ui.js';
 import RaizDevice from './raiz-device.js';
 
-export const VERSAO = '1.21.0';
+export const VERSAO = '1.22.0';
 
 // ---------------------------------------------------------------------------
 // Formatos (REL-13 a REL-17)
@@ -1392,7 +1392,94 @@ async function quemGera() {
     } catch (e) { return null; }
 }
 
+// ---------------------------------------------------------------------------
+// v1.22.0 — programa Viagens: Relatório de viagem (uma viagem) e Viagens (resumo de todas). Os números vêm prontos do banco
+// (fn_viagem_relatorio = fn_ciclo_roteiro + documentos dos viajantes; fn_viagens_resumo); aqui só a casca (REL-02).
+// ---------------------------------------------------------------------------
+const VG_CAT = [['viagem_deslocamento', 'Voos e deslocamentos'], ['viagem_hospedagem', 'Hospedagem'], ['viagem_locomocao', 'Carro e transporte'],
+    ['viagem_atracao', 'Ingressos e atrações'], ['viagem_alimentacao', 'Restaurantes'], ['evento_viagem', 'Outros'], ['viagem_lugar', 'Lugares']];
+const VG_ETAPA = { a_cotar: 'A cotar', cotado: 'Cotado', reservado: 'Reservado', pago: 'Pago', cancelado: 'Cancelado' };
+const VG_DOC = { passaporte: 'Passaporte', visto: 'Visto', cnh: 'CNH' };
+function vgQuando(iniTs, fimTs, dia) {
+    const f = (t) => { if (!t) return null; const p = new Intl.DateTimeFormat('pt-BR', { timeZone: 'America/Sao_Paulo', day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit', hour12: false }).format(new Date(t)).replace(',', '');
+        return p.endsWith(' 00:00') ? p.slice(0, 5) : p; };
+    const a = f(iniTs) || (dia ? dma(dia).slice(0, 5) : 'sem dia'), b = f(fimTs);
+    return b ? `${a} → ${b}` : a;
+}
+function vgEntradas(d) {
+    const todas = [...(d.a_encaixar || []), ...(d.fora_dos_trechos || [])];
+    (d.trechos || []).forEach(t => (t.dias || []).forEach(x => (x.entradas || []).forEach(e => todas.push({ ...e, dia: x.data }))));
+    const m = new Map(); todas.forEach(e => { if (e.papel === 'fim') return; if (!m.has(e.ocorrencia_id)) m.set(e.ocorrencia_id, e); });
+    return [...m.values()];
+}
+function montarViagem(d) {
+    const C = d.ciclo || {}, t = d.totais || {}, rs = d.resumo || {}, sem = !!(estado && estado.filtro.semValores);
+    const ents = vgEntradas(d), docsV = d.documentos_viajantes || [], vjs = d.viajantes || [];
+    const tipoNome = { terrestre: 'Terrestre', aerea: 'Aérea nacional', internacional: 'Internacional' }[C.variante] || '';
+    const cfg = { nome: 'Relatório de viagem', medida: `${C.nome} · roteiro, pessoas${sem ? '' : ' e custos em R$'}`, previa: false,
+        subtitulo: [tipoNome, `${dma(C.inicio)} a ${dma(C.fim)}`, qtdTxt(rs.dias_total, 'dia', 'dias'), sem ? 'sem valores' : 'Pago = Financeiro'].filter(Boolean).join(' · ') };
+    // alertas de documento: vencimento e, em internacional, quem vai sem passaporte no Cofre
+    const alertas = docsV.filter(x => x.alerta).map(x => `${String(x.viajante).split(' ')[0]}: ${VG_DOC[x.tipo] || x.tipo} ${x.alerta}`);
+    if (C.variante === 'internacional') vjs.filter(v => v.ativo_id && !docsV.some(x => x.ativo_id === v.ativo_id && x.tipo === 'passaporte'))
+        .forEach(v => alertas.push(`${String(v.nome).split(' ')[0]}: sem passaporte no Cofre`));
+    const falta = num(rs.dias_para_ida);
+    const linha = [falta > 0 ? `Faltam ${qtdTxt(falta, 'dia', 'dias')}` : falta === 0 ? 'A viagem começa hoje' : 'Viagem em andamento ou concluída',
+        `${num(rs.pagos)} de ${qtdTxt(rs.itens, 'item pago', 'itens pagos')}`, num(rs.a_cotar) ? `${num(rs.a_cotar)} a cotar` : '',
+        alertas.length ? qtdTxt(alertas.length, 'alerta de documento', 'alertas de documento') : ''].filter(Boolean).join(' · ') + '.';
+    const kpis = sem ? `<div class="kpis">${kpi('Dias', String(num(rs.dias_total)), `${dma(C.inicio)} a ${dma(C.fim)}`)}${kpi('Itens', String(num(rs.itens)), `${num(rs.pagos)} pagos`)}${kpi('A cotar', String(num(rs.a_cotar)), '')}${kpi('Pessoas', String(vjs.length), '')}</div>`
+        : `<div class="kpis">${kpi('Cotado', compacto(t.cotado), qtdTxt(t.cotado_itens, 'item', 'itens'))}${kpi('Reservado', compacto(t.reservado), qtdTxt(t.reservado_itens, 'item', 'itens'))}${kpi('Pago', compacto(t.pago), num(t.no_cartao) ? compacto(t.no_cartao) + ' no cartão' : 'no Financeiro')}${kpi('Dias', String(num(rs.dias_total)), qtdTxt(vjs.length, 'pessoa', 'pessoas'))}</div>`;
+    const pessoas = `${secao('Participantes', 'documentos de viagem no Cofre · tipo e validade, sem o número')}
+      <table><thead><tr><th>Pessoa</th><th>Documentos</th></tr></thead><tbody>${vjs.map(v => {
+        const ds = docsV.filter(x => x.ativo_id && x.ativo_id === v.ativo_id);
+        const trech = v.toda ? '' : ' <small class="mut">(só parte da viagem)</small>';
+        return `<tr><td>${esc(v.nome)}${trech}</td><td>${ds.length ? ds.map(x => `${esc(VG_DOC[x.tipo] || x.tipo)} ${x.validade ? 'até ' + dma(x.validade) : 'sem validade'}${x.alerta ? ` <b class="neg">· ${esc(x.alerta)}</b>` : ''}`).join('<br>') : '<span class="mut">nenhum no Cofre</span>'}</td></tr>`;
+      }).join('') || '<tr><td colspan="2" class="mut">Ninguém em Quem vai.</td></tr>'}</tbody></table>
+      ${alertas.length ? `<p class="neg" style="margin:6px 0 0"><b>Atenção:</b> ${esc(alertas.join(' · '))}</p>` : ''}`;
+    const bolso = `${secao('Resumo de bolso', 'o essencial de cada reserva: quando e o detalhe (nº do voo, localizador, reserva, endereço)')}
+      ${VG_CAT.map(([sub, nomeCat]) => { const es = ents.filter(e => (e.sub || 'evento_viagem') === sub).sort((a, b) => String(a.inicio_em || a.dia || a.data_prevista).localeCompare(String(b.inicio_em || b.dia || b.data_prevista)));
+        return es.length ? `<p style="margin:10px 0 4px"><b>${esc(nomeCat)}</b></p><table><tbody>${es.map(e => `<tr><td style="width:38%">${esc(e.titulo)}</td><td style="width:26%">${esc(vgQuando(e.inicio_em, e.fim_em, e.inicio_em ? null : (e.dia || null)))}</td><td>${esc(e.descricao || '')}</td></tr>`).join('')}</tbody></table>` : ''; }).join('')}`;
+    const dias = [];
+    (d.trechos || []).forEach(tr => (tr.dias || []).forEach(x => dias.push({ trecho: tr.nome, data: x.data, ents: x.entradas || [] })));
+    const roteiro = `${secao('Roteiro por dia', 'hora · item · trecho')}
+      <table><thead><tr><th>Dia</th><th>Trecho</th><th>Programação</th></tr></thead><tbody>${dias.map(x => `<tr><td>${dma(x.data).slice(0, 5)}</td><td>${esc(x.trecho)}</td><td>${x.ents.length
+        ? x.ents.map(e => { const h = e.inicio_em ? new Intl.DateTimeFormat('pt-BR', { timeZone: 'America/Sao_Paulo', hour: '2-digit', minute: '2-digit', hour12: false }).format(new Date(e.papel === 'fim' ? (e.fim_em || e.inicio_em) : e.inicio_em)) : '';
+            return `${h && h !== '00:00' ? h + ' ' : ''}${e.papel === 'fim' ? 'fim · ' : ''}${esc(e.titulo)}`; }).join('<br>') : '<span class="mut">livre</span>'}</td></tr>`).join('')}</tbody></table>
+      ${(d.a_encaixar || []).length ? `<p class="mut" style="margin:6px 0 0">Sem dia ainda: ${esc((d.a_encaixar || []).map(e => e.titulo).join(', '))}.</p>` : ''}`;
+    const porItem = new Map(); ents.forEach(e => { const k = e.item_id, it = porItem.get(k) || { titulo: e.titulo, etapa: e.etapa, valor: 0, conta: null };
+        it.valor += num(e.valor); if (e.lancamento && e.lancamento.conta) it.conta = e.lancamento.conta + (e.lancamento.cartao ? ' (cartão)' : ''); porItem.set(k, it); });
+    const itens = [...porItem.values()].filter(i => VG_ETAPA[i.etapa]);
+    const ordemEt = ['pago', 'reservado', 'cotado', 'a_cotar'];
+    const fin = sem ? '' : `${secao('Financeiro e orçamento', 'R$ · valor de cada item pela etapa; Pago é o que está no Financeiro')}
+      <table><thead><tr><th>Item</th><th>Etapa</th><th>Pago com</th><th class="n">Valor</th></tr></thead><tbody>${ordemEt.flatMap(et => itens.filter(i => i.etapa === et)
+        .map(i => `<tr><td>${esc(i.titulo)}</td><td>${esc(VG_ETAPA[et])}</td><td>${esc(i.conta || '')}</td><td class="n">${i.valor ? tab(i.valor) : '—'}</td></tr>`)).join('')}</tbody></table>
+      ${(d.pagadores || []).length ? `<p style="margin:8px 0 0"><b>Quem pagou:</b> ${esc((d.pagadores || []).map(p => String(p.titular).split(' ')[0] + ' ' + brl(p.valor)).join(' · '))}</p>` : ''}
+      ${(d.pagos_fora_financeiro || []).length ? `<p class="mut" style="margin:4px 0 0">Marcados Pago sem lançamento no Financeiro: ${esc((d.pagos_fora_financeiro || []).map(x => x.titulo).join(', '))}.</p>` : ''}
+      ${(d.financeiro_fora || []).length ? `<p class="mut" style="margin:4px 0 0">No Financeiro, fora do roteiro: ${esc((d.financeiro_fora || []).map(x => (x.descricao || 'gasto') + ' ' + brl(x.valor)).join(' · '))}.</p>` : ''}`;
+    const docsItens = ents.filter(e => (e.documentos || []).length);
+    const docs = `${secao('Documentos', 'anexos dos itens e documentos de viagem das pessoas (no Cofre)')}
+      <table><tbody>${docsItens.map(e => `<tr><td style="width:38%">${esc(e.titulo)}</td><td>${esc(e.documentos.map(x => x.nome).join(' · '))}</td></tr>`).join('')}${docsV.map(x => `<tr><td>${esc(String(x.viajante).split(' ')[0])} · ${esc(VG_DOC[x.tipo] || x.tipo)}</td><td>${esc(x.nome)}</td></tr>`).join('') || ''}</tbody></table>`;
+    const notas = `<div class="notes"><p><b>Pago</b>: lançamentos pagos no Financeiro desta viagem, mais o que já foi posto num cartão e entra com a fatura. Cotado soma A cotar e Cotado.</p>
+      <p><b>Documentos das pessoas</b>: passaporte, visto e CNH vinculados à pessoa no Cofre; só tipo e validade aparecem aqui. Em viagem internacional, o passaporte deve valer 6 meses além da volta.</p>
+      <p><b>Origem</b>: fn_viagem_relatorio v1 (roteiro da viagem) · ${dma(new Date().toISOString().slice(0, 10))}.</p></div>`;
+    const paginas = [[`<div class="acao-sub rx-resumo">${esc(linha)}</div>${kpis}${pessoas}${bolso}`, ['Resumo']], [roteiro, ['Detalhe']], [`${fin}${docs}${notas}`, ['Detalhe', 'Notas']]];
+    return { cfg, linhas3: [`${C.nome} · ${dma(C.inicio)} a ${dma(C.fim)}`, sem ? `${num(rs.dias_total)} dias · ${vjs.length} pessoas` : `Pago ${brl(t.pago)} · Cotado ${brl(t.cotado)}`, linha], paginas };
+}
+function montarViagens(d) {
+    const vs = d.viagens || [], T = d.total || {};
+    const cfg = { nome: 'Viagens', medida: 'Viagens · dias e custos em R$', previa: false,
+        subtitulo: [d.ano ? String(d.ano) : 'todas as viagens', qtdTxt(T.viagens, 'viagem', 'viagens'), 'Pago = Financeiro'].join(' · ') };
+    const linha = vs.length ? `${qtdTxt(T.viagens, 'viagem', 'viagens')}, ${qtdTxt(T.dias, 'dia', 'dias')} fora; pago ${brl(T.pago)}, reservado ${brl(T.reservado)}, cotado ${brl(T.cotado)}.` : 'Nenhuma viagem no período.';
+    const kpis = `<div class="kpis">${kpi('Viagens', String(num(T.viagens)), qtdTxt(T.dias, 'dia', 'dias'))}${kpi('Pago', compacto(T.pago), 'no Financeiro')}${kpi('Reservado', compacto(T.reservado), '')}${kpi('Cotado', compacto(T.cotado), '')}</div>`;
+    const tabela = `${secao('Por viagem', 'R$ · Pago inclui o que está no cartão aguardando a fatura')}
+      <table><thead><tr><th>Viagem</th><th>Datas</th><th class="n">Dias</th><th>Quem vai</th><th class="n">Cotado</th><th class="n">Reservado</th><th class="n">Pago</th></tr></thead><tbody>${vs.map(v => `<tr><td>${esc(v.nome)}<br><small class="mut">${esc(v.tipo || '')}${num(v.pagos_fora_financeiro) ? ' · ' + qtdTxt(v.pagos_fora_financeiro, 'pago fora do Financeiro', 'pagos fora do Financeiro') : ''}</small></td><td>${dma(v.inicio).slice(0, 5)} a ${dma(v.fim)}</td><td class="n">${num(v.dias)}</td><td>${esc((v.viajantes || []).join(', '))}</td><td class="n">${tab(v.cotado)}</td><td class="n">${tab(v.reservado)}</td><td class="n">${tab(v.pago)}</td></tr>`).join('')}</tbody>
+      <tfoot><tr><td><b>Total</b></td><td></td><td class="n"><b>${num(T.dias)}</b></td><td></td><td class="n"><b>${tab(T.cotado)}</b></td><td class="n"><b>${tab(T.reservado)}</b></td><td class="n"><b>${tab(T.pago)}</b></td></tr></tfoot></table>
+      <div class="notes"><p><b>Origem</b>: fn_viagens_resumo v1 · os mesmos totais da tela de cada viagem. Dias contam ida e volta.</p></div>`;
+    return { cfg, linhas3: [`Viagens · ${d.ano || 'todas'}`, `${qtdTxt(T.viagens, 'viagem', 'viagens')} · pago ${brl(T.pago)}`, linha], paginas: [[`<div class="acao-sub rx-resumo">${esc(linha)}</div>${kpis}${tabela}`, ['Resumo', 'Detalhe']]] };
+}
+
 const RELATORIOS = {
+    viagem: { codigo: 'ciclos.ver', nome: 'Relatório de viagem', arquivo: 'viagem', montar: montarViagem }, // v1.22.0
+    viagens: { codigo: 'ciclos.ver', nome: 'Viagens', arquivo: 'viagens', montar: montarViagens }, // v1.22.0
     fluxo: { codigo: 'relatorios.fluxo_caixa', nome: 'Fluxo de caixa', arquivo: 'fluxo_caixa', montar: montarFluxo },
     gerencial: { codigo: 'relatorios.gerencial', nome: 'Visão gerencial', arquivo: 'gerencial', montar: montarGerencial },
     retiradas: { codigo: 'relatorios.retiradas_extraordinarias', nome: 'Retiradas extraordinárias', arquivo: 'retiradas_extraordinarias', montar: montarRetiradas }, // v1.3.0 — F13.8
@@ -1422,6 +1509,8 @@ function filtroPadrao(tipo, opcoes = {}) {
     if (tipo === 'balanco_analitico') return { competencia: opcoes.competencia || iso(m0), pessoaId: opcoes.pessoaId || null, pessoaNome: opcoes.pessoaNome || null }; // v1.16.0
     if (tipo === 'ativos_pessoa') return {}; // v1.16.0 — situação do dia
     if (tipo === 'fgc' || tipo === 'rv') return {}; // v1.19.0 · v1.20.0 — situação do dia
+    if (tipo === 'viagem') return { cicloId: opcoes.cicloId || null, semValores: !!opcoes.semValores }; // v1.22.0
+    if (tipo === 'viagens') return { ano: opcoes.ano || null }; // v1.22.0 — todas as viagens
     if (tipo === 'executivo' || tipo === 'investimentos') return { ano: opcoes.ano || hoje.getFullYear(), ramo: opcoes.ramo || null, ramoNome: opcoes.ramoNome || null }; // v1.6.0 · v1.13.0
     if (ehComercial(tipo)) return { competencia: iso(m0), ativoId: opcoes.ativoId || null, ativoNome: opcoes.ativoNome || null }; // v1.14.0 — mês atual
     if (tipo === 'fluxo') return { de: iso(somaMeses(m0, -3)), ate: iso(somaMeses(m0, 2)), conta: null, contaNome: null, rotulo: 'Últimos 3 meses e próximos 2' };
@@ -1432,7 +1521,8 @@ function rotuloFiltro() {
     if (estado.tipo === 'fluxo') return `${comp(estado.filtro.de)} a ${comp(estado.filtro.ate)}`;
     if (estado.tipo === 'retiradas') return estado.filtro.ano ? String(estado.filtro.ano) : 'Todos os anos';
     if (estado.tipo === 'balanco_analitico') return estado.filtro.competencia ? comp(estado.filtro.competencia) : 'Desde o início'; // v1.16.0
-    if (estado.tipo === 'ativos_pessoa' || estado.tipo === 'fgc' || estado.tipo === 'rv') return 'Hoje';
+    if (estado.tipo === 'ativos_pessoa' || estado.tipo === 'fgc' || estado.tipo === 'rv' || estado.tipo === 'viagem') return 'Hoje';
+    if (estado.tipo === 'viagens') return estado.filtro.ano ? String(estado.filtro.ano) : 'Todas'; // v1.22.0
     if (estado.tipo === 'executivo' || estado.tipo === 'investimentos') return String(estado.filtro.ano); // v1.6.0 · v1.13.0
     return comp(estado.filtro.competencia);
 }
@@ -1440,6 +1530,14 @@ function rotuloFiltro() {
 async function buscar() {
     const f = estado.filtro;
     if (estado.tipo === 'balanco_analitico') return buscarBalancoAnalitico(f); // v1.16.0
+    if (estado.tipo === 'viagem' || estado.tipo === 'viagens') { // v1.22.0 — programa Viagens
+        const [{ data, error }, quem] = await Promise.all([estado.tipo === 'viagem'
+            ? dbAuth.rpc('fn_viagem_relatorio', { p_ciclo_id: f.cicloId }) : dbAuth.rpc('fn_viagens_resumo', { p_cliente_id: CLIENTE_ID_SUPABASE, p_ano: f.ano || null }), quemGera()]);
+        if (error) throw new Error(error.message);
+        if (data && data.pode_ver === false) throw new Error('Seu perfil não vê viagens.');
+        const empresa = (data && data.empresa && data.empresa.nome) || (typeof CONFIG_CLIENTE === 'object' && CONFIG_CLIENTE?.nomeEmpresa) || 'Empresa';
+        return { ...(data || {}), empresa, gerado_em: new Date().toISOString(), gerado_por: quem, relatorio: estado.tipo === 'viagem' ? 'fn_viagem_relatorio' : 'fn_viagens_resumo', versao: 1, visao: 'situacao' };
+    }
     if (estado.tipo === 'rv') { // v1.20.0 — I2a (R6): carteira de renda variável (fn_rv_carteira) e as vendas do ano
         const h = new Date(), hoje = h.getFullYear() + '-' + String(h.getMonth() + 1).padStart(2, '0') + '-' + String(h.getDate()).padStart(2, '0');
         const [{ data, error }, quem] = await Promise.all([dbAuth.rpc('fn_rv_carteira', { p_cliente_id: CLIENTE_ID_SUPABASE }), quemGera()]);
@@ -1527,7 +1625,8 @@ function telaHtml() {
     return `<div class="rx-top">
         <button type="button" class="rx-voltar" data-rx="fechar" aria-label="Voltar para Relatórios"><svg data-lucide="chevron-left"></svg>Relatórios</button>
         <span class="rx-sp"></span>
-        ${estado.tipo === 'ativos_pessoa' || estado.tipo === 'fgc' || estado.tipo === 'rv' ? '' : `<button type="button" data-rx="periodo"><svg data-lucide="calendar"></svg>${esc(rotuloFiltro())}<svg data-lucide="chevron-down"></svg></button>`}
+        ${estado.tipo === 'viagem' ? `<button type="button" data-rx="valores"><svg data-lucide="${estado.filtro.semValores ? 'eye-off' : 'eye'}"></svg>${estado.filtro.semValores ? 'Sem valores' : 'Com valores'}</button>` : ''}
+        ${estado.tipo === 'ativos_pessoa' || estado.tipo === 'fgc' || estado.tipo === 'rv' || estado.tipo === 'viagem' ? '' : `<button type="button" data-rx="periodo"><svg data-lucide="calendar"></svg>${esc(rotuloFiltro())}<svg data-lucide="chevron-down"></svg></button>`}
         ${contaChip}
       </div>
       <div class="rx-corpo" aria-live="polite"><div class="rx-msg">Montando ${esc(r.nome)}…</div></div>
@@ -1570,6 +1669,7 @@ function ligar(el) {
         else if (acao === 'ramo') escolherRamo(); // v1.6.0
         else if (acao === 'ativo') escolherAtivoComercial(); // v1.14.0
         else if (acao === 'pessoa') { Object.assign(estado.filtro, { pessoaId: null, pessoaNome: null }); carregar(); }
+        else if (acao === 'valores') { estado.filtro.semValores = !estado.filtro.semValores; carregar(); } // v1.22.0
         else if (acao === 'pdf') imprimir();
         else if (acao === 'compartilhar') compartilhar();
     }));
@@ -1577,6 +1677,12 @@ function ligar(el) {
 
 function escolherPeriodo() {
     const hoje = new Date(), m0 = new Date(hoje.getFullYear(), hoje.getMonth(), 1);
+    if (estado.tipo === 'viagens') { // v1.22.0 — ano da viagem
+        const anos = ((estado.dados && estado.dados.anos) || []).map(Number).sort((a, b) => b - a);
+        abrirSheetAcoes({ titulo: 'Ano', sub: 'Viagens', acoes: [{ icone: 'layers', titulo: 'Todas', aoTocar: () => { estado.filtro.ano = null; carregar(); } },
+            ...anos.map(a => ({ icone: 'calendar', titulo: String(a), aoTocar: () => { estado.filtro.ano = a; carregar(); } }))] });
+        return;
+    }
     if (estado.tipo === 'fluxo') {
         const ops = [
             ['Últimos 3 meses e próximos 2', -3, 2], ['Últimos 6 meses', -5, 0], ['Próximos 6 meses', 0, 5],
@@ -1640,6 +1746,8 @@ function imprimir() {
         : estado.tipo === 'retiradas' ? (estado.filtro.ano ? String(estado.filtro.ano) : 'todos')
         : estado.tipo === 'balanco_analitico' ? (estado.filtro.competencia ? estado.filtro.competencia.slice(0, 7) : 'tudo') // v1.16.0
         : estado.tipo === 'ativos_pessoa' ? new Date().toISOString().slice(0, 10)
+        : estado.tipo === 'viagem' ? String(estado.dados.ciclo?.nome || 'viagem').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '') // v1.22.0
+        : estado.tipo === 'viagens' ? (estado.filtro.ano ? String(estado.filtro.ano) : 'todas')
         : (estado.tipo === 'executivo' || estado.tipo === 'investimentos') ? `${estado.filtro.ramo || (estado.tipo === 'investimentos' ? 'todos' : 'consolidado')}_${estado.filtro.ano}` // v1.6.0 · v1.13.0
         : estado.filtro.competencia.slice(0, 7);
     document.title = `raiz_${RELATORIOS[estado.tipo].arquivo}_${empresa}_${quando}`; // REL-38: nome do arquivo

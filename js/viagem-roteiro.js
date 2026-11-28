@@ -1,6 +1,9 @@
 // ============================================================================
 // viagem-roteiro.js — Raiz Patrimônio · Roteiro da viagem (programa com tipos de ciclo)
-// Versão: 1.8.0 · 27/11/2026
+// Versão: 1.9.0 · 28/11/2026
+//
+// v1.9.0 (28/11/2026, sessão 20261128-0005-viagem-relatorio, demanda d8061e47; FICHA_RELATORIO_DE_VIAGEM v1.1.0, de acordo do Nicola
+// 28/11 00:00) — Mais › "Relatório de viagem" abre o relatório da viagem (relatorios-executivos, tipo viagem). Versão anterior: 1.8.0
 //
 // v1.8.0 (27/11/2026, sessão 20261127-2230-viagem, demanda d8061e47; FICHA_PROGRAMA_VIAGEM_TOTAIS_PAGADOR v1.1.0, de acordo do Nicola
 // 27/11 22:50) — cabeçalho Cotado / Reservado / Pago (Pago = Financeiro, fn_ciclo_roteiro.totais) e aviso "pagos fora do Financeiro";
@@ -23,16 +26,11 @@
 // categoria, dia, hora, até, descrição, valor, etapa) — tocar numa entrada abre o formulário preenchido e salvar atualiza na hora;
 // "Quem vai" (folhaQuemVai → fn_ciclo_viajantes_salvar): pessoa da família ou de fora, toda a viagem ou só alguns trechos; o trecho
 // mostra quem está só nele. Versão anterior: 1.4.0
-//
-// v1.4.0 (25/11/2026, sessão 20261125-2326-viagem-roteiro-ux, demanda d8061e47; de acordo do Nicola 25/11 23:26) — item com data e
-// sem hora já aparece no dia (regra do banco, fn_ciclo_roteiro) como "Dia todo"; "A encaixar" vem aberta quando há algo que a
-// pessoa ainda não viu ali; acoesItemViagem() dá à tela da viagem as ações do item (Marcar dia e hora, Etapa, Abrir o item) e o
-// encaixe feito fora do Roteiro volta para quem chamou. Versão anterior: 1.3.0
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.3.0 … v1.3.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.4.0 … v1.4.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '1.8.0';
+export const VERSAO = '1.9.0';
 import { estado } from './cofre-estado.js';
 import * as api from './cofre-api.js';
 
@@ -447,6 +445,8 @@ export async function abrirViagem(o) {
     sheet.querySelector('[data-vg-mais]')?.addEventListener('click', () => g('abrirSheetAcoes')?.({ titulo: C.nome, sub: P.nome, empilhar: true, acoes: [
         ...(!fechado && r.pode_gerir ? [{ icone: 'route', titulo: 'Editar trechos', codigo: 'ciclos.gerir', sub: 'Nome e datas, incluir ou tirar', aoTocar: () => abrirEditarTrechos({ cicloId: C.id, roteiro: r }) },
             { icone: 'users', titulo: 'Quem vai', codigo: 'ciclos.gerir', sub: 'Toda a viagem ou só alguns trechos', aoTocar: () => folhaQuemVai(r) }] : []),
+        { icone: 'file-text', titulo: 'Relatório de viagem', codigo: 'ciclos.ver', sub: 'Uma página: roteiro, pessoas, documentos e custos',
+            aoTocar: () => { g('fecharSheet')?.(); g('abrirRelatorioExecutivo')?.('viagem', { cicloId: C.id }); } }, // v1.9.0
         { icone: 'share-2', titulo: 'Compartilhar', codigo: 'ciclos.ver', sub: 'Escolher dados e documentos e mandar', aoTocar: () => import('./viagem-compartilhar.js').then(m => m.compartilharViagem({ cicloId: C.id })) },
         ...(!fechado && r.pode_incluir ? [{ icone: 'ticket', titulo: '+ Passe de vários dias', codigo: 'cofre.controles.criar', sub: 'Ingresso com janela e dias de uso', aoTocar: () => folhaIncluir(r, 'passe') }] : []),
         ...(o.novaViagem ? [{ icone: 'plus', titulo: '+ Nova viagem', codigo: 'ciclos.gerir', aoTocar: o.novaViagem }] : []),
