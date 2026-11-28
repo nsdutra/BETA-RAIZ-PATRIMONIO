@@ -6,11 +6,11 @@
    (base derivada do RUMO v7.4.2 — histórico de versões anteriores
    preservado abaixo para referência técnica)
 
-   VERSÃO: Beta v1.490.115
-   LINHAS: 15515
-   DATA: 28/11/2026 (sessão 20261128-0005-viagem-relatorio)
-   NOVIDADES (Beta v1.490.115) — Relatórios › Viagens.
-   Anteriores: .114 viagem · .113 busca · .112 · .111 · .110
+   VERSÃO: Beta v1.490.116
+   LINHAS: 15513
+   DATA: 28/11/2026 (sessão 20261128-1000-lupa-mobile)
+   NOVIDADES (Beta v1.490.116) — lupa do topo no celular.
+   Anteriores: .115 · .114 · .113 · .112 · .111
    v1.490.8–25: ver CHANGELOG_APP.md.
    Versão anterior (Beta v1.490.7):
    DATA: 12/11/2026 (demanda f6be5483)
@@ -34,7 +34,7 @@
 
     <meta charset="UTF-8">
 
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"> <!-- v1.276.0: zoom travado (demanda bf635974); v1.291.0: viewport-fit=cover (UXR-31); v1.292.0: maximum-scale=1 removido — zoom livre, teste 4 da F0.1 aprovado no iPhone (UXR-32 passo b) -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"> <!-- v1.292.0: zoom livre; viewport-fit=cover (UXR-31/32) -->
     <meta name="color-scheme" content="light dark"> <!-- v1.291.0 (UXR-31) -->
 
     <!-- v1.139.0 — IMPORT MAP (gerado pelo gerar_versoes.py, NÃO editar à mão):
@@ -895,7 +895,7 @@
             <!-- v1.381.0 (UX onda 2, D7) — topo com busca, ramo e avatar; a Raiz IA desceu para o centro da barra -->
             <!-- v1.390.0 (Nicola 12/10 03:18) — a lupa do topo é a busca da tela aberta: abre em leque para a esquerda, por
                  cima do nome da empresa; filtrado, o ícone muda; tocar de novo limpa e abre. Sem busca na tela, busca em tudo. -->
-            <div class="rz-hdr-busca" id="rz-hdr-busca"><input type="search" id="rz-hdr-busca-q" class="rz-raw" enterkeyhint="search" autocomplete="off" aria-label="Buscar"><button type="button" class="rz-hdr-busca-x" onmousedown="event.preventDefault()" onclick="rzHdrBuscaLimpar()" aria-label="Limpar busca"><svg data-lucide="x"></svg></button></div>
+            <div class="rz-hdr-busca" id="rz-hdr-busca"><input type="search" id="rz-hdr-busca-q" class="rz-raw" enterkeyhint="search" autocomplete="off" aria-label="Buscar"><button type="button" class="rz-hdr-busca-x" onpointerdown="event.preventDefault()" onclick="rzHdrBuscaLimpar()" aria-label="Limpar busca"><svg data-lucide="x"></svg></button></div>
             <button type="button" id="btn-busca-header" class="rz-busca-hdr" onclick="rzHdrBusca()" title="Buscar" aria-label="Buscar"><svg data-lucide="search"></svg></button>
             <button type="button" id="btn-ramo-lente" class="rz-lente" onclick="rzAbrirLenteRamo()" title="Todo o patrimônio" aria-label="Ramo: Todo o patrimônio"><svg data-lucide="layers"></svg></button>
             <button type="button" id="btn-conta-avatar" class="rz-avatar" onclick="abrirMenuConta()" title="Menu" aria-label="Menu">
@@ -2852,7 +2852,7 @@
     <script>
 
         // Fonte ÚNICA da versão exibida no app (splash + Sobre); window.onload aplica nos dois.
-        const APP_VERSAO = "Beta v1.490.115"; // = cabeçalho (nota v1.178.8)
+        const APP_VERSAO = "Beta v1.490.116"; // = cabeçalho (nota v1.178.8)
 
         // ====================================================================
         // v1.105.0 — HELPERS DE SUPERFÍCIE DA GRAMÁTICA ÚNICA
@@ -9405,9 +9405,7 @@ async function criarLinkVitrineSupabase(token, idsSelecionados) {
         // que agregue "contratos/mensalidades com alerta" — ver §21 do
         // Design System pra lista de onde essa condicional foi aplicada.
 
-        // v1.192.0 (16/09/2026) — a regra de imovelIsentoDeAlertas (js/imoveis.js: uso_proprio/temporada isentos) fica aqui, síncrona,
-        // sobre o array `imoveis` em memória: a versão lazy devolvia Promise (truthy) e isentava toda mensalidade com contrato.
-        // Histórico completo: CHANGELOG_APP.md (v1.192.0).
+        // v1.192.0 — imovelIsentoDeAlertas síncrona sobre `imoveis` (a lazy devolvia Promise). Ver CHANGELOG_APP.md.
         // v1.63.0 — NOVO conceito, pedido explícito (25/08/2026): "não pago"
         // e "em atraso" NÃO são a mesma coisa. Uma mensalidade só é atraso/
         // pendência de cobrança de verdade quando, além de não paga, a data
@@ -10693,8 +10691,7 @@ async function criarLinkVitrineSupabase(token, idsSelecionados) {
                 case 'extrato_desatualizado': return 'Extrato desatualizado';
                 case 'reajuste_aniversario': return 'Pendente de revisão/reajuste';
                 case 'contrato_encerramento': return row.detalhe?.ja_vencido ? 'Contrato vencido' : 'Contrato vencendo';
-                // v1.449.2 (Nicola 20/10 20:58: "Elimine a palavra item de controle e destaque o conteúdo do alerta") — o título é o
-                // próprio item (ex.: "Seguro Residencial Porto"); o ativo e a data vão na 2ª linha (subtituloAlertaMotor).
+                // v1.449.2 — o título é o próprio item; ativo e data na 2ª linha (subtituloAlertaMotor).
                 case 'cofre_item_vencendo': return row.titulo || row.detalhe?.titulo || row.detalhe?.subtipo_nome || 'Vencimento';
                 case 'anexo_apolice_pendente': return `Documento pendente — ${row.detalhe?.subtipo_nome || row.detalhe?.titulo || row.titulo || 'documento'}`;
                 // v1.449.2 — cartão e transição caíam no código cru sem acento ("Cartao itens a classificar"): o fato vira o título.
@@ -15253,11 +15250,12 @@ async function criarLinkVitrineSupabase(token, idsSelecionados) {
             if (caixa.classList.contains('rz-aberta')) { q.blur(); return; }
             caixa.style.right = (hdr.getBoundingClientRect().right - lupa.getBoundingClientRect().left + 4) + 'px';
             q.value = alvo.inp.value; q.placeholder = alvo.inp.placeholder || 'Buscar';
-            q.oninput = () => { alvo.inp.value = q.value; alvo.inp.dispatchEvent(new Event('input', { bubbles: true })); };
+            const lr = lupa.getBoundingClientRect(); caixa.style.top = (lr.top - hdr.getBoundingClientRect().top + lr.height / 2 - 22) + 'px'; // v1.490.116 — centra na lupa (celular)
+            q.oninput = () => { alvo.inp.value = q.value; alvo.inp.dispatchEvent(new Event('input', { bubbles: true })); lupa.classList.toggle('rz-filtrado', !!q.value.trim()); };
             q.onkeydown = (ev) => { if (ev.key === 'Enter') { ev.preventDefault(); alvo.inp.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter' })); q.blur(); } };
-            q.onblur = () => setTimeout(() => { caixa.classList.remove('rz-aberta'); hdr.classList.remove('rz-buscando'); lupa.classList.toggle('rz-filtrado', rzTelaFiltrada(alvo)); }, 120);
+            q.onblur = () => setTimeout(() => { if (document.activeElement === q) return; caixa.classList.remove('rz-aberta'); hdr.classList.remove('rz-buscando'); lupa.classList.toggle('rz-filtrado', rzTelaFiltrada(alvo)); }, 120);
             caixa.classList.add('rz-aberta'); hdr.classList.add('rz-buscando');
-            setTimeout(() => { q.focus(); q.select(); }, 40);
+            q.focus(); q.select(); // v1.490.116 — no mesmo toque: o iPhone só abre o teclado assim
         }
 
         function rzBuscaInline(input, aoMudar) {
