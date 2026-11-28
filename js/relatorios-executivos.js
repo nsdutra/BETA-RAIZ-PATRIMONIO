@@ -1,6 +1,11 @@
 // ============================================================================
 // relatorios-executivos.js — Raiz Patrimônio · Relatórios no modelo executivo
-// Versão: 1.22.0 · 28/11/2026
+// Versão: 1.23.0 · 28/11/2026
+//
+// v1.23.0 (28/11/2026, sessão 20261128-0035-viagem-relatorio-2, demanda d8061e47; revisão do Nicola 28/11 00:32) — Relatório de viagem
+//   mais enxuto: resumo com período, duração e os totais da tela (sem "faltam N dias"); participantes com ✓ nos documentos que estão
+//   no Raiz; sai o resumo por tipo e a lista de documentos do fim; roteiro por trecho e dia, uma linha por entrada (hora · ícone ·
+//   nome · observação); custos por categoria e balanço por pessoa (quem pagou), sem forma de pagamento. Versão anterior: 1.22.0
 //
 // v1.22.0 (28/11/2026, sessão 20261128-0005-viagem-relatorio, demanda d8061e47; FICHA_RELATORIO_DE_VIAGEM v1.1.0, de acordo do Nicola
 //   28/11 00:00) — dois relatórios do programa Viagens no modelo executivo: "Relatório de viagem" (tipo viagem, fn_viagem_relatorio:
@@ -42,22 +47,15 @@
 //   "Desde o início". "Ativos e contratos por pessoa" (relatorios.ativos_por_pessoa, todos os planos com Relatórios): capa com a
 //   parte de cada um no valor e na receita; uma página por pessoa com ativo, vínculo, parte, contrato vigente, valor por mês e
 //   parte por mês (fn_relatorio_ativos_por_pessoa, F4). Os dois com PDF e planilha (Compartilhar › Baixar a planilha).
-//   Versão anterior: 1.15.0
-//
-// v1.15.0 (17/11/2026, sessão 20261117-2335-comercial-relatorios2, demanda 285a0058; FICHA_RECEITA_UNIDADES_GERADORAS v1.14.0 §13.15,
-//   de acordo do Nicola 17/11 23:30) — os 5 relatórios restantes do Comercial, lidos de fn_relatorio_comercial v1.1.0: Margem por
-//   item e safra (comercial.rel_margem), Funil de interessados (rel_funil), Recebíveis das vendas (rel_recebiveis, pelo vencimento),
-//   Entregas (rel_entregas, pela entrega prevista) e Preços e tabelas (rel_precos, vigentes no fim do mês). Mesma casca, filtros,
-//   PDF e planilha dos 4 primeiros. Versão anterior: 1.14.0
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.14.0 … v1.14.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.15.0 … v1.15.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
 import { rzMostrarBloqueio } from './comum-licenca.js';
 import { rzToast } from './raiz-ui.js';
 import RaizDevice from './raiz-device.js';
 
-export const VERSAO = '1.22.0';
+export const VERSAO = '1.23.0';
 
 // ---------------------------------------------------------------------------
 // Formatos (REL-13 a REL-17)
@@ -1413,56 +1411,65 @@ function vgEntradas(d) {
     return [...m.values()];
 }
 function montarViagem(d) {
+    // v1.23.0 — revisão do Nicola 28/11 00:32: resumo com período e os totais da tela; participantes com documentos (✓ no Raiz);
+    // roteiro por trecho e dia, uma linha por entrada (hora · ícone · nome · observação); custos por categoria e balanço por pessoa.
+    // Sem "faltam N dias" (o PDF não fica preso à data), sem resumo por tipo, sem lista de documentos no fim e sem forma de pagamento.
     const C = d.ciclo || {}, t = d.totais || {}, rs = d.resumo || {}, sem = !!(estado && estado.filtro.semValores);
     const ents = vgEntradas(d), docsV = d.documentos_viajantes || [], vjs = d.viajantes || [];
     const tipoNome = { terrestre: 'Terrestre', aerea: 'Aérea nacional', internacional: 'Internacional' }[C.variante] || '';
-    const cfg = { nome: 'Relatório de viagem', medida: `${C.nome} · roteiro, pessoas${sem ? '' : ' e custos em R$'}`, previa: false,
-        subtitulo: [tipoNome, `${dma(C.inicio)} a ${dma(C.fim)}`, qtdTxt(rs.dias_total, 'dia', 'dias'), sem ? 'sem valores' : 'Pago = Financeiro'].filter(Boolean).join(' · ') };
-    // alertas de documento: vencimento e, em internacional, quem vai sem passaporte no Cofre
+    const cfg = { nome: 'Relatório de viagem', medida: `${C.nome}${sem ? '' : ' · custos em R$'}`, previa: false,
+        subtitulo: [tipoNome, `${dma(C.inicio)} a ${dma(C.fim)}`, qtdTxt(rs.dias_total, 'dia', 'dias')].filter(Boolean).join(' · ') };
     const alertas = docsV.filter(x => x.alerta).map(x => `${String(x.viajante).split(' ')[0]}: ${VG_DOC[x.tipo] || x.tipo} ${x.alerta}`);
     if (C.variante === 'internacional') vjs.filter(v => v.ativo_id && !docsV.some(x => x.ativo_id === v.ativo_id && x.tipo === 'passaporte'))
-        .forEach(v => alertas.push(`${String(v.nome).split(' ')[0]}: sem passaporte no Cofre`));
-    const falta = num(rs.dias_para_ida);
-    const linha = [falta > 0 ? `Faltam ${qtdTxt(falta, 'dia', 'dias')}` : falta === 0 ? 'A viagem começa hoje' : 'Viagem em andamento ou concluída',
-        `${num(rs.pagos)} de ${qtdTxt(rs.itens, 'item pago', 'itens pagos')}`, num(rs.a_cotar) ? `${num(rs.a_cotar)} a cotar` : '',
+        .forEach(v => alertas.push(`${String(v.nome).split(' ')[0]}: sem passaporte no Raiz`));
+    const linha = [`${num(rs.pagos)} de ${qtdTxt(rs.itens, 'item pago', 'itens pagos')}`, num(rs.a_cotar) ? `${num(rs.a_cotar)} a cotar` : '',
         alertas.length ? qtdTxt(alertas.length, 'alerta de documento', 'alertas de documento') : ''].filter(Boolean).join(' · ') + '.';
-    const kpis = sem ? `<div class="kpis">${kpi('Dias', String(num(rs.dias_total)), `${dma(C.inicio)} a ${dma(C.fim)}`)}${kpi('Itens', String(num(rs.itens)), `${num(rs.pagos)} pagos`)}${kpi('A cotar', String(num(rs.a_cotar)), '')}${kpi('Pessoas', String(vjs.length), '')}</div>`
-        : `<div class="kpis">${kpi('Cotado', compacto(t.cotado), qtdTxt(t.cotado_itens, 'item', 'itens'))}${kpi('Reservado', compacto(t.reservado), qtdTxt(t.reservado_itens, 'item', 'itens'))}${kpi('Pago', compacto(t.pago), num(t.no_cartao) ? compacto(t.no_cartao) + ' no cartão' : 'no Financeiro')}${kpi('Dias', String(num(rs.dias_total)), qtdTxt(vjs.length, 'pessoa', 'pessoas'))}</div>`;
-    const pessoas = `${secao('Participantes', 'documentos de viagem no Cofre · tipo e validade, sem o número')}
-      <table><thead><tr><th>Pessoa</th><th>Documentos</th></tr></thead><tbody>${vjs.map(v => {
+    const kPer = kpi('Período', `${dma(C.inicio).slice(0, 5)} a ${dma(C.fim).slice(0, 5)}`, `${qtdTxt(rs.dias_total, 'dia', 'dias')} · ${String(C.fim).slice(0, 4)}`);
+    const kpis = sem ? `<div class="kpis">${kPer}${kpi('Pessoas', String(vjs.length), '')}${kpi('Itens', String(num(rs.itens)), `${num(rs.pagos)} pagos`)}${kpi('A cotar', String(num(rs.a_cotar)), '')}</div>`
+        : `<div class="kpis">${kPer}${kpi('Cotado', compacto(t.cotado), qtdTxt(t.cotado_itens, 'item', 'itens'))}${kpi('Reservado', compacto(t.reservado), qtdTxt(t.reservado_itens, 'item', 'itens'))}${kpi('Pago', compacto(t.pago), '')}</div>`;
+    const pessoas = `${secao('Participantes', 'documentos de viagem · ✓ = está no Raiz (tipo e validade, sem o número)')}
+      <table><tbody>${vjs.map(v => {
         const ds = docsV.filter(x => x.ativo_id && x.ativo_id === v.ativo_id);
-        const trech = v.toda ? '' : ' <small class="mut">(só parte da viagem)</small>';
-        return `<tr><td>${esc(v.nome)}${trech}</td><td>${ds.length ? ds.map(x => `${esc(VG_DOC[x.tipo] || x.tipo)} ${x.validade ? 'até ' + dma(x.validade) : 'sem validade'}${x.alerta ? ` <b class="neg">· ${esc(x.alerta)}</b>` : ''}`).join('<br>') : '<span class="mut">nenhum no Cofre</span>'}</td></tr>`;
-      }).join('') || '<tr><td colspan="2" class="mut">Ninguém em Quem vai.</td></tr>'}</tbody></table>
+        return `<tr><td style="width:36%">${esc(v.nome)}${v.toda ? '' : ' <small class="mut">(parte da viagem)</small>'}</td><td>${ds.length ? ds.map(x => `✓ ${esc(VG_DOC[x.tipo] || x.tipo)} ${x.validade ? 'até ' + dma(x.validade) : ''}${x.alerta ? ` <b class="neg">(${esc(x.alerta)})</b>` : ''}`).join(' · ') : '<span class="mut">nenhum documento no Raiz</span>'}</td></tr>`;
+      }).join('') || '<tr><td class="mut">Ninguém em Quem vai.</td></tr>'}</tbody></table>
       ${alertas.length ? `<p class="neg" style="margin:6px 0 0"><b>Atenção:</b> ${esc(alertas.join(' · '))}</p>` : ''}`;
-    const bolso = `${secao('Resumo de bolso', 'o essencial de cada reserva: quando e o detalhe (nº do voo, localizador, reserva, endereço)')}
-      ${VG_CAT.map(([sub, nomeCat]) => { const es = ents.filter(e => (e.sub || 'evento_viagem') === sub).sort((a, b) => String(a.inicio_em || a.dia || a.data_prevista).localeCompare(String(b.inicio_em || b.dia || b.data_prevista)));
-        return es.length ? `<p style="margin:10px 0 4px"><b>${esc(nomeCat)}</b></p><table><tbody>${es.map(e => `<tr><td style="width:38%">${esc(e.titulo)}</td><td style="width:26%">${esc(vgQuando(e.inicio_em, e.fim_em, e.inicio_em ? null : (e.dia || null)))}</td><td>${esc(e.descricao || '')}</td></tr>`).join('')}</tbody></table>` : ''; }).join('')}`;
-    const dias = [];
-    (d.trechos || []).forEach(tr => (tr.dias || []).forEach(x => dias.push({ trecho: tr.nome, data: x.data, ents: x.entradas || [] })));
-    const roteiro = `${secao('Roteiro por dia', 'hora · item · trecho')}
-      <table><thead><tr><th>Dia</th><th>Trecho</th><th>Programação</th></tr></thead><tbody>${dias.map(x => `<tr><td>${dma(x.data).slice(0, 5)}</td><td>${esc(x.trecho)}</td><td>${x.ents.length
-        ? x.ents.map(e => { const h = e.inicio_em ? new Intl.DateTimeFormat('pt-BR', { timeZone: 'America/Sao_Paulo', hour: '2-digit', minute: '2-digit', hour12: false }).format(new Date(e.papel === 'fim' ? (e.fim_em || e.inicio_em) : e.inicio_em)) : '';
-            return `${h && h !== '00:00' ? h + ' ' : ''}${e.papel === 'fim' ? 'fim · ' : ''}${esc(e.titulo)}`; }).join('<br>') : '<span class="mut">livre</span>'}</td></tr>`).join('')}</tbody></table>
-      ${(d.a_encaixar || []).length ? `<p class="mut" style="margin:6px 0 0">Sem dia ainda: ${esc((d.a_encaixar || []).map(e => e.titulo).join(', '))}.</p>` : ''}`;
-    const porItem = new Map(); ents.forEach(e => { const k = e.item_id, it = porItem.get(k) || { titulo: e.titulo, etapa: e.etapa, valor: 0, conta: null };
-        it.valor += num(e.valor); if (e.lancamento && e.lancamento.conta) it.conta = e.lancamento.conta + (e.lancamento.cartao ? ' (cartão)' : ''); porItem.set(k, it); });
-    const itens = [...porItem.values()].filter(i => VG_ETAPA[i.etapa]);
-    const ordemEt = ['pago', 'reservado', 'cotado', 'a_cotar'];
-    const fin = sem ? '' : `${secao('Financeiro e orçamento', 'R$ · valor de cada item pela etapa; Pago é o que está no Financeiro')}
-      <table><thead><tr><th>Item</th><th>Etapa</th><th>Pago com</th><th class="n">Valor</th></tr></thead><tbody>${ordemEt.flatMap(et => itens.filter(i => i.etapa === et)
-        .map(i => `<tr><td>${esc(i.titulo)}</td><td>${esc(VG_ETAPA[et])}</td><td>${esc(i.conta || '')}</td><td class="n">${i.valor ? tab(i.valor) : '—'}</td></tr>`)).join('')}</tbody></table>
-      ${(d.pagadores || []).length ? `<p style="margin:8px 0 0"><b>Quem pagou:</b> ${esc((d.pagadores || []).map(p => String(p.titular).split(' ')[0] + ' ' + brl(p.valor)).join(' · '))}</p>` : ''}
-      ${(d.pagos_fora_financeiro || []).length ? `<p class="mut" style="margin:4px 0 0">Marcados Pago sem lançamento no Financeiro: ${esc((d.pagos_fora_financeiro || []).map(x => x.titulo).join(', '))}.</p>` : ''}
-      ${(d.financeiro_fora || []).length ? `<p class="mut" style="margin:4px 0 0">No Financeiro, fora do roteiro: ${esc((d.financeiro_fora || []).map(x => (x.descricao || 'gasto') + ' ' + brl(x.valor)).join(' · '))}.</p>` : ''}`;
-    const docsItens = ents.filter(e => (e.documentos || []).length);
-    const docs = `${secao('Documentos', 'anexos dos itens e documentos de viagem das pessoas (no Cofre)')}
-      <table><tbody>${docsItens.map(e => `<tr><td style="width:38%">${esc(e.titulo)}</td><td>${esc(e.documentos.map(x => x.nome).join(' · '))}</td></tr>`).join('')}${docsV.map(x => `<tr><td>${esc(String(x.viajante).split(' ')[0])} · ${esc(VG_DOC[x.tipo] || x.tipo)}</td><td>${esc(x.nome)}</td></tr>`).join('') || ''}</tbody></table>`;
-    const notas = `<div class="notes"><p><b>Pago</b>: lançamentos pagos no Financeiro desta viagem, mais o que já foi posto num cartão e entra com a fatura. Cotado soma A cotar e Cotado.</p>
-      <p><b>Documentos das pessoas</b>: passaporte, visto e CNH vinculados à pessoa no Cofre; só tipo e validade aparecem aqui. Em viagem internacional, o passaporte deve valer 6 meses além da volta.</p>
-      <p><b>Origem</b>: fn_viagem_relatorio v1 (roteiro da viagem) · ${dma(new Date().toISOString().slice(0, 10))}.</p></div>`;
-    const paginas = [[`<div class="acao-sub rx-resumo">${esc(linha)}</div>${kpis}${pessoas}${bolso}`, ['Resumo']], [roteiro, ['Detalhe']], [`${fin}${docs}${notas}`, ['Detalhe', 'Notas']]];
-    return { cfg, linhas3: [`${C.nome} · ${dma(C.inicio)} a ${dma(C.fim)}`, sem ? `${num(rs.dias_total)} dias · ${vjs.length} pessoas` : `Pago ${brl(t.pago)} · Cotado ${brl(t.cotado)}`, linha], paginas };
+    // roteiro: trecho → dia → uma linha por entrada
+    const hora = (ts) => ts ? new Intl.DateTimeFormat('pt-BR', { timeZone: 'America/Sao_Paulo', hour: '2-digit', minute: '2-digit', hour12: false }).format(new Date(ts)) : '';
+    const SEMD = ['dom', 'seg', 'ter', 'qua', 'qui', 'sex', 'sáb'];
+    const diaRot = (iso) => { const x = dataIso(iso); return `${SEMD[x.getDay()]} ${dma(iso).slice(0, 5)}`; };
+    const nw = 'white-space:nowrap';
+    const linhaEnt = (e) => { const h = hora(e.papel === 'fim' ? (e.fim_em || e.inicio_em) : e.inicio_em);
+        return `<tr><td style="${nw};width:52px">${h && h !== '00:00' ? h : ''}</td><td style="width:22px"><i data-lucide="${esc(e.papel === 'fim' ? 'undo-2' : (e.icone || 'calendar'))}" style="width:14px;height:14px"></i></td>
+          <td>${e.papel === 'fim' ? '<span class="mut">fim · </span>' : ''}${esc(e.titulo)}${e.descricao && e.papel !== 'fim' ? ` <span class="mut">· ${esc(e.descricao)}</span>` : ''}</td></tr>`; };
+    const roteiro = `${secao('Roteiro', 'por trecho e dia · hora · tipo · item · observação')}
+      ${(d.trechos || []).map(tr => `<p style="margin:12px 0 4px"><b>${esc(tr.nome)}</b> <span class="mut">${dma(tr.inicio).slice(0, 5)} a ${dma(tr.fim).slice(0, 5)}</span></p>
+        <table><tbody>${(tr.dias || []).map(x => { const es = x.entradas || [];
+          return `<tr><td colspan="3" style="${nw};padding-top:8px"><b>${diaRot(x.data)}</b>${es.length ? '' : ' <span class="mut">· livre</span>'}</td></tr>${es.map(linhaEnt).join('')}`; }).join('')}</tbody></table>`).join('')}
+      ${(d.a_encaixar || []).length ? `<p class="mut" style="margin:8px 0 0">Sem dia ainda: ${esc((d.a_encaixar || []).map(e => e.titulo).join(', '))}.</p>` : ''}`;
+    // custos por categoria (mesma regra dos totais da tela) e balanço por pessoa (quem pagou, pelo titular da conta)
+    let custos = '';
+    if (!sem) {
+        const porItem = new Map(); ents.forEach(e => { const it = porItem.get(e.item_id) || { sub: e.sub || 'evento_viagem', etapa: e.etapa, valor: 0 }; it.valor += num(e.valor); porItem.set(e.item_id, it); });
+        const its = [...porItem.values()];
+        const soma = (sub, ets) => its.filter(i => i.sub === sub && ets.includes(i.etapa)).reduce((a, i) => a + i.valor, 0);
+        const cats = VG_CAT.filter(([sub]) => its.some(i => i.sub === sub && num(i.valor)));
+        const pags = d.pagadores || [], totPag = pags.reduce((a, p) => a + num(p.valor), 0);
+        custos = `${secao('Custos', 'R$ · por categoria; Pago = Financeiro (inclui o que está no cartão)')}
+          <table><thead><tr><th>Categoria</th><th class="n">Cotado</th><th class="n">Reservado</th><th class="n">Pago*</th></tr></thead><tbody>${cats.map(([sub, nomeCat]) =>
+            `<tr><td>${esc(nomeCat)}</td><td class="n">${tab(soma(sub, ['a_cotar', 'cotado']))}</td><td class="n">${tab(soma(sub, ['reservado']))}</td><td class="n">${tab(soma(sub, ['pago']))}</td></tr>`).join('')}</tbody>
+          <tfoot><tr><td><b>Total</b></td><td class="n"><b>${tab(t.cotado)}</b></td><td class="n"><b>${tab(t.reservado)}</b></td><td class="n"><b>${tab(t.pago)}</b></td></tr></tfoot></table>
+          <p class="mut" style="margin:4px 0 0">* Pago por categoria soma o valor dos itens em Pago; o total é o que está no Financeiro${(d.pagos_fora_financeiro || []).length ? ` (${qtdTxt((d.pagos_fora_financeiro || []).length, 'item pago ainda sem lançamento', 'itens pagos ainda sem lançamento')})` : ''}.</p>
+          ${secao('Balanço por pessoa', 'R$ · quem pagou, pelo titular da conta ou do cartão')}
+          <table><thead><tr><th>Pessoa</th><th class="n">Pagou</th><th class="n">% do pago</th></tr></thead><tbody>${pags.map(p =>
+            `<tr><td>${esc(p.titular)}</td><td class="n">${tab(p.valor)}</td><td class="n">${totPag ? nf(num(p.valor) / totPag * 100, 0) + '%' : '—'}</td></tr>`).join('') || '<tr><td colspan="3" class="mut">Nada pago no Financeiro ainda.</td></tr>'}</tbody></table>`;
+    }
+    const notas = `<div class="notes"><p><b>Totais</b>: Cotado soma A cotar e Cotado; Pago é o Financeiro desta viagem. Quem deve a quem sai do rateio da viagem (próxima etapa).</p>
+      <p><b>Origem</b>: fn_viagem_relatorio v1.</p></div>`;
+    const paginas = [[`<div class="acao-sub rx-resumo">${esc(linha)}</div>${kpis}${pessoas}`, ['Resumo']], [roteiro, ['Detalhe']]];
+    if (!sem) paginas.push([`${custos}${notas}`, ['Detalhe', 'Notas']]); else paginas[1][0] += notas;
+    return { cfg, linhas3: [`${C.nome} · ${dma(C.inicio)} a ${dma(C.fim)} · ${qtdTxt(rs.dias_total, 'dia', 'dias')}`,
+        sem ? `${vjs.length} pessoas` : `Cotado ${brl(t.cotado)} · Reservado ${brl(t.reservado)} · Pago ${brl(t.pago)}`, linha], paginas,
+        ligar: () => { if (typeof rzIcones === 'function') rzIcones(); } };
 }
 function montarViagens(d) {
     const vs = d.viagens || [], T = d.total || {};

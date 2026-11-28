@@ -1,8 +1,8 @@
 {
   "app": "patrimonio",
-  "gerado_em": "2026-11-28T03:29:44",
+  "gerado_em": "2026-11-28T03:34:39",
   "arquivos": {
-    "index.html": "1.490.116",
+    "index.html": "1.490.117",
     "sw.js": "3.4",
     "js/cadastros.js": "1.3.0",
     "js/financeiro.js": "1.110.0",
@@ -31,7 +31,7 @@
     "js/resultados.js": "2.27.0",
     "js/indicadores.js": "1.3.0",
     "js/configuracao-inicial.js": "1.2.0",
-    "js/relatorios-executivos.js": "1.22.0",
+    "js/relatorios-executivos.js": "1.23.0",
     "js/raiz-eventos.js": "1.0.0",
     "js/raiz-device.js": "1.1.0",
     "js/raiz-ui.js": "1.11.0",
@@ -66,7 +66,7 @@
     "js/cartao-descobrir.js": "1.1.0",
     "js/cofre-seguro-renovacao.js": "1.0.0",
     "js/nucleo/colunas.js": "1.0.0",
-    "js/viagem-roteiro.js": "1.9.0",
+    "js/viagem-roteiro.js": "1.10.0",
     "js/viagem-compartilhar.js": "1.2.0",
     "js/investimentos.js": "1.6.0",
     "js/contrato-catalogo.js": "1.0.0",
@@ -191,7 +191,7 @@
       "funcoes": 26
     },
     "js/relatorios-executivos.js": {
-      "linhas": 3455,
+      "linhas": 3462,
       "funcoes": 116
     },
     "js/raiz-eventos.js": {
@@ -331,7 +331,7 @@
       "funcoes": 5
     },
     "js/viagem-roteiro.js": {
-      "linhas": 611,
+      "linhas": 605,
       "funcoes": 27
     },
     "js/viagem-compartilhar.js": {

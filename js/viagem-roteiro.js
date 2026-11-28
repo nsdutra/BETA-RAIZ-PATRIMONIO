@@ -1,6 +1,9 @@
 // ============================================================================
 // viagem-roteiro.js — Raiz Patrimônio · Roteiro da viagem (programa com tipos de ciclo)
-// Versão: 1.9.0 · 28/11/2026
+// Versão: 1.10.0 · 28/11/2026
+//
+// v1.10.0 (28/11/2026, sessão 20261128-0035-viagem-relatorio-2, demanda d8061e47; pedido do Nicola 28/11 00:32) — totais da viagem
+// numa linha só (Cotado · Reservado · Pago), sem a nota do cartão. Versão anterior: 1.9.0
 //
 // v1.9.0 (28/11/2026, sessão 20261128-0005-viagem-relatorio, demanda d8061e47; FICHA_RELATORIO_DE_VIAGEM v1.1.0, de acordo do Nicola
 // 28/11 00:00) — Mais › "Relatório de viagem" abre o relatório da viagem (relatorios-executivos, tipo viagem). Versão anterior: 1.8.0
@@ -19,18 +22,11 @@
 // v1.6.0 (26/11/2026, sessão 20261126-1213-viagem-icones, demanda d8061e47; de acordo do Nicola 26/11 12:13) — ícone da categoria em
 // cada linha (voo, cama, carro, ingresso, talheres, alfinete) e etapa como etiqueta pequena, com menos texto; "A encaixar" sem a
 // frase de ajuda; abrirRoteiro sem viagem aberta só existe para quem ainda chama (a tela é a da viagem). Versão anterior: 1.5.0
-//
-// v1.5.0 (26/11/2026, sessão 20261126-1015-viagem-2b3, demanda d8061e47; FICHA_PROGRAMA_VIAGEM_FATIA2B3 v1.1.0, de acordo do
-// Nicola 26/11 10:15) — a viagem abre direto no roteiro (abrirViagem: cabeçalho com tipo, datas, pago/a pagar, quem vai e etapas;
-// abas das outras viagens; "+ No roteiro" e "Mais"); formulário único para criar e editar (folhaItem → fn_roteiro_salvar: nome,
-// categoria, dia, hora, até, descrição, valor, etapa) — tocar numa entrada abre o formulário preenchido e salvar atualiza na hora;
-// "Quem vai" (folhaQuemVai → fn_ciclo_viajantes_salvar): pessoa da família ou de fora, toda a viagem ou só alguns trechos; o trecho
-// mostra quem está só nele. Versão anterior: 1.4.0
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.4.0 … v1.4.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.5.0 … v1.5.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '1.9.0';
+export const VERSAO = '1.10.0';
 import { estado } from './cofre-estado.js';
 import * as api from './cofre-api.js';
 
@@ -381,10 +377,8 @@ function quemVaiResumo(r) {
 // v1.8.0 — totais do cabeçalho (fn_ciclo_roteiro.totais): Cotado (a cotar + cotado), Reservado, Pago (Financeiro)
 function totaisHtml(r) {
     const t = r.totais || {}, fora = r.pagos_fora_financeiro || [];
-    const n = (q) => q ? ` <span style="font-size:12px">(${q})</span>` : '';
-    return `<div class="rz-exec-custo"><span><b>${moeda(t.cotado || 0)}</b> cotado${n(t.cotado_itens)}</span><span><b>${moeda(t.reservado || 0)}</b> reservado${n(t.reservado_itens)}</span>`
-        + `<span><b>${moeda(t.pago || 0)}</b> pago</span></div>`
-        + (t.no_cartao ? `<p class="rz-hint" style="margin:-8px 0 8px">${moeda(t.no_cartao)} no cartão · entra no Financeiro com a fatura</p>` : '')
+    const k = (v) => moeda(v || 0).replace(/,00$/, ''); // v1.10.0 — uma linha só
+    return `<div class="rz-exec-custo" style="flex-wrap:nowrap;overflow-x:auto"><span style="white-space:nowrap"><b>${k(t.cotado)}</b> cotado</span><span style="white-space:nowrap"><b>${k(t.reservado)}</b> reservado</span><span style="white-space:nowrap"><b>${k(t.pago)}</b> pago</span></div>`
         + (fora.length ? `<button type="button" class="rz-row" data-vg-pagos style="width:100%;text-align:left"><div class="rz-ic"><i data-lucide="alert-circle"></i></div>
             <div class="rz-tx"><b>${fora.length} ${fora.length === 1 ? 'pago fora' : 'pagos fora'} do Financeiro</b><span>Toque para lançar com a conta ou o cartão</span></div><i data-lucide="chevron-right"></i></button>` : '');
 }
