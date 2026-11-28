@@ -1,6 +1,10 @@
 // ============================================================================
 // cofre-controles.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.88.0 · 26/11/2026
+// Versão: 1.89.0 · 27/11/2026
+//
+// v1.89.0 (27/11/2026, sessão 20261127-2230-viagem, demanda d8061e47; FICHA_PROGRAMA_VIAGEM_TOTAIS_PAGADOR v1.1.0, de acordo do Nicola
+// 27/11 22:50) — a viagem recebe excluirItem: o Excluir do formulário do roteiro usa a mesma regra de "Excluir item de vez"
+// (excluirItemControleAtual) e volta para a viagem; se não excluir (cancelou ou bloqueado), reabre a viagem. Versão anterior: 1.88.0
 //
 // v1.88.0 (26/11/2026, sessão 20261126-1213-viagem-icones, demanda d8061e47; de acordo do Nicola 26/11 12:13) — uma tela só para a
 // viagem: o botão Roteiro da "Ver como lista" abre a viagem (abrirExecucao), não mais o Roteiro avulso. Versão anterior: 1.87.0
@@ -17,16 +21,11 @@
 // v1.85.0 (25/11/2026, sessão 20261125-1019-viagem-compartilhar, demanda faf717a1; FICHA_COMPARTILHAR_VIAGEM v1.0.0, de acordo do
 // Nicola 25/11 10:19) — "Compartilhar" no ⋮ do item (viagem-compartilhar.js): dados, registros e documentos escolhidos, pelo
 // compartilhar do celular. Versão anterior: 1.84.0
-//
-// v1.84.0 (25/11/2026, sessão 20261125-0120-viagem-2b2, demanda d8061e47; FICHA_PROGRAMA_VIAGEM_FATIA2B2 v1.0.0, de acordo do
-// Nicola 25/11 01:20) — viagem: cada item mostra a etapa num chip que troca a etapa (escolherEtapa da viagem-roteiro.js),
-// Cancelado/Descartado riscado; resumo "A cotar 4 · Reservado 1" acima dos itens; "+ Outro item" (folhaIncluir). Card Controles:
-// a linha da viagem diz quantos itens faltam cotar. Itens de quem viaja junto já vêm pela viagem (fn_execucao_detalhe). Versão anterior: 1.83.0
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.83.0 … v1.83.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.84.0 … v1.84.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '1.88.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.89.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 import { estado } from './cofre-estado.js';
 import * as api from './cofre-api.js';
 import { mostrarToast, refrescarIcones, abrirModal, fecharModal, modalGenerico, perguntar, escolher, avisarComDesfazer } from './cofre-ui.js';
@@ -692,7 +691,14 @@ export async function abrirExecucao(apId, cicloId = null, opc = {}) {
     if (!opc.lista && temVariantes(d) && d.ciclo) {
         const ci = d.ciclo.id;
         const abrirItem = (id) => { retornoItem = () => abrirExecucao(apId, ci); window.fecharSheet(); window.fecharSheet(); abrirFichaItemControle(id); };
-        import('./viagem-roteiro.js').then(m => m.abrirViagem({ d, abrirItem, recarregar: () => abrirExecucao(apId, ci), abrirCiclo: (id) => abrirExecucao(apId, id),
+        // v1.89.0 — Excluir do formulário do roteiro: mesma regra do item; volta para a viagem
+        const excluirItem = async (id) => {
+            try { itemEmFoco = await api.buscarItemControlePorId(id); } catch (err) { mostrarToast('Erro ao abrir o item: ' + (err.message || err), 'erro'); return; }
+            retornoItem = () => abrirExecucao(apId, ci); window.fecharSheet(); window.fecharSheet();
+            await excluirItemControleAtual();
+            if (itemEmFoco) { itemEmFoco = null; retornoItem = null; abrirExecucao(apId, ci); } // não excluiu: volta para a viagem
+        };
+        import('./viagem-roteiro.js').then(m => m.abrirViagem({ d, abrirItem, excluirItem, recarregar: () => abrirExecucao(apId, ci), abrirCiclo: (id) => abrirExecucao(apId, id),
             novaViagem: d.pode_gerir && d.programa.situacao === 'ativo' ? () => abrirFolhaAbrirCiclo(d) : null,
             corrigir: d.pode_gerir ? () => abrirAcoesCorrigirCiclo(d) : null, verLista: () => abrirExecucao(apId, ci, { lista: true }) }));
         return;

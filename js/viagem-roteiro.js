@@ -1,6 +1,13 @@
 // ============================================================================
 // viagem-roteiro.js — Raiz Patrimônio · Roteiro da viagem (programa com tipos de ciclo)
-// Versão: 1.7.0 · 27/11/2026
+// Versão: 1.8.0 · 27/11/2026
+//
+// v1.8.0 (27/11/2026, sessão 20261127-2230-viagem, demanda d8061e47; FICHA_PROGRAMA_VIAGEM_TOTAIS_PAGADOR v1.1.0, de acordo do Nicola
+// 27/11 22:50) — cabeçalho Cotado / Reservado / Pago (Pago = Financeiro, fn_ciclo_roteiro.totais) e aviso "pagos fora do Financeiro";
+// "Quem vai" vira "Pessoas" (quem vai, quem pagou por titular da conta e gastos do Financeiro fora do roteiro); no formulário, etapa Pago
+// pede "Pago com" (conta ou cartão) e data e lança no Financeiro (fn_roteiro_salvar v2); documentos do item abrem dali; Excluir usa a regra
+// de exclusão do item (cofre-controles); limpar dia e "Até"; "Até" começa no dia e vira D+1 ao marcar o dia; registro pago também se edita.
+// Versão anterior: 1.7.0
 //
 // v1.7.0 (27/11/2026, sessão 20261127-1233-viagem-icone-catalogo, demanda d8061e47; de acordo do Nicola 27/11 12:33) — REU: o ícone
 // de cada linha vem do catálogo (cofre_controle_subtipos.icone, via fn_ciclo_roteiro → icone), como nos alertas; sai o mapa próprio
@@ -21,15 +28,11 @@
 // sem hora já aparece no dia (regra do banco, fn_ciclo_roteiro) como "Dia todo"; "A encaixar" vem aberta quando há algo que a
 // pessoa ainda não viu ali; acoesItemViagem() dá à tela da viagem as ações do item (Marcar dia e hora, Etapa, Abrir o item) e o
 // encaixe feito fora do Roteiro volta para quem chamou. Versão anterior: 1.3.0
-//
-// v1.3.0 (25/11/2026, sessão 20261125-1019-viagem-compartilhar, demanda faf717a1; FICHA_COMPARTILHAR_VIAGEM v1.0.0, de acordo do
-// Nicola 25/11 10:19) — "Compartilhar" no rodapé do Roteiro (viagem-compartilhar.js); no encaixe, a hora é a saída, o "Até" com
-// hora é a chegada e a descrição traz o exemplo de voo. Versão anterior: 1.2.0
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.2.0 … v1.2.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.3.0 … v1.3.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '1.7.0';
+export const VERSAO = '1.8.0';
 import { estado } from './cofre-estado.js';
 import * as api from './cofre-api.js';
 
@@ -158,7 +161,7 @@ function linhaBandeja(e) {
 function achar(r, ocId) {
     const todas = [...(r.a_encaixar || []), ...(r.fora_dos_trechos || [])];
     (r.trechos || []).forEach(t => (t.dias || []).forEach(d => todas.push(...(d.entradas || []))));
-    return todas.find(e => e.ocorrencia_id === ocId);
+    return todas.find(e => e.ocorrencia_id === ocId && e.papel !== 'fim') || todas.find(e => e.ocorrencia_id === ocId); // v1.8.0 — a entrada de início
 }
 function itensDoRoteiro(r) {
     const m = new Map();
@@ -369,7 +372,7 @@ function ligarCorpo(sheet, r, fechado) {
 }
 function tocarEntrada(r, ocId, fechado) {
     const e = achar(r, ocId); if (!e) return;
-    if (!fechado && r.pode_encaixar && e.status === 'aberto') folhaItem(r, e); else acoesEntrada(r, ocId, fechado);
+    if (!fechado && r.pode_encaixar && ['aberto', 'concluido'].includes(e.status) && e.papel !== 'fim') folhaItem(r, e); else acoesEntrada(r, ocId, fechado); // v1.8.0 — pago também se edita
 }
 function quemVaiResumo(r) {
     const vs = r.viajantes || []; if (!vs.length) return '';
@@ -377,11 +380,45 @@ function quemVaiResumo(r) {
     return vs.map(v => primeiro(v.nome) + (v.toda ? '' : ' (só ' + (v.trechos || []).map(nomeTrecho).filter(Boolean).join(', ') + ')')).join(', ');
 }
 
+// v1.8.0 — totais do cabeçalho (fn_ciclo_roteiro.totais): Cotado (a cotar + cotado), Reservado, Pago (Financeiro)
+function totaisHtml(r) {
+    const t = r.totais || {}, fora = r.pagos_fora_financeiro || [];
+    const n = (q) => q ? ` <span style="font-size:12px">(${q})</span>` : '';
+    return `<div class="rz-exec-custo"><span><b>${moeda(t.cotado || 0)}</b> cotado${n(t.cotado_itens)}</span><span><b>${moeda(t.reservado || 0)}</b> reservado${n(t.reservado_itens)}</span>`
+        + `<span><b>${moeda(t.pago || 0)}</b> pago</span></div>`
+        + (t.no_cartao ? `<p class="rz-hint" style="margin:-8px 0 8px">${moeda(t.no_cartao)} no cartão · entra no Financeiro com a fatura</p>` : '')
+        + (fora.length ? `<button type="button" class="rz-row" data-vg-pagos style="width:100%;text-align:left"><div class="rz-ic"><i data-lucide="alert-circle"></i></div>
+            <div class="rz-tx"><b>${fora.length} ${fora.length === 1 ? 'pago fora' : 'pagos fora'} do Financeiro</b><span>Toque para lançar com a conta ou o cartão</span></div><i data-lucide="chevron-right"></i></button>` : '');
+}
+// v1.8.0 — pagos no roteiro sem lançamento: um toque abre o formulário já em Pago
+function folhaPagosFora(r) {
+    const fora = r.pagos_fora_financeiro || [];
+    g('abrirSheetAcoes')?.({ titulo: 'Pagos fora do Financeiro', sub: r.ciclo.nome, empilhar: true, acoes: fora.map(f => ({
+        icone: 'receipt', titulo: f.titulo, codigo: 'cofre.controles.editar', sub: f.valor ? moeda(f.valor) : 'Sem valor',
+        aoTocar: () => { const e = achar(r, f.ocorrencia_id); if (e) setTimeout(() => folhaItem(r, e), 0); else aviso('Abra o item pela lista para lançar.', 'erro'); } })) });
+}
+// v1.8.0 — Pessoas: quem vai, quem pagou (titular da conta ou cartão) e gastos do Financeiro fora do roteiro
+function folhaPessoas(r, fechado) {
+    const abrirSheet = g('abrirSheet'), cab = g('rzSheetCabecalho'); if (!abrirSheet || !cab) return;
+    const qv = quemVaiResumo(r), pags = r.pagadores || [], fin = r.financeiro_fora || [];
+    const linhaPag = (p) => `<div class="rz-row" style="align-items:flex-start;gap:10px"><div class="rz-ic"><i data-lucide="wallet"></i></div>
+        <div class="rz-tx" style="min-width:0"><b>${esc(primeiro(p.titular))} · ${moeda(p.valor)}</b><span>${esc((p.itens || []).map(i => i.descricao + ' ' + moeda(i.valor) + (i.no_cartao ? ' (cartão)' : '')).join(' · '))}</span></div></div>`;
+    const corpo = `<button type="button" class="rz-row" data-ps-quem style="width:100%;text-align:left"><div class="rz-ic"><i data-lucide="users"></i></div>
+            <div class="rz-tx"><b>Quem vai</b><span>${esc(qv || 'Ninguém ainda')}</span></div>${!fechado && r.pode_gerir ? '<i data-lucide="chevron-right"></i>' : ''}</button>
+        <div class="rz-group" style="margin:12px 0 2px"><span>Quem pagou</span></div>
+        ${pags.length ? `<div class="rz-list" style="padding:0">${pags.map(linhaPag).join('')}</div>` : '<p class="rz-hint" style="margin:0">Nada pago no Financeiro ainda. Marque Pago no item e escolha a conta ou o cartão.</p>'}
+        ${fin.length ? `<div class="rz-group" style="margin:12px 0 2px"><span>No Financeiro, fora do roteiro</span></div><div class="rz-list" style="padding:0">${fin.map(f =>
+            `<div class="rz-row" style="gap:10px"><div class="rz-ic"><i data-lucide="receipt"></i></div><div class="rz-tx"><b>${esc(f.descricao || 'Gasto')}</b><span>${moeda(f.valor)}${f.data ? ' · ' + dm(f.data) : ''}</span></div></div>`).join('')}</div>` : ''}`;
+    const sheet = abrirSheet(cab('Pessoas', r.ciclo.nome) + `<div class="rz-sh-b">${corpo}</div>`, { empilhar: true });
+    icones();
+    (sheet || document).querySelector('[data-ps-quem]')?.addEventListener('click', () => { if (!fechado && r.pode_gerir) folhaQuemVai(r); });
+}
+
 /** A viagem aberta já no roteiro. o: { d, abrirItem(id), recarregar(), abrirCiclo(id), novaViagem(), corrigir(), verLista() } */
 export async function abrirViagem(o) {
     const d = o.d, P = d.programa, C0 = d.ciclo;
     if (!ctx || ctx.cicloId !== C0.id) bandejaAberta = null;
-    ctx = { cicloId: C0.id, abrirItem: o.abrirItem, recarregar: o.recarregar };
+    ctx = { cicloId: C0.id, abrirItem: o.abrirItem, recarregar: o.recarregar, excluirItem: o.excluirItem }; // v1.8.0 — excluirItem
     aposEncaixe = null;
     const r = await ler(); if (!r) return;
     if (!r.pode_ver) { aviso('Seu perfil não vê esta viagem.', 'erro'); return; }
@@ -392,11 +429,10 @@ export async function abrirViagem(o) {
     const sub = [vari, 'ida ' + dmy(C.inicio), 'volta ' + dmy(C.fim)].filter(Boolean).join(' · ') + (fechado ? ' · fechada' : '');
     const abas = (d.ciclos || []).length > 1 ? `<div class="rz-chips" style="margin:0 0 10px">${d.ciclos.map(c =>
         `<button type="button" class="rz-chip ${c.id === C.id ? 'rz-on' : ''}" data-vg-ciclo="${c.id}">${esc(c.nome)}</button>`).join('')}</div>` : '';
-    const custo = d.custo || {};
-    const custoHtml = `<div class="rz-exec-custo"><span><b>${moeda(custo.realizado || 0)}</b> pago</span><span><b>${moeda(custo.a_pagar || 0)}</b> a pagar</span></div>`;
+    const custoHtml = totaisHtml(r); // v1.8.0 — Cotado / Reservado / Pago (Financeiro)
     const qv = quemVaiResumo(r);
     const quem = `<button type="button" class="rz-row" data-vg-quem style="width:100%;text-align:left"><div class="rz-ic"><i data-lucide="users"></i></div>
-        <div class="rz-tx"><b>Quem vai</b><span>${esc(qv || (fechado ? 'Ninguém na lista' : 'Ninguém ainda · toque para incluir'))}</span></div><i data-lucide="chevron-right"></i></button>`;
+        <div class="rz-tx"><b>Pessoas</b><span>${esc(qv || (fechado ? 'Ninguém na lista' : 'Ninguém ainda · toque para incluir'))}</span></div><i data-lucide="chevron-right"></i></button>`;
     const cont = (d.itens || []).filter(i => i.etapa_nome).reduce((m, i) => (m.set(i.etapa_nome, (m.get(i.etapa_nome) || 0) + 1), m), new Map());
     const etapas = cont.size ? `<p class="rz-hint" style="margin:6px 0 0">${esc([...cont].map(([k, n]) => k + ' ' + n).join(' · '))}</p>` : '';
     const sheet = abrirSheet(cab(P.nome + ' · ' + C.nome, sub) + `<div class="rz-sh-b">${abas}${custoHtml}${quem}${etapas}<div style="margin-top:8px">${corpoHtml(r)}</div></div>`
@@ -406,7 +442,8 @@ export async function abrirViagem(o) {
     ligarCorpo(sheet, r, fechado);
     sheet.querySelectorAll('[data-vg-ciclo]').forEach(b => b.addEventListener('click', () => o.abrirCiclo?.(b.dataset.vgCiclo)));
     sheet.querySelector('[data-vg-novo]')?.addEventListener('click', () => folhaItem(r, null));
-    sheet.querySelector('[data-vg-quem]')?.addEventListener('click', () => { if (!fechado && r.pode_gerir) folhaQuemVai(r); });
+    sheet.querySelector('[data-vg-quem]')?.addEventListener('click', () => folhaPessoas(r, fechado)); // v1.8.0
+    sheet.querySelector('[data-vg-pagos]')?.addEventListener('click', () => folhaPagosFora(r));
     sheet.querySelector('[data-vg-mais]')?.addEventListener('click', () => g('abrirSheetAcoes')?.({ titulo: C.nome, sub: P.nome, empilhar: true, acoes: [
         ...(!fechado && r.pode_gerir ? [{ icone: 'route', titulo: 'Editar trechos', codigo: 'ciclos.gerir', sub: 'Nome e datas, incluir ou tirar', aoTocar: () => abrirEditarTrechos({ cicloId: C.id, roteiro: r }) },
             { icone: 'users', titulo: 'Quem vai', codigo: 'ciclos.gerir', sub: 'Toda a viagem ou só alguns trechos', aoTocar: () => folhaQuemVai(r) }] : []),
@@ -427,21 +464,36 @@ export function folhaItem(r, e) {
     const etapaIni = e?.etapa || null; let etapa = etapaIni;
     const jan = e && e.dias_total > 1 && e.janela_fim ? ` min="${esc(e.janela_inicio)}" max="${esc(e.janela_fim)}"` : '';
     const chipsCat = CATS.map(([k, n]) => `<button type="button" class="rz-chip${k === cat ? ' rz-on' : ''}" data-fi-cat="${k}">${esc(n)}</button>`).join('');
+    // v1.8.0 — Pago com (conta ou cartão) e data; documentos; excluir
+    const lanc = e?.lancamento || null, casada = !!(lanc && lanc.fatura);
+    const contaIni = lanc?.conta_id || '', hoje = partes(new Date().toISOString()).data || new Date().toISOString().slice(0, 10);
+    const dpagIni = lanc?.data_pagamento || '';
+    const contas = r.contas || [];
+    const optsConta = '<option value="">Escolha…</option>' + contas.map(k => `<option value="${k.id}"${k.id === contaIni ? ' selected' : ''}>${esc(k.nome)}${k.tipo === 'cartao_credito' ? ' (cartão)' : ''}${k.titular ? ' · ' + esc(k.titular) : ''}</option>`).join('');
+    const docs = e?.documentos || [];
+    const limpar = (alvo) => `<button type="button" class="rz-more" data-fi-limpar="${alvo}" aria-label="Limpar" style="align-self:flex-end;margin-bottom:6px"><i data-lucide="x"></i></button>`;
     const sheet = g('abrirSheetForm')?.({
         titulo: novo ? 'No roteiro' : (e.titulo || 'Editar'), sub: C.nome, rotuloSalvar: 'Salvar', empilhar: true,
         corpo: `<div class="rz-f"><label for="fi-nome">Nome</label><input type="text" id="fi-nome" maxlength="80" value="${esc(e?.titulo || '')}" placeholder="Ex.: Show do Seinfeld, Hotel Araxá, voo de ida"></div>
             <div class="rz-f"><label>Categoria</label><div class="rz-chips" data-fi-cats>${chipsCat}</div></div>
             <div class="rz-row" style="gap:8px"><div class="rz-f" style="flex:1"><label for="fi-dia">Dia</label><input type="date" id="fi-dia" value="${esc(dataIni)}"${jan || ` min="${esc(C.inicio)}" max="${esc(C.fim)}"`}></div>
-                <div class="rz-f" style="flex:1"><label for="fi-hora">Hora / saída</label><input type="time" id="fi-hora" value="${esc(p.hora)}"></div></div>
-            <div class="rz-row" style="gap:8px"><div class="rz-f" style="flex:1"><label for="fi-ate">Até (opcional)</label><input type="date" id="fi-ate" value="${esc(pf.data)}"></div>
-                <div class="rz-f" style="flex:1"><label for="fi-ate-h">Hora / chegada</label><input type="time" id="fi-ate-h" value="${esc(pf.hora)}"></div></div>
+                <div class="rz-f" style="flex:1"><label for="fi-hora">Hora / saída</label><input type="time" id="fi-hora" value="${esc(p.hora)}"></div>${limpar('ini')}</div>
+            <div class="rz-row" style="gap:8px"><div class="rz-f" style="flex:1"><label for="fi-ate">Até (opcional)</label><input type="date" id="fi-ate" value="${esc(pf.data)}"${dataIni ? ` min="${esc(dataIni)}"` : ''}></div>
+                <div class="rz-f" style="flex:1"><label for="fi-ate-h">Hora / chegada</label><input type="time" id="fi-ate-h" value="${esc(pf.hora)}"></div>${limpar('fim')}</div>
             <span class="rz-hint">Sem dia, fica em "A encaixar". Ex.: voo 29/11 21:45 até 30/11 06:10; check-in 23/12 14:00 até 27/12 11:00.</span>
             <div class="rz-f"><label for="fi-desc">Descrição</label><input type="text" id="fi-desc" maxlength="120" value="${esc(e?.descricao || '')}" placeholder="Nº do voo, reserva, endereço"></div>
             <div class="rz-f"><label for="fi-valor">Valor (opcional)</label><input type="text" inputmode="decimal" id="fi-valor" value="${e?.valor ? esc(String(e.valor).replace('.', ',')) : ''}" placeholder="0,00"></div>
-            <div class="rz-f"><label>Etapa</label><div class="rz-chips" data-fi-etapas></div></div>`
+            <div class="rz-f"><label>Etapa</label><div class="rz-chips" data-fi-etapas></div></div>
+            <div data-fi-pago class="hidden">${casada ? `<p class="rz-hint" style="margin:0 0 8px">Pago no cartão ${esc(lanc.conta || '')} · conciliado com a fatura.</p>` : `
+                <div class="rz-row" style="gap:8px"><div class="rz-f" style="flex:1.4"><label for="fi-conta">Pago com</label><select id="fi-conta">${optsConta}</select></div>
+                <div class="rz-f" style="flex:1"><label for="fi-dpag">Data do pagamento</label><input type="date" id="fi-dpag" value="${esc(dpagIni || hoje)}"></div></div>
+                <span class="rz-hint">Conta: entra pago no Financeiro. Cartão: fica previsto no cartão e entra com a fatura.</span>`}</div>`
+            + (docs.length ? `<div class="rz-f" style="margin-top:10px"><label>Documentos</label><div class="rz-list" style="padding:0">${docs.map(dc =>
+                `<button type="button" class="rz-row" data-action="abrir-documento" data-id="${dc.id}" style="width:100%;text-align:left"><div class="rz-ic"><i data-lucide="file-text"></i></div><div class="rz-tx"><b>${esc(dc.nome || 'Documento')}</b></div><i data-lucide="chevron-right"></i></button>`).join('')}</div></div>` : '')
             + (novo ? '' : `<div class="rz-chips" style="margin-top:10px">
-                <button type="button" class="rz-btn rz-btn-3" data-fi-abrir>Documentos e pagamento</button>
-                <button type="button" class="rz-btn rz-btn-3" data-fi-mais>Mais um em ${esc(e.titulo)}</button></div>`),
+                <button type="button" class="rz-btn rz-btn-3" data-fi-abrir>${docs.length ? 'Abrir o item' : 'Anexar documento'}</button>
+                <button type="button" class="rz-btn rz-btn-3" data-fi-mais>Mais um em ${esc(e.titulo)}</button>
+                ${ctx?.excluirItem ? '<button type="button" class="rz-btn rz-btn-3" data-fi-excluir style="color:var(--bad, #b42318)">Excluir</button>' : ''}</div>`),
         aoSalvar: async (el) => {
             const v = (q) => (el.querySelector(q)?.value || '').trim();
             const nome = v('#fi-nome'); if (!nome) { aviso('Dê um nome.', 'erro'); return false; }
@@ -453,9 +505,21 @@ export function folhaItem(r, e) {
             const valorTxt = v('#fi-valor').replace(/\./g, '').replace(',', '.'); const valor = valorTxt ? Number(valorTxt) : null;
             if (valorTxt && (isNaN(valor) || valor < 0)) { aviso('Valor inválido.', 'erro'); return false; }
             const catOrig = e ? (CATS.find(c => c[2] === e.sub)?.[0] || null) : null;
+            // v1.8.0 — Pago: conta e data (o banco lança no Financeiro); valor só vai quando mudou (registro pago não se relança à toa)
+            const etAtual = etapa || etapaIni; const conta = v('#fi-conta'), dpag = v('#fi-dpag');
+            const valorMudou = novo || valor !== (e?.valor != null ? Number(e.valor) : null);
+            let pConta = null, pData = null;
+            if (etAtual === 'pago' && !casada && el.querySelector('#fi-conta')) {
+                const virouPago = etapa === 'pago' && etapaIni !== 'pago';
+                if (!conta && virouPago) { aviso('Escolha com que conta ou cartão foi pago.', 'erro'); return false; }
+                if (conta && !(valor > 0) && !(e?.valor > 0)) { aviso('Informe o valor pago.', 'erro'); return false; }
+                // já estava Pago e sem conta escolhida: salva o resto e segue em "pagos fora do Financeiro"
+                if (conta && (virouPago || conta !== contaIni || dpag !== (dpagIni || hoje) || valorMudou)) { pConta = conta; pData = dpag || null; }
+            }
             const { data, error } = await api.dbAuth.rpc('fn_roteiro_salvar', { p_ciclo_id: C.id, p_item_id: e?.item_id || null, p_ocorrencia_id: e?.ocorrencia_id || null,
                 p_categoria: cat && cat !== catOrig ? cat : (novo ? cat : null), p_titulo: nome, p_inicio_em: dia ? ts(dia, hora) : null,
-                p_fim_em: ate ? ts(ate, ateH) : null, p_descricao: v('#fi-desc'), p_valor: valor, p_etapa: etapa && etapa !== etapaIni ? etapa : null, p_canal: 'app' });
+                p_fim_em: ate ? ts(ate, ateH) : null, p_descricao: v('#fi-desc'), p_valor: valorMudou ? valor : null, p_etapa: etapa && etapa !== etapaIni ? etapa : null, p_canal: 'app',
+                p_conta_id: pConta, p_data_pagamento: pData });
             if (error) { aviso(error.message || 'Não foi possível salvar.', 'erro'); return false; }
             aviso(data?.mensagem || 'Salvo.', 'sucesso');
             setTimeout(() => abrirRoteiro(), 0);
@@ -470,12 +534,25 @@ export function folhaItem(r, e) {
         const box = raiz.querySelector('[data-fi-etapas]'); if (!box) return;
         box.innerHTML = lst.map(x => `<button type="button" class="rz-chip${x.codigo === (etapa || lst[0]?.codigo) ? ' rz-on' : ''}" data-fi-et="${x.codigo}">${esc(x.nome)}</button>`).join('');
         box.querySelectorAll('[data-fi-et]').forEach(b => b.addEventListener('click', () => { etapa = b.dataset.fiEt; desenharEtapas(); }));
+        raiz.querySelector('[data-fi-pago]')?.classList.toggle('hidden', (etapa || lst[0]?.codigo) !== 'pago' || fl !== 'reserva_viagem'); // v1.8.0
     };
     raiz.querySelectorAll('[data-fi-cat]').forEach(b => b.addEventListener('click', () => {
         cat = b.dataset.fiCat; raiz.querySelectorAll('[data-fi-cat]').forEach(x => x.classList.toggle('rz-on', x === b)); desenharEtapas(); }));
     desenharEtapas();
     raiz.querySelector('[data-fi-abrir]')?.addEventListener('click', () => { g('fecharSheet')?.(); ctx?.abrirItem?.(e.item_id); });
     raiz.querySelector('[data-fi-mais]')?.addEventListener('click', () => { g('fecharSheet')?.(); setTimeout(() => folhaEncaixar(r, { item_id: e.item_id, titulo: e.titulo }, true), 0); });
+    raiz.querySelector('[data-fi-excluir]')?.addEventListener('click', () => ctx?.excluirItem?.(e.item_id)); // v1.8.0 — regra de exclusão do item
+    // v1.8.0 — limpar dia/até; "Até" começa no dia e vira D+1 ao marcar o dia
+    const q = (id) => raiz.querySelector(id);
+    raiz.querySelectorAll('[data-fi-limpar]').forEach(b => b.addEventListener('click', () => {
+        if (b.dataset.fiLimpar === 'ini') { q('#fi-dia').value = ''; q('#fi-hora').value = ''; }
+        q('#fi-ate').value = ''; q('#fi-ate-h').value = '';
+    }));
+    q('#fi-dia')?.addEventListener('change', () => {
+        const dia = q('#fi-dia').value, ate = q('#fi-ate'); if (!ate) return;
+        ate.min = dia || '';
+        if (dia && (!ate.value || ate.value < dia)) { const [a, m, d] = dia.split('-').map(Number); const n = new Date(Date.UTC(a, m - 1, d + 1)); ate.value = n.toISOString().slice(0, 10); }
+    });
 }
 
 /** Quem vai: família (vidas) e pessoas de fora; toda a viagem ou só alguns trechos. */
